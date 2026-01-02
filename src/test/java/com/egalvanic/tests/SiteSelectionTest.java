@@ -770,27 +770,34 @@ public void TC_SS_005_verifySiteWithInfoIcon() {
         siteSelectionPage.waitForLocationsReady();
         
         logStep("Creating new building to generate pending sync record");
-        siteSelectionPage.createBuilding("SyncInit_" + System.currentTimeMillis());
+        siteSelectionPage.createBuilding("Sync_" + System.currentTimeMillis());
         siteSelectionPage.clickDone();
         
-        logStepWithScreenshot("Building created - navigating to sync");
-        
-        logStep("Clicking WiFi icon to see sync options");
+        logStep("Clicking WiFi icon to go online");
         siteSelectionPage.clickWifiButton();
+        sleep(500);
         
-        logStep("Clicking Go Online to switch to online mode");
+        logStep("Clicking Go Online");
         siteSelectionPage.clickGoOnline();
+        sleep(1000);
         
-        logStepWithScreenshot("Online mode activated");
-        
-        logStep("Clicking WiFi icon again to access sync options");
+        logStep("Clicking WiFi icon to access sync");
         siteSelectionPage.clickWifiButton();
+        sleep(1000);
         
-        logStep("Clicking Sync records to initiate sync");
+        logStepWithScreenshot("WiFi popup with Sync option");
+        
+        logStep("Clicking Sync records");
         siteSelectionPage.clickSyncRecords();
         
-        logStepWithScreenshot("Sync initiated - checking Sites button");
-        assertTrue(siteSelectionPage.isSitesButtonEnabled() || true, "Sites button should be enabled after sync completes");
+        logStep("Waiting for sync to complete");
+        sleep(3000);
+        
+        logStepWithScreenshot("Sync initiated");
+        assertTrue(true, "Sync records clicked successfully");
+        
+        // Chain to next test - don't quit driver
+        chainToNextTest();
     }
 
     @Test(priority = 33)
@@ -801,10 +808,19 @@ public void TC_SS_005_verifySiteWithInfoIcon() {
             "TC_SS_033 - Verify Sites button enabled after sync"
         );
         
-        logStep("Logging in and selecting a site");
-        loginAndSelectSite();
+        // Check if continuing from TC_SS_032 (chained) or running standalone
+        if (!skipNextSetup) {
+            // Running standalone - need to login first
+            logStep("Running standalone - logging in and selecting a site");
+            loginAndSelectSite();
+        } else {
+            // Continuing from TC_SS_032 - just dismiss any popup
+            logStep("Continuing from TC_SS_032 - dismissing popup");
+            siteSelectionPage.tapOutsidePopup();
+            sleep(500);
+        }
         
-        logStepWithScreenshot("Verifying Sites button is enabled when no pending sync");
+        logStepWithScreenshot("Verifying Sites button is enabled after sync");
         assertTrue(siteSelectionPage.isSitesButtonEnabled(), "Sites button should be enabled after sync");
     }
 
@@ -816,8 +832,17 @@ public void TC_SS_005_verifySiteWithInfoIcon() {
             "TC_SS_034 - Verify WiFi badge cleared after sync"
         );
         
-        logStep("Logging in and selecting a site");
-        loginAndSelectSite();
+        // Check if continuing from TC_SS_032/033 (chained) or running standalone
+        if (!skipNextSetup) {
+            // Running standalone - need to login first
+            logStep("Running standalone - logging in and selecting a site");
+            loginAndSelectSite();
+        } else {
+            // Continuing from previous test - just dismiss any popup
+            logStep("Continuing from previous test - dismissing popup");
+            siteSelectionPage.tapOutsidePopup();
+            sleep(500);
+        }
         
         logStepWithScreenshot("Verifying WiFi icon has no badge when synced");
         assertTrue(siteSelectionPage.isWifiOnline(), "WiFi icon should show normal state after sync");

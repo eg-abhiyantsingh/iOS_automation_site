@@ -20,6 +20,10 @@ public class BaseTest {
     protected WelcomePage welcomePage;
     protected LoginPage loginPage;
     protected SiteSelectionPage siteSelectionPage;
+    
+    // Flag to skip setup/teardown for chained tests
+    protected static boolean skipNextSetup = false;
+    protected static boolean skipNextTeardown = false;
 
     // ================================================================
     // SUITE LEVEL SETUP/TEARDOWN
@@ -57,6 +61,17 @@ public class BaseTest {
 
     @BeforeMethod
     public void testSetup() {
+        // Skip setup for chained tests
+        if (skipNextSetup) {
+            System.out.println("\n🔗 Continuing from previous test (skipping setup)...");
+            skipNextSetup = false;
+            // Re-initialize page objects with existing driver
+            welcomePage = new WelcomePage();
+            loginPage = new LoginPage();
+            siteSelectionPage = new SiteSelectionPage();
+            return;
+        }
+        
         System.out.println("\n🚀 Setting up test...");
         
         // Initialize driver
@@ -100,8 +115,16 @@ public class BaseTest {
         
         // Cleanup
         ExtentReportManager.removeTests();
-        DriverManager.quitDriver();
         
+        // Skip driver quit for chained tests
+        if (skipNextTeardown) {
+            System.out.println("🔗 Keeping driver alive for next chained test\n");
+            skipNextTeardown = false;
+            skipNextSetup = true; // Signal next test to skip setup
+            return;
+        }
+        
+        DriverManager.quitDriver();
         System.out.println("🧹 Test cleanup complete\n");
     }
 
@@ -300,5 +323,14 @@ public class BaseTest {
         } catch (Exception e) {
             // No alert present - continue
         }
+    }
+    
+    /**
+     * Mark this test to chain with next test (don't quit driver)
+     * Call this at the END of a test that should continue to the next test
+     */
+    protected void chainToNextTest() {
+        skipNextTeardown = true;
+        System.out.println("🔗 Test will chain to next dependent test");
     }
 }

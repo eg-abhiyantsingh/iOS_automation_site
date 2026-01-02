@@ -609,6 +609,34 @@ public class SiteSelectionPage extends BasePage {
     }
 
     /**
+     * Tap outside any popup to dismiss it
+     */
+    public void tapOutsidePopup() {
+        try {
+            System.out.println("🔍 Tapping outside popup to dismiss...");
+            // Tap on center-bottom area of screen (usually safe to dismiss popups)
+            org.openqa.selenium.Dimension size = driver.manage().window().getSize();
+            int x = size.width / 2;
+            int y = (int) (size.height * 0.8); // 80% down the screen
+            
+            new io.appium.java_client.touch.offset.PointOption();
+            io.appium.java_client.PerformsTouchActions touchDriver = (io.appium.java_client.PerformsTouchActions) driver;
+            new io.appium.java_client.TouchAction<>(touchDriver)
+                .tap(io.appium.java_client.touch.offset.PointOption.point(x, y))
+                .perform();
+            System.out.println("✅ Tapped at (" + x + ", " + y + ")");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not tap outside popup: " + e.getMessage());
+            // Alternative: try pressing escape or back
+            try {
+                driver.navigate().back();
+            } catch (Exception ex) {
+                // Ignore
+            }
+        }
+    }
+
+    /**
      * Go Offline (with internal explicit wait)
      */
     public void goOffline() {
