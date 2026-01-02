@@ -145,12 +145,13 @@ public class BaseTest {
         // Enter credentials - wait for site selection screen
         loginPage.login(AppConstants.VALID_EMAIL, AppConstants.VALID_PASSWORD);
         
-        // Handle any alerts that might appear after login
-        try {
-            welcomePage.handleSavePasswordAlert();
-        } catch (Exception e) {
-            System.out.println("⚠️ No alert to handle: " + e.getMessage());
-        }
+        // Wait for Save Password popup to appear
+        sleep(2000);
+        
+        // Handle Save Password alert if present (try multiple times)
+        welcomePage.handleSavePasswordAlert();
+        sleep(500);
+        welcomePage.handleSavePasswordAlert();
         
         System.out.println("✅ Login completed");
     }
@@ -160,9 +161,6 @@ public class BaseTest {
      */
     protected void loginAndGoToDashboard() {
         performLogin();
-        
-        // Handle any lingering Save Password popup
-        dismissAnyAlert();
         
         // Wait for site selection screen to be ready
         siteSelectionPage.waitForSiteListReady();
@@ -176,17 +174,11 @@ public class BaseTest {
     protected void loginAndSelectSite() {
         loginAndGoToDashboard();
         
-        // Handle any lingering Save Password popup (may appear delayed)
-        dismissAnyAlert();
-        
         // Select random site
         siteSelectionPage.selectRandomSite();
         
         // Wait for dashboard to load after site selection
         siteSelectionPage.waitForDashboardReady();
-        
-        // Handle any alerts that may appear after site load
-        dismissAnyAlert();
         
         System.out.println("✅ Site selected and loaded");
     }

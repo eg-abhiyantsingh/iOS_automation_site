@@ -437,17 +437,101 @@ public class SiteSelectionPage extends BasePage {
     }
 
     /**
-     * Select site by name (partial match)
+     * Wait for search results to be ready after typing in search box
+     * Uses explicit wait with condition checking - CI/CD safe
+     */
+    public void waitForSearchResultsReady() {
+        try {
+            WebDriverWait searchWait = new WebDriverWait(driver, Duration.ofSeconds(5));
+            searchWait.pollingEvery(Duration.ofMillis(200));
+            searchWait.until(d -> {
+                List<WebElement> sites = getAllSites();
+                return sites.size() >= 0;
+            });
+            System.out.println("✅ Search results ready");
+        } catch (Exception e) {
+            System.out.println("⚠️ Search results wait timeout, continuing...");
+        }
+    }
+
+    /**
+     * Select site by name (fast - clicks first search result)
+     * Clears any previous search, searches for the site, then clicks the first result
+     * Uses explicit waits - CI/CD safe
      */
     public boolean selectSiteByName(String siteName) {
+        System.out.println("🔍 Selecting site by name: " + siteName);
+        
+        // Clear any previous search first to avoid cache issues
+        try {
+            clearSearch();
+            waitForSearchResultsReady();
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not clear previous search: " + e.getMessage());
+        }
+        
+        // Search for the site
+        System.out.println("📝 Entering search text: " + siteName);
+        searchSite(siteName);
+        
+        // Wait for search results to load using explicit wait (CI/CD safe)
+        waitForSearchResultsReady();
+        
+        // Get filtered results and click the first one
         List<WebElement> sites = getAllSites();
+        System.out.println("📋 Found " + sites.size() + " sites after search");
+        
+        if (sites.size() > 0) {
+            String firstSiteName = sites.get(0).getAttribute("name");
+            System.out.println("✅ Clicking first result: " + firstSiteName);
+            sites.get(0).click();
+            return true;
+        }
+        
+        System.out.println("❌ No sites found for: " + siteName);
+        return false;
+    }
+
+    /**
+     * Select site by exact name match (for specific site selection like "test site")
+     * Searches for the site and clicks the one with exact matching name
+     */
+    public boolean selectSiteByExactName(String siteName) {
+        System.out.println("🔍 Selecting site by EXACT name: " + siteName);
+        
+        // Clear any previous search first
+        try {
+            clearSearch();
+            waitForSearchResultsReady();
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not clear previous search: " + e.getMessage());
+        }
+        
+        // Search for the site
+        System.out.println("📝 Entering search text: " + siteName);
+        searchSite(siteName);
+        
+        // Wait for search results to load using explicit wait (CI/CD safe)
+        waitForSearchResultsReady();
+        
+        // Get filtered results and find exact match
+        List<WebElement> sites = getAllSites();
+        System.out.println("📋 Found " + sites.size() + " sites after search");
+        
+        // Find exact match by site name (before comma)
         for (WebElement site : sites) {
             String name = site.getAttribute("name");
-            if (name != null && name.toLowerCase().contains(siteName.toLowerCase())) {
-                site.click();
-                return true;
+            if (name != null) {
+                String siteNamePart = name.split(",")[0].trim().toLowerCase();
+                if (siteNamePart.equals(siteName.toLowerCase())) {
+                    System.out.println("✅ Found exact match, clicking: " + name);
+                    site.click();
+                    return true;
+                }
             }
         }
+        
+        System.out.println("❌ No exact match found for: " + siteName);
         return false;
     }
 

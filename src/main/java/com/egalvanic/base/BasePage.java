@@ -328,41 +328,80 @@ public abstract class BasePage {
     
     /**
      * Handle Save Password alert specifically
+     * Tries multiple approaches to dismiss the popup
      */
     protected void handleSavePasswordAlert() {
+        System.out.println("🔍 Looking for Save Password popup...");
+        
+        // All possible button names for iOS Save Password popup
+        String[] buttonNames = {
+            "Not Now", "not now", "NOT NOW",
+            "Save Password", "save password",
+            "Don't Save", "Dont Save", "Don't save",
+            "Never for This Website",
+            "Cancel", "cancel",
+            "No", "NO"
+        };
+        
+        for (String btnName : buttonNames) {
+            try {
+                // Try accessibility ID
+                org.openqa.selenium.WebElement btn = driver.findElement(
+                    io.appium.java_client.AppiumBy.accessibilityId(btnName)
+                );
+                btn.click();
+                System.out.println("✅ Clicked: " + btnName);
+                return;
+            } catch (Exception e) {}
+        }
+        
+        // Try finding any button with "Not" in the name
         try {
-            // Use explicit wait for alert (CI-safe, no Thread.sleep)
-            WebDriverWait alertWait = new WebDriverWait(driver, Duration.ofSeconds(2));
-            
-            // Try to find and dismiss the save password alert
-            // Common iOS save password alert buttons
-            String[] buttonSelectors = {
-                "Not Now", "Don't Allow", "No", "Later", "Cancel", "Do not save"
-            };
-            
-            for (String buttonLabel : buttonSelectors) {
-                try {
-                    // Try to find the button by accessibility ID or other locator
-                    org.openqa.selenium.WebElement button = driver.findElement(
-                        org.openqa.selenium.By.xpath("//XCUIElementTypeButton[@name='" + buttonLabel + "' or @label='" + buttonLabel + "']")
-                    );
-                    if (button.isDisplayed()) {
-                        button.click();
-                        System.out.println("✅ Save Password alert dismissed with '" + buttonLabel + "' button");
-                        return;
-                    }
-                } catch (Exception e) {
-                    // Continue to next button option
-                }
+            org.openqa.selenium.WebElement btn = driver.findElement(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND (name CONTAINS 'Not' OR name CONTAINS 'not' OR label CONTAINS 'Not')"
+                )
+            );
+            btn.click();
+            System.out.println("✅ Clicked button containing 'Not'");
+            return;
+        } catch (Exception e) {}
+        
+        // Try finding button with "Save" - might need to click it to dismiss
+        try {
+            org.openqa.selenium.WebElement btn = driver.findElement(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND (name CONTAINS 'Save' OR label CONTAINS 'Save')"
+                )
+            );
+            // Check if this is the "Not Now" or similar dismiss option
+            String name = btn.getAttribute("name");
+            if (name != null && (name.contains("Not") || name.contains("Don"))) {
+                btn.click();
+                System.out.println("✅ Clicked: " + name);
+                return;
             }
+        } catch (Exception e) {}
+        
+        // Try tapping coordinates (common iOS Save Password dismiss button location)
+        try {
+            // "Not Now" is typically on the left side of the popup
+            org.openqa.selenium.Dimension size = driver.manage().window().getSize();
+            int x = size.width / 4; // Left quarter
+            int y = size.height / 2; // Middle height
             
-            // If we can't find the specific button, try to dismiss with general alert handling
-            if (isAlertPresent()) {
-                driver.switchTo().alert().dismiss();
-                System.out.println("✅ Alert dismissed with dismiss()");
-            }
+            new io.appium.java_client.TouchAction<>((io.appium.java_client.PerformsTouchActions) driver)
+                .tap(io.appium.java_client.touch.offset.PointOption.point(x, y))
+                .perform();
+            System.out.println("✅ Tapped at coordinates to dismiss popup");
+        } catch (Exception e) {}
+        
+        // Last resort - try alert handling
+        try {
+            driver.switchTo().alert().dismiss();
+            System.out.println("✅ Alert dismissed");
         } catch (Exception e) {
-            System.out.println("⚠️ No save password alert found");
+            System.out.println("⚠️ No Save Password popup found");
         }
     }
 
