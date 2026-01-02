@@ -145,7 +145,11 @@ public class BaseTest {
         // Enter credentials - wait for site selection screen
         loginPage.login(AppConstants.VALID_EMAIL, AppConstants.VALID_PASSWORD);
         
-        // Brief wait then handle Save Password alert if present (once is enough)
+        // Wait for Save Password popup to appear
+        sleep(2000);
+        
+        // Handle Save Password alert if present (try multiple times)
+        welcomePage.handleSavePasswordAlert();
         sleep(500);
         welcomePage.handleSavePasswordAlert();
         
@@ -170,8 +174,8 @@ public class BaseTest {
     protected void loginAndSelectSite() {
         loginAndGoToDashboard();
         
-        // Select random site
-        siteSelectionPage.selectRandomSite();
+        // Select first site quickly (no need for random)
+        siteSelectionPage.selectFirstSite();
         
         // Wait for dashboard to load after site selection
         siteSelectionPage.waitForDashboardReady();

@@ -331,6 +331,8 @@ public abstract class BasePage {
      * Tries multiple approaches to dismiss the popup
      */
     protected void handleSavePasswordAlert() {
+        System.out.println("🔍 Looking for Save Password popup...");
+        
         // Quick check - try alert first (fastest path)
         try {
             driver.switchTo().alert().dismiss();
@@ -340,8 +342,13 @@ public abstract class BasePage {
             // No system alert - continue with other checks
         }
         
-        // Try common dismiss buttons with short timeout
-        String[] buttonNames = {"Not Now", "Don't Save", "Cancel"};
+        // All possible button names for iOS Save Password popup
+        String[] buttonNames = {
+            "Not Now", "not now", "NOT NOW",
+            "Don't Save", "Dont Save", "Don't save",
+            "Never for This Website",
+            "Cancel", "cancel"
+        };
         
         for (String btnName : buttonNames) {
             try {
@@ -365,8 +372,10 @@ public abstract class BasePage {
             System.out.println("✅ Clicked button containing 'Not'");
             return;
         } catch (Exception e) {
-            // No popup found - this is normal, continue silently
+            // No popup found - this is normal
         }
+        
+        System.out.println("⚠️ No Save Password popup found");
     }
 
     /**

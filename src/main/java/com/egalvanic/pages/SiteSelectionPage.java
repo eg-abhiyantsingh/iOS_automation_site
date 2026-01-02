@@ -425,6 +425,26 @@ public class SiteSelectionPage extends BasePage {
     }
 
     /**
+     * Select first site quickly - optimized for speed
+     * Uses direct XPath to find first site button without iterating all buttons
+     */
+    public String selectFirstSite() {
+        try {
+            // Find first button that looks like a site (contains comma - indicating "name, address")
+            WebElement firstSite = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name CONTAINS ','"
+            ));
+            String siteName = firstSite.getAttribute("name");
+            System.out.println("✅ Selecting first site: " + siteName);
+            firstSite.click();
+            return siteName;
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not find first site directly, falling back to getAllSites");
+            return selectSiteByIndex(0);
+        }
+    }
+
+    /**
      * Select random site
      */
     public String selectRandomSite() {
@@ -903,6 +923,41 @@ public class SiteSelectionPage extends BasePage {
      */
     public boolean hasPendingSyncRecords() {
         return getPendingSyncCount() > 0 || isSyncRecordsOptionVisible();
+    }
+
+    /**
+     * Wait for sync to complete after clicking sync button
+     * Waits up to 30 seconds for sync to finish
+     */
+    public void waitForSyncToComplete() {
+        System.out.println("⏳ Waiting for sync to complete...");
+        int maxWaitSeconds = 30;
+        int elapsed = 0;
+        
+        while (elapsed < maxWaitSeconds) {
+            try {
+                Thread.sleep(2000);
+                elapsed += 2;
+                System.out.println("⏳ Sync in progress... (" + elapsed + "s/" + maxWaitSeconds + "s)");
+                
+                // Check if Sites button is enabled (indicates sync complete)
+                if (isSitesButtonEnabled()) {
+                    System.out.println("✅ Sync completed - Sites button is enabled");
+                    return;
+                }
+                
+                // Check if WiFi shows online state without badge
+                if (isWifiOnline()) {
+                    System.out.println("✅ Sync completed - WiFi shows online");
+                    return;
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        
+        System.out.println("✅ Sync wait completed (timeout reached but sync may have finished)");
     }
 
     /**

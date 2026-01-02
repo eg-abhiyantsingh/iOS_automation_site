@@ -107,7 +107,7 @@ public class AppConstants {
     public static final String EMAIL_PASSWORD = getEnv("EMAIL_PASSWORD", "ccddnnqsjigrhzcz");
     public static final String EMAIL_TO = "abhiyantsinghsuas18@gmail.com";
     public static final String EMAIL_SUBJECT = "eGalvanic iOS Automation - Test Report";
-    public static final boolean SEND_EMAIL_ENABLED = true; // Set to true to send email reports
+    public static final boolean SEND_EMAIL_ENABLED = false; // Set to true to send email reports
 
     // ============================================
     // HELPER METHOD
