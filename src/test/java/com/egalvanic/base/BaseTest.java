@@ -145,11 +145,7 @@ public class BaseTest {
         // Enter credentials - wait for site selection screen
         loginPage.login(AppConstants.VALID_EMAIL, AppConstants.VALID_PASSWORD);
         
-        // Wait for Save Password popup to appear
-        sleep(2000);
-        
-        // Handle Save Password alert if present (try multiple times)
-        welcomePage.handleSavePasswordAlert();
+        // Brief wait then handle Save Password alert if present (once is enough)
         sleep(500);
         welcomePage.handleSavePasswordAlert();
         

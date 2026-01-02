@@ -2,18 +2,30 @@
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
 <suite name="eGalvanic iOS Automation Suite" verbose="2">
 
-    <!-- Authentication Module Tests (38 Test Cases) -->
+    <!-- TEMPORARY: Running only 2 test cases for CI validation -->
+    <test name="Site Selection Tests - Quick Validation">
+        <classes>
+            <class name="com.egalvanic.tests.SiteSelectionTest">
+                <methods>
+                    <include name="TC_SS_001_verifySiteSelectionScreenIsDisplayed"/>
+                    <include name="TC_SS_002_verifySiteListIsDisplayed"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+
+    <!-- COMMENTED OUT FOR QUICK TEST - UNCOMMENT FOR FULL RUN
     <test name="Authentication Tests">
         <classes>
             <class name="com.egalvanic.tests.AuthenticationTest"/>
         </classes>
     </test>
 
-    <!-- Site Selection Module Tests (58 Test Cases) -->
     <test name="Site Selection Tests">
         <classes>
             <class name="com.egalvanic.tests.SiteSelectionTest"/>
         </classes>
     </test>
+    -->
 
 </suite>

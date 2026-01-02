@@ -1093,6 +1093,20 @@ public class SiteSelectionPage extends BasePage {
         return isElementDisplayed(broadcastIcon);
     }
 
+    /**
+     * Check if an element with the given accessibility ID is displayed
+     * @param accessibilityId The accessibility ID to search for
+     * @return true if element is displayed, false otherwise
+     */
+    public boolean isElementDisplayedByAccessibilityId(String accessibilityId) {
+        try {
+            WebElement element = driver.findElement(AppiumBy.accessibilityId(accessibilityId));
+            return element.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     // ================================================================
     // LOCATIONS METHODS
     // ================================================================
