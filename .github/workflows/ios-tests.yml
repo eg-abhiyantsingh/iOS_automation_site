@@ -1,0 +1,197 @@
+name: iOS Automation Tests
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+  workflow_dispatch:
+    inputs:
+      device_name:
+        description: 'iOS Simulator Device Name'
+        required: false
+        default: 'iPhone 15 Pro'
+      platform_version:
+        description: 'iOS Platform Version'
+        required: false
+        default: '17.2'
+
+env:
+  JAVA_VERSION: '17'
+  NODE_VERSION: '18'
+  APPIUM_VERSION: '2.4.1'
+  XCUITEST_DRIVER_VERSION: '7.3.1'
+
+jobs:
+  ios-test:
+    runs-on: macos-14  # macOS Sonoma with Xcode 15+
+    timeout-minutes: 60
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: ☕ Set up Java ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: 📦 Set up Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: 📱 Install Appium
+        run: |
+          npm install -g appium@${{ env.APPIUM_VERSION }}
+          appium driver install xcuitest@${{ env.XCUITEST_DRIVER_VERSION }}
+          echo "✅ Appium installed: $(appium --version)"
+
+      - name: 🔧 List Available Simulators
+        run: |
+          xcrun simctl list devices available
+          
+      - name: 📱 Create and Boot iOS Simulator
+        id: simulator
+        run: |
+          # Set device based on input or default
+          DEVICE_NAME="${{ github.event.inputs.device_name || 'iPhone 15 Pro' }}"
+          PLATFORM_VERSION="${{ github.event.inputs.platform_version || '17.2' }}"
+          
+          echo "📱 Looking for: $DEVICE_NAME (iOS $PLATFORM_VERSION)"
+          
+          # Find available simulator matching the criteria
+          SIMULATOR_UDID=$(xcrun simctl list devices available | grep "$DEVICE_NAME" | grep -v "unavailable" | head -1 | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
+          
+          if [ -z "$SIMULATOR_UDID" ]; then
+            echo "⚠️ Exact match not found, creating simulator..."
+            # Try to create a new simulator
+            RUNTIME=$(xcrun simctl list runtimes iOS | grep -v unavailable | tail -1 | sed -E 's/.*- (com\.apple\.CoreSimulator\.SimRuntime\.iOS-[0-9-]+).*/\1/')
+            DEVICE_TYPE="com.apple.CoreSimulator.SimDeviceType.iPhone-15-Pro"
+            SIMULATOR_UDID=$(xcrun simctl create "Test iPhone" "$DEVICE_TYPE" "$RUNTIME")
+            echo "✅ Created simulator: $SIMULATOR_UDID"
+          fi
+          
+          echo "📱 Using simulator: $SIMULATOR_UDID"
+          
+          # Boot simulator
+          xcrun simctl boot "$SIMULATOR_UDID" || true
+          
+          # Wait for simulator to be ready
+          echo "⏳ Waiting for simulator to boot..."
+          sleep 30
+          
+          # Verify simulator is booted
+          xcrun simctl list devices booted
+          
+          # Export variables
+          echo "SIMULATOR_UDID=$SIMULATOR_UDID" >> $GITHUB_ENV
+          echo "DEVICE_NAME=$DEVICE_NAME" >> $GITHUB_ENV
+          echo "PLATFORM_VERSION=$PLATFORM_VERSION" >> $GITHUB_ENV
+          echo "udid=$SIMULATOR_UDID" >> $GITHUB_OUTPUT
+
+      - name: 📲 Download and Install App
+        run: |
+          # Create apps directory
+          mkdir -p apps
+          
+          # If app is stored in the repo, copy it
+          if [ -d "apps/" ] && [ "$(ls -A apps/*.app 2>/dev/null)" ]; then
+            echo "✅ App found in repository"
+            APP_PATH="$(pwd)/$(ls apps/*.app | head -1)"
+          else
+            echo "⚠️ No app found in apps/ directory"
+            echo "Please ensure your .app file is available"
+            # You can add download logic here if needed
+            APP_PATH="apps/Z Platform-QA.app"
+          fi
+          
+          echo "APP_PATH=$APP_PATH" >> $GITHUB_ENV
+          echo "📱 App path: $APP_PATH"
+
+      - name: 🚀 Start Appium Server
+        run: |
+          echo "🚀 Starting Appium server..."
+          appium --address 127.0.0.1 --port 4723 \
+            --allow-cors \
+            --relaxed-security \
+            --log-level info \
+            --log-timestamp &
+          
+          # Wait for Appium to start
+          echo "⏳ Waiting for Appium server..."
+          sleep 15
+          
+          # Verify Appium is running
+          curl -s http://127.0.0.1:4723/status | head -20
+          echo "✅ Appium server started"
+
+      - name: 📝 Set Environment Variables
+        run: |
+          echo "Setting test environment variables..."
+          echo "APPIUM_SERVER=http://127.0.0.1:4723" >> $GITHUB_ENV
+          
+      - name: 🧪 Run Tests
+        run: |
+          echo "🧪 Running iOS automation tests..."
+          echo "📱 Device: $DEVICE_NAME"
+          echo "📱 Platform: $PLATFORM_VERSION"
+          echo "📱 UDID: $SIMULATOR_UDID"
+          echo "📱 App: $APP_PATH"
+          
+          mvn clean test \
+            -DdeviceName="$DEVICE_NAME" \
+            -DplatformVersion="$PLATFORM_VERSION" \
+            -DudId="$SIMULATOR_UDID" \
+            -DappPath="$APP_PATH" \
+            -Dmaven.test.failure.ignore=true \
+            -B
+        env:
+          DEVICE_NAME: ${{ env.DEVICE_NAME }}
+          PLATFORM_VERSION: ${{ env.PLATFORM_VERSION }}
+          SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
+          APP_PATH: ${{ env.APP_PATH }}
+          APPIUM_SERVER: http://127.0.0.1:4723
+
+      - name: 📊 Upload Test Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-reports-${{ github.run_number }}
+          path: |
+            reports/
+            target/surefire-reports/
+            screenshots/
+          retention-days: 30
+
+      - name: 📸 Upload Screenshots
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: failure-screenshots-${{ github.run_number }}
+          path: screenshots/
+          retention-days: 14
+
+      - name: 🧹 Cleanup
+        if: always()
+        run: |
+          echo "🧹 Cleaning up..."
+          # Shutdown simulator
+          xcrun simctl shutdown all || true
+          # Kill Appium
+          pkill -f appium || true
+          echo "✅ Cleanup complete"
+
+      - name: 📋 Test Summary
+        if: always()
+        run: |
+          echo "📋 Test Execution Summary"
+          echo "========================="
+          if [ -f "target/surefire-reports/testng-results.xml" ]; then
+            echo "TestNG Results:"
+            cat target/surefire-reports/testng-results.xml | head -50
+          fi
+          echo ""
+          echo "Reports available in artifacts"

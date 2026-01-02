@@ -1,0 +1,153 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------< com.egalvanic:mobile-automation >-------------------
+[INFO] Building eGalvanic iOS Automation 1.0.0
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ mobile-automation ---
+[INFO] skip non existing resourceDirectory /Users/abhiyantsingh/Downloads/iOS_automation_site/src/main/resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ mobile-automation ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ mobile-automation ---
+[INFO] skip non existing resourceDirectory /Users/abhiyantsingh/Downloads/iOS_automation_site/src/test/resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ mobile-automation ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.0:test (default-test) @ mobile-automation ---
+[INFO] Using auto detected provider org.apache.maven.surefire.testng.TestNGProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.egalvanic.tests.SiteSelectionTest
+
+╔══════════════════════════════════════════════════════════════╗
+║     eGalvanic iOS Automation - Test Suite Starting           ║
+╚══════════════════════════════════════════════════════════════╝
+
+📊 Detailed Report initialized: reports/detailed/Detailed_Report_20260101_205635.html
+📊 Client Report initialized: reports/client/Client_Report_20260101_205635.html
+📊 Both Extent Reports initialized
+
+📋 Site Selection Test Suite - Starting
+
+🚀 Setting up test...
+📱 Initializing iOS Driver...
+📱 Device: iPhone 17 Pro
+📱 Platform Version: 26.2
+📱 App Path: /Users/abhiyantsingh/Downloads/Z Platform-QA.app
+📱 Appium Server: http://127.0.0.1:4723
+✅ iOS Driver initialized successfully
+✅ Welcome page ready
+✅ Test setup complete
+
+📋 Test created: Site Selection > Offline Sync > TC_SS_032 - Verify tapping Sync records initiates sync
+📝 Logging in and selecting a site
+🔐 Performing login...
+✅ Login page ready
+✅ Save Password alert dismissed with 'Not Now' button
+✅ Save Password alert dismissed with 'Not Now' button
+✅ Login completed
+✅ Save Password alert dismissed with 'Not Now' button
+✅ Site list ready
+✅ On Site Selection Screen
+✅ Dashboard ready
+✅ Site selected and loaded
+📝 Going offline
+🔍 Attempting to click WiFi button...
+✅ Found WiFi online button
+📝 Navigating to Locations to create pending sync data
+📝 Creating new building to generate pending sync record
+📸 Screenshot captured: Building_created___navigating_to_sync_20260101_205841.png
+📸 Building created - navigating to sync
+📝 Clicking WiFi icon to see sync options
+🔍 Attempting to click WiFi button...
+✅ Found WiFi button with sync count
+📝 Clicking Go Online to switch to online mode
+🔍 Attempting to click Go Online...
+🔍 Trying fallback - searching for 'Go Online' text...
+✅ Found Go Online button via fallback
+📸 Screenshot captured: Online_mode_activated_20260101_205948.png
+📸 Online mode activated
+📝 Clicking WiFi icon again to access sync options
+🔍 Attempting to click WiFi button...
+✅ Found WiFi button with sync count
+📝 Clicking Sync records to initiate sync
+✅ Clicked Sync records button
+📸 Screenshot captured: Sync_initiated___checking_Sites_button_20260101_210034.png
+📸 Sync initiated - checking Sites button
+📝 ✅ Assertion passed: Sites button should be enabled after sync completes
+✅ Test PASSED: TC_SS_032_verifyTappingSyncRecordsInitiatesSync
+✅ Driver closed successfully
+🧹 Test cleanup complete
+
+📊 Detailed Report generated: reports/detailed/Detailed_Report_20260101_205635.html
+📊 Client Report generated: reports/client/Client_Report_20260101_205635.html
+📎 Attached: Detailed_Report_20260101_205635.html
+📎 Attached: Client_Report_20260101_205635.html
+❌ Failed to send email: 535-5.7.8 Username and Password not accepted. For more information, go to
+535 5.7.8  https://support.google.com/mail/?p=BadCredentials d2e1a72fcca58-7ff7e0a2e3esm37678257b3a.37 - gsmtp
+
+javax.mail.AuthenticationFailedException: 535-5.7.8 Username and Password not accepted. For more information, go to
+535 5.7.8  https://support.google.com/mail/?p=BadCredentials d2e1a72fcca58-7ff7e0a2e3esm37678257b3a.37 - gsmtp
+
+	at com.sun.mail.smtp.SMTPTransport$Authenticator.authenticate(SMTPTransport.java:965)
+	at com.sun.mail.smtp.SMTPTransport.authenticate(SMTPTransport.java:876)
+	at com.sun.mail.smtp.SMTPTransport.protocolConnect(SMTPTransport.java:780)
+	at javax.mail.Service.connect(Service.java:388)
+	at javax.mail.Service.connect(Service.java:246)
+	at javax.mail.Service.connect(Service.java:195)
+	at javax.mail.Transport.send0(Transport.java:254)
+	at javax.mail.Transport.send(Transport.java:124)
+	at com.egalvanic.utils.EmailUtil.sendEmail(EmailUtil.java:104)
+	at com.egalvanic.utils.ExtentReportManager.sendReportEmail(ExtentReportManager.java:380)
+	at com.egalvanic.utils.ExtentReportManager.flushReports(ExtentReportManager.java:368)
+	at com.egalvanic.base.BaseTest.suiteTeardown(BaseTest.java:44)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at org.testng.internal.invokers.MethodInvocationHelper.invokeMethod(MethodInvocationHelper.java:141)
+	at org.testng.internal.invokers.MethodInvocationHelper.invokeMethodConsideringTimeout(MethodInvocationHelper.java:71)
+	at org.testng.internal.invokers.ConfigInvoker.invokeConfigurationMethod(ConfigInvoker.java:400)
+	at org.testng.internal.invokers.ConfigInvoker.invokeConfigurations(ConfigInvoker.java:333)
+	at org.testng.SuiteRunner.privateRun(SuiteRunner.java:386)
+	at org.testng.SuiteRunner.run(SuiteRunner.java:312)
+	at org.testng.SuiteRunnerWorker.runSuite(SuiteRunnerWorker.java:52)
+	at org.testng.SuiteRunnerWorker.run(SuiteRunnerWorker.java:95)
+	at org.testng.TestNG.runSuitesSequentially(TestNG.java:1274)
+	at org.testng.TestNG.runSuitesLocally(TestNG.java:1208)
+	at org.testng.TestNG.runSuites(TestNG.java:1112)
+	at org.testng.TestNG.run(TestNG.java:1079)
+	at org.apache.maven.surefire.testng.TestNGExecutor.run(TestNGExecutor.java:155)
+	at org.apache.maven.surefire.testng.TestNGDirectoryTestSuite.executeSingleClass(TestNGDirectoryTestSuite.java:102)
+	at org.apache.maven.surefire.testng.TestNGDirectoryTestSuite.execute(TestNGDirectoryTestSuite.java:91)
+	at org.apache.maven.surefire.testng.TestNGProvider.invoke(TestNGProvider.java:137)
+	at org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:385)
+	at org.apache.maven.surefire.booter.ForkedBooter.execute(ForkedBooter.java:162)
+	at org.apache.maven.surefire.booter.ForkedBooter.run(ForkedBooter.java:507)
+	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:495)
+📧 Test reports emailed to: abhiyantsinghsuas18@gmail.com
+
+╔══════════════════════════════════════════════════════════════╗
+║     eGalvanic iOS Automation - Test Suite Complete           ║
+╚══════════════════════════════════════════════════════════════╝
+📊 Reports generated:
+   - Detailed: reports/detailed/Detailed_Report_20260101_205635.html
+   - Client:   reports/client/Client_Report_20260101_205635.html
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 243.8 s -- in com.egalvanic.tests.SiteSelectionTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  04:04 min
+[INFO] Finished at: 2026-01-01T21:00:39+05:30
+[INFO] ------------------------------------------------------------------------

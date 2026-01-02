@@ -1,0 +1,47 @@
+# Compiled files
+target/
+*.class
+*.jar
+*.war
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+*.swp
+.project
+.classpath
+.settings/
+
+# Test outputs
+reports/detailed/*.html
+reports/client/*.html
+screenshots/*.png
+test-output/
+allure-results/
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Maven
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+
+# Node
+node_modules/
+package-lock.json
+
+# App files (large binary)
+apps/*.zip
+apps/*.app
+
+# Sensitive files
+config/email-credentials.properties
