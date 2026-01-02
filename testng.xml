@@ -7,8 +7,8 @@
         <classes>
             <class name="com.egalvanic.tests.SiteSelectionTest">
                 <methods>
-                    <include name="TC_SS_001_verifySiteSelectionScreenIsDisplayed"/>
-                    <include name="TC_SS_002_verifySiteListIsDisplayed"/>
+                    <include name="TC_SS_001_verifySelectSiteScreenUIElements"/>
+                    <include name="TC_SS_002_verifyCancelButtonReturnsToDashboard"/>
                 </methods>
             </class>
         </classes>
