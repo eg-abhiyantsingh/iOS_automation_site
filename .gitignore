@@ -39,8 +39,7 @@ release.properties
 node_modules/
 package-lock.json
 
-# App files (large binary)
-apps/*.zip
+# App files (extracted)
 apps/*.app
 
 # Sensitive files
