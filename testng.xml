@@ -15,12 +15,12 @@
     </test>
 .   -->
     <!-- COMMENTED OUT FOR QUICK TEST - UNCOMMENT FOR FULL RUN -->
-    <test name="Authentication Tests">
+    <test name="Site Selection Tests">
         <classes>
-            <class name="com.egalvanic.tests.AuthenticationTest"/>
+            <class name="com.egalvanic.tests.SiteSelectionTest"/>
         </classes>
     </test>
-    <!--st name="Site Selection Tests">
+    <!--test name="Site Selection Tests">
         <classes>
             <class name="com.egalvanic.tests.SiteSelectionTest"/>
         </classes>
