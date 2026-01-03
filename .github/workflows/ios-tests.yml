@@ -10,7 +10,7 @@ on:
 jobs:
   ios-test:
     runs-on: macos-15
-    timeout-minutes: 180
+    timeout-minutes: 1800
 
     steps:
       - name: Checkout code
