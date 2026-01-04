@@ -196,13 +196,10 @@ public class BaseTest {
     }
 
     /**
-     * Log a step with screenshot
+     * Log a step with screenshot (uses Base64 for portability)
      */
     protected void logStepWithScreenshot(String stepDescription) {
-        String screenshotPath = ScreenshotUtil.captureScreenshot(
-            stepDescription.replaceAll("[^a-zA-Z0-9]", "_")
-        );
-        ExtentReportManager.logStepWithScreenshot(stepDescription, screenshotPath);
+        ExtentReportManager.logStepWithBase64Screenshot(stepDescription);
         System.out.println("📸 " + stepDescription);
     }
 

@@ -54,9 +54,13 @@ public class LoginPage extends BasePage {
     public void waitForPageReady() {
         try {
             WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(AppConstants.EXPLICIT_WAIT));
-            wait.until(ExpectedConditions.and(
-                ExpectedConditions.visibilityOf(emailField),
-                ExpectedConditions.visibilityOf(passwordField)
+            // Wait for text field (email) to be visible using fresh locator
+            wait.until(ExpectedConditions.presenceOfElementLocated(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' AND visible == 1")
+            ));
+            // Short wait for secure text field (password)
+            wait.until(ExpectedConditions.presenceOfElementLocated(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeSecureTextField'")
             ));
             System.out.println("✅ Login page ready");
         } catch (Exception e) {
@@ -94,21 +98,55 @@ public class LoginPage extends BasePage {
     }
 
     public void enterEmail(String email) {
-        click(emailField);
-        emailField.sendKeys(email);
+        try {
+            click(emailField);
+            emailField.sendKeys(email);
+        } catch (org.openqa.selenium.StaleElementReferenceException e) {
+            // Re-find element if stale
+            System.out.println("⚠️ Email field stale, re-finding...");
+            WebElement freshEmailField = driver.findElement(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' AND visible == 1")
+            );
+            freshEmailField.click();
+            freshEmailField.sendKeys(email);
+        }
     }
 
     public void enterPassword(String password) {
-        click(passwordField);
-        passwordField.sendKeys(password);
+        try {
+            click(passwordField);
+            passwordField.sendKeys(password);
+        } catch (org.openqa.selenium.StaleElementReferenceException e) {
+            // Re-find element if stale
+            System.out.println("⚠️ Password field stale, re-finding...");
+            WebElement freshPasswordField = driver.findElement(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeSecureTextField'")
+            );
+            freshPasswordField.click();
+            freshPasswordField.sendKeys(password);
+        }
     }
 
     public void clearEmail() {
-        emailField.clear();
+        try {
+            emailField.clear();
+        } catch (org.openqa.selenium.StaleElementReferenceException e) {
+            WebElement freshEmailField = driver.findElement(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' AND visible == 1")
+            );
+            freshEmailField.clear();
+        }
     }
 
     public void clearPassword() {
-        passwordField.clear();
+        try {
+            passwordField.clear();
+        } catch (org.openqa.selenium.StaleElementReferenceException e) {
+            WebElement freshPasswordField = driver.findElement(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeSecureTextField'")
+            );
+            freshPasswordField.clear();
+        }
     }
 
    /**

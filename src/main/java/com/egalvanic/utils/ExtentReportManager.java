@@ -74,13 +74,17 @@ public class ExtentReportManager {
         spark.config().setTimeStampFormat("yyyy-MM-dd HH:mm:ss");
         spark.config().setEncoding("UTF-8");
         
-        // Custom CSS for detailed report
+        // Custom CSS for detailed report - ensure images display properly
         spark.config().setCss(
             ".badge-primary { background-color: #007bff; } " +
             ".badge-success { background-color: #28a745; } " +
             ".badge-danger { background-color: #dc3545; } " +
             ".badge-warning { background-color: #ffc107; } " +
-            ".test-content { padding: 15px; }"
+            ".test-content { padding: 15px; } " +
+            // Ensure Base64 images display properly
+            ".r-img { max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px; margin: 10px 0; } " +
+            ".screen-img { max-width: 800px; cursor: pointer; } " +
+            ".media-container img { max-width: 100%; height: auto; }"
         );
 
         detailedReport = new ExtentReports();
@@ -213,19 +217,39 @@ public class ExtentReportManager {
     }
 
     /**
-     * Log step with screenshot (Detailed report only)
+     * Log step with screenshot (Detailed report only) - Uses Base64 for portability
      */
     public static void logStepWithScreenshot(String step, String screenshotPath) {
         ExtentTest test = detailedTest.get();
-        if (test != null && screenshotPath != null) {
-            try {
-                test.log(Status.INFO, step)
-                    .addScreenCaptureFromPath(screenshotPath);
-            } catch (Exception e) {
-                test.log(Status.INFO, step + " (Screenshot failed)");
-            }
-        } else if (test != null) {
+        if (test != null) {
             test.log(Status.INFO, step);
+            // Add Base64 screenshot for better portability
+            String base64 = ScreenshotUtil.getScreenshotAsBase64();
+            if (base64 != null) {
+                try {
+                    test.addScreenCaptureFromBase64String(base64);
+                } catch (Exception e) {
+                    System.out.println("⚠️ Screenshot attachment failed: " + e.getMessage());
+                }
+            }
+        }
+    }
+
+    /**
+     * Log step with Base64 screenshot directly
+     */
+    public static void logStepWithBase64Screenshot(String step) {
+        ExtentTest test = detailedTest.get();
+        if (test != null) {
+            test.log(Status.INFO, step);
+            String base64 = ScreenshotUtil.getScreenshotAsBase64();
+            if (base64 != null) {
+                try {
+                    test.addScreenCaptureFromBase64String(base64);
+                } catch (Exception e) {
+                    System.out.println("⚠️ Screenshot attachment failed: " + e.getMessage());
+                }
+            }
         }
     }
 
@@ -278,7 +302,7 @@ public class ExtentReportManager {
     }
 
     /**
-     * Log fail with screenshot (Detailed only shows screenshot)
+     * Log fail with screenshot (Detailed only shows screenshot) - Uses Base64 for portability
      */
     public static void logFailWithScreenshot(String message, Throwable throwable) {
         // Detailed Report - Full details
@@ -288,13 +312,13 @@ public class ExtentReportManager {
             if (throwable != null) {
                 detailed.log(Status.FAIL, throwable);
             }
-            // Add screenshot
-            String screenshotPath = ScreenshotUtil.captureScreenshot("FAILED");
-            if (screenshotPath != null) {
+            // Add Base64 screenshot for better portability
+            String base64 = ScreenshotUtil.getScreenshotAsBase64();
+            if (base64 != null) {
                 try {
-                    detailed.addScreenCaptureFromPath(screenshotPath);
+                    detailed.addScreenCaptureFromBase64String(base64);
                 } catch (Exception e) {
-                    // Screenshot attachment failed
+                    System.out.println("⚠️ Screenshot attachment failed: " + e.getMessage());
                 }
             }
         }

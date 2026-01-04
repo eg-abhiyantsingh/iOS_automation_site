@@ -2,7 +2,8 @@
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
 <suite name="eGalvanic iOS Automation Suite" verbose="2">
 
-    <!-- TEMPORARY: Running only 2 test cases for CI validation 
+    <!-- TEMPORARY: Running only 2 test cases for CI validation -->
+     <!-- 
     <test name="Site Selection Tests - Quick Validation">
         <classes>
             <class name="com.egalvanic.tests.SiteSelectionTest">
@@ -13,18 +14,18 @@
             </class>
         </classes>
     </test>
-.   -->
-    <!-- COMMENTED OUT FOR QUICK TEST - UNCOMMENT FOR FULL RUN -->
+     -->
+     <!--  COMMENTED OUT FOR QUICK TEST - UNCOMMENT FOR FULL RUN -->
+    <test name="Authentication Tests">
+        <classes>
+            <class name="com.egalvanic.tests.AuthenticationTest"/>
+        </classes>
+    </test>
+
     <test name="Site Selection Tests">
         <classes>
             <class name="com.egalvanic.tests.SiteSelectionTest"/>
         </classes>
     </test>
-    <!--test name="Site Selection Tests">
-        <classes>
-            <class name="com.egalvanic.tests.SiteSelectionTest"/>
-        </classes>
-    </test>
-    -->
   
 </suite>
