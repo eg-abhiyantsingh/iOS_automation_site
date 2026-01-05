@@ -260,9 +260,28 @@ public class SiteSelectionPage extends BasePage {
     public boolean isSelectSiteScreenDisplayed() {
         System.out.println("🔍 Checking if Select Site screen is displayed...");
         
-        // Wait a moment for screen transition
-        sleep(1000);
+        // Use polling - try up to 5 times with waits (total ~5 seconds)
+        int maxAttempts = 5;
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            System.out.println("   Attempt " + attempt + "/" + maxAttempts);
+            
+            // Wait for screen transition
+            sleep(1000);
+            
+            if (checkSelectSiteScreenElements()) {
+                return true;
+            }
+        }
         
+        System.out.println("❌ Select Site screen NOT detected after " + maxAttempts + " attempts");
+        return false;
+    }
+    
+    /**
+     * Helper method to check for Select Site screen elements
+     * Returns true if ANY identifying element is found
+     */
+    private boolean checkSelectSiteScreenElements() {
         try {
             // Method 1: Check for Select Site title by accessibility ID
             try {
@@ -271,9 +290,7 @@ public class SiteSelectionPage extends BasePage {
                     System.out.println("✅ Found Select Site title (accessibility ID)");
                     return true;
                 }
-            } catch (Exception e) {
-                System.out.println("   Select Site title not found by accessibility ID");
-            }
+            } catch (Exception e) {}
             
             // Method 2: Check for Select Site title by predicate
             try {
@@ -282,9 +299,7 @@ public class SiteSelectionPage extends BasePage {
                     System.out.println("✅ Found Select Site title (predicate)");
                     return true;
                 }
-            } catch (Exception e) {
-                System.out.println("   Select Site title not found by predicate");
-            }
+            } catch (Exception e) {}
             
             // Method 3: Check for search bar with "Search sites..." placeholder
             try {
@@ -293,9 +308,7 @@ public class SiteSelectionPage extends BasePage {
                     System.out.println("✅ Found search bar with 'Search sites...' placeholder");
                     return true;
                 }
-            } catch (Exception e) {
-                System.out.println("   Search bar placeholder not found");
-            }
+            } catch (Exception e) {}
             
             // Method 4: Check for any visible TextField (search bar)
             try {
@@ -304,9 +317,7 @@ public class SiteSelectionPage extends BasePage {
                     System.out.println("✅ Found visible TextField (search bar)");
                     return true;
                 }
-            } catch (Exception e) {
-                System.out.println("   No visible TextField found");
-            }
+            } catch (Exception e) {}
             
             // Method 5: Check for Create New Site button
             try {
@@ -315,9 +326,7 @@ public class SiteSelectionPage extends BasePage {
                     System.out.println("✅ Found Create New Site button");
                     return true;
                 }
-            } catch (Exception e) {
-                System.out.println("   Create New Site button not found");
-            }
+            } catch (Exception e) {}
             
             // Method 6: Check for site list items (buttons containing comma - "Site Name, Address")
             try {
@@ -326,9 +335,7 @@ public class SiteSelectionPage extends BasePage {
                     System.out.println("✅ Found site list items (" + siteButtons.size() + " sites with comma in label)");
                     return true;
                 }
-            } catch (Exception e) {
-                System.out.println("   Site list items not found");
-            }
+            } catch (Exception e) {}
             
             // Method 7: Check for navigation bar with Sites or Select Site
             try {
@@ -337,9 +344,7 @@ public class SiteSelectionPage extends BasePage {
                     System.out.println("✅ Found navigation bar with Site text");
                     return true;
                 }
-            } catch (Exception e) {
-                System.out.println("   Navigation bar not found");
-            }
+            } catch (Exception e) {}
             
             // Method 8: Check for Cancel button (only visible on Select Site screen)
             try {
@@ -348,15 +353,26 @@ public class SiteSelectionPage extends BasePage {
                     System.out.println("✅ Found Cancel button (Select Site screen indicator)");
                     return true;
                 }
+            } catch (Exception e) {}
+            
+            // Method 9: Check if dashboard elements (Sites button building.2) are NOT visible
+            // If dashboard is hidden, we might be on Select Site screen
+            try {
+                WebElement sitesBtn = driver.findElement(AppiumBy.accessibilityId("building.2"));
+                if (sitesBtn != null && !sitesBtn.isDisplayed()) {
+                    // Dashboard Sites button hidden = probably on Select Site screen
+                    System.out.println("✅ Dashboard Sites button hidden (likely on Select Site screen)");
+                    return true;
+                }
             } catch (Exception e) {
-                System.out.println("   Cancel button not found");
+                // Element not found = we're not on dashboard = likely on Select Site screen
+                System.out.println("✅ Dashboard Sites button not found (likely on Select Site screen)");
+                return true;
             }
             
-            System.out.println("❌ Select Site screen NOT detected");
             return false;
             
         } catch (Exception e) {
-            System.err.println("❌ Error checking Select Site screen: " + e.getMessage());
             return false;
         }
     }

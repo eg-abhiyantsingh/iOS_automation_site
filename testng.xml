@@ -2,19 +2,29 @@
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
 <suite name="eGalvanic iOS Automation Suite" verbose="2">
 
-    <!-- Running only FAILED test cases for debugging -->
-    <test name="Failed Tests - Sites Button and Offline Mode">
+    <!-- Running FAILED test cases for debugging - January 2026 -->
+   <!--
+    <test name="Failed Tests - Debugging">
         <classes>
             <class name="com.egalvanic.tests.SiteSelectionTest">
-              
-            </class>
-            <class name="com.egalvanic.tests.AuthenticationTest">
-                
+                <methods>
+                    <include name="TC_SS_013_verifyLoadingProgressIndicator"/>
+                    <include name="TC_SS_015_verifyDashboardShowsCorrectAssetCount"/>
+                    <include name="TC_SS_018_verifySitesButtonOpensSelectSite"/>
+                    <include name="TC_SS_028_verifyPendingSyncIndicatorOnWiFiIcon"/>
+                    <include name="TC_SS_031_verifySitesButtonBadgeShowsPending"/>
+                    <include name="TC_SS_033_verifySitesButtonEnabledAfterSync"/>
+                    <include name="TC_SS_034_verifyWiFiBadgeClearedAfterSync"/>
+                    <include name="TC_SS_044_verifyIssuesBadgeCount"/>
+                    <include name="TC_SS_053_verifyNoActiveJobCardOnDashboard"/>
+                    <include name="TC_SS_055_verifySyncWithMultiplePendingRecords"/>
+                </methods>
             </class>
         </classes>
     </test>
+    -->
 
-    <!-- FULL TEST SUITE - UNCOMMENT FOR COMPLETE RUN
+    <!-- FULL TEST SUITE - UNCOMMENT FOR COMPLETE RUN -->
     <test name="Authentication Tests">
         <classes>
             <class name="com.egalvanic.tests.AuthenticationTest"/>
@@ -26,6 +36,6 @@
             <class name="com.egalvanic.tests.SiteSelectionTest"/>
         </classes>
     </test>
-    -->
+    
   
 </suite>

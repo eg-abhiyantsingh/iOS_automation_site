@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<!--
+    Command 
+    xcrun simctl boot E042B830-41DF-4690-AAB2-11FDE47916DD
+    xcrun simctl boot B745C0EF-01AA-4355-8B08-86812A8CBBAA
+    
+    LOCAL PARALLEL TESTING CONFIGURATION
+    =====================================
+    This TestNG file is for running tests in PARALLEL on your LOCAL machine only.
+    It does NOT affect GitHub Actions or CI/CD pipelines.
+    
+    REQUIREMENTS:
+    1. Two iOS Simulators must be running
+    2. Two Appium servers on different ports (4723 and 4724)
+    3. config-local-parallel.properties configured with both simulator UDIDs
+    
+    USAGE:
+    mvn test -DsuiteXmlFile=testng-local-parallel.xml -Dconfig.file=config/config-local-parallel.properties
+    
+    TO START APPIUM SERVERS:
+    Terminal 1: appium -p 4723
+    Terminal 2: appium -p 4724
+-->
+<suite name="eGalvanic iOS Automation - Local Parallel" parallel="tests" thread-count="2" verbose="2">
+
+    <!-- 
+        DEVICE 1: Authentication Tests
+        Runs on primary simulator (port 4723)
+    -->
+    <test name="Device1 - Authentication Tests">
+        <parameter name="deviceName" value="iPhone 17 Pro"/>
+        <parameter name="udid" value="B745C0EF-01AA-4355-8B08-86812A8CBBAA"/>
+        <parameter name="appiumPort" value="4723"/>
+        <parameter name="wdaLocalPort" value="8100"/>
+        <classes>
+            <class name="com.egalvanic.tests.AuthenticationTest"/>
+        </classes>
+    </test>
+
+    <!--
+        DEVICE 2: Site Selection Tests
+        Runs on secondary simulator (port 4724)
+        NOTE: Update UDID with your second simulator's UDID
+    -->
+    <test name="Device2 - Site Selection Tests">
+        <parameter name="deviceName" value="iPhone 17 Pro Max"/>
+        <parameter name="udid" value="E042B830-41DF-4690-AAB2-11FDE47916DD"/>
+        <parameter name="appiumPort" value="4724"/>
+        <parameter name="wdaLocalPort" value="8101"/>
+        <classes>
+            <class name="com.egalvanic.tests.SiteSelectionTest"/>
+        </classes>
+    </test>
+
+</suite>
