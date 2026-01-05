@@ -120,6 +120,8 @@ jobs:
           done
 
       - name: Run Tests
+        id: run_tests
+        continue-on-error: true
         env:
           SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
           PLATFORM_VERSION: ${{ env.PLATFORM_VERSION }}
@@ -138,6 +140,36 @@ jobs:
             -Ddevice.udid="$SIMULATOR_UDID" \
             -Dapp.path="$APP_PATH"
 
+      - name: Capture Test Results
+        if: always()
+        id: test_results
+        run: |
+          # Check if surefire reports exist
+          if [ -d "target/surefire-reports" ]; then
+            # Extract test results from surefire
+            TOTAL=$(grep -r "tests=" target/surefire-reports/*.xml 2>/dev/null | head -1 | sed 's/.*tests="\([0-9]*\)".*/\1/' || echo "0")
+            FAILURES=$(grep -r "failures=" target/surefire-reports/*.xml 2>/dev/null | head -1 | sed 's/.*failures="\([0-9]*\)".*/\1/' || echo "0")
+            ERRORS=$(grep -r "errors=" target/surefire-reports/*.xml 2>/dev/null | head -1 | sed 's/.*errors="\([0-9]*\)".*/\1/' || echo "0")
+            SKIPPED=$(grep -r "skipped=" target/surefire-reports/*.xml 2>/dev/null | head -1 | sed 's/.*skipped="\([0-9]*\)".*/\1/' || echo "0")
+            
+            echo "TOTAL_TESTS=$TOTAL" >> $GITHUB_ENV
+            echo "FAILED_TESTS=$FAILURES" >> $GITHUB_ENV
+            echo "ERROR_TESTS=$ERRORS" >> $GITHUB_ENV
+            echo "SKIPPED_TESTS=$SKIPPED" >> $GITHUB_ENV
+            
+            if [ "$FAILURES" -gt 0 ] || [ "$ERRORS" -gt 0 ]; then
+              echo "TEST_STATUS=FAILED" >> $GITHUB_ENV
+            else
+              echo "TEST_STATUS=PASSED" >> $GITHUB_ENV
+            fi
+          else
+            echo "TEST_STATUS=NO_RESULTS" >> $GITHUB_ENV
+            echo "TOTAL_TESTS=0" >> $GITHUB_ENV
+            echo "FAILED_TESTS=0" >> $GITHUB_ENV
+            echo "ERROR_TESTS=0" >> $GITHUB_ENV
+            echo "SKIPPED_TESTS=0" >> $GITHUB_ENV
+          fi
+
       - name: Upload Test Reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -146,3 +178,42 @@ jobs:
           path: |
             target/surefire-reports/
             reports/
+
+      - name: Send Email Notification
+        if: always()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          secure: true
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "[${{ env.TEST_STATUS }}] iOS Automation Test Results - ${{ github.repository }}"
+          to: ${{ secrets.EMAIL_TO }}
+          from: ${{ secrets.EMAIL_USERNAME }}
+          body: |
+            iOS Automation Test Results
+            ============================
+            
+            Repository: ${{ github.repository }}
+            Branch: ${{ github.ref_name }}
+            Commit: ${{ github.sha }}
+            Triggered by: ${{ github.actor }}
+            
+            Test Status: ${{ env.TEST_STATUS }}
+            
+            Test Summary:
+            - Total Tests: ${{ env.TOTAL_TESTS }}
+            - Failed: ${{ env.FAILED_TESTS }}
+            - Errors: ${{ env.ERROR_TESTS }}
+            - Skipped: ${{ env.SKIPPED_TESTS }}
+            
+            Workflow Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            
+            Download test reports from the workflow artifacts.
+
+      - name: Fail job if tests failed
+        if: steps.run_tests.outcome == 'failure'
+        run: |
+          echo "Tests failed - marking job as failed"
+          exit 1

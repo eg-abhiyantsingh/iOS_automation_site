@@ -3,26 +3,27 @@
 <suite name="eGalvanic iOS Automation Suite" verbose="2">
 
     <!-- Running FAILED test cases for debugging - January 2026 -->
-   <!--
     <test name="Failed Tests - Debugging">
         <classes>
+            <!-- Authentication Tests -->
+            <class name="com.egalvanic.tests.AuthenticationTest">
+                <methods>
+                    <include name="TC16_verifyLoginScreenUIElements"/>
+                </methods>
+            </class>
+            
+            <!-- Site Selection Tests -->
             <class name="com.egalvanic.tests.SiteSelectionTest">
                 <methods>
                     <include name="TC_SS_013_verifyLoadingProgressIndicator"/>
-                    <include name="TC_SS_015_verifyDashboardShowsCorrectAssetCount"/>
-                    <include name="TC_SS_018_verifySitesButtonOpensSelectSite"/>
-                    <include name="TC_SS_028_verifyPendingSyncIndicatorOnWiFiIcon"/>
                     <include name="TC_SS_031_verifySitesButtonBadgeShowsPending"/>
                     <include name="TC_SS_033_verifySitesButtonEnabledAfterSync"/>
-                    <include name="TC_SS_034_verifyWiFiBadgeClearedAfterSync"/>
+                    <include name="TC_SS_039_verifyLargeSiteLoadsWithinReasonableTime"/>
                     <include name="TC_SS_044_verifyIssuesBadgeCount"/>
-                    <include name="TC_SS_053_verifyNoActiveJobCardOnDashboard"/>
-                    <include name="TC_SS_055_verifySyncWithMultiplePendingRecords"/>
                 </methods>
             </class>
         </classes>
     </test>
-    -->
 
     <!-- FULL TEST SUITE - UNCOMMENT FOR COMPLETE RUN -->
     <!--
@@ -31,12 +32,12 @@
             <class name="com.egalvanic.tests.AuthenticationTest"/>
         </classes>
     </test>
-    -->
+    
     <test name="Site Selection Tests">
         <classes>
             <class name="com.egalvanic.tests.SiteSelectionTest"/>
         </classes>
     </test>
-    
+    -->
   
 </suite>
