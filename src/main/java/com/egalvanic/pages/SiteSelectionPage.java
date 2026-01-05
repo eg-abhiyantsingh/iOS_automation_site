@@ -258,9 +258,105 @@ public class SiteSelectionPage extends BasePage {
      * Check if Select Site screen is displayed
      */
     public boolean isSelectSiteScreenDisplayed() {
+        System.out.println("🔍 Checking if Select Site screen is displayed...");
+        
+        // Wait a moment for screen transition
+        sleep(1000);
+        
         try {
-            return isElementDisplayed(selectSiteTitle) || isElementDisplayed(searchBar);
+            // Method 1: Check for Select Site title by accessibility ID
+            try {
+                WebElement title = driver.findElement(AppiumBy.accessibilityId("Select Site"));
+                if (title != null && title.isDisplayed()) {
+                    System.out.println("✅ Found Select Site title (accessibility ID)");
+                    return true;
+                }
+            } catch (Exception e) {
+                System.out.println("   Select Site title not found by accessibility ID");
+            }
+            
+            // Method 2: Check for Select Site title by predicate
+            try {
+                WebElement title = driver.findElement(AppiumBy.iOSNsPredicateString("label == 'Select Site'"));
+                if (title != null && title.isDisplayed()) {
+                    System.out.println("✅ Found Select Site title (predicate)");
+                    return true;
+                }
+            } catch (Exception e) {
+                System.out.println("   Select Site title not found by predicate");
+            }
+            
+            // Method 3: Check for search bar with "Search sites..." placeholder
+            try {
+                WebElement search = driver.findElement(AppiumBy.iOSNsPredicateString("value == 'Search sites...' OR placeholderValue == 'Search sites...'"));
+                if (search != null && search.isDisplayed()) {
+                    System.out.println("✅ Found search bar with 'Search sites...' placeholder");
+                    return true;
+                }
+            } catch (Exception e) {
+                System.out.println("   Search bar placeholder not found");
+            }
+            
+            // Method 4: Check for any visible TextField (search bar)
+            try {
+                WebElement textField = driver.findElement(AppiumBy.iOSClassChain("**/XCUIElementTypeTextField[`visible == true`]"));
+                if (textField != null && textField.isDisplayed()) {
+                    System.out.println("✅ Found visible TextField (search bar)");
+                    return true;
+                }
+            } catch (Exception e) {
+                System.out.println("   No visible TextField found");
+            }
+            
+            // Method 5: Check for Create New Site button
+            try {
+                WebElement createBtn = driver.findElement(AppiumBy.accessibilityId("Create New Site"));
+                if (createBtn != null && createBtn.isDisplayed()) {
+                    System.out.println("✅ Found Create New Site button");
+                    return true;
+                }
+            } catch (Exception e) {
+                System.out.println("   Create New Site button not found");
+            }
+            
+            // Method 6: Check for site list items (buttons containing comma - "Site Name, Address")
+            try {
+                List<WebElement> siteButtons = driver.findElements(AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND label CONTAINS ','"));
+                if (siteButtons != null && siteButtons.size() > 0) {
+                    System.out.println("✅ Found site list items (" + siteButtons.size() + " sites with comma in label)");
+                    return true;
+                }
+            } catch (Exception e) {
+                System.out.println("   Site list items not found");
+            }
+            
+            // Method 7: Check for navigation bar with Sites or Select Site
+            try {
+                WebElement navBar = driver.findElement(AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeNavigationBar' AND (name CONTAINS 'Site' OR label CONTAINS 'Site')"));
+                if (navBar != null && navBar.isDisplayed()) {
+                    System.out.println("✅ Found navigation bar with Site text");
+                    return true;
+                }
+            } catch (Exception e) {
+                System.out.println("   Navigation bar not found");
+            }
+            
+            // Method 8: Check for Cancel button (only visible on Select Site screen)
+            try {
+                WebElement cancel = driver.findElement(AppiumBy.accessibilityId("Cancel"));
+                if (cancel != null && cancel.isDisplayed()) {
+                    System.out.println("✅ Found Cancel button (Select Site screen indicator)");
+                    return true;
+                }
+            } catch (Exception e) {
+                System.out.println("   Cancel button not found");
+            }
+            
+            System.out.println("❌ Select Site screen NOT detected");
+            return false;
+            
         } catch (Exception e) {
+            System.err.println("❌ Error checking Select Site screen: " + e.getMessage());
             return false;
         }
     }
@@ -633,50 +729,57 @@ public class SiteSelectionPage extends BasePage {
     }
 
     /**
-     * Click Sites button with fallback strategies
+     * Click Sites button with fallback strategies and wait for navigation
      */
     public void clickSitesButton() {
         try {
             System.out.println("📝 Clicking Sites button");
+            boolean clicked = false;
             
             // Try primary locator first
             if (isElementDisplayed(sitesButton)) {
-                System.out.println("✅ Found Sites button via accessibility ID");
+                System.out.println("✅ Found Sites button via accessibility ID: building.2");
                 click(sitesButton);
-                return;
+                clicked = true;
             }
             
             // Try alternative locator
-            if (isElementDisplayed(sitesButtonAlt)) {
+            if (!clicked && isElementDisplayed(sitesButtonAlt)) {
                 System.out.println("✅ Found Sites button via alternative locator");
                 click(sitesButtonAlt);
-                return;
+                clicked = true;
             }
             
             // Fallback: Find by searching all buttons in view
-            System.out.println("🔍 Searching for Sites button in all visible buttons...");
-            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND visible == true"
-            ));
-            
-            for (WebElement btn : buttons) {
-                String name = btn.getAttribute("name");
-                String label = btn.getAttribute("label");
-                if (name != null && (name.contains("building") || name.contains("Sites"))) {
-                    System.out.println("✅ Found Sites button by name: " + name);
-                    btn.click();
-                    return;
-                }
-                if (label != null && label.contains("Sites")) {
-                    System.out.println("✅ Found Sites button by label: " + label);
-                    btn.click();
-                    return;
+            if (!clicked) {
+                System.out.println("🔍 Searching for Sites button in all visible buttons...");
+                List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND visible == true"
+                ));
+                
+                for (WebElement btn : buttons) {
+                    String name = btn.getAttribute("name");
+                    String label = btn.getAttribute("label");
+                    if (name != null && (name.contains("building") || name.contains("Sites"))) {
+                        System.out.println("✅ Found Sites button by name: " + name);
+                        btn.click();
+                        clicked = true;
+                        break;
+                    }
+                    if (label != null && label.contains("Sites")) {
+                        System.out.println("✅ Found Sites button by label: " + label);
+                        btn.click();
+                        clicked = true;
+                        break;
+                    }
                 }
             }
             
             // Last resort: try clicking the standard locator anyway
-            System.out.println("⚠️ Using standard locator as last resort");
-            click(sitesButton);
+            if (!clicked) {
+                System.out.println("⚠️ Using standard locator as last resort");
+                click(sitesButton);
+            }
             
         } catch (Exception e) {
             System.out.println("⚠️ clickSitesButton error: " + e.getMessage());

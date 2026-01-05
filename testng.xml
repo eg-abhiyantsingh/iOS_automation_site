@@ -6,16 +6,10 @@
     <test name="Failed Tests - Sites Button and Offline Mode">
         <classes>
             <class name="com.egalvanic.tests.SiteSelectionTest">
-                <methods>
-                    <include name="TC_SS_018_verifySitesButtonOpensSelectSite"/>
-                    <include name="TC_SS_025_verifyGoOnlineOption"/>
-                    <include name="TC_SS_026_verifySwitchingToOnlineMode"/>
-                </methods>
+              
             </class>
             <class name="com.egalvanic.tests.AuthenticationTest">
-                <methods>
-                    <include name="TC13_verifyCompanyCodeWithSpaces"/>
-                </methods>
+                
             </class>
         </classes>
     </test>

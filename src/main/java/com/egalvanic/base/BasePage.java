@@ -379,18 +379,27 @@ public abstract class BasePage {
     }
 
     /**
-     * Handle Save Password alert - FAST version
-     * Single quick attempt without multiple retries
+     * Handle Save Password alert - Robust version
+     * Tries multiple strategies to dismiss the popup
      */
     public void handleSavePasswordAlertFast() {
-        // Quick alert check first (fastest path)
+        System.out.println("🔍 Checking for Save Password popup...");
+        
+        // Strategy 1: Try system alert dismiss
         try {
             driver.switchTo().alert().dismiss();
-            System.out.println("✅ Alert dismissed");
+            System.out.println("✅ System alert dismissed");
             return;
         } catch (Exception e) {}
         
-        // Try "Not Now" button directly (most common)
+        // Strategy 2: Try system alert accept (sometimes works better)
+        try {
+            driver.switchTo().alert().accept();
+            System.out.println("✅ System alert accepted");
+            return;
+        } catch (Exception e) {}
+        
+        // Strategy 3: Try "Not Now" button (most common for Save Password)
         try {
             org.openqa.selenium.WebElement btn = driver.findElement(
                 io.appium.java_client.AppiumBy.accessibilityId("Not Now")
@@ -400,7 +409,33 @@ public abstract class BasePage {
             return;
         } catch (Exception e) {}
         
-        // No popup - this is normal, continue silently
+        // Strategy 4: Try "Don't Save" or similar buttons
+        String[] buttonNames = {"Don't Save", "Dont Save", "Cancel", "Never", "No"};
+        for (String btnName : buttonNames) {
+            try {
+                org.openqa.selenium.WebElement btn = driver.findElement(
+                    io.appium.java_client.AppiumBy.accessibilityId(btnName)
+                );
+                btn.click();
+                System.out.println("✅ Clicked: " + btnName);
+                return;
+            } catch (Exception e) {}
+        }
+        
+        // Strategy 5: Try finding button by predicate containing "Not" or "Don't"
+        try {
+            org.openqa.selenium.WebElement btn = driver.findElement(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND (label CONTAINS 'Not' OR label CONTAINS \"Don't\" OR label CONTAINS 'Cancel')"
+                )
+            );
+            btn.click();
+            System.out.println("✅ Clicked dismiss button via predicate");
+            return;
+        } catch (Exception e) {}
+        
+        // No popup found - this is normal
+        System.out.println("ℹ️ No Save Password popup detected");
     }
 
     /**

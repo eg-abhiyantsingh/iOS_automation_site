@@ -106,6 +106,7 @@ public class ExtentReportManager {
 
     /**
      * Initialize Client Report - Clean Module > Feature > Test > Pass/Fail only
+     * Professional layout with clear hierarchy
      */
     private static void initClientReport() {
         clientReportPath = AppConstants.CLIENT_REPORT_PATH + "Client_Report_" + timestamp + ".html";
@@ -117,42 +118,87 @@ public class ExtentReportManager {
         spark.config().setTimeStampFormat("MMMM dd, yyyy");
         spark.config().setEncoding("UTF-8");
         
-        // Custom CSS for Client Report - HIDE all technical details
+        // Custom CSS for Client Report - Professional clean view
         spark.config().setCss(
-            // Hide screenshots and media
-            ".media-container { display: none !important; } " +
-            ".img-container { display: none !important; } " +
-            "img { display: none !important; } " +
+            // Hide screenshots and media completely
+            ".media-container, .r-img, .screen-img, img.r-img { display: none !important; } " +
             
-            // Hide logs and technical details
+            // Hide technical details (exception traces, logs)
+            "pre, code, .exception-part, .stack-trace { display: none !important; } " +
+            
+            // Hide the details column in tables
             ".details-col { display: none !important; } " +
-            "pre { display: none !important; } " +
-            ".exception-part { display: none !important; } " +
-            ".step-details { display: none !important; } " +
-            ".test-detail { display: none !important; } " +
+            "table.table tbody tr td:nth-child(3) { display: none !important; } " +
             
-            // Hide tags/categories
-            ".category-list { display: none !important; } " +
-            ".tag { display: none !important; } " +
-            ".badge-pill { display: none !important; } " +
+            // Hide step-level detail rows
+            ".event-row { display: none !important; } " +
+            "table.table { display: none !important; } " +
             
-            // Clean styling for Module > Feature > Test
-            ".node { padding: 8px 12px !important; margin: 3px 0 !important; " +
-            "        border-left: 4px solid #007bff !important; background: #f8f9fa !important; }" +
-            ".node-name { font-size: 14px !important; font-weight: 500 !important; }" +
+            // Hide category/tag badges
+            ".category-list, .tag, .badge-pill, .node-attr { display: none !important; } " +
             
-            // Status badges
-            ".badge-success { background-color: #28a745 !important; font-size: 12px !important; padding: 4px 8px !important; }" +
-            ".badge-danger { background-color: #dc3545 !important; font-size: 12px !important; padding: 4px 8px !important; }" +
-            ".badge-warning { background-color: #ffc107 !important; color: #000 !important; font-size: 12px !important; }" +
-            ".badge-skip { background-color: #6c757d !important; font-size: 12px !important; }" +
+            // Module Level styling
+            ".test-item { border-left: 4px solid #007bff !important; margin-bottom: 10px !important; " +
+            "             background: #fff !important; border-radius: 4px !important; box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important; } " +
             
-            // Clean layout
-            "body { font-family: 'Segoe UI', Arial, sans-serif !important; }" +
-            ".container { max-width: 1200px !important; }" +
+            // Feature Level cards
+            ".card { border: none !important; border-left: 3px solid #17a2b8 !important; " +
+            "        margin: 8px 0 8px 20px !important; background: #f8f9fa !important; } " +
+            ".card-header { background: transparent !important; padding: 10px 15px !important; border-bottom: none !important; } " +
             
-            // Hide step logs
-            ".node-step, .step, .log { display: none !important; }"
+            // Test Case Level
+            ".card .card { border-left: 3px solid #28a745 !important; margin-left: 20px !important; " +
+            "              background: #fff !important; } " +
+            
+            // Node/Test names
+            ".node, .card-title a { font-size: 14px !important; font-weight: 500 !important; " +
+            "                       color: #333 !important; text-decoration: none !important; } " +
+            ".card-title { margin-bottom: 0 !important; } " +
+            
+            // Status badges - PASS
+            ".badge.pass-bg, .badge-success, span.badge.log.pass-bg { " +
+            "    background-color: #28a745 !important; color: #fff !important; " +
+            "    font-size: 11px !important; padding: 4px 10px !important; border-radius: 3px !important; " +
+            "    font-weight: 600 !important; } " +
+            // Status badges - FAIL
+            ".badge.fail-bg, .badge-danger, span.badge.log.fail-bg { " +
+            "    background-color: #dc3545 !important; color: #fff !important; " +
+            "    font-size: 11px !important; padding: 4px 10px !important; border-radius: 3px !important; " +
+            "    font-weight: 600 !important; } " +
+            // Status badges - SKIP
+            ".badge.skip-bg, .badge-warning { " +
+            "    background-color: #ffc107 !important; color: #000 !important; " +
+            "    font-size: 11px !important; padding: 4px 10px !important; border-radius: 3px !important; } " +
+            
+            // Hide timestamps on individual items
+            ".node-info .badge-default { display: none !important; } " +
+            
+            // Clean header
+            ".header.navbar { background: #2c3e50 !important; } " +
+            ".badge-primary { background: #3498db !important; } " +
+            
+            // Hide collapse buttons and extras
+            ".card-toolbar ul li:not(:first-child) { display: none !important; } " +
+            "span.ct, span.et, span.ne, .uri-anchor { display: none !important; } " +
+            
+            // Test list item styling - SHOW the test detail
+            ".test-list-item .test-item .test-detail { padding: 12px 15px !important; display: block !important; } " +
+            ".test-item .name { font-size: 16px !important; font-weight: 600 !important; color: #2c3e50 !important; margin-bottom: 5px !important; } " +
+            ".test-item .text-sm { font-size: 12px !important; color: #666 !important; } " +
+            
+            // Hide extra info in detail-head
+            ".detail-head .info span.badge-danger, .detail-head .info span.badge-default { display: none !important; } " +
+            
+            // Overall clean look
+            "body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif !important; " +
+            "       background: #f5f6fa !important; } " +
+            ".main-content { background: #f5f6fa !important; } " +
+            ".test-wrapper { padding: 20px !important; } " +
+            ".vcontainer { background: #f5f6fa !important; } " +
+            
+            // Hide card body (step details)
+            ".card-body { display: none !important; } " +
+            ".collapse { display: none !important; } "
         );
 
         clientReport = new ExtentReports();

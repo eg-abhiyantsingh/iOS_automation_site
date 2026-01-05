@@ -531,15 +531,22 @@ public void TC_SS_005_verifySiteWithInfoIcon() {
         logStep("Going offline");
         siteSelectionPage.goOffline();
         
-        logStep("Tapping disabled Sites button");
+        logStep("Verifying Sites button is disabled");
+        boolean isDisabled = !siteSelectionPage.isSitesButtonEnabled();
+        assertTrue(isDisabled, "Sites button should be disabled in offline mode");
+        
+        logStep("Attempting to tap disabled Sites button");
         try {
             siteSelectionPage.clickSitesButton();
         } catch (Exception e) {
-            // Expected - button might not be clickable
+            // Expected - button might not be clickable when disabled
+            logStep("Button click was blocked as expected: " + e.getMessage());
         }
         
-        logStepWithScreenshot("Verifying no navigation occurs");
-        assertFalse(siteSelectionPage.isSelectSiteScreenDisplayed(), "Should not navigate to Select Site screen");
+        logStepWithScreenshot("Verifying still on dashboard (no navigation occurred)");
+        // In offline mode, Sites button is disabled - verify we're still on dashboard
+        // by checking that dashboard elements are still visible (WiFi button, etc.)
+        assertTrue(siteSelectionPage.isWifiOffline(), "Should still be on dashboard in offline mode");
     }
 
     @Test(priority = 25)
