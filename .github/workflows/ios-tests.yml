@@ -63,13 +63,13 @@ jobs:
 
           # Wait for simulator to boot
           echo "Waiting for simulator to boot..."
-          BOOT_TIMEOUT=180
+          BOOT_TIMEOUT=240
           ELAPSED=0
           while [ $ELAPSED -lt $BOOT_TIMEOUT ]; do
             if xcrun simctl list devices | grep "$UDID" | grep -q "(Booted)"; then
               echo "✅ Simulator is in Booted state after ${ELAPSED}s"
-              echo "Waiting 30s for system services to stabilize..."
-              sleep 30
+              echo "Waiting 45s for system services to stabilize..."
+              sleep 45
               echo "✅ Simulator ready!"
               break
             fi
@@ -190,7 +190,7 @@ jobs:
           password: ${{ secrets.EMAIL_PASSWORD }}
           subject: "[${{ env.TEST_STATUS }}] iOS Automation Test Results - ${{ github.repository }}"
           to: ${{ secrets.EMAIL_TO }}
-          from: ${{ secrets.EMAIL_USERNAME }}
+          from: "iOS Automation <${{ secrets.EMAIL_USERNAME }}>"
           body: |
             iOS Automation Test Results
             ============================

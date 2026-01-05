@@ -63,6 +63,8 @@ public class DriverManager {
                 }
 
                 // ========== CRITICAL: WDA TIMEOUT FIXES FOR CI ==========
+                // Simulator boot timeout - 4 minutes (CI simulators can be slow to boot)
+                options.setCapability("appium:simulatorBootTimeout", 240000);
                 // WDA launch timeout (build + start) - 6 minutes for CI environments (increased for stability)
                 options.setWdaLaunchTimeout(Duration.ofMillis(360000));
                 // WDA connection timeout - 4 minutes
