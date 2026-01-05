@@ -2,32 +2,7 @@
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
 <suite name="eGalvanic iOS Automation Suite" verbose="2">
 
-    <!-- Running FAILED test cases for debugging - January 2026 -->
-    <!-- IMPORTANT: All tests in SINGLE <test> group to share driver session -->
-    <!-- Separating into multiple <test> groups causes driver re-initialization issues in CI -->
-    <test name="Failed Tests - Debugging">
-        <classes>
-            <!-- Authentication Tests -->
-            <class name="com.egalvanic.tests.AuthenticationTest">
-                <methods>
-                    <include name="TC16_verifyLoginScreenUIElements"/>
-                </methods>
-            </class>
-            <!-- Site Selection Tests -->
-            <class name="com.egalvanic.tests.SiteSelectionTest">
-                <methods>
-                    <include name="TC_SS_013_verifyLoadingProgressIndicator"/>
-                    <include name="TC_SS_031_verifySitesButtonBadgeShowsPending"/>
-                    <include name="TC_SS_033_verifySitesButtonEnabledAfterSync"/>
-                    <include name="TC_SS_039_verifyLargeSiteLoadsWithinReasonableTime"/>
-                    <include name="TC_SS_044_verifyIssuesBadgeCount"/>
-                </methods>
-            </class>
-        </classes>
-    </test>
-
     <!-- FULL TEST SUITE - UNCOMMENT FOR COMPLETE RUN -->
-    <!--
     <test name="Authentication Tests">
         <classes>
             <class name="com.egalvanic.tests.AuthenticationTest"/>
@@ -39,6 +14,5 @@
             <class name="com.egalvanic.tests.SiteSelectionTest"/>
         </classes>
     </test>
-    -->
-  
+
 </suite>
