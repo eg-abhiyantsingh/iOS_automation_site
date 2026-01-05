@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<!--
+    SINGLE DEVICE TESTING ON SECOND SIMULATOR
+    ==========================================
+    Run Site Selection tests on iPhone 17 Pro Max (second simulator)
+    
+    REQUIREMENTS:
+    1. iPhone 17 Pro Max simulator booted
+    2. Appium server on port 4724
+    
+    USAGE:
+    mvn test -DsuiteXmlFile=testng-single-device2.xml
+    
+    TO START APPIUM:
+    appium -p 4724
+-->
+<suite name="eGalvanic iOS - Single Device (Pro Max)" verbose="2">
+
+    <test name="Site Selection Tests - iPhone 17 Pro Max">
+        <parameter name="deviceName" value="iPhone 17 Pro Max"/>
+        <parameter name="udid" value="E042B830-41DF-4690-AAB2-11FDE47916DD"/>
+        <parameter name="appiumPort" value="4724"/>
+        <parameter name="wdaLocalPort" value="8101"/>
+        <classes>
+            <class name="com.egalvanic.tests.SiteSelectionTest"/>
+        </classes>
+    </test>
+
+</suite>

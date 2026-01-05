@@ -4,6 +4,8 @@
     Command 
     xcrun simctl boot E042B830-41DF-4690-AAB2-11FDE47916DD
     xcrun simctl boot B745C0EF-01AA-4355-8B08-86812A8CBBAA
+
+    mvn test -Dappium.server=http://127.0.0.1:4724 -Ddevice.name="iPhone 17 Pro Max" -Dudid=E042B830-41DF-4690-AAB2-11FDE47916DD
     
     LOCAL PARALLEL TESTING CONFIGURATION
     =====================================
@@ -27,7 +29,7 @@
     <!-- 
         DEVICE 1: Authentication Tests
         Runs on primary simulator (port 4723)
-    -->
+    
     <test name="Device1 - Authentication Tests">
         <parameter name="deviceName" value="iPhone 17 Pro"/>
         <parameter name="udid" value="B745C0EF-01AA-4355-8B08-86812A8CBBAA"/>
@@ -37,7 +39,7 @@
             <class name="com.egalvanic.tests.AuthenticationTest"/>
         </classes>
     </test>
-
+    -->
     <!--
         DEVICE 2: Site Selection Tests
         Runs on secondary simulator (port 4724)
