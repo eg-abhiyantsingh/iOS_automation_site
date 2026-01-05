@@ -77,7 +77,25 @@ public class LoginPage extends BasePage {
     }
 
     public boolean isEmailFieldDisplayed() {
-        return isElementDisplayed(emailField);
+        try {
+            // First try the annotated element
+            if (isElementDisplayed(emailField)) {
+                return true;
+            }
+        } catch (Exception e) {
+            // Element might be stale, try fresh lookup
+        }
+        
+        // Try fresh lookup with explicit wait
+        try {
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+            WebElement freshEmailField = wait.until(ExpectedConditions.presenceOfElementLocated(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' AND visible == 1")
+            ));
+            return freshEmailField != null && freshEmailField.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     public boolean isPasswordFieldDisplayed() {

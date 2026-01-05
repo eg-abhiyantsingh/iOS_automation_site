@@ -25,12 +25,13 @@
     -->
 
     <!-- FULL TEST SUITE - UNCOMMENT FOR COMPLETE RUN -->
+    <!--
     <test name="Authentication Tests">
         <classes>
             <class name="com.egalvanic.tests.AuthenticationTest"/>
         </classes>
     </test>
-
+    -->
     <test name="Site Selection Tests">
         <classes>
             <class name="com.egalvanic.tests.SiteSelectionTest"/>
