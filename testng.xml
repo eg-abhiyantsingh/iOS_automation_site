@@ -3,6 +3,8 @@
 <suite name="eGalvanic iOS Automation Suite" verbose="2">
 
     <!-- Running FAILED test cases for debugging - January 2026 -->
+    <!-- IMPORTANT: All tests in SINGLE <test> group to share driver session -->
+    <!-- Separating into multiple <test> groups causes driver re-initialization issues in CI -->
     <test name="Failed Tests - Debugging">
         <classes>
             <!-- Authentication Tests -->
@@ -11,7 +13,6 @@
                     <include name="TC16_verifyLoginScreenUIElements"/>
                 </methods>
             </class>
-            
             <!-- Site Selection Tests -->
             <class name="com.egalvanic.tests.SiteSelectionTest">
                 <methods>

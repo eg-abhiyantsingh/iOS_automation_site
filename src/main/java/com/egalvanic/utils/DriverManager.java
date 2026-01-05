@@ -63,18 +63,18 @@ public class DriverManager {
                 }
 
                 // ========== CRITICAL: WDA TIMEOUT FIXES FOR CI ==========
-                // WDA launch timeout (build + start) - 4 minutes for CI environments
-                options.setWdaLaunchTimeout(Duration.ofMillis(240000));
-                // WDA connection timeout - 3 minutes
-                options.setWdaConnectionTimeout(Duration.ofMillis(180000));
-                // App launch timeout - 2 minutes
-                options.setCapability("appium:launchTimeout", 120000);
+                // WDA launch timeout (build + start) - 6 minutes for CI environments (increased for stability)
+                options.setWdaLaunchTimeout(Duration.ofMillis(360000));
+                // WDA connection timeout - 4 minutes
+                options.setWdaConnectionTimeout(Duration.ofMillis(240000));
+                // App launch timeout - 3 minutes
+                options.setCapability("appium:launchTimeout", 180000);
                 // Command timeout - 5 minutes idle
                 options.setNewCommandTimeout(Duration.ofSeconds(300));
 
-                // WDA startup retry settings
-                options.setCapability("appium:wdaStartupRetries", 4);
-                options.setCapability("appium:wdaStartupRetryInterval", 20000);
+                // WDA startup retry settings - more retries for CI stability
+                options.setCapability("appium:wdaStartupRetries", 5);
+                options.setCapability("appium:wdaStartupRetryInterval", 30000);
 
                 // ========== PERFORMANCE OPTIMIZATIONS ==========
                 // Don't rebuild WDA each time (saves 60-90 seconds)
