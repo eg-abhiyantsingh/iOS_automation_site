@@ -2,20 +2,25 @@
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
 <suite name="eGalvanic iOS Automation Suite" verbose="2">
 
-    <!-- TEMPORARY: Running only 2 test cases for CI validation -->
-     <!-- 
-    <test name="Site Selection Tests - Quick Validation">
+    <!-- Running only FAILED test cases for debugging -->
+    <test name="Failed Tests - Sites Button and Offline Mode">
         <classes>
             <class name="com.egalvanic.tests.SiteSelectionTest">
                 <methods>
-                    <include name="TC_SS_001_verifySelectSiteScreenUIElements"/>
-                    <include name="TC_SS_002_verifyCancelButtonReturnsToDashboard"/>
+                    <include name="TC_SS_018_verifySitesButtonOpensSelectSite"/>
+                    <include name="TC_SS_025_verifyGoOnlineOption"/>
+                    <include name="TC_SS_026_verifySwitchingToOnlineMode"/>
+                </methods>
+            </class>
+            <class name="com.egalvanic.tests.AuthenticationTest">
+                <methods>
+                    <include name="TC13_verifyCompanyCodeWithSpaces"/>
                 </methods>
             </class>
         </classes>
     </test>
-     -->
-     <!--  COMMENTED OUT FOR QUICK TEST - UNCOMMENT FOR FULL RUN -->
+
+    <!-- FULL TEST SUITE - UNCOMMENT FOR COMPLETE RUN
     <test name="Authentication Tests">
         <classes>
             <class name="com.egalvanic.tests.AuthenticationTest"/>
@@ -27,5 +32,6 @@
             <class name="com.egalvanic.tests.SiteSelectionTest"/>
         </classes>
     </test>
+    -->
   
 </suite>

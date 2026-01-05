@@ -133,7 +133,7 @@ public class BaseTest {
     // ================================================================
 
     /**
-     * Perform complete login flow with explicit waits
+     * Perform complete login flow - OPTIMIZED for speed
      */
     protected void performLogin() {
         System.out.println("🔐 Performing login...");
@@ -145,19 +145,17 @@ public class BaseTest {
         // Enter credentials - wait for site selection screen
         loginPage.login(AppConstants.VALID_EMAIL, AppConstants.VALID_PASSWORD);
         
-        // Wait for Save Password popup to appear
-        sleep(2000);
-        
-        // Handle Save Password alert if present (try multiple times)
-        welcomePage.handleSavePasswordAlert();
+        // Quick check for Save Password popup (reduced wait)
         sleep(500);
-        welcomePage.handleSavePasswordAlert();
+        
+        // Handle Save Password alert if present (single fast attempt)
+        welcomePage.handleSavePasswordAlertFast();
         
         System.out.println("✅ Login completed");
     }
 
     /**
-     * Login and navigate to site selection screen (dashboard)
+     * Login and navigate to site selection screen (dashboard) - OPTIMIZED
      */
     protected void loginAndGoToDashboard() {
         performLogin();
@@ -169,13 +167,15 @@ public class BaseTest {
     }
 
     /**
-     * Login and select a site
+     * Login and select a site - OPTIMIZED for speed
      */
     protected void loginAndSelectSite() {
-        loginAndGoToDashboard();
+        performLogin();
         
-        // Select first site quickly (no need for random)
-        siteSelectionPage.selectFirstSite();
+        // Select first site immediately (combined wait + select)
+        System.out.println("🔍 Selecting first available site...");
+        String selectedSite = siteSelectionPage.selectFirstSiteFast();
+        System.out.println("Selecting first site: (s) " + selectedSite);
         
         // Wait for dashboard to load after site selection
         siteSelectionPage.waitForDashboardReady();

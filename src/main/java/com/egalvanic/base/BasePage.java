@@ -379,6 +379,31 @@ public abstract class BasePage {
     }
 
     /**
+     * Handle Save Password alert - FAST version
+     * Single quick attempt without multiple retries
+     */
+    public void handleSavePasswordAlertFast() {
+        // Quick alert check first (fastest path)
+        try {
+            driver.switchTo().alert().dismiss();
+            System.out.println("✅ Alert dismissed");
+            return;
+        } catch (Exception e) {}
+        
+        // Try "Not Now" button directly (most common)
+        try {
+            org.openqa.selenium.WebElement btn = driver.findElement(
+                io.appium.java_client.AppiumBy.accessibilityId("Not Now")
+            );
+            btn.click();
+            System.out.println("✅ Clicked: Not Now");
+            return;
+        } catch (Exception e) {}
+        
+        // No popup - this is normal, continue silently
+    }
+
+    /**
      * Check if an alert is present
      */
     private boolean isAlertPresent() {

@@ -71,6 +71,10 @@ public class SiteSelectionPage extends BasePage {
     // Sites Button (Quick Action)
     @iOSXCUITFindBy(accessibility = "building.2")
     private WebElement sitesButton;
+    
+    // Sites Button Alternative - by name or label containing building
+    @iOSXCUITFindBy(iOSNsPredicate = "type == 'XCUIElementTypeButton' AND (name CONTAINS 'building' OR name CONTAINS 'Sites' OR label CONTAINS 'Sites')")
+    private WebElement sitesButtonAlt;
 
     // Refresh Button
     @iOSXCUITFindBy(accessibility = "arrow.clockwise")
@@ -151,14 +155,26 @@ public class SiteSelectionPage extends BasePage {
     // WiFi Popup Button (Go Online/Go Offline)
     @iOSXCUITFindBy(iOSClassChain = "**/XCUIElementTypeWindow[1]/XCUIElementTypeOther[3]/XCUIElementTypeOther/XCUIElementTypeOther/XCUIElementTypeOther/XCUIElementTypeOther[2]/XCUIElementTypeOther/XCUIElementTypeOther/XCUIElementTypeOther[2]/XCUIElementTypeOther")
     private WebElement wifiPopupButton;
+    
+    // WiFi Popup Button Alternative - by type and visible
+    @iOSXCUITFindBy(iOSNsPredicate = "type == 'XCUIElementTypeOther' AND visible == true")
+    private List<WebElement> wifiPopupButtonAlts;
 
     // Go Offline Text
     @iOSXCUITFindBy(iOSNsPredicate = "label == 'Go Offline'")
     private WebElement goOfflineText;
+    
+    // Go Offline Button - more flexible locator
+    @iOSXCUITFindBy(iOSNsPredicate = "(label CONTAINS 'Offline' OR name CONTAINS 'Offline') AND visible == true")
+    private WebElement goOfflineButton;
 
     // Go Online Text - try multiple locator strategies
     @iOSXCUITFindBy(iOSNsPredicate = "label == 'Go Online' OR name == 'Go Online'")
     private WebElement goOnlineText;
+    
+    // Go Online Button - more flexible locator
+    @iOSXCUITFindBy(iOSNsPredicate = "(label CONTAINS 'Online' OR name CONTAINS 'Online') AND visible == true")
+    private WebElement goOnlineButton;
 
     // Sync Records Button (arrow.triangle.2.circlepath)
     @iOSXCUITFindBy(accessibility = "arrow.triangle.2.circlepath")
@@ -445,6 +461,26 @@ public class SiteSelectionPage extends BasePage {
     }
 
     /**
+     * Select first site - ULTRA FAST version
+     * Waits for site list and clicks first site in one operation
+     */
+    public String selectFirstSiteFast() {
+        try {
+            // Wait max 3 seconds for any site button to appear and click it immediately
+            WebDriverWait fastWait = new WebDriverWait(driver, Duration.ofSeconds(3));
+            WebElement firstSite = fastWait.until(ExpectedConditions.elementToBeClickable(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name CONTAINS ','")
+            ));
+            String siteName = firstSite.getAttribute("name");
+            firstSite.click();
+            return siteName;
+        } catch (Exception e) {
+            System.out.println("⚠️ Fast site select failed, using standard method");
+            return selectFirstSite();
+        }
+    }
+
+    /**
      * Select random site
      */
     public String selectRandomSite() {
@@ -569,29 +605,83 @@ public class SiteSelectionPage extends BasePage {
     // ================================================================
 
     /**
-     * Check if Sites button is displayed on dashboard
+     * Check if Sites button is displayed on dashboard (with fallback)
      */
     public boolean isSitesButtonDisplayed() {
-        return isElementDisplayed(sitesButton);
+        return isElementDisplayed(sitesButton) || isElementDisplayed(sitesButtonAlt);
     }
 
     /**
-     * Check if Sites button is enabled
+     * Check if Sites button is enabled (with fallback)
      */
     public boolean isSitesButtonEnabled() {
         try {
-            String enabled = sitesButton.getAttribute("enabled");
-            return "true".equalsIgnoreCase(enabled);
+            // Try primary locator
+            if (isElementDisplayed(sitesButton)) {
+                String enabled = sitesButton.getAttribute("enabled");
+                return "true".equalsIgnoreCase(enabled);
+            }
+            // Try alternative locator
+            if (isElementDisplayed(sitesButtonAlt)) {
+                String enabled = sitesButtonAlt.getAttribute("enabled");
+                return "true".equalsIgnoreCase(enabled);
+            }
+            return false;
         } catch (Exception e) {
             return false;
         }
     }
 
     /**
-     * Click Sites button
+     * Click Sites button with fallback strategies
      */
     public void clickSitesButton() {
-        click(sitesButton);
+        try {
+            System.out.println("📝 Clicking Sites button");
+            
+            // Try primary locator first
+            if (isElementDisplayed(sitesButton)) {
+                System.out.println("✅ Found Sites button via accessibility ID");
+                click(sitesButton);
+                return;
+            }
+            
+            // Try alternative locator
+            if (isElementDisplayed(sitesButtonAlt)) {
+                System.out.println("✅ Found Sites button via alternative locator");
+                click(sitesButtonAlt);
+                return;
+            }
+            
+            // Fallback: Find by searching all buttons in view
+            System.out.println("🔍 Searching for Sites button in all visible buttons...");
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND visible == true"
+            ));
+            
+            for (WebElement btn : buttons) {
+                String name = btn.getAttribute("name");
+                String label = btn.getAttribute("label");
+                if (name != null && (name.contains("building") || name.contains("Sites"))) {
+                    System.out.println("✅ Found Sites button by name: " + name);
+                    btn.click();
+                    return;
+                }
+                if (label != null && label.contains("Sites")) {
+                    System.out.println("✅ Found Sites button by label: " + label);
+                    btn.click();
+                    return;
+                }
+            }
+            
+            // Last resort: try clicking the standard locator anyway
+            System.out.println("⚠️ Using standard locator as last resort");
+            click(sitesButton);
+            
+        } catch (Exception e) {
+            System.out.println("⚠️ clickSitesButton error: " + e.getMessage());
+            throw e;
+        }
     }
 
     /**
@@ -706,10 +796,68 @@ public class SiteSelectionPage extends BasePage {
     }
 
     /**
-     * Click WiFi popup button (Go Online/Go Offline confirmation)
+     * Click WiFi popup button (Go Online/Go Offline confirmation) with fallback
      */
     public void clickWifiPopupButton() {
-        click(wifiPopupButton);
+        try {
+            System.out.println("🔍 Clicking WiFi popup button...");
+            
+            // Try primary locator first
+            if (isElementDisplayed(wifiPopupButton)) {
+                System.out.println("✅ Found WiFi popup button via primary locator");
+                click(wifiPopupButton);
+                return;
+            }
+            
+            // Try finding "Go Offline" text and click it
+            if (isElementDisplayed(goOfflineText)) {
+                System.out.println("✅ Found Go Offline option");
+                click(goOfflineText);
+                return;
+            }
+            
+            // Try finding "Go Offline" button
+            if (isElementDisplayed(goOfflineButton)) {
+                System.out.println("✅ Found Go Offline button");
+                click(goOfflineButton);
+                return;
+            }
+            
+            // Try finding "Go Online" text and click it
+            if (isElementDisplayed(goOnlineText)) {
+                System.out.println("✅ Found Go Online option");
+                click(goOnlineText);
+                return;
+            }
+            
+            // Try finding "Go Online" button
+            if (isElementDisplayed(goOnlineButton)) {
+                System.out.println("✅ Found Go Online button");
+                click(goOnlineButton);
+                return;
+            }
+            
+            // Fallback: Search for any element with "Go" and "line" in label
+            System.out.println("🔍 Searching for popup option via label...");
+            List<WebElement> popupOptions = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "visible == true AND (label CONTAINS 'Go' AND (label CONTAINS 'Offline' OR label CONTAINS 'Online'))"
+            ));
+            
+            if (!popupOptions.isEmpty()) {
+                WebElement option = popupOptions.get(0);
+                System.out.println("✅ Found popup option: " + option.getAttribute("label"));
+                option.click();
+                return;
+            }
+            
+            // Last resort: click primary locator anyway
+            System.out.println("⚠️ Using primary locator as last resort");
+            click(wifiPopupButton);
+            
+        } catch (Exception e) {
+            System.out.println("⚠️ clickWifiPopupButton error: " + e.getMessage());
+            throw e;
+        }
     }
 
     /**
@@ -741,30 +889,88 @@ public class SiteSelectionPage extends BasePage {
     }
 
     /**
-     * Go Offline (with internal explicit wait)
+     * Go Offline (with internal explicit wait and improved reliability)
      */
     public void goOffline() {
-        if (isWifiOnline()) {
-            clickWifiButton();
-            // Wait for popup to appear
-            waitForElementToBeClickable(wifiPopupButton, 3);
-            clickWifiPopupButton();
-            // Wait for offline state
-            waitForCondition(() -> isWifiOffline(), 3);
+        try {
+            System.out.println("🔄 Attempting to go offline...");
+            
+            if (isWifiOnline()) {
+                clickWifiButton();
+                sleep(1000); // Wait for popup animation
+                
+                // Try to click the popup button with multiple strategies
+                try {
+                    // First try direct "Go Offline" text
+                    if (isElementDisplayed(goOfflineText)) {
+                        click(goOfflineText);
+                    } else if (isElementDisplayed(goOfflineButton)) {
+                        click(goOfflineButton);
+                    } else {
+                        // Fallback to popup button
+                        clickWifiPopupButton();
+                    }
+                } catch (Exception e) {
+                    System.out.println("⚠️ Popup click failed, trying alternative: " + e.getMessage());
+                    clickWifiPopupButton();
+                }
+                
+                // Wait for offline state
+                sleep(2000);
+                if (!isWifiOffline()) {
+                    System.out.println("⚠️ Not in offline mode yet, waiting longer...");
+                    waitForCondition(() -> isWifiOffline(), 5);
+                }
+                System.out.println("✅ Successfully went offline");
+            } else {
+                System.out.println("ℹ️ Already in offline mode");
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ goOffline error: " + e.getMessage());
+            throw e;
         }
     }
 
     /**
-     * Go Online (with internal explicit wait)
+     * Go Online (with internal explicit wait and improved reliability)
      */
     public void goOnline() {
-        if (isWifiOffline()) {
-            clickWifiButton();
-            // Wait for popup to appear
-            waitForElementToBeClickable(wifiPopupButton, 3);
-            clickWifiPopupButton();
-            // Wait for online state
-            waitForCondition(() -> isWifiOnline(), 3);
+        try {
+            System.out.println("🔄 Attempting to go online...");
+            
+            if (isWifiOffline()) {
+                clickWifiButton();
+                sleep(1000); // Wait for popup animation
+                
+                // Try to click the popup button with multiple strategies
+                try {
+                    // First try direct "Go Online" text
+                    if (isElementDisplayed(goOnlineText)) {
+                        click(goOnlineText);
+                    } else if (isElementDisplayed(goOnlineButton)) {
+                        click(goOnlineButton);
+                    } else {
+                        // Fallback to popup button
+                        clickWifiPopupButton();
+                    }
+                } catch (Exception e) {
+                    System.out.println("⚠️ Popup click failed, trying alternative: " + e.getMessage());
+                    clickWifiPopupButton();
+                }
+                
+                // Wait for online state
+                sleep(2000);
+                if (!isWifiOnline()) {
+                    System.out.println("⚠️ Not in online mode yet, waiting longer...");
+                    waitForCondition(() -> isWifiOnline(), 5);
+                }
+                System.out.println("✅ Successfully went online");
+            } else {
+                System.out.println("ℹ️ Already in online mode");
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ goOnline error: " + e.getMessage());
+            throw e;
         }
     }
 
