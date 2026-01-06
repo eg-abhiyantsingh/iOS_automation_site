@@ -440,11 +440,12 @@ public class ExtentReportManager {
     }
 
     /**
-     * Send report email
+     * Send report email - Client report only
      */
     private static void sendReportEmail() {
         try {
-            String[] attachments = {detailedReportPath, clientReportPath};
+            // Only attach client report (no detailed report)
+            String[] attachments = {clientReportPath};
             String body = buildEmailBody();
             
             EmailUtil.sendEmail(
@@ -453,7 +454,7 @@ public class ExtentReportManager {
                 body,
                 attachments
             );
-            System.out.println("📧 Test reports emailed to: " + AppConstants.EMAIL_TO);
+            System.out.println("📧 Test report emailed to: " + AppConstants.EMAIL_TO);
         } catch (Exception e) {
             System.err.println("⚠️ Failed to send email: " + e.getMessage());
         }
