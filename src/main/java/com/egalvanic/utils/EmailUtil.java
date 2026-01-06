@@ -143,11 +143,15 @@ public class EmailUtil {
 
     /**
      * Send test report email with default settings
+     * Only sends client report (no detailed report)
      */
     public static void sendTestReportEmail(String detailedReportPath, String clientReportPath) {
         String subject = AppConstants.EMAIL_SUBJECT;
         String body = buildDefaultEmailBody();
-        String[] attachments = {detailedReportPath, clientReportPath};
+        // Only attach client report
+        String[] attachments = {clientReportPath};
+    //String[] attachments = {detailedReportPath, clientReportPath};
+
         
         sendEmail(AppConstants.EMAIL_TO, subject, body, attachments);
     }
@@ -191,14 +195,10 @@ public class EmailUtil {
         
         // Reports Section
         body.append("<div class='reports-section'>");
-        body.append("<h3 style='margin-top: 0;'>📊 Attached Reports</h3>");
+        body.append("<h3 style='margin-top: 0;'>📊 Attached Report</h3>");
         body.append("<div class='report-item'>");
-        body.append("<strong>📋 Detailed Report</strong><br>");
-        body.append("<small>For QA Team - Includes screenshots, logs, and step details</small>");
-        body.append("</div>");
-        body.append("<div class='report-item'>");
-        body.append("<strong>📄 Client Report</strong><br>");
-        body.append("<small>For Client - Clean summary with Module > Feature > Test > Pass/Fail</small>");
+        body.append("<strong>� Celient Report</strong><br>");
+        body.append("<small>Clean summary with Module > Feature > Test > Pass/Fail</small>");
         body.append("</div>");
         body.append("</div>");
         
