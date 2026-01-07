@@ -19,5 +19,4 @@
             <class name="com.egalvanic.tests.AssetTest"/>
         </classes>
     </test>
-
 </suite>

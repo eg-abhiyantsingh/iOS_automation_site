@@ -1484,4 +1484,157 @@ public class AssetTest extends BaseTest {
         logStepWithScreenshot("Save button state verified");
         logWarning("Enabled/disabled state verification can be flaky - partial automation");
     }
+
+    // ============================================================
+    // BUSWAY ASSET CLASS TEST CASES - BUS_EAD
+    // ============================================================
+
+    /**
+     * Navigate to Edit Asset screen and change Asset Class to Busway
+     */
+    private void navigateToEditAssetScreenAndChangeToBusway() {
+        long start = System.currentTimeMillis();
+        
+        // Login + site selection
+        performLogin();
+        String selectedSite = siteSelectionPage.turboSelectSite();
+        if (selectedSite == null) {
+            selectedSite = siteSelectionPage.selectFirstSiteUltraFast();
+        }
+        System.out.println("⚡ Site: " + selectedSite);
+        siteSelectionPage.waitForDashboardFast();
+        
+        // Navigate to asset list
+        assetPage.navigateToAssetList();
+        mediumWait();
+        
+        // Select first asset (existing asset)
+        String assetName = assetPage.selectFirstAsset();
+        System.out.println("📦 Opened asset: " + assetName);
+        mediumWait();
+        
+        // Click Edit button
+        assetPage.clickEdit();
+        assetPage.waitForEditScreenReady();
+        mediumWait();
+        
+        // Change asset class to Busway
+        logStep("Changing Asset Class to Busway");
+        assetPage.changeAssetClassToBusway();
+        mediumWait();
+        
+        long elapsed = System.currentTimeMillis() - start;
+        System.out.println("⚡ navigateToEditAssetScreenAndChangeToBusway completed in " + elapsed + "ms");
+    }
+
+    // ============================================================
+    // BUS_EAD_01 - Verify Core Attributes not visible for Busway (Partial)
+    // ============================================================
+
+    @Test(priority = 201)
+    public void BUS_EAD_01_verifyCoreAttributesNotVisibleForBusway() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_EDIT_ASSET,
+            "BUS_EAD_01 - Verify Core Attributes not visible for Busway asset class"
+        );
+
+        logStep("Navigating to Edit Asset screen and changing to Busway");
+        navigateToEditAssetScreenAndChangeToBusway();
+
+        logStep("Verifying Core Attributes section is hidden for Busway");
+        boolean isCoreAttributesHidden = assetPage.isCoreAttributesSectionHidden();
+        logStep("Core Attributes hidden: " + isCoreAttributesHidden);
+
+        assertTrue(isCoreAttributesHidden, "Core Attributes section should NOT be displayed for Busway asset class");
+
+        logStepWithScreenshot("Core Attributes section not visible for Busway - verified");
+        logWarning("Full content verification may need scroll - partial automation");
+    }
+
+    // ============================================================
+    // BUS_EAD_02 - Verify completion percentage not shown for Busway (Partial)
+    // ============================================================
+
+    @Test(priority = 202)
+    public void BUS_EAD_02_verifyCompletionPercentageNotShownForBusway() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_EDIT_ASSET,
+            "BUS_EAD_02 - Verify completion percentage not shown for Busway"
+        );
+
+        logStep("Navigating to Edit Asset screen and changing to Busway");
+        navigateToEditAssetScreenAndChangeToBusway();
+
+        logStep("Verifying percentage indicator is NOT shown for Busway");
+        boolean isPercentageHidden = assetPage.isPercentageIndicatorHidden();
+        logStep("Percentage indicator hidden: " + isPercentageHidden);
+
+        assertTrue(isPercentageHidden, "Core Attributes percentage indicator should NOT be shown for Busway");
+
+        logStepWithScreenshot("Completion percentage not shown for Busway - verified");
+        logWarning("Percentage element existence can be checked but calculation accuracy needs manual check");
+    }
+
+    // ============================================================
+    // BUS_EAD_03 - Verify save without Core Attributes (Yes)
+    // ============================================================
+
+    @Test(priority = 203)
+    public void BUS_EAD_03_verifySaveWithoutCoreAttributes() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_EDIT_ASSET,
+            "BUS_EAD_03 - Verify save without Core Attributes"
+        );
+
+        logStep("Navigating to Edit Asset screen and changing to Busway");
+        navigateToEditAssetScreenAndChangeToBusway();
+
+        logStep("Editing an available field for Busway");
+        assetPage.editAvailableBuswayField();
+        mediumWait();
+
+        logStep("Saving the asset without Core Attributes");
+        assetPage.scrollFormUp();
+        mediumWait();
+        assetPage.clickEditSave();
+        longWait();
+
+        logStep("Verifying asset saved successfully");
+        assertTrue(assetPage.isEditSavedSuccessfully(), "Asset should be saved successfully without Core Attributes");
+
+        logStepWithScreenshot("Busway asset saved successfully without Core Attributes");
+    }
+
+    // ============================================================
+    // BUS_EAD_04 - Verify UI consistency for Busway (Partial)
+    // ============================================================
+
+    @Test(priority = 204)
+    public void BUS_EAD_04_verifyUIConsistencyForBusway() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_EDIT_ASSET,
+            "BUS_EAD_04 - Verify UI consistency for Busway asset class"
+        );
+
+        logStep("Navigating to Edit Asset screen and changing to Busway");
+        navigateToEditAssetScreenAndChangeToBusway();
+
+        logStep("Verifying no empty Core Attributes container is shown");
+        boolean hasEmptyContainer = assetPage.hasEmptyCoreAttributesContainer();
+        logStep("Has empty Core Attributes container: " + hasEmptyContainer);
+
+        logStep("Verifying Edit screen is properly displayed for Busway");
+        boolean isEditScreenDisplayed = assetPage.isEditScreenDisplayedForBusway();
+        logStep("Edit screen displayed: " + isEditScreenDisplayed);
+
+        assertFalse(hasEmptyContainer, "No blank or placeholder Core Attributes section should be shown");
+        assertTrue(isEditScreenDisplayed, "Edit screen should be properly displayed for Busway");
+
+        logStepWithScreenshot("UI consistency verified for Busway - no empty Core Attributes container");
+        logWarning("Comprehensive UI consistency needs visual testing - partial automation");
+    }
 }

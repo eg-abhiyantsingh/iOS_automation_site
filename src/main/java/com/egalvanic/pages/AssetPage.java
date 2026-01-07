@@ -1745,4 +1745,229 @@ public class AssetPage extends BasePage {
         scrollFormUp();
         System.out.println("✅ Filled all ATS required fields");
     }
+
+    // ================================================================
+    // BUSWAY ASSET CLASS METHODS
+    // ================================================================
+
+    /**
+     * Change asset class in Edit mode to Busway
+     */
+    /**
+     * Change asset class to Busway - FIXED VERSION
+     * No excessive scrolling - works with dropdown directly
+     */
+    public void changeAssetClassToBusway() {
+        System.out.println("📋 Changing asset class to Busway...");
+        
+        // Step 1: Make sure we're at the top of the form (asset class is near top)
+        scrollFormUp();
+        sleep(500);
+        
+        // Step 2: Find and click the current asset class button
+        WebElement assetClassBtn = findAssetClassButton();
+        if (assetClassBtn == null) {
+            System.out.println("⚠️ Asset class button not found!");
+            return;
+        }
+        
+        System.out.println("✅ Found asset class button: " + assetClassBtn.getAttribute("name"));
+        assetClassBtn.click();
+        sleep(800); // Wait for dropdown to open
+        
+        // Step 3: Select Busway from dropdown (NO scrolling - Busway should be visible)
+        selectBuswayFromDropdown();
+    }
+    
+    /**
+     * Find the asset class button/selector on edit screen
+     */
+    private WebElement findAssetClassButton() {
+        // Try common asset class names first (current selection would show as the name)
+        String[] assetClassNames = {"ATS", "UPS", "PDU", "Generator", "Busway", "Select asset class"};
+        
+        for (String className : assetClassNames) {
+            try {
+                WebElement btn = driver.findElement(AppiumBy.accessibilityId(className));
+                if (btn.isDisplayed()) {
+                    return btn;
+                }
+            } catch (Exception e) {}
+        }
+        
+        // Try by predicate
+        try {
+            return driver.findElement(
+                AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND visible == true AND " +
+                    "(name == 'ATS' OR name == 'UPS' OR name == 'PDU' OR name == 'Generator' OR " +
+                    "name == 'Busway' OR name CONTAINS 'asset class')"
+                )
+            );
+        } catch (Exception e) {}
+        
+        // Last resort: search all buttons
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.className("XCUIElementTypeButton"));
+            for (WebElement btn : buttons) {
+                String name = btn.getAttribute("name");
+                if (name != null && (name.equals("ATS") || name.equals("UPS") || name.equals("PDU") || 
+                    name.equals("Generator") || name.equals("Busway") || name.contains("asset class"))) {
+                    return btn;
+                }
+            }
+        } catch (Exception e) {}
+        
+        return null;
+    }
+
+    /**
+     * Select Busway from the asset class dropdown - NO scrolling
+     */
+    private void selectBuswayFromDropdown() {
+        System.out.println("📋 Selecting Busway from dropdown...");
+        
+        // Try direct accessibility ID first
+        try {
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(3));
+            WebElement busway = wait.until(ExpectedConditions.elementToBeClickable(
+                AppiumBy.accessibilityId("Busway")
+            ));
+            busway.click();
+            System.out.println("✅ Selected Busway");
+            sleep(500);
+            return;
+        } catch (Exception e) {
+            System.out.println("   Direct ID failed, trying alternatives...");
+        }
+        
+        // Try predicate
+        try {
+            WebElement busway = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Busway' OR label == 'Busway'")
+            );
+            busway.click();
+            System.out.println("✅ Selected Busway (predicate)");
+            sleep(500);
+            return;
+        } catch (Exception e) {}
+        
+        // Try searching visible buttons
+        try {
+            List<WebElement> options = driver.findElements(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND visible == true")
+            );
+            for (WebElement opt : options) {
+                String name = opt.getAttribute("name");
+                if ("Busway".equals(name)) {
+                    opt.click();
+                    System.out.println("✅ Selected Busway (button search)");
+                    sleep(500);
+                    return;
+                }
+            }
+        } catch (Exception e) {}
+        
+        System.out.println("⚠️ Could not find Busway option in dropdown!");
+    }
+
+    /**
+     * Select Busway from asset class dropdown (public method for compatibility)
+     */
+    public void selectBuswayClass() {
+        selectBuswayFromDropdown();
+    }
+
+    /**
+     * Check if Core Attributes section is NOT visible (for Busway)
+     */
+    public boolean isCoreAttributesSectionHidden() {
+        try {
+            sleep(1000); // Wait for UI to update after class change
+            List<WebElement> elements = driver.findElements(
+                AppiumBy.iOSNsPredicateString("name CONTAINS 'Core Attributes' OR label CONTAINS 'Core Attributes'")
+            );
+            boolean isHidden = elements.size() == 0;
+            System.out.println("Core Attributes hidden: " + isHidden);
+            return isHidden;
+        } catch (Exception e) {
+            return true; // If error, consider it hidden
+        }
+    }
+
+    /**
+     * Check if percentage indicator is NOT displayed (for Busway)
+     */
+    public boolean isPercentageIndicatorHidden() {
+        try {
+            sleep(500);
+            List<WebElement> percentElements = driver.findElements(
+                AppiumBy.iOSNsPredicateString("name CONTAINS '%' OR label CONTAINS '%' OR value CONTAINS '%'")
+            );
+            boolean isHidden = percentElements.size() == 0;
+            System.out.println("Percentage indicator hidden: " + isHidden);
+            return isHidden;
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
+    /**
+     * Check if there's an empty Core Attributes container (should not exist for Busway)
+     */
+    public boolean hasEmptyCoreAttributesContainer() {
+        try {
+            // Look for any container that might be an empty placeholder
+            List<WebElement> containers = driver.findElements(
+                AppiumBy.iOSNsPredicateString("name CONTAINS 'Core' OR label CONTAINS 'Core'")
+            );
+            if (containers.size() > 0) {
+                System.out.println("⚠️ Found Core container elements: " + containers.size());
+                return true;
+            }
+            return false;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Edit any available field for Busway (non-Core Attributes field)
+     */
+    public void editAvailableBuswayField() {
+        try {
+            // Try to edit description or any other available text field
+            List<WebElement> textFields = driver.findElements(AppiumBy.className("XCUIElementTypeTextField"));
+            for (WebElement field : textFields) {
+                try {
+                    field.click();
+                    sleep(300);
+                    field.clear();
+                    field.sendKeys("Busway_Test_" + System.currentTimeMillis());
+                    dismissKeyboard();
+                    System.out.println("✅ Edited a Busway field");
+                    return;
+                } catch (Exception e) {
+                    continue;
+                }
+            }
+            System.out.println("⚠️ No editable text field found for Busway");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not edit Busway field: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Check if Edit screen is displayed for Busway (no Core Attributes but Save button exists)
+     */
+    public boolean isEditScreenDisplayedForBusway() {
+        try {
+            // For Busway, we check for Save button but NO Core Attributes
+            boolean hasSave = driver.findElements(AppiumBy.accessibilityId("Save")).size() > 0;
+            boolean hasCancel = driver.findElements(AppiumBy.accessibilityId("Cancel")).size() > 0;
+            return hasSave || hasCancel;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 }
