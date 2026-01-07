@@ -99,6 +99,19 @@ public class AppConstants {
     public static final String FEATURE_ACCESSIBILITY = "Accessibility";
 
     // ============================================
+    // FEATURE NAMES - ASSET MANAGEMENT
+    // ============================================
+    public static final String FEATURE_ASSET_LIST = "Asset List";
+    public static final String FEATURE_CREATE_ASSET = "Create Asset";
+    public static final String FEATURE_EDIT_ASSET = "Edit Asset";
+    public static final String FEATURE_ASSET_DETAILS = "Asset Details";
+    public static final String FEATURE_ASSET_CLASS = "Asset Class Selection";
+    public static final String FEATURE_ASSET_LOCATION = "Asset Location";
+    public static final String FEATURE_ASSET_SUBTYPE = "Asset Subtype";
+    public static final String FEATURE_ASSET_QR_CODE = "Asset QR Code";
+    public static final String FEATURE_ASSET_VALIDATION = "Asset Validation";
+
+    // ============================================
     // EMAIL CONFIGURATION
     // ============================================
     public static final String SMTP_HOST = "smtp.gmail.com";
@@ -107,7 +120,15 @@ public class AppConstants {
     public static final String EMAIL_PASSWORD = getEnv("EMAIL_PASSWORD", "ccddnnqsjigrhzcz");
     public static final String EMAIL_TO = "abhiyantsinghsuas18@gmail.com";
     public static final String EMAIL_SUBJECT = "eGalvanic iOS Automation - Test Report";
-    public static final boolean SEND_EMAIL_ENABLED = true; // Set to true to send email reports
+    public static final boolean SEND_EMAIL_ENABLED = true;
+    // ================================================================
+    // APP RESET BEHAVIOR
+    // ================================================================
+    // Set to true if tests fail due to cached state (adds ~15-20s per test)
+    public static final boolean FULL_RESET = false;  // Change to true for clean install
+    public static final boolean NO_RESET = false;    // Keep false for data clearing
+    
+ // Set to true to send email reports
 
     // ============================================
     // HELPER METHOD

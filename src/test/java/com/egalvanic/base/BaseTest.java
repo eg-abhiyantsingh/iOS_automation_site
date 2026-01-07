@@ -1,6 +1,7 @@
 package com.egalvanic.base;
 
 import com.egalvanic.constants.AppConstants;
+import com.egalvanic.pages.AssetPage;
 import com.egalvanic.pages.LoginPage;
 import com.egalvanic.pages.SiteSelectionPage;
 import com.egalvanic.pages.WelcomePage;
@@ -20,6 +21,7 @@ public class BaseTest {
     protected WelcomePage welcomePage;
     protected LoginPage loginPage;
     protected SiteSelectionPage siteSelectionPage;
+    protected AssetPage assetPage;
 
     // Flag to skip setup/teardown for chained tests
     protected static boolean skipNextSetup = false;
@@ -74,6 +76,7 @@ public class BaseTest {
             welcomePage = new WelcomePage();
             loginPage = new LoginPage();
             siteSelectionPage = new SiteSelectionPage();
+            assetPage = new AssetPage();
             return;
         }
 
@@ -87,6 +90,7 @@ public class BaseTest {
         welcomePage = new WelcomePage();
         loginPage = new LoginPage();
         siteSelectionPage = new SiteSelectionPage();
+        assetPage = new AssetPage();
 
         // Wait for app to load using explicit wait (checks if welcome page is ready)
         welcomePage.waitForPageReady();
@@ -159,7 +163,7 @@ public class BaseTest {
         loginPage.waitForPageReady();
 
         // Enter credentials and login (Save Password popup is handled inside login())
-        loginPage.login(AppConstants.VALID_EMAIL, AppConstants.VALID_PASSWORD);
+        loginPage.loginTurbo(AppConstants.VALID_EMAIL, AppConstants.VALID_PASSWORD);
 
         System.out.println("✅ Login completed");
     }
@@ -213,6 +217,51 @@ public class BaseTest {
         ExtentReportManager.logInfo(stepDescription);
         System.out.println("📝 " + stepDescription);
     }
+
+    /**
+     * ╔══════════════════════════════════════════════════════════════╗
+     * ║ TURBO MODE: Login + Site Selection in minimum time           ║
+     * ║ Target: Under 5 seconds for entire operation                 ║
+     * ║ Uses: turboSelectSite() + waitForDashboardFast()             ║
+     * ╚══════════════════════════════════════════════════════════════╝
+     */
+    protected final void loginAndSelectSiteTurbo() {
+        long start = System.currentTimeMillis();
+        
+        // Fast login
+        System.out.println("⚡ TURBO: Starting login...");
+        welcomePage.submitCompanyCode(AppConstants.VALID_COMPANY_CODE);
+        loginPage.waitForPageReady();
+        loginPage.loginTurbo(AppConstants.VALID_EMAIL, AppConstants.VALID_PASSWORD);
+        
+        // Turbo site selection
+        System.out.println("⚡ TURBO: Selecting site...");
+        String site = siteSelectionPage.turboSelectSite();
+        
+        // Fast dashboard wait
+        siteSelectionPage.waitForDashboardFast();
+        
+        long elapsed = System.currentTimeMillis() - start;
+        System.out.println("⚡ TURBO: Complete in " + elapsed + "ms - Site: " + site);
+    }
+
+    /**
+     * ╔══════════════════════════════════════════════════════════════╗
+     * ║ ULTRA FAST: Random site selection                            ║
+     * ║ Uses selectRandomSiteUltraFast() for speed                   ║
+     * ╚══════════════════════════════════════════════════════════════╝
+     */
+    protected final void loginAndSelectRandomSiteFast() {
+        performLogin();
+        
+        System.out.println("⚡ Selecting random site (fast)...");
+        String site = siteSelectionPage.selectRandomSiteUltraFast();
+        System.out.println("⚡ Random site: " + site);
+        
+        siteSelectionPage.waitForDashboardFast();
+    }
+
+
 
     /**
      * Log a step with screenshot (uses Base64 for portability)

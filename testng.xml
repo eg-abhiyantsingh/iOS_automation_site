@@ -10,9 +10,37 @@
         </classes>
     </test>
     -->
-    <test name="Site Selection Tests">
+
+    <test name="Authentication Tests - Selected">
         <classes>
-            <class name="com.egalvanic.tests.SiteSelectionTest"/>
+            <class name="com.egalvanic.tests.AuthenticationTest">
+                <methods>
+                    <include name="TC30_verifyPasswordOnlyDoesNotEnableSignIn"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+
+    <test name="Site Selection Tests - Selected">
+        <classes>
+            <class name="com.egalvanic.tests.SiteSelectionTest">
+                <methods>
+                    <include name="TC_SS_044_verifyIssuesBadgeCount"/>
+                    <include name="TC_SS_047_verifySwitchingToSameSiteAlreadyLoaded"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+
+    <test name="Asset Tests - Selected">
+        <classes>
+            <class name="com.egalvanic.tests.AssetTest">
+                <methods>
+                    <include name="ATS_ECR_01_verifyNewAssetScreenLoadsSuccessfully"/>
+                    <include name="ATS_ECR_10_verifyNameTrimming"/>
+                    <include name="ATS_EAD_13_completeAllRequiredFields"/>
+                </methods>
+            </class>
         </classes>
     </test>
 
