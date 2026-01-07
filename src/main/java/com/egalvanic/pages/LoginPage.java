@@ -53,20 +53,34 @@ public class LoginPage extends BasePage {
      */
     public void waitForPageReady() {
         try {
-            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(AppConstants.EXPLICIT_WAIT));
-            // Wait for text field (email) to be visible using fresh locator
-            wait.until(ExpectedConditions.presenceOfElementLocated(
+            // FAST: 3 second timeout with fast polling
+            WebDriverWait fastWait = new WebDriverWait(driver, Duration.ofSeconds(3));
+            fastWait.pollingEvery(Duration.ofMillis(200));
+            // Just wait for email field - password field will be there too
+            fastWait.until(ExpectedConditions.presenceOfElementLocated(
                 io.appium.java_client.AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' AND visible == 1")
-            ));
-            // Short wait for secure text field (password)
-            wait.until(ExpectedConditions.presenceOfElementLocated(
-                io.appium.java_client.AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeSecureTextField'")
             ));
             System.out.println("✅ Login page ready");
         } catch (Exception e) {
-            System.out.println("⚠️ Login page wait timeout, continuing...");
+            // Continue anyway - fields might be there
         }
     }
+    
+    /**
+     * FAST: Wait for login page (3 seconds max)
+     */
+    public void waitForPageReadyFast() {
+        try {
+            WebDriverWait fastWait = new WebDriverWait(driver, Duration.ofSeconds(3));
+            fastWait.pollingEvery(Duration.ofMillis(200));
+            fastWait.until(ExpectedConditions.presenceOfElementLocated(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' AND visible == 1")
+            ));
+        } catch (Exception e) {
+            // Continue anyway
+        }
+    }
+
 
     // ================================================================
     // PAGE METHODS
@@ -347,6 +361,82 @@ public void clickShowPassword() {
         waitForNoSavePasswordPopup();
     }
     
+    // ================================================================
+    // TURBO LOGIN - FAST VERSION (Under 2 seconds popup handling)
+    // ================================================================
+    
+    /**
+     * TURBO: Handle Save Password popup FAST (max 1.5 seconds)
+     * Only uses the most reliable methods, skips slow fallbacks
+     */
+    private void handleSavePasswordTurbo() {
+        long start = System.currentTimeMillis();
+        
+        // Quick check - try alert first (fastest)
+        try {
+            driver.switchTo().alert().dismiss();
+            System.out.println("⚡ Alert dismissed in " + (System.currentTimeMillis() - start) + "ms");
+            return;
+        } catch (Exception e) {}
+        
+        try {
+            driver.switchTo().alert().accept();
+            System.out.println("⚡ Alert accepted in " + (System.currentTimeMillis() - start) + "ms");
+            return;
+        } catch (Exception e) {}
+        
+        // Quick button check - "Not Now" only (most common)
+        try {
+            WebElement btn = driver.findElement(
+                io.appium.java_client.AppiumBy.accessibilityId("Not Now")
+            );
+            btn.click();
+            System.out.println("⚡ 'Not Now' clicked in " + (System.currentTimeMillis() - start) + "ms");
+            return;
+        } catch (Exception e) {}
+        
+        // One more quick check after tiny delay
+        try { Thread.sleep(300); } catch (InterruptedException e) {}
+        
+        try {
+            driver.switchTo().alert().dismiss();
+            System.out.println("⚡ Alert dismissed (retry) in " + (System.currentTimeMillis() - start) + "ms");
+            return;
+        } catch (Exception e) {}
+        
+        try {
+            WebElement btn = driver.findElement(
+                io.appium.java_client.AppiumBy.accessibilityId("Not Now")
+            );
+            btn.click();
+            System.out.println("⚡ 'Not Now' clicked (retry) in " + (System.currentTimeMillis() - start) + "ms");
+            return;
+        } catch (Exception e) {}
+        
+        System.out.println("⚡ No popup found in " + (System.currentTimeMillis() - start) + "ms");
+    }
+    
+    /**
+     * TURBO: Login with minimal waits (under 3 seconds total for popup handling)
+     */
+    public void loginTurbo(String email, String password) {
+        long start = System.currentTimeMillis();
+        
+        // Enter credentials
+        enterEmail(email);
+        enterPassword(password);
+        
+        // Quick tap sign in
+        tapSignIn();
+        
+        // Fast popup handling (max 1.5 seconds)
+        handleSavePasswordTurbo();
+        
+        System.out.println("⚡ loginTurbo completed in " + (System.currentTimeMillis() - start) + "ms");
+    }
+
+
+    
     /**
      * ╔══════════════════════════════════════════════════════════════════════╗
      * ║  Polls for Save Password popup up to 5 times with proper delays     ║
@@ -525,12 +615,8 @@ public void clickShowPassword() {
             return true;
         } catch (Exception e) {}
         
-        // METHOD 10: Press back/escape
-        try {
-            driver.navigate().back();
-            System.out.println("✅ Pressed back/escape");
-            return true;
-        } catch (Exception e) {}
+        // METHOD 10: Skip - navigate().back() is too slow
+        // Removed for performance
         
         return false; // No popup found
     }

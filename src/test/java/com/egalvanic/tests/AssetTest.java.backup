@@ -1,0 +1,859 @@
+package com.egalvanic.tests;
+
+import com.egalvanic.base.BaseTest;
+import com.egalvanic.constants.AppConstants;
+import com.egalvanic.utils.ExtentReportManager;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+/**
+ * Asset Test Suite - Create New Asset
+ * 
+ * Test Cases Covered (Automation Feasible = Yes):
+ * - ATS_ECR_06: Verify Name Mandatory Validation
+ * - ATS_ECR_07: Verify Name With Only Spaces
+ * - ATS_ECR_10: Verify Name Trimming
+ * - ATS_ECR_12: Verify Location Mandatory Validation
+ * - ATS_ECR_14: Verify Select Asset Class
+ * - ATS_ECR_15: Verify Asset Class Mandatory Validation
+ * - ATS_ECR_17: Verify Subtype Enabled After Class Selection
+ * - ATS_ECR_18: Verify Select Asset Subtype
+ * - ATS_ECR_19: Verify Save Without Subtype
+ * - ATS_ECR_21: Verify Enter QR Code Manually
+ * - ATS_ECR_26: Verify Profile Photo Optional
+ * - ATS_ECR_31: Verify Save Asset With Valid Data
+ * 
+ * Partial Automation Test Cases:
+ * - ATS_ECR_01: Verify New Asset Screen Loads Successfully
+ * - ATS_ECR_02: Verify All UI Fields Are Visible
+ * - ATS_ECR_11: Verify Select Location
+ * - ATS_ECR_32: Verify Cancel Asset Creation
+ * - ATS_ECR_37: Verify Asset Appears in Asset List
+ */
+public class AssetTest extends BaseTest {
+
+    // ============================================================
+    // TEST CLASS SETUP
+    // ============================================================
+
+    @BeforeClass
+    public void classSetup() {
+        System.out.println("\n📋 Asset Test Suite - Create New Asset - Starting");
+    }
+
+    // ============================================================
+    // HELPER METHODS
+    // ============================================================
+
+    /**
+     * Navigate to New Asset screen after login and site selection
+     */
+    private void navigateToNewAssetScreen() {
+        loginAndSelectSite();
+        assetPage.navigateToAssetList();
+        assetPage.clickAddAsset();
+    }
+
+    // ============================================================
+    // ATS_ECR_01 - Verify New Asset Screen Loads Successfully (Partial)
+    // ============================================================
+
+    @Test(priority = 1)
+    public void ATS_ECR_01_verifyNewAssetScreenLoadsSuccessfully() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_CREATE_ASSET,
+            "ATS_ECR_01 - Verify New Asset Screen Loads Successfully"
+        );
+
+        logStep("Logging in and navigating to New Asset screen");
+        navigateToNewAssetScreen();
+
+        logStep("Verifying New Asset screen elements are visible");
+        assertTrue(assetPage.isCreateAssetFormDisplayed(), "New Asset form should be displayed");
+        assertTrue(assetPage.isAssetNameFieldDisplayed(), "Asset Name field should be visible");
+        assertTrue(assetPage.isSelectAssetClassDisplayed(), "Select Asset Class button should be visible");
+        assertTrue(assetPage.isSelectLocationDisplayed(), "Select Location button should be visible");
+
+        logStepWithScreenshot("New Asset screen loaded successfully with required sections visible");
+    }
+
+    // ============================================================
+    // ATS_ECR_02 - Verify All UI Fields Are Visible (Partial)
+    // ============================================================
+
+    @Test(priority = 2)
+    public void ATS_ECR_02_verifyAllUIFieldsAreVisible() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_CREATE_ASSET,
+            "ATS_ECR_02 - Verify All UI Fields Are Visible"
+        );
+
+        logStep("Logging in and navigating to New Asset screen");
+        navigateToNewAssetScreen();
+
+        logStep("Verifying visibility of input fields");
+        assertTrue(assetPage.isAssetNameFieldDisplayed(), "Name field should be visible");
+        assertTrue(assetPage.isSelectLocationDisplayed(), "Location field should be visible");
+        assertTrue(assetPage.isSelectAssetClassDisplayed(), "Asset Class field should be visible");
+
+        logStep("Scrolling down to verify additional fields");
+        assetPage.scrollFormDown();
+        shortWait();
+
+        assertTrue(assetPage.isSelectAssetSubtypeDisplayed(), "Asset Subtype field should be visible");
+        assertTrue(assetPage.isQRCodeFieldDisplayed(), "QR Code field should be visible");
+
+        logStepWithScreenshot("All UI fields verified visible");
+        logWarning("Full verification of all fields with extensive scrolling may need manual check");
+    }
+
+    // ============================================================
+    // ATS_ECR_06 - Verify Name Mandatory Validation (Yes)
+    // ============================================================
+
+    @Test(priority = 6)
+    public void ATS_ECR_06_verifyNameMandatoryValidation() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_ASSET_VALIDATION,
+            "ATS_ECR_06 - Verify Name Mandatory Validation"
+        );
+
+        logStep("Logging in and navigating to New Asset screen");
+        navigateToNewAssetScreen();
+
+        logStep("Leaving Name field empty and filling other required fields");
+        // Select Asset Class
+        assetPage.selectAssetClass("ATS");
+        shortWait();
+
+        // Select Location
+        assetPage.selectLocation();
+        shortWait();
+
+        logStep("Scrolling up to check Create Asset button");
+        assetPage.scrollFormUp();
+        shortWait();
+
+        logStep("Verifying Create Asset button state with empty name");
+        boolean isButtonEnabled = assetPage.isCreateAssetButtonEnabled();
+        
+        if (!isButtonEnabled) {
+            logStep("Create Asset button is disabled with empty name - Expected behavior");
+        } else {
+            // Button might be hidden instead of disabled
+            boolean isButtonDisplayed = assetPage.isCreateAssetButtonDisplayed();
+            if (!isButtonDisplayed) {
+                logStep("Create Asset button is not visible with empty name - Expected behavior");
+            }
+        }
+
+        assertFalse(isButtonEnabled, "Create button should be disabled when name is empty");
+        logStepWithScreenshot("Name mandatory validation verified - Create button disabled/hidden");
+    }
+
+    // ============================================================
+    // ATS_ECR_07 - Verify Name With Only Spaces (Yes)
+    // ============================================================
+
+    @Test(priority = 7)
+    public void ATS_ECR_07_verifyNameWithOnlySpaces() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_ASSET_VALIDATION,
+            "ATS_ECR_07 - Verify Name With Only Spaces"
+        );
+
+        logStep("Logging in and navigating to New Asset screen");
+        navigateToNewAssetScreen();
+
+        logStep("Entering spaces only in Name field");
+        assetPage.enterAssetName("     ");
+        assetPage.dismissKeyboard();
+        shortWait();
+
+        logStep("Filling other required fields");
+        assetPage.selectAssetClass("ATS");
+        shortWait();
+        assetPage.selectLocation();
+        shortWait();
+
+        logStep("Scrolling up to check Create Asset button");
+        assetPage.scrollFormUp();
+        shortWait();
+
+        logStep("Verifying Create Asset button state with spaces-only name");
+        boolean isButtonEnabled = assetPage.isCreateAssetButtonEnabled();
+
+        assertFalse(isButtonEnabled, "Create button should be disabled when name contains only spaces");
+        logStepWithScreenshot("Spaces-only name validation verified - Create button disabled");
+    }
+
+    // ============================================================
+    // ATS_ECR_10 - Verify Name Trimming (Yes)
+    // ============================================================
+
+    @Test(priority = 10)
+    public void ATS_ECR_10_verifyNameTrimming() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_ASSET_VALIDATION,
+            "ATS_ECR_10 - Verify Name Trimming"
+        );
+
+        logStep("Logging in and navigating to New Asset screen");
+        navigateToNewAssetScreen();
+        mediumWait();
+
+        long timestamp = System.currentTimeMillis();
+        String nameWithSpaces = "  TestAsset_" + timestamp + "  ";
+
+        logStep("Entering name with leading/trailing spaces: '" + nameWithSpaces + "'");
+        assetPage.enterAssetName(nameWithSpaces);
+        assetPage.dismissKeyboard();
+        mediumWait();
+
+        logStep("Filling other required fields");
+        try {
+            assetPage.selectAssetClass("ATS");
+        } catch (Exception e) {
+            assetPage.selectATSClass();
+        }
+        mediumWait();
+        
+        assetPage.selectLocation();
+        mediumWait();
+
+        logStep("Creating the asset");
+        assetPage.dismissKeyboard();
+        assetPage.scrollFormUp();
+        assetPage.scrollFormUp();
+        mediumWait();
+        
+        try {
+            assetPage.clickCreateAsset();
+        } catch (Exception e) {
+            logStep("Retrying Create Asset click...");
+            assetPage.scrollFormUp();
+            mediumWait();
+            assetPage.clickCreateAsset();
+        }
+        longWait();
+
+        logStep("Verifying asset was created (leading/trailing spaces should be trimmed)");
+        assertTrue(assetPage.isAssetCreatedSuccessfully(), "Asset should be created successfully with trimmed name");
+        
+        logStepWithScreenshot("Name trimming verified - Asset created with trimmed name");
+    }
+
+    // ============================================================
+    // ATS_ECR_11 - Verify Select Location (Partial)
+    // ============================================================
+
+    @Test(priority = 11)
+    public void ATS_ECR_11_verifySelectLocation() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_ASSET_LOCATION,
+            "ATS_ECR_11 - Verify Select Location"
+        );
+
+        logStep("Logging in and navigating to New Asset screen");
+        navigateToNewAssetScreen();
+
+        logStep("Clicking Select Location button");
+        assetPage.clickSelectLocation();
+        shortWait();
+
+        logStep("Verifying location picker is displayed");
+        assertTrue(assetPage.isLocationPickerDisplayed(), "Location picker should be displayed");
+
+        logStep("Selecting a location from hierarchy");
+        boolean locationSelected = assetPage.selectLocation();
+
+        if (locationSelected) {
+            logStep("Location selected successfully from existing hierarchy");
+        } else {
+            logStep("No existing location found - creating new location");
+            long timestamp = System.currentTimeMillis();
+            assetPage.createNewLocation("Floor_" + timestamp, "Room_" + timestamp);
+        }
+
+        logStepWithScreenshot("Location selection verified");
+        logWarning("Hierarchical navigation complexity with Appium - partial automation");
+    }
+
+    // ============================================================
+    // ATS_ECR_12 - Verify Location Mandatory Validation (Yes)
+    // ============================================================
+
+    @Test(priority = 12)
+    public void ATS_ECR_12_verifyLocationMandatoryValidation() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_ASSET_VALIDATION,
+            "ATS_ECR_12 - Verify Location Mandatory Validation"
+        );
+
+        logStep("Logging in and navigating to New Asset screen");
+        navigateToNewAssetScreen();
+
+        logStep("Filling Name field");
+        long timestamp = System.currentTimeMillis();
+        assetPage.enterAssetName("Asset_" + timestamp);
+        assetPage.dismissKeyboard();
+        shortWait();
+
+        logStep("Selecting Asset Class but skipping Location");
+        assetPage.selectAssetClass("ATS");
+        shortWait();
+
+        logStep("Scrolling up to check Create Asset button");
+        assetPage.scrollFormUp();
+        shortWait();
+
+        logStep("Verifying Create Asset button state without location");
+        boolean isButtonEnabled = assetPage.isCreateAssetButtonEnabled();
+
+        assertFalse(isButtonEnabled, "Create button should be disabled when location is not selected");
+        logStepWithScreenshot("Location mandatory validation verified - Create button disabled");
+    }
+
+    // ============================================================
+    // ATS_ECR_14 - Verify Select Asset Class (Yes)
+    // ============================================================
+
+    @Test(priority = 14)
+    public void ATS_ECR_14_verifySelectAssetClass() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_ASSET_CLASS,
+            "ATS_ECR_14 - Verify Select Asset Class"
+        );
+
+        logStep("Logging in and navigating to New Asset screen");
+        navigateToNewAssetScreen();
+        mediumWait();
+
+        logStep("Clicking Select Asset Class button");
+        try {
+            assetPage.clickSelectAssetClass();
+        } catch (Exception e) {
+            logStep("Retrying asset class button click...");
+            mediumWait();
+            assetPage.clickSelectAssetClass();
+        }
+        mediumWait();
+
+        logStep("Verifying asset class dropdown is displayed");
+        assertTrue(assetPage.isAssetClassDropdownDisplayed(), "Asset class dropdown should be displayed");
+
+        logStep("Selecting ATS asset class");
+        assetPage.selectATSClass();
+        mediumWait();
+
+        logStepWithScreenshot("Asset class selection verified - ATS selected");
+    }
+
+    // ============================================================
+    // ATS_ECR_15 - Verify Asset Class Mandatory Validation (Yes)
+    // ============================================================
+
+    @Test(priority = 15)
+    public void ATS_ECR_15_verifyAssetClassMandatoryValidation() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_ASSET_VALIDATION,
+            "ATS_ECR_15 - Verify Asset Class Mandatory Validation"
+        );
+
+        logStep("Logging in and navigating to New Asset screen");
+        navigateToNewAssetScreen();
+
+        logStep("Filling Name field");
+        long timestamp = System.currentTimeMillis();
+        assetPage.enterAssetName("Asset_" + timestamp);
+        assetPage.dismissKeyboard();
+        shortWait();
+
+        logStep("Selecting Location but skipping Asset Class");
+        assetPage.clickSelectLocation();
+        shortWait();
+        // Try to select location
+        assetPage.selectLocation();
+        shortWait();
+
+        logStep("Scrolling up to check Create Asset button");
+        assetPage.scrollFormUp();
+        shortWait();
+
+        logStep("Verifying Create Asset button state without asset class");
+        boolean isButtonEnabled = assetPage.isCreateAssetButtonEnabled();
+
+        assertFalse(isButtonEnabled, "Create button should be disabled when asset class is not selected");
+        logStepWithScreenshot("Asset class mandatory validation verified - Create button disabled");
+    }
+
+    // ============================================================
+    // ATS_ECR_17 - Verify Subtype Enabled After Class Selection (Yes)
+    // ============================================================
+
+    @Test(priority = 17)
+    public void ATS_ECR_17_verifySubtypeEnabledAfterClassSelection() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_ASSET_SUBTYPE,
+            "ATS_ECR_17 - Verify Subtype Enabled After Class Selection"
+        );
+
+        logStep("Logging in and navigating to New Asset screen");
+        navigateToNewAssetScreen();
+        mediumWait();
+
+        logStep("Verifying Subtype button visibility before selecting asset class");
+        assetPage.scrollFormDown();
+        shortWait();
+        boolean subtypeVisibleBefore = assetPage.isSelectAssetSubtypeDisplayed();
+        logStep("Subtype field visible before class selection: " + subtypeVisibleBefore);
+
+        logStep("Scrolling up to access Asset Class");
+        assetPage.scrollFormUp();
+        mediumWait();
+
+        logStep("Selecting Asset Class - ATS");
+        try {
+            assetPage.selectAssetClass("ATS");
+        } catch (Exception e) {
+            // Retry with direct click approach
+            logStep("Retrying asset class selection...");
+            assetPage.scrollFormUp();
+            mediumWait();
+            assetPage.selectATSClass();
+        }
+        mediumWait();
+
+        logStep("Scrolling down to verify Subtype is enabled after class selection");
+        assetPage.scrollFormDown();
+        mediumWait();
+
+        assertTrue(assetPage.isSelectAssetSubtypeDisplayed(), "Subtype should be enabled/visible after asset class selection");
+        logStepWithScreenshot("Subtype enabled after class selection verified");
+    }
+
+    // ============================================================
+    // ATS_ECR_18 - Verify Select Asset Subtype (Yes)
+    // ============================================================
+
+    @Test(priority = 18)
+    public void ATS_ECR_18_verifySelectAssetSubtype() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_ASSET_SUBTYPE,
+            "ATS_ECR_18 - Verify Select Asset Subtype"
+        );
+
+        logStep("Logging in and navigating to New Asset screen");
+        navigateToNewAssetScreen();
+        mediumWait();
+
+        logStep("Selecting Asset Class first to enable Subtype");
+        try {
+            assetPage.selectAssetClass("ATS");
+        } catch (Exception e) {
+            logStep("Retrying asset class selection...");
+            assetPage.selectATSClass();
+        }
+        mediumWait();
+
+        logStep("Scrolling down to access Subtype field");
+        assetPage.dismissKeyboard();
+        assetPage.scrollFormDown();
+        mediumWait();
+
+        logStep("Attempting to select Asset Subtype");
+        try {
+            assetPage.clickSelectAssetSubtype();
+            shortWait();
+            logStep("Verifying subtype dropdown is displayed");
+            assertTrue(assetPage.isSubtypeDropdownDisplayed(), "Subtype dropdown should be displayed");
+            logStep("Selecting 'test' subtype");
+            assetPage.selectAssetSubtype("test");
+        } catch (Exception e) {
+            logStep("Subtype selection via direct method");
+            assetPage.selectAssetSubtype("test");
+        }
+        shortWait();
+
+        logStepWithScreenshot("Asset subtype selection verified - 'test' selected");
+    }
+
+    // ============================================================
+    // ATS_ECR_19 - Verify Save Without Subtype (Yes)
+    // ============================================================
+
+    @Test(priority = 19)
+    public void ATS_ECR_19_verifySaveWithoutSubtype() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_ASSET_SUBTYPE,
+            "ATS_ECR_19 - Verify Save Without Subtype (Subtype is Optional)"
+        );
+
+        logStep("Logging in and navigating to New Asset screen");
+        navigateToNewAssetScreen();
+        mediumWait();
+
+        long timestamp = System.currentTimeMillis();
+        String assetName = "Asset_NoSubtype_" + timestamp;
+
+        logStep("Filling all mandatory fields without subtype");
+        assetPage.enterAssetName(assetName);
+        assetPage.dismissKeyboard();
+        mediumWait();
+
+        try {
+            assetPage.selectAssetClass("ATS");
+        } catch (Exception e) {
+            assetPage.selectATSClass();
+        }
+        mediumWait();
+
+        assetPage.selectLocation();
+        mediumWait();
+
+        logStep("NOT selecting any subtype - leaving it empty");
+
+        logStep("Scrolling up and clicking Create Asset");
+        assetPage.dismissKeyboard();
+        assetPage.scrollFormUp();
+        assetPage.scrollFormUp();
+        mediumWait();
+        
+        try {
+            assetPage.clickCreateAsset();
+        } catch (Exception e) {
+            logStep("Retrying Create Asset click...");
+            assetPage.scrollFormUp();
+            mediumWait();
+            assetPage.clickCreateAsset();
+        }
+        longWait();
+
+        logStep("Verifying asset was created successfully without subtype");
+        assertTrue(assetPage.isAssetCreatedSuccessfully(), "Asset should be saved successfully without subtype");
+        logStepWithScreenshot("Asset created successfully without subtype - Subtype is optional");
+    }
+
+    // ============================================================
+    // ATS_ECR_21 - Verify Enter QR Code Manually (Yes)
+    // ============================================================
+
+    @Test(priority = 21)
+    public void ATS_ECR_21_verifyEnterQRCodeManually() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_ASSET_QR_CODE,
+            "ATS_ECR_21 - Verify Enter QR Code Manually"
+        );
+
+        logStep("Logging in and navigating to New Asset screen");
+        navigateToNewAssetScreen();
+        mediumWait();
+
+        long timestamp = System.currentTimeMillis();
+        String assetName = "Asset_QR_" + timestamp;
+        String qrCode = "QR_" + timestamp;
+
+        logStep("Filling mandatory fields");
+        assetPage.enterAssetName(assetName);
+        assetPage.dismissKeyboard();
+        mediumWait();
+
+        try {
+            assetPage.selectAssetClass("ATS");
+        } catch (Exception e) {
+            assetPage.selectATSClass();
+        }
+        mediumWait();
+
+        assetPage.selectLocation();
+        mediumWait();
+
+        logStep("Scrolling down to QR Code field");
+        assetPage.dismissKeyboard();
+        assetPage.scrollFormDown();
+        mediumWait();
+
+        logStep("Entering QR code manually: " + qrCode);
+        assetPage.enterQRCode(qrCode);
+        mediumWait();
+
+        logStep("Creating the asset");
+        assetPage.dismissKeyboard();
+        assetPage.scrollFormUp();
+        assetPage.scrollFormUp();
+        mediumWait();
+        
+        try {
+            assetPage.clickCreateAsset();
+        } catch (Exception e) {
+            logStep("Retrying Create Asset click...");
+            assetPage.scrollFormUp();
+            mediumWait();
+            assetPage.clickCreateAsset();
+        }
+        longWait();
+
+        logStep("Verifying asset was created with QR code");
+        assertTrue(assetPage.isAssetCreatedSuccessfully(), "Asset should be saved with manually entered QR code");
+        logStepWithScreenshot("Manual QR code entry verified - Asset created with QR: " + qrCode);
+    }
+
+    // ============================================================
+    // ATS_ECR_26 - Verify Profile Photo Optional (Yes)
+    // ============================================================
+
+    @Test(priority = 26)
+    public void ATS_ECR_26_verifyProfilePhotoOptional() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_CREATE_ASSET,
+            "ATS_ECR_26 - Verify Profile Photo Optional"
+        );
+
+        logStep("Logging in and navigating to New Asset screen");
+        navigateToNewAssetScreen();
+        mediumWait();
+
+        long timestamp = System.currentTimeMillis();
+        String assetName = "Asset_NoPhoto_" + timestamp;
+
+        logStep("Filling all mandatory fields without adding any photo");
+        assetPage.enterAssetName(assetName);
+        assetPage.dismissKeyboard();
+        mediumWait();
+
+        try {
+            assetPage.selectAssetClass("ATS");
+        } catch (Exception e) {
+            assetPage.selectATSClass();
+        }
+        mediumWait();
+
+        assetPage.selectLocation();
+        mediumWait();
+
+        logStep("NOT uploading any profile photo - leaving it empty");
+
+        logStep("Creating the asset without photo");
+        assetPage.dismissKeyboard();
+        assetPage.scrollFormUp();
+        assetPage.scrollFormUp();
+        mediumWait();
+        
+        try {
+            assetPage.clickCreateAsset();
+        } catch (Exception e) {
+            logStep("Retrying Create Asset click...");
+            assetPage.scrollFormUp();
+            mediumWait();
+            assetPage.clickCreateAsset();
+        }
+        longWait();
+
+        logStep("Verifying asset was created successfully without photo");
+        assertTrue(assetPage.isAssetCreatedSuccessfully(), "Asset should be saved successfully without profile photo");
+        logStepWithScreenshot("Profile photo is optional - Asset created without photo");
+    }
+
+    // ============================================================
+    // ATS_ECR_31 - Verify Save Asset With Valid Data (Yes)
+    // ============================================================
+
+    @Test(priority = 31)
+    public void ATS_ECR_31_verifySaveAssetWithValidData() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_CREATE_ASSET,
+            "ATS_ECR_31 - Verify Save Asset With Valid Data"
+        );
+
+        logStep("Logging in and navigating to New Asset screen");
+        navigateToNewAssetScreen();
+        mediumWait();
+
+        long timestamp = System.currentTimeMillis();
+        String assetName = "Asset_" + timestamp;
+        String qrCode = "QR_" + timestamp;
+
+        logStep("Filling all fields with valid data");
+        
+        // 1. Name
+        assetPage.enterAssetName(assetName);
+        assetPage.dismissKeyboard();
+        logStep("✅ Name entered: " + assetName);
+        mediumWait();
+
+        // 2. Asset Class
+        try {
+            assetPage.selectAssetClass("ATS");
+        } catch (Exception e) {
+            assetPage.selectATSClass();
+        }
+        logStep("✅ Asset Class selected: ATS");
+        mediumWait();
+
+        // 3. Location
+        boolean locationSelected = assetPage.selectLocation();
+        if (!locationSelected) {
+            String floorName = "Floor_" + timestamp;
+            String roomName = "Room_" + timestamp;
+            assetPage.createNewLocation(floorName, roomName);
+            logStep("✅ New Location created: " + floorName + " > " + roomName);
+        } else {
+            logStep("✅ Location selected from existing hierarchy");
+        }
+        mediumWait();
+
+        // 4. Scroll and select Subtype
+        assetPage.dismissKeyboard();
+        assetPage.scrollFormDown();
+        mediumWait();
+
+        try {
+            assetPage.selectAssetSubtype("test");
+            logStep("✅ Subtype selected: test");
+        } catch (Exception e) {
+            logStep("⚠️ Subtype selection skipped");
+        }
+        mediumWait();
+
+        // 5. QR Code
+        assetPage.enterQRCode(qrCode);
+        logStep("✅ QR Code entered: " + qrCode);
+        mediumWait();
+
+        // 6. Create Asset
+        assetPage.dismissKeyboard();
+        assetPage.scrollFormUp();
+        assetPage.scrollFormUp();
+        mediumWait();
+        
+        try {
+            assetPage.clickCreateAsset();
+        } catch (Exception e) {
+            logStep("Retrying Create Asset click...");
+            assetPage.scrollFormUp();
+            mediumWait();
+            assetPage.clickCreateAsset();
+        }
+        longWait();
+
+        logStep("Verifying asset creation");
+        assertTrue(assetPage.isAssetCreatedSuccessfully(), "Asset should be created successfully with all valid data");
+        
+        logStepWithScreenshot("✅✅✅ ASSET CREATED SUCCESSFULLY: " + assetName + " ✅✅✅");
+    }
+
+    // ============================================================
+    // ATS_ECR_32 - Verify Cancel Asset Creation (Partial)
+    // ============================================================
+
+    @Test(priority = 32)
+    public void ATS_ECR_32_verifyCancelAssetCreation() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_CREATE_ASSET,
+            "ATS_ECR_32 - Verify Cancel Asset Creation"
+        );
+
+        logStep("Logging in and navigating to New Asset screen");
+        navigateToNewAssetScreen();
+
+        logStep("Entering some data in the form");
+        assetPage.enterAssetName("TestAsset_ToCancel");
+        assetPage.dismissKeyboard();
+        shortWait();
+
+        logStep("Clicking Cancel button");
+        assetPage.clickCancel();
+        mediumWait();
+
+        logStep("Verifying returned to previous screen without saving");
+        assertTrue(assetPage.isAssetListDisplayed(), "Should return to Asset List without saving");
+
+        logStepWithScreenshot("Cancel asset creation verified - Returned without save");
+        logWarning("Data state verification after cancel may need manual check");
+    }
+
+    // ============================================================
+    // ATS_ECR_37 - Verify Asset Appears in Asset List (Partial)
+    // ============================================================
+
+    @Test(priority = 37)
+    public void ATS_ECR_37_verifyAssetAppearsInAssetList() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_CREATE_ASSET,
+            "ATS_ECR_37 - Verify Asset Appears in Asset List"
+        );
+
+        logStep("Logging in and navigating to New Asset screen");
+        navigateToNewAssetScreen();
+        mediumWait();
+
+        long timestamp = System.currentTimeMillis();
+        String assetName = "Asset_Verify_" + timestamp;
+
+        logStep("Creating asset: " + assetName);
+        assetPage.enterAssetName(assetName);
+        assetPage.dismissKeyboard();
+        mediumWait();
+
+        try {
+            assetPage.selectAssetClass("ATS");
+        } catch (Exception e) {
+            assetPage.selectATSClass();
+        }
+        mediumWait();
+
+        assetPage.selectLocation();
+        mediumWait();
+
+        assetPage.dismissKeyboard();
+        assetPage.scrollFormUp();
+        assetPage.scrollFormUp();
+        mediumWait();
+        
+        try {
+            assetPage.clickCreateAsset();
+        } catch (Exception e) {
+            logStep("Retrying Create Asset click...");
+            assetPage.scrollFormUp();
+            mediumWait();
+            assetPage.clickCreateAsset();
+        }
+        longWait();
+
+        logStep("Verifying asset was created");
+        assertTrue(assetPage.isAssetCreatedSuccessfully(), "Asset should be created");
+
+        logStep("Searching for created asset in list");
+        assetPage.searchAsset(assetName);
+        longWait();
+
+        logStep("Verifying asset appears in the list");
+        boolean assetFound = assetPage.verifyAssetExistsInList(assetName);
+        
+        if (assetFound) {
+            logStep("✅ Asset found in list: " + assetName);
+        } else {
+            logWarning("Asset may need refresh or scroll to be visible - timing issues");
+        }
+
+        logStepWithScreenshot("Asset list verification completed");
+        logWarning("List refresh timing makes full verification unreliable with Appium");
+    }
+}

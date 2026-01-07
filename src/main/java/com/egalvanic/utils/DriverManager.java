@@ -95,10 +95,14 @@ public class DriverManager {
                 options.setCapability("appium:autoAcceptAlerts", true);
                 options.setCapability("appium:autoDismissAlerts", false);
 
-                // ========== RESET BEHAVIOR ==========
-                // Reinstall app on every test for clean state (without restarting simulator)
-                options.setNoReset(false); // Reinstall app each time
-                options.setFullReset(false); // Don't restart simulator, just reinstall app
+                // ========== RESET BEHAVIOR (Configurable in AppConstants) ==========
+                // FULL_RESET=true: Clean install every test (slow but guaranteed clean state)
+                // FULL_RESET=false + NO_RESET=false: Clear app data only (fast, usually sufficient)
+                // NO_RESET=true: Keep all data (fastest, for development only)
+                options.setFullReset(AppConstants.FULL_RESET);
+                options.setNoReset(AppConstants.NO_RESET);
+                
+                System.out.println("📱 Reset Mode: fullReset=" + AppConstants.FULL_RESET + ", noReset=" + AppConstants.NO_RESET);
 
                 System.out.println("📱 Initializing iOS Driver...");
                 System.out.println("📱 Device: " + device);

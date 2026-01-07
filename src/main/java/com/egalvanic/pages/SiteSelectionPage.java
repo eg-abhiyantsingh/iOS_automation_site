@@ -1573,4 +1573,122 @@ public class SiteSelectionPage extends BasePage {
      * Short wait (1 second)
      */
     
+
+    // ================================================================
+    // ULTRA-FAST SITE SELECTION METHODS
+    // ================================================================
+
+    /**
+     * ULTRA FAST: Select any site in under 2 seconds
+     * No waits, no polling - just find and click
+     */
+    public String selectAnySiteInstant() {
+        try {
+            // Direct find - no wait
+            WebElement site = driver.findElement(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name CONTAINS ','")
+            );
+            String name = site.getAttribute("name");
+            site.click();
+            return name;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * ULTRA FAST: Wait max 2 seconds for site list, then click first site
+     * Combined operation - no separate waits
+     */
+    public String selectFirstSiteUltraFast() {
+        try {
+            WebDriverWait ultraFastWait = new WebDriverWait(driver, Duration.ofSeconds(2));
+            WebElement site = ultraFastWait.until(ExpectedConditions.presenceOfElementLocated(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name CONTAINS ','")
+            ));
+            String name = site.getAttribute("name");
+            site.click();
+            System.out.println("⚡ Fast selected: " + name);
+            return name;
+        } catch (Exception e) {
+            System.out.println("⚠️ Ultra fast failed, using standard");
+            return selectFirstSiteFast();
+        }
+    }
+
+    /**
+     * ULTRA FAST: Select random site from visible sites
+     * No scrolling, just picks from what's visible
+     */
+    public String selectRandomSiteUltraFast() {
+        try {
+            // Get all visible sites in one call
+            List<WebElement> sites = driver.findElements(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name CONTAINS ',' AND visible == true")
+            );
+            if (sites.isEmpty()) {
+                return selectFirstSiteUltraFast();
+            }
+            int idx = new java.util.Random().nextInt(sites.size());
+            String name = sites.get(idx).getAttribute("name");
+            sites.get(idx).click();
+            System.out.println("⚡ Fast random selected: " + name);
+            return name;
+        } catch (Exception e) {
+            return selectFirstSiteUltraFast();
+        }
+    }
+
+    /**
+     * TURBO: Combined wait for site list + select in one operation
+     * Maximum 3 second total for entire operation
+     */
+    public String turboSelectSite() {
+        long start = System.currentTimeMillis();
+        try {
+            // Single wait + click operation
+            WebDriverWait turboWait = new WebDriverWait(driver, Duration.ofSeconds(3));
+            turboWait.pollingEvery(Duration.ofMillis(100)); // Fast polling
+            
+            WebElement site = turboWait.until(d -> {
+                try {
+                    List<WebElement> sites = d.findElements(
+                        AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name CONTAINS ','")
+                    );
+                    return sites.isEmpty() ? null : sites.get(0);
+                } catch (Exception e) {
+                    return null;
+                }
+            });
+            
+            String name = site.getAttribute("name");
+            site.click();
+            long elapsed = System.currentTimeMillis() - start;
+            System.out.println("⚡ TURBO: Selected '" + name + "' in " + elapsed + "ms");
+            return name;
+        } catch (Exception e) {
+            long elapsed = System.currentTimeMillis() - start;
+            System.out.println("⚠️ TURBO failed after " + elapsed + "ms: " + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Wait for dashboard - FAST version (2 seconds max)
+     */
+    public void waitForDashboardFast() {
+        try {
+            WebDriverWait fastWait = new WebDriverWait(driver, Duration.ofSeconds(2));
+            fastWait.pollingEvery(Duration.ofMillis(200));
+            fastWait.until(ExpectedConditions.or(
+                ExpectedConditions.presenceOfElementLocated(AppiumBy.accessibilityId("building.2")),
+                ExpectedConditions.presenceOfElementLocated(AppiumBy.accessibilityId("list.bullet")),
+                ExpectedConditions.presenceOfElementLocated(AppiumBy.accessibilityId("plus"))
+            ));
+        } catch (Exception e) {
+            // Continue anyway - dashboard might be ready
+        }
+    }
+
+
 }
