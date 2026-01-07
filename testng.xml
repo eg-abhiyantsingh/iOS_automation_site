@@ -2,45 +2,21 @@
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
 <suite name="eGalvanic iOS Automation Suite" verbose="2">
 
-    <!-- FULL TEST SUITE - UNCOMMENT FOR COMPLETE RUN -->
-    <!-- 
     <test name="Authentication Tests">
         <classes>
             <class name="com.egalvanic.tests.AuthenticationTest"/>
         </classes>
     </test>
-    -->
 
-    <test name="Authentication Tests - Selected">
+    <test name="Site Selection Tests">
         <classes>
-            <class name="com.egalvanic.tests.AuthenticationTest">
-                <methods>
-                    <include name="TC30_verifyPasswordOnlyDoesNotEnableSignIn"/>
-                </methods>
-            </class>
+            <class name="com.egalvanic.tests.SiteSelectionTest"/>
         </classes>
     </test>
 
-    <test name="Site Selection Tests - Selected">
+    <test name="Asset Tests">
         <classes>
-            <class name="com.egalvanic.tests.SiteSelectionTest">
-                <methods>
-                    <include name="TC_SS_044_verifyIssuesBadgeCount"/>
-                    <include name="TC_SS_047_verifySwitchingToSameSiteAlreadyLoaded"/>
-                </methods>
-            </class>
-        </classes>
-    </test>
-
-    <test name="Asset Tests - Selected">
-        <classes>
-            <class name="com.egalvanic.tests.AssetTest">
-                <methods>
-                    <include name="ATS_ECR_01_verifyNewAssetScreenLoadsSuccessfully"/>
-                    <include name="ATS_ECR_10_verifyNameTrimming"/>
-                    <include name="ATS_EAD_13_completeAllRequiredFields"/>
-                </methods>
-            </class>
+            <class name="com.egalvanic.tests.AssetTest"/>
         </classes>
     </test>
 
