@@ -24,6 +24,7 @@ public class AppConstants {
     public static final String PLATFORM_VERSION = getEnv("PLATFORM_VERSION", "26.2");
     public static final String UDID = getEnv("SIMULATOR_UDID", "B745C0EF-01AA-4355-8B08-86812A8CBBAA");
     public static final String APP_PATH = getEnv("APP_PATH", "/Users/abhiyantsingh/Downloads/Z Platform-QA.app");
+    public static final String APP_BUNDLE_ID = "com.egalvanic.zplatform-QA";
 
     // ============================================
     // TEST DATA - AUTHENTICATION
@@ -120,13 +121,16 @@ public class AppConstants {
     public static final String EMAIL_PASSWORD = getEnv("EMAIL_PASSWORD", "ccddnnqsjigrhzcz");
     public static final String EMAIL_TO = "abhiyantsinghsuas18@gmail.com";
     public static final String EMAIL_SUBJECT = "eGalvanic iOS Automation - Test Report";
-    public static final boolean SEND_EMAIL_ENABLED = false;
+    public static final boolean SEND_EMAIL_ENABLED = true;
     // ================================================================
     // APP RESET BEHAVIOR
     // ================================================================
     // Set to true if tests fail due to cached state (adds ~15-20s per test)
-    public static final boolean FULL_RESET = false;  // Change to true for clean install
-    public static final boolean NO_RESET = false;    // Keep false for data clearing
+    // APP RESET CONFIGURATION
+    // Default: Reinstall app for clean state (AuthenticationTest, SiteSelectionTest)
+    // Override in specific tests using DriverManager.setNoReset(true) for Edit Asset tests
+    public static final boolean FULL_RESET = false;  // true = always reinstall app
+    public static final boolean NO_RESET = false;    // DEFAULT: false = clean install
     
  // Set to true to send email reports
 

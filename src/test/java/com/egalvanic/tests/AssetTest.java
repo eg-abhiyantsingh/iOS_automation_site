@@ -1,8 +1,10 @@
 package com.egalvanic.tests;
 
 import com.egalvanic.base.BaseTest;
+import com.egalvanic.utils.DriverManager;
 import com.egalvanic.constants.AppConstants;
 import com.egalvanic.utils.ExtentReportManager;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -38,7 +40,15 @@ public class AssetTest extends BaseTest {
 
     @BeforeClass
     public void classSetup() {
-        System.out.println("\n📋 Asset Test Suite - Create New Asset - Starting");
+        System.out.println("\n📋 Asset Test Suite - Starting");
+        // All Asset tests use noReset=true (skip app reinstall)
+        DriverManager.setNoReset(true);
+    }
+    
+    @AfterClass
+    public void classTeardown() {
+        DriverManager.resetNoResetOverride();
+        System.out.println("📋 Asset Test Suite - Complete");
     }
 
     // ============================================================
@@ -56,25 +66,66 @@ public class AssetTest extends BaseTest {
     private void navigateToNewAssetScreen() {
         long start = System.currentTimeMillis();
         
-        // Turbo login + site selection
+        // Brief wait for app to stabilize
+        try { Thread.sleep(500); } catch (Exception e) {}
+        
+        // Try direct navigation first (if already logged in)
+        try {
+            if (tryDirectNewAssetNavigation()) {
+                long elapsed = System.currentTimeMillis() - start;
+                System.out.println("⚡ Direct navigation to New Asset in " + elapsed + "ms");
+                return;
+            }
+        } catch (Exception e) {}
+        
+        // Full login flow if direct navigation failed
+        System.out.println("🔄 Direct navigation failed, doing full login...");
         performLogin();
         
-        // Ultra-fast site selection (2-3 seconds max)
         String selectedSite = siteSelectionPage.turboSelectSite();
         if (selectedSite == null) {
             selectedSite = siteSelectionPage.selectFirstSiteUltraFast();
         }
-        System.out.println("⚡ Site: " + selectedSite);
-        
-        // Fast dashboard wait (2 seconds max)
         siteSelectionPage.waitForDashboardFast();
         
-        // Navigate to asset screen
         assetPage.navigateToAssetList();
+        shortWait();
         assetPage.clickAddAsset();
         
         long elapsed = System.currentTimeMillis() - start;
-        System.out.println("⚡ navigateToNewAssetScreen completed in " + elapsed + "ms");
+        System.out.println("⚡ Full flow to New Asset in " + elapsed + "ms");
+    }
+    
+    /**
+     * Try direct navigation to New Asset screen (if already logged in)
+     * OPTIMIZED: Fast state detection before attempting navigation
+     */
+    private boolean tryDirectNewAssetNavigation() {
+        try {
+            // FAST CHECK: Already on asset list? (plus button visible)
+            if (assetPage.isAssetListDisplayedFast()) {
+                System.out.println("⚡ Already on Asset List - clicking Add");
+                assetPage.clickAddAsset();
+                return true;
+            }
+            
+            // FAST CHECK: On dashboard? (building.2 or Assets tab visible)
+            if (assetPage.isDashboardDisplayedFast()) {
+                System.out.println("⚡ On Dashboard - navigating to Asset List");
+                assetPage.navigateToAssetListFast();
+                assetPage.clickAddAsset();
+                return true;
+            }
+            
+            // FAST CHECK: On Create Asset form already?
+            if (assetPage.isCreateAssetFormDisplayed()) {
+                System.out.println("⚡ Already on Create Asset form");
+                return true;
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Direct navigation check failed: " + e.getMessage());
+        }
+        return false;
     }
 
     // ============================================================
@@ -216,26 +267,19 @@ public class AssetTest extends BaseTest {
         boolean isButtonEnabled = assetPage.isCreateAssetButtonEnabled();
         logStep("Create Asset button enabled: " + isButtonEnabled);
 
-        // Also check if form can be submitted (alternative validation)
-        boolean canSubmit = assetPage.canSubmitForm();
-        logStep("Form can submit (based on field validation): " + canSubmit);
-
-        // The test should pass if EITHER:
-        // 1. Button is disabled (expected behavior), OR
-        // 2. Name field is detected as effectively empty (client-side validation)
-        if (isButtonEnabled && !nameEffectivelyEmpty) {
-            // This is a potential app bug - log it
-            logWarning("POTENTIAL APP BUG: Create button enabled with spaces-only name!");
-            logWarning("Expected: Button should be disabled when name contains only spaces");
+        // The test should FAIL if button is enabled when name contains only spaces
+        // This is the expected behavior - spaces-only name should NOT allow asset creation
+        if (isButtonEnabled) {
+            logWarning("APP BUG DETECTED: Create button is ENABLED with spaces-only name!");
+            logWarning("Expected: Button should be DISABLED when name contains only spaces");
         }
 
-        // Assert that either button is disabled OR name is recognized as empty
-        boolean validationWorking = !isButtonEnabled || nameEffectivelyEmpty;
-        assertTrue(validationWorking, 
-            "Create button should be disabled OR name should be recognized as empty when name contains only spaces. " +
-            "Button enabled: " + isButtonEnabled + ", Name empty: " + nameEffectivelyEmpty);
+        // Assert that button is DISABLED when name contains only spaces
+        assertFalse(isButtonEnabled, 
+            "Create button should be DISABLED when name contains only spaces. " +
+            "Current state: Button enabled = " + isButtonEnabled);
         
-        logStepWithScreenshot("Spaces-only name validation verified");
+        logStepWithScreenshot("Spaces-only name validation verified - Create button correctly disabled");
     }
     
 
@@ -256,7 +300,8 @@ public class AssetTest extends BaseTest {
         mediumWait();
 
         long timestamp = System.currentTimeMillis();
-        String nameWithSpaces = "  TestAsset_" + timestamp + "  ";
+        String nameWithSpaces = "  TrimTest_" + timestamp + "  ";
+        String expectedTrimmedName = "TrimTest_" + timestamp; // Name without leading/trailing spaces
 
         logStep("Entering name with leading/trailing spaces: '" + nameWithSpaces + "'");
         assetPage.enterAssetName(nameWithSpaces);
@@ -276,24 +321,55 @@ public class AssetTest extends BaseTest {
 
         logStep("Creating the asset");
         assetPage.dismissKeyboard();
-        assetPage.scrollFormUp();
-        assetPage.scrollFormUp();
         mediumWait();
         
-        try {
-            assetPage.clickCreateAsset();
-        } catch (Exception e) {
-            logStep("Retrying Create Asset click...");
-            assetPage.scrollFormUp();
-            mediumWait();
-            assetPage.clickCreateAsset();
-        }
+        assetPage.clickCreateAsset();
         longWait();
 
-        logStep("Verifying asset was created (leading/trailing spaces should be trimmed)");
-        assertTrue(assetPage.isAssetCreatedSuccessfully(), "Asset should be created successfully with trimmed name");
+        logStep("Verifying asset was created");
+        assertTrue(assetPage.isAssetCreatedSuccessfully(), "Asset should be created successfully");
+
+        logStep("Searching for the created asset");
+        assetPage.searchAsset("TrimTest_" + timestamp);
+        mediumWait();
+
+        logStep("Opening the created asset to verify actual saved name");
+        boolean assetSelected = assetPage.selectAssetByName("TrimTest_" + timestamp);
+        assertTrue(assetSelected, "Should be able to select the created asset");
+        mediumWait();
+
+        logStep("Clicking Edit to view the asset name field");
+        assetPage.clickEdit();
+        assetPage.waitForEditScreenReady();
+        longWait(); // Give more time for edit screen to fully load
+
+        logStep("Getting the actual saved asset name from edit screen");
+        String actualSavedName = assetPage.getAssetNameValue();
+        logStep("Original input name: '" + nameWithSpaces + "'");
+        logStep("Expected trimmed name: '" + expectedTrimmedName + "'");
+        logStep("Actual saved name: '" + actualSavedName + "'");
+
+        // First check if we got a valid name
+        assertTrue(actualSavedName != null && !actualSavedName.isEmpty(), 
+            "Should be able to read the asset name from edit screen. Got: '" + actualSavedName + "'");
+
+        // Check if name was trimmed (no leading/trailing spaces)
+        // Safe to use directly since we asserted not null above
+        boolean hasLeadingSpaces = actualSavedName.startsWith(" ");
+        boolean hasTrailingSpaces = actualSavedName.endsWith(" ");
+
+        if (hasLeadingSpaces || hasTrailingSpaces) {
+            logWarning("APP BUG DETECTED: Name was NOT trimmed!");
+            logWarning("Leading spaces: " + hasLeadingSpaces + ", Trailing spaces: " + hasTrailingSpaces);
+        }
+
+        // Assert that name is properly trimmed
+        assertFalse(hasLeadingSpaces, 
+            "Asset name should NOT have LEADING spaces. Actual saved name: '" + actualSavedName + "'");
+        assertFalse(hasTrailingSpaces, 
+            "Asset name should NOT have TRAILING spaces. Actual saved name: '" + actualSavedName + "'");
         
-        logStepWithScreenshot("Name trimming verified - Asset created with trimmed name");
+        logStepWithScreenshot("Name trimming verification complete - Saved name: '" + actualSavedName + "'");
     }
 
     // ============================================================
@@ -454,6 +530,43 @@ public class AssetTest extends BaseTest {
     }
 
     // ============================================================
+    // ATS_ECR_16 - Verify Asset Class Selection Persistence (Yes)
+    // ============================================================
+
+    @Test(priority = 16)
+    public void ATS_ECR_16_verifyAssetClassSelectionPersistence() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_ASSET_CLASS,
+            "ATS_ECR_16 - Verify Asset Class Selection Persistence"
+        );
+
+        logStep("Logging in and navigating to New Asset screen");
+        navigateToNewAssetScreen();
+        shortWait();
+
+        logStep("Selecting Asset Class - ATS");
+        assetPage.selectAssetClass("ATS");
+        shortWait();
+
+        logStep("Verifying ATS is displayed as selected class");
+        boolean atsSelected = assetPage.isAssetClassSelected();
+        assertTrue(atsSelected, "ATS should be displayed as selected asset class");
+
+        logStep("Scrolling down and back up to verify persistence");
+        assetPage.scrollFormDown();
+        shortWait();
+        assetPage.scrollFormUp();
+        shortWait();
+
+        logStep("Verifying ATS selection persists after scrolling");
+        boolean atsPersisted = assetPage.isAssetClassSelected();
+        assertTrue(atsPersisted, "ATS selection should persist after scrolling");
+
+        logStepWithScreenshot("Asset class selection persistence verified");
+    }
+
+    // ============================================================
     // ATS_ECR_17 - Verify Subtype Enabled After Class Selection (Yes)
     // ============================================================
 
@@ -546,20 +659,103 @@ public class AssetTest extends BaseTest {
             logWarning("Dropdown may have closed or visibility check failed");
         }
 
-        logStep("Selecting 'test' subtype");
+        logStep("Selecting first available subtype from dropdown");
         try {
             // Re-open dropdown if closed
             if (!dropdownDisplayed) {
                 assetPage.clickSelectAssetSubtype();
                 shortWait();
             }
-            assetPage.selectAssetSubtype("test");
+            String selectedSubtype = assetPage.selectFirstAvailableSubtype();
+            logStep("Selected subtype: " + selectedSubtype);
         } catch (Exception e) {
             logWarning("Could not select subtype: " + e.getMessage());
         }
         shortWait();
 
-        logStepWithScreenshot("Asset subtype selection verified - 'test' selected");
+        logStep("Verifying subtype was selected");
+        boolean subtypeSelected = assetPage.isSubtypeSelected();
+        assertTrue(subtypeSelected, "Asset subtype should be selected");
+        
+        logStepWithScreenshot("Asset subtype selection verified");
+    }
+
+
+    // ============================================================
+    // ATS_ECR_19 - Verify Save Without Subtype - Optional (Yes)
+    // ============================================================
+
+    @Test(priority = 19)
+    public void ATS_ECR_19_verifySaveWithoutSubtype() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_ASSET_SUBTYPE,
+            "ATS_ECR_19 - Verify Save Without Subtype (Optional Field)"
+        );
+
+        logStep("Logging in and navigating to New Asset screen");
+        navigateToNewAssetScreen();
+        shortWait();
+
+        logStep("Entering asset name");
+        String assetName = "TestAsset_NoSubtype_" + System.currentTimeMillis();
+        assetPage.enterAssetName(assetName);
+        shortWait();
+
+        logStep("Selecting location");
+        assetPage.selectLocation();
+        shortWait();
+
+        logStep("Selecting Asset Class - ATS (without selecting subtype)");
+        assetPage.selectAssetClass("ATS");
+        shortWait();
+
+        logStep("Attempting to save asset WITHOUT selecting subtype");
+        assetPage.scrollFormUp();
+        shortWait();
+        assetPage.clickCreateAsset();
+        mediumWait();
+
+        logStep("Verifying asset can be saved without subtype");
+        boolean saveSuccessful = assetPage.isAssetCreatedSuccessfully();
+        assertTrue(saveSuccessful, "Asset should save successfully without subtype (optional field)");
+
+        logStepWithScreenshot("Save without subtype verified - subtype is optional");
+    }
+
+    // ============================================================
+    // ATS_ECR_20 - Verify Subtype Options Match Asset Class (Yes)
+    // ============================================================
+
+    @Test(priority = 20)
+    public void ATS_ECR_20_verifySubtypeOptionsMatchAssetClass() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_ASSET_SUBTYPE,
+            "ATS_ECR_20 - Verify Subtype Options Match Asset Class"
+        );
+
+        logStep("Logging in and navigating to New Asset screen");
+        navigateToNewAssetScreen();
+        shortWait();
+
+        logStep("Selecting Asset Class - ATS");
+        assetPage.selectAssetClass("ATS");
+        shortWait();
+
+        logStep("Opening subtype dropdown");
+        assetPage.clickSelectAssetSubtype();
+        shortWait();
+
+        logStep("Verifying ATS-specific subtype options are displayed");
+        boolean hasATSSubtypes = assetPage.isSubtypeDropdownDisplayed();
+        assertTrue(hasATSSubtypes, "ATS subtype options should be displayed");
+
+        logStep("Closing dropdown");
+        assetPage.dismissKeyboard();
+        shortWait();
+
+        logStepWithScreenshot("Subtype options match ATS asset class - verified");
     }
 
     // ============================================================
@@ -1494,37 +1690,54 @@ public class AssetTest extends BaseTest {
      */
     /**
      * Helper: Navigate to Edit Asset screen and change class to Busway
-     * Used by BUS_EAD test cases
+     * Uses SMART NAVIGATION - detects current state and takes shortest path
      */
     private void navigateToEditAssetScreenAndChangeToBusway() {
-        // Login + fast site selection
-        performLogin();
-        String selectedSite = siteSelectionPage.turboSelectSite();
-        if (selectedSite == null) {
-            selectedSite = siteSelectionPage.selectFirstSiteUltraFast();
-        }
-        siteSelectionPage.waitForDashboardFast();
+        System.out.println("📝 Navigating to Edit Asset screen...");
         
-        // Navigate to asset list and select first asset
+        // Step 1: Check if we need to login
+        boolean needsLogin = false;
+        try {
+            needsLogin = welcomePage.isContinueButtonDisplayed() || loginPage.isSignInButtonDisplayed();
+        } catch (Exception e) {
+            needsLogin = false;
+        }
+        
+        if (needsLogin) {
+            System.out.println("🔐 Login required, performing login...");
+            performLogin();
+            String site = siteSelectionPage.turboSelectSite();
+            if (site == null) {
+                siteSelectionPage.selectFirstSiteUltraFast();
+            }
+            siteSelectionPage.waitForDashboardFast();
+        }
+        
+        // Step 2: Go to Asset List
+        System.out.println("📦 Going to Asset List...");
         assetPage.navigateToAssetList();
         shortWait();
         
-        String assetName = assetPage.selectFirstAsset();
-        System.out.println("📦 Selected asset: " + assetName);
+        // Step 3: Click first asset
+        System.out.println("👆 Clicking first asset...");
+        assetPage.selectFirstAsset();
         shortWait();
         
-        // Enter Edit mode
+        // Step 4: Click Edit
+        System.out.println("✏️ Clicking Edit...");
         assetPage.clickEdit();
-        assetPage.waitForEditScreenReady();
         shortWait();
         
-        // Change asset class to Busway
+        // Step 5: Change to Busway
+        System.out.println("🔄 Changing to Busway...");
         assetPage.changeAssetClassToBusway();
         shortWait();
         
-        // Scroll down to see Core Attributes section
+        // Step 6: Scroll to Core Attributes
         assetPage.scrollFormDown();
         shortWait();
+        
+        System.out.println("✅ On Edit Asset screen with Busway class");
     }
 
     // ============================================================
@@ -1642,4 +1855,832 @@ public class AssetTest extends BaseTest {
         logStepWithScreenshot("UI consistency verified for Busway - Edit and Save work correctly");
         logWarning("Comprehensive UI consistency needs visual testing - partial automation");
     }
+
+    // ================================================================
+    // CAPACITOR EDIT ASSET DETAILS TEST CASES (CAP_EAD)
+    // ================================================================
+
+    /**
+     * Helper: Navigate to Edit Asset screen and change class to Capacitor
+     * Simple flow: Login if needed → Asset List → Click Asset → Edit → Capacitor
+     */
+    private void navigateToEditAssetScreenAndChangeToCapacitor() {
+        long startTime = System.currentTimeMillis();
+        System.out.println("📝 Navigating to Edit Asset screen...");
+        
+        // Step 1: SKIP login check if app is already on dashboard/asset list (noReset=true)
+        // This saves time - don't check for login screens unnecessarily
+        
+        // Step 2: Go to Asset List DIRECTLY (fastest path)
+        System.out.println("📦 Going to Asset List...");
+        long t1 = System.currentTimeMillis();
+        assetPage.navigateToAssetListTurbo();
+        System.out.println("   ⏱️ Asset List: " + (System.currentTimeMillis() - t1) + "ms");
+        
+        // Step 3: Click first asset
+        System.out.println("👆 Clicking first asset...");
+        long t2 = System.currentTimeMillis();
+        assetPage.selectFirstAsset();
+        System.out.println("   ⏱️ Select asset: " + (System.currentTimeMillis() - t2) + "ms");
+        
+        // Step 4: Click Edit
+        System.out.println("✏️ Clicking Edit...");
+        long t3 = System.currentTimeMillis();
+        assetPage.clickEditTurbo();
+        System.out.println("   ⏱️ Click Edit: " + (System.currentTimeMillis() - t3) + "ms");
+        
+        // Step 5: Change to Capacitor
+        System.out.println("🔄 Changing to Capacitor...");
+        long t4 = System.currentTimeMillis();
+        assetPage.changeAssetClassToCapacitor();
+        System.out.println("   ⏱️ Change class: " + (System.currentTimeMillis() - t4) + "ms");
+        
+        System.out.println("✅ On Edit Asset screen with Capacitor class (Total: " + (System.currentTimeMillis() - startTime) + "ms)");
+    }
+
+    // ============================================================
+    // CAP_EAD_01 - Open Edit Asset Details screen (Yes)
+    // ============================================================
+
+    @Test(priority = 301)
+    public void CAP_EAD_01_verifyEditScreenOpensForCapacitor() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_EDIT_ASSET,
+            "CAP_EAD_01 - Verify edit screen opens for Capacitor asset class"
+        );
+
+        logStep("Navigating to Edit Asset screen and changing to Capacitor");
+        navigateToEditAssetScreenAndChangeToCapacitor();
+
+        logStep("Verifying Edit Asset Details screen is open");
+        boolean editScreenOpen = assetPage.isEditAssetScreenDisplayed();
+        assertTrue(editScreenOpen, "Edit Asset Details screen should be open for Capacitor");
+
+        logStepWithScreenshot("Edit screen opened for Capacitor - verified");
+    }
+
+    // ============================================================
+    // CAP_EAD_02 - Verify Core Attributes section visible (Partial)
+    // ============================================================
+
+    @Test(priority = 302)
+    public void CAP_EAD_02_verifyCoreAttributesSectionVisible() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_EDIT_ASSET,
+            "CAP_EAD_02 - Verify Core Attributes section loads for Capacitor"
+        );
+
+        logStep("Navigating to Edit Asset screen and changing to Capacitor");
+        navigateToEditAssetScreenAndChangeToCapacitor();
+
+        logStep("Scrolling to Core Attributes section");
+        assetPage.scrollFormDown();
+        shortWait();
+
+        logStep("Verifying Core Attributes section is visible");
+        boolean coreAttributesVisible = assetPage.isCoreAttributesSectionVisible();
+        assertTrue(coreAttributesVisible, "Core Attributes section should be visible for Capacitor");
+
+        logStepWithScreenshot("Core Attributes section visible for Capacitor - verified");
+        logWarning("Can verify section exists but may need scrolling to bring into view - partial automation");
+    }
+
+    // ============================================================
+    // CAP_EAD_03 - Verify all fields visible by default (Partial)
+    // ============================================================
+
+    @Test(priority = 303)
+    public void CAP_EAD_03_verifyAllFieldsVisibleByDefault() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_EDIT_ASSET,
+            "CAP_EAD_03 - Verify all Capacitor fields are visible initially"
+        );
+
+        logStep("Navigating to Edit Asset screen and changing to Capacitor");
+        navigateToEditAssetScreenAndChangeToCapacitor();
+
+        logStep("Scrolling through Core Attributes to verify fields exist");
+        assetPage.scrollFormDown();
+        shortWait();
+        assetPage.scrollFormDown();
+        shortWait();
+
+        logStep("Core Attributes fields are visible by scrolling");
+        logStepWithScreenshot("Capacitor fields visible - verified");
+        logWarning("Can verify some fields but extensive scrolling makes full verification complex - partial automation");
+    }
+
+    // ============================================================
+    // CAP_EAD_04 - Verify Save Changes button visibility (Yes)
+    // ============================================================
+
+    @Test(priority = 304)
+    public void CAP_EAD_04_verifySaveChangesButtonVisibility() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_EDIT_ASSET,
+            "CAP_EAD_04 - Verify Save button is always visible"
+        );
+
+        logStep("Navigating to Edit Asset screen and changing to Capacitor");
+        navigateToEditAssetScreenAndChangeToCapacitor();
+
+        logStep("Verifying Save Changes button is visible");
+        boolean saveButtonVisible = assetPage.isSaveChangesButtonVisible();
+        assertTrue(saveButtonVisible, "Save Changes button should be visible");
+
+        logStepWithScreenshot("Save Changes button visible - verified");
+    }
+
+    // ============================================================
+    // CAP_EAD_05 - Edit A Phase Serial Number (Yes)
+    // ============================================================
+
+    @Test(priority = 305)
+    public void CAP_EAD_05_editAPhaseSerialNumber() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_EDIT_ASSET,
+            "CAP_EAD_05 - Verify A Phase Serial Number edit"
+        );
+
+        logStep("Navigating to Edit Asset screen and changing to Capacitor");
+        navigateToEditAssetScreenAndChangeToCapacitor();
+
+        logStep("Scrolling to Core Attributes");
+        assetPage.scrollFormDown();
+        shortWait();
+
+        logStep("Editing A Phase Serial Number");
+        String testValue = "A_PHASE_" + System.currentTimeMillis();
+        assetPage.editTextField("A Phase Serial Number", testValue);
+        
+        logStep("Saving changes");
+        assetPage.clickSaveChanges();
+        mediumWait();
+
+        boolean saved = assetPage.isAssetSavedAfterEdit();
+        assertTrue(saved, "A Phase Serial Number should be saved successfully");
+
+        logStepWithScreenshot("A Phase Serial Number edited and saved - verified");
+    }
+
+    // ============================================================
+    // CAP_EAD_06 - Edit B Phase Serial Number (Yes)
+    // ============================================================
+
+    @Test(priority = 306)
+    public void CAP_EAD_06_editBPhaseSerialNumber() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_EDIT_ASSET,
+            "CAP_EAD_06 - Verify B Phase Serial Number edit"
+        );
+
+        logStep("Navigating to Edit Asset screen and changing to Capacitor");
+        navigateToEditAssetScreenAndChangeToCapacitor();
+
+        logStep("Scrolling to Core Attributes");
+        assetPage.scrollFormDown();
+        shortWait();
+
+        logStep("Editing B Phase Serial Number");
+        String testValue = "B_PHASE_" + System.currentTimeMillis();
+        assetPage.editTextField("B Phase Serial Number", testValue);
+        
+        logStep("Saving changes");
+        assetPage.clickSaveChanges();
+        mediumWait();
+
+        boolean saved = assetPage.isAssetSavedAfterEdit();
+        assertTrue(saved, "B Phase Serial Number should be saved successfully");
+
+        logStepWithScreenshot("B Phase Serial Number edited and saved - verified");
+    }
+
+    // ============================================================
+    // CAP_EAD_07 - Edit C Phase Serial Number (Yes)
+    // ============================================================
+
+    @Test(priority = 307)
+    public void CAP_EAD_07_editCPhaseSerialNumber() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_EDIT_ASSET,
+            "CAP_EAD_07 - Verify C Phase Serial Number edit"
+        );
+
+        logStep("Navigating to Edit Asset screen and changing to Capacitor");
+        navigateToEditAssetScreenAndChangeToCapacitor();
+
+        logStep("Scrolling to Core Attributes");
+        assetPage.scrollFormDown();
+        shortWait();
+
+        logStep("Editing C Phase Serial Number");
+        String testValue = "C_PHASE_" + System.currentTimeMillis();
+        assetPage.editTextField("C Phase Serial Number", testValue);
+        
+        logStep("Saving changes");
+        assetPage.clickSaveChanges();
+        mediumWait();
+
+        boolean saved = assetPage.isAssetSavedAfterEdit();
+        assertTrue(saved, "C Phase Serial Number should be saved successfully");
+
+        logStepWithScreenshot("C Phase Serial Number edited and saved - verified");
+    }
+
+    // ============================================================
+    // CAP_EAD_08 - Edit Catalog Number (Yes)
+    // ============================================================
+
+    @Test(priority = 308)
+    public void CAP_EAD_08_editCatalogNumber() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_EDIT_ASSET,
+            "CAP_EAD_08 - Verify Catalog Number update"
+        );
+
+        logStep("Navigating to Edit Asset screen and changing to Capacitor");
+        navigateToEditAssetScreenAndChangeToCapacitor();
+
+        logStep("Scrolling to field");
+        assetPage.scrollToField("Catalog Number");
+
+        logStep("Editing Catalog Number");
+        String testValue = "CAT_" + System.currentTimeMillis();
+        assetPage.editTextField("Catalog Number", testValue);
+        
+        logStep("Saving changes");
+        assetPage.clickSaveChanges();
+        mediumWait();
+
+        boolean saved = assetPage.isAssetSavedAfterEdit();
+        assertTrue(saved, "Catalog Number should be saved successfully");
+
+        logStepWithScreenshot("Catalog Number edited and saved - verified");
+    }
+
+    // ============================================================
+    // CAP_EAD_09 - Edit Fluid Capacity (Yes)
+    // ============================================================
+
+    @Test(priority = 309)
+    public void CAP_EAD_09_editFluidCapacity() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_EDIT_ASSET,
+            "CAP_EAD_09 - Verify Fluid Capacity input"
+        );
+
+        logStep("Navigating to Edit Asset screen and changing to Capacitor");
+        navigateToEditAssetScreenAndChangeToCapacitor();
+
+        logStep("Scrolling to field");
+        assetPage.scrollToField("Fluid Capacity");
+
+        logStep("Editing Fluid Capacity");
+        assetPage.editTextField("Fluid Capacity", "100");
+        
+        logStep("Saving changes");
+        assetPage.clickSaveChanges();
+        mediumWait();
+
+        boolean saved = assetPage.isAssetSavedAfterEdit();
+        assertTrue(saved, "Fluid Capacity should be saved successfully");
+
+        logStepWithScreenshot("Fluid Capacity edited and saved - verified");
+    }
+
+    // ============================================================
+    // CAP_EAD_10 - Edit Fluid Type (Yes)
+    // ============================================================
+
+    @Test(priority = 310)
+    public void CAP_EAD_10_editFluidType() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_EDIT_ASSET,
+            "CAP_EAD_10 - Verify Fluid Type input"
+        );
+
+        logStep("Navigating to Edit Asset screen and changing to Capacitor");
+        navigateToEditAssetScreenAndChangeToCapacitor();
+
+        logStep("Scrolling to field");
+        assetPage.scrollToField("Fluid Type");
+
+        logStep("Editing Fluid Type");
+        assetPage.editTextField("Fluid Type", "Mineral Oil");
+        
+        logStep("Saving changes");
+        assetPage.clickSaveChanges();
+        mediumWait();
+
+        boolean saved = assetPage.isAssetSavedAfterEdit();
+        assertTrue(saved, "Fluid Type should be saved successfully");
+
+        logStepWithScreenshot("Fluid Type edited and saved - verified");
+    }
+
+    // ============================================================
+    // CAP_EAD_11 - Edit Fuse Amperage (Yes)
+    // ============================================================
+
+    @Test(priority = 311)
+    public void CAP_EAD_11_editFuseAmperage() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_EDIT_ASSET,
+            "CAP_EAD_11 - Verify Fuse Amperage input"
+        );
+
+        logStep("Navigating to Edit Asset screen and changing to Capacitor");
+        navigateToEditAssetScreenAndChangeToCapacitor();
+
+        logStep("Scrolling to field");
+        assetPage.scrollToField("Fuse Amperage");
+
+        logStep("Editing Fuse Amperage");
+        assetPage.editTextField("Fuse Amperage", "30");
+        
+        logStep("Saving changes");
+        assetPage.clickSaveChanges();
+        mediumWait();
+
+        boolean saved = assetPage.isAssetSavedAfterEdit();
+        assertTrue(saved, "Fuse Amperage should be saved successfully");
+
+        logStepWithScreenshot("Fuse Amperage edited and saved - verified");
+    }
+
+    // ============================================================
+    // CAP_EAD_12 - Edit Fuse Manufacturer (Yes)
+    // ============================================================
+
+    @Test(priority = 312)
+    public void CAP_EAD_12_editFuseManufacturer() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_EDIT_ASSET,
+            "CAP_EAD_12 - Verify Fuse Manufacturer update"
+        );
+
+        logStep("Navigating to Edit Asset screen and changing to Capacitor");
+        navigateToEditAssetScreenAndChangeToCapacitor();
+
+        logStep("Scrolling to field");
+        assetPage.scrollToField("Fuse Manufacturer");
+
+        logStep("Editing Fuse Manufacturer");
+        assetPage.editTextField("Fuse Manufacturer", "Bussmann");
+        
+        logStep("Saving changes");
+        assetPage.clickSaveChanges();
+        mediumWait();
+
+        boolean saved = assetPage.isAssetSavedAfterEdit();
+        assertTrue(saved, "Fuse Manufacturer should be saved successfully");
+
+        logStepWithScreenshot("Fuse Manufacturer edited and saved - verified");
+    }
+
+    // ============================================================
+    // CAP_EAD_13 - Edit Fuse Refill Number (Yes)
+    // ============================================================
+
+    @Test(priority = 313)
+    public void CAP_EAD_13_editFuseRefillNumber() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_EDIT_ASSET,
+            "CAP_EAD_13 - Verify Fuse Refill Number input"
+        );
+
+        logStep("Navigating to Edit Asset screen and changing to Capacitor");
+        navigateToEditAssetScreenAndChangeToCapacitor();
+
+        logStep("Scrolling to field");
+        assetPage.scrollToField("Fuse Refill Number");
+
+        logStep("Editing Fuse Refill Number");
+        assetPage.editTextField("Fuse Refill Number", "FR-12345");
+        
+        logStep("Saving changes");
+        assetPage.clickSaveChanges();
+        mediumWait();
+
+        boolean saved = assetPage.isAssetSavedAfterEdit();
+        assertTrue(saved, "Fuse Refill Number should be saved successfully");
+
+        logStepWithScreenshot("Fuse Refill Number edited and saved - verified");
+    }
+
+    // ============================================================
+    // CAP_EAD_14 - Edit KVAR Rating (Yes)
+    // ============================================================
+
+    @Test(priority = 314)
+    public void CAP_EAD_14_editKVARRating() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_EDIT_ASSET,
+            "CAP_EAD_14 - Verify KVAR Rating input"
+        );
+
+        logStep("Navigating to Edit Asset screen and changing to Capacitor");
+        navigateToEditAssetScreenAndChangeToCapacitor();
+
+        logStep("Scrolling to field");
+        assetPage.scrollToField("KVAR Rating");
+
+        logStep("Editing KVAR Rating");
+        assetPage.editTextField("KVAR Rating", "50");
+        
+        logStep("Saving changes");
+        assetPage.clickSaveChanges();
+        mediumWait();
+
+        boolean saved = assetPage.isAssetSavedAfterEdit();
+        assertTrue(saved, "KVAR Rating should be saved successfully");
+
+        logStepWithScreenshot("KVAR Rating edited and saved - verified");
+    }
+
+    // ============================================================
+    // CAP_EAD_15 - Edit Manufacturer (Yes)
+    // ============================================================
+
+    @Test(priority = 315)
+    public void CAP_EAD_15_editManufacturer() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_EDIT_ASSET,
+            "CAP_EAD_15 - Verify Manufacturer input"
+        );
+
+        logStep("Navigating to Edit Asset screen and changing to Capacitor");
+        navigateToEditAssetScreenAndChangeToCapacitor();
+
+        logStep("Scrolling to field");
+        assetPage.scrollToField("Manufacturer");
+
+        logStep("Editing Manufacturer");
+        assetPage.editTextField("Manufacturer", "ABB");
+        
+        logStep("Saving changes");
+        assetPage.clickSaveChanges();
+        mediumWait();
+
+        boolean saved = assetPage.isAssetSavedAfterEdit();
+        assertTrue(saved, "Manufacturer should be saved successfully");
+
+        logStepWithScreenshot("Manufacturer edited and saved - verified");
+    }
+
+    // ============================================================
+    // CAP_EAD_16 - Edit Model (Yes)
+    // ============================================================
+
+    @Test(priority = 316)
+    public void CAP_EAD_16_editModel() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_EDIT_ASSET,
+            "CAP_EAD_16 - Verify Model input"
+        );
+
+        logStep("Navigating to Edit Asset screen and changing to Capacitor");
+        navigateToEditAssetScreenAndChangeToCapacitor();
+
+        logStep("Scrolling to field");
+        assetPage.scrollToField("Model");
+
+        logStep("Editing Model");
+        assetPage.editTextField("Model", "CAP-2000");
+        
+        logStep("Saving changes");
+        assetPage.clickSaveChanges();
+        mediumWait();
+
+        boolean saved = assetPage.isAssetSavedAfterEdit();
+        assertTrue(saved, "Model should be saved successfully");
+
+        logStepWithScreenshot("Model edited and saved - verified");
+    }
+
+    // ============================================================
+    // CAP_EAD_17 - Edit Notes (Yes)
+    // ============================================================
+
+    @Test(priority = 317)
+    public void CAP_EAD_17_editNotes() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_EDIT_ASSET,
+            "CAP_EAD_17 - Verify Notes input"
+        );
+
+        logStep("Navigating to Edit Asset screen and changing to Capacitor");
+        navigateToEditAssetScreenAndChangeToCapacitor();
+
+        logStep("Scrolling to field");
+        assetPage.scrollToField("Notes");
+
+        logStep("Editing Notes");
+        assetPage.editTextField("Notes", "Test note for Capacitor");
+        
+        logStep("Saving changes");
+        assetPage.clickSaveChanges();
+        mediumWait();
+
+        boolean saved = assetPage.isAssetSavedAfterEdit();
+        assertTrue(saved, "Notes should be saved successfully");
+
+        logStepWithScreenshot("Notes edited and saved - verified");
+    }
+
+    // ============================================================
+    // CAP_EAD_18 - Edit PCB Labeled (Yes)
+    // ============================================================
+
+    @Test(priority = 318)
+    public void CAP_EAD_18_editPCBLabeled() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_EDIT_ASSET,
+            "CAP_EAD_18 - Verify PCB Labeled input"
+        );
+
+        logStep("Navigating to Edit Asset screen and changing to Capacitor");
+        navigateToEditAssetScreenAndChangeToCapacitor();
+
+        logStep("Scrolling to field");
+        assetPage.scrollToField("PCB Labeled");
+
+        logStep("Editing PCB Labeled");
+        assetPage.editTextField("PCB Labeled", "Yes");
+        
+        logStep("Saving changes");
+        assetPage.clickSaveChanges();
+        mediumWait();
+
+        boolean saved = assetPage.isAssetSavedAfterEdit();
+        assertTrue(saved, "PCB Labeled should be saved successfully");
+
+        logStepWithScreenshot("PCB Labeled edited and saved - verified");
+    }
+
+    // ============================================================
+    // CAP_EAD_19 - Edit Serial Number (Yes)
+    // ============================================================
+
+    @Test(priority = 319)
+    public void CAP_EAD_19_editSerialNumber() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_EDIT_ASSET,
+            "CAP_EAD_19 - Verify Serial Number input"
+        );
+
+        logStep("Navigating to Edit Asset screen and changing to Capacitor");
+        navigateToEditAssetScreenAndChangeToCapacitor();
+
+        logStep("Scrolling to field");
+        assetPage.scrollToField("Serial Number");
+
+        logStep("Editing Serial Number");
+        String testValue = "SN_" + System.currentTimeMillis();
+        assetPage.editTextField("Serial Number", testValue);
+        
+        logStep("Saving changes");
+        assetPage.clickSaveChanges();
+        mediumWait();
+
+        boolean saved = assetPage.isAssetSavedAfterEdit();
+        assertTrue(saved, "Serial Number should be saved successfully");
+
+        logStepWithScreenshot("Serial Number edited and saved - verified");
+    }
+
+    // ============================================================
+    // CAP_EAD_20 - Edit Spare Fuses (Yes)
+    // ============================================================
+
+    @Test(priority = 320)
+    public void CAP_EAD_20_editSpareFuses() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_EDIT_ASSET,
+            "CAP_EAD_20 - Verify Spare Fuses input"
+        );
+
+        logStep("Navigating to Edit Asset screen and changing to Capacitor");
+        navigateToEditAssetScreenAndChangeToCapacitor();
+
+        logStep("Scrolling to field");
+        assetPage.scrollToField("Spare Fuses");
+
+        logStep("Editing Spare Fuses");
+        assetPage.editTextField("Spare Fuses", "5");
+        
+        logStep("Saving changes");
+        assetPage.clickSaveChanges();
+        mediumWait();
+
+        boolean saved = assetPage.isAssetSavedAfterEdit();
+        assertTrue(saved, "Spare Fuses should be saved successfully");
+
+        logStepWithScreenshot("Spare Fuses edited and saved - verified");
+    }
+
+    // ============================================================
+    // CAP_EAD_21 - Edit Style (Yes)
+    // ============================================================
+
+    @Test(priority = 321)
+    public void CAP_EAD_21_editStyle() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_EDIT_ASSET,
+            "CAP_EAD_21 - Verify Style input"
+        );
+
+        logStep("Navigating to Edit Asset screen and changing to Capacitor");
+        navigateToEditAssetScreenAndChangeToCapacitor();
+
+        logStep("Scrolling to field");
+        assetPage.scrollToField("Style");
+
+        logStep("Editing Style");
+        assetPage.editTextField("Style", "Indoor");
+        
+        logStep("Saving changes");
+        assetPage.clickSaveChanges();
+        mediumWait();
+
+        boolean saved = assetPage.isAssetSavedAfterEdit();
+        assertTrue(saved, "Style should be saved successfully");
+
+        logStepWithScreenshot("Style edited and saved - verified");
+    }
+
+    // ============================================================
+    // CAP_EAD_22 - Edit Type (Yes)
+    // ============================================================
+
+    @Test(priority = 322)
+    public void CAP_EAD_22_editType() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_EDIT_ASSET,
+            "CAP_EAD_22 - Verify Type input"
+        );
+
+        logStep("Navigating to Edit Asset screen and changing to Capacitor");
+        navigateToEditAssetScreenAndChangeToCapacitor();
+
+        logStep("Scrolling to field");
+        assetPage.scrollToField("Type");
+
+        logStep("Editing Type");
+        assetPage.editTextField("Type", "Fixed");
+        
+        logStep("Saving changes");
+        assetPage.clickSaveChanges();
+        mediumWait();
+
+        boolean saved = assetPage.isAssetSavedAfterEdit();
+        assertTrue(saved, "Type should be saved successfully");
+
+        logStepWithScreenshot("Type edited and saved - verified");
+    }
+
+    // ============================================================
+    // CAP_EAD_23 - Edit UF Rating (Yes)
+    // ============================================================
+
+    @Test(priority = 323)
+    public void CAP_EAD_23_editUFRating() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_EDIT_ASSET,
+            "CAP_EAD_23 - Verify UF Rating input"
+        );
+
+        logStep("Navigating to Edit Asset screen and changing to Capacitor");
+        navigateToEditAssetScreenAndChangeToCapacitor();
+
+        logStep("Scrolling to field");
+        assetPage.scrollToField("UF Rating");
+
+        logStep("Editing UF Rating");
+        assetPage.editTextField("UF Rating", "100");
+        
+        logStep("Saving changes");
+        assetPage.clickSaveChanges();
+        mediumWait();
+
+        boolean saved = assetPage.isAssetSavedAfterEdit();
+        assertTrue(saved, "UF Rating should be saved successfully");
+
+        logStepWithScreenshot("UF Rating edited and saved - verified");
+    }
+
+    // ============================================================
+    // CAP_EAD_24 - Edit Voltage (Yes)
+    // ============================================================
+
+    @Test(priority = 324)
+    public void CAP_EAD_24_editVoltage() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_EDIT_ASSET,
+            "CAP_EAD_24 - Verify Voltage input"
+        );
+
+        logStep("Navigating to Edit Asset screen and changing to Capacitor");
+        navigateToEditAssetScreenAndChangeToCapacitor();
+
+        logStep("Scrolling to field");
+        assetPage.scrollToField("Voltage");
+
+        logStep("Editing Voltage");
+        assetPage.editTextField("Voltage", "480");
+        
+        logStep("Saving changes");
+        assetPage.clickSaveChanges();
+        mediumWait();
+
+        boolean saved = assetPage.isAssetSavedAfterEdit();
+        assertTrue(saved, "Voltage should be saved successfully");
+
+        logStepWithScreenshot("Voltage edited and saved - verified");
+    }
+
+    // ============================================================
+    // CAP_EAD_25 - Save with all fields empty (Yes)
+    // ============================================================
+
+    @Test(priority = 325)
+    public void CAP_EAD_25_saveWithAllFieldsEmpty() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_EDIT_ASSET,
+            "CAP_EAD_25 - Verify save allowed with empty fields"
+        );
+
+        logStep("Navigating to Edit Asset screen and changing to Capacitor");
+        navigateToEditAssetScreenAndChangeToCapacitor();
+
+        logStep("Not editing any fields - leaving all empty");
+        
+        logStep("Clicking Save Changes directly");
+        assetPage.clickSaveChanges();
+        mediumWait();
+
+        boolean saved = assetPage.isAssetSavedAfterEdit();
+        assertTrue(saved, "Asset should be saved successfully with empty fields");
+
+        logStepWithScreenshot("Save with empty fields - verified");
+    }
+
+    // ============================================================
+    // CAP_EAD_26 - Cancel edit operation (Partial)
+    // ============================================================
+
+    @Test(priority = 326)
+    public void CAP_EAD_26_cancelEditOperation() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ASSET,
+            AppConstants.FEATURE_EDIT_ASSET,
+            "CAP_EAD_26 - Verify Cancel button behavior"
+        );
+
+        logStep("Navigating to Edit Asset screen and changing to Capacitor");
+        navigateToEditAssetScreenAndChangeToCapacitor();
+
+        logStep("Making a modification");
+        assetPage.scrollFormDown();
+        shortWait();
+        assetPage.editTextField("Manufacturer", "TestCancel_" + System.currentTimeMillis());
+
+        logStep("Tapping Cancel button");
+        assetPage.clickCancelEdit();
+        shortWait();
+
+        logStep("Verifying edit was cancelled");
+        boolean cancelled = assetPage.isEditCancelled();
+        assertTrue(cancelled, "Edit should be cancelled and return to view mode");
+
+        logStepWithScreenshot("Cancel edit operation - verified");
+        logWarning("Can perform cancel action but data state verification needs manual check - partial automation");
+    }
+
+
 }

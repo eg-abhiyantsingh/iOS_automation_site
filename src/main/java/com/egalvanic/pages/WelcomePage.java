@@ -107,17 +107,23 @@ public class WelcomePage extends BasePage {
      */
     public void enterCompanyCode(String companyCode) {
         try {
-            // Try with placeholder first - use longer timeout for CI
-            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(30));
+            // Try with placeholder first
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
             wait.until(ExpectedConditions.elementToBeClickable(companyCodeFieldWithPlaceholder));
             companyCodeFieldWithPlaceholder.click();
             companyCodeFieldWithPlaceholder.sendKeys(companyCode);
         } catch (Exception e) {
             // Fallback to generic text field
-            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(30));
-            wait.until(ExpectedConditions.elementToBeClickable(companyCodeField));
-            companyCodeField.click();
-            companyCodeField.sendKeys(companyCode);
+            try {
+                WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(3));
+                wait.until(ExpectedConditions.elementToBeClickable(companyCodeField));
+                companyCodeField.click();
+                companyCodeField.sendKeys(companyCode);
+            } catch (Exception e2) {
+                // Direct click as last resort
+                companyCodeField.click();
+                companyCodeField.sendKeys(companyCode);
+            }
         }
     }
 

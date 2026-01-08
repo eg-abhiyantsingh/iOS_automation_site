@@ -92,49 +92,100 @@ public class BaseTest {
         siteSelectionPage = new SiteSelectionPage();
         assetPage = new AssetPage();
 
-        // Wait for app to load using explicit wait (checks if welcome page is ready)
-        welcomePage.waitForPageReady();
+        // FAST app state detection (2 seconds max)
+        // Skip waiting for welcome page if already logged in
+        waitForAppReadyFast();
 
         System.out.println("✅ Test setup complete\n");
     }
 
-    @AfterMethod
+    /**
+     * FAST app ready check - detects current state with minimal wait
+     * Checks: Dashboard/Asset screens (logged in) OR Welcome/Login page (not logged in)
+     */
+    private void waitForAppReadyFast() {
+        try {
+            // 2-second fast check for any known screen
+            org.openqa.selenium.support.ui.WebDriverWait fastWait = 
+                new org.openqa.selenium.support.ui.WebDriverWait(
+                    com.egalvanic.utils.DriverManager.getDriver(), 
+                    java.time.Duration.ofSeconds(2)
+                );
+            
+            fastWait.until(driver -> {
+                // Check if on dashboard (already logged in) - FASTEST PATH
+                try {
+                    driver.findElement(io.appium.java_client.AppiumBy.accessibilityId("building.2"));
+                    System.out.println("⚡ App ready - Dashboard detected (already logged in)");
+                    return true;
+                } catch (Exception e) {}
+                
+                // Check if on asset list (already logged in)
+                try {
+                    driver.findElement(io.appium.java_client.AppiumBy.accessibilityId("plus"));
+                    System.out.println("⚡ App ready - Asset List detected (already logged in)");
+                    return true;
+                } catch (Exception e) {}
+                
+                // Check if on welcome page (needs login)
+                try {
+                    driver.findElement(io.appium.java_client.AppiumBy.accessibilityId("Continue"));
+                    System.out.println("⚡ App ready - Welcome page detected");
+                    return true;
+                } catch (Exception e) {}
+                
+                // Check if on login page (needs login)
+                try {
+                    driver.findElement(io.appium.java_client.AppiumBy.accessibilityId("Sign In"));
+                    System.out.println("⚡ App ready - Login page detected");
+                    return true;
+                } catch (Exception e) {}
+                
+                return false;
+            });
+        } catch (Exception e) {
+            System.out.println("⚠️ Fast app check timeout, continuing...");
+        }
+    }
+
+    @AfterMethod(alwaysRun = true)
     public void testTeardown(ITestResult result) {
         String testName = result.getMethod().getMethodName();
 
-        // Handle test result
-        if (result.getStatus() == ITestResult.FAILURE) {
-            // Capture screenshot on failure and use it in the report
-            String screenshotPath = ScreenshotUtil.captureScreenshot(testName + "_FAILED");
-            ExtentReportManager.logFailWithScreenshot(
-                    "Test failed: " + result.getThrowable().getMessage(),
-                    result.getThrowable());
-            System.out.println("❌ Test FAILED: " + testName);
-            System.out.println("📸 Screenshot saved: " + screenshotPath);
+        try {
+            // Handle test result
+            if (result.getStatus() == ITestResult.FAILURE) {
+                String screenshotPath = ScreenshotUtil.captureScreenshot(testName + "_FAILED");
+                ExtentReportManager.logFailWithScreenshot(
+                        "Test failed: " + result.getThrowable().getMessage(),
+                        result.getThrowable());
+                System.out.println("❌ Test FAILED: " + testName);
+                System.out.println("📸 Screenshot saved: " + screenshotPath);
 
-        } else if (result.getStatus() == ITestResult.SKIP) {
-            ExtentReportManager.logSkip("Test skipped: " +
-                    (result.getThrowable() != null ? result.getThrowable().getMessage() : "Unknown reason"));
-            System.out.println("⏭️ Test SKIPPED: " + testName);
+            } else if (result.getStatus() == ITestResult.SKIP) {
+                ExtentReportManager.logSkip("Test skipped: " +
+                        (result.getThrowable() != null ? result.getThrowable().getMessage() : "Unknown reason"));
+                System.out.println("⏭️ Test SKIPPED: " + testName);
 
-        } else if (result.getStatus() == ITestResult.SUCCESS) {
-            ExtentReportManager.logPass("Test passed successfully");
-            System.out.println("✅ Test PASSED: " + testName);
+            } else if (result.getStatus() == ITestResult.SUCCESS) {
+                ExtentReportManager.logPass("Test passed successfully");
+                System.out.println("✅ Test PASSED: " + testName);
+            }
+
+            ExtentReportManager.removeTests();
+        } catch (Exception e) {
+            System.out.println("⚠️ Error in test result handling: " + e.getMessage());
+        } finally {
+            // ALWAYS close app and driver
+            if (skipNextTeardown) {
+                System.out.println("🔗 Keeping driver alive for next chained test\n");
+                skipNextTeardown = false;
+                skipNextSetup = true;
+            } else {
+                DriverManager.quitDriver();
+                System.out.println("🧹 Test cleanup complete\n");
+            }
         }
-
-        // Cleanup
-        ExtentReportManager.removeTests();
-
-        // Skip driver quit for chained tests
-        if (skipNextTeardown) {
-            System.out.println("🔗 Keeping driver alive for next chained test\n");
-            skipNextTeardown = false;
-            skipNextSetup = true; // Signal next test to skip setup
-            return;
-        }
-
-        DriverManager.quitDriver();
-        System.out.println("🧹 Test cleanup complete\n");
     }
 
     // ================================================================
@@ -167,6 +218,222 @@ public class BaseTest {
 
         System.out.println("✅ Login completed");
     }
+
+    // ================================================================
+    // SMART NAVIGATION - State-based navigation for faster tests
+    // ================================================================
+
+    /**
+     * Detect current app state and return appropriate action
+     * @return "LOGIN_PAGE", "SITE_SELECTION", "DASHBOARD", "ASSET_LIST", "ASSET_DETAIL", "EDIT_ASSET", "UNKNOWN"
+     */
+    protected String detectCurrentScreen() {
+        System.out.println("🔍 Detecting current screen...");
+        
+        // Check WELCOME PAGE - has "Continue" button (NOT "Sign In")
+        try {
+            if (welcomePage.isContinueButtonDisplayed()) {
+                System.out.println("   → Welcome Page (Company Code)");
+                return "WELCOME_PAGE";
+            }
+        } catch (Exception e) {}
+        
+        // Check LOGIN PAGE - has "Sign In" button and password field
+        try {
+            if (loginPage.isSignInButtonDisplayed()) {
+                System.out.println("   → Login Page (Email/Password)");
+                return "LOGIN_PAGE";
+            }
+        } catch (Exception e) {}
+        
+        // Check if on Edit Asset screen FIRST (has Save Changes or Cancel button in edit mode)
+        try {
+            if (assetPage.isEditAssetScreenDisplayed()) {
+                System.out.println("   → Edit Asset Screen");
+                return "EDIT_ASSET";
+            }
+        } catch (Exception e) {}
+        
+        // Check if on Asset Detail (has Edit button, Asset Details nav)
+        try {
+            if (assetPage.isAssetDetailDisplayed()) {
+                System.out.println("   → Asset Detail");
+                return "ASSET_DETAIL";
+            }
+        } catch (Exception e) {}
+        
+        // Check if on Asset List (has plus button for adding assets)
+        try {
+            if (assetPage.isAssetListDisplayed()) {
+                System.out.println("   → Asset List");
+                return "ASSET_LIST";
+            }
+        } catch (Exception e) {}
+        
+        // Check if on Dashboard (has Assets/Locations tabs, building icon)
+        // Dashboard is AFTER site selection - user is already logged in
+        try {
+            if (assetPage.isDashboardDisplayed()) {
+                System.out.println("   → Dashboard (logged in)");
+                return "DASHBOARD";
+            }
+        } catch (Exception e) {}
+        
+        // Check if on Site Selection page (has "Select a Site" title or site list BEFORE login)
+        // This should be checked AFTER dashboard to avoid confusion
+        try {
+            if (siteSelectionPage.isSelectSiteScreenDisplayed()) {
+                System.out.println("   → Site Selection");
+                return "SITE_SELECTION";
+            }
+        } catch (Exception e) {}
+        
+        System.out.println("   → Unknown screen");
+        return "UNKNOWN";
+    }
+    
+    /**
+     * Smart navigation to Edit Asset screen
+     * Simple approach: Try to go to asset directly, if fails do full flow
+     */
+    protected void smartNavigateToEditAsset() {
+        System.out.println("⚡ Smart navigation to Edit Asset...");
+        
+        // Brief wait for app to stabilize
+        try { Thread.sleep(500); } catch (Exception e) {}
+        
+        // Try to navigate to asset directly (if already logged in)
+        try {
+            System.out.println("🚀 Attempting direct navigation to asset...");
+            
+            // Try clicking on Assets tab/button
+            if (tryDirectAssetNavigation()) {
+                System.out.println("✅ Direct navigation successful!");
+                return;
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Direct navigation failed: " + e.getMessage());
+        }
+        
+        // Direct navigation failed - do full flow
+        System.out.println("🔄 Direct navigation failed, doing full login flow...");
+        doFullLoginAndNavigateToEditAsset();
+    }
+    
+    /**
+     * Try to navigate directly to Edit Asset (if already logged in)
+     */
+    private boolean tryDirectAssetNavigation() {
+        try {
+            // Try to click Assets button/tab
+            assetPage.navigateToAssetList();
+            shortWait();
+            
+            // Check if we got to asset list
+            if (assetPage.isAssetListDisplayed()) {
+                // Select first asset
+                assetPage.selectFirstAsset();
+                shortWait();
+                
+                // Click Edit
+                assetPage.clickEdit();
+                assetPage.waitForEditScreenReady();
+                return true;
+            }
+        } catch (Exception e) {
+            // Navigation failed
+        }
+        return false;
+    }
+    
+    /**
+     * Full login flow and navigate to Edit Asset
+     */
+    private void doFullLoginAndNavigateToEditAsset() {
+        System.out.println("🏁 Starting full login flow...");
+        
+        // Full login (handles company code + credentials)
+        performLogin();
+        
+        // Select site
+        String selectedSite = siteSelectionPage.turboSelectSite();
+        if (selectedSite == null) {
+            selectedSite = siteSelectionPage.selectFirstSiteUltraFast();
+        }
+        siteSelectionPage.waitForDashboardFast();
+        
+        // Navigate to asset list
+        assetPage.navigateToAssetList();
+        shortWait();
+        
+        // Select first asset
+        assetPage.selectFirstAsset();
+        shortWait();
+        
+        // Click Edit
+        assetPage.clickEdit();
+        assetPage.waitForEditScreenReady();
+        
+        System.out.println("✅ Full flow complete - on Edit Asset screen");
+    }
+    
+    /**
+     * Smart navigation to Dashboard
+     * Checks current state and takes shortest path
+     */
+    protected void smartNavigateToDashboard() {
+        String currentScreen = detectCurrentScreen();
+        System.out.println("⚡ Smart navigation to Dashboard from: " + currentScreen);
+        
+        switch (currentScreen) {
+            case "DASHBOARD":
+                System.out.println("✅ Already on Dashboard");
+                break;
+                
+            case "ASSET_LIST":
+            case "ASSET_DETAIL":
+            case "EDIT_ASSET":
+                // Go back to dashboard
+                System.out.println("🔙 Going back to Dashboard...");
+                assetPage.clickBack();
+                shortWait();
+                // May need multiple backs
+                if (!assetPage.isDashboardDisplayed()) {
+                    assetPage.clickBack();
+                    shortWait();
+                }
+                break;
+                
+            case "SITE_SELECTION":
+                System.out.println("🌐 Selecting site...");
+                siteSelectionPage.turboSelectSite();
+                siteSelectionPage.waitForDashboardFast();
+                break;
+                
+            case "LOGIN_PAGE":
+                System.out.println("🔐 Logging in...");
+                loginPage.loginTurbo(AppConstants.VALID_EMAIL, AppConstants.VALID_PASSWORD);
+                siteSelectionPage.turboSelectSite();
+                siteSelectionPage.waitForDashboardFast();
+                break;
+                
+            case "WELCOME_PAGE":
+                System.out.println("🏁 Full login flow...");
+                performLogin();
+                siteSelectionPage.turboSelectSite();
+                siteSelectionPage.waitForDashboardFast();
+                break;
+                
+            default:
+                System.out.println("❓ Unknown - full flow...");
+                performLogin();
+                siteSelectionPage.turboSelectSite();
+                siteSelectionPage.waitForDashboardFast();
+                break;
+        }
+    }
+
+
 
     /**
      * ╔══════════════════════════════════════════════════════════════╗
@@ -353,21 +620,21 @@ public class BaseTest {
      * Short wait (1 second) - CI-safe
      */
     protected void shortWait() {
+        sleep(500);
+    }
+
+    /**
+     * Medium wait (1 second) - CI-safe
+     */
+    protected void mediumWait() {
         sleep(1000);
     }
 
     /**
-     * Medium wait (2 seconds) - CI-safe
-     */
-    protected void mediumWait() {
-        sleep(2000);
-    }
-
-    /**
-     * Long wait (3 seconds) - CI-safe
+     * Long wait (2 seconds) - CI-safe
      */
     protected void longWait() {
-        sleep(3000);
+        sleep(2000);
     }
 
     /**

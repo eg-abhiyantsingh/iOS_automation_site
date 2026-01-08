@@ -15,6 +15,28 @@ import java.time.Duration;
 public class DriverManager {
 
     private static ThreadLocal<IOSDriver> driverThreadLocal = new ThreadLocal<>();
+    
+    // Override for noReset - allows test classes to skip app reinstall
+    private static boolean noResetOverride = false;
+    private static boolean useNoResetOverride = false;
+    
+    /**
+     * Set noReset override for Edit Asset tests (skip app reinstall)
+     * Call this BEFORE driver initialization in @BeforeClass
+     */
+    public static void setNoReset(boolean noReset) {
+        noResetOverride = noReset;
+        useNoResetOverride = true;
+        System.out.println("📱 noReset override set to: " + noReset);
+    }
+    
+    /**
+     * Reset noReset override to default
+     */
+    public static void resetNoResetOverride() {
+        useNoResetOverride = false;
+        noResetOverride = false;
+    }
 
     private DriverManager() {
         // Private constructor
@@ -98,11 +120,12 @@ public class DriverManager {
                 // ========== RESET BEHAVIOR (Configurable in AppConstants) ==========
                 // FULL_RESET=true: Clean install every test (slow but guaranteed clean state)
                 // FULL_RESET=false + NO_RESET=false: Clear app data only (fast, usually sufficient)
-                // NO_RESET=true: Keep all data (fastest, for development only)
+                // NO_RESET=true: Keep all data (fastest, for Edit Asset tests)
+                boolean noReset = useNoResetOverride ? noResetOverride : AppConstants.NO_RESET;
                 options.setFullReset(AppConstants.FULL_RESET);
-                options.setNoReset(AppConstants.NO_RESET);
+                options.setNoReset(noReset);
                 
-                System.out.println("📱 Reset Mode: fullReset=" + AppConstants.FULL_RESET + ", noReset=" + AppConstants.NO_RESET);
+                System.out.println("📱 Reset Mode: fullReset=" + AppConstants.FULL_RESET + ", noReset=" + noReset);
 
                 System.out.println("📱 Initializing iOS Driver...");
                 System.out.println("📱 Device: " + device);
@@ -142,10 +165,41 @@ public class DriverManager {
     /**
      * Quit driver and cleanup
      */
+    /**
+     * Terminate/close the app without quitting driver
+     * Use this to reset app state between tests
+     */
+    public static void terminateApp() {
+        IOSDriver driver = driverThreadLocal.get();
+        if (driver != null) {
+            try {
+                String bundleId = AppConstants.APP_BUNDLE_ID; // App bundle ID
+                driver.terminateApp(bundleId);
+                System.out.println("✅ App terminated");
+            } catch (Exception e) {
+                System.err.println("⚠️ Error terminating app: " + e.getMessage());
+            }
+        }
+    }
+    
+    /**
+     * Close app and quit driver completely
+     * Ensures clean state for next test
+     */
     public static void quitDriver() {
         IOSDriver driver = driverThreadLocal.get();
         if (driver != null) {
             try {
+                // First terminate the app
+                try {
+                    String bundleId = AppConstants.APP_BUNDLE_ID;
+                    driver.terminateApp(bundleId);
+                    System.out.println("✅ App terminated");
+                } catch (Exception e) {
+                    // App might already be closed
+                }
+                
+                // Then quit driver
                 driver.quit();
                 System.out.println("✅ Driver closed successfully");
             } catch (Exception e) {
