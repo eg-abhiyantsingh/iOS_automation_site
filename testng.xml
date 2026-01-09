@@ -2,22 +2,42 @@
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
 <suite name="eGalvanic iOS Automation Suite" verbose="2">
     
-    <test name="Authentication Tests">
+    <test name="Authentication Tests - Selected">
         <classes>
-            <class name="com.egalvanic.tests.AuthenticationTest"/>
+            <class name="com.egalvanic.tests.AuthenticationTest">
+                <methods>
+                    <include name="TC01_verifyWelcomeScreenUILoads"/>
+                    <include name="TC02_verifyCompanyCodeFieldPlaceholder"/>
+                </methods>
+            </class>
         </classes>
     </test>
 
-    <test name="Site Selection Tests">
+    <test name="Site Selection Tests - Selected">
         <classes>
-            <class name="com.egalvanic.tests.SiteSelectionTest"/>
+            <class name="com.egalvanic.tests.SiteSelectionTest">
+                <methods>
+                    <include name="TC_SS_001_verifySelectSiteScreenUIElements"/>
+                    <include name="TC_SS_002_verifyCancelButtonReturnsToDashboard"/>
+                </methods>
+            </class>
         </classes>
     </test>
     
 
-    <test name="Asset Tests">
+    <test name="Asset Tests - Selected">
         <classes>
-            <class name="com.egalvanic.tests.AssetTest"/>
+            <class name="com.egalvanic.tests.AssetTest">
+                <methods>
+                    <include name="ATS_ECR_07_verifyNameWithOnlySpaces"/>
+                    <include name="ATS_ECR_10_verifyNameTrimming"/>
+                    <include name="ATS_ECR_11_verifySelectLocation"/>
+                    <include name="ATS_ECR_14_verifySelectAssetClass"/>
+                    <include name="ATS_ECR_19_verifySaveWithoutSubtype"/>
+                    <include name="ATS_ECR_21_verifyEnterQRCodeManually"/>
+                    <include name="ATS_EAD_01_openEditAssetDetailsScreen"/>
+                </methods>
+            </class>
         </classes>
     </test>
 </suite>
