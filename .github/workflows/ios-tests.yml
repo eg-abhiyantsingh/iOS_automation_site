@@ -117,12 +117,14 @@ jobs:
           # Wait for Appium to be ready (up to 60 seconds)
           APPIUM_READY=false
           for i in {1..60}; do
-            if curl -s http://127.0.0.1:4723/status | grep -q "ready"; then
-              echo "✅ Appium server is ready!"
+            # Check if Appium returns HTTP 200 status (works with all Appium versions)
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:4723/status 2>/dev/null || echo "000")
+            if [ "$HTTP_STATUS" = "200" ]; then
+              echo "✅ Appium server is ready! (HTTP $HTTP_STATUS)"
               APPIUM_READY=true
               break
             fi
-            echo "Waiting for Appium... ($i/60)"
+            echo "Waiting for Appium... ($i/60) - HTTP: $HTTP_STATUS"
             sleep 2
           done
           
