@@ -109,15 +109,42 @@ jobs:
       - name: Start Appium Server
         run: |
           echo "Starting Appium..."
-          appium --relaxed-security --log-level info &
-          for i in {1..30}; do
-            if curl -s http://127.0.0.1:4723/status > /dev/null; then
-              echo "✅ Appium ready"
+          # Start Appium in background with log file
+          appium --relaxed-security --log-level info > appium.log 2>&1 &
+          APPIUM_PID=$!
+          echo "Appium PID: $APPIUM_PID"
+          
+          # Wait for Appium to be ready (up to 60 seconds)
+          APPIUM_READY=false
+          for i in {1..60}; do
+            if curl -s http://127.0.0.1:4723/status | grep -q "ready"; then
+              echo "✅ Appium server is ready!"
+              APPIUM_READY=true
               break
             fi
-            echo "Waiting for Appium... ($i/30)"
+            echo "Waiting for Appium... ($i/60)"
             sleep 2
           done
+          
+          if [ "$APPIUM_READY" = false ]; then
+            echo "❌ Appium failed to start within 120 seconds"
+            echo "=== Appium Log ==="
+            cat appium.log || true
+            exit 1
+          fi
+          
+          # Additional wait for Appium to fully initialize
+          echo "Waiting 10s for Appium to fully initialize..."
+          sleep 10
+          
+          # Verify Appium is still running
+          if ! ps -p $APPIUM_PID > /dev/null; then
+            echo "❌ Appium process died"
+            cat appium.log || true
+            exit 1
+          fi
+          
+          echo "✅ Appium server verified and ready"
 
       - name: Run Tests
         id: run_tests
@@ -128,6 +155,23 @@ jobs:
           DEVICE_NAME: ${{ env.DEVICE_NAME }}
           APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
         run: |
+          echo "=== Pre-Test Verification ==="
+          
+          # Verify simulator is still booted
+          if ! xcrun simctl list devices | grep "$SIMULATOR_UDID" | grep -q "(Booted)"; then
+            echo "⚠️ Simulator not booted, rebooting..."
+            xcrun simctl boot "$SIMULATOR_UDID" 2>/dev/null || true
+            sleep 30
+          fi
+          echo "✅ Simulator is booted"
+          
+          # Verify Appium is responding
+          if ! curl -s http://127.0.0.1:4723/status | grep -q "ready"; then
+            echo "❌ Appium is not responding!"
+            exit 1
+          fi
+          echo "✅ Appium is responding"
+          
           echo "=== Test Configuration ==="
           echo "Device: $DEVICE_NAME"
           echo "iOS: $PLATFORM_VERSION"
@@ -135,10 +179,10 @@ jobs:
           echo "App: $APP_PATH"
 
           mvn clean test \
-            -Ddevice.name="$DEVICE_NAME" \
-            -Dplatform.version="$PLATFORM_VERSION" \
-            -Ddevice.udid="$SIMULATOR_UDID" \
-            -Dapp.path="$APP_PATH"
+            -DDEVICE_NAME="$DEVICE_NAME" \
+            -DPLATFORM_VERSION="$PLATFORM_VERSION" \
+            -DSIMULATOR_UDID="$SIMULATOR_UDID" \
+            -DAPP_PATH="$APP_PATH"
 
       - name: Capture Test Results
         if: always()

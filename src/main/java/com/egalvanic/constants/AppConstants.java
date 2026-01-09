@@ -138,7 +138,17 @@ public class AppConstants {
     // HELPER METHOD
     // ============================================
     private static String getEnv(String key, String defaultValue) {
-        String value = System.getenv(key);
-        return (value != null && !value.isEmpty()) ? value : defaultValue;
+        // First check system properties (set via Maven -D flags)
+        String value = System.getProperty(key);
+        if (value != null && !value.isEmpty()) {
+            return value;
+        }
+        // Then check environment variables
+        value = System.getenv(key);
+        if (value != null && !value.isEmpty()) {
+            return value;
+        }
+        // Fall back to default
+        return defaultValue;
     }
 }
