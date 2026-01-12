@@ -17,7 +17,7 @@ import org.testng.annotations.Test;
  * CLIENT REQUIREMENT:
  * - If field is empty and button is disabled, test should PASS (expected behavior)
  */
-public class AuthenticationTest extends BaseTest {
+public final class AuthenticationTest extends BaseTest {
 
     // ============================================================
     // TEST CLASS SETUP

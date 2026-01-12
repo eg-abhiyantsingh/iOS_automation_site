@@ -27,7 +27,7 @@ import org.testng.annotations.Test;
  * - Dashboard Header (TC_SS_051 - TC_SS_052)
  * - Job Selection (TC_SS_053 - TC_SS_054)
  */
-public class SiteSelectionTest extends BaseTest {
+public final class SiteSelectionTest extends BaseTest {
 
     // ============================================================
     // TEST CLASS SETUP
@@ -1371,7 +1371,7 @@ public class SiteSelectionTest extends BaseTest {
                 AppConstants.MODULE_SITE_SELECTION,
                 AppConstants.FEATURE_OFFLINE_SYNC,
                 "TC_SS_056 - Verify partial sync failure handling (Partial - requires simulating sync failure)");
-
+        loginAndSelectSite();
         logStep("This test requires simulating sync failure");
         logStepWithScreenshot("Partial sync failure handling verification");
         logWarning("Requires network manipulation to simulate partial failure");

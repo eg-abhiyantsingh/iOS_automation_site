@@ -20,4 +20,10 @@
         </classes>
     </test>
 
+    <test name="Asset Phase 2 Tests">
+        <classes>
+            <class name="com.egalvanic.tests.Asset_Phase2_Test" />
+        </classes>
+    </test>
+
 </suite>

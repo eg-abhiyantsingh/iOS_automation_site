@@ -179,49 +179,62 @@ jobs:
           echo "=== Warming up WDA with a test session ==="
           echo "This ensures WDA is fully built and ready before actual tests run"
           
-          # Create a simple session to warm up WDA
-          SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
-            -H "Content-Type: application/json" \
-            -d '{
-              "capabilities": {
-                "alwaysMatch": {
-                  "platformName": "iOS",
-                  "appium:automationName": "XCUITest",
-                  "appium:deviceName": "'"${{ env.DEVICE_NAME }}"'",
-                  "appium:udid": "'"$SIMULATOR_UDID"'",
-                  "appium:platformVersion": "'"${{ env.PLATFORM_VERSION }}"'",
-                  "appium:app": "'"$APP_PATH"'",
-                  "appium:wdaLaunchTimeout": 600000,
-                  "appium:wdaConnectionTimeout": 300000,
-                  "appium:useNewWDA": false,
-                  "appium:noReset": false
+          # Retry warm-up up to 3 times
+          for attempt in 1 2 3; do
+            echo "Warm-up attempt $attempt/3..."
+            
+            # Create a simple session to warm up WDA
+            SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
+              -H "Content-Type: application/json" \
+              -d '{
+                "capabilities": {
+                  "alwaysMatch": {
+                    "platformName": "iOS",
+                    "appium:automationName": "XCUITest",
+                    "appium:deviceName": "'"${{ env.DEVICE_NAME }}"'",
+                    "appium:udid": "'"$SIMULATOR_UDID"'",
+                    "appium:platformVersion": "'"${{ env.PLATFORM_VERSION }}"'",
+                    "appium:app": "'"$APP_PATH"'",
+                    "appium:wdaLaunchTimeout": 600000,
+                    "appium:wdaConnectionTimeout": 300000,
+                    "appium:useNewWDA": false,
+                    "appium:noReset": false
+                  }
                 }
-              }
-            }' --max-time 600 2>&1) || true
-          
-          echo "Session response: $SESSION_RESPONSE"
-          
-          # Extract session ID if created
-          SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
-          
-          if [ -n "$SESSION_ID" ]; then
-            echo "✅ WDA warm-up session created: $SESSION_ID"
+              }' --max-time 600 2>&1) || true
             
-            # Wait a moment for app to fully load
-            sleep 5
+            echo "Session response: $SESSION_RESPONSE"
             
-            # Delete the warm-up session
-            curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true
-            echo "✅ Warm-up session closed"
+            # Extract session ID if created
+            SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
             
-            # Wait for cleanup
-            sleep 5
-          else
-            echo "⚠️ WDA warm-up session creation returned unexpected response"
-            echo "This is okay - WDA should still be initialized"
-          fi
+            if [ -n "$SESSION_ID" ]; then
+              echo "✅ WDA warm-up session created: $SESSION_ID"
+              
+              # Wait for app to fully load
+              echo "Waiting 10s for app to fully load..."
+              sleep 10
+              
+              # Delete the warm-up session
+              curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true
+              echo "✅ Warm-up session closed"
+              
+              # Wait for cleanup
+              sleep 5
+              
+              echo "✅ WDA warm-up complete - ready for tests"
+              exit 0
+            else
+              echo "⚠️ Attempt $attempt failed - session not created"
+              if [ $attempt -lt 3 ]; then
+                echo "Waiting 30s before retry..."
+                sleep 30
+              fi
+            fi
+          done
           
-          echo "✅ WDA warm-up complete - ready for tests"
+          echo "⚠️ WDA warm-up failed after 3 attempts, but continuing..."
+          echo "Tests may experience longer startup time on first run"
 
       - name: Run Tests
         id: run_tests

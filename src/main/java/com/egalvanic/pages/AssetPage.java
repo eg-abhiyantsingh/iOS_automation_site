@@ -524,6 +524,37 @@ public class AssetPage extends BasePage {
         return false;
     }
 
+    /**
+     * Clear search field and select first asset from the list
+     * Useful as a fallback when searching for a specific asset type fails
+     */
+    public void clearSearchAndSelectFirst() {
+        System.out.println("🧹 Clearing search and selecting first asset...");
+        
+        // Try to clear search field
+        try {
+            WebElement searchField = driver.findElement(AppiumBy.className("XCUIElementTypeSearchField"));
+            searchField.clear();
+            sleep(300);
+            System.out.println("✅ Cleared search field");
+        } catch (Exception e) {
+            // Try clicking Cancel button to clear search
+            try {
+                WebElement cancelBtn = driver.findElement(AppiumBy.accessibilityId("Cancel"));
+                cancelBtn.click();
+                sleep(300);
+                System.out.println("✅ Clicked Cancel to clear search");
+            } catch (Exception e2) {
+                System.out.println("⚠️ Could not clear search: " + e2.getMessage());
+            }
+        }
+        
+        sleep(500);
+        
+        // Select first available asset
+        selectFirstAsset();
+    }
+
     public String selectFirstAsset() {
         System.out.println("📦 Selecting first asset...");
         
@@ -2851,10 +2882,186 @@ public class AssetPage extends BasePage {
     }
 
     /**
+     * Select Ampere Rating from dropdown (e.g., "30A", "50A", "100A")
+     */
+    public void selectAmpereRating(String value) {
+        System.out.println("📝 Selecting Ampere Rating: " + value);
+        
+        // Try to find and click the Ampere Rating dropdown
+        for (int scrollAttempt = 0; scrollAttempt < 3; scrollAttempt++) {
+            
+            // STRATEGY 1: Find button/picker with Ampere in name
+            try {
+                List<WebElement> buttons = driver.findElements(
+                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND (name CONTAINS[c] 'ampere' OR label CONTAINS[c] 'ampere')")
+                );
+                if (!buttons.isEmpty()) {
+                    buttons.get(0).click();
+                    sleep(500);
+                    // Select the value from dropdown
+                    selectDropdownValue(value);
+                    return;
+                }
+            } catch (Exception e) {}
+            
+            // STRATEGY 2: Find label "Ampere Rating" then click nearby button/picker
+            try {
+                List<WebElement> labels = driver.findElements(
+                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText' AND (name CONTAINS[c] 'ampere' OR label CONTAINS[c] 'ampere')")
+                );
+                
+                if (!labels.isEmpty()) {
+                    WebElement label = labels.get(0);
+                    int labelY = label.getLocation().getY();
+                    
+                    // Find button near the label
+                    List<WebElement> buttons = driver.findElements(AppiumBy.className("XCUIElementTypeButton"));
+                    for (WebElement btn : buttons) {
+                        int btnY = btn.getLocation().getY();
+                        if (Math.abs(btnY - labelY) < 80) {
+                            btn.click();
+                            sleep(500);
+                            selectDropdownValue(value);
+                            return;
+                        }
+                    }
+                }
+            } catch (Exception e) {}
+            
+            // STRATEGY 3: Direct accessibility ID for the value
+            try {
+                WebElement option = driver.findElement(AppiumBy.accessibilityId(value));
+                option.click();
+                System.out.println("✅ Selected Ampere Rating: " + value);
+                sleep(300);
+                return;
+            } catch (Exception e) {}
+            
+            // Scroll down and try again
+            if (scrollAttempt < 2) {
+                System.out.println("   Ampere Rating not visible, scrolling...");
+                scrollFormDown();
+                sleep(300);
+            }
+        }
+        
+        System.out.println("⚠️ Could not select Ampere Rating: " + value);
+    }
+
+    /**
+     * Select a value from an open dropdown
+     */
+    private void selectDropdownValue(String value) {
+        System.out.println("   Selecting dropdown value: " + value);
+        
+        // Try accessibility ID first
+        try {
+            WebElement option = driver.findElement(AppiumBy.accessibilityId(value));
+            option.click();
+            System.out.println("✅ Selected: " + value);
+            sleep(300);
+            return;
+        } catch (Exception e) {}
+        
+        // Try finding by text
+        try {
+            WebElement option = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == '" + value + "' OR label == '" + value + "'")
+            );
+            option.click();
+            System.out.println("✅ Selected: " + value);
+            sleep(300);
+            return;
+        } catch (Exception e) {}
+        
+        // Try finding StaticText with the value
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.className("XCUIElementTypeStaticText"));
+            for (WebElement text : texts) {
+                String name = text.getAttribute("name");
+                if (name != null && name.equals(value)) {
+                    text.click();
+                    System.out.println("✅ Selected: " + value);
+                    sleep(300);
+                    return;
+                }
+            }
+        } catch (Exception e) {}
+        
+        System.out.println("⚠️ Could not find dropdown option: " + value);
+    }
+
+    /**
      * Fill ATS required field - Interrupting Rating
      */
     public void fillInterruptingRating(String value) {
         fillTextField("Interrupting", value);
+    }
+
+    /**
+     * Select Interrupting Rating from dropdown (e.g., "10 kA", "25 kA", "50 kA")
+     */
+    public void selectInterruptingRating(String value) {
+        System.out.println("📝 Selecting Interrupting Rating: " + value);
+        
+        // Try to find and click the Interrupting Rating dropdown
+        for (int scrollAttempt = 0; scrollAttempt < 3; scrollAttempt++) {
+            
+            // STRATEGY 1: Find button/picker with Interrupting in name
+            try {
+                List<WebElement> buttons = driver.findElements(
+                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND (name CONTAINS[c] 'interrupting' OR label CONTAINS[c] 'interrupting')")
+                );
+                if (!buttons.isEmpty()) {
+                    buttons.get(0).click();
+                    sleep(500);
+                    selectDropdownValue(value);
+                    return;
+                }
+            } catch (Exception e) {}
+            
+            // STRATEGY 2: Find label "Interrupting Rating" then click nearby button/picker
+            try {
+                List<WebElement> labels = driver.findElements(
+                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText' AND (name CONTAINS[c] 'interrupting' OR label CONTAINS[c] 'interrupting')")
+                );
+                
+                if (!labels.isEmpty()) {
+                    WebElement label = labels.get(0);
+                    int labelY = label.getLocation().getY();
+                    
+                    // Find button near the label
+                    List<WebElement> buttons = driver.findElements(AppiumBy.className("XCUIElementTypeButton"));
+                    for (WebElement btn : buttons) {
+                        int btnY = btn.getLocation().getY();
+                        if (Math.abs(btnY - labelY) < 80) {
+                            btn.click();
+                            sleep(500);
+                            selectDropdownValue(value);
+                            return;
+                        }
+                    }
+                }
+            } catch (Exception e) {}
+            
+            // STRATEGY 3: Direct accessibility ID for the value
+            try {
+                WebElement option = driver.findElement(AppiumBy.accessibilityId(value));
+                option.click();
+                System.out.println("✅ Selected Interrupting Rating: " + value);
+                sleep(300);
+                return;
+            } catch (Exception e) {}
+            
+            // Scroll down and try again
+            if (scrollAttempt < 2) {
+                System.out.println("   Interrupting Rating not visible, scrolling...");
+                scrollFormDown();
+                sleep(300);
+            }
+        }
+        
+        System.out.println("⚠️ Could not select Interrupting Rating: " + value);
     }
 
     /**
@@ -2905,30 +3112,347 @@ public class AssetPage extends BasePage {
      * Change asset class to Busway in Edit mode
      * Uses generic approach to find Asset Class dropdown regardless of current value
      */
-    public void changeAssetClassToBusway() {
-        System.out.println("📋 Changing asset class to Busway...");
+    /**
+     * FINAL - DO NOT MODIFY THIS IMPLEMENTATION
+     * Fast asset class change using coordinate tap on dropdown
+     */
+    public final void changeAssetClassToBusway() {
+        System.out.println("📋 Changing asset class to Busway (FAST)...");
         
-        // First check if already Busway - no need to change
-        if (isAssetClassAlready("Busway")) {
-            System.out.println("✅ Asset class is already Busway - no change needed");
-            return;
+        // Quick check - is Busway already displayed?
+        try {
+            WebElement busway = driver.findElement(AppiumBy.accessibilityId("Busway"));
+            if (busway.isDisplayed()) {
+                System.out.println("✅ Already Busway");
+                return;
+            }
+        } catch (Exception e) {}
+        
+        // Find "Asset Class" label and tap below it to open dropdown
+        try {
+            WebElement label = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Asset Class' OR label == 'Asset Class'")
+            );
+            int x = label.getLocation().getX() + 150;
+            int y = label.getLocation().getY() + label.getSize().getHeight() + 25;
+            System.out.println("   Tapping dropdown at (" + x + ", " + y + ")");
+            driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
+            sleep(300);
+            
+            // Now click Busway
+            driver.findElement(AppiumBy.accessibilityId("Busway")).click();
+            System.out.println("✅ Changed to Busway");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not change to Busway: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * FINAL - DO NOT MODIFY THIS IMPLEMENTATION
+     * Fast asset class change using coordinate tap on dropdown
+     */
+    public final void changeAssetClassToATS() {
+        System.out.println("📋 Changing asset class to ATS (FAST)...");
+        
+        // Quick check - is ATS already displayed?
+        try {
+            WebElement ats = driver.findElement(AppiumBy.accessibilityId("ATS"));
+            if (ats.isDisplayed()) {
+                System.out.println("✅ Already ATS");
+                return;
+            }
+        } catch (Exception e) {}
+        
+        // Find "Asset Class" label and tap below it to open dropdown
+        try {
+            WebElement label = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Asset Class' OR label == 'Asset Class'")
+            );
+            int x = label.getLocation().getX() + 150;
+            int y = label.getLocation().getY() + label.getSize().getHeight() + 25;
+            System.out.println("   Tapping dropdown at (" + x + ", " + y + ")");
+            driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
+            sleep(300);
+            
+            // Now click ATS
+            driver.findElement(AppiumBy.accessibilityId("ATS")).click();
+            System.out.println("✅ Changed to ATS");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not change to ATS: " + e.getMessage());
+        }
+    }
+
+    /**
+     * FINAL - DO NOT MODIFY THIS IMPLEMENTATION
+     * Fast asset class change using coordinate tap on dropdown
+     */
+    public final void changeAssetClassToGenerator() {
+        System.out.println("📋 Changing asset class to Generator (FAST)...");
+        
+        // Quick check - is Generator already displayed?
+        try {
+            WebElement gen = driver.findElement(AppiumBy.accessibilityId("Generator"));
+            if (gen.isDisplayed()) {
+                System.out.println("✅ Already Generator");
+                return;
+            }
+        } catch (Exception e) {}
+        
+        // Find "Asset Class" label and tap below it to open dropdown
+        try {
+            WebElement label = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Asset Class' OR label == 'Asset Class'")
+            );
+            int x = label.getLocation().getX() + 150;
+            int y = label.getLocation().getY() + label.getSize().getHeight() + 25;
+            System.out.println("   Tapping dropdown at (" + x + ", " + y + ")");
+            driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
+            sleep(300);
+            
+            // Now click Generator
+            driver.findElement(AppiumBy.accessibilityId("Generator")).click();
+            System.out.println("✅ Changed to Generator");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not change to Generator: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Get the current asset class value displayed on screen
+     */
+    private String getCurrentAssetClassValue() {
+        String[] possibleClasses = {"ATS", "UPS", "PDU", "Generator", "Busway", "Capacitor", "Circuit Breaker", "Fuse", "None"};
+        
+        // First find the "Asset Class" label position
+        int labelY = -1;
+        try {
+            WebElement assetClassLabel = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Asset Class' OR label == 'Asset Class'")
+            );
+            labelY = assetClassLabel.getLocation().getY();
+        } catch (Exception e) {}
+        
+        // Look for asset class names near the label
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.className("XCUIElementTypeStaticText"));
+            for (WebElement text : texts) {
+                String name = text.getAttribute("name");
+                if (name != null) {
+                    for (String className : possibleClasses) {
+                        if (name.equals(className)) {
+                            int textY = text.getLocation().getY();
+                            // If we found the label, check if this is near it (within 100 pixels)
+                            if (labelY > 0 && Math.abs(textY - labelY) < 100) {
+                                return className;
+                            }
+                            // If no label found, just return the first class name found
+                            if (labelY < 0) {
+                                return className;
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {}
+        
+        return null;
+    }
+    
+    /**
+     * Robust method to open Asset Class dropdown on Edit Asset screen
+     */
+    private boolean openAssetClassDropdownRobust() {
+        System.out.println("🔍 Opening Asset Class dropdown (robust)...");
+        
+        // Strategy 1: Find and tap the Asset Class row directly
+        try {
+            // Find Asset Class label
+            WebElement assetClassLabel = driver.findElement(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText' AND (name == 'Asset Class' OR label == 'Asset Class')")
+            );
+            
+            // Get its position
+            int labelX = assetClassLabel.getLocation().getX();
+            int labelY = assetClassLabel.getLocation().getY();
+            int labelWidth = assetClassLabel.getSize().getWidth();
+            int labelHeight = assetClassLabel.getSize().getHeight();
+            
+            System.out.println("   Found 'Asset Class' label at (" + labelX + ", " + labelY + ")");
+            
+            // Tap to the right of the label (where the dropdown value is)
+            int screenWidth = driver.manage().window().getSize().getWidth();
+            int tapX = screenWidth - 100;  // Tap near right side where dropdown value typically is
+            int tapY = labelY + (labelHeight / 2);  // Tap at same vertical level as label
+            
+            System.out.println("   Tapping Asset Class row at (" + tapX + ", " + tapY + ")...");
+            driver.executeScript("mobile: tap", Map.of("x", tapX, "y", tapY));
+            sleep(800);
+            
+            if (isAssetClassDropdownDisplayed()) {
+                System.out.println("   ✅ Dropdown opened via label tap!");
+                return true;
+            }
+        } catch (Exception e) {
+            System.out.println("   Strategy 1 failed: " + e.getMessage());
         }
         
-        // Open Asset Class dropdown
-        boolean dropdownOpened = clickAssetClassDropdown();
-        if (!dropdownOpened) {
-            System.out.println("❌ Could not open Asset Class dropdown!");
-            return;
+        // Strategy 2: Click on any visible asset class name
+        String[] assetClasses = {"UPS", "PDU", "Generator", "Busway", "Capacitor", "Circuit Breaker", "Fuse", "None"};
+        for (String className : assetClasses) {
+            try {
+                List<WebElement> elements = driver.findElements(AppiumBy.accessibilityId(className));
+                for (WebElement el : elements) {
+                    if (el.isDisplayed()) {
+                        System.out.println("   Found '" + className + "' - clicking to open dropdown");
+                        el.click();
+                        sleep(800);
+                        if (isAssetClassDropdownDisplayed()) {
+                            System.out.println("   ✅ Dropdown opened by clicking " + className);
+                            return true;
+                        }
+                    }
+                }
+            } catch (Exception e) {}
         }
         
-        // Select Busway from dropdown
-        selectBuswayFromDropdown();
-        sleep(500);
+        // Strategy 3: Find any button in the asset class row area  
+        try {
+            WebElement assetClassLabel = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Asset Class'")
+            );
+            int labelY = assetClassLabel.getLocation().getY();
+            
+            List<WebElement> buttons = driver.findElements(AppiumBy.className("XCUIElementTypeButton"));
+            for (WebElement btn : buttons) {
+                int btnY = btn.getLocation().getY();
+                if (Math.abs(btnY - labelY) < 60) {
+                    String name = btn.getAttribute("name");
+                    System.out.println("   Found button near Asset Class: " + name);
+                    btn.click();
+                    sleep(800);
+                    if (isAssetClassDropdownDisplayed()) {
+                        System.out.println("   ✅ Dropdown opened via button!");
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("   Strategy 3 failed");
+        }
         
-        // Dismiss focus
-        dismissDropdownFocus();
+        // Strategy 4: Try tapping various positions along the Asset Class row
+        try {
+            WebElement assetClassLabel = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Asset Class'")
+            );
+            int labelY = assetClassLabel.getLocation().getY();
+            int screenWidth = driver.manage().window().getSize().getWidth();
+            
+            int[] xPositions = {screenWidth / 2, screenWidth - 50, screenWidth - 150, screenWidth / 4 * 3};
+            for (int tapX : xPositions) {
+                System.out.println("   Trying tap at (" + tapX + ", " + labelY + ")...");
+                driver.executeScript("mobile: tap", Map.of("x", tapX, "y", labelY));
+                sleep(600);
+                if (isAssetClassDropdownDisplayed()) {
+                    System.out.println("   ✅ Dropdown opened!");
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("   Strategy 4 failed");
+        }
         
-        System.out.println("✅ Asset class changed to Busway");
+        System.out.println("   ❌ Could not open Asset Class dropdown");
+        return false;
+    }
+    
+    /**
+     * Try clicking on the current asset class value displayed on screen
+     * This helps when we can't find the dropdown button but the value is visible
+     */
+    private boolean tryClickCurrentAssetClassValue() {
+        String[] possibleClasses = {"ATS", "UPS", "PDU", "Generator", "Busway", "Capacitor", "Circuit Breaker", "Fuse", "None"};
+        
+        for (String className : possibleClasses) {
+            try {
+                WebElement classElement = driver.findElement(AppiumBy.accessibilityId(className));
+                if (classElement.isDisplayed()) {
+                    System.out.println("   Found current class: " + className + " - clicking it");
+                    classElement.click();
+                    sleep(500);
+                    
+                    // Check if dropdown opened
+                    if (isAssetClassDropdownDisplayed()) {
+                        return true;
+                    }
+                }
+            } catch (Exception e) {}
+        }
+        
+        // Also try finding StaticText with asset class names
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.className("XCUIElementTypeStaticText"));
+            for (WebElement text : texts) {
+                String name = text.getAttribute("name");
+                if (name != null) {
+                    for (String className : possibleClasses) {
+                        if (name.equals(className)) {
+                            System.out.println("   Found class text: " + name + " - clicking it");
+                            text.click();
+                            sleep(500);
+                            if (isAssetClassDropdownDisplayed()) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {}
+        
+        return false;
+    }
+    
+    /**
+     * Select ATS from the asset class dropdown
+     */
+    private void selectATSFromDropdown() {
+        System.out.println("📋 Selecting ATS from dropdown...");
+        
+        // Strategy 1: Direct accessibility ID (fast - 1 second wait)
+        try {
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(1));
+            WebElement ats = wait.until(ExpectedConditions.elementToBeClickable(
+                AppiumBy.accessibilityId("ATS")
+            ));
+            ats.click();
+            System.out.println("✅ Selected ATS (accessibility ID)");
+            return;
+        } catch (Exception e) {}
+        
+        // Strategy 2: NSPredicate for name/label
+        try {
+            WebElement ats = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'ATS' OR label == 'ATS'")
+            );
+            ats.click();
+            System.out.println("✅ Selected ATS (predicate)");
+            return;
+        } catch (Exception e) {}
+        
+        // Strategy 3: Find in visible cells/buttons
+        try {
+            List<WebElement> cells = driver.findElements(AppiumBy.className("XCUIElementTypeCell"));
+            for (WebElement cell : cells) {
+                String name = cell.getAttribute("name");
+                if ("ATS".equals(name)) {
+                    cell.click();
+                    System.out.println("✅ Selected ATS from cell");
+                    return;
+                }
+            }
+        } catch (Exception e) {}
+        
+        System.out.println("⚠️ Could not select ATS from dropdown");
     }
     
     /**
@@ -2968,6 +3492,23 @@ public class AssetPage extends BasePage {
     private boolean clickAssetClassDropdown() {
         System.out.println("🔍 Finding and clicking Asset Class dropdown...");
         
+        // Strategy 0: Try clicking directly on any displayed asset class name (for Edit mode) - FAST
+        String[] assetClasses = {"ATS", "UPS", "PDU", "Generator", "Busway", "Capacitor", "Circuit Breaker", "Fuse"};
+        for (String className : assetClasses) {
+            try {
+                WebElement classElement = driver.findElement(AppiumBy.accessibilityId(className));
+                if (classElement.isDisplayed()) {
+                    System.out.println("   Found displayed class: " + className + " - clicking it");
+                    classElement.click();
+                    sleep(500);
+                    if (isDropdownOpen()) {
+                        System.out.println("   ✅ Dropdown opened by clicking " + className);
+                        return true;
+                    }
+                }
+            } catch (Exception e) {}
+        }
+        
         // Strategy 1: Find "Asset Class" label and tap the row below it
         try {
             WebElement assetClassLabel = driver.findElement(
@@ -2988,7 +3529,7 @@ public class AssetPage extends BasePage {
             
             System.out.println("   Tapping dropdown at (" + tapX + ", " + tapY + ")...");
             driver.executeScript("mobile: tap", Map.of("x", tapX, "y", tapY));
-            sleep(800);
+            sleep(400);
             
             // Verify dropdown opened
             if (isDropdownOpen()) {
@@ -3019,7 +3560,7 @@ public class AssetPage extends BasePage {
                     String name = btn.getAttribute("name");
                     System.out.println("   Found button in Asset Class row: " + name);
                     btn.click();
-                    sleep(800);
+                    sleep(400);
                     if (isDropdownOpen()) {
                         System.out.println("   ✅ Dropdown opened!");
                         return true;
@@ -3050,7 +3591,7 @@ public class AssetPage extends BasePage {
                     int y = chevron.getLocation().getY();
                     System.out.println("   Found Asset Class chevron, tapping at (" + x + ", " + y + ")...");
                     driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
-                    sleep(800);
+                    sleep(400);
                     if (isDropdownOpen()) {
                         System.out.println("   ✅ Dropdown opened!");
                         return true;
@@ -3070,7 +3611,7 @@ public class AssetPage extends BasePage {
             int y = (int)(size.getHeight() * 0.58);
             System.out.println("   Tapping at screen center (" + x + ", " + y + ")...");
             driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
-            sleep(800);
+            sleep(400);
             if (isDropdownOpen()) {
                 System.out.println("   ✅ Dropdown opened!");
                 return true;
@@ -3085,20 +3626,33 @@ public class AssetPage extends BasePage {
     
     /**
      * Check if asset class dropdown is currently open
-     * by looking for class options like Busway, Generator, etc.
+     * by looking for class options like ATS, UPS, PDU, Busway, Generator, etc.
      */
     private boolean isDropdownOpen() {
         try {
-            // Look for dropdown options
-            String[] dropdownOptions = {"Busway", "Generator", "Capacitor", "Circuit Breaker", "Fuse", "None"};
+            // Look for dropdown options - include ALL asset class names
+            String[] dropdownOptions = {"ATS", "UPS", "PDU", "Busway", "Generator", "Capacitor", "Circuit Breaker", "Fuse", "None"};
             for (String option : dropdownOptions) {
                 try {
-                    WebElement el = driver.findElement(AppiumBy.accessibilityId(option));
-                    if (el.isDisplayed()) {
-                        return true;
+                    List<WebElement> elements = driver.findElements(AppiumBy.accessibilityId(option));
+                    // Need to find at least 2 elements with same name (1 is the current value, 2+ means dropdown is open)
+                    // Or check if any element is in a picker/dropdown area
+                    for (WebElement el : elements) {
+                        if (el.isDisplayed()) {
+                            // Check if this looks like a dropdown option (not just the current value)
+                            int y = el.getLocation().getY();
+                            // Dropdown options typically appear in lower half of screen when open
+                            if (y > 400) {  // Dropdown picker area
+                                System.out.println("   Found dropdown option: " + option + " at y=" + y);
+                                return true;
+                            }
+                        }
                     }
                 } catch (Exception e) {}
             }
+            
+            // Also use the existing isAssetClassDropdownDisplayed method
+            return isAssetClassDropdownDisplayed();
         } catch (Exception e) {}
         return false;
     }
@@ -3123,30 +3677,39 @@ public class AssetPage extends BasePage {
     /**
      * Change asset class to Capacitor in Edit mode
      */
-    public void changeAssetClassToCapacitor() {
-        System.out.println("📋 Changing asset class to Capacitor...");
+    /**
+     * FINAL - DO NOT MODIFY THIS IMPLEMENTATION
+     * Fast asset class change using coordinate tap on dropdown
+     */
+    public final void changeAssetClassToCapacitor() {
+        System.out.println("📋 Changing asset class to Capacitor (FAST)...");
         
-        // First check if already Capacitor - no need to change
-        if (isAssetClassAlready("Capacitor")) {
-            System.out.println("✅ Asset class is already Capacitor - no change needed");
-            return;
+        // Quick check - is Capacitor already displayed?
+        try {
+            WebElement cap = driver.findElement(AppiumBy.accessibilityId("Capacitor"));
+            if (cap.isDisplayed()) {
+                System.out.println("✅ Already Capacitor");
+                return;
+            }
+        } catch (Exception e) {}
+        
+        // Find "Asset Class" label and tap below it to open dropdown
+        try {
+            WebElement label = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Asset Class' OR label == 'Asset Class'")
+            );
+            int x = label.getLocation().getX() + 150;
+            int y = label.getLocation().getY() + label.getSize().getHeight() + 25;
+            System.out.println("   Tapping dropdown at (" + x + ", " + y + ")");
+            driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
+            sleep(300);
+            
+            // Now click Capacitor
+            driver.findElement(AppiumBy.accessibilityId("Capacitor")).click();
+            System.out.println("✅ Changed to Capacitor");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not change to Capacitor: " + e.getMessage());
         }
-        
-        // Open Asset Class dropdown
-        boolean dropdownOpened = clickAssetClassDropdown();
-        if (!dropdownOpened) {
-            System.out.println("❌ Could not open Asset Class dropdown!");
-            return;
-        }
-        
-        // Select Capacitor from dropdown
-        selectCapacitorFromDropdown();
-        sleep(500);
-        
-        // Tap on safe area to dismiss focus and ensure dropdown is fully closed
-        dismissDropdownFocus();
-        
-        System.out.println("✅ Asset class changed to Capacitor");
     }
     
     /**
@@ -3228,30 +3791,39 @@ public class AssetPage extends BasePage {
     /**
      * Change asset class to Circuit Breaker in Edit mode
      */
-    public void changeAssetClassToCircuitBreaker() {
-        System.out.println("📋 Changing asset class to Circuit Breaker...");
+    /**
+     * FINAL - DO NOT MODIFY THIS IMPLEMENTATION
+     * Fast asset class change using coordinate tap on dropdown
+     */
+    public final void changeAssetClassToCircuitBreaker() {
+        System.out.println("📋 Changing asset class to Circuit Breaker (FAST)...");
         
-        // First check if already Circuit Breaker - no need to change
-        if (isAssetClassAlready("Circuit Breaker")) {
-            System.out.println("✅ Asset class is already Circuit Breaker - no change needed");
-            return;
+        // Quick check - is Circuit Breaker already displayed?
+        try {
+            WebElement cb = driver.findElement(AppiumBy.accessibilityId("Circuit Breaker"));
+            if (cb.isDisplayed()) {
+                System.out.println("✅ Already Circuit Breaker");
+                return;
+            }
+        } catch (Exception e) {}
+        
+        // Find "Asset Class" label and tap below it to open dropdown
+        try {
+            WebElement label = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Asset Class' OR label == 'Asset Class'")
+            );
+            int x = label.getLocation().getX() + 150;
+            int y = label.getLocation().getY() + label.getSize().getHeight() + 25;
+            System.out.println("   Tapping dropdown at (" + x + ", " + y + ")");
+            driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
+            sleep(300);
+            
+            // Now click Circuit Breaker
+            driver.findElement(AppiumBy.accessibilityId("Circuit Breaker")).click();
+            System.out.println("✅ Changed to Circuit Breaker");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not change to Circuit Breaker: " + e.getMessage());
         }
-        
-        // Open Asset Class dropdown
-        boolean dropdownOpened = clickAssetClassDropdown();
-        if (!dropdownOpened) {
-            System.out.println("❌ Could not open Asset Class dropdown!");
-            return;
-        }
-        
-        // Select Circuit Breaker from dropdown
-        selectCircuitBreakerFromDropdown();
-        sleep(500);
-        
-        // Tap on safe area to dismiss focus
-        dismissDropdownFocus();
-        
-        System.out.println("✅ Asset class changed to Circuit Breaker");
     }
     
     /**
@@ -3286,30 +3858,39 @@ public class AssetPage extends BasePage {
     /**
      * Change asset class to Disconnect Switch in Edit mode
      */
-    public void changeAssetClassToDisconnectSwitch() {
-        System.out.println("📋 Changing asset class to Disconnect Switch...");
+    /**
+     * FINAL - DO NOT MODIFY THIS IMPLEMENTATION
+     * Fast asset class change using coordinate tap on dropdown
+     */
+    public final void changeAssetClassToDisconnectSwitch() {
+        System.out.println("📋 Changing asset class to Disconnect Switch (FAST)...");
         
-        // First check if already Disconnect Switch - no need to change
-        if (isAssetClassAlready("Disconnect Switch")) {
-            System.out.println("✅ Asset class is already Disconnect Switch - no change needed");
-            return;
+        // Quick check - is Disconnect Switch already displayed?
+        try {
+            WebElement ds = driver.findElement(AppiumBy.accessibilityId("Disconnect Switch"));
+            if (ds.isDisplayed()) {
+                System.out.println("✅ Already Disconnect Switch");
+                return;
+            }
+        } catch (Exception e) {}
+        
+        // Find "Asset Class" label and tap below it to open dropdown
+        try {
+            WebElement label = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Asset Class' OR label == 'Asset Class'")
+            );
+            int x = label.getLocation().getX() + 150;
+            int y = label.getLocation().getY() + label.getSize().getHeight() + 25;
+            System.out.println("   Tapping dropdown at (" + x + ", " + y + ")");
+            driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
+            sleep(300);
+            
+            // Now click Disconnect Switch
+            driver.findElement(AppiumBy.accessibilityId("Disconnect Switch")).click();
+            System.out.println("✅ Changed to Disconnect Switch");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not change to Disconnect Switch: " + e.getMessage());
         }
-        
-        // Open Asset Class dropdown
-        boolean dropdownOpened = clickAssetClassDropdown();
-        if (!dropdownOpened) {
-            System.out.println("❌ Could not open Asset Class dropdown!");
-            return;
-        }
-        
-        // Select Disconnect Switch from dropdown
-        selectDisconnectSwitchFromDropdown();
-        sleep(500);
-        
-        // Tap on safe area to dismiss focus
-        dismissDropdownFocus();
-        
-        System.out.println("✅ Asset class changed to Disconnect Switch");
     }
     
     /**
@@ -3344,30 +3925,39 @@ public class AssetPage extends BasePage {
     /**
      * Change asset class to Fuse in Edit mode
      */
-    public void changeAssetClassToFuse() {
-        System.out.println("📋 Changing asset class to Fuse...");
+    /**
+     * FINAL - DO NOT MODIFY THIS IMPLEMENTATION
+     * Fast asset class change using coordinate tap on dropdown
+     */
+    public final void changeAssetClassToFuse() {
+        System.out.println("📋 Changing asset class to Fuse (FAST)...");
         
-        // First check if already Fuse - no need to change
-        if (isAssetClassAlready("Fuse")) {
-            System.out.println("✅ Asset class is already Fuse - no change needed");
-            return;
+        // Quick check - is Fuse already displayed?
+        try {
+            WebElement fuse = driver.findElement(AppiumBy.accessibilityId("Fuse"));
+            if (fuse.isDisplayed()) {
+                System.out.println("✅ Already Fuse");
+                return;
+            }
+        } catch (Exception e) {}
+        
+        // Find "Asset Class" label and tap below it to open dropdown
+        try {
+            WebElement label = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Asset Class' OR label == 'Asset Class'")
+            );
+            int x = label.getLocation().getX() + 150;
+            int y = label.getLocation().getY() + label.getSize().getHeight() + 25;
+            System.out.println("   Tapping dropdown at (" + x + ", " + y + ")");
+            driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
+            sleep(300);
+            
+            // Now click Fuse
+            driver.findElement(AppiumBy.accessibilityId("Fuse")).click();
+            System.out.println("✅ Changed to Fuse");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not change to Fuse: " + e.getMessage());
         }
-        
-        // Open Asset Class dropdown
-        boolean dropdownOpened = clickAssetClassDropdown();
-        if (!dropdownOpened) {
-            System.out.println("❌ Could not open Asset Class dropdown!");
-            return;
-        }
-        
-        // Select Fuse from dropdown
-        selectFuseFromDropdown();
-        sleep(500);
-        
-        // Tap on safe area to dismiss focus
-        dismissDropdownFocus();
-        
-        System.out.println("✅ Asset class changed to Fuse");
     }
     
     /**
