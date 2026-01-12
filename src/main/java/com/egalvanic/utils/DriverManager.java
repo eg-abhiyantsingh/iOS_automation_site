@@ -85,20 +85,20 @@ public class DriverManager {
                 }
 
                 // ========== CRITICAL: WDA TIMEOUT FIXES FOR CI ==========
-                // Simulator boot timeout - 4 minutes (CI simulators can be slow to boot)
-                options.setCapability("appium:simulatorBootTimeout", 240000);
-                // WDA launch timeout (build + start) - 6 minutes for CI environments (increased for stability)
-                options.setWdaLaunchTimeout(Duration.ofMillis(360000));
-                // WDA connection timeout - 4 minutes
-                options.setWdaConnectionTimeout(Duration.ofMillis(240000));
-                // App launch timeout - 3 minutes
-                options.setCapability("appium:launchTimeout", 180000);
-                // Command timeout - 5 minutes idle
-                options.setNewCommandTimeout(Duration.ofSeconds(300));
+                // Simulator boot timeout - 5 minutes (CI simulators can be slow to boot)
+                options.setCapability("appium:simulatorBootTimeout", 300000);
+                // WDA launch timeout (build + start) - 10 minutes for CI environments (first run needs to build WDA)
+                options.setWdaLaunchTimeout(Duration.ofMillis(600000));
+                // WDA connection timeout - 5 minutes
+                options.setWdaConnectionTimeout(Duration.ofMillis(300000));
+                // App launch timeout - 5 minutes
+                options.setCapability("appium:launchTimeout", 300000);
+                // Command timeout - 10 minutes idle (for long operations)
+                options.setNewCommandTimeout(Duration.ofSeconds(600));
 
                 // WDA startup retry settings - more retries for CI stability
                 options.setCapability("appium:wdaStartupRetries", 5);
-                options.setCapability("appium:wdaStartupRetryInterval", 30000);
+                options.setCapability("appium:wdaStartupRetryInterval", 60000);
 
                 // ========== PERFORMANCE OPTIMIZATIONS ==========
                 // Don't rebuild WDA each time (saves 60-90 seconds)
