@@ -298,7 +298,7 @@ jobs:
               echo "TEST_STATUS=PASSED" >> $GITHUB_ENV
             fi
           else
-            echo "TEST_STATUS=NO_RESULTS" >> $GITHUB_ENV
+            echo "TEST_STATUS=TIMEOUT_OR_CANCELLED" >> $GITHUB_ENV
             echo "TOTAL_TESTS=0" >> $GITHUB_ENV
             echo "FAILED_TESTS=0" >> $GITHUB_ENV
             echo "ERROR_TESTS=0" >> $GITHUB_ENV
@@ -323,7 +323,7 @@ jobs:
           secure: true
           username: ${{ secrets.EMAIL_USERNAME }}
           password: ${{ secrets.EMAIL_PASSWORD }}
-          subject: "[${{ env.TEST_STATUS }}] iOS Automation Test Results - ${{ github.repository }}"
+          subject: "[${{ env.TEST_STATUS || 'TIMEOUT' }}] iOS Automation Test Results - ${{ github.repository }}"
           to: ${{ secrets.EMAIL_TO }}
           from: "iOS Automation <${{ secrets.EMAIL_USERNAME }}>"
           body: |
@@ -335,13 +335,13 @@ jobs:
             Commit: ${{ github.sha }}
             Triggered by: ${{ github.actor }}
             
-            Test Status: ${{ env.TEST_STATUS }}
+            Test Status: ${{ env.TEST_STATUS || 'TIMEOUT/CANCELLED' }}
             
             Test Summary:
-            - Total Tests: ${{ env.TOTAL_TESTS }}
-            - Failed: ${{ env.FAILED_TESTS }}
-            - Errors: ${{ env.ERROR_TESTS }}
-            - Skipped: ${{ env.SKIPPED_TESTS }}
+            - Total Tests: ${{ env.TOTAL_TESTS || '0' }}
+            - Failed: ${{ env.FAILED_TESTS || '0' }}
+            - Errors: ${{ env.ERROR_TESTS || '0' }}
+            - Skipped: ${{ env.SKIPPED_TESTS || '0' }}
             
             Workflow Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
             

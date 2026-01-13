@@ -473,7 +473,6 @@ public class ExtentReportManager {
         body.append("<hr>");
         body.append("<p>Please find the attached test reports:</p>");
         body.append("<ul>");
-        body.append("<li><strong>Detailed Report</strong> - For QA Team (includes screenshots and logs)</li>");
         body.append("<li><strong>Client Report</strong> - Clean summary (Pass/Fail only)</li>");
         body.append("</ul>");
         body.append("<hr>");

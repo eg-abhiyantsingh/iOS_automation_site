@@ -2563,6 +2563,27 @@ public class AssetPage extends BasePage {
     }
 
     /**
+     * Check if Required Fields Only toggle is OFF
+     */
+    public boolean isRequiredFieldsToggleOff() {
+        return !isRequiredFieldsToggleOn();
+    }
+
+    /**
+     * Enable Required Fields Only toggle (alias method)
+     */
+    public void enableRequiredFieldsOnlyToggle() {
+        enableRequiredFieldsOnly();
+    }
+
+    /**
+     * Get required fields counter text (alias method for getRequiredFieldsCounter)
+     */
+    public String getRequiredFieldsCounterText() {
+        return getRequiredFieldsCounter();
+    }
+
+    /**
      * Get completion percentage text
      */
     public String getCompletionPercentage() {
@@ -3984,6 +4005,162 @@ public class AssetPage extends BasePage {
             System.out.println("⚠️ Could not find Fuse in dropdown");
         }
     }
+
+    // ================================================================
+    // JUNCTION BOX ASSET CLASS METHODS
+    // ================================================================
+
+    /**
+     * FINAL - DO NOT MODIFY THIS IMPLEMENTATION
+     * Fast asset class change using coordinate tap on dropdown
+     */
+    public final void changeAssetClassToJunctionBox() {
+        System.out.println("📋 Changing asset class to Junction Box (FAST)...");
+        
+        // Quick check - is Junction Box already displayed?
+        try {
+            WebElement jb = driver.findElement(AppiumBy.accessibilityId("Junction Box"));
+            if (jb.isDisplayed()) {
+                System.out.println("✅ Already Junction Box");
+                return;
+            }
+        } catch (Exception e) {}
+        
+        // Find "Asset Class" label and tap below it to open dropdown
+        try {
+            WebElement label = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Asset Class' OR label == 'Asset Class'")
+            );
+            int x = label.getLocation().getX() + 150;
+            int y = label.getLocation().getY() + label.getSize().getHeight() + 25;
+            System.out.println("   Tapping dropdown at (" + x + ", " + y + ")");
+            driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
+            sleep(300);
+            
+            // Now click Junction Box
+            driver.findElement(AppiumBy.accessibilityId("Junction Box")).click();
+            System.out.println("✅ Changed to Junction Box");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not change to Junction Box: " + e.getMessage());
+        }
+    }
+
+    // ================================================================
+    // LOADCENTER ASSET CLASS CHANGE
+    // ================================================================
+
+    /**
+     * FINAL - DO NOT MODIFY THIS IMPLEMENTATION
+     * Fast asset class change using coordinate tap on dropdown
+     */
+    public final void changeAssetClassToLoadcenter() {
+        System.out.println("📋 Changing asset class to Loadcenter (FAST)...");
+        
+        // Quick check - is Loadcenter already displayed?
+        try {
+            WebElement lc = driver.findElement(AppiumBy.accessibilityId("Loadcenter"));
+            if (lc.isDisplayed()) {
+                System.out.println("✅ Already Loadcenter");
+                return;
+            }
+        } catch (Exception e) {}
+        
+        // Find "Asset Class" label and tap below it to open dropdown
+        try {
+            WebElement label = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Asset Class' OR label == 'Asset Class'")
+            );
+            int x = label.getLocation().getX() + 150;
+            int y = label.getLocation().getY() + label.getSize().getHeight() + 25;
+            System.out.println("   Tapping dropdown at (" + x + ", " + y + ")");
+            driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
+            sleep(300);
+            
+            // Now click Loadcenter
+            driver.findElement(AppiumBy.accessibilityId("Loadcenter")).click();
+            System.out.println("✅ Changed to Loadcenter");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not change to Loadcenter: " + e.getMessage());
+        }
+    }
+
+    // ================================================================
+    // MCC (MOTOR CONTROL CENTER) ASSET CLASS CHANGE
+    // ================================================================
+
+    /**
+     * FINAL - DO NOT MODIFY THIS IMPLEMENTATION
+     * Fast asset class change using coordinate tap on dropdown
+     */
+    public final void changeAssetClassToMCC() {
+        System.out.println("📋 Changing asset class to MCC (FAST)...");
+        
+        // Quick check - is MCC already displayed?
+        try {
+            WebElement mcc = driver.findElement(AppiumBy.accessibilityId("MCC"));
+            if (mcc.isDisplayed()) {
+                System.out.println("✅ Already MCC");
+                return;
+            }
+        } catch (Exception e) {}
+        
+        // Find "Asset Class" label and tap below it to open dropdown
+        try {
+            WebElement label = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Asset Class' OR label == 'Asset Class'")
+            );
+            int x = label.getLocation().getX() + 150;
+            int y = label.getLocation().getY() + label.getSize().getHeight() + 25;
+            System.out.println("   Tapping dropdown at (" + x + ", " + y + ")");
+            driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
+            sleep(300);
+            
+            // Now click MCC
+            driver.findElement(AppiumBy.accessibilityId("MCC")).click();
+            System.out.println("✅ Changed to MCC");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not change to MCC: " + e.getMessage());
+        }
+    }
+
+    // ================================================================
+    // MCC BUCKET ASSET CLASS CHANGE
+    // ================================================================
+
+    /**
+     * FINAL - DO NOT MODIFY THIS IMPLEMENTATION
+     * Fast asset class change using coordinate tap on dropdown
+     */
+    public final void changeAssetClassToMCCBucket() {
+        System.out.println("📋 Changing asset class to MCC Bucket (FAST)...");
+        
+        // Quick check - is MCC Bucket already displayed?
+        try {
+            WebElement mccb = driver.findElement(AppiumBy.accessibilityId("MCC Bucket"));
+            if (mccb.isDisplayed()) {
+                System.out.println("✅ Already MCC Bucket");
+                return;
+            }
+        } catch (Exception e) {}
+        
+        // Find "Asset Class" label and tap below it to open dropdown
+        try {
+            WebElement label = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Asset Class' OR label == 'Asset Class'")
+            );
+            int x = label.getLocation().getX() + 150;
+            int y = label.getLocation().getY() + label.getSize().getHeight() + 25;
+            System.out.println("   Tapping dropdown at (" + x + ", " + y + ")");
+            driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
+            sleep(300);
+            
+            // Now click MCC Bucket
+            driver.findElement(AppiumBy.accessibilityId("MCC Bucket")).click();
+            System.out.println("✅ Changed to MCC Bucket");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not change to MCC Bucket: " + e.getMessage());
+        }
+    }
     
     /**
      * Check if Save Changes button is visible
@@ -4575,6 +4752,316 @@ public class AssetPage extends BasePage {
             return hasSave || hasCancel;
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    /**
+     * Change asset class to Motor by selecting from dropdown
+     */
+    public final void changeAssetClassToMotor() {
+        System.out.println("📋 Changing asset class to Motor (FAST)...");
+        
+        // Quick check - is Motor already displayed?
+        try {
+            WebElement motor = driver.findElement(AppiumBy.accessibilityId("Motor"));
+            if (motor.isDisplayed()) {
+                System.out.println("✅ Already Motor");
+                return;
+            }
+        } catch (Exception e) {}
+        
+        // Find "Asset Class" label and tap below it to open dropdown
+        try {
+            WebElement label = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Asset Class' OR label == 'Asset Class'")
+            );
+            int x = label.getLocation().getX() + 150;
+            int y = label.getLocation().getY() + label.getSize().getHeight() + 25;
+            System.out.println("   Tapping dropdown at (" + x + ", " + y + ")");
+            driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
+            sleep(300);
+            
+            // Now click Motor
+            driver.findElement(AppiumBy.accessibilityId("Motor")).click();
+            System.out.println("✅ Changed to Motor");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not change to Motor: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Change asset class to Other by selecting from dropdown
+     */
+    public final void changeAssetClassToOther() {
+        System.out.println("📋 Changing asset class to Other (FAST)...");
+        
+        // Quick check - is Other already displayed?
+        try {
+            WebElement other = driver.findElement(AppiumBy.accessibilityId("Other"));
+            if (other.isDisplayed()) {
+                System.out.println("✅ Already Other");
+                return;
+            }
+        } catch (Exception e) {}
+        
+        // Find "Asset Class" label and tap below it to open dropdown
+        try {
+            WebElement label = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Asset Class' OR label == 'Asset Class'")
+            );
+            int x = label.getLocation().getX() + 150;
+            int y = label.getLocation().getY() + label.getSize().getHeight() + 25;
+            System.out.println("   Tapping dropdown at (" + x + ", " + y + ")");
+            driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
+            sleep(300);
+            
+            // Now click Other
+            driver.findElement(AppiumBy.accessibilityId("Other")).click();
+            System.out.println("✅ Changed to Other");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not change to Other: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Change asset class to Other (OCP) - Overcurrent Protection by selecting from dropdown
+     */
+    public final void changeAssetClassToOtherOCP() {
+        System.out.println("📋 Changing asset class to Other (OCP) (FAST)...");
+        
+        // Quick check - is Other (OCP) already displayed?
+        try {
+            WebElement otherOCP = driver.findElement(AppiumBy.accessibilityId("Other (OCP)"));
+            if (otherOCP.isDisplayed()) {
+                System.out.println("✅ Already Other (OCP)");
+                return;
+            }
+        } catch (Exception e) {}
+        
+        // Find "Asset Class" label and tap below it to open dropdown
+        try {
+            WebElement label = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Asset Class' OR label == 'Asset Class'")
+            );
+            int x = label.getLocation().getX() + 150;
+            int y = label.getLocation().getY() + label.getSize().getHeight() + 25;
+            System.out.println("   Tapping dropdown at (" + x + ", " + y + ")");
+            driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
+            sleep(300);
+            
+            // Now click Other (OCP)
+            driver.findElement(AppiumBy.accessibilityId("Other (OCP)")).click();
+            System.out.println("✅ Changed to Other (OCP)");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not change to Other (OCP): " + e.getMessage());
+        }
+    }
+
+    /**
+     * Change asset class to Panelboard by selecting from dropdown
+     */
+    public final void changeAssetClassToPanelboard() {
+        System.out.println("📋 Changing asset class to Panelboard (FAST)...");
+        
+        // Quick check - is Panelboard already displayed?
+        try {
+            WebElement panelboard = driver.findElement(AppiumBy.accessibilityId("Panelboard"));
+            if (panelboard.isDisplayed()) {
+                System.out.println("✅ Already Panelboard");
+                return;
+            }
+        } catch (Exception e) {}
+        
+        // Find "Asset Class" label and tap below it to open dropdown
+        try {
+            WebElement label = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Asset Class' OR label == 'Asset Class'")
+            );
+            int x = label.getLocation().getX() + 150;
+            int y = label.getLocation().getY() + label.getSize().getHeight() + 25;
+            System.out.println("   Tapping dropdown at (" + x + ", " + y + ")");
+            driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
+            sleep(300);
+            
+            // Now click Panelboard
+            driver.findElement(AppiumBy.accessibilityId("Panelboard")).click();
+            System.out.println("✅ Changed to Panelboard");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not change to Panelboard: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Change asset class to PDU (Power Distribution Unit) by selecting from dropdown
+     */
+    public final void changeAssetClassToPDU() {
+        System.out.println("📋 Changing asset class to PDU (FAST)...");
+        
+        // Quick check - is PDU already displayed?
+        try {
+            WebElement pdu = driver.findElement(AppiumBy.accessibilityId("PDU"));
+            if (pdu.isDisplayed()) {
+                System.out.println("✅ Already PDU");
+                return;
+            }
+        } catch (Exception e) {}
+        
+        // Find "Asset Class" label and tap below it to open dropdown
+        try {
+            WebElement label = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Asset Class' OR label == 'Asset Class'")
+            );
+            int x = label.getLocation().getX() + 150;
+            int y = label.getLocation().getY() + label.getSize().getHeight() + 25;
+            System.out.println("   Tapping dropdown at (" + x + ", " + y + ")");
+            driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
+            sleep(300);
+            
+            // Now click PDU
+            driver.findElement(AppiumBy.accessibilityId("PDU")).click();
+            System.out.println("✅ Changed to PDU");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not change to PDU: " + e.getMessage());
+        }
+    }
+
+    /**
+     * FINAL - DO NOT MODIFY THIS IMPLEMENTATION
+     * Fast asset class change using coordinate tap on dropdown
+     */
+    public final void changeAssetClassToRelay() {
+        System.out.println("📋 Changing asset class to Relay (FAST)...");
+        
+        // Quick check - is Relay already displayed?
+        try {
+            WebElement relay = driver.findElement(AppiumBy.accessibilityId("Relay"));
+            if (relay.isDisplayed()) {
+                System.out.println("✅ Already Relay");
+                return;
+            }
+        } catch (Exception e) {}
+        
+        // Find "Asset Class" label and tap below it to open dropdown
+        try {
+            WebElement label = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Asset Class' OR label == 'Asset Class'")
+            );
+            int x = label.getLocation().getX() + 150;
+            int y = label.getLocation().getY() + label.getSize().getHeight() + 25;
+            System.out.println("   Tapping dropdown at (" + x + ", " + y + ")");
+            driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
+            sleep(300);
+            
+            // Now click Relay
+            driver.findElement(AppiumBy.accessibilityId("Relay")).click();
+            System.out.println("✅ Changed to Relay");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not change to Relay: " + e.getMessage());
+        }
+    }
+
+    /**
+     * FINAL - DO NOT MODIFY THIS IMPLEMENTATION
+     * Fast asset class change using coordinate tap on dropdown
+     */
+    public final void changeAssetClassToSwitchboard() {
+        System.out.println("📋 Changing asset class to Switchboard (FAST)...");
+        
+        // Quick check - is Switchboard already displayed?
+        try {
+            WebElement switchboard = driver.findElement(AppiumBy.accessibilityId("Switchboard"));
+            if (switchboard.isDisplayed()) {
+                System.out.println("✅ Already Switchboard");
+                return;
+            }
+        } catch (Exception e) {}
+        
+        // Find "Asset Class" label and tap below it to open dropdown
+        try {
+            WebElement label = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Asset Class' OR label == 'Asset Class'")
+            );
+            int x = label.getLocation().getX() + 150;
+            int y = label.getLocation().getY() + label.getSize().getHeight() + 25;
+            System.out.println("   Tapping dropdown at (" + x + ", " + y + ")");
+            driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
+            sleep(300);
+            
+            // Now click Switchboard
+            driver.findElement(AppiumBy.accessibilityId("Switchboard")).click();
+            System.out.println("✅ Changed to Switchboard");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not change to Switchboard: " + e.getMessage());
+        }
+    }
+
+    /**
+     * FINAL - DO NOT MODIFY THIS IMPLEMENTATION
+     * Fast asset class change using coordinate tap on dropdown
+     */
+    public final void changeAssetClassToTransformer() {
+        System.out.println("📋 Changing asset class to Transformer (FAST)...");
+        
+        // Quick check - is Transformer already displayed?
+        try {
+            WebElement transformer = driver.findElement(AppiumBy.accessibilityId("Transformer"));
+            if (transformer.isDisplayed()) {
+                System.out.println("✅ Already Transformer");
+                return;
+            }
+        } catch (Exception e) {}
+        
+        // Find "Asset Class" label and tap below it to open dropdown
+        try {
+            WebElement label = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Asset Class' OR label == 'Asset Class'")
+            );
+            int x = label.getLocation().getX() + 150;
+            int y = label.getLocation().getY() + label.getSize().getHeight() + 25;
+            System.out.println("   Tapping dropdown at (" + x + ", " + y + ")");
+            driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
+            sleep(300);
+            
+            // Now click Transformer
+            driver.findElement(AppiumBy.accessibilityId("Transformer")).click();
+            System.out.println("✅ Changed to Transformer");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not change to Transformer: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Change asset class to UPS using coordinate-tap approach
+     */
+    public final void changeAssetClassToUPS() {
+        System.out.println("🔄 Changing asset class to UPS...");
+        
+        // Quick check if already UPS
+        try {
+            WebElement upsLabel = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'UPS' OR label == 'UPS'")
+            );
+            if (upsLabel.isDisplayed()) {
+                System.out.println("✅ Already on UPS");
+                return;
+            }
+        } catch (Exception ignored) {}
+        
+        try {
+            WebElement label = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Asset Class' OR label == 'Asset Class'")
+            );
+            int x = label.getLocation().getX() + 150;
+            int y = label.getLocation().getY() + label.getSize().getHeight() + 25;
+            System.out.println("   Tapping dropdown at (" + x + ", " + y + ")");
+            driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
+            sleep(300);
+            
+            // Now click UPS
+            driver.findElement(AppiumBy.accessibilityId("UPS")).click();
+            System.out.println("✅ Changed to UPS");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not change to UPS: " + e.getMessage());
         }
     }
 

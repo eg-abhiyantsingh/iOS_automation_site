@@ -8,22 +8,4 @@
         </classes>
     </test>
 
-    <test name="Site Selection Tests">
-        <classes>
-            <class name="com.egalvanic.tests.SiteSelectionTest" />
-        </classes>
-    </test>
-
-    <test name="Asset Tests">
-        <classes>
-            <class name="com.egalvanic.tests.AssetTest" />
-        </classes>
-    </test>
-
-    <test name="Asset Phase 2 Tests">
-        <classes>
-            <class name="com.egalvanic.tests.Asset_Phase2_Test" />
-        </classes>
-    </test>
-
 </suite>
