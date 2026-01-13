@@ -1503,7 +1503,8 @@ public final class Asset_Phase3_Test extends BaseTest {
 
     /**
      * Clear all Relay fields
-     * Note: Manufacturer is a dropdown (not text field)
+     * Note: manufacturer is a dropdown (not text field)
+     * Field names are lowercase in the app UI
      */
     private void clearAllRelayFields() {
         System.out.println("\ud83e\uddf9 Clearing all Relay fields...");
@@ -1511,8 +1512,9 @@ public final class Asset_Phase3_Test extends BaseTest {
         assetPage.scrollFormDown();
         shortWait();
         
-        // Manufacturer is dropdown - no clear needed
-        assetPage.clearTextField("Notes");
+        // manufacturer is dropdown - no clear needed
+        assetPage.clearTextField("model");
+        assetPage.clearTextField("notes");
         assetPage.clearTextField("Relay Type");
         assetPage.clearTextField("Serial Number");
         
@@ -1522,7 +1524,8 @@ public final class Asset_Phase3_Test extends BaseTest {
 
     /**
      * Fill all Relay fields
-     * Relay Core Attributes: Manufacturer (dropdown), Relay Type, Serial Number, Notes
+     * Relay Core Attributes: manufacturer (dropdown), model, Relay Type, Serial Number, notes
+     * Note: manufacturer, model, notes are lowercase in the app UI
      */
     private void fillAllRelayFields() {
         System.out.println("\ud83d\udcdd Filling all Relay fields...");
@@ -1530,15 +1533,16 @@ public final class Asset_Phase3_Test extends BaseTest {
         assetPage.scrollFormDown();
         shortWait();
         
-        // Dropdown field
-        System.out.println("\ud83d\udcdd Selecting Manufacturer dropdown...");
-        assetPage.selectDropdownOption("Manufacturer", "Siemens");
+        // Dropdown field (lowercase)
+        System.out.println("\ud83d\udcdd Selecting manufacturer dropdown...");
+        assetPage.selectDropdownOption("manufacturer", "Siemens");
         shortWait();
         
-        // Text fields
+        // Text fields (lowercase for model, notes)
+        fillRelayField("model", "REF615");
         fillRelayField("Relay Type", "Protective");
         fillRelayField("Serial Number", "RELAY-SN-" + System.currentTimeMillis());
-        fillRelayField("Notes", "Relay automated test notes");
+        fillRelayField("notes", "Relay automated test notes");
         
         assetPage.scrollFormUp();
         System.out.println("\u2705 Filled all Relay fields");
@@ -1630,8 +1634,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             logStep("Ensuring asset class is Relay");
             assetPage.changeAssetClassToRelay();
 
-            logStep("Entering Manufacturer value");
-            fillRelayField("Manufacturer", "Siemens");
+            logStep("Selecting manufacturer value from dropdown");
+            assetPage.selectDropdownOption("manufacturer", "Siemens");
             shortWait();
 
             logStep("Verifying value is accepted and displayed");
@@ -1673,11 +1677,11 @@ public final class Asset_Phase3_Test extends BaseTest {
             logStep("Ensuring asset class is Relay");
             assetPage.changeAssetClassToRelay();
 
-            logStep("Entering Model value");
-            fillRelayField("Model", "7SJ82");
+            logStep("Entering model value");
+            fillRelayField("model", "7SJ82");
             shortWait();
 
-            logStep("Verifying Model value is saved correctly");
+            logStep("Verifying model value is saved correctly");
             // Note: Full verification may need manual check per test case notes
             boolean editScreenDisplayed = assetPage.isEditAssetScreenDisplayed();
             if (!editScreenDisplayed) {
