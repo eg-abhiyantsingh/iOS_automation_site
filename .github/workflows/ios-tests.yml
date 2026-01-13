@@ -304,6 +304,16 @@ jobs:
             echo "ERROR_TESTS=0" >> $GITHUB_ENV
             echo "SKIPPED_TESTS=0" >> $GITHUB_ENV
           fi
+          
+          # Find and set client report path
+          CLIENT_REPORT=$(find reports/client -name "Client_Report_*.html" 2>/dev/null | head -1 || echo "")
+          if [ -n "$CLIENT_REPORT" ]; then
+            echo "CLIENT_REPORT_PATH=$CLIENT_REPORT" >> $GITHUB_ENV
+            echo "✅ Found client report: $CLIENT_REPORT"
+          else
+            echo "⚠️ No client report found"
+            echo "CLIENT_REPORT_PATH=" >> $GITHUB_ENV
+          fi
 
       - name: Upload Test Reports
         if: always()
@@ -326,6 +336,7 @@ jobs:
           subject: "[${{ env.TEST_STATUS || 'TIMEOUT' }}] iOS Automation Test Results - ${{ github.repository }}"
           to: ${{ secrets.EMAIL_TO }}
           from: "iOS Automation <${{ secrets.EMAIL_USERNAME }}>"
+          attachments: ${{ env.CLIENT_REPORT_PATH }}
           body: |
             iOS Automation Test Results
             ============================
@@ -345,7 +356,7 @@ jobs:
             
             Workflow Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
             
-            Download test reports from the workflow artifacts.
+            The Client Report is attached to this email.
 
       - name: Fail job if tests failed
         if: steps.run_tests.outcome == 'failure'

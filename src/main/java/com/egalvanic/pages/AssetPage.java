@@ -5066,6 +5066,41 @@ public class AssetPage extends BasePage {
     }
 
     /**
+     * Change asset class to Utility using coordinate-tap approach
+     */
+    public final void changeAssetClassToUtility() {
+        System.out.println("🔄 Changing asset class to Utility...");
+        
+        // Quick check if already Utility
+        try {
+            WebElement utilityLabel = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Utility' OR label == 'Utility'")
+            );
+            if (utilityLabel.isDisplayed()) {
+                System.out.println("✅ Already on Utility");
+                return;
+            }
+        } catch (Exception ignored) {}
+        
+        try {
+            WebElement label = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Asset Class' OR label == 'Asset Class'")
+            );
+            int x = label.getLocation().getX() + 150;
+            int y = label.getLocation().getY() + label.getSize().getHeight() + 25;
+            System.out.println("   Tapping dropdown at (" + x + ", " + y + ")");
+            driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
+            sleep(300);
+            
+            // Now click Utility
+            driver.findElement(AppiumBy.accessibilityId("Utility")).click();
+            System.out.println("✅ Changed to Utility");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not change to Utility: " + e.getMessage());
+        }
+    }
+
+    /**
      * Check if save was completed for Busway asset
      * After clicking Save Changes (or Save), check if:
      * 1. No validation error dialog appeared
