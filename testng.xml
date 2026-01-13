@@ -5,9 +5,7 @@
     <test name="Authentication Tests">
         <classes>
             <class name="com.egalvanic.tests.AuthenticationTest">
-                <methods>
-                    <include name="TC01_verifyWelcomeScreenUILoads" />
-                </methods>
+            
             </class>
         </classes>
     </test>
