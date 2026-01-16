@@ -169,15 +169,20 @@ public final class Asset_Phase2_Test extends BaseTest {
         assetPage.scrollFormDown();
         shortWait();
         
-        // Fill Generator-specific fields
+        // Text fields
         fillGeneratorField("Ampere Rating", "200");
-        fillGeneratorField("Configuration", "3-Phase");
-        fillGeneratorField("KVA Rating", "500");
-        fillGeneratorField("KW Rating", "400");
-        fillGeneratorField("Manufacturer", "Caterpillar");
+        fillGeneratorField("K V A Rating", "500");
+        fillGeneratorField("K W Rating", "400");
         fillGeneratorField("Power Factor", "0.85");
         fillGeneratorField("Serial Number", "GEN-" + System.currentTimeMillis());
-        fillGeneratorField("Voltage", "480");
+        
+        // Dropdowns - use selectDropdownOption
+        assetPage.selectDropdownOption("Configuration", "3-Phase");
+        shortWait();
+        assetPage.selectDropdownOption("Manufacturer", "Caterpillar");
+        shortWait();
+        assetPage.selectDropdownOption("Voltage", "480V");
+        shortWait();
         
         assetPage.scrollFormUp();
         System.out.println("✅ Filled all Generator fields");
@@ -192,10 +197,10 @@ public final class Asset_Phase2_Test extends BaseTest {
         assetPage.scrollFormDown();
         shortWait();
         
-        assetPage.clearTextField("Ampere");
+        assetPage.clearTextField("Ampere Rating");
         assetPage.clearTextField("Configuration");
-        assetPage.clearTextField("KVA");
-        assetPage.clearTextField("KW");
+        assetPage.clearTextField("K V A Rating");
+        assetPage.clearTextField("K W Rating");
         assetPage.clearTextField("Manufacturer");
         assetPage.clearTextField("Power Factor");
         assetPage.clearTextField("Serial");
@@ -414,7 +419,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
         String testValue = "3-Phase Wye";
         logStep("Entering Configuration: " + testValue);
-        fillGeneratorField("Configuration", testValue);
+        assetPage.selectDropdownOption("Configuration", testValue);
         shortWait();
 
         logStep("Saving changes");
@@ -458,7 +463,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
         String testValue = "750";
         logStep("Entering KVA Rating: " + testValue);
-        fillGeneratorField("KVA", testValue);
+        fillGeneratorField("K V A Rating", testValue);
         shortWait();
 
         logStep("Saving changes");
@@ -502,7 +507,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
         String testValue = "600";
         logStep("Entering KW Rating: " + testValue);
-        fillGeneratorField("KW", testValue);
+        fillGeneratorField("K W Rating", testValue);
         shortWait();
 
         logStep("Saving changes");
@@ -546,7 +551,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
         String testValue = "Cummins Power";
         logStep("Entering Manufacturer: " + testValue);
-        fillGeneratorField("Manufacturer", testValue);
+        assetPage.selectDropdownOption("Manufacturer", testValue);
         shortWait();
 
         logStep("Saving changes");
@@ -678,7 +683,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
         String testValue = "480";
         logStep("Entering Voltage: " + testValue);
-        fillGeneratorField("Voltage", testValue);
+        assetPage.selectDropdownOption("Voltage", testValue);
         shortWait();
 
         logStep("Saving changes");
@@ -896,7 +901,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
         logStep("Making changes to a field");
         assetPage.scrollFormDown();
-        fillGeneratorField("Ampere", "999");
+        fillGeneratorField("Ampere Rating", "999");
         shortWait();
 
         logStep("Canceling edit operation");
@@ -1880,7 +1885,7 @@ public final class Asset_Phase2_Test extends BaseTest {
         assetPage.scrollFormDown();
         shortWait();
         
-        assetPage.clearTextField("Ampere");
+        assetPage.clearTextField("Ampere Rating");
         assetPage.clearTextField("Catalog");
         assetPage.clearTextField("Columns");
         assetPage.clearTextField("Configuration");
@@ -3141,7 +3146,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
         logStep("Making changes to a field");
         assetPage.scrollFormDown();
-        fillLoadcenterField("Ampere", "999A");
+        assetPage.selectDropdownOption("Ampere Rating", "800A");
         shortWait();
 
         logStep("Canceling edit operation");
@@ -3261,18 +3266,16 @@ public final class Asset_Phase2_Test extends BaseTest {
         assetPage.scrollFormDown();
         shortWait();
         
-        assetPage.clearTextField("Ampere");
-        assetPage.clearTextField("Catalog");
-        assetPage.clearTextField("Configuration");
-        assetPage.clearTextField("Fault");
-        assetPage.clearTextField("Manufacturer");
+        // Note: Dropdowns (Ampere Rating, Configuration, Fault Withstand Rating, 
+        // Manufacturer, Voltage) can't be "cleared" - only changed to different value
+        // Only clear text fields
+        assetPage.clearTextField("Catalog Number");
         assetPage.clearTextField("Notes");
-        assetPage.clearTextField("Serial");
+        assetPage.clearTextField("Serial Number");
         assetPage.clearTextField("Size");
-        assetPage.clearTextField("Voltage");
         
         assetPage.scrollFormUp();
-        System.out.println("✅ Cleared all MCC fields");
+        System.out.println("✅ Cleared all MCC text fields");
     }
 
     /**
@@ -3284,12 +3287,29 @@ public final class Asset_Phase2_Test extends BaseTest {
         assetPage.scrollFormDown();
         shortWait();
         
-        // Required fields: Ampere Rating, Catalog Number, Fault Withstand Rating, Manufacturer, Voltage
-        fillMCCField("Ampere", "800A");
-        fillMCCField("Catalog", "MCC-CAT-001");
-        fillMCCField("Fault", "65kA");
-        fillMCCField("Manufacturer", "Allen-Bradley");
-        fillMCCField("Voltage", "480V");
+        // Required fields: Ampere Rating (dropdown), Catalog Number (text), 
+        // Fault Withstand Rating (dropdown), Manufacturer (dropdown), Voltage (dropdown)
+        
+        // Ampere Rating - DROPDOWN
+        assetPage.selectDropdownOption("Ampere Rating", "800A");
+        shortWait();
+        
+        // Catalog Number - TEXT field
+        fillMCCField("Catalog Number", "MCC-CAT-001");
+        
+        // Fault Withstand Rating - DROPDOWN
+        assetPage.selectDropdownOption("Fault Withstand Rating", "65kA");
+        shortWait();
+        
+        // Manufacturer - DROPDOWN
+        assetPage.selectDropdownOption("Manufacturer", "Allen-Bradley");
+        shortWait();
+        
+        // Voltage - DROPDOWN (scroll down first)
+        assetPage.scrollFormDown();
+        shortWait();
+        assetPage.selectDropdownOption("Voltage", "480V");
+        shortWait();
         
         assetPage.scrollFormUp();
         System.out.println("✅ Filled all MCC required fields");
@@ -3304,17 +3324,27 @@ public final class Asset_Phase2_Test extends BaseTest {
         assetPage.scrollFormDown();
         shortWait();
         
-        // Required fields
-        fillMCCField("Ampere", "800A");
-        fillMCCField("Catalog", "MCC-CAT-FULL-001");
-        fillMCCField("Fault", "65kA");
-        fillMCCField("Manufacturer", "Allen-Bradley");
-        fillMCCField("Voltage", "480V");
+        // Required fields - using correct field names and dropdowns
+        assetPage.selectDropdownOption("Ampere Rating", "800A");
+        shortWait();
+        fillMCCField("Catalog Number", "MCC-CAT-FULL-001");
+        assetPage.selectDropdownOption("Fault Withstand Rating", "65kA");
+        shortWait();
+        assetPage.selectDropdownOption("Manufacturer", "Allen-Bradley");
+        shortWait();
+        
+        // Scroll down for more fields
+        assetPage.scrollFormDown();
+        shortWait();
+        
+        assetPage.selectDropdownOption("Voltage", "480V");
+        shortWait();
         
         // Optional fields
-        fillMCCField("Configuration", "3-Phase");
+        assetPage.selectDropdownOption("Configuration", "3-Phase");
+        shortWait();
         fillMCCField("Notes", "MCC automated test notes");
-        fillMCCField("Serial", "MCC-SN-" + System.currentTimeMillis());
+        fillMCCField("Serial Number", "MCC-SN-" + System.currentTimeMillis());
         fillMCCField("Size", "84 inches");
         
         assetPage.scrollFormUp();
@@ -3603,7 +3633,7 @@ public final class Asset_Phase2_Test extends BaseTest {
         logStep("Initial completion percentage: " + percentage);
 
         logStep("Filling one required field to trigger percentage update");
-        fillMCCField("Ampere", "400A");
+        assetPage.selectDropdownOption("Ampere Rating", "400A");
         shortWait();
 
         String updatedPercentage = assetPage.getCompletionPercentage();
@@ -3640,7 +3670,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
             String testValue = "600A";
             logStep("Entering Ampere Rating: " + testValue);
-            fillMCCField("Ampere", testValue);
+            assetPage.selectDropdownOption("Ampere Rating", testValue);
             shortWait();
 
             logStep("Saving changes");
@@ -3694,7 +3724,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
             String testValue = "MCC-CAT-" + System.currentTimeMillis();
             logStep("Entering Catalog Number: " + testValue);
-            fillMCCField("Catalog", testValue);
+            fillMCCField("Catalog Number", testValue);
             shortWait();
 
             logStep("Saving changes");
@@ -3748,7 +3778,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
             String testValue = "3-Phase Wye";
             logStep("Entering Configuration: " + testValue);
-            fillMCCField("Configuration", testValue);
+            assetPage.selectDropdownOption("Configuration", testValue);
             shortWait();
 
             logStep("Saving changes");
@@ -3802,7 +3832,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
             String testValue = "100kA";
             logStep("Entering Fault Withstand Rating: " + testValue);
-            fillMCCField("Fault", testValue);
+            assetPage.selectDropdownOption("Fault Withstand Rating", testValue);
             shortWait();
 
             logStep("Saving changes");
@@ -3856,7 +3886,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
             String testValue = "Siemens";
             logStep("Entering Manufacturer: " + testValue);
-            fillMCCField("Manufacturer", testValue);
+            assetPage.selectDropdownOption("Manufacturer", testValue);
             shortWait();
 
             logStep("Saving changes");
@@ -3964,7 +3994,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
             String testValue = "MCC-SN-" + System.currentTimeMillis();
             logStep("Entering Serial Number: " + testValue);
-            fillMCCField("Serial", testValue);
+            fillMCCField("Serial Number", testValue);
             shortWait();
 
             logStep("Saving changes");
@@ -4072,7 +4102,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
             String testValue = "600V";
             logStep("Entering Voltage: " + testValue);
-            fillMCCField("Voltage", testValue);
+            assetPage.selectDropdownOption("Voltage", testValue);
             shortWait();
 
             logStep("Saving changes");
@@ -4180,9 +4210,9 @@ public final class Asset_Phase2_Test extends BaseTest {
             shortWait();
 
             logStep("Filling only some required fields (partial)");
-            fillMCCField("Ampere", "400A");
-            fillMCCField("Manufacturer", "Eaton");
-            fillMCCField("Voltage", "480V");
+            assetPage.selectDropdownOption("Ampere Rating", "400A");
+            assetPage.selectDropdownOption("Manufacturer", "Eaton");
+            assetPage.selectDropdownOption("Voltage", "480V");
             shortWait();
 
             logStep("Attempting to save with partial required fields");
@@ -4409,7 +4439,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
         logStep("Making changes to a field");
         assetPage.scrollFormDown();
-        fillMCCField("Ampere", "999A");
+        assetPage.selectDropdownOption("Ampere Rating", "800A");
         shortWait();
 
         logStep("Canceling edit operation");

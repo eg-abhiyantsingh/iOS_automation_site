@@ -1654,16 +1654,42 @@ public class AssetPage extends BasePage {
     }
 
     public void dismissKeyboard() {
+        // Strategy 1: Try Done/Return button on keyboard toolbar
         try {
-            // Tap Done/Return button on keyboard
             WebElement doneButton = driver.findElement(
                 AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND (name == 'Done' OR name == 'Return' OR name == 'return')")
             );
             doneButton.click();
-            System.out.println("✅ Keyboard dismissed (Done/Return)");
-        } catch (Exception e) {
-            System.out.println("⚠️ Could not dismiss keyboard: " + e.getMessage());
-        }
+            System.out.println("✅ Keyboard dismissed (Done/Return button)");
+            return;
+        } catch (Exception e) {}
+        
+        // Strategy 2: Try Appium hideKeyboard
+        try {
+            driver.hideKeyboard();
+            System.out.println("✅ Keyboard dismissed (hideKeyboard)");
+            return;
+        } catch (Exception e) {}
+        
+        // Strategy 3: Tap outside keyboard area (safe zone at top)
+        try {
+            int screenWidth = driver.manage().window().getSize().width;
+            driver.executeScript("mobile: tap", Map.of("x", screenWidth / 2, "y", 100));
+            System.out.println("✅ Keyboard dismissed (tap outside)");
+            return;
+        } catch (Exception e) {}
+        
+        // Strategy 4: Press keyboard key to confirm (Enter/Return on keyboard)
+        try {
+            WebElement keyboardKey = driver.findElement(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeKey' AND (name CONTAINS 'Return' OR name CONTAINS 'return' OR name CONTAINS 'Go' OR name CONTAINS 'Next')")
+            );
+            keyboardKey.click();
+            System.out.println("✅ Keyboard dismissed (keyboard key)");
+            return;
+        } catch (Exception e) {}
+        
+        System.out.println("⚠️ Keyboard may still be open - all dismiss strategies exhausted");
     }
 
     public void scrollFormDown() {
@@ -2644,10 +2670,12 @@ public class AssetPage extends BasePage {
         // Try to find and fill the field, scroll if needed (max 3 scrolls)
         for (int scrollAttempt = 0; scrollAttempt < 3; scrollAttempt++) {
             
-            // STRATEGY 1: Find by name/label containing fieldName
+            // STRATEGY 1: Find TextField OR TextView by name/label containing fieldName
             try {
-                List<WebElement> textFields = driver.findElements(AppiumBy.className("XCUIElementTypeTextField"));
-                for (WebElement field : textFields) {
+                List<WebElement> inputFields = driver.findElements(
+                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeTextView'")
+                );
+                for (WebElement field : inputFields) {
                     String name = field.getAttribute("name");
                     String placeholder = field.getAttribute("value");
                     if ((name != null && name.toLowerCase().contains(fieldName.toLowerCase())) ||
@@ -2663,7 +2691,7 @@ public class AssetPage extends BasePage {
                 }
             } catch (Exception e) {}
             
-            // STRATEGY 2: Find label, then text field below it
+            // STRATEGY 2: Find label, then TextField or TextView below it
             try {
                 List<WebElement> labels = driver.findElements(
                     AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText' AND (name CONTAINS '" + fieldName + "' OR label CONTAINS '" + fieldName + "')")
@@ -2673,8 +2701,10 @@ public class AssetPage extends BasePage {
                     WebElement label = labels.get(0);
                     int labelY = label.getLocation().getY();
                     
-                    List<WebElement> textFields = driver.findElements(AppiumBy.className("XCUIElementTypeTextField"));
-                    for (WebElement tf : textFields) {
+                    List<WebElement> inputFields = driver.findElements(
+                        AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeTextView'")
+                    );
+                    for (WebElement tf : inputFields) {
                         int tfY = tf.getLocation().getY();
                         if (Math.abs(tfY - labelY) < 100) {
                             tf.click();
@@ -2826,18 +2856,48 @@ public class AssetPage extends BasePage {
      * Click Cancel button on Edit Asset Details screen
      */
     public void clickEditCancel() {
+        System.out.println("📝 Tapping Cancel button");
+        
+        // Strategy 1: Accessibility ID "Cancel"
         try {
             WebElement cancelBtn = driver.findElement(AppiumBy.accessibilityId("Cancel"));
             cancelBtn.click();
             System.out.println("✅ Clicked Cancel on Edit screen");
-        } catch (Exception e) {
-            // Try back button
-            try {
-                clickBack();
-            } catch (Exception e2) {
-                System.out.println("⚠️ Could not click Cancel: " + e2.getMessage());
-            }
-        }
+            sleep(500);
+            return;
+        } catch (Exception e) {}
+        
+        // Strategy 2: Find button with Cancel label
+        try {
+            WebElement cancelBtn = driver.findElement(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND (name == 'Cancel' OR label == 'Cancel')")
+            );
+            cancelBtn.click();
+            System.out.println("✅ Clicked Cancel button");
+            sleep(500);
+            return;
+        } catch (Exception e) {}
+        
+        // Strategy 3: Find StaticText "Cancel" and click
+        try {
+            WebElement cancelText = driver.findElement(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText' AND (name == 'Cancel' OR label == 'Cancel')")
+            );
+            cancelText.click();
+            System.out.println("✅ Clicked Cancel text");
+            sleep(500);
+            return;
+        } catch (Exception e) {}
+        
+        // Strategy 4: Tap coordinates at top-left (typical Cancel position)
+        try {
+            driver.executeScript("mobile: tap", Map.of("x", 60, "y", 60));
+            System.out.println("✅ Tapped Cancel position (60, 60)");
+            sleep(500);
+            return;
+        } catch (Exception e) {}
+        
+        System.out.println("⚠️ Could not find Cancel button");
     }
 
     /**
@@ -2975,7 +3035,7 @@ public class AssetPage extends BasePage {
     private void selectDropdownValue(String value) {
         System.out.println("   Selecting dropdown value: " + value);
         
-        // Try accessibility ID first
+        // Try accessibility ID first (exact match)
         try {
             WebElement option = driver.findElement(AppiumBy.accessibilityId(value));
             option.click();
@@ -2984,15 +3044,53 @@ public class AssetPage extends BasePage {
             return;
         } catch (Exception e) {}
         
-        // Try finding by text
+        // Try case-insensitive exact match
         try {
             WebElement option = driver.findElement(
-                AppiumBy.iOSNsPredicateString("name == '" + value + "' OR label == '" + value + "'")
+                AppiumBy.iOSNsPredicateString("name ==[c] '" + value + "' OR label ==[c] '" + value + "'")
             );
             option.click();
-            System.out.println("✅ Selected: " + value);
+            System.out.println("✅ Selected (case-insensitive): " + value);
             sleep(300);
             return;
+        } catch (Exception e) {}
+        
+        // Try without spaces (e.g., "10 kA" -> "10kA")
+        String noSpaceValue = value.replace(" ", "");
+        try {
+            WebElement option = driver.findElement(AppiumBy.accessibilityId(noSpaceValue));
+            option.click();
+            System.out.println("✅ Selected (no space): " + noSpaceValue);
+            sleep(300);
+            return;
+        } catch (Exception e) {}
+        
+        // Try CONTAINS match for partial matching
+        try {
+            String searchPart = value.split(" ")[0]; // Get first part like "10" from "10 kA"
+            WebElement option = driver.findElement(
+                AppiumBy.iOSNsPredicateString("(name CONTAINS '" + searchPart + "' AND name CONTAINS 'kA') OR (label CONTAINS '" + searchPart + "' AND label CONTAINS 'kA')")
+            );
+            option.click();
+            System.out.println("✅ Selected (contains): " + value);
+            sleep(300);
+            return;
+        } catch (Exception e) {}
+        
+        // Try finding any Button/StaticText with the value
+        try {
+            List<WebElement> elements = driver.findElements(
+                AppiumBy.iOSNsPredicateString("(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND (name CONTAINS[c] '" + value.split(" ")[0] + "')")
+            );
+            for (WebElement elem : elements) {
+                String name = elem.getAttribute("name");
+                if (name != null && name.toLowerCase().contains(value.split(" ")[0].toLowerCase())) {
+                    elem.click();
+                    System.out.println("✅ Selected (partial): " + name);
+                    sleep(300);
+                    return;
+                }
+            }
         } catch (Exception e) {}
         
         // Try finding StaticText with the value
@@ -3769,7 +3867,7 @@ public class AssetPage extends BasePage {
      * Tap on safe area to dismiss dropdown focus
      * Taps on empty space at top of form to close any open dropdowns
      */
-    private void dismissDropdownFocus() {
+    public void dismissDropdownFocus() {
         try {
             int screenWidth = driver.manage().window().getSize().width;
             // Tap on top area (above Asset Class which is typically at y=600+)
@@ -4177,6 +4275,40 @@ public class AssetPage extends BasePage {
     }
     
     /**
+     * DEBUG: Print all visible input fields and labels for model/notes/manufacturer
+     */
+    public void debugFieldsOnScreen() {
+        System.out.println("\n========== DEBUG: Fields on Screen ==========");
+        try {
+            List<WebElement> labels = driver.findElements(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText'")
+            );
+            System.out.println("Labels (model/notes/manufacturer):");
+            for (WebElement l : labels) {
+                String name = l.getAttribute("name");
+                if (name != null && (name.toLowerCase().contains("model") || 
+                    name.toLowerCase().contains("notes") || 
+                    name.toLowerCase().contains("manufacturer"))) {
+                    System.out.println("  Label: '" + name + "' y=" + l.getLocation().getY());
+                }
+            }
+        } catch (Exception e) {}
+        try {
+            List<WebElement> inputs = driver.findElements(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeTextView'")
+            );
+            System.out.println("All TextField/TextView:");
+            for (WebElement f : inputs) {
+                String name = f.getAttribute("name");
+                String value = f.getAttribute("value");
+                int y = f.getLocation().getY();
+                System.out.println("  Input: name='" + name + "' value='" + value + "' y=" + y);
+            }
+        } catch (Exception e) {}
+        System.out.println("==============================================\n");
+    }
+
+    /**
      * Edit a text field by its label/name
      * @param fieldName The accessibility ID or label of the field
      * @param value The value to enter
@@ -4188,94 +4320,173 @@ public class AssetPage extends BasePage {
         // Try to find and edit the field, scroll if needed (max 5 scrolls)
         for (int scrollAttempt = 0; scrollAttempt < 5; scrollAttempt++) {
             
-            // STRATEGY 1: Find text field by accessibility ID
+            // STRATEGY 1: Find TextField/TextView by accessibility ID (verify element type!)
             try {
                 WebElement field = driver.findElement(AppiumBy.accessibilityId(fieldName));
-                if (field.isDisplayed()) {
+                String elementType = field.getAttribute("type");
+                // Only proceed if it's actually an input field, not a label
+                if (field.isDisplayed() && elementType != null && 
+                    (elementType.contains("TextField") || elementType.contains("TextView"))) {
+                    System.out.println("   🔍 Strategy 1: Found input field type=" + elementType);
                     field.click();
                     sleep(300);
                     field.clear();
                     field.sendKeys(value);
+                    sleep(200);
+                    String afterValue = field.getAttribute("value");
                     dismissKeyboard();
-                    System.out.println("✅ Edited " + fieldName + " = " + value);
-                    return true;
+                    if (afterValue != null && afterValue.length() > 0) {
+                        System.out.println("✅ Edited " + fieldName + " (accessibilityId) = " + value);
+                        return true;
+                    }
+                } else {
+                    System.out.println("   ⚠️ Strategy 1: Found element but type=" + elementType + " (not input field, skipping)");
                 }
             } catch (Exception e) {}
             
-            // STRATEGY 2: Find text field by name/label predicate
+            // STRATEGY 2: Find TextField OR TextView by name/label predicate (CASE-INSENSITIVE)
             try {
+                // Try case-insensitive match using ==[c]
                 WebElement field = driver.findElement(
                     AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeTextField' AND (name == '" + fieldName + "' OR label == '" + fieldName + "')"
+                        "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeTextView') AND (name ==[c] '" + fieldName + "' OR label ==[c] '" + fieldName + "')"
                     )
                 );
                 if (field.isDisplayed()) {
+                    String beforeValue = field.getAttribute("value");
+                    System.out.println("   🔍 Strategy 2: Found field, name=" + field.getAttribute("name") + ", before=" + beforeValue);
                     field.click();
-                    sleep(300);
+                    sleep(500);
                     field.clear();
+                    sleep(200);
                     field.sendKeys(value);
+                    sleep(300);
+                    String afterValue = field.getAttribute("value");
+                    System.out.println("   🔍 After sendKeys: value=" + afterValue);
                     dismissKeyboard();
-                    System.out.println("✅ Edited " + fieldName + " (predicate) = " + value);
-                    return true;
-                }
-            } catch (Exception e) {}
-            
-            // STRATEGY 3: Find label, then find text field BELOW it (within 150px)
-            try {
-                List<WebElement> labels = driver.findElements(
-                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText' AND (name CONTAINS '" + fieldName + "' OR label CONTAINS '" + fieldName + "')")
-                );
-                
-                if (!labels.isEmpty()) {
-                    WebElement label = labels.get(0);
-                    int labelX = label.getLocation().getX();
-                    int labelY = label.getLocation().getY();
-                    
-                    // Find text field below or next to this label (within 150px vertically)
-                    List<WebElement> textFields = driver.findElements(AppiumBy.className("XCUIElementTypeTextField"));
-                    
-                    for (WebElement tf : textFields) {
-                        int tfY = tf.getLocation().getY();
-                        // Field can be below label OR on same row (for inline labels)
-                        if (Math.abs(tfY - labelY) < 150) {
-                            System.out.println("   Found '" + fieldName + "' at Y=" + labelY + ", field at Y=" + tfY);
-                            tf.click();
-                            sleep(300);
-                            tf.clear();
-                            tf.sendKeys(value);
-                            dismissKeyboard();
-                            System.out.println("✅ Edited " + fieldName + " = " + value);
-                            return true;
-                        }
+                    if (afterValue != null && afterValue.contains(value.substring(0, Math.min(5, value.length())))) {
+                        System.out.println("✅ Edited " + fieldName + " (predicate) = " + value);
+                        return true;
+                    } else {
+                        System.out.println("⚠️ sendKeys may have failed, trying tap+type...");
+                        // Fall through to next strategy
                     }
                 }
             } catch (Exception e) {}
             
-            // STRATEGY 4: Find by partial match in label (for A Phase, B Phase, etc.)
+            // STRATEGY 2B: Try lowercase variant
             try {
-                // Extract key words from field name
+                String lowerFieldName = fieldName.toLowerCase();
+                WebElement field = driver.findElement(
+                    AppiumBy.iOSNsPredicateString(
+                        "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeTextView') AND (name == '" + lowerFieldName + "' OR label == '" + lowerFieldName + "')"
+                    )
+                );
+                if (field.isDisplayed()) {
+                    String beforeValue = field.getAttribute("value");
+                    System.out.println("   🔍 Strategy 2B: Found lowercase field, before=" + beforeValue);
+                    field.click();
+                    sleep(500);
+                    field.clear();
+                    sleep(200);
+                    field.sendKeys(value);
+                    sleep(300);
+                    String afterValue = field.getAttribute("value");
+                    System.out.println("   🔍 After sendKeys: value=" + afterValue);
+                    dismissKeyboard();
+                    if (afterValue != null && afterValue.contains(value.substring(0, Math.min(5, value.length())))) {
+                        System.out.println("✅ Edited " + fieldName + " (lowercase) = " + value);
+                        return true;
+                    }
+                }
+            } catch (Exception e) {}
+            
+            // STRATEGY 3: Find label (case-insensitive), then find CLOSEST TextField/TextView BELOW it
+            try {
+                List<WebElement> labels = driver.findElements(
+                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText' AND (name CONTAINS[c] '" + fieldName + "' OR label CONTAINS[c] '" + fieldName + "')")
+                );
+                
+                if (!labels.isEmpty()) {
+                    WebElement label = labels.get(0);
+                    int labelY = label.getLocation().getY();
+                    
+                    // Find TextField OR TextView - must be BELOW or same row (not above!)
+                    List<WebElement> inputFields = driver.findElements(
+                        AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeTextView'")
+                    );
+                    
+                    // Find the CLOSEST field that is BELOW the label (tfY >= labelY - 20)
+                    WebElement closestField = null;
+                    int closestDistance = Integer.MAX_VALUE;
+                    
+                    for (WebElement tf : inputFields) {
+                        int tfY = tf.getLocation().getY();
+                        // Field must be BELOW or at same level as label (allow 20px tolerance for same row)
+                        // AND within 100px vertically
+                        if (tfY >= labelY - 20 && tfY <= labelY + 100) {
+                            int distance = Math.abs(tfY - labelY);
+                            if (distance < closestDistance) {
+                                closestDistance = distance;
+                                closestField = tf;
+                            }
+                        }
+                    }
+                    
+                    if (closestField != null) {
+                        int tfY = closestField.getLocation().getY();
+                        System.out.println("   Found '" + fieldName + "' at Y=" + labelY + ", field at Y=" + tfY);
+                        closestField.click();
+                        sleep(300);
+                        closestField.clear();
+                        closestField.sendKeys(value);
+                        dismissKeyboard();
+                        System.out.println("✅ Edited " + fieldName + " = " + value);
+                        return true;
+                    }
+                }
+            } catch (Exception e) {}
+            
+            // STRATEGY 4: Find by partial match in label (case-insensitive)
+            try {
                 String searchTerm = fieldName.replace("Serial Number", "").trim();
                 List<WebElement> labels = driver.findElements(
-                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText' AND name CONTAINS '" + searchTerm + "'")
+                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText' AND name CONTAINS[c] '" + searchTerm + "'")
                 );
                 
                 for (WebElement label : labels) {
                     String labelName = label.getAttribute("name");
-                    if (labelName != null && labelName.contains(searchTerm)) {
+                    if (labelName != null && labelName.toLowerCase().contains(searchTerm.toLowerCase())) {
                         int labelY = label.getLocation().getY();
                         
-                        List<WebElement> textFields = driver.findElements(AppiumBy.className("XCUIElementTypeTextField"));
-                        for (WebElement tf : textFields) {
+                        // Find CLOSEST field BELOW the label
+                        List<WebElement> inputFields = driver.findElements(
+                            AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeTextView'")
+                        );
+                        
+                        WebElement closestField = null;
+                        int closestDistance = Integer.MAX_VALUE;
+                        
+                        for (WebElement tf : inputFields) {
                             int tfY = tf.getLocation().getY();
-                            if (Math.abs(tfY - labelY) < 150) {
-                                tf.click();
-                                sleep(300);
-                                tf.clear();
-                                tf.sendKeys(value);
-                                dismissKeyboard();
-                                System.out.println("✅ Edited " + fieldName + " (partial match) = " + value);
-                                return true;
+                            // Field must be BELOW or same row (tfY >= labelY - 20) and within 100px
+                            if (tfY >= labelY - 20 && tfY <= labelY + 100) {
+                                int distance = Math.abs(tfY - labelY);
+                                if (distance < closestDistance) {
+                                    closestDistance = distance;
+                                    closestField = tf;
+                                }
                             }
+                        }
+                        
+                        if (closestField != null) {
+                            closestField.click();
+                            sleep(300);
+                            closestField.clear();
+                            closestField.sendKeys(value);
+                            dismissKeyboard();
+                            System.out.println("✅ Edited " + fieldName + " (partial match) = " + value);
+                            return true;
                         }
                     }
                 }
@@ -4967,10 +5178,12 @@ public class AssetPage extends BasePage {
     public final void changeAssetClassToSwitchboard() {
         System.out.println("📋 Changing asset class to Switchboard (FAST)...");
         
-        // Quick check - is Switchboard already displayed?
+        // Quick check - is Switchboard already displayed as selected?
         try {
-            WebElement switchboard = driver.findElement(AppiumBy.accessibilityId("Switchboard"));
-            if (switchboard.isDisplayed()) {
+            WebElement switchboard = driver.findElement(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name == 'Switchboard'")
+            );
+            if (switchboard.isDisplayed() && switchboard.getLocation().getY() < 500) {
                 System.out.println("✅ Already Switchboard");
                 return;
             }
@@ -4985,11 +5198,37 @@ public class AssetPage extends BasePage {
             int y = label.getLocation().getY() + label.getSize().getHeight() + 25;
             System.out.println("   Tapping dropdown at (" + x + ", " + y + ")");
             driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
-            sleep(300);
+            sleep(500);
             
-            // Now click Switchboard
-            driver.findElement(AppiumBy.accessibilityId("Switchboard")).click();
-            System.out.println("✅ Changed to Switchboard");
+            // Try to find Switchboard - may need to scroll in dropdown
+            // Asset classes alphabetical: ATS, Busway, Capacitor, Circuit Breaker, Disconnect Switch, 
+            // Fuse, Generator, Motor, Panelboard, PDU, Relay, Switchboard, Transformer, UPS, Utility
+            for (int scrollAttempt = 0; scrollAttempt < 5; scrollAttempt++) {
+                try {
+                    WebElement switchboard = driver.findElement(AppiumBy.accessibilityId("Switchboard"));
+                    if (switchboard.isDisplayed()) {
+                        switchboard.click();
+                        System.out.println("✅ Changed to Switchboard");
+                        sleep(300);
+                        return;
+                    }
+                } catch (Exception e) {}
+                
+                // Scroll down inside dropdown to find Switchboard
+                System.out.println("   Scrolling dropdown to find Switchboard (attempt " + (scrollAttempt + 1) + ")");
+                int screenWidth = driver.manage().window().getSize().width;
+                int screenHeight = driver.manage().window().getSize().height;
+                driver.executeScript("mobile: dragFromToForDuration", Map.of(
+                    "fromX", screenWidth / 2,
+                    "fromY", screenHeight / 2 + 100,
+                    "toX", screenWidth / 2,
+                    "toY", screenHeight / 2 - 100,
+                    "duration", 0.3
+                ));
+                sleep(400);
+            }
+            
+            System.out.println("⚠️ Switchboard not found in dropdown after scrolling");
         } catch (Exception e) {
             System.out.println("⚠️ Could not change to Switchboard: " + e.getMessage());
         }
@@ -5002,10 +5241,12 @@ public class AssetPage extends BasePage {
     public final void changeAssetClassToTransformer() {
         System.out.println("📋 Changing asset class to Transformer (FAST)...");
         
-        // Quick check - is Transformer already displayed?
+        // Quick check - is Transformer already displayed as selected?
         try {
-            WebElement transformer = driver.findElement(AppiumBy.accessibilityId("Transformer"));
-            if (transformer.isDisplayed()) {
+            WebElement transformer = driver.findElement(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name == 'Transformer'")
+            );
+            if (transformer.isDisplayed() && transformer.getLocation().getY() < 500) {
                 System.out.println("✅ Already Transformer");
                 return;
             }
@@ -5020,11 +5261,37 @@ public class AssetPage extends BasePage {
             int y = label.getLocation().getY() + label.getSize().getHeight() + 25;
             System.out.println("   Tapping dropdown at (" + x + ", " + y + ")");
             driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
-            sleep(300);
+            sleep(500);
             
-            // Now click Transformer
-            driver.findElement(AppiumBy.accessibilityId("Transformer")).click();
-            System.out.println("✅ Changed to Transformer");
+            // Try to find Transformer - may need to scroll in dropdown
+            // Asset classes alphabetical: ATS, Busway, Capacitor, Circuit Breaker, Disconnect Switch, 
+            // Fuse, Generator, Motor, Panelboard, PDU, Relay, Switchboard, Transformer, UPS, Utility
+            for (int scrollAttempt = 0; scrollAttempt < 5; scrollAttempt++) {
+                try {
+                    WebElement transformer = driver.findElement(AppiumBy.accessibilityId("Transformer"));
+                    if (transformer.isDisplayed()) {
+                        transformer.click();
+                        System.out.println("✅ Changed to Transformer");
+                        sleep(300);
+                        return;
+                    }
+                } catch (Exception e) {}
+                
+                // Scroll down inside dropdown to find Transformer
+                System.out.println("   Scrolling dropdown to find Transformer (attempt " + (scrollAttempt + 1) + ")");
+                int screenWidth = driver.manage().window().getSize().width;
+                int screenHeight = driver.manage().window().getSize().height;
+                driver.executeScript("mobile: dragFromToForDuration", Map.of(
+                    "fromX", screenWidth / 2,
+                    "fromY", screenHeight / 2 + 100,
+                    "toX", screenWidth / 2,
+                    "toY", screenHeight / 2 - 100,
+                    "duration", 0.3
+                ));
+                sleep(400);
+            }
+            
+            System.out.println("⚠️ Transformer not found in dropdown after scrolling");
         } catch (Exception e) {
             System.out.println("⚠️ Could not change to Transformer: " + e.getMessage());
         }
@@ -5034,19 +5301,20 @@ public class AssetPage extends BasePage {
      * Change asset class to UPS using coordinate-tap approach
      */
     public final void changeAssetClassToUPS() {
-        System.out.println("🔄 Changing asset class to UPS...");
+        System.out.println("📋 Changing asset class to UPS (FAST)...");
         
-        // Quick check if already UPS
+        // Quick check - is UPS already displayed as selected?
         try {
-            WebElement upsLabel = driver.findElement(
-                AppiumBy.iOSNsPredicateString("name == 'UPS' OR label == 'UPS'")
+            WebElement ups = driver.findElement(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name == 'UPS'")
             );
-            if (upsLabel.isDisplayed()) {
-                System.out.println("✅ Already on UPS");
+            if (ups.isDisplayed() && ups.getLocation().getY() < 500) {
+                System.out.println("✅ Already UPS");
                 return;
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {}
         
+        // Find "Asset Class" label and tap below it to open dropdown
         try {
             WebElement label = driver.findElement(
                 AppiumBy.iOSNsPredicateString("name == 'Asset Class' OR label == 'Asset Class'")
@@ -5055,33 +5323,168 @@ public class AssetPage extends BasePage {
             int y = label.getLocation().getY() + label.getSize().getHeight() + 25;
             System.out.println("   Tapping dropdown at (" + x + ", " + y + ")");
             driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
-            sleep(300);
+            sleep(500);
             
-            // Now click UPS
-            driver.findElement(AppiumBy.accessibilityId("UPS")).click();
-            System.out.println("✅ Changed to UPS");
+            // Try to find UPS - may need to scroll in dropdown (UPS is near the end)
+            for (int scrollAttempt = 0; scrollAttempt < 5; scrollAttempt++) {
+                try {
+                    WebElement ups = driver.findElement(AppiumBy.accessibilityId("UPS"));
+                    if (ups.isDisplayed()) {
+                        ups.click();
+                        System.out.println("✅ Changed to UPS");
+                        sleep(300);
+                        return;
+                    }
+                } catch (Exception e) {}
+                
+                // Scroll down inside dropdown to find UPS
+                System.out.println("   Scrolling dropdown to find UPS (attempt " + (scrollAttempt + 1) + ")");
+                int screenWidth = driver.manage().window().getSize().width;
+                int screenHeight = driver.manage().window().getSize().height;
+                driver.executeScript("mobile: dragFromToForDuration", Map.of(
+                    "fromX", screenWidth / 2,
+                    "fromY", screenHeight / 2 + 100,
+                    "toX", screenWidth / 2,
+                    "toY", screenHeight / 2 - 100,
+                    "duration", 0.3
+                ));
+                sleep(400);
+            }
+            
+            System.out.println("⚠️ UPS not found in dropdown after scrolling");
         } catch (Exception e) {
             System.out.println("⚠️ Could not change to UPS: " + e.getMessage());
         }
     }
 
     /**
-     * Change asset class to Utility using coordinate-tap approach
+     * Change asset class to Utility
+     * FIXED: Handles dropdown that requires scrolling to find Utility option
      */
     public final void changeAssetClassToUtility() {
         System.out.println("🔄 Changing asset class to Utility...");
         
         // Quick check if already Utility
+        if (isAssetClassAlready("Utility")) {
+            System.out.println("✅ Already on Utility - no change needed");
+            return;
+        }
+        
+        // Open Asset Class dropdown
+        boolean dropdownOpened = clickAssetClassDropdown();
+        if (!dropdownOpened) {
+            System.out.println("❌ Could not open Asset Class dropdown!");
+            return;
+        }
+        
+        // Select Utility from dropdown (may need scrolling)
+        selectUtilityFromDropdown();
+        sleep(500);
+        
+        // Dismiss dropdown focus
+        dismissDropdownFocus();
+        
+        System.out.println("✅ Asset class changed to Utility");
+    }
+    
+    /**
+     * Select Utility from the asset class dropdown
+     * Scrolls the dropdown list if Utility is not visible
+     */
+    private void selectUtilityFromDropdown() {
+        System.out.println("📋 Selecting Utility from dropdown...");
+        
+        // Utility is at the END of alphabetical list - needs many scrolls
+        // List order: ATS, Busway, Capacitor, Circuit Breaker, Disconnect Switch, Fuse, Generator, Motor, Panelboard, PDU, Transformer, UPS, Utility
+        
+        int screenWidth = driver.manage().window().getSize().width;
+        int screenHeight = driver.manage().window().getSize().height;
+        int centerX = screenWidth / 2;
+        
+        // The dropdown appears in lower half of screen (y > 400)
+        // Scroll within the dropdown area, not the form
+        int dropdownStartY = (int)(screenHeight * 0.65);
+        int dropdownEndY = (int)(screenHeight * 0.45);
+        
+        // Try up to 10 scroll attempts since Utility is at the end
+        for (int i = 0; i < 10; i++) {
+            // Check if Utility is visible
+            try {
+                List<WebElement> utilities = driver.findElements(AppiumBy.accessibilityId("Utility"));
+                for (WebElement utility : utilities) {
+                    if (utility.isDisplayed()) {
+                        int y = utility.getLocation().getY();
+                        // Make sure it's in the dropdown area (y > 400)
+                        if (y > 400) {
+                            utility.click();
+                            System.out.println("✅ Selected Utility at y=" + y);
+                            return;
+                        }
+                    }
+                }
+            } catch (Exception e) {}
+            
+            // Try predicate search
+            try {
+                List<WebElement> utilities = driver.findElements(
+                    AppiumBy.iOSNsPredicateString("name == 'Utility' OR label == 'Utility'")
+                );
+                for (WebElement utility : utilities) {
+                    if (utility.isDisplayed()) {
+                        int y = utility.getLocation().getY();
+                        if (y > 400) {
+                            utility.click();
+                            System.out.println("✅ Selected Utility (predicate) at y=" + y);
+                            return;
+                        }
+                    }
+                }
+            } catch (Exception e) {}
+            
+            // Not found - scroll the dropdown DOWN (swipe up)
+            System.out.println("   Scroll attempt " + (i+1) + " - Utility not visible yet");
+            driver.executeScript("mobile: dragFromToForDuration", Map.of(
+                "fromX", centerX,
+                "fromY", dropdownStartY,
+                "toX", centerX,
+                "toY", dropdownEndY,
+                "duration", 0.3
+            ));
+            sleep(300);
+        }
+        
+        // Final attempt - try to find and click any Utility element
         try {
-            WebElement utilityLabel = driver.findElement(
+            WebElement utility = driver.findElement(
                 AppiumBy.iOSNsPredicateString("name == 'Utility' OR label == 'Utility'")
             );
-            if (utilityLabel.isDisplayed()) {
-                System.out.println("✅ Already on Utility");
+            utility.click();
+            System.out.println("✅ Selected Utility (final attempt)");
+            return;
+        } catch (Exception e) {}
+        
+        System.out.println("⚠️ Could not find Utility in dropdown after 10 scrolls");
+    }
+
+    /**
+     * Change asset class to VFD using coordinate-tap approach
+     * VFD is at the end of the list after Utility
+     */
+    public final void changeAssetClassToVFD() {
+        System.out.println("📋 Changing asset class to VFD (FAST)...");
+        
+        // Quick check - is VFD already displayed as selected?
+        try {
+            WebElement vfd = driver.findElement(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name == 'VFD'")
+            );
+            if (vfd.isDisplayed() && vfd.getLocation().getY() < 500) {
+                System.out.println("✅ Already VFD");
                 return;
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {}
         
+        // Find "Asset Class" label and tap below it to open dropdown
         try {
             WebElement label = driver.findElement(
                 AppiumBy.iOSNsPredicateString("name == 'Asset Class' OR label == 'Asset Class'")
@@ -5090,13 +5493,39 @@ public class AssetPage extends BasePage {
             int y = label.getLocation().getY() + label.getSize().getHeight() + 25;
             System.out.println("   Tapping dropdown at (" + x + ", " + y + ")");
             driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
-            sleep(300);
+            sleep(500);
             
-            // Now click Utility
-            driver.findElement(AppiumBy.accessibilityId("Utility")).click();
-            System.out.println("✅ Changed to Utility");
+            // Try to find VFD - at the END of alphabetical list, needs many scrolls
+            // List: ATS, Busway, Capacitor, Circuit Breaker, Disconnect Switch, Fuse, Generator, 
+            //       Motor, Panelboard, PDU, Relay, Switchboard, Transformer, UPS, Utility, VFD
+            for (int scrollAttempt = 0; scrollAttempt < 8; scrollAttempt++) {
+                try {
+                    WebElement vfd = driver.findElement(AppiumBy.accessibilityId("VFD"));
+                    if (vfd.isDisplayed()) {
+                        vfd.click();
+                        System.out.println("✅ Changed to VFD");
+                        sleep(300);
+                        return;
+                    }
+                } catch (Exception e) {}
+                
+                // Scroll down inside dropdown to find VFD
+                System.out.println("   Scrolling dropdown to find VFD (attempt " + (scrollAttempt + 1) + ")");
+                int screenWidth = driver.manage().window().getSize().width;
+                int screenHeight = driver.manage().window().getSize().height;
+                driver.executeScript("mobile: dragFromToForDuration", Map.of(
+                    "fromX", screenWidth / 2,
+                    "fromY", screenHeight / 2 + 100,
+                    "toX", screenWidth / 2,
+                    "toY", screenHeight / 2 - 100,
+                    "duration", 0.3
+                ));
+                sleep(400);
+            }
+            
+            System.out.println("⚠️ VFD not found in dropdown after scrolling");
         } catch (Exception e) {
-            System.out.println("⚠️ Could not change to Utility: " + e.getMessage());
+            System.out.println("⚠️ Could not change to VFD: " + e.getMessage());
         }
     }
 
@@ -5153,4 +5582,66 @@ public class AssetPage extends BasePage {
             return false;
         }
     }
+
+    // ================================================================
+    // FIELD LABEL VERIFICATION METHODS
+    // ================================================================
+
+    /**
+     * Check if a field label is present on the screen (case-sensitive)
+     * Used to verify field label casing (bug detection)
+     */
+    public boolean isFieldLabelPresent(String labelText) {
+        System.out.println("🔍 Checking for field label: '" + labelText + "'");
+        
+        try {
+            // Strategy 1: Exact match by accessibilityId
+            List<WebElement> elements = driver.findElements(AppiumBy.accessibilityId(labelText));
+            if (!elements.isEmpty()) {
+                for (WebElement el : elements) {
+                    if (el.isDisplayed()) {
+                        System.out.println("   ✅ Found label '" + labelText + "' by accessibilityId");
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception e) {}
+        
+        try {
+            // Strategy 2: Find StaticText with exact name
+            List<WebElement> elements = driver.findElements(
+                AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND name == '" + labelText + "'"
+                )
+            );
+            if (!elements.isEmpty()) {
+                for (WebElement el : elements) {
+                    if (el.isDisplayed()) {
+                        System.out.println("   ✅ Found label '" + labelText + "' as StaticText");
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception e) {}
+        
+        try {
+            // Strategy 3: Find any element with exact label attribute
+            List<WebElement> elements = driver.findElements(
+                AppiumBy.iOSNsPredicateString("label == '" + labelText + "'")
+            );
+            if (!elements.isEmpty()) {
+                for (WebElement el : elements) {
+                    if (el.isDisplayed()) {
+                        System.out.println("   ✅ Found element with label '" + labelText + "'");
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception e) {}
+        
+        System.out.println("   ❌ Label '" + labelText + "' not found");
+        return false;
+    }
+
+
 }
