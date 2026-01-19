@@ -6514,12 +6514,7 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.changeAssetClassToMCC();
             shortWait();
             
-            // Scroll down to find Save Changes button
-            System.out.println("📜 Scrolling to Save Changes button...");
-            assetPage.scrollFormDown();
-            sleep(500);
-            
-            System.out.println("💾 Saving changes...");
+            System.out.println("💾 Saving changes (will scroll to find button)...");
             assetPage.clickSaveButton();
             mediumWait();
             

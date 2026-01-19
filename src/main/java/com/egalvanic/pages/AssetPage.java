@@ -5921,12 +5921,31 @@ public class AssetPage extends BasePage {
      * Check if current asset class is MCC
      */
     public boolean isAssetClassMCC() {
+        System.out.println("🔍 Checking if asset class is MCC...");
         try {
+            // Look for MCC button (Asset Class dropdown showing MCC)
             WebElement mcc = driver.findElement(
                 AppiumBy.iOSNsPredicateString("name == 'MCC' AND type == 'XCUIElementTypeButton' AND visible == true")
             );
+            System.out.println("   Found MCC button: " + mcc.isDisplayed());
             return mcc.isDisplayed();
         } catch (Exception e) {
+            System.out.println("   MCC button not found (might be ATS, Generator, etc.)");
+            
+            // Debug: show what Asset Class buttons ARE visible
+            try {
+                List<WebElement> buttons = driver.findElements(
+                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND visible == true")
+                );
+                for (WebElement btn : buttons) {
+                    String name = btn.getAttribute("name");
+                    if (name != null && (name.equals("ATS") || name.equals("MCC") || name.equals("Generator") || 
+                        name.equals("Busway") || name.equals("Circuit Breaker") || name.equals("Fuse"))) {
+                        System.out.println("   Found Asset Class button: " + name);
+                    }
+                }
+            } catch (Exception e2) {}
+            
             return false;
         }
     }
