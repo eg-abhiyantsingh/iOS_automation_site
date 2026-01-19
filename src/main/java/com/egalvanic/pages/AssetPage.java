@@ -10,6 +10,7 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 
 /**
  * Asset Page Object
@@ -202,18 +203,1663 @@ public class AssetPage extends BasePage {
      * TURBO: Navigate to Asset List - ultra fast (1 second timeout)
      */
     public void navigateToAssetListTurbo() {
+        System.out.println("📦 Navigating to Asset List...");
+        
+        // First, check if we're inside an Asset Detail (Tab Bar hidden)
+        // If so, we need to close it first by clicking "Close" button
         try {
-            // Direct click - 1 second timeout
-            WebElement listBtn = driver.findElement(AppiumBy.accessibilityId("list.bullet"));
-            listBtn.click();
-            // Quick wait for list to load
+            WebElement closeBtn = driver.findElement(AppiumBy.accessibilityId("Close"));
+            if (closeBtn.isDisplayed()) {
+                System.out.println("🔙 Found Close button - closing Asset Detail first...");
+                closeBtn.click();
+                sleep(500);
+            }
+        } catch (Exception e) {
+            // No Close button, that's fine - we might already be on Asset List
+        }
+        
+        // CORRECT WAY: Assets tab button has name="list.bullet" and label="Assets"
+        // Must use predicate to find button by label, not accessibility ID
+        try {
+            WebElement assetsTab = driver.findElement(
+                AppiumBy.iOSNsPredicateString("label == 'Assets' AND type == 'XCUIElementTypeButton'")
+            );
+            assetsTab.click();
             sleep(500);
             System.out.println("✅ Asset List opened");
+            return;
         } catch (Exception e) {
-            System.out.println("⚠️ Could not open Asset List: " + e.getMessage());
+            System.out.println("⚠️ Could not find Assets tab by label: " + e.getMessage());
+        }
+        
+        // Fallback: try by accessibility ID "list.bullet" (the icon name)
+        try {
+            WebElement assetsTab = driver.findElement(AppiumBy.accessibilityId("list.bullet"));
+            assetsTab.click();
+            sleep(500);
+            System.out.println("✅ Asset List opened (via list.bullet)");
+            return;
+        } catch (Exception e2) {
+            System.out.println("⚠️ Could not find list.bullet: " + e2.getMessage());
+        }
+        
+        // Last resort: Try clicking Site/house tab first, then Assets
+        try {
+            System.out.println("⚠️ Trying Site tab first...");
+            WebElement siteTab = driver.findElement(
+                AppiumBy.iOSNsPredicateString("label == 'Site' AND type == 'XCUIElementTypeButton'")
+            );
+            siteTab.click();
+            sleep(500);
+            
+            WebElement assetsTab = driver.findElement(
+                AppiumBy.iOSNsPredicateString("label == 'Assets' AND type == 'XCUIElementTypeButton'")
+            );
+            assetsTab.click();
+            sleep(500);
+            System.out.println("✅ Asset List opened (via Site tab)");
+        } catch (Exception e3) {
+            System.out.println("⚠️ Could not open Asset List: " + e3.getMessage());
         }
     }
     
+
+    /**
+     * Click the Assets tab in the tab bar to navigate to Asset List
+     * Note: Assets tab button has name="list.bullet" and label="Assets"
+     */
+    public void clickAssetsTab() {
+        System.out.println("📱 Clicking Assets tab...");
+        
+        // First, check if we're inside Asset Detail - need to close it first
+        try {
+            WebElement closeBtn = driver.findElement(AppiumBy.accessibilityId("Close"));
+            if (closeBtn.isDisplayed()) {
+                System.out.println("🔙 Closing Asset Detail first...");
+                closeBtn.click();
+                sleep(500);
+            }
+        } catch (Exception e) {
+            // No Close button - that's fine
+        }
+        
+        // CORRECT: Use predicate to find Assets button by label
+        try {
+            WebElement assetsTab = driver.findElement(
+                AppiumBy.iOSNsPredicateString("label == 'Assets' AND type == 'XCUIElementTypeButton'")
+            );
+            assetsTab.click();
+            sleep(500);
+            System.out.println("✅ Clicked Assets tab");
+            return;
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not find Assets tab by label");
+        }
+        
+        // Fallback: try by accessibility ID "list.bullet"
+        try {
+            WebElement assetsTab = driver.findElement(AppiumBy.accessibilityId("list.bullet"));
+            assetsTab.click();
+            sleep(500);
+            System.out.println("✅ Clicked Assets tab (via list.bullet)");
+        } catch (Exception e2) {
+            System.out.println("⚠️ Could not click Assets tab: " + e2.getMessage());
+        }
+    }
+
+
+    /**
+     * Click the More button (3 dots / ellipsis) on Asset List screen
+     */
+    public void clickMoreButton() {
+        System.out.println("⋯ Clicking More button...");
+        try {
+            WebElement moreBtn = driver.findElement(AppiumBy.accessibilityId("More"));
+            moreBtn.click();
+            sleep(500);
+            System.out.println("✅ Clicked More button");
+        } catch (Exception e) {
+            // Try by predicate
+            try {
+                WebElement moreBtn = driver.findElement(
+                    AppiumBy.iOSNsPredicateString("label == 'More' AND type == 'XCUIElementTypeButton'")
+                );
+                moreBtn.click();
+                sleep(500);
+                System.out.println("✅ Clicked More button (via predicate)");
+            } catch (Exception e2) {
+                System.out.println("⚠️ Could not click More button: " + e2.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Select a grouping option from the More menu
+     * Options: "No Grouping", "Group by Location", "Group by Enclosure", 
+     *          "Show AF Punchlist", "Select Multiple"
+     */
+    public void selectGroupingOption(String option) {
+        System.out.println("📋 Selecting grouping option: " + option);
+        try {
+            WebElement optionBtn = driver.findElement(
+                AppiumBy.iOSNsPredicateString("label == '" + option + "'")
+            );
+            optionBtn.click();
+            sleep(500);
+            System.out.println("✅ Selected: " + option);
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not select option '" + option + "': " + e.getMessage());
+        }
+    }
+
+
+
+    /**
+     * Click the Close button to close Asset Detail screen
+     */
+    public void clickCloseButton() {
+        System.out.println("❌ Clicking Close button...");
+        try {
+            WebElement closeBtn = driver.findElement(AppiumBy.accessibilityId("Close"));
+            closeBtn.click();
+            sleep(500);
+            System.out.println("✅ Clicked Close button");
+        } catch (Exception e) {
+            System.out.println("⚠️ Close button not found: " + e.getMessage());
+        }
+    }
+
+    // ================================================================
+    // TASK MANAGEMENT METHODS
+    // ================================================================
+
+    /**
+     * Scroll to Tasks section in Asset Details
+     * Tasks section is typically below Basic Information and Condition of Maintenance
+     */
+    public boolean scrollToTasksSection() {
+        System.out.println("📜 Scrolling to Tasks section...");
+        
+        // First check if already visible
+        try {
+            WebElement tasksLabel = driver.findElement(
+                AppiumBy.iOSNsPredicateString("label == 'Tasks' AND type == 'XCUIElementTypeStaticText' AND visible == true")
+            );
+            if (tasksLabel.isDisplayed()) {
+                System.out.println("✅ Tasks section already visible");
+                return true;
+            }
+        } catch (Exception e) {
+            // Need to scroll
+        }
+        
+        // Scroll down with smaller scrolls using mobile: scroll
+        for (int i = 0; i < 10; i++) {
+            // Use mobile: swipe for small scroll
+            try {
+                Map<String, Object> swipeParams = new java.util.HashMap<>();
+                swipeParams.put("direction", "up");  // Swipe up = scroll down
+                swipeParams.put("velocity", 300);    // Slow velocity for small scroll
+                driver.executeScript("mobile: swipe", swipeParams);
+            } catch (Exception scrollEx) {
+                // Fallback to scrollFormDown
+                scrollFormDown();
+            }
+            sleep(400);
+            
+            // Check if Tasks is now visible
+            try {
+                WebElement tasksLabel = driver.findElement(
+                    AppiumBy.iOSNsPredicateString("label == 'Tasks' AND type == 'XCUIElementTypeStaticText' AND visible == true")
+                );
+                if (tasksLabel.isDisplayed()) {
+                    System.out.println("✅ Found Tasks section after " + (i + 1) + " scrolls");
+                    // Wait a moment for Add button to be clickable
+                    sleep(500);
+                    return true;
+                }
+            } catch (Exception e) {
+                System.out.println("   Scroll " + (i + 1) + " - Tasks not visible yet");
+            }
+        }
+        
+        System.out.println("⚠️ Could not find Tasks section after scrolling");
+        return false;
+    }
+
+    /**
+     * Click Add Task button (+) in Tasks section
+     * Note: Need to ensure Tasks section is visible first
+     */
+    public void clickAddTaskButton() {
+        System.out.println("➕ Clicking Add Task button...");
+        try {
+            // Find the visible Add button (plus.circle.fill) near Tasks section
+            WebElement addBtn = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'plus.circle.fill' AND label == 'Add' AND visible == true")
+            );
+            addBtn.click();
+            // Wait longer for New Task screen to appear (animation)
+            sleep(2000);
+            System.out.println("✅ Clicked Add Task button");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not find visible Add Task button, trying tap by coordinates...");
+            // Fallback: tap at typical Tasks Add button location
+            try {
+                driver.executeScript("mobile: tap", Map.of("x", 348, "y", 571));
+                sleep(2000);
+                System.out.println("✅ Tapped Add Task button at coordinates");
+            } catch (Exception e2) {
+                System.out.println("⚠️ Could not click Add Task button: " + e2.getMessage());
+            }
+        }
+    }
+
+
+    /**
+     * Click on an existing task in the Tasks section to open Task Details
+     * Task buttons have format: "TaskName, Description, Status"
+     */
+    public void clickExistingTask() {
+        System.out.println("🔍 Looking for existing task to click...");
+        try {
+            // Find task button - tasks have "Open" or "Completed" status
+            WebElement taskBtn = driver.findElement(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND (name CONTAINS 'Open' OR name CONTAINS 'Completed') AND name CONTAINS 'Task'")
+            );
+            String taskName = taskBtn.getAttribute("name");
+            System.out.println("   🎯 Found task: " + taskName.substring(0, Math.min(50, taskName.length())) + "...");
+            taskBtn.click();
+            sleep(2000);
+            System.out.println("✅ Clicked existing task");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not find existing task: " + e.getMessage());
+            // Try alternate approach - find any button with "Test Task" in name
+            try {
+                WebElement taskBtn = driver.findElement(
+                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name CONTAINS 'Test Task'")
+                );
+                taskBtn.click();
+                sleep(2000);
+                System.out.println("✅ Clicked task (via Test Task search)");
+            } catch (Exception e2) {
+                System.out.println("⚠️ No existing task found");
+            }
+        }
+    }
+
+    /**
+     * Check if Task Details screen is displayed
+     */
+    public boolean isTaskDetailsScreenDisplayed() {
+        try {
+            WebElement navBar = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Task Details' AND type == 'XCUIElementTypeNavigationBar'")
+            );
+            return navBar.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Edit task title in Task Details screen
+     */
+    public void editTaskTitle(String newTitle) {
+        System.out.println("📝 Editing task title to: " + newTitle);
+        try {
+            WebElement titleField = driver.findElement(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' AND value CONTAINS 'Task'")
+            );
+            titleField.click();
+            sleep(300);
+            titleField.clear();
+            titleField.sendKeys(newTitle);
+            System.out.println("✅ Edited task title");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not edit task title: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Edit task description in Task Details screen
+     */
+    public void editTaskDescription(String newDescription) {
+        System.out.println("📝 Editing task description...");
+        try {
+            WebElement descField = driver.findElement(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextView'")
+            );
+            descField.click();
+            sleep(300);
+            descField.clear();
+            descField.sendKeys(newDescription);
+            System.out.println("✅ Edited task description");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not edit description: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Click Save/Done button on Task Details screen
+     */
+    public void clickSaveTask() {
+        System.out.println("💾 Clicking Save/Done...");
+        try {
+            // Try Done button first
+            WebElement saveBtn = driver.findElement(
+                AppiumBy.iOSNsPredicateString("label == 'Done' OR label == 'Save'")
+            );
+            saveBtn.click();
+            sleep(1000);
+            System.out.println("✅ Clicked Save/Done");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not find Save/Done button: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Click Back button on Task Details screen
+     */
+    public void clickBackFromTaskDetails() {
+        System.out.println("🔙 Clicking Back...");
+        try {
+            WebElement backBtn = driver.findElement(
+                AppiumBy.iOSNsPredicateString("label == 'Back' OR name == 'Back'")
+            );
+            backBtn.click();
+            sleep(1000);
+            System.out.println("✅ Clicked Back");
+        } catch (Exception e) {
+            // Try Close button
+            try {
+                WebElement closeBtn = driver.findElement(AppiumBy.accessibilityId("Close"));
+                closeBtn.click();
+                sleep(1000);
+                System.out.println("✅ Clicked Close");
+            } catch (Exception e2) {
+                System.out.println("⚠️ Could not find Back/Close button");
+            }
+        }
+    }
+
+    /**
+     * Check if task has "Open" status
+     */
+    public boolean isTaskOpen() {
+        try {
+            WebElement openStatus = driver.findElement(
+                AppiumBy.iOSNsPredicateString("label == 'Open' AND type == 'XCUIElementTypeStaticText'")
+            );
+            return openStatus.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+
+    /**
+     * Click Delete Task button in Task Details screen
+     * Button is at the bottom - may need to scroll
+     */
+    public void clickDeleteTaskButton() {
+        System.out.println("🗑️ Clicking Delete Task button...");
+        try {
+            // First try to find visible Delete Task button
+            WebElement deleteBtn = driver.findElement(
+                AppiumBy.iOSNsPredicateString("label == 'Delete Task' AND type == 'XCUIElementTypeButton'")
+            );
+            deleteBtn.click();
+            sleep(1000);
+            System.out.println("✅ Clicked Delete Task button");
+        } catch (Exception e) {
+            System.out.println("⚠️ Delete Task button not visible, scrolling...");
+            // Scroll down to find it
+            for (int i = 0; i < 3; i++) {
+                scrollFormDown();
+                sleep(300);
+                try {
+                    WebElement deleteBtn = driver.findElement(
+                        AppiumBy.iOSNsPredicateString("label == 'Delete Task' AND type == 'XCUIElementTypeButton' AND visible == true")
+                    );
+                    deleteBtn.click();
+                    sleep(1000);
+                    System.out.println("✅ Clicked Delete Task button after scroll");
+                    return;
+                } catch (Exception e2) {
+                    // Keep scrolling
+                }
+            }
+            System.out.println("⚠️ Could not find Delete Task button");
+        }
+    }
+
+    /**
+     * Confirm task deletion in the alert dialog
+     * Alert has Cancel and Delete buttons
+     */
+    public void confirmDeleteTask() {
+        System.out.println("⚠️ Confirming task deletion...");
+        try {
+            // Wait for alert to appear
+            sleep(500);
+            WebElement deleteBtn = driver.findElement(
+                AppiumBy.iOSNsPredicateString("label == 'Delete' AND type == 'XCUIElementTypeButton'")
+            );
+            deleteBtn.click();
+            sleep(1500);
+            System.out.println("✅ Confirmed task deletion");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not confirm deletion: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Cancel task deletion in the alert dialog
+     */
+    public void cancelDeleteTask() {
+        System.out.println("❌ Canceling task deletion...");
+        try {
+            WebElement cancelBtn = driver.findElement(AppiumBy.accessibilityId("Cancel"));
+            cancelBtn.click();
+            sleep(500);
+            System.out.println("✅ Canceled task deletion");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not cancel deletion: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Check if Delete Task confirmation alert is displayed
+     */
+    public boolean isDeleteTaskAlertDisplayed() {
+        try {
+            WebElement alert = driver.findElement(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeAlert' AND name == 'Delete Task'")
+            );
+            return alert.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+
+    // ================================================================
+    // ISSUE METHODS
+    // ================================================================
+
+    /**
+     * Scroll to Issues section on Asset Details screen
+     */
+    public void scrollToIssuesSection() {
+        System.out.println("📜 Scrolling to Issues section...");
+        
+        for (int i = 0; i < 12; i++) {
+            try {
+                // Check if Issues label is visible and in a good position (y between 300-600)
+                WebElement issuesLabel = driver.findElement(
+                    AppiumBy.iOSNsPredicateString("label == 'Issues' AND type == 'XCUIElementTypeStaticText' AND visible == true")
+                );
+                
+                int y = issuesLabel.getLocation().getY();
+                System.out.println("   Found Issues at y=" + y);
+                
+                // Issues should be in middle of screen (y between 300-600 for optimal clicking)
+                if (y >= 300 && y <= 650) {
+                    System.out.println("✅ Found Issues section at good position (y=" + y + ")");
+                    sleep(500);
+                    return;
+                } else if (y < 300) {
+                    // Scrolled too far, scroll back up
+                    System.out.println("   Issues too high (y=" + y + "), scrolling up...");
+                    Map<String, Object> upParams = new HashMap<>();
+                    upParams.put("direction", "down");
+                    upParams.put("velocity", 200);
+                    driver.executeScript("mobile: swipe", upParams);
+                    sleep(400);
+                    continue;
+                }
+                // y > 650, keep scrolling down
+            } catch (Exception e) {
+                System.out.println("   Scroll " + (i + 1) + " - Issues not visible yet");
+            }
+            
+            // Scroll down
+            Map<String, Object> swipeParams = new HashMap<>();
+            swipeParams.put("direction", "up");
+            swipeParams.put("velocity", 250);
+            driver.executeScript("mobile: swipe", swipeParams);
+            sleep(400);
+        }
+        
+        System.out.println("⚠️ Issues section not found after scrolling");
+    }
+
+        /**
+     * Click Add Issue (+) button in Issues section
+     */
+    public void clickAddIssueButton() {
+        System.out.println("➕ Clicking Add Issue button...");
+        try {
+            sleep(500);
+            
+            // First find the Issues label to get its Y position
+            WebElement issuesLabel = null;
+            int issuesY = -1;
+            try {
+                issuesLabel = driver.findElement(
+                    AppiumBy.iOSNsPredicateString("label == 'Issues' AND type == 'XCUIElementTypeStaticText' AND visible == true")
+                );
+                issuesY = issuesLabel.getLocation().getY();
+                System.out.println("   Issues label at y=" + issuesY);
+            } catch (Exception e) {
+                System.out.println("   ⚠️ Could not find Issues label");
+            }
+            
+            // Find all visible Add buttons
+            List<WebElement> addButtons = driver.findElements(
+                AppiumBy.iOSNsPredicateString("name == 'plus.circle.fill' AND label == 'Add' AND visible == true")
+            );
+            System.out.println("   Found " + addButtons.size() + " visible Add buttons");
+            
+            WebElement correctButton = null;
+            
+            // If we found Issues label, find Add button near it (within 50px Y)
+            if (issuesY > -1 && !addButtons.isEmpty()) {
+                for (WebElement btn : addButtons) {
+                    int btnY = btn.getLocation().getY();
+                    System.out.println("     Add button at y=" + btnY);
+                    if (Math.abs(btnY - issuesY) < 50) {
+                        correctButton = btn;
+                        System.out.println("     ✓ This is near Issues label");
+                        break;
+                    }
+                }
+            }
+            
+            // Fallback: use first visible Add button
+            if (correctButton == null && !addButtons.isEmpty()) {
+                correctButton = addButtons.get(0);
+                System.out.println("   Using first visible Add button");
+            }
+            
+            if (correctButton != null) {
+                int y = correctButton.getLocation().getY();
+                System.out.println("   Clicking Add button at y=" + y);
+                correctButton.click();
+                sleep(2500);
+                
+                // Verify New Issue screen opened
+                try {
+                    WebElement navBar = driver.findElement(
+                        AppiumBy.iOSNsPredicateString("name == 'New Issue' AND type == 'XCUIElementTypeNavigationBar'")
+                    );
+                    if (navBar.isDisplayed()) {
+                        System.out.println("✅ Clicked Add Issue button - New Issue screen opened");
+                        return;
+                    }
+                } catch (Exception ve) {
+                    System.out.println("⚠️ New Issue screen not detected - may have clicked wrong button");
+                }
+            } else {
+                System.out.println("⚠️ No Add button found");
+            }
+            
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not click Add Issue button: " + e.getMessage());
+        }
+    }
+
+        /**
+     * Check if New Issue screen is displayed
+     */
+    public boolean isNewIssueScreenDisplayed() {
+        System.out.println("🔍 Checking if New Issue screen is displayed...");
+        try {
+            // Try to find New Issue navigation bar
+            WebElement navBar = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'New Issue' AND type == 'XCUIElementTypeNavigationBar'")
+            );
+            boolean displayed = navBar.isDisplayed();
+            System.out.println("   Nav bar found, displayed: " + displayed);
+            return displayed;
+        } catch (Exception e1) {
+            // Try alternate: look for "New Issue" static text
+            try {
+                WebElement newIssueText = driver.findElement(
+                    AppiumBy.iOSNsPredicateString("label == 'New Issue' AND type == 'XCUIElementTypeStaticText' AND visible == true")
+                );
+                boolean displayed = newIssueText.isDisplayed();
+                System.out.println("   New Issue text found, displayed: " + displayed);
+                return displayed;
+            } catch (Exception e2) {
+                // Try to find Create Issue button (only exists on New Issue screen)
+                try {
+                    WebElement createBtn = driver.findElement(
+                        AppiumBy.iOSNsPredicateString("label == 'Create Issue' AND type == 'XCUIElementTypeButton'")
+                    );
+                    System.out.println("   Create Issue button found - on New Issue screen");
+                    return true;
+                } catch (Exception e3) {
+                    System.out.println("   ⚠️ New Issue screen not detected");
+                    return false;
+                }
+            }
+        }
+    }
+
+    /**
+     * Enter issue title
+     */
+    public void enterIssueTitle(String title) {
+        System.out.println("📝 Entering issue title: " + title);
+        try {
+            // Wait for New Issue screen to be ready
+            sleep(500);
+            
+            // Find title field by placeholderValue
+            WebElement titleField = driver.findElement(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' AND placeholderValue == 'Enter issue title'")
+            );
+            
+            System.out.println("   Found title field, clicking...");
+            titleField.click();
+            sleep(500);
+            titleField.sendKeys(title);
+            sleep(300);
+            
+            // Dismiss keyboard by clicking Done button
+            System.out.println("   Dismissing keyboard...");
+            try {
+                WebElement doneBtn = driver.findElement(
+                    AppiumBy.iOSNsPredicateString("label == 'Done' AND type == 'XCUIElementTypeButton'")
+                );
+                doneBtn.click();
+                sleep(500);
+                System.out.println("   ✅ Clicked Done button");
+            } catch (Exception doneEx) {
+                // Tap outside to dismiss keyboard
+                try {
+                    driver.executeScript("mobile: tap", Map.of("x", 200, "y", 200));
+                    sleep(300);
+                } catch (Exception tapEx) {}
+            }
+            
+            System.out.println("✅ Entered issue title");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not enter issue title: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Click Issue Class dropdown
+     */
+    public void clickIssueClassDropdown() {
+        System.out.println("📋 Clicking Issue Class dropdown...");
+        try {
+            WebElement dropdown = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name CONTAINS 'Issue Class' AND type == 'XCUIElementTypeButton'")
+            );
+            dropdown.click();
+            sleep(1000);
+            System.out.println("✅ Clicked Issue Class dropdown");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not click Issue Class dropdown: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Select an Issue Class option
+     * @param className e.g., "Repair Needed", "NEC Violation", "Thermal Anomaly"
+     */
+    public void selectIssueClass(String className) {
+        System.out.println("📋 Selecting Issue Class: " + className);
+        try {
+            // Click Issue Class dropdown first
+            clickIssueClassDropdown();
+            sleep(500);
+            
+            // Select the option
+            WebElement option = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == '" + className + "' AND type == 'XCUIElementTypeButton'")
+            );
+            option.click();
+            sleep(500);
+            System.out.println("✅ Selected Issue Class: " + className);
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not select Issue Class: " + e.getMessage());
+        }
+    }
+
+        /**
+     * Click Priority dropdown
+     */
+    public void clickPriorityDropdown() {
+        System.out.println("📋 Clicking Priority dropdown...");
+        try {
+            WebElement dropdown = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name CONTAINS 'Priority' AND type == 'XCUIElementTypeButton'")
+            );
+            dropdown.click();
+            sleep(1000);
+            System.out.println("✅ Clicked Priority dropdown");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not click Priority dropdown: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Click Create Issue button
+     */
+    public void clickCreateIssueButton() {
+        System.out.println("🆕 Clicking Create Issue button...");
+        try {
+            // Try multiple selectors
+            WebElement createBtn = null;
+            
+            try {
+                createBtn = driver.findElement(
+                    AppiumBy.iOSNsPredicateString("name == 'Create Issue' AND type == 'XCUIElementTypeButton'")
+                );
+            } catch (Exception e1) {
+                try {
+                    createBtn = driver.findElement(AppiumBy.accessibilityId("Create Issue"));
+                } catch (Exception e2) {
+                    System.out.println("⚠️ Could not find Create Issue button");
+                    return;
+                }
+            }
+            
+            // Check if enabled
+            String enabled = createBtn.getAttribute("enabled");
+            System.out.println("   Create Issue button enabled: " + enabled);
+            
+            if ("true".equals(enabled)) {
+                createBtn.click();
+                sleep(2000);
+                System.out.println("✅ Clicked Create Issue button");
+            } else {
+                System.out.println("⚠️ Create Issue button is disabled - title may be empty");
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not click Create Issue: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Check if Create Issue button is enabled
+     */
+    public boolean isCreateIssueButtonEnabled() {
+        try {
+            WebElement createBtn = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Create Issue' AND type == 'XCUIElementTypeButton'")
+            );
+            String enabled = createBtn.getAttribute("enabled");
+            return "true".equals(enabled);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Click Cancel button on New Issue screen
+     */
+    public void clickCancelIssue() {
+        System.out.println("❌ Clicking Cancel on New Issue...");
+        try {
+            WebElement cancelBtn = driver.findElement(AppiumBy.accessibilityId("Cancel"));
+            cancelBtn.click();
+            sleep(1000);
+            System.out.println("✅ Clicked Cancel");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not click Cancel: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Get the asset name displayed in "Creating issue for:" section
+     */
+    public String getIssueAssetName() {
+        try {
+            WebElement assetName = driver.findElement(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText' AND name CONTAINS 'TestAsset'")
+            );
+            return assetName.getText().trim();
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+
+    // ================================================================
+    // CONNECTION METHODS
+    // ================================================================
+
+    /**
+     * Scroll to Connections section on Asset Details screen
+     */
+    public void scrollToConnectionsSection() {
+        System.out.println("📜 Scrolling directly to bottom (Connections section)...");
+        
+        // Connections is at the bottom of Asset Details form
+        // Scroll aggressively to bottom to save time
+        for (int i = 0; i < 15; i++) {
+            // Fast scroll with high velocity
+            Map<String, Object> swipeParams = new HashMap<>();
+            swipeParams.put("direction", "up");
+            swipeParams.put("velocity", 800);
+            driver.executeScript("mobile: swipe", swipeParams);
+            sleep(200);
+        }
+        
+        System.out.println("   Scrolled to bottom, checking for Connections...");
+        sleep(500);
+        
+        // Verify we can see Connections section
+        try {
+            WebElement connLabel = driver.findElement(
+                AppiumBy.iOSNsPredicateString("label == 'Connections' AND type == 'XCUIElementTypeStaticText' AND visible == true")
+            );
+            int y = connLabel.getLocation().getY();
+            System.out.println("✅ Found Connections section at y=" + y);
+        } catch (Exception e) {
+            System.out.println("⚠️ Connections section not visible - may need adjustment");
+        }
+    }
+
+    /**
+     * Click Add Connection (+) button in Connections section
+     */
+    public void clickAddConnectionButton() {
+        System.out.println("➕ Clicking Add Connection button...");
+        try {
+            sleep(500);
+            
+            // Find Connections label Y position
+            int connY = -1;
+            try {
+                WebElement connLabel = driver.findElement(
+                    AppiumBy.iOSNsPredicateString("label == 'Connections' AND type == 'XCUIElementTypeStaticText' AND visible == true")
+                );
+                connY = connLabel.getLocation().getY();
+                System.out.println("   Connections label at y=" + connY);
+            } catch (Exception e) {
+                System.out.println("   ⚠️ Could not find Connections label");
+            }
+            
+            // Find Add button near Connections
+            WebElement addBtn = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Add' AND type == 'XCUIElementTypeButton' AND visible == true")
+            );
+            int addY = addBtn.getLocation().getY();
+            System.out.println("   Add button at y=" + addY);
+            
+            addBtn.click();
+            sleep(1000);
+            System.out.println("✅ Clicked Add Connection button");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not click Add Connection button: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Select New Lineside Connection from the menu
+     */
+    public void selectNewLinesideConnection() {
+        System.out.println("🔗 Selecting New Lineside Connection...");
+        try {
+            WebElement lineside = driver.findElement(
+                AppiumBy.iOSNsPredicateString("label == 'New Lineside Connection' AND type == 'XCUIElementTypeButton'")
+            );
+            lineside.click();
+            sleep(2000);
+            System.out.println("✅ Selected New Lineside Connection");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not select New Lineside Connection: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Select New Loadside Connection from the menu
+     */
+    public void selectNewLoadsideConnection() {
+        System.out.println("🔗 Selecting New Loadside Connection...");
+        try {
+            WebElement loadside = driver.findElement(
+                AppiumBy.iOSNsPredicateString("label == 'New Loadside Connection' AND type == 'XCUIElementTypeButton'")
+            );
+            loadside.click();
+            sleep(2000);
+            System.out.println("✅ Selected New Loadside Connection");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not select New Loadside Connection: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Check if New Connection screen is displayed
+     */
+    public boolean isNewConnectionScreenDisplayed() {
+        try {
+            WebElement navBar = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'New Connection' AND type == 'XCUIElementTypeNavigationBar'")
+            );
+            return navBar.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Check if Lineside (Incoming) is selected
+     */
+    public boolean isLinesideIncomingSelected() {
+        try {
+            WebElement lineside = driver.findElement(
+                AppiumBy.iOSNsPredicateString("label == 'Lineside (Incoming)' AND type == 'XCUIElementTypeStaticText' AND visible == true")
+            );
+            return lineside.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Click Cancel on New Connection screen
+     */
+    public void clickCancelConnection() {
+        System.out.println("❌ Clicking Cancel on New Connection...");
+        try {
+            WebElement cancelBtn = driver.findElement(AppiumBy.accessibilityId("Cancel"));
+            cancelBtn.click();
+            sleep(1000);
+            System.out.println("✅ Clicked Cancel");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not click Cancel: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Click Source Node dropdown
+     */
+    public void clickSourceNodeDropdown() {
+        System.out.println("📋 Clicking Source Node dropdown...");
+        try {
+            WebElement dropdown = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name CONTAINS 'Source Node' AND type == 'XCUIElementTypeButton'")
+            );
+            dropdown.click();
+            sleep(1000);
+            System.out.println("✅ Clicked Source Node dropdown");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not click Source Node dropdown: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Click Target Node dropdown
+     */
+    public void clickTargetNodeDropdown() {
+        System.out.println("📋 Clicking Target Node dropdown...");
+        try {
+            WebElement dropdown = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name CONTAINS 'Target Node' AND type == 'XCUIElementTypeButton'")
+            );
+            dropdown.click();
+            sleep(1000);
+            System.out.println("✅ Clicked Target Node dropdown");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not click Target Node dropdown: " + e.getMessage());
+        }
+    }
+
+    
+    /**
+     * Click Source Node dropdown (Select source)
+     */
+    public void clickSelectSourceDropdown() {
+        System.out.println("📋 Clicking Select source dropdown...");
+        try {
+            WebElement dropdown = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Select source' AND type == 'XCUIElementTypeButton'")
+            );
+            dropdown.click();
+            sleep(1000);
+            System.out.println("✅ Clicked Select source dropdown");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not click Select source: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Select first available source node (not the current asset)
+     */
+    public void selectFirstSourceNode() {
+        System.out.println("🔗 Selecting first available source node...");
+        try {
+            // Find all asset buttons in the source list
+            List<WebElement> options = driver.findElements(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name CONTAINS ', ' AND name CONTAINS 'ATS' AND visible == true")
+            );
+            
+            if (options.isEmpty()) {
+                // Try broader search
+                options = driver.findElements(
+                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name CONTAINS 'TestAsset' AND visible == true")
+                );
+            }
+            
+            System.out.println("   Found " + options.size() + " source node options");
+            
+            if (!options.isEmpty()) {
+                WebElement firstOption = options.get(0);
+                String name = firstOption.getAttribute("name");
+                System.out.println("   Selecting: " + name);
+                firstOption.click();
+                sleep(1000);
+                System.out.println("✅ Selected source node");
+            } else {
+                System.out.println("⚠️ No source node options found");
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not select source node: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Click Create button on New Connection screen
+     */
+    public void clickCreateConnectionButton() {
+        System.out.println("🆕 Clicking Create button...");
+        try {
+            WebElement createBtn = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Create' AND type == 'XCUIElementTypeButton' AND visible == true")
+            );
+            createBtn.click();
+            sleep(2000);
+            System.out.println("✅ Clicked Create button");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not click Create button: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Check if connection was created (back on Asset Details with connection visible)
+     */
+    public boolean isConnectionCreated() {
+        try {
+            // Check if we're back on Asset Details
+            WebElement navBar = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Asset Details' AND type == 'XCUIElementTypeNavigationBar'")
+            );
+            
+            // Check if Lineside connection is visible
+            WebElement connection = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name CONTAINS 'Lineside' AND type == 'XCUIElementTypeButton' AND visible == true")
+            );
+            
+            return navBar.isDisplayed() && connection.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    
+    /**
+     * Check if Loadside (Outgoing) is selected
+     */
+    public boolean isLoadsideOutgoingSelected() {
+        try {
+            WebElement loadside = driver.findElement(
+                AppiumBy.iOSNsPredicateString("label == 'Loadside (Outgoing)' AND type == 'XCUIElementTypeStaticText' AND visible == true")
+            );
+            return loadside.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Click Target Node dropdown (Select target)
+     */
+    public void clickSelectTargetDropdown() {
+        System.out.println("📋 Clicking Select target dropdown...");
+        try {
+            WebElement dropdown = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Select target' AND type == 'XCUIElementTypeButton'")
+            );
+            dropdown.click();
+            sleep(1000);
+            System.out.println("✅ Clicked Select target dropdown");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not click Select target: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Select first available target node (not the current asset)
+     */
+    public void selectFirstTargetNode() {
+        System.out.println("🔗 Selecting first available target node...");
+        try {
+            // Find all asset buttons in the target list
+            List<WebElement> options = driver.findElements(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name CONTAINS ', ' AND name CONTAINS 'ATS' AND visible == true")
+            );
+            
+            if (options.isEmpty()) {
+                // Try broader search
+                options = driver.findElements(
+                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name CONTAINS 'TestAsset' AND visible == true")
+                );
+            }
+            
+            System.out.println("   Found " + options.size() + " target node options");
+            
+            if (!options.isEmpty()) {
+                WebElement firstOption = options.get(0);
+                String name = firstOption.getAttribute("name");
+                System.out.println("   Selecting: " + name);
+                firstOption.click();
+                sleep(1000);
+                System.out.println("✅ Selected target node");
+            } else {
+                System.out.println("⚠️ No target node options found");
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not select target node: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Check if Loadside connection was created
+     */
+    public boolean isLoadsideConnectionCreated() {
+        try {
+            // Check if we're back on Asset Details
+            WebElement navBar = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Asset Details' AND type == 'XCUIElementTypeNavigationBar'")
+            );
+            
+            // Check if Loadside connection is visible
+            WebElement connection = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name CONTAINS 'Loadside' AND type == 'XCUIElementTypeButton' AND visible == true")
+            );
+            
+            return navBar.isDisplayed() && connection.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    
+    /**
+     * Verify Source Node is auto-populated (for Loadside - shows current asset)
+     * Returns the asset name if populated, null otherwise
+     */
+    public String getSourceNodeValue() {
+        System.out.println("🔍 Checking Source Node value...");
+        try {
+            // For Loadside, Source Node shows the current asset as a button
+            WebElement sourceBtn = driver.findElement(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name CONTAINS 'TestAsset' AND name CONTAINS 'Generator' AND visible == true")
+            );
+            String value = sourceBtn.getAttribute("name");
+            System.out.println("   Source Node value: " + value);
+            return value;
+        } catch (Exception e) {
+            System.out.println("   Source Node not found or empty");
+            return null;
+        }
+    }
+
+    /**
+     * Verify Target Node is auto-populated (for Lineside - shows current asset)
+     * Returns the asset name if populated, null otherwise
+     */
+    public String getTargetNodeValue() {
+        System.out.println("🔍 Checking Target Node value...");
+        try {
+            // For Lineside, Target Node shows the current asset as a button
+            WebElement targetBtn = driver.findElement(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name CONTAINS 'TestAsset' AND name CONTAINS 'Generator' AND visible == true")
+            );
+            String value = targetBtn.getAttribute("name");
+            System.out.println("   Target Node value: " + value);
+            return value;
+        } catch (Exception e) {
+            System.out.println("   Target Node not found or empty");
+            return null;
+        }
+    }
+
+    /**
+     * Check if Source Node shows "Select source" (not yet selected)
+     */
+    public boolean isSourceNodeEmpty() {
+        try {
+            WebElement selectSource = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Select source' AND type == 'XCUIElementTypeButton' AND visible == true")
+            );
+            return selectSource.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Check if Target Node shows "Select target" (not yet selected)
+     */
+    public boolean isTargetNodeEmpty() {
+        try {
+            WebElement selectTarget = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Select target' AND type == 'XCUIElementTypeButton' AND visible == true")
+            );
+            return selectTarget.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    
+    // ============================================================
+    // MCC-OCP METHODS
+    // ============================================================
+
+    /**
+     * Scroll to OCP section in MCC asset
+     */
+    public void scrollToOCPSection() {
+        System.out.println("📜 Scrolling to OCP section...");
+        long start = System.currentTimeMillis();
+        
+        try {
+            // Scroll down to find OCP section
+            for (int i = 0; i < 10; i++) {
+                try {
+                    WebElement ocp = driver.findElement(
+                        AppiumBy.iOSNsPredicateString("name == 'OCP' AND type == 'XCUIElementTypeStaticText' AND visible == true")
+                    );
+                    if (ocp.isDisplayed()) {
+                        int y = ocp.getLocation().getY();
+                        System.out.println("✅ Found OCP section at y=" + y);
+                        break;
+                    }
+                } catch (Exception e) {
+                    // Not found yet, scroll
+                    scrollFormDown();
+                    sleep(300);
+                }
+            }
+            System.out.println("✅ At OCP section (Total: " + (System.currentTimeMillis() - start) + "ms)");
+        } catch (Exception e) {
+            System.out.println("⚠️ OCP section not found: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Click Add OCP button (+ button near OCP label)
+     */
+    public void clickAddOCPButton() {
+        System.out.println("➕ Clicking Add OCP button...");
+        try {
+            // Find OCP label position
+            WebElement ocpLabel = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'OCP' AND type == 'XCUIElementTypeStaticText' AND visible == true")
+            );
+            int ocpY = ocpLabel.getLocation().getY();
+            System.out.println("   OCP label at y=" + ocpY);
+            
+            // Find Add button near OCP (within 50px)
+            List<WebElement> addButtons = driver.findElements(
+                AppiumBy.iOSNsPredicateString("name == 'Add' AND type == 'XCUIElementTypeButton' AND visible == true")
+            );
+            
+            for (WebElement btn : addButtons) {
+                int btnY = btn.getLocation().getY();
+                if (Math.abs(btnY - ocpY) < 50) {
+                    System.out.println("   Add button at y=" + btnY);
+                    btn.click();
+                    sleep(1000);
+                    System.out.println("✅ Clicked Add OCP button");
+                    return;
+                }
+            }
+            
+            // Fallback: click first Add button
+            if (!addButtons.isEmpty()) {
+                addButtons.get(0).click();
+                sleep(1000);
+                System.out.println("✅ Clicked first Add button (fallback)");
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not click Add OCP: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Check if OCP Add options are displayed (Create New Child / Link Existing Node)
+     */
+    public boolean areOCPAddOptionsDisplayed() {
+        try {
+            WebElement createChild = driver.findElement(
+                AppiumBy.iOSNsPredicateString("label == 'Create New Child' AND type == 'XCUIElementTypeButton' AND visible == true")
+            );
+            WebElement linkNode = driver.findElement(
+                AppiumBy.iOSNsPredicateString("label == 'Link Existing Node' AND type == 'XCUIElementTypeButton' AND visible == true")
+            );
+            return createChild.isDisplayed() && linkNode.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Click Create New Child option
+     */
+    public void clickCreateNewChild() {
+        System.out.println("🆕 Clicking Create New Child...");
+        try {
+            WebElement btn = driver.findElement(
+                AppiumBy.iOSNsPredicateString("label == 'Create New Child' AND type == 'XCUIElementTypeButton'")
+            );
+            btn.click();
+            sleep(2000);
+            System.out.println("✅ Clicked Create New Child");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not click Create New Child: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Click Link Existing Node option
+     */
+    public void clickLinkExistingNode() {
+        System.out.println("🔗 Clicking Link Existing Node...");
+        try {
+            WebElement btn = driver.findElement(
+                AppiumBy.iOSNsPredicateString("label == 'Link Existing Node' AND type == 'XCUIElementTypeButton'")
+            );
+            btn.click();
+            sleep(2000);
+            System.out.println("✅ Clicked Link Existing Node");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not click Link Existing Node: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Check if Create New Child Asset screen is displayed
+     */
+    public boolean isCreateNewChildAssetScreenDisplayed() {
+        try {
+            // Look for Asset Class dropdown (indicates create asset form)
+            WebElement assetClass = driver.findElement(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND (name == 'ATS' OR name == 'MCC Bucket' OR name == 'Circuit Breaker') AND visible == true")
+            );
+            return assetClass.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Check if Link Existing Node screen is displayed
+     */
+    public boolean isLinkExistingNodeScreenDisplayed() {
+        try {
+            // Link existing node shows a list of assets
+            WebElement assetList = driver.findElement(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name CONTAINS 'Asset_' AND visible == true")
+            );
+            return assetList.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Select first existing node to link
+     */
+    public void selectFirstExistingNode() {
+        System.out.println("🔗 Selecting first existing node...");
+        try {
+            WebElement firstNode = driver.findElement(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name CONTAINS 'Asset_' AND visible == true")
+            );
+            String name = firstNode.getAttribute("name");
+            System.out.println("   Selecting: " + name);
+            firstNode.click();
+            sleep(1000);
+            System.out.println("✅ Selected first existing node");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not select existing node: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Check if OCP section exists (for MCC assets)
+     */
+    public boolean isOCPSectionVisible() {
+        try {
+            WebElement ocp = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'OCP' AND type == 'XCUIElementTypeStaticText' AND visible == true")
+            );
+            return ocp.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+        /**
+     * Check if New Task screen is displayed
+     */
+    public boolean isNewTaskScreenDisplayed() {
+        try {
+            WebElement navBar = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'New Task' AND type == 'XCUIElementTypeNavigationBar'")
+            );
+            return navBar.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Enter task title
+     */
+    public void enterTaskTitle(String title) {
+        System.out.println("📝 Entering task title: " + title);
+        try {
+            WebElement titleField = driver.findElement(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' AND value == 'Enter task title'")
+            );
+            titleField.click();
+            sleep(300);
+            titleField.clear();
+            titleField.sendKeys(title);
+            System.out.println("✅ Entered task title");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not enter task title: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Enter task description
+     */
+    public void enterTaskDescription(String description) {
+        System.out.println("📝 Entering task description: " + description);
+        try {
+            // Find description text view
+            WebElement descField = driver.findElement(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextView'")
+            );
+            descField.click();
+            sleep(300);
+            descField.sendKeys(description);
+            sleep(300);
+            
+            // Click "Done" button to dismiss keyboard
+            System.out.println("   Clicking Done to dismiss keyboard...");
+            try {
+                WebElement doneBtn = driver.findElement(
+                    AppiumBy.iOSNsPredicateString("label == 'Done' AND type == 'XCUIElementTypeButton'")
+                );
+                doneBtn.click();
+                sleep(500);
+                System.out.println("   ✅ Clicked Done button");
+            } catch (Exception doneEx) {
+                System.out.println("   Done button not found, trying alternatives...");
+                // Try Return key or hide keyboard
+                try {
+                    driver.executeScript("mobile: hideKeyboard", Map.of("strategy", "pressKey", "key", "Done"));
+                } catch (Exception kbEx) {
+                    // Fallback: tap outside to dismiss
+                    try {
+                        driver.executeScript("mobile: tap", Map.of("x", 200, "y", 150));
+                    } catch (Exception tapEx) {}
+                }
+            }
+            sleep(300);
+            
+            System.out.println("✅ Entered task description");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not enter task description: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Click Create Task button
+     */
+    public void clickCreateTaskButton() {
+        System.out.println("🆕 Clicking Create Task button...");
+        try {
+            WebElement createBtn = driver.findElement(
+                AppiumBy.iOSNsPredicateString("label == 'Create Task' AND type == 'XCUIElementTypeButton'")
+            );
+            createBtn.click();
+            sleep(500);
+            System.out.println("✅ Clicked Create Task");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not click Create Task: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Click Cancel button on New Task screen
+     */
+    public void clickCancelTask() {
+        System.out.println("❌ Clicking Cancel...");
+        try {
+            WebElement cancelBtn = driver.findElement(AppiumBy.accessibilityId("Cancel"));
+            cancelBtn.click();
+            sleep(500);
+            System.out.println("✅ Clicked Cancel");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not click Cancel: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Toggle Mark as Completed switch
+     * Note: Need to dismiss keyboard first, then tap on the right side of the switch control
+     */
+    public void toggleMarkAsCompleted() {
+        System.out.println("🔄 Toggling Mark as Completed...");
+        try {
+            // IMPORTANT: Dismiss keyboard first by tapping outside or pressing Done
+            System.out.println("   Dismissing keyboard...");
+            try {
+                // Try to hide keyboard
+                driver.executeScript("mobile: hideKeyboard");
+            } catch (Exception kbEx) {
+                // Fallback: tap on a neutral area to dismiss keyboard
+                try {
+                    driver.executeScript("mobile: tap", Map.of("x", 200, "y", 150));
+                } catch (Exception tapEx) {
+                    // Ignore
+                }
+            }
+            sleep(500);
+            
+            WebElement toggle = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Mark as Completed' AND type == 'XCUIElementTypeSwitch'")
+            );
+            
+            // Get toggle position and tap on the right side (where the actual switch is)
+            int toggleX = toggle.getLocation().getX();
+            int toggleY = toggle.getLocation().getY();
+            int toggleWidth = toggle.getSize().getWidth();
+            int toggleHeight = toggle.getSize().getHeight();
+            
+            // Tap on the right side of the toggle (where the switch control is)
+            int tapX = toggleX + toggleWidth - 30;  // Right side
+            int tapY = toggleY + (toggleHeight / 2); // Center vertically
+            
+            System.out.println("   Tapping toggle at (" + tapX + ", " + tapY + ")");
+            driver.executeScript("mobile: tap", Map.of("x", tapX, "y", tapY));
+            sleep(500);
+            
+            // Verify the toggle changed
+            String value = toggle.getAttribute("value");
+            System.out.println("   Toggle value after tap: " + value);
+            
+            if ("0".equals(value)) {
+                System.out.println("   Toggle still OFF, trying direct coordinates...");
+                // Try tapping directly on the switch part
+                driver.executeScript("mobile: tap", Map.of("x", 340, "y", tapY));
+                sleep(500);
+                value = toggle.getAttribute("value");
+                System.out.println("   Toggle value after retry: " + value);
+            }
+            
+            System.out.println("✅ Toggled Mark as Completed");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not toggle via element, trying coordinates...");
+            // Fallback: dismiss keyboard and tap at typical toggle location
+            try {
+                driver.executeScript("mobile: hideKeyboard");
+                sleep(300);
+            } catch (Exception kbEx) {}
+            
+            try {
+                driver.executeScript("mobile: tap", Map.of("x", 340, "y", 756));
+                sleep(500);
+                System.out.println("✅ Toggled Mark as Completed via coordinates");
+            } catch (Exception e2) {
+                System.out.println("⚠️ Could not toggle: " + e2.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Check if Tasks section has "No tasks" text
+     */
+    public boolean hasNoTasks() {
+        try {
+            WebElement noTasks = driver.findElement(
+                AppiumBy.iOSNsPredicateString("label == 'No tasks'")
+            );
+            return noTasks.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Check if element is visible by label
+     */
+    public boolean isElementVisibleByLabel(String label) {
+        try {
+            WebElement element = driver.findElement(
+                AppiumBy.iOSNsPredicateString("label == '" + label + "' AND visible == true")
+            );
+            return element.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     /**
      * Fast wait for asset list (2 seconds max)
      */
@@ -415,8 +2061,13 @@ public class AssetPage extends BasePage {
 
     public int getAssetCount() {
         try {
-            return assetCells.size();
+            // Use fresh element lookup to get current cell count after search
+            List<WebElement> cells = driver.findElements(AppiumBy.className("XCUIElementTypeCell"));
+            int count = cells.size();
+            System.out.println("📊 Asset count: " + count);
+            return count;
         } catch (Exception e) {
+            System.out.println("⚠️ Error getting asset count: " + e.getMessage());
             return 0;
         }
     }
@@ -424,40 +2075,45 @@ public class AssetPage extends BasePage {
     public void searchAsset(String assetName) {
         System.out.println("🔍 Searching for asset: " + assetName);
         
-        // Try to find and click search bar
-        try {
-            WebElement searchField = driver.findElement(AppiumBy.className("XCUIElementTypeSearchField"));
-            searchField.click();
-            sleep(300);
-            searchField.sendKeys(assetName);
-            System.out.println("✅ Searched for asset: " + assetName);
-            sleep(500);
-            return;
-        } catch (Exception e) {}
+        WebElement searchField = null;
         
-        // Try accessibility ID
+        // Try to find search bar using different strategies
         try {
-            WebElement searchField = driver.findElement(AppiumBy.accessibilityId("Search"));
-            searchField.click();
-            sleep(300);
-            searchField.sendKeys(assetName);
-            System.out.println("✅ Searched for asset (accessibility): " + assetName);
-            sleep(500);
-            return;
-        } catch (Exception e) {}
-        
-        // Try by predicate
-        try {
-            WebElement searchField = driver.findElement(
-                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeSearchField' OR name == 'Search' OR label == 'Search'")
-            );
-            searchField.click();
-            sleep(300);
-            searchField.sendKeys(assetName);
-            System.out.println("✅ Searched for asset (predicate): " + assetName);
-            sleep(500);
+            searchField = driver.findElement(AppiumBy.className("XCUIElementTypeSearchField"));
         } catch (Exception e) {
-            System.out.println("⚠️ Search bar not available: " + e.getMessage());
+            try {
+                searchField = driver.findElement(AppiumBy.accessibilityId("Search by name, type, location, or QR code"));
+            } catch (Exception e2) {
+                try {
+                    searchField = driver.findElement(
+                        AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeSearchField'")
+                    );
+                } catch (Exception e3) {
+                    System.out.println("⚠️ Search bar not available");
+                    return;
+                }
+            }
+        }
+        
+        if (searchField != null) {
+            try {
+                // Click to focus
+                searchField.click();
+                sleep(300);
+                
+                // CLEAR the field first before entering new text
+                searchField.clear();
+                sleep(300);
+                
+                // Enter search term
+                searchField.sendKeys(assetName);
+                System.out.println("✅ Searched for asset: " + assetName);
+                
+                // Wait for search results to update
+                sleep(1000);
+            } catch (Exception e) {
+                System.out.println("⚠️ Error during search: " + e.getMessage());
+            }
         }
     }
 
@@ -561,8 +2217,31 @@ public class AssetPage extends BasePage {
         // Wait for list to fully load
         sleep(1000);
         
-        // STRATEGY 1: Find first CELL and click the StaticText INSIDE it
-        // This is generic - works for ANY asset name
+        // STRATEGY 1: Find asset buttons directly (they contain full asset info in name)
+        // Asset buttons have format: "AssetName, Location, Type" e.g. "TestAsset_123, Room_456, ATS"
+        // Exclude search field which also contains comma
+        try {
+            // Exclude Task buttons which also have commas but contain "Task" in name
+            // Also exclude buttons containing "Open" or "Completed" status text (these are Tasks)
+            List<WebElement> buttons = driver.findElements(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name CONTAINS ', ' AND NOT name CONTAINS 'Search' AND NOT name BEGINSWITH 'Completed Task' AND NOT name BEGINSWITH 'Test Task' AND NOT name CONTAINS 'This task'")
+            );
+            System.out.println("   Found " + buttons.size() + " asset buttons");
+            
+            if (buttons.size() > 0) {
+                WebElement firstAsset = buttons.get(0);
+                String assetName = firstAsset.getAttribute("name");
+                System.out.println("   🎯 First asset button: " + assetName);
+                firstAsset.click();
+                System.out.println("✅ Selected asset via button");
+                sleep(1500);
+                return assetName.split(",")[0].trim();
+            }
+        } catch (Exception e) {
+            System.out.println("   Button strategy failed: " + e.getMessage());
+        }
+        
+        // STRATEGY 2: Find first CELL and click inside it
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.className("XCUIElementTypeCell"));
             System.out.println("   Found " + cells.size() + " cells");
@@ -570,26 +2249,31 @@ public class AssetPage extends BasePage {
             if (cells.size() > 0) {
                 WebElement firstCell = cells.get(0);
                 
-                // Find the StaticText inside this cell (the asset name)
+                // Try to find button inside the cell
                 try {
-                    List<WebElement> textsInCell = firstCell.findElements(AppiumBy.className("XCUIElementTypeStaticText"));
-                    if (textsInCell.size() > 0) {
-                        WebElement assetNameElement = textsInCell.get(0);
-                        String assetName = assetNameElement.getAttribute("name");
-                        System.out.println("   🎯 First cell contains: " + assetName);
-                        
-                        // Click the text element
-                        assetNameElement.click();
-                        System.out.println("✅ Selected asset: " + assetName);
-                        sleep(1000);
-                        return assetName;
-                    }
+                    WebElement buttonInCell = firstCell.findElement(AppiumBy.className("XCUIElementTypeButton"));
+                    String name = buttonInCell.getAttribute("name");
+                    System.out.println("   🎯 Button in cell: " + name);
+                    buttonInCell.click();
+                    System.out.println("✅ Selected asset via cell button");
+                    sleep(1000);
+                    return name.split(",")[0].trim();
                 } catch (Exception inner) {
-                    // If can't find text, click cell center
-                    System.out.println("   No text in cell, clicking cell center...");
+                    // No button, try text
+                    try {
+                        List<WebElement> textsInCell = firstCell.findElements(AppiumBy.className("XCUIElementTypeStaticText"));
+                        if (textsInCell.size() > 0) {
+                            WebElement assetNameElement = textsInCell.get(0);
+                            String assetName = assetNameElement.getAttribute("name");
+                            assetNameElement.click();
+                            System.out.println("✅ Selected asset via text: " + assetName);
+                            sleep(1000);
+                            return assetName;
+                        }
+                    } catch (Exception te) {}
                 }
                 
-                // Click cell center using coordinates
+                // Click cell center as fallback
                 int cellX = firstCell.getLocation().getX() + (firstCell.getSize().getWidth() / 2);
                 int cellY = firstCell.getLocation().getY() + (firstCell.getSize().getHeight() / 2);
                 driver.executeScript("mobile: tap", Map.of("x", cellX, "y", cellY));
@@ -601,116 +2285,27 @@ public class AssetPage extends BasePage {
             System.out.println("   Cell strategy failed: " + e.getMessage());
         }
         
-        // STRATEGY 2: Find first StaticText that is NOT a UI label
-        // UI labels are typically: Assets, Search, Cancel, Back, etc.
+        // STRATEGY 3: Find any StaticText that looks like an asset name
         try {
             List<WebElement> allTexts = driver.findElements(AppiumBy.className("XCUIElementTypeStaticText"));
-            System.out.println("   Checking " + allTexts.size() + " static texts...");
-            
-            // Known UI labels to skip (case-insensitive)
-            java.util.Set<String> uiLabels = new java.util.HashSet<>(java.util.Arrays.asList(
-                "assets", "search", "cancel", "back", "edit", "delete", "save", 
-                "create", "filter", "sort", "done", "close", "select", "add",
-                "asset details", "new asset", "location", "class", "subtype"
-            ));
             
             for (WebElement text : allTexts) {
                 String name = text.getAttribute("name");
-                if (name == null || name.trim().isEmpty()) continue;
-                
-                String nameLower = name.toLowerCase().trim();
-                
-                // Skip if it's a known UI label
-                if (uiLabels.contains(nameLower)) continue;
-                
-                // Skip if contains UI keywords
-                if (nameLower.contains("select") || nameLower.contains("enter") || 
-                    nameLower.contains("tap") || nameLower.contains("click")) continue;
-                
-                // This is likely an asset name - click it!
-                System.out.println("   🎯 Found potential asset: " + name);
-                text.click();
-                System.out.println("✅ Selected asset: " + name);
-                sleep(1000);
-                return name;
+                if (name != null && (name.contains("Asset") || name.contains("Test") || name.contains("_"))) {
+                    System.out.println("   🎯 Found asset text: " + name);
+                    text.click();
+                    System.out.println("✅ Selected asset via StaticText");
+                    sleep(1000);
+                    return name;
+                }
             }
         } catch (Exception e) {
-            System.out.println("   StaticText strategy failed: " + e.getMessage());
-        }
-        
-        // STRATEGY 3: Use iOS class chain to get first cell's first text
-        try {
-            WebElement firstAssetText = driver.findElement(
-                AppiumBy.iOSClassChain("**/XCUIElementTypeCell[1]/XCUIElementTypeStaticText[1]")
-            );
-            String name = firstAssetText.getAttribute("name");
-            System.out.println("   🎯 Class chain found: " + name);
-            firstAssetText.click();
-            System.out.println("✅ Selected asset via class chain: " + name);
-            sleep(1000);
-            return name;
-        } catch (Exception e) {
-            System.out.println("   Class chain strategy failed");
-        }
-        
-        // STRATEGY 4: Tap coordinates of first row (fallback)
-        try {
-            System.out.println("   Using coordinate tap fallback...");
-            int screenWidth = driver.manage().window().getSize().width;
-            int tapX = screenWidth / 2;
-            int tapY = 180;  // First row position
-            
-            driver.executeScript("mobile: tap", Map.of("x", tapX, "y", tapY));
-            System.out.println("✅ Tapped first row at (" + tapX + ", " + tapY + ")");
-            sleep(1000);
-            return "asset";
-        } catch (Exception e) {
-            System.out.println("   Coordinate tap failed: " + e.getMessage());
+            System.out.println("   Text strategy failed: " + e.getMessage());
         }
         
         System.out.println("⚠️ Could not select any asset");
         return null;
     }
-    
-    /**
-     * Debug: Print visible elements on screen
-     */
-    private void debugPrintElements() {
-        System.out.println("   📋 DEBUG: Elements on screen:");
-        try {
-            // Print cells
-            List<WebElement> cells = driver.findElements(AppiumBy.className("XCUIElementTypeCell"));
-            System.out.println("      Cells: " + cells.size());
-            
-            // Print buttons (first 5)
-            List<WebElement> buttons = driver.findElements(AppiumBy.className("XCUIElementTypeButton"));
-            System.out.println("      Buttons: " + buttons.size());
-            for (int i = 0; i < Math.min(5, buttons.size()); i++) {
-                String name = buttons.get(i).getAttribute("name");
-                System.out.println("         - " + name);
-            }
-            
-            // Print static texts (first 8 - more to see asset names)
-            List<WebElement> texts = driver.findElements(AppiumBy.className("XCUIElementTypeStaticText"));
-            System.out.println("      Static texts: " + texts.size());
-            int count = 0;
-            for (WebElement text : texts) {
-                String name = text.getAttribute("name");
-                if (name != null && name.length() > 1) {
-                    System.out.println("         - " + name);
-                    count++;
-                    if (count >= 8) break;
-                }
-            }
-        } catch (Exception e) {
-            System.out.println("      Debug failed: " + e.getMessage());
-        }
-    }
-
-    // ================================================================
-    // CREATE ASSET FORM METHODS
-    // ================================================================
-
     public boolean isCreateAssetFormDisplayed() {
         return isElementDisplayed(assetNameField) || isElementDisplayed(selectAssetClassButton);
     }
@@ -4191,31 +5786,45 @@ public class AssetPage extends BasePage {
      * Fast asset class change using coordinate tap on dropdown
      */
     public final void changeAssetClassToMCC() {
-        System.out.println("📋 Changing asset class to MCC (FAST)...");
+        System.out.println("📋 Changing asset class to MCC...");
         
-        // Quick check - is MCC already displayed?
+        // Quick check - is MCC already displayed as the current class?
         try {
-            WebElement mcc = driver.findElement(AppiumBy.accessibilityId("MCC"));
-            if (mcc.isDisplayed()) {
+            WebElement mccBtn = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'MCC' AND type == 'XCUIElementTypeButton' AND visible == true")
+            );
+            if (mccBtn.isDisplayed()) {
                 System.out.println("✅ Already MCC");
                 return;
             }
         } catch (Exception e) {}
         
-        // Find "Asset Class" label and tap below it to open dropdown
+        // Click on current Asset Class button to open dropdown
         try {
-            WebElement label = driver.findElement(
-                AppiumBy.iOSNsPredicateString("name == 'Asset Class' OR label == 'Asset Class'")
+            // Find any asset class button that's visible
+            WebElement classBtn = driver.findElement(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND (name == 'Generator' OR name == 'ATS' OR name == 'Busway' OR name == 'Capacitor' OR name == 'Circuit Breaker' OR name == 'Disconnect Switch' OR name == 'Fuse' OR name == 'Junction Box' OR name == 'Loadcenter' OR name == 'None') AND visible == true")
             );
-            int x = label.getLocation().getX() + 150;
-            int y = label.getLocation().getY() + label.getSize().getHeight() + 25;
-            System.out.println("   Tapping dropdown at (" + x + ", " + y + ")");
-            driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
-            sleep(300);
+            System.out.println("   Current class: " + classBtn.getAttribute("name"));
+            classBtn.click();
+            sleep(800);
             
-            // Now click MCC
-            driver.findElement(AppiumBy.accessibilityId("MCC")).click();
-            System.out.println("✅ Changed to MCC");
+            // Now click MCC in the dropdown (may need to scroll)
+            try {
+                driver.findElement(AppiumBy.accessibilityId("MCC")).click();
+                System.out.println("✅ Changed to MCC");
+            } catch (Exception e) {
+                // MCC might need scrolling - try predicate
+                try {
+                    WebElement mccOption = driver.findElement(
+                        AppiumBy.iOSNsPredicateString("name == 'MCC' AND type == 'XCUIElementTypeButton'")
+                    );
+                    mccOption.click();
+                    System.out.println("✅ Changed to MCC (predicate)");
+                } catch (Exception e2) {
+                    System.out.println("⚠️ Could not find MCC option");
+                }
+            }
         } catch (Exception e) {
             System.out.println("⚠️ Could not change to MCC: " + e.getMessage());
         }
@@ -4307,6 +5916,82 @@ public class AssetPage extends BasePage {
         } catch (Exception e) {}
         System.out.println("==============================================\n");
     }
+
+    /**
+     * Check if current asset class is MCC
+     */
+    public boolean isAssetClassMCC() {
+        try {
+            WebElement mcc = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'MCC' AND type == 'XCUIElementTypeButton' AND visible == true")
+            );
+            return mcc.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Click Save Changes button to save asset changes
+     * Note: After changing asset class, button is "Save Changes" not "Save"
+     */
+    public void clickSaveButton() {
+        System.out.println("💾 Clicking Save button...");
+        try {
+            WebElement saveBtn = null;
+            
+            // Try 1: "Save Changes" visible
+            try {
+                saveBtn = driver.findElement(
+                    AppiumBy.iOSNsPredicateString("name == 'Save Changes' AND type == 'XCUIElementTypeButton' AND visible == true")
+                );
+                System.out.println("   Found visible 'Save Changes' button");
+            } catch (Exception e) {}
+            
+            // Try 2: Scroll down and find "Save Changes"
+            if (saveBtn == null) {
+                System.out.println("   Scrolling to find Save Changes...");
+                for (int i = 0; i < 3; i++) {
+                    scrollFormDown();
+                    sleep(500);
+                    try {
+                        saveBtn = driver.findElement(
+                            AppiumBy.iOSNsPredicateString("name == 'Save Changes' AND type == 'XCUIElementTypeButton' AND visible == true")
+                        );
+                        System.out.println("   Found 'Save Changes' after scrolling");
+                        break;
+                    } catch (Exception e) {}
+                }
+            }
+            
+            // Try 3: "Save" button
+            if (saveBtn == null) {
+                try {
+                    saveBtn = driver.findElement(AppiumBy.accessibilityId("Save"));
+                    System.out.println("   Found 'Save' button");
+                } catch (Exception e) {}
+            }
+            
+            // Try 4: Done
+            if (saveBtn == null) {
+                try {
+                    saveBtn = driver.findElement(AppiumBy.accessibilityId("Done"));
+                    System.out.println("   Found 'Done' button");
+                } catch (Exception e) {}
+            }
+            
+            if (saveBtn != null) {
+                saveBtn.click();
+                sleep(2000);
+                System.out.println("✅ Clicked Save button");
+            } else {
+                System.out.println("⚠️ Save button not found");
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not click Save: " + e.getMessage());
+        }
+    }
+
 
     /**
      * Edit a text field by its label/name
