@@ -2,327 +2,52 @@
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
 <suite name="eGalvanic iOS Automation Suite" verbose="2">
 
-
-    <!-- Circuit Breaker Edit Asset Details Tests -->
-    <test name="Circuit Breaker EAD Tests">
+    <!-- Authentication Tests -->
+    <test name="Authentication Tests">
         <classes>
-            <class name="com.egalvanic.tests.AssetTest">
-                <methods>
-                    <include name="CB_EAD_01_verifyEditScreenOpensForCircuitBreaker"/>
-                    <include name="CB_EAD_02_verifyCoreAttributesSectionVisible"/>
-                    <include name="CB_EAD_03_verifyAllFieldsVisibleByDefault"/>
-                    <include name="CB_EAD_04_verifyRequiredFieldsToggleDefault"/>
-                    <include name="CB_EAD_05_verifyRequiredFieldsCount"/>
-                    <include name="CB_EAD_06_enableRequiredFieldsToggle"/>
-                    <include name="CB_EAD_07_verifyRequiredFieldsList"/>
-                    <include name="CB_EAD_08_verifyOptionalFieldsHidden"/>
-                    <include name="CB_EAD_09_verifyCompletionPercentage"/>
-                    <include name="CB_EAD_10_editAmpereRating"/>
-                    <include name="CB_EAD_11_editBreakerSettings"/>
-                    <include name="CB_EAD_12_editInterruptingRating"/>
-                    <include name="CB_EAD_13_editManufacturer"/>
-                    <include name="CB_EAD_14_editModel"/>
-                    <include name="CB_EAD_15_editVoltage"/>
-                    <include name="CB_EAD_16_editSerialNumber"/>
-                    <include name="CB_EAD_17_editNotes"/>
-                    <include name="CB_EAD_18_saveWithNoRequiredFields"/>
-                    <include name="CB_EAD_19_saveWithPartialRequiredFields"/>
-                    <include name="CB_EAD_20_saveWithAllRequiredFields"/>
-                    <include name="CB_EAD_21_verifyRedWarningIndicators"/>
-                    <include name="CB_EAD_22_verifyGreenCheckIndicators"/>
-                    <include name="CB_EAD_23_indicatorsDoNotBlockSave"/>
-                    <include name="CB_EAD_24_cancelEditOperation"/>
-                    <include name="CB_EAD_25_verifySaveButtonBehavior"/>
-                </methods>
-            </class>
+            <class name="com.egalvanic.tests.AuthenticationTest"/>
         </classes>
     </test>
 
-    <!-- Disconnect Switch Edit Asset Details Tests -->
-    <test name="Disconnect Switch EAD Tests">
+    <!-- Site Selection Tests -->
+    <test name="Site Selection Tests">
         <classes>
-            <class name="com.egalvanic.tests.AssetTest">
-                <methods>
-                    <include name="DS_EAD_01_verifyEditScreenOpensForDisconnectSwitch"/>
-                    <include name="DS_EAD_02_verifyCoreAttributesSectionVisible"/>
-                    <include name="DS_EAD_03_verifyAllFieldsVisibleByDefault"/>
-                    <include name="DS_EAD_04_verifyRequiredFieldsToggleDefault"/>
-                    <include name="DS_EAD_05_verifyRequiredFieldsCount"/>
-                    <include name="DS_EAD_06_enableRequiredFieldsToggle"/>
-                    <include name="DS_EAD_07_verifyRequiredFieldsList"/>
-                    <include name="DS_EAD_08_verifyOptionalFieldsHidden"/>
-                    <include name="DS_EAD_09_verifyCompletionPercentage"/>
-                    <include name="DS_EAD_10_editAmpereRating"/>
-                    <include name="DS_EAD_11_editInterruptingRating"/>
-                    <include name="DS_EAD_12_editVoltage"/>
-                    <include name="DS_EAD_13_editCatalogNumber"/>
-                    <include name="DS_EAD_14_editManufacturer"/>
-                    <include name="DS_EAD_15_editNotes"/>
-                    <include name="DS_EAD_16_saveWithNoRequiredFields"/>
-                    <include name="DS_EAD_17_saveWithPartialRequiredFields"/>
-                    <include name="DS_EAD_18_saveWithAllRequiredFields"/>
-                    <include name="DS_EAD_19_verifyRedWarningIndicators"/>
-                    <include name="DS_EAD_20_verifyGreenCheckIndicators"/>
-                    <include name="DS_EAD_21_indicatorsDoNotBlockSave"/>
-                    <include name="DS_EAD_22_cancelEditOperation"/>
-                    <include name="DS_EAD_23_verifySaveButtonBehavior"/>
-                </methods>
-            </class>
+            <class name="com.egalvanic.tests.SiteSelectionTest"/>
         </classes>
     </test>
 
-    <!-- Fuse Edit Asset Details Tests -->
-    <test name="Fuse EAD Tests">
+    <!-- Asset Tests (AssetTest.java) - All Asset Classes -->
+    <test name="Asset Tests">
         <classes>
-            <class name="com.egalvanic.tests.AssetTest">
-                <methods>
-                    <include name="FUSE_EAD_01_verifyEditScreenOpensForFuse"/>
-                    <include name="FUSE_EAD_02_verifyCoreAttributesSectionVisible"/>
-                    <include name="FUSE_EAD_03_verifyAllFieldsVisibleByDefault"/>
-                    <include name="FUSE_EAD_04_verifyRequiredFieldsToggleDefault"/>
-                    <include name="FUSE_EAD_05_verifyRequiredFieldsCount"/>
-                    <include name="FUSE_EAD_06_enableRequiredFieldsToggle"/>
-                    <include name="FUSE_EAD_07_verifyRequiredFieldsList"/>
-                    <include name="FUSE_EAD_08_verifyOptionalFieldsHidden"/>
-                    <include name="FUSE_EAD_09_verifyCompletionPercentage"/>
-                    <include name="FUSE_EAD_10_editAmpereRating"/>
-                    <include name="FUSE_EAD_11_editInterruptingRating"/>
-                    <include name="FUSE_EAD_12_editVoltage"/>
-                    <include name="FUSE_EAD_13_editCatalogNumber"/>
-                    <include name="FUSE_EAD_14_editManufacturer"/>
-                    <include name="FUSE_EAD_15_editNotes"/>
-                    <include name="FUSE_EAD_16_saveWithNoRequiredFields"/>
-                    <include name="FUSE_EAD_17_saveWithPartialRequiredFields"/>
-                    <include name="FUSE_EAD_18_saveWithAllRequiredFields"/>
-                    <include name="FUSE_EAD_19_verifyRedWarningIndicators"/>
-                    <include name="FUSE_EAD_20_verifyGreenCheckIndicators"/>
-                    <include name="FUSE_EAD_21_indicatorsDoNotBlockSave"/>
-                    <include name="FUSE_EAD_22_cancelEditOperation"/>
-                    <include name="FUSE_EAD_23_verifySaveButtonBehavior"/>
-                </methods>
-            </class>
+            <class name="com.egalvanic.tests.AssetTest"/>
         </classes>
     </test>
 
-    <!-- Generator Edit Asset Details Tests -->
-    <test name="Generator EAD Tests">
+    <!-- Asset Phase 2 Tests (Asset_Phase2_Test.java) -->
+    <test name="Asset Phase 2 Tests">
         <classes>
-            <class name="com.egalvanic.tests.Asset_Phase2_Test">
-                <methods>
-                    <include name="GEN_EAD_01_openEditAssetDetailsScreen"/>
-                    <include name="GEN_EAD_02_verifyCoreAttributesSection"/>
-                    <include name="GEN_EAD_03_verifyAllFieldsVisibleByDefault"/>
-                    <include name="GEN_EAD_04_verifySaveChangesButtonVisibility"/>
-                    <include name="GEN_EAD_05_editAmpereRating"/>
-                    <include name="GEN_EAD_06_editConfiguration"/>
-                    <include name="GEN_EAD_07_editKVARating"/>
-                    <include name="GEN_EAD_08_editKWRating"/>
-                    <include name="GEN_EAD_09_editManufacturer"/>
-                    <include name="GEN_EAD_10_editPowerFactor"/>
-                    <include name="GEN_EAD_11_editSerialNumber"/>
-                    <include name="GEN_EAD_12_editVoltage"/>
-                    <include name="GEN_EAD_13_saveWithAllFieldsEmpty"/>
-                    <include name="GEN_EAD_14_saveWithPartialData"/>
-                    <include name="GEN_EAD_15_saveWithAllFieldsFilled"/>
-                    <include name="GEN_EAD_16_verifyFieldPlaceholders"/>
-                    <include name="GEN_EAD_17_cancelEditOperation"/>
-                    <include name="GEN_EAD_18_verifySaveButtonBehaviorWithoutChanges"/>
-                    <include name="GEN_EAD_21_verifyIssuesSectionVisibility"/>
-                    <include name="GEN_EAD_22_openIssueFromAsset"/>
-                </methods>
-            </class>
+            <class name="com.egalvanic.tests.Asset_Phase2_Test"/>
         </classes>
     </test>
 
-    <!-- Junction Box Edit Asset Details Tests -->
-    <test name="Junction Box EAD Tests">
+    <!-- Asset Phase 3 Tests (Asset_Phase3_Test.java) -->
+    <test name="Asset Phase 3 Tests">
         <classes>
-            <class name="com.egalvanic.tests.Asset_Phase2_Test">
-                <methods>
-                    <include name="JB_EAD_01_openEditAssetDetailsScreen"/>
-                    <include name="JB_EAD_02_verifyCoreAttributesSection"/>
-                    <include name="JB_EAD_03_verifyAllFieldsVisibleByDefault"/>
-                    <include name="JB_EAD_04_verifySaveChangesButtonVisibility"/>
-                    <include name="JB_EAD_05_editCatalogNumber"/>
-                    <include name="JB_EAD_06_editManufacturer"/>
-                    <include name="JB_EAD_07_editModel"/>
-                    <include name="JB_EAD_08_editNotes"/>
-                    <include name="JB_EAD_09_editSize"/>
-                    <include name="JB_EAD_10_saveWithAllFieldsEmpty"/>
-                    <include name="JB_EAD_11_saveWithPartialData"/>
-                    <include name="JB_EAD_12_saveWithAllFieldsFilled"/>
-                    <include name="JB_EAD_13_verifyFieldPlaceholders"/>
-                    <include name="JB_EAD_14_cancelEditOperation"/>
-                    <include name="JB_EAD_15_verifySaveButtonBehaviorWithoutChanges"/>
-                    <include name="JB_EAD_18_verifyIssuesSectionVisibility"/>
-                    <include name="JB_EAD_19_openIssueFromAsset"/>
-                </methods>
-            </class>
+            <class name="com.egalvanic.tests.Asset_Phase3_Test"/>
         </classes>
     </test>
 
-    <!-- Loadcenter Edit Asset Details Tests -->
-    <test name="Loadcenter EAD Tests">
+    <!-- Asset Phase 4 Tests (Asset_Phase4_Test.java) -->
+    <test name="Asset Phase 4 Tests">
         <classes>
-            <class name="com.egalvanic.tests.Asset_Phase2_Test">
-                <methods>
-                    <include name="LC_EAD_01_openEditAssetDetailsScreen"/>
-                    <include name="LC_EAD_02_verifyCoreAttributesSection"/>
-                    <include name="LC_EAD_03_verifyAllFieldsVisibleByDefault"/>
-                    <include name="LC_EAD_04_verifyRequiredFieldsToggleDefaultState"/>
-                    <include name="LC_EAD_05_verifyRequiredFieldsCount"/>
-                    <include name="LC_EAD_06_enableRequiredFieldsOnlyToggle"/>
-                    <include name="LC_EAD_07_verifyRequiredFieldsList"/>
-                    <include name="LC_EAD_08_verifyOptionalFieldsHidden"/>
-                    <include name="LC_EAD_09_verifyCompletionPercentageUpdate"/>
-                    <include name="LC_EAD_10_editAmpereRating"/>
-                    <include name="LC_EAD_11_editCatalogNumber"/>
-                    <include name="LC_EAD_12_editColumns"/>
-                    <include name="LC_EAD_13_editConfiguration"/>
-                    <include name="LC_EAD_14_editFaultWithstandRating"/>
-                    <include name="LC_EAD_15_editMainsType"/>
-                    <include name="LC_EAD_16_editManufacturer"/>
-                    <include name="LC_EAD_17_editNotes"/>
-                    <include name="LC_EAD_18_editSerialNumber"/>
-                    <include name="LC_EAD_19_editSize"/>
-                    <include name="LC_EAD_20_editVoltage"/>
-                    <include name="LC_EAD_21_saveWithNoRequiredFieldsFilled"/>
-                    <include name="LC_EAD_22_saveWithPartialRequiredFields"/>
-                    <include name="LC_EAD_23_saveWithAllRequiredFieldsFilled"/>
-                    <include name="LC_EAD_24_verifyRedWarningIndicators"/>
-                    <include name="LC_EAD_25_verifyGreenCheckIndicators"/>
-                    <include name="LC_EAD_26_indicatorsDoNotBlockSave"/>
-                    <include name="LC_EAD_27_cancelEditOperation"/>
-                    <include name="LC_EAD_28_verifySaveButtonBehaviorWithoutChanges"/>
-                </methods>
-            </class>
+            <class name="com.egalvanic.tests.Asset_Phase4_Test"/>
         </classes>
     </test>
 
-    <!-- MCC Edit Asset Details Tests -->
-    <test name="MCC EAD Tests">
+    <!-- Asset Phase 5 Tests (Asset_Phase5_Test.java) -->
+    <test name="Asset Phase 5 Tests">
         <classes>
-            <class name="com.egalvanic.tests.Asset_Phase2_Test">
-                <methods>
-                    <include name="MCC_EAD_01_openEditAssetDetailsScreen"/>
-                    <include name="MCC_EAD_02_verifyCoreAttributesSection"/>
-                    <include name="MCC_EAD_03_verifyAllFieldsVisibleByDefault"/>
-                    <include name="MCC_EAD_04_verifyRequiredFieldsToggleDefaultState"/>
-                    <include name="MCC_EAD_05_verifyRequiredFieldsCount"/>
-                    <include name="MCC_EAD_06_enableRequiredFieldsOnlyToggle"/>
-                    <include name="MCC_EAD_07_verifyRequiredFieldsList"/>
-                    <include name="MCC_EAD_08_verifyOptionalFieldsHidden"/>
-                    <include name="MCC_EAD_09_verifyCompletionPercentageUpdate"/>
-                    <include name="MCC_EAD_10_editAmpereRating"/>
-                    <include name="MCC_EAD_11_editCatalogNumber"/>
-                    <include name="MCC_EAD_12_editConfiguration"/>
-                    <include name="MCC_EAD_13_editFaultWithstandRating"/>
-                    <include name="MCC_EAD_14_editManufacturer"/>
-                    <include name="MCC_EAD_15_editNotes"/>
-                    <include name="MCC_EAD_16_editSerialNumber"/>
-                    <include name="MCC_EAD_17_editSize"/>
-                    <include name="MCC_EAD_18_editVoltage"/>
-                    <include name="MCC_EAD_19_saveWithNoRequiredFieldsFilled"/>
-                    <include name="MCC_EAD_20_saveWithPartialRequiredFields"/>
-                    <include name="MCC_EAD_21_saveWithAllRequiredFieldsFilled"/>
-                    <include name="MCC_EAD_22_verifyRedWarningIndicators"/>
-                    <include name="MCC_EAD_23_verifyGreenCheckIndicators"/>
-                    <include name="MCC_EAD_24_indicatorsDoNotBlockSave"/>
-                    <include name="MCC_EAD_25_cancelEditOperation"/>
-                    <include name="MCC_EAD_26_verifySaveButtonBehaviorWithoutChanges"/>
-                </methods>
-            </class>
-        </classes>
-    </test>
-
-    <!-- MCC Bucket Edit Asset Details Tests -->
-    <test name="MCC Bucket EAD Tests">
-        <classes>
-            <class name="com.egalvanic.tests.Asset_Phase2_Test">
-                <methods>
-                    <include name="MCCB_EAD_01_openEditAssetDetailsScreen"/>
-                    <include name="MCCB_EAD_02_verifyCoreAttributesSectionNotDisplayed"/>
-                    <include name="MCCB_EAD_03_verifyRequiredFieldsToggleNotVisible"/>
-                    <include name="MCCB_EAD_04_verifyCompletionPercentageNotVisible"/>
-                    <include name="MCCB_EAD_05_verifyNoCoreAttributeFieldsRendered"/>
-                    <include name="MCCB_EAD_06_verifySaveChangesButtonVisibility"/>
-                    <include name="MCCB_EAD_07_saveAssetWithoutCoreAttributes"/>
-                    <include name="MCCB_EAD_08_saveAssetAfterOtherEdits"/>
-                    <include name="MCCB_EAD_09_verifyNoValidationIndicators"/>
-                    <include name="MCCB_EAD_10_cancelEditOperation"/>
-                    <include name="MCCB_EAD_11_verifySaveWithNoChanges"/>
-                    <include name="MCCB_EAD_14_verifyIssuesSectionVisibility"/>
-                </methods>
-            </class>
-        </classes>
-    </test>
-
-
-
-    <!-- VFD Edit Asset Details Tests -->
-    <test name="VFD EAD Tests">
-        <classes>
-            <class name="com.egalvanic.tests.Asset_Phase3_Test">
-                <methods>
-                    <include name="TC_VFD_01_verifyCoreAttributesSectionLoads"/>
-                    <include name="TC_VFD_02_verifyNoCoreAttributesDisplayed"/>
-                    <include name="TC_VFD_03_verifyRequiredFieldsToggleBehavior"/>
-                    <include name="TC_VFD_04_verifyPercentageIndicator"/>
-                    <include name="TC_VFD_05_saveVFDAssetWithoutCoreAttributes"/>
-                    <include name="TC_VFD_06_verifyCancelButtonBehavior"/>
-                    <include name="TC_VFD_07_verifyCoreAttributesSectionScrollBehavior"/>
-                    <include name="TC_VFD_08_verifyPersistenceAfterSave"/>
-                </methods>
-            </class>
-        </classes>
-    </test>
-
-
-
-
-    <!-- ATS Asset Subtype Tests -->
-    <test name="ATS Asset Subtype Tests">
-        <classes>
-            <class name="com.egalvanic.tests.Asset_Phase3_Test">
-                <methods>
-                    <include name="TC_ATS_ST_01_verifyAssetSubtypeFieldVisibility"/>
-                    <include name="TC_ATS_ST_02_verifyDefaultAssetSubtypeValue"/>
-                    <include name="TC_ATS_ST_03_verifyAssetSubtypeDropdownOptions"/>
-                    <include name="TC_ATS_ST_04_selectAutomaticTransferSwitchLow"/>
-                    <include name="TC_ATS_ST_05_selectAutomaticTransferSwitchHigh"/>
-                    <include name="TC_ATS_ST_06_selectTransferSwitchLow"/>
-                    <include name="TC_ATS_ST_07_selectTransferSwitchHigh"/>
-                    <include name="TC_ATS_ST_08_verifySwitchingBetweenSubtypeValues"/>
-                    <include name="TC_ATS_ST_09_saveATSAssetWithSubtypeSelected"/>
-                    <include name="TC_ATS_ST_10_verifySubtypePersistenceAfterSave"/>
-                    <include name="TC_ATS_ST_11_saveATSAssetWithSubtypeNone"/>
-                    <include name="TC_ATS_ST_12_verifySubtypeDoesNotAutoChangeCoreAttributes"/>
-                    <include name="TC_ATS_ST_13_verifyCancelBehaviorAfterSubtypeChange"/>
-                </methods>
-            </class>
-        </classes>
-    </test>
-
-
-
-    <!-- Busway Asset Subtype Tests -->
-    <test name="Busway Asset Subtype Tests">
-        <classes>
-            <class name="com.egalvanic.tests.Asset_Phase3_Test">
-                <methods>
-                    <include name="TC_BUS_ST_01_verifyAssetSubtypeFieldVisibility"/>
-                    <include name="TC_BUS_ST_02_verifyDefaultAssetSubtypeValue"/>
-                    <include name="TC_BUS_ST_03_verifyAssetSubtypeDropdownOptions"/>
-                    <include name="TC_BUS_ST_04_selectBuswayLow"/>
-                    <include name="TC_BUS_ST_05_selectBuswayHigh"/>
-                    <include name="TC_BUS_ST_06_changeBuswaySubtypeMultipleTimes"/>
-                    <include name="TC_BUS_ST_07_saveBuswayAssetWithSubtypeSelected"/>
-                    <include name="TC_BUS_ST_08_verifySubtypePersistenceAfterSave"/>
-                    <include name="TC_BUS_ST_09_saveBuswayAssetWithSubtypeNone"/>
-                    <include name="TC_BUS_ST_10_verifyCancelBehaviorAfterSubtypeChange"/>
-                    <include name="TC_BUS_ST_11_verifySubtypeDoesNotImpactOtherFields"/>
-                </methods>
-            </class>
+            <class name="com.egalvanic.tests.Asset_Phase5_Test"/>
         </classes>
     </test>
 
