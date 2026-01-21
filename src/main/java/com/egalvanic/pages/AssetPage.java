@@ -8,6 +8,10 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.time.Duration;
+import org.openqa.selenium.interactions.PointerInput;
+import org.openqa.selenium.interactions.Sequence;
+import org.openqa.selenium.remote.RemoteWebElement;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
@@ -1039,31 +1043,55 @@ public class AssetPage extends BasePage {
      * Scroll to Connections section on Asset Details screen
      */
     public void scrollToConnectionsSection() {
-        System.out.println("📜 Scrolling directly to bottom (Connections section)...");
+        System.out.println("📜 Scrolling to Connections section...");
         
         // Connections is at the bottom of Asset Details form
-        // Scroll aggressively to bottom to save time
-        for (int i = 0; i < 15; i++) {
-            // Fast scroll with high velocity
+        // Scroll aggressively to bottom first
+        for (int i = 0; i < 12; i++) {
             Map<String, Object> swipeParams = new HashMap<>();
             swipeParams.put("direction", "up");
             swipeParams.put("velocity", 800);
             driver.executeScript("mobile: swipe", swipeParams);
-            sleep(200);
+            sleep(150);
         }
         
-        System.out.println("   Scrolled to bottom, checking for Connections...");
-        sleep(500);
+        System.out.println("   Scrolled to bottom, now scrolling up to show Add button...");
+        sleep(300);
         
-        // Verify we can see Connections section
+        // Scroll UP a bit to bring Connections header (with Add button) into view
+        // The header with Add button might be above visible area after scrolling to bottom
+        for (int i = 0; i < 3; i++) {
+            try {
+                // Check if Connections label is visible
+                WebElement connLabel = driver.findElement(
+                    AppiumBy.iOSNsPredicateString("label == 'Connections' AND type == 'XCUIElementTypeStaticText' AND visible == true")
+                );
+                int y = connLabel.getLocation().getY();
+                if (y > 100 && y < 400) {
+                    System.out.println("✅ Connections section visible at y=" + y);
+                    break;
+                } else if (y < 100) {
+                    // Need to scroll up more
+                    System.out.println("   Scrolling up (Connections at y=" + y + ")...");
+                    scrollFormUp();
+                    sleep(300);
+                }
+            } catch (Exception e) {
+                // Not found, scroll up
+                System.out.println("   Scrolling up to find Connections...");
+                scrollFormUp();
+                sleep(300);
+            }
+        }
+        
+        // Final check
         try {
             WebElement connLabel = driver.findElement(
                 AppiumBy.iOSNsPredicateString("label == 'Connections' AND type == 'XCUIElementTypeStaticText' AND visible == true")
             );
-            int y = connLabel.getLocation().getY();
-            System.out.println("✅ Found Connections section at y=" + y);
+            System.out.println("✅ Connections section ready");
         } catch (Exception e) {
-            System.out.println("⚠️ Connections section not visible - may need adjustment");
+            System.out.println("⚠️ Connections section position may need manual check");
         }
     }
 
@@ -1072,34 +1100,55 @@ public class AssetPage extends BasePage {
      */
     public void clickAddConnectionButton() {
         System.out.println("➕ Clicking Add Connection button...");
-        try {
-            sleep(500);
-            
-            // Find Connections label Y position
-            int connY = -1;
+        
+        // Try to find and click Add button with scroll retry
+        for (int attempt = 0; attempt < 4; attempt++) {
             try {
-                WebElement connLabel = driver.findElement(
-                    AppiumBy.iOSNsPredicateString("label == 'Connections' AND type == 'XCUIElementTypeStaticText' AND visible == true")
+                // Check if Connections label is visible
+                WebElement connLabel = null;
+                try {
+                    connLabel = driver.findElement(
+                        AppiumBy.iOSNsPredicateString("label == 'Connections' AND type == 'XCUIElementTypeStaticText' AND visible == true")
+                    );
+                    int connY = connLabel.getLocation().getY();
+                    System.out.println("   Connections label at y=" + connY);
+                } catch (Exception e) {
+                    System.out.println("   Connections label not visible, scrolling up...");
+                    scrollFormUp();
+                    sleep(500);
+                    continue;
+                }
+                
+                // Find Add button near Connections
+                List<WebElement> addBtns = driver.findElements(
+                    AppiumBy.iOSNsPredicateString("name == 'Add' AND type == 'XCUIElementTypeButton' AND visible == true")
                 );
-                connY = connLabel.getLocation().getY();
-                System.out.println("   Connections label at y=" + connY);
+                
+                if (addBtns.isEmpty()) {
+                    System.out.println("   No Add button found, scrolling up...");
+                    scrollFormUp();
+                    sleep(500);
+                    continue;
+                }
+                
+                // Click the first visible Add button (should be near Connections)
+                WebElement addBtn = addBtns.get(0);
+                int addY = addBtn.getLocation().getY();
+                System.out.println("   Add button at y=" + addY);
+                
+                addBtn.click();
+                sleep(1000);
+                System.out.println("✅ Clicked Add Connection button");
+                return;
+                
             } catch (Exception e) {
-                System.out.println("   ⚠️ Could not find Connections label");
+                System.out.println("   Attempt " + (attempt+1) + " failed, scrolling up...");
+                scrollFormUp();
+                sleep(500);
             }
-            
-            // Find Add button near Connections
-            WebElement addBtn = driver.findElement(
-                AppiumBy.iOSNsPredicateString("name == 'Add' AND type == 'XCUIElementTypeButton' AND visible == true")
-            );
-            int addY = addBtn.getLocation().getY();
-            System.out.println("   Add button at y=" + addY);
-            
-            addBtn.click();
-            sleep(1000);
-            System.out.println("✅ Clicked Add Connection button");
-        } catch (Exception e) {
-            System.out.println("⚠️ Could not click Add Connection button: " + e.getMessage());
         }
+        
+        System.out.println("⚠️ Could not click Add Connection button after retries");
     }
 
     /**
@@ -1554,6 +1603,260 @@ public class AssetPage extends BasePage {
         }
     }
 
+    // ============================================================
+    // OCP UNLINK METHODS
+    // ============================================================
+
+    /**
+     * Get count of OCP items in the list
+     */
+    public int getOCPCount() {
+        System.out.println("🔢 Getting OCP count...");
+        try {
+            // Look for OCP label
+            WebElement ocpLabel = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'OCP' AND type == 'XCUIElementTypeStaticText' AND visible == true")
+            );
+            
+            int ocpY = ocpLabel.getLocation().getY();
+            int ocpX = ocpLabel.getLocation().getX();
+            System.out.println("   OCP label at y=" + ocpY);
+            
+            // Find nearby StaticText that shows the count (e.g., "4" or "5")
+            List<WebElement> texts = driver.findElements(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText' AND visible == true")
+            );
+            
+            for (WebElement text : texts) {
+                String name = text.getAttribute("name");
+                if (name != null && name.matches("\\d+")) {
+                    int textY = text.getLocation().getY();
+                    int textX = text.getLocation().getX();
+                    // Count badge is to the RIGHT of OCP label and within 30px vertically
+                    if (Math.abs(textY - ocpY) < 30 && textX > ocpX) {
+                        int count = Integer.parseInt(name);
+                        System.out.println("   OCP count: " + count);
+                        return count;
+                    }
+                }
+            }
+            System.out.println("   OCP count badge not found");
+            return 0;
+        } catch (Exception e) {
+            System.out.println("   Could not get OCP count: " + e.getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Check if OCP list has items
+     */
+    public boolean hasOCPItems() {
+        return getOCPCount() > 0;
+    }
+
+    /**
+     * Long press on first OCP item to show context menu
+     */
+    public void longPressFirstOCPItem() {
+        System.out.println("👆 Long pressing first OCP item...");
+        try {
+            // Scroll down a bit to make OCP items visible (they're below OCP label)
+            scrollFormDown();
+            sleep(300);
+            
+            // Find OCP items - try multiple patterns
+            List<WebElement> ocpItems = driver.findElements(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND visible == true AND " +
+                    "(name CONTAINS 'Relay' OR name CONTAINS 'Disconnect Switch' OR name CONTAINS 'Fuse' OR " +
+                    "name CONTAINS 'MCC Bucket' OR name CONTAINS 'Other (OCP)')")
+            );
+            
+            System.out.println("   Found " + ocpItems.size() + " OCP items");
+            
+            if (ocpItems.isEmpty()) {
+                // Try scrolling more
+                System.out.println("   Scrolling more to find OCP items...");
+                scrollFormDown();
+                sleep(300);
+                ocpItems = driver.findElements(
+                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND visible == true AND " +
+                        "(name CONTAINS 'Relay' OR name CONTAINS 'Disconnect Switch' OR name CONTAINS 'Fuse' OR " +
+                        "name CONTAINS 'MCC Bucket' OR name CONTAINS 'Other (OCP)')")
+                );
+                System.out.println("   After scroll: Found " + ocpItems.size() + " OCP items");
+            }
+            
+            if (!ocpItems.isEmpty()) {
+                WebElement firstOCP = ocpItems.get(0);
+                String name = firstOCP.getAttribute("name");
+                System.out.println("   Selected OCP: " + name);
+                
+                // Try mobile: touchAndHold first (more reliable for iOS)
+                try {
+                    Map<String, Object> params = new java.util.HashMap<>();
+                    params.put("element", ((RemoteWebElement) firstOCP).getId());
+                    params.put("duration", 2.0); // 2 seconds
+                    driver.executeScript("mobile: touchAndHold", params);
+                    sleep(800);
+                    System.out.println("✅ Long pressed using touchAndHold");
+                    return;
+                } catch (Exception e) {
+                    System.out.println("   touchAndHold failed, trying W3C Actions...");
+                }
+                
+                // Fallback: W3C Actions with longer duration
+                int elemX = firstOCP.getLocation().getX();
+                int elemY = firstOCP.getLocation().getY();
+                int elemW = firstOCP.getSize().getWidth();
+                int elemH = firstOCP.getSize().getHeight();
+                int x = elemX + (elemW / 2);
+                int y = elemY + (elemH / 2);
+                System.out.println("   Long press at (" + x + ", " + y + ")");
+                
+                // Long press using W3C Actions - 2 seconds
+                PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
+                Sequence longPress = new Sequence(finger, 1);
+                longPress.addAction(finger.createPointerMove(Duration.ZERO, PointerInput.Origin.viewport(), x, y));
+                longPress.addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()));
+                longPress.addAction(new org.openqa.selenium.interactions.Pause(finger, Duration.ofMillis(2000))); // Hold for 2 seconds
+                longPress.addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
+                driver.perform(java.util.Arrays.asList(longPress));
+                
+                sleep(800);
+                System.out.println("✅ Long pressed OCP item");
+            } else {
+                System.out.println("⚠️ No OCP items found after scrolling");
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not long press OCP: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Click "Unlink from Parent" in context menu
+     */
+    public void clickUnlinkFromParent() {
+        System.out.println("🔗 Clicking Unlink from Parent...");
+        try {
+            // Wait a bit for context menu to appear
+            sleep(500);
+            
+            // Try multiple strategies to find Unlink from Parent
+            WebElement unlinkBtn = null;
+            
+            // Strategy 1: Button type
+            try {
+                unlinkBtn = driver.findElement(
+                    AppiumBy.iOSNsPredicateString("name == 'Unlink from Parent' AND type == 'XCUIElementTypeButton'")
+                );
+            } catch (Exception e) {}
+            
+            // Strategy 2: Any type with label
+            if (unlinkBtn == null) {
+                try {
+                    unlinkBtn = driver.findElement(
+                        AppiumBy.iOSNsPredicateString("label == 'Unlink from Parent' AND visible == true")
+                    );
+                } catch (Exception e) {}
+            }
+            
+            // Strategy 3: Accessibility ID
+            if (unlinkBtn == null) {
+                try {
+                    unlinkBtn = driver.findElement(AppiumBy.accessibilityId("Unlink from Parent"));
+                } catch (Exception e) {}
+            }
+            
+            // Strategy 4: CONTAINS search
+            if (unlinkBtn == null) {
+                try {
+                    unlinkBtn = driver.findElement(
+                        AppiumBy.iOSNsPredicateString("name CONTAINS 'Unlink' AND visible == true")
+                    );
+                } catch (Exception e) {}
+            }
+            
+            if (unlinkBtn != null) {
+                unlinkBtn.click();
+                sleep(500);
+                System.out.println("✅ Clicked Unlink from Parent");
+            } else {
+                System.out.println("⚠️ Unlink from Parent not found - context menu may not have appeared");
+                
+                // Debug: Print visible elements
+                List<WebElement> visibleButtons = driver.findElements(
+                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND visible == true")
+                );
+                System.out.println("   Visible buttons: " + visibleButtons.size());
+                for (int i = 0; i < Math.min(5, visibleButtons.size()); i++) {
+                    System.out.println("     - " + visibleButtons.get(i).getAttribute("name"));
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not click Unlink from Parent: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Confirm unlink in the confirmation dialog
+     */
+    public void confirmUnlink() {
+        System.out.println("✅ Confirming unlink...");
+        try {
+            // Wait for dialog to appear
+            sleep(300);
+            
+            WebElement unlinkBtn = null;
+            
+            // Try multiple strategies
+            try {
+                unlinkBtn = driver.findElement(
+                    AppiumBy.iOSNsPredicateString("name == 'Unlink' AND type == 'XCUIElementTypeButton' AND visible == true")
+                );
+            } catch (Exception e) {}
+            
+            if (unlinkBtn == null) {
+                try {
+                    unlinkBtn = driver.findElement(AppiumBy.accessibilityId("Unlink"));
+                } catch (Exception e) {}
+            }
+            
+            if (unlinkBtn == null) {
+                try {
+                    // The red "Unlink" button in confirmation dialog
+                    unlinkBtn = driver.findElement(
+                        AppiumBy.iOSNsPredicateString("label == 'Unlink' AND visible == true")
+                    );
+                } catch (Exception e) {}
+            }
+            
+            if (unlinkBtn != null) {
+                unlinkBtn.click();
+                sleep(1000);
+                System.out.println("✅ Confirmed unlink");
+            } else {
+                System.out.println("⚠️ Unlink confirmation button not found");
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not confirm unlink: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Unlink first OCP item (full flow: long press -> Unlink from Parent -> Confirm)
+     */
+    public void unlinkFirstOCPItem() {
+        System.out.println("🔓 Unlinking first OCP item...");
+        longPressFirstOCPItem();
+        sleep(500);
+        clickUnlinkFromParent();
+        sleep(500);
+        confirmUnlink();
+        System.out.println("✅ OCP item unlinked");
+    }
+
     /**
      * Click Create New Child option
      */
@@ -1648,6 +1951,470 @@ public class AssetPage extends BasePage {
             return ocp.isDisplayed();
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    // ============================================================
+    // CREATE CHILD ASSET METHODS
+    // ============================================================
+
+    /**
+     * Check if Create Child Asset screen is displayed
+     */
+    public boolean isCreateChildAssetScreenDisplayed() {
+        try {
+            WebElement navBar = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Create Child Asset' AND type == 'XCUIElementTypeNavigationBar'")
+            );
+            return navBar.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Enter child asset name
+     */
+    public void enterChildAssetName(String name) {
+        System.out.println("📝 Entering child asset name: " + name);
+        try {
+            WebElement field = driver.findElement(
+                AppiumBy.iOSNsPredicateString("value == 'Enter asset name' AND type == 'XCUIElementTypeTextField'")
+            );
+            field.click();
+            sleep(300);
+            field.sendKeys(name);
+            System.out.println("✅ Entered child asset name");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not enter asset name: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Click Asset Class dropdown on Create Child Asset screen
+     */
+    public void clickChildAssetClassDropdown() {
+        System.out.println("📋 Clicking Asset Class dropdown...");
+        try {
+            WebElement dropdown = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name CONTAINS 'Asset Class' AND name CONTAINS 'Select class' AND type == 'XCUIElementTypeButton'")
+            );
+            dropdown.click();
+            sleep(500);
+            System.out.println("✅ Clicked Asset Class dropdown");
+        } catch (Exception e) {
+            // Try alternate selector
+            try {
+                WebElement dropdown = driver.findElement(
+                    AppiumBy.iOSNsPredicateString("label CONTAINS 'Asset Class' AND type == 'XCUIElementTypeButton'")
+                );
+                dropdown.click();
+                sleep(500);
+                System.out.println("✅ Clicked Asset Class dropdown (alt)");
+            } catch (Exception e2) {
+                System.out.println("⚠️ Could not click dropdown: " + e2.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Select OCP class for child asset
+     */
+    public void selectChildAssetClass(String className) {
+        System.out.println("📋 Selecting child asset class: " + className);
+        try {
+            WebElement option = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == '" + className + "' AND type == 'XCUIElementTypeButton'")
+            );
+            option.click();
+            sleep(500);
+            System.out.println("✅ Selected class: " + className);
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not select class: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Click Create button on Create Child Asset screen
+     */
+    public void clickCreateChildAssetButton() {
+        System.out.println("🆕 Clicking Create button...");
+        try {
+            WebElement btn = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Create' AND type == 'XCUIElementTypeButton'")
+            );
+            btn.click();
+            sleep(2000);
+            System.out.println("✅ Clicked Create");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not click Create: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Create a child asset with given name and class
+     * @param assetName Name for the child asset
+     * @param assetClass OCP class (Disconnect Switch, Fuse, MCC Bucket, Other (OCP), Relay)
+     */
+    public void createChildAsset(String assetName, String assetClass) {
+        System.out.println("🆕 Creating child asset: " + assetName + " (" + assetClass + ")");
+        
+        enterChildAssetName(assetName);
+        clickChildAssetClassDropdown();
+        selectChildAssetClass(assetClass);
+        clickCreateChildAssetButton();
+        
+        System.out.println("✅ Child asset creation completed");
+    }
+
+    /**
+     * Check if child asset was created (visible in OCP list)
+     */
+    public boolean isChildAssetCreated(String assetName) {
+        try {
+            WebElement asset = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name CONTAINS '" + assetName + "' AND type == 'XCUIElementTypeButton' AND visible == true")
+            );
+            return asset.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Get Parent Enclosure value on Create Child Asset screen
+     */
+    public String getParentEnclosureValue() {
+        System.out.println("📋 Getting Parent Enclosure value...");
+        try {
+            // Look for static text after "Parent Enclosure" label
+            WebElement parent = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name CONTAINS 'TestAsset' AND type == 'XCUIElementTypeStaticText' AND visible == true")
+            );
+            String value = parent.getAttribute("name");
+            System.out.println("   Parent Enclosure: " + value);
+            return value;
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not get Parent Enclosure: " + e.getMessage());
+            return "";
+        }
+    }
+
+    /**
+     * Check if Parent Enclosure field is populated
+     */
+    public boolean isParentEnclosurePopulated() {
+        String value = getParentEnclosureValue();
+        return value != null && !value.isEmpty() && value.contains("TestAsset");
+    }
+
+    /**
+     * Check if Asset Class dropdown shows "Select class"
+     */
+    public boolean isAssetClassDropdownDefault() {
+        try {
+            WebElement dropdown = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name CONTAINS 'Select class' AND type == 'XCUIElementTypeButton' AND visible == true")
+            );
+            return dropdown.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Get available OCP class options
+     */
+    public List<String> getOCPClassOptions() {
+        List<String> options = new ArrayList<>();
+        String[] ocpClasses = {"Disconnect Switch", "Fuse", "MCC Bucket", "Other (OCP)", "Relay"};
+        
+        for (String cls : ocpClasses) {
+            try {
+                WebElement btn = driver.findElement(
+                    AppiumBy.iOSNsPredicateString("name == '" + cls + "' AND type == 'XCUIElementTypeButton'")
+                );
+                if (btn.isDisplayed()) {
+                    options.add(cls);
+                }
+            } catch (Exception e) {}
+        }
+        
+        return options;
+    }
+
+    /**
+     * Click Cancel button on Create Child Asset screen
+     */
+    public void clickCancelChildAsset() {
+        System.out.println("❌ Clicking Cancel...");
+        try {
+            WebElement btn = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Cancel' AND type == 'XCUIElementTypeButton'")
+            );
+            btn.click();
+            sleep(1000);
+            System.out.println("✅ Clicked Cancel");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not click Cancel: " + e.getMessage());
+        }
+    }
+
+    // ============================================================
+    // LINK EXISTING NODE METHODS
+    // ============================================================
+
+    /**
+     * Check if Link Existing Nodes screen is displayed
+     */
+    public boolean isLinkExistingNodesScreenDisplayed() {
+        try {
+            WebElement navBar = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Link Existing Nodes' AND type == 'XCUIElementTypeNavigationBar'")
+            );
+            return navBar.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Get count of assets available to link
+     */
+    public int getLinkableAssetsCount() {
+        try {
+            List<WebElement> assets = driver.findElements(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND visible == true AND name CONTAINS ','")
+            );
+            // Filter out Cancel and Link buttons
+            int count = 0;
+            for (WebElement asset : assets) {
+                String name = asset.getAttribute("name");
+                if (name != null && !name.equals("Cancel") && !name.startsWith("Link ")) {
+                    count++;
+                }
+            }
+            System.out.println("   Found " + count + " linkable assets");
+            return count;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Select first available asset to link by clicking on checkbox circle
+     * Note: Clicking the button navigates to asset details, 
+     * must click the circle checkbox on the LEFT side to select
+     */
+    public void selectFirstLinkableAsset() {
+        System.out.println("🔗 Selecting first linkable asset...");
+        try {
+            // Find the visible circle checkbox images
+            List<WebElement> circles = driver.findElements(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeImage' AND name == 'circle' AND visible == true")
+            );
+            
+            if (!circles.isEmpty()) {
+                WebElement firstCircle = circles.get(0);
+                int circleX = firstCircle.getLocation().getX();
+                int circleY = firstCircle.getLocation().getY();
+                int circleW = firstCircle.getSize().getWidth();
+                int circleH = firstCircle.getSize().getHeight();
+                
+                // Click center of circle
+                int clickX = circleX + (circleW / 2);
+                int clickY = circleY + (circleH / 2);
+                
+                System.out.println("   Circle at (" + circleX + ", " + circleY + "), clicking center (" + clickX + ", " + clickY + ")");
+                
+                // Use W3C Actions for reliable tap
+                PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
+                Sequence tap = new Sequence(finger, 1);
+                tap.addAction(finger.createPointerMove(Duration.ZERO, PointerInput.Origin.viewport(), clickX, clickY));
+                tap.addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()));
+                tap.addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
+                driver.perform(java.util.Arrays.asList(tap));
+                
+                sleep(500);
+                System.out.println("✅ Selected asset via checkbox");
+            } else {
+                System.out.println("⚠️ No circle checkboxes found");
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not select asset: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Click Link button on Link Existing Nodes screen
+     */
+    public void clickLinkButton() {
+        System.out.println("🔗 Clicking Link button...");
+        try {
+            WebElement btn = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name BEGINSWITH 'Link ' AND type == 'XCUIElementTypeButton'")
+            );
+            btn.click();
+            sleep(2000);
+            System.out.println("✅ Clicked Link");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not click Link: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Cancel Link Existing Nodes screen
+     */
+    public void cancelLinkExistingNodes() {
+        System.out.println("❌ Clicking Cancel...");
+        try {
+            WebElement btn = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Cancel' AND type == 'XCUIElementTypeButton'")
+            );
+            btn.click();
+            sleep(1000);
+            System.out.println("✅ Clicked Cancel");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not click Cancel: " + e.getMessage());
+        }
+    }
+
+    // ============================================================
+    // SEARCH FIELD METHODS (Link Existing Nodes screen)
+    // ============================================================
+
+    /**
+     * Check if search field is visible on Link Existing Nodes screen
+     */
+    public boolean isLinkNodesSearchFieldVisible() {
+        System.out.println("🔍 Checking for search field...");
+        try {
+            WebElement search = driver.findElement(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeSearchField' AND visible == true")
+            );
+            String placeholder = search.getAttribute("value");
+            System.out.println("   Search field visible with placeholder: " + placeholder);
+            return search.isDisplayed();
+        } catch (Exception e) {
+            System.out.println("   Search field not visible");
+            return false;
+        }
+    }
+
+    /**
+     * Get search field placeholder text
+     */
+    public String getSearchFieldPlaceholder() {
+        try {
+            WebElement search = driver.findElement(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeSearchField' AND visible == true")
+            );
+            return search.getAttribute("value");
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /**
+     * Enter text in search field on Link Existing Nodes screen
+     */
+    public void enterLinkNodesSearchText(String text) {
+        System.out.println("🔍 Entering search text: " + text);
+        try {
+            WebElement search = driver.findElement(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeSearchField' AND visible == true")
+            );
+            search.click();
+            sleep(300);
+            search.sendKeys(text);
+            sleep(500);
+            System.out.println("✅ Entered search text");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not enter search text: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Clear search field
+     */
+    public void clearLinkNodesSearchField() {
+        System.out.println("🔍 Clearing search field...");
+        try {
+            WebElement search = driver.findElement(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeSearchField' AND visible == true")
+            );
+            search.clear();
+            sleep(300);
+            System.out.println("✅ Cleared search field");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not clear search field: " + e.getMessage());
+        }
+    }
+
+    // ============================================================
+    // SELECTION STATE VERIFICATION METHODS
+    // ============================================================
+
+    /**
+     * Check if any nodes are selected (look for "X selected" text)
+     */
+    public boolean isAnyNodeSelected() {
+        try {
+            WebElement selected = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name CONTAINS 'selected' AND type == 'XCUIElementTypeStaticText' AND visible == true")
+            );
+            System.out.println("   Selection state: " + selected.getAttribute("name"));
+            return selected.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Get the number of selected nodes
+     */
+    public int getSelectedNodeCount() {
+        try {
+            WebElement selected = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name CONTAINS 'selected' AND type == 'XCUIElementTypeStaticText' AND visible == true")
+            );
+            String text = selected.getAttribute("name"); // "1 selected"
+            String num = text.split(" ")[0];
+            return Integer.parseInt(num);
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Check if Clear All button is visible
+     */
+    public boolean isClearAllButtonVisible() {
+        try {
+            WebElement clearAll = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Clear All' AND type == 'XCUIElementTypeButton' AND visible == true")
+            );
+            return clearAll.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Click Clear All button to deselect all nodes
+     */
+    public void clickClearAllButton() {
+        System.out.println("❌ Clicking Clear All...");
+        try {
+            WebElement clearAll = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name == 'Clear All' AND type == 'XCUIElementTypeButton' AND visible == true")
+            );
+            clearAll.click();
+            sleep(500);
+            System.out.println("✅ Clicked Clear All");
+        } catch (Exception e) {
+            System.out.println("⚠️ Clear All button not found: " + e.getMessage());
         }
     }
 
@@ -5799,34 +6566,87 @@ public class AssetPage extends BasePage {
             }
         } catch (Exception e) {}
         
-        // Click on current Asset Class button to open dropdown
+        // Strategy 1: Find "Asset Class" label and tap below it
         try {
-            // Find any asset class button that's visible
-            WebElement classBtn = driver.findElement(
-                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND (name == 'Generator' OR name == 'ATS' OR name == 'Busway' OR name == 'Capacitor' OR name == 'Circuit Breaker' OR name == 'Disconnect Switch' OR name == 'Fuse' OR name == 'Junction Box' OR name == 'Loadcenter' OR name == 'None') AND visible == true")
+            WebElement label = driver.findElement(
+                AppiumBy.iOSNsPredicateString("(name == 'Asset Class' OR label == 'Asset Class') AND type == 'XCUIElementTypeStaticText' AND visible == true")
             );
-            System.out.println("   Current class: " + classBtn.getAttribute("name"));
-            classBtn.click();
-            sleep(800);
-            
-            // Now click MCC in the dropdown (may need to scroll)
-            try {
-                driver.findElement(AppiumBy.accessibilityId("MCC")).click();
-                System.out.println("✅ Changed to MCC");
-            } catch (Exception e) {
-                // MCC might need scrolling - try predicate
-                try {
-                    WebElement mccOption = driver.findElement(
-                        AppiumBy.iOSNsPredicateString("name == 'MCC' AND type == 'XCUIElementTypeButton'")
-                    );
-                    mccOption.click();
-                    System.out.println("✅ Changed to MCC (predicate)");
-                } catch (Exception e2) {
-                    System.out.println("⚠️ Could not find MCC option");
-                }
-            }
+            int x = label.getLocation().getX() + 150;
+            int y = label.getLocation().getY() + label.getSize().getHeight() + 25;
+            System.out.println("   Tapping Asset Class dropdown at (" + x + ", " + y + ")");
+            driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
+            sleep(500);
         } catch (Exception e) {
-            System.out.println("⚠️ Could not change to MCC: " + e.getMessage());
+            System.out.println("   Asset Class label not found, trying button approach...");
+            
+            // Strategy 2: Find any asset class button (comprehensive list)
+            try {
+                WebElement classBtn = driver.findElement(
+                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND visible == true AND " +
+                        "(name == 'ATS' OR name == 'Busway' OR name == 'Capacitor' OR name == 'Circuit Breaker' OR " +
+                        "name == 'Disconnect Switch' OR name == 'Fuse' OR name == 'Generator' OR name == 'Junction Box' OR " +
+                        "name == 'Loadcenter' OR name == 'MCC' OR name == 'MCC Bucket' OR name == 'None' OR " +
+                        "name == 'Other (Non-electrical)' OR name == 'Other (OCP)' OR name == 'Panelboard' OR " +
+                        "name == 'PDU' OR name == 'Relay' OR name == 'Switchboard' OR name == 'Transformer' OR " +
+                        "name == 'UPS' OR name == 'Utility')")
+                );
+                System.out.println("   Current class: " + classBtn.getAttribute("name"));
+                classBtn.click();
+                sleep(500);
+            } catch (Exception e2) {
+                System.out.println("⚠️ Could not find Asset Class button: " + e2.getMessage());
+                return;
+            }
+        }
+        
+        // Scroll up in dropdown to find MCC (it's near the middle alphabetically)
+        sleep(300);
+        
+        // Try to click MCC
+        try {
+            WebElement mccOption = driver.findElement(AppiumBy.accessibilityId("MCC"));
+            mccOption.click();
+            System.out.println("✅ Changed to MCC");
+        } catch (Exception e) {
+            // MCC not visible, try scrolling in picker
+            System.out.println("   MCC not visible, scrolling picker...");
+            try {
+                // Scroll up in picker to find MCC
+                for (int i = 0; i < 3; i++) {
+                    driver.executeScript("mobile: swipe", Map.of(
+                        "direction", "up",
+                        "velocity", 500
+                    ));
+                    sleep(200);
+                    
+                    try {
+                        WebElement mcc = driver.findElement(AppiumBy.accessibilityId("MCC"));
+                        mcc.click();
+                        System.out.println("✅ Changed to MCC (after scroll)");
+                        return;
+                    } catch (Exception e3) {}
+                }
+                
+                // Try scroll down
+                for (int i = 0; i < 5; i++) {
+                    driver.executeScript("mobile: swipe", Map.of(
+                        "direction", "down",
+                        "velocity", 500
+                    ));
+                    sleep(200);
+                    
+                    try {
+                        WebElement mcc = driver.findElement(AppiumBy.accessibilityId("MCC"));
+                        mcc.click();
+                        System.out.println("✅ Changed to MCC (after scroll down)");
+                        return;
+                    } catch (Exception e3) {}
+                }
+                
+                System.out.println("⚠️ Could not find MCC option in picker");
+            } catch (Exception e2) {
+                System.out.println("⚠️ Error scrolling picker: " + e2.getMessage());
+            }
         }
     }
 
