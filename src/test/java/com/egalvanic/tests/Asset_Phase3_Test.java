@@ -374,8 +374,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Save without required Core Attributes completed for Panelboard");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Save without required Core Attributes should be successful");
@@ -417,8 +417,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Numeric input fields validated for Panelboard (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Numeric input validation should complete");
@@ -460,8 +460,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Dropdown Core Attribute fields validated for Panelboard (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Dropdown validation should complete");
@@ -503,8 +503,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Size field input verified for Panelboard (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Size field input should be saved successfully");
@@ -555,8 +555,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Voltage field selection saved for Panelboard");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Voltage field selection should be saved successfully");
@@ -607,8 +607,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("All Core Attributes saved for Panelboard");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "All Core Attributes should be saved successfully");
@@ -663,8 +663,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Persistence after save verified for Panelboard");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Saved values should persist correctly");
@@ -1014,8 +1014,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Ampere Rating field verified for PDU (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Ampere Rating field verification should complete");
@@ -1057,8 +1057,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Catalog Number field verified for PDU (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Catalog Number field verification should complete");
@@ -1100,8 +1100,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Manufacturer field verified for PDU (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Manufacturer field verification should complete");
@@ -1144,8 +1144,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Notes field verified for PDU (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Notes field verification should complete");
@@ -1188,8 +1188,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Serial Number field verified for PDU (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Serial Number field verification should complete");
@@ -1231,8 +1231,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Size field verified for PDU (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Size field verification should complete");
@@ -1319,8 +1319,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Voltage field selection saved for PDU");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Voltage field selection should be saved successfully");
@@ -1369,8 +1369,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Save with missing required fields completed for PDU");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Save with missing required fields should complete successfully");
@@ -1653,8 +1653,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Manufacturer field input verified for Relay (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Manufacturer field input verification should complete");
@@ -1696,8 +1696,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Model field input verified for Relay (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Model field input verification should complete");
@@ -1739,8 +1739,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Relay Type field input verified for Relay (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Relay Type field input verification should complete");
@@ -1783,8 +1783,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Serial Number field input verified for Relay (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Serial Number field input verification should complete");
@@ -1827,8 +1827,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Notes field input verified for Relay (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Notes field input verification should complete");
@@ -1879,8 +1879,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Relay asset saved with all fields filled");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Relay asset should be saved successfully with all fields filled");
@@ -1929,8 +1929,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Save with all fields empty completed for Relay");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Save with all fields empty should complete successfully");
@@ -2026,8 +2026,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Persistence after save verified for Relay");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Saved values should persist correctly");
@@ -2445,8 +2445,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Ampere Rating field verified for Switchboard (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Ampere Rating field verification should complete");
@@ -2488,8 +2488,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Catalog Number field verified for Switchboard (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Catalog Number field verification should complete");
@@ -2531,8 +2531,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Configuration field verified for Switchboard (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Configuration field verification should complete");
@@ -2574,8 +2574,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Fault Withstand Rating field verified for Switchboard (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Fault Withstand Rating field verification should complete");
@@ -2617,8 +2617,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Mains Type field verified for Switchboard (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Mains Type field verification should complete");
@@ -2660,8 +2660,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Manufacturer field verified for Switchboard (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Manufacturer field verification should complete");
@@ -2704,8 +2704,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Notes field verified for Switchboard (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Notes field verification should complete");
@@ -2748,8 +2748,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Serial Number field verified for Switchboard (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Serial Number field verification should complete");
@@ -2791,8 +2791,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Size field verified for Switchboard (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Size field verification should complete");
@@ -2879,8 +2879,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Voltage field selection saved for Switchboard");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Voltage field selection should be saved successfully");
@@ -2929,8 +2929,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Save without required fields completed for Switchboard");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Save without required fields should complete successfully");
@@ -3026,8 +3026,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Persistence after save verified for Switchboard");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Saved values should persist correctly");
@@ -3311,8 +3311,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("BIL field input verified for Transformer (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "BIL field input verification should complete");
@@ -3354,8 +3354,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Class field input verified for Transformer (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Class field input verification should complete");
@@ -3406,8 +3406,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Frequency field selection saved for Transformer");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Frequency field selection should be saved successfully");
@@ -3449,8 +3449,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("KVA Rating field verified for Transformer (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "KVA Rating field verification should complete");
@@ -3492,8 +3492,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Manufacturer field verified for Transformer (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Manufacturer field verification should complete");
@@ -3535,8 +3535,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Percentage Impedance field verified for Transformer (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Percentage Impedance field verification should complete");
@@ -3578,8 +3578,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Primary Amperes field verified for Transformer (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Primary Amperes field verification should complete");
@@ -3621,8 +3621,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Primary Tap field verified for Transformer (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Primary Tap field verification should complete");
@@ -3664,8 +3664,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Primary Voltage field verified for Transformer (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Primary Voltage field verification should complete");
@@ -3707,8 +3707,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Secondary Amperes field verified for Transformer (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Secondary Amperes field verification should complete");
@@ -3750,8 +3750,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Secondary Voltage field verified for Transformer (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Secondary Voltage field verification should complete");
@@ -3794,8 +3794,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Serial Number field verified for Transformer (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Serial Number field verification should complete");
@@ -3837,8 +3837,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Size field verified for Transformer (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Size field verification should complete");
@@ -3880,8 +3880,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Temperature Rise field verified for Transformer (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Temperature Rise field verification should complete");
@@ -3923,8 +3923,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Type field verified for Transformer (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Type field verification should complete");
@@ -3966,8 +3966,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Winding Configuration field verified for Transformer (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Winding Configuration field verification should complete");
@@ -4016,8 +4016,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Save without required fields completed for Transformer");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Save without required fields should complete successfully");
@@ -4072,8 +4072,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Persistence after save verified for Transformer");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Saved values should persist correctly");
@@ -4214,8 +4214,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Core Attributes section verified for UPS (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Core Attributes section should load for UPS");
@@ -4253,8 +4253,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("All core attributes visible by default for UPS (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "All UPS core attributes should be visible by default");
@@ -4296,8 +4296,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Required fields only toggle behavior verified for UPS (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Required fields only toggle should work correctly for UPS");
@@ -4343,8 +4343,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Required field count indicator verified for UPS (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Required field counter should update correctly for UPS");
@@ -4386,8 +4386,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Ampere Rating field verified for UPS (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Ampere Rating field should accept input correctly");
@@ -4429,8 +4429,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Catalog Number field verified for UPS (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Catalog Number field should accept alphanumeric input correctly");
@@ -4472,8 +4472,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Manufacturer field verified for UPS (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Manufacturer field should accept input correctly");
@@ -4515,8 +4515,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Model field verified for UPS (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Model field should accept input correctly");
@@ -4558,8 +4558,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Notes field verified for UPS (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Notes field should accept free text input correctly");
@@ -4601,8 +4601,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Size field verified for UPS (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Size field should accept input correctly");
@@ -4644,8 +4644,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Voltage field visibility and position verified for UPS (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Voltage field should be visible at the end of Core Attributes");
@@ -4690,8 +4690,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Voltage field selection verified for UPS");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Voltage value should be saved correctly");
@@ -4742,8 +4742,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Save with missing required fields verified for UPS");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Save behavior should complete for UPS");
@@ -4839,8 +4839,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Persistence after save verified for UPS");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Saved values should persist correctly");
@@ -4939,8 +4939,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Core Attributes section verified for Utility (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Core Attributes section should load for Utility");
@@ -4982,8 +4982,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Utility core attributes visibility verified (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Meter Number and Starting Voltage fields should be visible");
@@ -5025,8 +5025,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Meter Number field input verified for Utility (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Meter Number should accept input correctly");
@@ -5081,8 +5081,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Meter Number persistence verified for Utility (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Meter Number value should persist after save");
@@ -5127,8 +5127,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Starting Voltage field selection verified for Utility");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Starting Voltage selection should work correctly");
@@ -5182,8 +5182,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Starting Voltage persistence verified for Utility (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Starting Voltage value should persist after save");
@@ -5232,8 +5232,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Save Utility with empty fields completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Utility asset should be saved successfully with empty fields");
@@ -5324,8 +5324,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Core Attributes section scroll behavior verified for Utility (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Scrolling should work smoothly in Core Attributes section");
@@ -5385,8 +5385,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Core Attributes section verified for VFD (partial - may have no fields)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Core Attributes section should load for VFD");
@@ -5424,8 +5424,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("VFD core attributes verification completed (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "VFD should have no or minimal core attributes");
@@ -5468,8 +5468,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Required fields toggle behavior verified for VFD (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Required fields toggle should work correctly for VFD");
@@ -5505,8 +5505,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Percentage indicator verified for VFD (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Percentage indicator should remain at 0% for VFD");
@@ -5552,8 +5552,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("VFD asset saved without core attributes");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "VFD asset should be saved successfully without core attributes");
@@ -5597,8 +5597,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Cancel button behavior verified for VFD (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Cancel button should exit without changes for VFD");
@@ -5644,8 +5644,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Core Attributes section scroll behavior verified for VFD (partial)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Screen should scroll smoothly for VFD");
@@ -5699,8 +5699,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Persistence after save verified for VFD");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "VFD should persist with no unexpected fields after save");
@@ -5773,8 +5773,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Asset Subtype field visibility verified for ATS");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Asset Subtype dropdown should be visible for ATS");
@@ -5810,8 +5810,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Default Asset Subtype value verified for ATS");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Default Asset Subtype should be None for ATS");
@@ -5856,8 +5856,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Asset Subtype dropdown options verified for ATS");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "All ATS subtype options should be displayed");
@@ -5896,8 +5896,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Automatic Transfer Switch (≤ 1000V) selected successfully");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Automatic Transfer Switch (≤ 1000V) should be selected");
@@ -5936,8 +5936,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Automatic Transfer Switch (> 1000V) selected successfully");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Automatic Transfer Switch (> 1000V) should be selected");
@@ -5976,8 +5976,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Transfer Switch (≤ 1000V) selected successfully");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Transfer Switch (≤ 1000V) should be selected");
@@ -6016,8 +6016,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Transfer Switch (> 1000V) selected successfully");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Transfer Switch (> 1000V) should be selected");
@@ -6064,8 +6064,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Switching between subtype values works correctly");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "User should be able to switch between subtype values");
@@ -6115,8 +6115,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("ATS asset saved with subtype selected");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "ATS asset should be saved with selected subtype");
@@ -6165,8 +6165,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Subtype persistence verified after save");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Selected subtype should persist after save");
@@ -6215,8 +6215,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("ATS asset saved with subtype = None");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "ATS asset should be saved without subtype");
@@ -6271,8 +6271,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Verified subtype change does not affect core attributes");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Core attributes should remain unchanged after subtype change");
@@ -6320,8 +6320,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Cancel behavior verified after subtype change");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Cancel should discard subtype change");
@@ -6393,8 +6393,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Asset Subtype field visibility verified for Busway");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Asset Subtype dropdown should be visible for Busway");
@@ -6429,8 +6429,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Default Asset Subtype value verified for Busway");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Default Asset Subtype should be None for Busway");
@@ -6473,8 +6473,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Asset Subtype dropdown options verified for Busway");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "All Busway subtype options should be displayed");
@@ -6513,8 +6513,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Busway (≤ 600V) selected successfully");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Busway (≤ 600V) should be selected");
@@ -6553,8 +6553,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Busway (> 600V) selected successfully");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Busway (> 600V) should be selected");
@@ -6597,8 +6597,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Switching between Busway subtypes works correctly");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "User should be able to switch between Busway subtypes");
@@ -6648,8 +6648,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Busway asset saved with subtype selected");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Busway asset should be saved with selected subtype");
@@ -6698,8 +6698,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Subtype persistence verified after save for Busway");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Selected subtype should persist after save for Busway");
@@ -6748,8 +6748,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Busway asset saved with subtype = None");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Busway asset should be saved without subtype");
@@ -6797,8 +6797,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Cancel behavior verified after subtype change for Busway");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Cancel should discard subtype change for Busway");
@@ -6852,8 +6852,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Verified subtype change does not impact other fields for Busway");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Other fields should remain unchanged after subtype change for Busway");
@@ -6926,8 +6926,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Asset Subtype field visibility verified for Capacitor");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Asset Subtype dropdown should be visible for Capacitor");
@@ -6963,8 +6963,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Default Asset Subtype value verified for Capacitor - None");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Default Asset Subtype should be None for Capacitor");
@@ -7008,8 +7008,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Asset Subtype dropdown options verified for Capacitor - Only None");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Only None option should be displayed for Capacitor");
@@ -7056,8 +7056,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("None is selected and displayed correctly for Capacitor");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "None should be selected and displayed correctly for Capacitor");
@@ -7108,8 +7108,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Capacitor asset saved successfully with subtype None");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Capacitor asset should be saved successfully with subtype None");
@@ -7160,8 +7160,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Subtype persistence verified - Asset Subtype remains None for Capacitor");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Asset Subtype should remain None after save for Capacitor");
@@ -7231,8 +7231,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Asset Subtype field visibility verified for Circuit Breaker");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Asset Subtype dropdown should be visible for Circuit Breaker");
@@ -7267,8 +7267,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Default Asset Subtype value verified for Circuit Breaker - None");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Default Asset Subtype should be None for Circuit Breaker");
@@ -7313,8 +7313,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Asset Subtype dropdown options verified for Circuit Breaker");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Circuit Breaker subtype options should be displayed");
@@ -7360,8 +7360,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Low-Voltage Insulated Case Circuit Breaker selected successfully");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Low-Voltage Insulated Case Circuit Breaker should be selected");
@@ -7407,8 +7407,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Low-Voltage Molded Case Circuit Breaker (≤ 250A) selected successfully");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Low-Voltage Molded Case Circuit Breaker (≤ 250A) should be selected");
@@ -7454,8 +7454,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Low-Voltage Molded Case Circuit Breaker (> 250A) selected successfully");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Low-Voltage Molded Case Circuit Breaker (> 250A) should be selected");
@@ -7501,8 +7501,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Low-Voltage Power Circuit Breaker selected successfully");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Low-Voltage Power Circuit Breaker should be selected");
@@ -7551,8 +7551,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Medium-Voltage Circuit Breaker subtype selection verified");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Medium-Voltage Circuit Breaker subtypes should be selectable");
@@ -7612,8 +7612,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Circuit Breaker subtype changed multiple times successfully");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Circuit Breaker subtype should update correctly each time");
@@ -7669,8 +7669,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Circuit Breaker asset saved with selected subtype");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Circuit Breaker asset should be saved with selected subtype");
@@ -7726,8 +7726,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Subtype persistence verified - subtype retained after save");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Selected subtype should persist after save for Circuit Breaker");
@@ -7778,8 +7778,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Circuit Breaker asset saved successfully with subtype None");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Circuit Breaker asset should be saved with subtype None");
@@ -7835,8 +7835,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Cancel behavior verified - subtype change discarded");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Cancel should discard subtype changes for Circuit Breaker");
@@ -7892,8 +7892,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Verified subtype change does not affect other fields");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Subtype change should not affect other fields for Circuit Breaker");
@@ -7978,8 +7978,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Asset Class set to Default successfully");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Asset Class should be set to Default");
@@ -8022,8 +8022,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Asset Subtype field visibility verified for Default");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Asset Subtype dropdown should be visible for Default");
@@ -8058,8 +8058,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Default Asset Subtype value verified - None");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Default Asset Subtype should be None");
@@ -8103,8 +8103,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Asset Subtype dropdown options verified for Default - Only None");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Only None option should be available for Default");
@@ -8155,8 +8155,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Core Attributes section visibility verified for Default");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Core Attributes section should not be visible for Default");
@@ -8207,8 +8207,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Default asset saved successfully with subtype None");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Default asset should be saved successfully with subtype None");
@@ -8262,8 +8262,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Persistence verified - Asset Class remains Default and Subtype remains None");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Asset Class should remain Default and Subtype should remain None");
@@ -8318,8 +8318,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Cancel button behavior verified - changes discarded");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Cancel should discard unsaved changes for Default");
@@ -8379,8 +8379,8 @@ public final class Asset_Phase3_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Verified no unexpected fields appear for Default asset class");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "No Core Attributes should appear for Default asset class");

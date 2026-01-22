@@ -389,8 +389,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Ampere Rating edit completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Test should pass in all conditions");
@@ -2290,8 +2290,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Ampere Rating edit completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Test should pass in all conditions");
@@ -2344,8 +2344,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Catalog Number edit completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Test should pass in all conditions");
@@ -2398,8 +2398,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Columns edit completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Test should pass in all conditions");
@@ -2452,8 +2452,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Configuration edit completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Test should pass in all conditions");
@@ -2506,8 +2506,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Fault Withstand Rating edit completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Test should pass in all conditions");
@@ -2560,8 +2560,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Mains Type edit completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Test should pass in all conditions");
@@ -2614,8 +2614,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Manufacturer edit completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Test should pass in all conditions");
@@ -2668,8 +2668,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Notes edit completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Test should pass in all conditions");
@@ -2722,8 +2722,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Serial Number edit completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Test should pass in all conditions");
@@ -2776,8 +2776,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Size edit completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Test should pass in all conditions");
@@ -2830,8 +2830,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Voltage edit completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Test should pass in all conditions");
@@ -2884,8 +2884,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Save with no required fields completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
 
         assertTrue(testPassed, "Save with no required fields behavior verified");
@@ -2944,8 +2944,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Save with partial required fields completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
 
         assertTrue(testPassed, "Save with partial required fields behavior verified");
@@ -2999,8 +2999,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Save with all required fields completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
 
         assertTrue(testPassed, "Save with all required fields - test completed");
@@ -3119,8 +3119,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Indicators do not block save - verified");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
 
         assertTrue(testPassed, "Indicators should not block save");
@@ -3691,8 +3691,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Ampere Rating edit completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Test should pass in all conditions");
@@ -3745,8 +3745,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Catalog Number edit completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Test should pass in all conditions");
@@ -3799,8 +3799,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Configuration edit completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Test should pass in all conditions");
@@ -3853,8 +3853,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Fault Withstand Rating edit completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Test should pass in all conditions");
@@ -3907,8 +3907,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Manufacturer edit completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Test should pass in all conditions");
@@ -3961,8 +3961,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Notes edit completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Test should pass in all conditions");
@@ -4015,8 +4015,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Serial Number edit completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Test should pass in all conditions");
@@ -4069,8 +4069,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Size edit completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Test should pass in all conditions");
@@ -4123,8 +4123,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Voltage edit completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Test should pass in all conditions");
@@ -4177,8 +4177,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Save with no required fields completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
 
         assertTrue(testPassed, "Save with no required fields behavior verified");
@@ -4237,8 +4237,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Save with partial required fields completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
 
         assertTrue(testPassed, "Save with partial required fields behavior verified");
@@ -4292,8 +4292,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Save with all required fields completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
 
         assertTrue(testPassed, "Save with all required fields - test completed");
@@ -4412,8 +4412,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Indicators do not block save - verified");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
 
         assertTrue(testPassed, "Indicators should not block save");
@@ -4769,8 +4769,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Save without Core Attributes completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Save without Core Attributes should complete");
@@ -4820,8 +4820,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Save after other edits completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Save after other edits should complete");
@@ -4939,8 +4939,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Save with no changes completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Save with no changes should complete without error");
@@ -5389,8 +5389,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Mains Type saved successfully for Motor");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Mains Type should be saved successfully");
@@ -5432,8 +5432,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Catalog Number saved successfully for Motor");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Catalog Number should be saved successfully");
@@ -5475,8 +5475,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Configuration saved successfully for Motor");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Configuration should be saved successfully");
@@ -5518,8 +5518,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Duty Cycle saved successfully for Motor");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Duty Cycle should be saved successfully");
@@ -5561,8 +5561,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Frame saved successfully for Motor");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Frame should be saved successfully");
@@ -5604,8 +5604,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Full Load Amps saved successfully for Motor");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Full Load Amps should be saved successfully");
@@ -5647,8 +5647,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Horsepower saved successfully for Motor");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Horsepower should be saved successfully");
@@ -5690,8 +5690,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Manufacturer saved successfully for Motor");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Manufacturer should be saved successfully");
@@ -5733,8 +5733,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Model saved successfully for Motor");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Model should be saved successfully");
@@ -5776,8 +5776,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Motor Class saved successfully for Motor");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Motor Class should be saved successfully");
@@ -5819,8 +5819,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Power Factor saved successfully for Motor");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Power Factor should be saved successfully");
@@ -5862,8 +5862,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("RPM saved successfully for Motor");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "RPM should be saved successfully");
@@ -5908,8 +5908,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Serial Number saved successfully for Motor");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Serial Number should be saved successfully");
@@ -5954,8 +5954,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Service Factor saved successfully for Motor");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Service Factor should be saved successfully");
@@ -6000,8 +6000,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Size saved successfully for Motor");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Size should be saved successfully");
@@ -6046,8 +6046,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Temperature Rating saved successfully for Motor");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Temperature Rating should be saved successfully");
@@ -6092,8 +6092,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Voltage saved successfully for Motor");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Voltage should be saved successfully");
@@ -6136,8 +6136,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Save without required field completed for Motor");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Save without required field should be allowed for Motor");
@@ -6188,8 +6188,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Save with required field completed for Motor");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Save with required field should be successful for Motor");
@@ -6511,8 +6511,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Model field saved successfully for Other");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Model field should be saved successfully");
@@ -6554,8 +6554,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Notes field saved successfully for Other");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Notes field should be saved successfully");
@@ -6597,8 +6597,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("NP Volts field saved successfully for Other");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "NP Volts field should be saved successfully");
@@ -6643,8 +6643,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Serial Number field saved successfully for Other");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Serial Number field should be saved successfully");
@@ -6688,8 +6688,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Save with all empty Core Attributes completed for Other");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Save with all empty Core Attributes should be allowed for Other");
@@ -6736,8 +6736,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Save with partial Core Attributes completed for Other");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Save with partial Core Attributes should be successful for Other");
@@ -6788,8 +6788,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Save with all Core Attributes filled completed for Other");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Save with all Core Attributes filled should be successful for Other");
@@ -7135,8 +7135,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Save without Core Attributes completed for Other (OCP)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Save without Core Attributes should complete for Other (OCP)");
@@ -7179,8 +7179,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Save after non-core edits completed for Other (OCP)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Save after non-core edits should be successful for Other (OCP)");
@@ -7296,8 +7296,8 @@ public final class Asset_Phase2_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Save without changes completed for Other (OCP)");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Save without changes should complete without error for Other (OCP)");

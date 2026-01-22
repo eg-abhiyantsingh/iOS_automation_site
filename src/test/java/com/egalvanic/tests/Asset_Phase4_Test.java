@@ -68,8 +68,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Asset Subtype field visibility verified for Disconnect Switch");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         assertTrue(testPassed, "Asset Subtype dropdown should be visible for Disconnect Switch");
     }
@@ -92,8 +92,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Default Asset Subtype value verified for Disconnect Switch - None");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         assertTrue(testPassed, "Default Asset Subtype should be None for Disconnect Switch");
     }
@@ -121,8 +121,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Asset Subtype dropdown options verified for Disconnect Switch");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         assertTrue(testPassed, "Disconnect Switch subtype options should be displayed");
     }
@@ -149,8 +149,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Bolted-Pressure Switch (BPS) selected successfully");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         assertTrue(testPassed, "Bolted-Pressure Switch (BPS) should be selected");
     }
@@ -177,8 +177,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Bypass-Isolation Switch (<= 1000V) selected successfully");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         assertTrue(testPassed, "Bypass-Isolation Switch (<= 1000V) should be selected");
     }
@@ -205,8 +205,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Bypass-Isolation Switch (> 1000V) selected successfully");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         assertTrue(testPassed, "Bypass-Isolation Switch (> 1000V) should be selected");
     }
@@ -237,8 +237,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Disconnect Switch voltage-based subtypes selected successfully");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         assertTrue(testPassed, "Disconnect Switch voltage-based subtypes should be selectable");
     }
@@ -269,8 +269,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Fused Disconnect Switch subtypes selected successfully");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         assertTrue(testPassed, "Fused Disconnect Switch subtypes should be selectable");
     }
@@ -297,8 +297,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("High-Pressure Contact Switch (HPC) selected successfully");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         assertTrue(testPassed, "High-Pressure Contact Switch (HPC) should be selected");
     }
@@ -325,8 +325,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Load-Interruptor Switch selected successfully");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         assertTrue(testPassed, "Load-Interruptor Switch should be selected");
     }
@@ -361,8 +361,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Disconnect Switch subtype changed multiple times successfully");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         assertTrue(testPassed, "Disconnect Switch subtype should update correctly each time");
     }
@@ -398,8 +398,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Disconnect Switch asset saved with selected subtype");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         assertTrue(testPassed, "Disconnect Switch asset should be saved with selected subtype");
     }
@@ -434,8 +434,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Subtype persistence verified - subtype retained after save");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         assertTrue(testPassed, "Selected subtype should persist after save for Disconnect Switch");
     }
@@ -469,8 +469,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Disconnect Switch asset saved successfully with subtype None");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         assertTrue(testPassed, "Disconnect Switch asset should be saved with subtype None");
     }
@@ -506,8 +506,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Cancel behavior verified - subtype change discarded");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         assertTrue(testPassed, "Cancel should discard subtype changes for Disconnect Switch");
     }
@@ -540,8 +540,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Verified subtype change does not affect other fields");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         assertTrue(testPassed, "Subtype change should not affect other fields for Disconnect Switch");
     }
@@ -613,8 +613,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Asset Subtype field visibility verified for Fuse");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Asset Subtype dropdown should be visible for Fuse");
@@ -653,8 +653,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Default Asset Subtype value verified for Fuse - None");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Default Asset Subtype should be None for Fuse");
@@ -700,8 +700,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Asset Subtype dropdown options verified for Fuse");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Fuse subtype options should be displayed: None, Fuse (<= 1000V), Fuse (> 1000V)");
@@ -745,8 +745,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Fuse (<= 1000V) selected successfully");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Fuse (<= 1000V) should be selected and displayed correctly");
@@ -790,8 +790,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Fuse (> 1000V) selected successfully");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Fuse (> 1000V) should be selected and displayed correctly");
@@ -850,8 +850,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Successfully switched between Fuse subtypes");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Subtype should update correctly when switching between Fuse subtypes");
@@ -903,8 +903,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Fuse asset saved with selected subtype");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Fuse asset should be saved with selected subtype");
@@ -959,8 +959,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Subtype persistence verified - Fuse (> 1000V) retained after save");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Selected subtype should persist after save for Fuse");
@@ -1013,8 +1013,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Fuse asset saved successfully with subtype None");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Fuse asset should be saved successfully with subtype None");
@@ -1069,8 +1069,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Cancel behavior verified - subtype change discarded");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Cancel should discard subtype changes for Fuse");
@@ -1131,8 +1131,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Verified subtype change does not affect other fields for Fuse");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Subtype change should not affect other fields for Fuse");
@@ -1246,8 +1246,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("Generator core attributes visibility verified - see screenshot for details");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "All Generator core attributes should be visible");
@@ -1317,8 +1317,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("Generator asset save with valid core attributes - completed");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Generator asset should be saved with valid core attributes");
@@ -1382,8 +1382,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("Generator asset saved successfully with optional fields empty");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Generator asset should be saved successfully with optional fields empty");
@@ -1454,8 +1454,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("Verified: Asset Subtype None does not impact Generator core attributes");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Core attributes should be displayed correctly and independent of asset subtype");
@@ -1570,8 +1570,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("JB_AST_01 - Verified: Asset Subtype shows only 'None' for Junction Box");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Asset Subtype should display only 'None' option for Junction Box");
@@ -1686,8 +1686,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("LC_AST_01 - Verified: Asset Subtype shows only 'None' for Loadcenter");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Asset Subtype should display only 'None' option for Loadcenter");
@@ -1771,8 +1771,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("MCC_AST_01 - Verified: Default Asset Subtype is None for MCC");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Default Asset Subtype should be None for MCC");
@@ -1837,8 +1837,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("MCC_AST_02 - Verified: Asset Subtype dropdown options for MCC");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Asset Subtype dropdown should display correct options for MCC");
@@ -1887,8 +1887,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("MCC_AST_03 - Verified: Motor Control Equipment (<= 1000V) selected successfully");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Motor Control Equipment (<= 1000V) should be selectable for MCC");
@@ -1937,8 +1937,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("MCC_AST_04 - Verified: Motor Control Equipment (> 1000V) selected successfully");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Motor Control Equipment (> 1000V) should be selectable for MCC");
@@ -2048,8 +2048,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("MCCB_AST_01 - Verified: Asset Subtype shows only 'None' for MCC Bucket");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Asset Subtype should display only 'None' option for MCC Bucket");
@@ -2136,8 +2136,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("MOT_AST_01 - Verified: Default Asset Subtype is None for Motor");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Default Asset Subtype should be None for Motor");
@@ -2201,8 +2201,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("MOT_AST_02 - Verified: Asset Subtype dropdown options for Motor");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Asset Subtype dropdown should display all Motor subtype options");
@@ -2256,8 +2256,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("MOT_AST_03 - Verified: Low-Voltage Machine (<= 200hp) selected successfully");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Low-Voltage Machine (<= 200hp) should be selectable for Motor");
@@ -2311,8 +2311,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("MOT_AST_04 - Verified: Medium-Voltage Synchronous Machine selected successfully");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Medium-Voltage Synchronous Machine should be selectable for Motor");
@@ -2422,8 +2422,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("OCP_AST_01 - Verified: Asset Subtype shows only 'None' for Other (OCP)");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Asset Subtype should display only 'None' option for Other (OCP)");
@@ -2510,8 +2510,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("PB_AST_01 - Verified: Default Asset Subtype is None for Panelboard");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Default Asset Subtype should be None for Panelboard");
@@ -2571,8 +2571,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("PB_AST_02 - Verified: Asset Subtype dropdown options for Panelboard");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Asset Subtype dropdown should display None and Panelboard options");
@@ -2626,8 +2626,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("PB_AST_03 - Verified: Panelboard subtype selected successfully");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Panelboard subtype should be selectable for Panelboard asset class");
@@ -2737,8 +2737,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("PDU_AST_01 - Verified: Asset Subtype shows only 'None' for PDU");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Asset Subtype should display only 'None' option for PDU");
@@ -2825,8 +2825,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("REL_AST_01 - Verified: Default Asset Subtype is None for Relay");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Default Asset Subtype should be None for Relay");
@@ -2888,8 +2888,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("REL_AST_02 - Verified: Asset Subtype dropdown options for Relay");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Asset Subtype dropdown should display all Relay subtype options");
@@ -2943,8 +2943,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("REL_AST_03 - Verified: Electromechanical Relay subtype selected successfully");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Electromechanical Relay should be selectable for Relay asset class");
@@ -2998,8 +2998,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("REL_AST_04 - Verified: Solid-State Relay subtype selected successfully");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Solid-State Relay should be selectable for Relay asset class");
@@ -3088,8 +3088,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("SWB_AST_01 - Verified: Default Asset Subtype is None for Switchboard");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Default Asset Subtype should be None for Switchboard");
@@ -3154,8 +3154,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("SWB_AST_02 - Verified: Asset Subtype dropdown options for Switchboard");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Asset Subtype dropdown should display all Switchboard subtype options");
@@ -3209,8 +3209,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("SWB_AST_03 - Verified: Switchgear (<= 1000V) subtype selected successfully");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Switchgear (<= 1000V) should be selectable for Switchboard asset class");
@@ -3264,8 +3264,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("SWB_AST_04 - Verified: Unitized Substation (USS) (> 1000V) subtype selected successfully");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Unitized Substation (USS) (> 1000V) should be selectable for Switchboard asset class");
@@ -3353,8 +3353,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("TRF_AST_01 - Verified: Default Asset Subtype is None for Transformer");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Default Asset Subtype should be None for Transformer");
@@ -3417,8 +3417,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("TRF_AST_02 - Verified: Asset Subtype dropdown options for Transformer");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Asset Subtype dropdown should display all Transformer subtype options");
@@ -3472,8 +3472,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("TRF_AST_03 - Verified: Dry-Type Transformer (<= 600V) subtype selected successfully");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Dry-Type Transformer (<= 600V) should be selectable for Transformer asset class");
@@ -3527,8 +3527,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("TRF_AST_04 - Verified: Oil-Filled Transformer subtype selected successfully");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Oil-Filled Transformer should be selectable for Transformer asset class");
@@ -3615,8 +3615,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("UPS_AST_01 - Verified: Default Asset Subtype is None for UPS");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Default Asset Subtype should be None for UPS");
@@ -3679,8 +3679,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("UPS_AST_02 - Verified: Asset Subtype dropdown options for UPS");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Asset Subtype dropdown should display all UPS subtype options");
@@ -3734,8 +3734,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("UPS_AST_03 - Verified: Hybrid UPS System subtype selected successfully");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Hybrid UPS System should be selectable for UPS asset class");
@@ -3789,8 +3789,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("UPS_AST_04 - Verified: Static UPS System subtype selected successfully");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Static UPS System should be selectable for UPS asset class");
@@ -3900,8 +3900,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("UTL_AST_01 - Verified: Asset Subtype shows only 'None' for Utility");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Asset Subtype should display only 'None' option for Utility");
@@ -4011,8 +4011,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("VFD_AST_01 - Verified: Asset Subtype shows only 'None' for VFD");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Asset Subtype should display only 'None' option for VFD");
@@ -4112,8 +4112,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("COM_01 - Condition of Maintenance section visibility verified");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Condition of Maintenance section should be visible with selectable indicators");
@@ -4163,8 +4163,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("COM_02 - Condition of Maintenance selection verified");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "User should be able to select Condition of Maintenance value");
@@ -4219,8 +4219,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Tasks section should be visible with Add (+) icon");
@@ -4278,8 +4278,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Add Task icon should open New Task screen");
@@ -4339,8 +4339,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "All New Task screen UI elements should be visible");
@@ -4402,8 +4402,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Task should be created with mandatory fields");
@@ -4463,8 +4463,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Validation message should be shown when Description is empty");
@@ -4526,8 +4526,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Task should be created and marked as completed");
@@ -4616,8 +4616,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Task Details screen should open with task information displayed");
@@ -4664,8 +4664,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Task Title and Description fields should be visible and editable");
@@ -4708,8 +4708,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Associated Forms section should be visible");
@@ -4752,8 +4752,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Form linking screen should open successfully");
@@ -4796,8 +4796,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Task Photos section should be visible with General, Before, and After tabs");
@@ -4845,8 +4845,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "User should be able to switch between General, Before, and After tabs");
@@ -4889,8 +4889,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Gallery should open for photo selection");
@@ -4933,8 +4933,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Camera should open for photo capture");
@@ -4984,8 +4984,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Delete Task button should be visible");
@@ -5045,8 +5045,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Task should be deleted successfully");
@@ -5140,8 +5140,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "New Issue screen should open successfully");
@@ -5185,8 +5185,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Correct asset name should be auto-populated");
@@ -5229,8 +5229,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Issue Class dropdown should open and allow selection");
@@ -5274,8 +5274,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Validation should be shown or Create Issue should remain disabled");
@@ -5318,8 +5318,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Selected priority should be displayed correctly");
@@ -5380,8 +5380,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Issue should be created and listed under Issues section");
@@ -5429,8 +5429,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "User should navigate back without creating issue");
@@ -5478,8 +5478,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Issue count should increment correctly");
@@ -5517,8 +5517,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Issue should be linked to the correct asset");
@@ -5575,8 +5575,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Issue Class and Priority dropdowns should display correct options");
@@ -5673,8 +5673,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "New Connection screen should display with Lineside (Incoming) selected");
@@ -5719,8 +5719,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Lineside (Incoming) should be selected by default");
@@ -5760,8 +5760,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Source Node dropdown should open and list available assets");
@@ -5802,8 +5802,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Target Node should show current asset name and ID");
@@ -5841,8 +5841,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Connection Type should show None by default");
@@ -5891,8 +5891,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Create should be prevented without selecting Source Node");
@@ -5944,8 +5944,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Lineside connection should be created successfully");
@@ -5989,8 +5989,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "User should be navigated back without creating connection");
@@ -6032,8 +6032,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Newly created Lineside connection should be visible in list");
@@ -6107,8 +6107,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "New Connection screen should open with Loadside (Outgoing) selected");
@@ -6153,8 +6153,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Loadside (Outgoing) should be selected by default");
@@ -6195,8 +6195,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Source Node should show current asset name and ID");
@@ -6236,8 +6236,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Target Node dropdown should open and show available assets");
@@ -6275,8 +6275,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Connection Type should show None by default");
@@ -6325,8 +6325,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Connection should not be created and validation should be shown");
@@ -6378,8 +6378,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Loadside connection should be created successfully");
@@ -6422,8 +6422,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "User should be navigated back without creating Loadside connection");
@@ -6465,8 +6465,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Newly created Loadside connection should be visible in list");
@@ -6640,8 +6640,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCloseButton();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Two OCP Add options should be displayed");
@@ -6684,8 +6684,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCancelChildAsset();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Create Child Asset screen should be displayed");
@@ -6727,8 +6727,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCancelChildAsset();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Parent Enclosure should show MCC asset ID");
@@ -6776,8 +6776,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCancelChildAsset();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Asset Class dropdown should show OCP options");
@@ -6821,8 +6821,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.clickCancelChildAsset();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Create button should remain disabled without required fields");
@@ -6876,8 +6876,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("MCC-OCP-06 - Child asset created: " + childAssetName);
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Child asset should be created and linked to MCC");
@@ -6920,8 +6920,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.cancelLinkExistingNodes();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Link Existing Node screen should be displayed");
@@ -6962,8 +6962,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.cancelLinkExistingNodes();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Existing nodes should be listed and selectable");
@@ -7019,8 +7019,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("MCC-OCP-09 - Link existing node result");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Selected node should be linked to MCC as OCP");
@@ -7057,8 +7057,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("MCC-OCP-10 - OCP section verified");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Newly created or linked OCP should be visible under MCC");
@@ -7111,8 +7111,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("MCC-OCP-11 - Link Existing Nodes screen opened");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Link Existing Nodes screen should be displayed");
@@ -7155,8 +7155,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.cancelLinkExistingNodes();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Search field with placeholder text should be visible");
@@ -7199,8 +7199,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.cancelLinkExistingNodes();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Matching nodes should be filtered and displayed");
@@ -7315,8 +7315,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.cancelLinkExistingNodes();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Link button should display correct selected count");
@@ -7376,8 +7376,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.cancelLinkExistingNodes();
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "All selected nodes should be deselected and count should reset");
@@ -7433,8 +7433,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("MCC-OCP-17 - Link result");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Node should be linked successfully");
@@ -7483,8 +7483,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("MCC-OCP-18 - Cancel verified");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "User should be navigated back without linking any node");
@@ -7523,8 +7523,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("MCC-OCP-19 - Linked node verified under MCC");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Linked node should appear under MCC OCP list");
@@ -7570,8 +7570,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("AS-01 - Assets screen load verified");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Assets screen should display with search bar and asset list");
@@ -7626,8 +7626,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("AS-02 - Search by asset name verified");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Matching assets should be displayed in the list");
@@ -7684,8 +7684,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("AS-03 - Search by asset type verified");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Assets matching the type should be displayed");
@@ -7742,8 +7742,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("AS-04 - Search by location verified");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Assets mapped to the location should be displayed");
@@ -7791,8 +7791,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("AS-05 - Assets grouping verified");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Assets should be grouped correctly under MCC headers");
@@ -7840,8 +7840,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("AS-06 - Asset count badge verified");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Asset count should be displayed correctly in group headers");
@@ -7878,8 +7878,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("AS-07 - Asset card details verified");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Asset name, asset class, and arrow icon should be visible");
@@ -7917,8 +7917,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("AS-08 - Asset details navigation verified");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Asset Details screen should be opened");
@@ -7954,8 +7954,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("AS-09 - Mixed asset types grouping (complex hierarchy)");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Assets should appear under correct parent grouping");
@@ -8006,8 +8006,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("AS-10 - No matching result search verified");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Empty state should be shown when no asset matches");
@@ -8045,8 +8045,8 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStepWithScreenshot("AS-11 - Asset list scroll behavior (performance test)");
             
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
         }
         
         assertTrue(testPassed, "Assets should load and scroll smoothly without crash");

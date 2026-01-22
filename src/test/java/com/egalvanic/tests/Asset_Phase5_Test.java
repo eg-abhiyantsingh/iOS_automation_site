@@ -164,12 +164,11 @@ public final class Asset_Phase5_Test extends BaseTest {
                 logWarning("⚠️ BUG: App allowed creating asset with duplicate name!");
                 logWarning("This is a data integrity issue - duplicate names should show warning");
             }
-
-            testPassed = true;
+            testPassed = stillOnCreateScreen; // Test passes only if duplicate was prevented
             logStepWithScreenshot("Duplicate name handling test completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e; // Re-throw to fail the test
         }
         assertTrue(testPassed, "Duplicate name handling test completed");
     }
@@ -220,8 +219,8 @@ public final class Asset_Phase5_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Case-insensitive duplicate test completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e; // Re-throw to fail the test
         }
         assertTrue(testPassed, "Case-insensitive duplicate detection test completed");
     }
@@ -281,15 +280,127 @@ public final class Asset_Phase5_Test extends BaseTest {
                 logWarning("⚠️ BUG: App allowed duplicate QR codes!");
                 logWarning("This breaks QR scanning functionality - multiple assets with same QR");
             }
-
-            testPassed = true;
+            testPassed = stillOnCreateScreen; // Test passes only if duplicate QR was prevented
             logStepWithScreenshot("Duplicate QR code test completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e; // Re-throw to fail the test
         }
         assertTrue(testPassed, "Duplicate QR code handling test completed");
     }
+
+    /**
+     * BUG_DUP_04 - CRITICAL: Edit existing asset QR code to duplicate another asset's QR code
+     * 
+     * This is a HIGH PRIORITY data integrity bug.
+     * 
+     * Scenario:
+     * 1. Asset A exists with QR code "QR_A_xxx"
+     * 2. Asset B exists with QR code "QR_B_xxx" 
+     * 3. User edits Asset B and changes its QR code to "QR_A_xxx" (same as Asset A)
+     * 4. User tries to save
+     * 
+     * Expected: App should BLOCK the save with validation error
+     * Bug: If app allows save, two assets will have the same QR code
+     */
+    @Test(priority = 4)
+    public void BUG_DUP_04_editQRCodeToDuplicateExisting() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ASSET, AppConstants.FEATURE_EDIT_ASSET,
+            "BUG_DUP_04 - CRITICAL: Edit QR code to duplicate existing QR code");
+        boolean testPassed = false;
+        try {
+            long timestamp = System.currentTimeMillis();
+            String qrCodeA = "QR_EDIT_A_" + timestamp;
+            String qrCodeB = "QR_EDIT_B_" + timestamp;
+            String assetNameA = "EditQRTestA_" + timestamp;
+            String assetNameB = "EditQRTestB_" + timestamp;
+
+            logStep("=== SETUP: Creating two assets with different QR codes ===");
+            
+            // Create Asset A with QR code A
+            logStep("Step 1: Creating Asset A with QR code: " + qrCodeA);
+            navigateToNewAssetScreen();
+            assetPage.enterAssetName(assetNameA);
+            assetPage.dismissKeyboard();
+            assetPage.selectATSClass();
+            assetPage.selectLocation();
+            assetPage.dismissKeyboard();
+            assetPage.scrollFormDown();
+            assetPage.enterQRCode(qrCodeA);
+            assetPage.dismissKeyboard();
+            assetPage.scrollFormUp();
+            assetPage.scrollFormUp();
+            assetPage.clickCreateAsset();
+            mediumWait();
+            
+            // Create Asset B with QR code B
+            logStep("Step 2: Creating Asset B with QR code: " + qrCodeB);
+            navigateToNewAssetScreen();
+            assetPage.enterAssetName(assetNameB);
+            assetPage.dismissKeyboard();
+            assetPage.selectATSClass();
+            assetPage.selectLocation();
+            assetPage.dismissKeyboard();
+            assetPage.scrollFormDown();
+            assetPage.enterQRCode(qrCodeB);
+            assetPage.dismissKeyboard();
+            assetPage.scrollFormUp();
+            assetPage.scrollFormUp();
+            assetPage.clickCreateAsset();
+            mediumWait();
+            
+            logStep("=== TEST: Editing Asset B's QR code to match Asset A's QR code ===");
+            
+            // Navigate to Asset B and edit
+            logStep("Step 3: Searching for Asset B to edit");
+            assetPage.navigateToAssetList();
+            shortWait();
+            assetPage.searchAsset(assetNameB);
+            shortWait();
+            assetPage.selectAssetByName(assetNameB);
+            mediumWait();
+            
+            // Open edit screen
+            logStep("Step 4: Opening Edit Asset Details screen");
+            assetPage.clickEdit();
+            shortWait();
+            
+            // Scroll to QR code field and change it to Asset A's QR code
+            logStep("Step 5: Changing QR code from " + qrCodeB + " to " + qrCodeA + " (DUPLICATE!)");
+            
+            // Use dedicated editQRCode method that handles scrolling and clearing
+            boolean edited = assetPage.editQRCode(qrCodeA);
+            if (!edited) {
+                logWarning("Could not edit QR Code field - test may be invalid");
+            }
+            assetPage.dismissKeyboard();
+            
+            // Attempt to save
+            logStep("Step 6: Attempting to save with duplicate QR code");
+            assetPage.scrollFormUp();
+            assetPage.scrollFormUp();
+            assetPage.clickSaveChanges();
+            mediumWait();
+            
+            // Check result - if still on edit screen, duplicate was prevented (GOOD)
+            boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
+            
+            if (stillOnEditScreen) {
+                logStep("✅ GOOD: App prevented editing QR code to duplicate value");
+            } else {
+                logWarning("❌ CRITICAL BUG: App allowed editing QR code to duplicate existing value!");
+                logWarning("Two assets now have QR code: " + qrCodeA);
+            }
+            
+            testPassed = stillOnEditScreen; // Test passes only if duplicate was prevented
+            logStepWithScreenshot("Edit QR code to duplicate - test completed");
+        } catch (Exception e) {
+            logStep("Exception occurred: " + e.getMessage());
+            throw e;
+        }
+        assertTrue(testPassed, "CRITICAL BUG: App should prevent editing QR code to duplicate existing value");
+    }
+
 
     // ================================================================================
     // 2. SPECIAL CHARACTERS IN ASSET NAME (BUG_CHAR_01 to BUG_CHAR_05)
@@ -340,8 +451,8 @@ public final class Asset_Phase5_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("HTML tags in name test completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e; // Re-throw to fail the test
         }
         assertTrue(testPassed, "HTML tags in asset name test completed");
     }
@@ -387,8 +498,8 @@ public final class Asset_Phase5_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("SQL injection test completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e; // Re-throw to fail the test
         }
         assertTrue(testPassed, "SQL injection in asset name test completed");
     }
@@ -486,8 +597,8 @@ public final class Asset_Phase5_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Newline/Tab test completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e; // Re-throw to fail the test
         }
         assertTrue(testPassed, "Newline/Tab in asset name test completed");
     }
@@ -529,8 +640,8 @@ public final class Asset_Phase5_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Special character sequence test completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e; // Re-throw to fail the test
         }
         assertTrue(testPassed, "Long special character sequence test completed");
     }
@@ -586,8 +697,8 @@ public final class Asset_Phase5_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Max length name test completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e; // Re-throw to fail the test
         }
         assertTrue(testPassed, "Asset name max length test completed");
     }
@@ -638,8 +749,8 @@ public final class Asset_Phase5_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("QR code max length test completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e; // Re-throw to fail the test
         }
         assertTrue(testPassed, "QR code max length test completed");
     }
@@ -684,8 +795,8 @@ public final class Asset_Phase5_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Notes max length test completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e; // Re-throw to fail the test
         }
         assertTrue(testPassed, "Notes field max length test completed");
     }
@@ -726,8 +837,8 @@ public final class Asset_Phase5_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Serial number max length test completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e; // Re-throw to fail the test
         }
         assertTrue(testPassed, "Serial number max length test completed");
     }
@@ -779,8 +890,8 @@ public final class Asset_Phase5_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Asset class change data loss test completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e; // Re-throw to fail the test
         }
         assertTrue(testPassed, "Core attributes lost on class change test completed");
     }
@@ -826,8 +937,8 @@ public final class Asset_Phase5_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Subtype reset on class change test completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e; // Re-throw to fail the test
         }
         assertTrue(testPassed, "Subtype reset on class change test completed");
     }
@@ -923,8 +1034,8 @@ public final class Asset_Phase5_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Search with special characters test completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e; // Re-throw to fail the test
         }
         assertTrue(testPassed, "Search with special characters test completed");
     }
@@ -964,8 +1075,8 @@ public final class Asset_Phase5_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Whitespace search test completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e; // Re-throw to fail the test
         }
         assertTrue(testPassed, "Search with only whitespace test completed");
     }
@@ -1011,8 +1122,8 @@ public final class Asset_Phase5_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Long query search test completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e; // Re-throw to fail the test
         }
         assertTrue(testPassed, "Search with very long query test completed");
     }
@@ -1060,8 +1171,8 @@ public final class Asset_Phase5_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Back during save test completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e; // Re-throw to fail the test
         }
         assertTrue(testPassed, "Back button during save test completed");
     }
@@ -1118,8 +1229,8 @@ public final class Asset_Phase5_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Double-tap create asset test completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e; // Re-throw to fail the test
         }
         assertTrue(testPassed, "Double-tap on Create Asset test completed");
     }
@@ -1162,8 +1273,8 @@ public final class Asset_Phase5_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Keyboard dismiss race condition test completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e; // Re-throw to fail the test
         }
         assertTrue(testPassed, "Keyboard dismiss button race condition test completed");
     }
@@ -1209,8 +1320,8 @@ public final class Asset_Phase5_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Negative values test completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e; // Re-throw to fail the test
         }
         assertTrue(testPassed, "Negative values in numeric fields test completed");
     }
@@ -1296,8 +1407,8 @@ public final class Asset_Phase5_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Zero values test completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e; // Re-throw to fail the test
         }
         assertTrue(testPassed, "Zero values in required fields test completed");
     }
@@ -1354,8 +1465,8 @@ public final class Asset_Phase5_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Stale data test completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e; // Re-throw to fail the test
         }
         assertTrue(testPassed, "Form submission with stale data test completed");
     }
@@ -1398,8 +1509,8 @@ public final class Asset_Phase5_Test extends BaseTest {
             testPassed = true;
             logStepWithScreenshot("Location loading timing test completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage() + " - test will pass");
-            testPassed = true;
+            logStep("Exception occurred: " + e.getMessage());
+            throw e; // Re-throw to fail the test
         }
         assertTrue(testPassed, "Location selection during loading test completed");
     }
