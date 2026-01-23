@@ -1,10 +1,14 @@
-name: iOS Automation Tests (Parallel)
+name: iOS Automation Tests (Parallel - FULL SUITE)
+
+# ============================================================
+# FULL TEST SUITE - MANUAL TRIGGER ONLY
+# ============================================================
+# This workflow runs ALL tests (~743 tests, ~5-6 hours)
+# DO NOT auto-trigger on push - too expensive!
+# Use ios-tests-quick-verify.yml for quick validation
+# ============================================================
 
 on:
-  push:
-    branches:
-      - main
-      - develop
   workflow_dispatch:
     inputs:
       job_selection:
@@ -22,6 +26,7 @@ on:
           - phase4-only
           - phase5-only
 
+# ============================================================
 # ============================================================
 # PARALLEL TEST EXECUTION STRATEGY
 # ============================================================
@@ -58,8 +63,8 @@ jobs:
 
       - name: Install Appium
         run: |
-          npm install -g appium@next
-          appium driver install xcuitest
+          npm install -g appium@2.5.0
+          appium driver install xcuitest@7.9.1
 
       - name: Unzip App
         run: |
@@ -139,8 +144,8 @@ jobs:
 
       - name: Install Appium
         run: |
-          npm install -g appium@next
-          appium driver install xcuitest
+          npm install -g appium@2.5.0
+          appium driver install xcuitest@7.9.1
 
       - name: Unzip App
         run: |
@@ -217,8 +222,8 @@ jobs:
 
       - name: Install Appium
         run: |
-          npm install -g appium@next
-          appium driver install xcuitest
+          npm install -g appium@2.5.0
+          appium driver install xcuitest@7.9.1
 
       - name: Unzip App
         run: |
@@ -295,8 +300,8 @@ jobs:
 
       - name: Install Appium
         run: |
-          npm install -g appium@next
-          appium driver install xcuitest
+          npm install -g appium@2.5.0
+          appium driver install xcuitest@7.9.1
 
       - name: Unzip App
         run: |
@@ -373,8 +378,8 @@ jobs:
 
       - name: Install Appium
         run: |
-          npm install -g appium@next
-          appium driver install xcuitest
+          npm install -g appium@2.5.0
+          appium driver install xcuitest@7.9.1
 
       - name: Unzip App
         run: |
@@ -451,8 +456,8 @@ jobs:
 
       - name: Install Appium
         run: |
-          npm install -g appium@next
-          appium driver install xcuitest
+          npm install -g appium@2.5.0
+          appium driver install xcuitest@7.9.1
 
       - name: Unzip App
         run: |
@@ -529,8 +534,8 @@ jobs:
 
       - name: Install Appium
         run: |
-          npm install -g appium@next
-          appium driver install xcuitest
+          npm install -g appium@2.5.0
+          appium driver install xcuitest@7.9.1
 
       - name: Unzip App
         run: |
