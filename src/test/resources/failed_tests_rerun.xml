@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="Bug Tests Suite - Comprehensive" parallel="false" verbose="2">
+    
+    <!-- 
+    ============================================================
+    BUG TESTS SUITE - PRIORITIZED BY SEVERITY
+    ============================================================
+    
+    RUN COMMAND:
+    cd /Users/abhiyantsingh/Downloads/iOS_automation_site
+    mvn test -DsuiteXmlFile=src/test/resources/failed_tests_rerun.xml
+    
+    SEVERITY LEVELS:
+    - CRITICAL: Blocks user or breaks core functionality
+    - HIGH: Significant user impact  
+    - MEDIUM: Workaround exists
+    
+    ============================================================
+    -->
+    
+    <!-- ======================================== -->
+    <!-- CRITICAL BUGS - Blocks user or breaks core functionality -->
+    <!-- ======================================== -->
+    <test name="1. CRITICAL BUGS - Data Integrity">
+        <classes>
+            <class name="com.egalvanic.tests.Asset_Phase5_Test">
+                <methods>
+                    <!-- CRITICAL: Duplicate asset names allowed -->
+                    <include name="BUG_DUP_01_createAssetWithDuplicateName"/>
+                    <!-- CRITICAL: Duplicate QR codes allowed -->
+                    <include name="BUG_DUP_03_duplicateQRCodeHandling"/>
+                    <!-- CRITICAL: Edit QR to duplicate allowed -->
+                    <include name="BUG_DUP_04_editQRCodeToDuplicateExisting"/>
+                    <!-- CRITICAL: Whitespace-only names allowed -->
+                    <include name="BUG_EMPTY_02_createAssetWithWhitespaceOnlyName"/>
+                    <!-- CRITICAL: Missing location allowed -->
+                    <include name="BUG_REQUIRED_01_createAssetWithoutLocation"/>
+                    <!-- CRITICAL: Empty name on edit allowed -->
+                    <include name="BUG_EDIT_01_clearRequiredFieldShouldBlockSave"/>
+                    <!-- CRITICAL: Delete without confirmation -->
+                    <include name="BUG_DELETE_01_deleteRequiresConfirmation"/>
+                </methods>
+            </class>
+            <class name="com.egalvanic.tests.AssetTest">
+                <methods>
+                    <!-- CRITICAL: Spaces-only names allowed -->
+                    <include name="ATS_ECR_07_verifyNameWithOnlySpaces"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+    
+    <!-- ======================================== -->
+    <!-- HIGH BUGS - Significant user impact -->
+    <!-- ======================================== -->
+    <test name="2. HIGH BUGS - User Impact">
+        <classes>
+            <class name="com.egalvanic.tests.Asset_Phase5_Test">
+                <methods>
+                    <!-- HIGH: Case-sensitive search -->
+                    <include name="BUG_SEARCH_04_searchCaseInsensitivity"/>
+                    <!-- HIGH: Partial search broken -->
+                    <include name="BUG_SEARCH_05_partialSearchFunctionality"/>
+                    <!-- HIGH: Special chars may crash app -->
+                    <include name="BUG_SPECIAL_01_specialCharactersInAssetName"/>
+                    <!-- HIGH: Form state lost on error -->
+                    <include name="BUG_NAV_01_navigationStateAfterValidationError"/>
+                    <!-- HIGH: No unsaved changes warning -->
+                    <include name="BUG_NAV_02_unsavedChangesWarningOnBack"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+    
+    <!-- ======================================== -->
+    <!-- MEDIUM BUGS - Workaround exists -->
+    <!-- ======================================== -->
+    <test name="3. MEDIUM BUGS - UI/UX Issues">
+        <classes>
+            <class name="com.egalvanic.tests.AssetTest">
+                <methods>
+                    <!-- MEDIUM: Name trimming not implemented -->
+                    <include name="ATS_ECR_10_verifyNameTrimming"/>
+                </methods>
+            </class>
+            <class name="com.egalvanic.tests.Asset_Phase5_Test">
+                <methods>
+                    <!-- MEDIUM: Field labels capitalization -->
+                    <include name="BUG_CASE_01_fieldLabelsCapitalization"/>
+                    <!-- MEDIUM: Asset class options capitalization -->
+                    <include name="BUG_CASE_02_assetClassOptionsCapitalization"/>
+                    <!-- MEDIUM: Selected class capitalization -->
+                    <include name="BUG_CASE_03_selectedAssetClassCapitalization"/>
+                    <!-- MEDIUM: Emoji handling -->
+                    <include name="BUG_SPECIAL_02_emojiInAssetName"/>
+                    <!-- MEDIUM: Asset name max character limit -->
+                    <include name="BUG_LIMIT_01_assetNameMaxCharacterLimit"/>
+                    <!-- MEDIUM: QR code max character limit -->
+                    <include name="BUG_LIMIT_02_qrCodeMaxCharacterLimit"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+    
+</suite>

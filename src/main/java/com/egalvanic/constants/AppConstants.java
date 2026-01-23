@@ -120,8 +120,8 @@ public class AppConstants {
     public static final String EMAIL_FROM = getEnv("EMAIL_FROM", "abhiyantsinghsuas18@gmail.com");
     public static final String EMAIL_PASSWORD = getEnv("EMAIL_PASSWORD", "ccddnnqsjigrhzcz");
     
-    //public static final String EMAIL_TO = "dharmesh.avaiya@egalvanic.com";
-    public static final String EMAIL_TO = "abhiyantsinghsuas18@gmail.com";
+    public static final String EMAIL_TO = "dharmesh.avaiya@egalvanic.com, abhiyantsinghsuas18@gmail.com";
+   // public static final String EMAIL_TO = "abhiyantsinghsuas18@gmail.com";
     //public static final String EMAIL_TO = "abhiyant.singh@egalvanic.com";
     //email to here i think send proper email and secreat & variable ->action key send repo link by mail.  
     public static final String EMAIL_SUBJECT = "eGalvanic iOS Automation - Test Report";

@@ -2654,11 +2654,176 @@ public class AssetPage extends BasePage {
     }
 
     public void clickBack() {
-        click(backButton);
+        System.out.println("🔙 Clicking Back button...");
+        
+        // Strategy 1: Try scrolling UP first to make Back visible (it's at top)
+        try {
+            scrollFormUp();
+            sleep(300);
+        } catch (Exception scrollEx) {
+            // Ignore scroll errors
+        }
+        
+        // Strategy 2: Direct accessibility ID "Back"
+        try {
+            WebDriverWait quickWait = new WebDriverWait(driver, Duration.ofSeconds(3));
+            WebElement backBtn = quickWait.until(
+                ExpectedConditions.elementToBeClickable(AppiumBy.accessibilityId("Back"))
+            );
+            backBtn.click();
+            System.out.println("✅ Clicked Back (accessibility ID)");
+            sleep(500);
+            return;
+        } catch (Exception e) {
+            System.out.println("   Strategy 1 (accessibility ID) failed");
+        }
+        
+        // Strategy 3: Find button with Back/chevron.left name/label
+        try {
+            WebElement backBtn = driver.findElement(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND (name == 'Back' OR label == 'Back' OR name == 'chevron.left' OR name CONTAINS 'back')")
+            );
+            if (backBtn.isDisplayed()) {
+                backBtn.click();
+                System.out.println("✅ Clicked Back (button predicate)");
+                sleep(500);
+                return;
+            }
+        } catch (Exception e) {
+            System.out.println("   Strategy 2 (button predicate) failed");
+        }
+        
+        // Strategy 4: Find button at top-left corner (typical Back position)
+        try {
+            List<WebElement> allButtons = driver.findElements(AppiumBy.className("XCUIElementTypeButton"));
+            for (WebElement btn : allButtons) {
+                try {
+                    int x = btn.getLocation().getX();
+                    int y = btn.getLocation().getY();
+                    String name = btn.getAttribute("name");
+                    
+                    // Back button is typically at top-left (X < 100, Y < 100)
+                    if (x < 100 && y < 100 && y > 30) {
+                        System.out.println("   Found top-left button at (" + x + "," + y + "), name='" + name + "'");
+                        // Skip if it's Cancel (Cancel is also at top-left sometimes)
+                        if (name != null && name.equals("Cancel")) continue;
+                        
+                        btn.click();
+                        System.out.println("✅ Clicked Back (position-based)");
+                        sleep(500);
+                        return;
+                    }
+                } catch (Exception ex) {}
+            }
+        } catch (Exception e) {
+            System.out.println("   Strategy 3 (position-based) failed");
+        }
+        
+        // Strategy 5: Tap coordinates at top-left (typical Back position on iOS)
+        try {
+            System.out.println("   Trying coordinate tap at (30, 55)...");
+            driver.executeScript("mobile: tap", java.util.Map.of("x", 30, "y", 55));
+            System.out.println("✅ Tapped Back position (30, 55)");
+            sleep(500);
+            return;
+        } catch (Exception e) {
+            System.out.println("   Strategy 4 (coordinate tap) failed");
+        }
+        
+        // If all strategies fail, throw exception
+        throw new RuntimeException("Failed to click Back button after trying all strategies");
     }
 
     public void clickCancel() {
-        click(cancelButton);
+        System.out.println("📝 Clicking Cancel button...");
+        
+        // Strategy 1: Try scrolling UP first to make Cancel visible (it's at top)
+        try {
+            scrollFormUp();
+            sleep(300);
+        } catch (Exception scrollEx) {
+            // Ignore scroll errors
+        }
+        
+        // Strategy 2: Direct accessibility ID
+        try {
+            WebDriverWait quickWait = new WebDriverWait(driver, Duration.ofSeconds(3));
+            WebElement cancelBtn = quickWait.until(
+                ExpectedConditions.elementToBeClickable(AppiumBy.accessibilityId("Cancel"))
+            );
+            cancelBtn.click();
+            System.out.println("✅ Clicked Cancel (accessibility ID)");
+            sleep(500);
+            return;
+        } catch (Exception e) {
+            System.out.println("   Strategy 1 (accessibility ID) failed");
+        }
+        
+        // Strategy 3: Find button with Cancel name/label
+        try {
+            WebElement cancelBtn = driver.findElement(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND (name == 'Cancel' OR label == 'Cancel')")
+            );
+            if (cancelBtn.isDisplayed()) {
+                cancelBtn.click();
+                System.out.println("✅ Clicked Cancel (button predicate)");
+                sleep(500);
+                return;
+            }
+        } catch (Exception e) {
+            System.out.println("   Strategy 2 (button predicate) failed");
+        }
+        
+        // Strategy 4: Find any element with Cancel label at top of screen (Y < 100)
+        try {
+            List<WebElement> allButtons = driver.findElements(AppiumBy.className("XCUIElementTypeButton"));
+            for (WebElement btn : allButtons) {
+                try {
+                    String name = btn.getAttribute("name");
+                    String label = btn.getAttribute("label");
+                    int y = btn.getLocation().getY();
+                    
+                    if (y < 150 && 
+                        ((name != null && name.toLowerCase().contains("cancel")) ||
+                         (label != null && label.toLowerCase().contains("cancel")))) {
+                        System.out.println("   Found Cancel at Y=" + y + ", name='" + name + "'");
+                        btn.click();
+                        System.out.println("✅ Clicked Cancel (position-based)");
+                        sleep(500);
+                        return;
+                    }
+                } catch (Exception ex) {}
+            }
+        } catch (Exception e) {
+            System.out.println("   Strategy 3 (position-based) failed");
+        }
+        
+        // Strategy 5: Find StaticText "Cancel" and click
+        try {
+            WebElement cancelText = driver.findElement(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText' AND (name == 'Cancel' OR label == 'Cancel')")
+            );
+            cancelText.click();
+            System.out.println("✅ Clicked Cancel (StaticText)");
+            sleep(500);
+            return;
+        } catch (Exception e) {
+            System.out.println("   Strategy 4 (StaticText) failed");
+        }
+        
+        // Strategy 6: Tap coordinates at top-left (typical Cancel position on iOS)
+        try {
+            System.out.println("   Trying coordinate tap at (60, 55)...");
+            driver.executeScript("mobile: tap", java.util.Map.of("x", 60, "y", 55));
+            System.out.println("✅ Tapped Cancel position (60, 55)");
+            sleep(500);
+            return;
+        } catch (Exception e) {
+            System.out.println("   Strategy 5 (coordinate tap) failed");
+        }
+        
+        // If all strategies fail, throw exception
+        throw new RuntimeException("Failed to click Cancel button after trying all strategies");
     }
 
     // ================================================================
@@ -3822,85 +3987,201 @@ public class AssetPage extends BasePage {
     public void clickSelectAssetSubtype() {
         System.out.println("📋 Clicking Select Asset Subtype...");
         
-        // DEBUG: Uncomment to see all buttons
-        // debugPrintAllElements();
-        
-        // Strategy 1: Direct click with accessibility ID
+        // Strategy 1: Direct click with accessibility ID (for empty/unselected state)
         try {
-            WebDriverWait shortWait = new WebDriverWait(driver, Duration.ofSeconds(5));
+            WebDriverWait shortWait = new WebDriverWait(driver, Duration.ofSeconds(2));
             WebElement subtypeBtn = shortWait.until(
                 ExpectedConditions.elementToBeClickable(
                     AppiumBy.accessibilityId("Select asset subtype")
                 )
             );
             subtypeBtn.click();
-            System.out.println("✅ Clicked Select Asset Subtype");
+            System.out.println("✅ Clicked 'Select asset subtype' placeholder");
             return;
         } catch (Exception e) {
-            System.out.println("⚠️ Direct accessibility ID failed: " + e.getMessage());
+            System.out.println("   📌 Strategy 1: 'Select asset subtype' placeholder not found");
+            System.out.println("   → Trying to find currently selected subtype button...");
         }
         
-        // Strategy 2: Try NSPredicate with various name patterns
-        String[] predicates = {
-            "name == 'Select asset subtype'",
-            "label == 'Select asset subtype'",
-            "name CONTAINS[c] 'subtype'",
-            "label CONTAINS[c] 'subtype'",
-            "name CONTAINS[c] 'asset subtype'",
-            "name == 'Select subtype'",
-            "label == 'Select subtype'"
+        // First scroll down to make subtype field visible (it's often below the fold)
+        System.out.println("   📜 Scrolling down to make subtype field visible...");
+        try {
+            scrollFormDown();
+            sleep(400);
+        } catch (Exception scrollEx) {
+            System.out.println("   ⚠️ Scroll failed, continuing anyway");
+        }
+        
+        // Strategy 2: If subtype already selected, find button by position relative to label
+        System.out.println("   📌 Strategy 2: Looking for button below 'Asset Subtype' label...");
+        try {
+            WebElement subtypeLabel = driver.findElement(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText' AND name CONTAINS 'Asset Subtype'")
+            );
+            int labelY = subtypeLabel.getLocation().getY();
+            System.out.println("      Found 'Asset Subtype (Optional)' label at Y=" + labelY);
+            
+            // Find button just below this label (within 100px - increased from 80)
+            List<WebElement> buttons = driver.findElements(AppiumBy.className("XCUIElementTypeButton"));
+            System.out.println("      Scanning " + buttons.size() + " buttons...");
+            
+            for (WebElement btn : buttons) {
+                try {
+                    int btnY = btn.getLocation().getY();
+                    String name = btn.getAttribute("name");
+                    
+                    // Button should be below label and within 100px
+                    if (btnY > labelY && (btnY - labelY) < 100 && name != null) {
+                        // Skip known non-subtype buttons and icons
+                        if (name.equals("Cancel") || name.equals("Save Changes") || 
+                            name.contains("Bldg") || name.contains("Floor") || name.contains("Room") ||
+                            name.equals("qrcode.viewfinder") || name.equals("Calculator") ||
+                            name.equals("Select shortcut") || name.equals("Filter") ||
+                            name.equals("plus.circle.fill") || name.equals("square.grid.2x2") ||
+                            name.equals("1") || name.equals("2") || name.equals("3") ||
+                            name.equals("house") || name.equals("house.fill") ||  // Navigation icons
+                            name.equals("chevron.left") || name.equals("chevron.right") ||
+                            name.equals("xmark") || name.equals("xmark.circle") ||
+                            name.equals("gear") || name.equals("gearshape") ||
+                            name.equals("person") || name.equals("person.fill") ||
+                            name.length() <= 5) {  // Skip very short names (likely icons)
+                            continue;
+                        }
+                        
+                        // MUST contain parentheses or be a known subtype pattern for Strategy 2
+                        boolean looksLikeSubtype = name.contains("(") && name.contains(")");
+                        if (!looksLikeSubtype && !name.equals("None") && !name.contains("Switch") && 
+                            !name.contains("Fuse") && !name.contains("Breaker")) {
+                            continue;
+                        }
+                        
+                        // This should be the subtype button!
+                        System.out.println("      ✓ Found subtype button: '" + name + "' at Y=" + btnY + " (offset=" + (btnY - labelY) + "px)");
+                        btn.click();
+                        System.out.println("   ✅ Clicked currently selected subtype to open dropdown");
+                        return;
+                    }
+                } catch (Exception ex) {
+                    // Skip button if attributes can't be read
+                }
+            }
+            System.out.println("      ✗ No suitable button found below label within 100px");
+        } catch (Exception e) {
+            System.out.println("      ✗ Strategy 2 failed: " + e.getMessage());
+        }
+        
+        // Strategy 3: Find button with known subtype names
+        System.out.println("   📌 Strategy 3: Looking for known subtype button names...");
+        String[] knownSubtypes = {
+            // Disconnect Switch subtypes
+            "Disconnect Switch (<= 1000V)",
+            "Disconnect Switch (> 1000V)",
+            "Fused Disconnect Switch (<= 1000V)",
+            "Fused Disconnect Switch (> 1000V)",
+            "Bolted-Pressure Switch (BPS)",
+            "Bypass-Isolation Switch (<= 1000V)",
+            "Bypass-Isolation Switch (> 1000V)",
+            "High-Pressure Contact Switch (HPC)",
+            "Load Interrupter Switch (LIS)",
+            "Molded-Case Switch (<= 1000V)",
+            "Molded-Case Switch (> 1000V)",
+            "Non-Fused Disconnect Switch (<= 1000V)",
+            "Non-Fused Disconnect Switch (> 1000V)",
+            "Safety Switch (<= 1000V)",
+            "Safety Switch (> 1000V)",
+            // Fuse subtypes
+            "Current-Limiting Fuse",
+            "Expulsion Fuse",
+            "High-Speed Fuse",
+            "Power Fuse",
+            // Circuit Breaker subtypes
+            "Air Circuit Breaker (ACB)",
+            "Insulated-Case Circuit Breaker (ICCB)",
+            "Low-Voltage Power Circuit Breaker (LVPCB)",
+            "Molded-Case Circuit Breaker (MCCB)",
+            "Miniature Circuit Breaker (MCB)",
+            "Vacuum Circuit Breaker",
+            "Oil Circuit Breaker",
+            "SF6 Circuit Breaker",
+            // Common
+            "None",
+            "Select asset subtype"
         };
         
-        for (String predicate : predicates) {
+        for (String subtype : knownSubtypes) {
             try {
-                WebElement subtypeBtn = driver.findElement(
-                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND " + predicate)
+                WebElement btn = driver.findElement(
+                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name == '" + subtype + "'")
                 );
-                if (subtypeBtn.isDisplayed()) {
-                    subtypeBtn.click();
-                    System.out.println("✅ Clicked via predicate: " + predicate);
+                if (btn.isDisplayed()) {
+                    System.out.println("      ✓ Found known subtype: '" + subtype + "'");
+                    btn.click();
+                    System.out.println("   ✅ Clicked subtype button to open dropdown");
                     return;
                 }
             } catch (Exception e) {
-                // Try next predicate
+                // Subtype not found, continue to next
             }
         }
+        System.out.println("      ✗ No known subtype buttons found on screen");
         
-        // Strategy 3: Find by searching all element types (Button, Other, Cell)
-        String[] elementTypes = {"XCUIElementTypeButton", "XCUIElementTypeOther", "XCUIElementTypeCell"};
-        for (String elementType : elementTypes) {
-            try {
-                System.out.println("   Searching " + elementType + " for 'subtype'...");
-                List<WebElement> elements = driver.findElements(AppiumBy.className(elementType));
-                for (WebElement el : elements) {
-                    try {
-                        String name = el.getAttribute("name");
-                        String label = el.getAttribute("label");
-                        if ((name != null && name.toLowerCase().contains("subtype")) ||
-                            (label != null && label.toLowerCase().contains("subtype"))) {
-                            System.out.println("   Found: [" + elementType + "] name='" + name + "', label='" + label + "'");
-                            el.click();
-                            System.out.println("✅ Clicked subtype element");
-                            return;
-                        }
-                    } catch (Exception ex) {}
-                }
-            } catch (Exception e) {
-                System.out.println("   " + elementType + " search failed: " + e.getMessage());
-            }
-        }
-        
-        // Strategy 4: Try single scroll down then retry
+        // Strategy 4: Find any button that looks like a subtype (contains parentheses or voltage)
+        System.out.println("   📌 Strategy 4: Looking for subtype-like buttons (with parentheses/voltage)...");
         try {
-            System.out.println("   Trying single scroll down...");
+            List<WebElement> buttons = driver.findElements(AppiumBy.className("XCUIElementTypeButton"));
+            for (WebElement btn : buttons) {
+                String name = btn.getAttribute("name");
+                if (name == null) continue;
+                
+                // Skip known non-subtype buttons
+                if (name.equals("Cancel") || name.equals("Save Changes") || 
+                    name.contains("Bldg") || name.contains("Floor") || name.contains("Room") ||
+                    name.equals("qrcode.viewfinder") || name.equals("Calculator") ||
+                    name.equals("Filter") || name.equals("plus.circle.fill") ||
+                    name.equals("square.grid.2x2") || name.equals("Select shortcut") ||
+                    name.matches("[0-9]+")) {  // Skip number buttons
+                    continue;
+                }
+                
+                // Subtype buttons typically contain parentheses like "(< 1000V)" or specific keywords
+                boolean isSubtypeButton = 
+                    (name.contains("(") && name.contains(")")) ||  // Has parentheses - MOST RELIABLE
+                    name.contains("1000V") ||                       // Voltage rating
+                    name.contains("Fuse") ||                        // Fuse types (but not just "Fuse" as asset class)
+                    name.contains("Breaker") ||                     // Breaker types
+                    name.equals("None");                            // None option
+                
+                // Extra check: Don't click plain asset class names
+                if (name.equals("Disconnect Switch") || name.equals("Circuit Breaker") || 
+                    name.equals("Fuse") || name.equals("ATS") || name.equals("UPS")) {
+                    continue;
+                }
+                
+                if (isSubtypeButton) {
+                    System.out.println("      ✓ Found subtype-like button: '" + name + "'");
+                    btn.click();
+                    System.out.println("   ✅ Clicked to open subtype dropdown");
+                    return;
+                }
+            }
+            System.out.println("      ✗ No subtype-like buttons found");
+        } catch (Exception e) {
+            System.out.println("      ✗ Strategy 4 failed: " + e.getMessage());
+        }
+        
+        // Strategy 5: Try scrolling and retry
+        try {
+            System.out.println("   Trying scroll then retry...");
             scrollFormDown();
             sleep(500);
+            
+            // Retry Strategy 1 after scroll
             WebElement subtypeBtn = driver.findElement(AppiumBy.accessibilityId("Select asset subtype"));
             subtypeBtn.click();
             System.out.println("✅ Clicked after scroll");
             return;
         } catch (Exception e) {
-            System.out.println("⚠️ Scroll + click failed: " + e.getMessage());
+            System.out.println("   Scroll + retry failed");
         }
         
         // DEBUG: Print all buttons to help identify correct element
@@ -7749,12 +8030,58 @@ public class AssetPage extends BasePage {
      * Check if Edit screen is displayed for Busway (no Core Attributes but Save button exists)
      */
     public boolean isEditScreenDisplayedForBusway() {
+        System.out.println("📝 Checking if Edit screen is displayed for Busway...");
         try {
-            // For Busway, we check for Save button but NO Core Attributes
-            boolean hasSave = driver.findElements(AppiumBy.accessibilityId("Save")).size() > 0;
-            boolean hasCancel = driver.findElements(AppiumBy.accessibilityId("Cancel")).size() > 0;
-            return hasSave || hasCancel;
+            // Strategy 1: Check for "Save Changes" button (Edit screen indicator)
+            try {
+                List<WebElement> saveButtons = driver.findElements(
+                    AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND (name == 'Save Changes' OR name CONTAINS 'Save')"
+                    )
+                );
+                if (!saveButtons.isEmpty()) {
+                    System.out.println("   ✅ Found Save Changes button");
+                    return true;
+                }
+            } catch (Exception e) {}
+            
+            // Strategy 2: Check for "Cancel" button
+            try {
+                List<WebElement> cancelButtons = driver.findElements(AppiumBy.accessibilityId("Cancel"));
+                if (!cancelButtons.isEmpty()) {
+                    System.out.println("   ✅ Found Cancel button");
+                    return true;
+                }
+            } catch (Exception e) {}
+            
+            // Strategy 3: Check for "Busway" class visible (we changed to Busway)
+            try {
+                List<WebElement> buswayElements = driver.findElements(
+                    AppiumBy.iOSNsPredicateString("name == 'Busway' OR label == 'Busway'")
+                );
+                if (!buswayElements.isEmpty()) {
+                    System.out.println("   ✅ Found Busway class indicator");
+                    return true;
+                }
+            } catch (Exception e) {}
+            
+            // Strategy 4: Check for asset form fields (Name, Asset Class labels)
+            try {
+                List<WebElement> labels = driver.findElements(
+                    AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND (name == 'Name' OR name == 'Asset Class')"
+                    )
+                );
+                if (labels.size() >= 2) {
+                    System.out.println("   ✅ Found form labels (Name, Asset Class)");
+                    return true;
+                }
+            } catch (Exception e) {}
+            
+            System.out.println("   ❌ Edit screen indicators not found");
+            return false;
         } catch (Exception e) {
+            System.out.println("   Error: " + e.getMessage());
             return false;
         }
     }
@@ -8405,6 +8732,391 @@ public class AssetPage extends BasePage {
         
         System.out.println("   ❌ Label '" + labelText + "' not found");
         return false;
+    }
+
+
+
+    // ================================================================
+    // CAPITALIZATION AND NAMING VALIDATION METHODS
+    // ================================================================
+
+    /**
+     * Check if a label/text is properly capitalized (Title Case or specific format)
+     * Examples of proper: "Asset Name", "Circuit Breaker", "ATS"
+     * Examples of improper: "asset name", "circuit breaker", "ats"
+     */
+    public boolean isProperlyCapitalized(String text) {
+        if (text == null || text.isEmpty()) return false;
+        
+        // Known abbreviations that should be all caps
+        String[] allCapsWords = {"ATS", "UPS", "PDU", "MCC", "VFD", "QR", "ID"};
+        for (String abbrev : allCapsWords) {
+            if (text.toUpperCase().equals(abbrev)) {
+                return text.equals(abbrev); // Must be all caps
+            }
+        }
+        
+        // For regular words, first letter should be uppercase
+        String[] words = text.split(" ");
+        for (String word : words) {
+            if (word.isEmpty()) continue;
+            
+            // Check if first letter is uppercase
+            if (!Character.isUpperCase(word.charAt(0))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Get all visible field labels on the current screen
+     * Returns a map of found labels and whether they're properly capitalized
+     */
+    public java.util.Map<String, Boolean> checkFieldLabelsCapitalization() {
+        System.out.println("🔍 Checking field labels capitalization...");
+        java.util.Map<String, Boolean> results = new java.util.HashMap<>();
+        
+        try {
+            // Find all StaticText elements that could be labels
+            List<WebElement> staticTexts = driver.findElements(
+                AppiumBy.className("XCUIElementTypeStaticText")
+            );
+            
+            // Known field labels to check
+            String[] expectedLabels = {
+                "Name", "Asset Class", "Asset Subtype", "Location", "QR Code",
+                "Core Attributes", "Electrical Rating", "Manufacturer", 
+                "Model", "Serial Number", "Notes"
+            };
+            
+            for (WebElement text : staticTexts) {
+                try {
+                    String name = text.getAttribute("name");
+                    String label = text.getAttribute("label");
+                    String actualText = name != null ? name : label;
+                    
+                    if (actualText != null && !actualText.isEmpty()) {
+                        // Check against expected labels
+                        for (String expected : expectedLabels) {
+                            if (actualText.equalsIgnoreCase(expected)) {
+                                boolean isProper = actualText.equals(expected);
+                                results.put(actualText, isProper);
+                                
+                                if (!isProper) {
+                                    System.out.println("   ❌ IMPROPER: '" + actualText + "' should be '" + expected + "'");
+                                } else {
+                                    System.out.println("   ✅ PROPER: '" + actualText + "'");
+                                }
+                                break;
+                            }
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
+        } catch (Exception e) {
+            System.out.println("   Error checking labels: " + e.getMessage());
+        }
+        
+        return results;
+    }
+
+    /**
+     * Check if Asset Class dropdown options are properly capitalized
+     * Expected: "ATS", "Circuit Breaker", "Disconnect Switch" (not "ats", "circuit breaker")
+     */
+    public java.util.Map<String, Boolean> checkAssetClassOptionsCapitalization() {
+        System.out.println("🔍 Checking Asset Class options capitalization...");
+        java.util.Map<String, Boolean> results = new java.util.HashMap<>();
+        
+        // Expected proper capitalization
+        String[] expectedClasses = {
+            "ATS", "Busway", "Circuit Breaker", "Disconnect Switch", 
+            "Fuse", "Generator", "MCC", "Motor Starter", "Panelboard",
+            "PDU", "Switchboard", "Switchgear", "Transformer", "UPS", "VFD"
+        };
+        
+        try {
+            // Click to open Asset Class dropdown
+            clickSelectAssetClass();
+            sleep(500);
+            
+            // Get all visible options
+            List<WebElement> options = driver.findElements(
+                AppiumBy.className("XCUIElementTypeStaticText")
+            );
+            
+            for (WebElement opt : options) {
+                try {
+                    String optText = opt.getAttribute("name");
+                    if (optText == null) optText = opt.getAttribute("label");
+                    
+                    if (optText != null && !optText.isEmpty()) {
+                        for (String expected : expectedClasses) {
+                            if (optText.equalsIgnoreCase(expected)) {
+                                boolean isProper = optText.equals(expected);
+                                results.put(optText, isProper);
+                                
+                                if (!isProper) {
+                                    System.out.println("   ❌ IMPROPER: '" + optText + "' should be '" + expected + "'");
+                                }
+                                break;
+                            }
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
+            
+            // Close dropdown
+            try {
+                driver.findElement(AppiumBy.accessibilityId("Cancel")).click();
+            } catch (Exception e) {
+                // Try tapping outside
+                driver.executeScript("mobile: tap", java.util.Map.of("x", 200, "y", 100));
+            }
+            sleep(300);
+            
+        } catch (Exception e) {
+            System.out.println("   Error checking Asset Class options: " + e.getMessage());
+        }
+        
+        return results;
+    }
+
+    /**
+     * Check if a specific field value has improper lowercase when it should be capitalized
+     * Returns the found text if found, null if not found
+     */
+    public String findImproperlyCapitalizedText(String searchTerm) {
+        System.out.println("🔍 Looking for improperly capitalized '" + searchTerm + "'...");
+        
+        try {
+            // Search for lowercase version
+            String lowerVersion = searchTerm.toLowerCase();
+            List<WebElement> elements = driver.findElements(
+                AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND " +
+                    "(name == '" + lowerVersion + "' OR label == '" + lowerVersion + "')"
+                )
+            );
+            
+            for (WebElement el : elements) {
+                if (el.isDisplayed()) {
+                    String found = el.getAttribute("name");
+                    if (found == null) found = el.getAttribute("label");
+                    System.out.println("   ❌ Found lowercase: '" + found + "'");
+                    return found;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("   Error: " + e.getMessage());
+        }
+        
+        return null;
+    }
+
+    /**
+     * Get selected Asset Class text from the dropdown button
+     */
+    public String getSelectedAssetClassText() {
+        System.out.println("🔍 Getting selected Asset Class text...");
+        try {
+            // Look for button that shows selected class
+            List<WebElement> buttons = driver.findElements(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton'")
+            );
+            
+            String[] classes = {"ATS", "Busway", "Circuit Breaker", "Disconnect Switch", 
+                               "Fuse", "Generator", "MCC", "VFD", "UPS", "PDU"};
+            
+            for (WebElement btn : buttons) {
+                String name = btn.getAttribute("name");
+                if (name != null) {
+                    for (String cls : classes) {
+                        if (name.equalsIgnoreCase(cls)) {
+                            System.out.println("   Found: '" + name + "'");
+                            return name;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("   Error: " + e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Get selected Asset Subtype text
+     */
+    public String getSelectedSubtypeText() {
+        System.out.println("🔍 Getting selected Subtype text...");
+        try {
+            List<WebElement> buttons = driver.findElements(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton'")
+            );
+            
+            for (WebElement btn : buttons) {
+                String name = btn.getAttribute("name");
+                if (name != null && (name.contains("(") || name.contains("kVA") || name.contains("kW"))) {
+                    System.out.println("   Found: '" + name + "'");
+                    return name;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("   Error: " + e.getMessage());
+        }
+        return null;
+    }
+
+
+
+    /**
+     * Get the current value of a text field by its label name
+     * @param fieldName The label/name of the field (e.g., "Manufacturer", "Serial Number")
+     * @return The current value of the field, or null if not found
+     */
+    public String getTextFieldValue(String fieldName) {
+        System.out.println("📝 Getting value of field: " + fieldName);
+        
+        try {
+            // First scroll down to make sure field is visible
+            scrollFormDown();
+            sleep(300);
+            
+            // Strategy 1: Find label, then look for nearby text field
+            try {
+                WebElement label = driver.findElement(
+                    AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND " +
+                        "(name CONTAINS[c] '" + fieldName + "' OR label CONTAINS[c] '" + fieldName + "')"
+                    )
+                );
+                
+                if (label.isDisplayed()) {
+                    int labelY = label.getLocation().getY();
+                    System.out.println("   Found label '" + fieldName + "' at Y=" + labelY);
+                    
+                    // Find text fields near this label (within 100px below)
+                    List<WebElement> textFields = driver.findElements(
+                        AppiumBy.className("XCUIElementTypeTextField")
+                    );
+                    
+                    for (WebElement field : textFields) {
+                        try {
+                            int fieldY = field.getLocation().getY();
+                            if (fieldY > labelY && fieldY < labelY + 100) {
+                                String value = field.getAttribute("value");
+                                System.out.println("   ✅ Found value: '" + value + "'");
+                                return value != null ? value : "";
+                            }
+                        } catch (Exception ignored) {}
+                    }
+                }
+            } catch (Exception e) {
+                System.out.println("   Strategy 1 failed: " + e.getMessage());
+            }
+            
+            // Strategy 2: Check all text fields for one that contains the field name in its accessibility
+            try {
+                List<WebElement> allFields = driver.findElements(
+                    AppiumBy.className("XCUIElementTypeTextField")
+                );
+                
+                for (WebElement field : allFields) {
+                    try {
+                        String name = field.getAttribute("name");
+                        String fieldLabel = field.getAttribute("label");
+                        
+                        if ((name != null && name.toLowerCase().contains(fieldName.toLowerCase())) ||
+                            (fieldLabel != null && fieldLabel.toLowerCase().contains(fieldName.toLowerCase()))) {
+                            String value = field.getAttribute("value");
+                            System.out.println("   ✅ Found field by name/label, value: '" + value + "'");
+                            return value != null ? value : "";
+                        }
+                    } catch (Exception ignored) {}
+                }
+            } catch (Exception e) {
+                System.out.println("   Strategy 2 failed: " + e.getMessage());
+            }
+            
+            System.out.println("   ❌ Could not find field: " + fieldName);
+            return null;
+            
+        } catch (Exception e) {
+            System.out.println("   Error getting field value: " + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Verify we're on the Asset Detail VIEW screen (not Edit screen)
+     * The Detail View screen shows asset info but has "Edit" button, not "Save Changes"
+     */
+    public boolean isAssetDetailViewScreen() {
+        System.out.println("📝 Checking if on Asset Detail View screen...");
+        
+        try {
+            // On Detail View, we should see "Edit" button (not "Save Changes")
+            boolean hasEditButton = false;
+            boolean hasSaveButton = false;
+            
+            try {
+                WebElement editBtn = driver.findElement(AppiumBy.accessibilityId("Edit"));
+                hasEditButton = editBtn.isDisplayed();
+            } catch (Exception e) {}
+            
+            try {
+                WebElement saveBtn = driver.findElement(
+                    AppiumBy.iOSNsPredicateString("name == 'Save Changes' OR label == 'Save Changes'")
+                );
+                hasSaveButton = saveBtn.isDisplayed();
+            } catch (Exception e) {}
+            
+            boolean isDetailView = hasEditButton && !hasSaveButton;
+            System.out.println("   Edit button: " + hasEditButton + ", Save button: " + hasSaveButton);
+            System.out.println("   Is Detail View: " + isDetailView);
+            return isDetailView;
+            
+        } catch (Exception e) {
+            System.out.println("   Error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Navigate back from any screen to the Asset List
+     */
+    public void navigateBackToAssetList() {
+        System.out.println("🔙 Navigating back to Asset List...");
+        
+        try {
+            // Try clicking Back button multiple times if needed
+            for (int i = 0; i < 3; i++) {
+                try {
+                    // Check if we're already on asset list (plus button visible)
+                    WebElement plusBtn = driver.findElement(AppiumBy.accessibilityId("plus"));
+                    if (plusBtn.isDisplayed()) {
+                        System.out.println("   ✅ Already on Asset List");
+                        return;
+                    }
+                } catch (Exception e) {}
+                
+                // Click back
+                try {
+                    clickBack();
+                    sleep(500);
+                } catch (Exception e) {
+                    // Try clicking Cancel if Back doesn't work
+                    try {
+                        clickCancel();
+                        sleep(500);
+                    } catch (Exception ex) {}
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("   Error: " + e.getMessage());
+        }
     }
 
 

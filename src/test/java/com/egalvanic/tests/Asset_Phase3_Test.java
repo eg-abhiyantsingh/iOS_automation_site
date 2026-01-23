@@ -7,6 +7,7 @@ import com.egalvanic.utils.ExtentReportManager;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+import org.openqa.selenium.WebElement;
 
 /**
  * Asset Phase 3 Test Suite - Edit Asset Details for Additional Asset Classes
@@ -7794,52 +7795,85 @@ public final class Asset_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(
             AppConstants.MODULE_ASSET,
             AppConstants.FEATURE_EDIT_ASSET,
-            "TC-CB-ST-13 - Verify Cancel behavior after subtype change for Circuit Breaker"
+            "TC-CB-ST-13 - Verify Cancel discards changes for Circuit Breaker (FIXED)"
         );
 
         boolean testPassed = false;
+        String testChangeValue = "CANCEL_CB_" + System.currentTimeMillis();
         
         try {
-            logStep("Navigating to Circuit Breaker Edit Asset Details screen");
-            navigateToCircuitBreakerEditScreen();
+            logStep("Step 1: Navigating to Asset List and selecting first asset");
+            assetPage.navigateToAssetListTurbo();
+            shortWait();
+            assetPage.selectFirstAsset();
+            shortWait();
+            
+            logStep("Step 2: Opening Edit screen");
+            assetPage.clickEditTurbo();
+            shortWait();
 
-            logStep("Ensuring asset class is Circuit Breaker");
+            logStep("Step 3: Changing asset class to Circuit Breaker");
             assetPage.changeAssetClassToCircuitBreaker();
             shortWait();
 
-            logStep("Opening Asset Subtype dropdown");
-            assetPage.clickSelectAssetSubtype();
+            logStep("Step 4: Making a change - Manufacturer = '" + testChangeValue + "'");
+            assetPage.scrollFormDown();
+            assetPage.editTextField("Manufacturer", testChangeValue);
+            assetPage.dismissKeyboard();
             shortWait();
 
-            logStep("Selecting a subtype to make a change");
-            assetPage.selectAssetSubtype("Low-Voltage Power Circuit Breaker");
-            shortWait();
-
-            logStep("Scrolling to top to find Cancel button");
+            logStep("Step 5: Clicking Cancel to discard changes");
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
-
-            logStep("Tapping Cancel to discard changes");
             assetPage.clickCancel();
             mediumWait();
-
-            logStep("Verifying left Edit screen without saving");
-            boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
             
-            if (!stillOnEditScreen) {
-                logStep("Successfully cancelled - left edit screen without saving");
-            } else {
-                logStep("Still on edit screen - may need to confirm cancel");
-            }
+            // Handle any confirmation dialog
+            try {
+                WebElement discardBtn = com.egalvanic.utils.DriverManager.getDriver().findElement(
+                    io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                        "name CONTAINS 'Discard' OR name CONTAINS 'Yes' OR name CONTAINS 'Don\'t Save'"
+                    )
+                );
+                discardBtn.click();
+                shortWait();
+            } catch (Exception e) {}
 
-            testPassed = true;
-            logStepWithScreenshot("Cancel behavior verified - subtype change discarded");
+            logStep("Step 6: Re-opening asset to verify changes were discarded");
+            shortWait();
+            
+            try {
+                assetPage.navigateToAssetListTurbo();
+                shortWait();
+                assetPage.selectFirstAsset();
+                shortWait();
+                assetPage.clickEditTurbo();
+                shortWait();
+            } catch (Exception e) {
+                assetPage.clickEditTurbo();
+                shortWait();
+            }
+            
+            logStep("Step 7: Checking Manufacturer value");
+            assetPage.scrollFormDown();
+            String currentValue = assetPage.getTextFieldValue("Manufacturer");
+            logStep("   Current Manufacturer: '" + currentValue + "'");
+            
+            testPassed = (currentValue == null || !currentValue.equals(testChangeValue));
+            
+            if (testPassed) {
+                logStep("✅ SUCCESS: Cancel properly discarded changes");
+            } else {
+                logWarning("❌ BUG: Cancel did NOT discard changes!");
+            }
+            
+            logStepWithScreenshot("CB Cancel verification completed");
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
         
-        assertTrue(testPassed, "Cancel should discard subtype changes for Circuit Breaker");
+        assertTrue(testPassed, "Cancel should discard changes for Circuit Breaker");
     }
 
     // ============================================================
