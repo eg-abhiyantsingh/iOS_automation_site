@@ -42,7 +42,7 @@
                     <include name="BUG_DELETE_01_deleteRequiresConfirmation"/>
                 </methods>
             </class>
-            <class name="com.egalvanic.tests.AssetTest">
+            <class name="com.egalvanic.tests.Asset_Phase1_Test">
                 <methods>
                     <!-- CRITICAL: Spaces-only names allowed -->
                     <include name="ATS_ECR_07_verifyNameWithOnlySpaces"/>
@@ -78,7 +78,7 @@
     <!-- ======================================== -->
     <test name="3. MEDIUM BUGS - UI/UX Issues">
         <classes>
-            <class name="com.egalvanic.tests.AssetTest">
+            <class name="com.egalvanic.tests.Asset_Phase1_Test">
                 <methods>
                     <!-- MEDIUM: Name trimming not implemented -->
                     <include name="ATS_ECR_10_verifyNameTrimming"/>

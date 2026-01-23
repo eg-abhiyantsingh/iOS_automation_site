@@ -1,0 +1,836 @@
+name: iOS Tests - Quick Email Verification
+
+on:
+  workflow_dispatch:
+    inputs:
+      send_email:
+        description: 'Send email with reports'
+        required: true
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+# ============================================================
+# QUICK VERIFICATION WORKFLOW
+# ============================================================
+# Purpose: Test that parallel execution and email work correctly
+# Tests: 1 test per job (7 tests total)
+# Expected Time: ~20-30 minutes total
+# ============================================================
+
+jobs:
+  # ========================================
+  # JOB 1: Auth Quick Test (1 test)
+  # ========================================
+  auth-quick:
+    runs-on: macos-15
+    timeout-minutes: 15
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Appium
+        run: |
+          npm install -g appium@next
+          appium driver install xcuitest
+
+      - name: Unzip App
+        run: |
+          unzip -o apps/Z-Platform-QA.zip -d apps/
+          ls -la apps/
+
+      - name: Boot Simulator
+        run: |
+          UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18.5" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          echo "UDID: $UDID"
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+          sleep 45
+          DEVICE=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
+          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+          echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
+          echo "PLATFORM_VERSION=18.5" >> $GITHUB_ENV
+
+      - name: Pre-install App
+        run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
+
+      - name: Start Appium
+        run: |
+          appium --relaxed-security --log-level info > appium.log 2>&1 &
+          sleep 20
+          curl -s http://127.0.0.1:4723/status || (cat appium.log && exit 1)
+
+      - name: Run Auth Quick Test
+        continue-on-error: true
+        env:
+          SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
+          PLATFORM_VERSION: ${{ env.PLATFORM_VERSION }}
+          DEVICE_NAME: ${{ env.DEVICE_NAME }}
+          APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
+        run: |
+          mvn test -DsuiteXmlFile=src/test/resources/parallel-quick/testng-auth-quick.xml \
+            -DDEVICE_NAME="$DEVICE_NAME" \
+            -DPLATFORM_VERSION="$PLATFORM_VERSION" \
+            -DSIMULATOR_UDID="$SIMULATOR_UDID" \
+            -DAPP_PATH="$APP_PATH"
+
+      - name: Upload Auth Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: auth-quick-report
+          path: |
+            target/surefire-reports/
+            reports/
+          retention-days: 3
+          if-no-files-found: warn
+
+  # ========================================
+  # JOB 2: Site Quick Test (1 test)
+  # ========================================
+  site-quick:
+    runs-on: macos-15
+    timeout-minutes: 15
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Appium
+        run: |
+          npm install -g appium@next
+          appium driver install xcuitest
+
+      - name: Unzip App
+        run: |
+          unzip -o apps/Z-Platform-QA.zip -d apps/
+          ls -la apps/
+
+      - name: Boot Simulator
+        run: |
+          UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18.5" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+          sleep 45
+          DEVICE=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
+          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+          echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
+          echo "PLATFORM_VERSION=18.5" >> $GITHUB_ENV
+
+      - name: Pre-install App
+        run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
+
+      - name: Start Appium
+        run: |
+          appium --relaxed-security --log-level info > appium.log 2>&1 &
+          sleep 20
+          curl -s http://127.0.0.1:4723/status || (cat appium.log && exit 1)
+
+      - name: Run Site Quick Test
+        continue-on-error: true
+        env:
+          SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
+          PLATFORM_VERSION: ${{ env.PLATFORM_VERSION }}
+          DEVICE_NAME: ${{ env.DEVICE_NAME }}
+          APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
+        run: |
+          mvn test -DsuiteXmlFile=src/test/resources/parallel-quick/testng-site-quick.xml \
+            -DDEVICE_NAME="$DEVICE_NAME" \
+            -DPLATFORM_VERSION="$PLATFORM_VERSION" \
+            -DSIMULATOR_UDID="$SIMULATOR_UDID" \
+            -DAPP_PATH="$APP_PATH"
+
+      - name: Upload Site Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-quick-report
+          path: |
+            target/surefire-reports/
+            reports/
+          retention-days: 3
+          if-no-files-found: warn
+
+  # ========================================
+  # JOB 3: Phase 1 Quick Test (1 test + setup)
+  # ========================================
+  phase1-quick:
+    runs-on: macos-15
+    timeout-minutes: 20
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Appium
+        run: |
+          npm install -g appium@next
+          appium driver install xcuitest
+
+      - name: Unzip App
+        run: |
+          unzip -o apps/Z-Platform-QA.zip -d apps/
+          ls -la apps/
+
+      - name: Boot Simulator
+        run: |
+          UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18.5" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+          sleep 45
+          DEVICE=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
+          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+          echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
+          echo "PLATFORM_VERSION=18.5" >> $GITHUB_ENV
+
+      - name: Pre-install App
+        run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
+
+      - name: Start Appium
+        run: |
+          appium --relaxed-security --log-level info > appium.log 2>&1 &
+          sleep 20
+          curl -s http://127.0.0.1:4723/status || (cat appium.log && exit 1)
+
+      - name: Run Phase 1 Quick Test
+        continue-on-error: true
+        env:
+          SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
+          PLATFORM_VERSION: ${{ env.PLATFORM_VERSION }}
+          DEVICE_NAME: ${{ env.DEVICE_NAME }}
+          APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
+        run: |
+          mvn test -DsuiteXmlFile=src/test/resources/parallel-quick/testng-phase1-quick.xml \
+            -DDEVICE_NAME="$DEVICE_NAME" \
+            -DPLATFORM_VERSION="$PLATFORM_VERSION" \
+            -DSIMULATOR_UDID="$SIMULATOR_UDID" \
+            -DAPP_PATH="$APP_PATH"
+
+      - name: Upload Phase 1 Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase1-quick-report
+          path: |
+            target/surefire-reports/
+            reports/
+          retention-days: 3
+          if-no-files-found: warn
+
+  # ========================================
+  # JOB 4: Phase 2 Quick Test (1 test + setup)
+  # ========================================
+  phase2-quick:
+    runs-on: macos-15
+    timeout-minutes: 20
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Appium
+        run: |
+          npm install -g appium@next
+          appium driver install xcuitest
+
+      - name: Unzip App
+        run: |
+          unzip -o apps/Z-Platform-QA.zip -d apps/
+          ls -la apps/
+
+      - name: Boot Simulator
+        run: |
+          UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18.5" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+          sleep 45
+          DEVICE=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
+          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+          echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
+          echo "PLATFORM_VERSION=18.5" >> $GITHUB_ENV
+
+      - name: Pre-install App
+        run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
+
+      - name: Start Appium
+        run: |
+          appium --relaxed-security --log-level info > appium.log 2>&1 &
+          sleep 20
+          curl -s http://127.0.0.1:4723/status || (cat appium.log && exit 1)
+
+      - name: Run Phase 2 Quick Test
+        continue-on-error: true
+        env:
+          SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
+          PLATFORM_VERSION: ${{ env.PLATFORM_VERSION }}
+          DEVICE_NAME: ${{ env.DEVICE_NAME }}
+          APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
+        run: |
+          mvn test -DsuiteXmlFile=src/test/resources/parallel-quick/testng-phase2-quick.xml \
+            -DDEVICE_NAME="$DEVICE_NAME" \
+            -DPLATFORM_VERSION="$PLATFORM_VERSION" \
+            -DSIMULATOR_UDID="$SIMULATOR_UDID" \
+            -DAPP_PATH="$APP_PATH"
+
+      - name: Upload Phase 2 Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase2-quick-report
+          path: |
+            target/surefire-reports/
+            reports/
+          retention-days: 3
+          if-no-files-found: warn
+
+  # ========================================
+  # JOB 5: Phase 3 Quick Test (1 test + setup)
+  # ========================================
+  phase3-quick:
+    runs-on: macos-15
+    timeout-minutes: 20
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Appium
+        run: |
+          npm install -g appium@next
+          appium driver install xcuitest
+
+      - name: Unzip App
+        run: |
+          unzip -o apps/Z-Platform-QA.zip -d apps/
+          ls -la apps/
+
+      - name: Boot Simulator
+        run: |
+          UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18.5" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+          sleep 45
+          DEVICE=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
+          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+          echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
+          echo "PLATFORM_VERSION=18.5" >> $GITHUB_ENV
+
+      - name: Pre-install App
+        run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
+
+      - name: Start Appium
+        run: |
+          appium --relaxed-security --log-level info > appium.log 2>&1 &
+          sleep 20
+          curl -s http://127.0.0.1:4723/status || (cat appium.log && exit 1)
+
+      - name: Run Phase 3 Quick Test
+        continue-on-error: true
+        env:
+          SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
+          PLATFORM_VERSION: ${{ env.PLATFORM_VERSION }}
+          DEVICE_NAME: ${{ env.DEVICE_NAME }}
+          APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
+        run: |
+          mvn test -DsuiteXmlFile=src/test/resources/parallel-quick/testng-phase3-quick.xml \
+            -DDEVICE_NAME="$DEVICE_NAME" \
+            -DPLATFORM_VERSION="$PLATFORM_VERSION" \
+            -DSIMULATOR_UDID="$SIMULATOR_UDID" \
+            -DAPP_PATH="$APP_PATH"
+
+      - name: Upload Phase 3 Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase3-quick-report
+          path: |
+            target/surefire-reports/
+            reports/
+          retention-days: 3
+          if-no-files-found: warn
+
+  # ========================================
+  # JOB 6: Phase 4 Quick Test (1 test + setup)
+  # ========================================
+  phase4-quick:
+    runs-on: macos-15
+    timeout-minutes: 20
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Appium
+        run: |
+          npm install -g appium@next
+          appium driver install xcuitest
+
+      - name: Unzip App
+        run: |
+          unzip -o apps/Z-Platform-QA.zip -d apps/
+          ls -la apps/
+
+      - name: Boot Simulator
+        run: |
+          UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18.5" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+          sleep 45
+          DEVICE=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
+          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+          echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
+          echo "PLATFORM_VERSION=18.5" >> $GITHUB_ENV
+
+      - name: Pre-install App
+        run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
+
+      - name: Start Appium
+        run: |
+          appium --relaxed-security --log-level info > appium.log 2>&1 &
+          sleep 20
+          curl -s http://127.0.0.1:4723/status || (cat appium.log && exit 1)
+
+      - name: Run Phase 4 Quick Test
+        continue-on-error: true
+        env:
+          SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
+          PLATFORM_VERSION: ${{ env.PLATFORM_VERSION }}
+          DEVICE_NAME: ${{ env.DEVICE_NAME }}
+          APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
+        run: |
+          mvn test -DsuiteXmlFile=src/test/resources/parallel-quick/testng-phase4-quick.xml \
+            -DDEVICE_NAME="$DEVICE_NAME" \
+            -DPLATFORM_VERSION="$PLATFORM_VERSION" \
+            -DSIMULATOR_UDID="$SIMULATOR_UDID" \
+            -DAPP_PATH="$APP_PATH"
+
+      - name: Upload Phase 4 Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase4-quick-report
+          path: |
+            target/surefire-reports/
+            reports/
+          retention-days: 3
+          if-no-files-found: warn
+
+  # ========================================
+  # JOB 7: Phase 5 Quick Test (1 test + setup)
+  # ========================================
+  phase5-quick:
+    runs-on: macos-15
+    timeout-minutes: 20
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Appium
+        run: |
+          npm install -g appium@next
+          appium driver install xcuitest
+
+      - name: Unzip App
+        run: |
+          unzip -o apps/Z-Platform-QA.zip -d apps/
+          ls -la apps/
+
+      - name: Boot Simulator
+        run: |
+          UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18.5" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+          sleep 45
+          DEVICE=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
+          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+          echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
+          echo "PLATFORM_VERSION=18.5" >> $GITHUB_ENV
+
+      - name: Pre-install App
+        run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
+
+      - name: Start Appium
+        run: |
+          appium --relaxed-security --log-level info > appium.log 2>&1 &
+          sleep 20
+          curl -s http://127.0.0.1:4723/status || (cat appium.log && exit 1)
+
+      - name: Run Phase 5 Quick Test
+        continue-on-error: true
+        env:
+          SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
+          PLATFORM_VERSION: ${{ env.PLATFORM_VERSION }}
+          DEVICE_NAME: ${{ env.DEVICE_NAME }}
+          APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
+        run: |
+          mvn test -DsuiteXmlFile=src/test/resources/parallel-quick/testng-phase5-quick.xml \
+            -DDEVICE_NAME="$DEVICE_NAME" \
+            -DPLATFORM_VERSION="$PLATFORM_VERSION" \
+            -DSIMULATOR_UDID="$SIMULATOR_UDID" \
+            -DAPP_PATH="$APP_PATH"
+
+      - name: Upload Phase 5 Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase5-quick-report
+          path: |
+            target/surefire-reports/
+            reports/
+          retention-days: 3
+          if-no-files-found: warn
+
+  # ========================================
+  # FINAL JOB: Collect Reports & Send Email
+  # ========================================
+  send-email:
+    needs: [auth-quick, site-quick, phase1-quick, phase2-quick, phase3-quick, phase4-quick, phase5-quick]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: Download All Available Reports
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          path: all-reports
+          
+      - name: Check Downloaded Reports
+        id: check_reports
+        run: |
+          echo "=== Checking downloaded artifacts ==="
+          
+          # Initialize counters
+          TOTAL_REPORTS=0
+          AUTH_STATUS="❌ Missing"
+          SITE_STATUS="❌ Missing"
+          PHASE1_STATUS="❌ Missing"
+          PHASE2_STATUS="❌ Missing"
+          PHASE3_STATUS="❌ Missing"
+          PHASE4_STATUS="❌ Missing"
+          PHASE5_STATUS="❌ Missing"
+          
+          # Check each report
+          if [ -d "all-reports/auth-quick-report" ]; then
+            AUTH_STATUS="✅ Available"
+            TOTAL_REPORTS=$((TOTAL_REPORTS + 1))
+          fi
+          
+          if [ -d "all-reports/site-quick-report" ]; then
+            SITE_STATUS="✅ Available"
+            TOTAL_REPORTS=$((TOTAL_REPORTS + 1))
+          fi
+          
+          if [ -d "all-reports/phase1-quick-report" ]; then
+            PHASE1_STATUS="✅ Available"
+            TOTAL_REPORTS=$((TOTAL_REPORTS + 1))
+          fi
+          
+          if [ -d "all-reports/phase2-quick-report" ]; then
+            PHASE2_STATUS="✅ Available"
+            TOTAL_REPORTS=$((TOTAL_REPORTS + 1))
+          fi
+          
+          if [ -d "all-reports/phase3-quick-report" ]; then
+            PHASE3_STATUS="✅ Available"
+            TOTAL_REPORTS=$((TOTAL_REPORTS + 1))
+          fi
+          
+          if [ -d "all-reports/phase4-quick-report" ]; then
+            PHASE4_STATUS="✅ Available"
+            TOTAL_REPORTS=$((TOTAL_REPORTS + 1))
+          fi
+          
+          if [ -d "all-reports/phase5-quick-report" ]; then
+            PHASE5_STATUS="✅ Available"
+            TOTAL_REPORTS=$((TOTAL_REPORTS + 1))
+          fi
+          
+          # Find all client reports
+          echo "=== Client Reports Found ==="
+          find all-reports -name "Client_Report_*.html" 2>/dev/null || echo "No client reports found"
+          
+          # Count client reports
+          CLIENT_REPORTS=$(find all-reports -name "Client_Report_*.html" 2>/dev/null | wc -l | tr -d ' ')
+          
+          # Export to environment
+          echo "TOTAL_REPORTS=$TOTAL_REPORTS" >> $GITHUB_ENV
+          echo "CLIENT_REPORTS=$CLIENT_REPORTS" >> $GITHUB_ENV
+          echo "AUTH_STATUS=$AUTH_STATUS" >> $GITHUB_ENV
+          echo "SITE_STATUS=$SITE_STATUS" >> $GITHUB_ENV
+          echo "PHASE1_STATUS=$PHASE1_STATUS" >> $GITHUB_ENV
+          echo "PHASE2_STATUS=$PHASE2_STATUS" >> $GITHUB_ENV
+          echo "PHASE3_STATUS=$PHASE3_STATUS" >> $GITHUB_ENV
+          echo "PHASE4_STATUS=$PHASE4_STATUS" >> $GITHUB_ENV
+          echo "PHASE5_STATUS=$PHASE5_STATUS" >> $GITHUB_ENV
+          
+          echo ""
+          echo "=== Summary ==="
+          echo "Total job reports available: $TOTAL_REPORTS / 7"
+          echo "Client HTML reports found: $CLIENT_REPORTS"
+
+      - name: Determine Job Statuses
+        run: |
+          AUTH_RESULT="${{ needs.auth-quick.result }}"
+          SITE_RESULT="${{ needs.site-quick.result }}"
+          PHASE1_RESULT="${{ needs.phase1-quick.result }}"
+          PHASE2_RESULT="${{ needs.phase2-quick.result }}"
+          PHASE3_RESULT="${{ needs.phase3-quick.result }}"
+          PHASE4_RESULT="${{ needs.phase4-quick.result }}"
+          PHASE5_RESULT="${{ needs.phase5-quick.result }}"
+          
+          # Count successes and failures
+          SUCCESS_COUNT=0
+          FAILURE_COUNT=0
+          
+          for result in "$AUTH_RESULT" "$SITE_RESULT" "$PHASE1_RESULT" "$PHASE2_RESULT" "$PHASE3_RESULT" "$PHASE4_RESULT" "$PHASE5_RESULT"; do
+            case "$result" in
+              success) SUCCESS_COUNT=$((SUCCESS_COUNT + 1)) ;;
+              failure) FAILURE_COUNT=$((FAILURE_COUNT + 1)) ;;
+            esac
+          done
+          
+          echo "SUCCESS_COUNT=$SUCCESS_COUNT" >> $GITHUB_ENV
+          echo "FAILURE_COUNT=$FAILURE_COUNT" >> $GITHUB_ENV
+          
+          # Determine overall status
+          if [ "$SUCCESS_COUNT" -eq 7 ]; then
+            echo "OVERALL_STATUS=✅ ALL PASSED" >> $GITHUB_ENV
+          elif [ "$SUCCESS_COUNT" -gt 0 ]; then
+            echo "OVERALL_STATUS=⚠️ PARTIAL ($SUCCESS_COUNT/7)" >> $GITHUB_ENV
+          else
+            echo "OVERALL_STATUS=❌ ALL FAILED" >> $GITHUB_ENV
+          fi
+
+      - name: Prepare Attachments
+        run: |
+          mkdir -p attachments
+          find all-reports -name "Client_Report_*.html" -exec cp {} attachments/ \; 2>/dev/null || true
+          
+          echo "=== Files to attach ==="
+          ls -la attachments/ 2>/dev/null || echo "No files to attach"
+          
+          ATTACH_LIST=$(find attachments -name "*.html" 2>/dev/null | tr '\n' ',' | sed 's/,$//')
+          echo "ATTACH_LIST=$ATTACH_LIST" >> $GITHUB_ENV
+          
+          if [ -z "$ATTACH_LIST" ]; then
+            echo "<html><body><h1>Quick Verification - No Reports</h1><p>No test reports were generated.</p></body></html>" > attachments/no_reports.html
+            echo "ATTACH_LIST=attachments/no_reports.html" >> $GITHUB_ENV
+          fi
+
+      - name: Send Email
+        if: ${{ github.event.inputs.send_email == 'true' }}
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "[QUICK VERIFY] iOS Tests - ${{ env.OVERALL_STATUS }}"
+          to: ${{ secrets.EMAIL_TO }}
+          from: "iOS Automation <${{ secrets.EMAIL_USERNAME }}>"
+          attachments: ${{ env.ATTACH_LIST }}
+          html_body: |
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; }
+                .header { background: linear-gradient(135deg, #00b894 0%, #00cec9 100%); color: white; padding: 20px; border-radius: 10px 10px 0 0; text-align: center; }
+                .content { background: #f8f9fa; padding: 20px; border: 1px solid #ddd; }
+                .status-table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+                .status-table td, .status-table th { padding: 10px; border: 1px solid #ddd; text-align: left; }
+                .status-table th { background: #f1f3f5; }
+                .success { color: #28a745; }
+                .failure { color: #dc3545; }
+                .info-box { background: #e7f5ff; border-left: 4px solid #0066cc; padding: 15px; margin: 15px 0; }
+                .footer { background: #f1f3f5; padding: 15px; text-align: center; color: #666; font-size: 12px; border-radius: 0 0 10px 10px; }
+              </style>
+            </head>
+            <body>
+              <div class="header">
+                <h1>🧪 Quick Email Verification Test</h1>
+                <p>Testing parallel execution and email delivery</p>
+              </div>
+              
+              <div class="content">
+                <div class="info-box">
+                  <strong>ℹ️ This is a QUICK VERIFICATION run</strong><br>
+                  Only 1 test per job to verify the email workflow works correctly.
+                </div>
+                
+                <h2>📊 Overall Status: ${{ env.OVERALL_STATUS }}</h2>
+                
+                <h3>📋 Job Results (1 test each)</h3>
+                <table class="status-table">
+                  <tr>
+                    <th>Job</th>
+                    <th>Test</th>
+                    <th>Status</th>
+                    <th>Report</th>
+                  </tr>
+                  <tr>
+                    <td>Auth</td>
+                    <td>TC01_verifyWelcomeScreenUILoads</td>
+                    <td>${{ needs.auth-quick.result }}</td>
+                    <td>${{ env.AUTH_STATUS }}</td>
+                  </tr>
+                  <tr>
+                    <td>Site</td>
+                    <td>TC_SS_001_verifySelectSiteScreenUIElements</td>
+                    <td>${{ needs.site-quick.result }}</td>
+                    <td>${{ env.SITE_STATUS }}</td>
+                  </tr>
+                  <tr>
+                    <td>Phase 1</td>
+                    <td>ATS_ECR_01_verifyNewAssetScreenLoadsSuccessfully</td>
+                    <td>${{ needs.phase1-quick.result }}</td>
+                    <td>${{ env.PHASE1_STATUS }}</td>
+                  </tr>
+                  <tr>
+                    <td>Phase 2</td>
+                    <td>GEN_EAD_01_openEditAssetDetailsScreen</td>
+                    <td>${{ needs.phase2-quick.result }}</td>
+                    <td>${{ env.PHASE2_STATUS }}</td>
+                  </tr>
+                  <tr>
+                    <td>Phase 3</td>
+                    <td>PB_01_verifyCoreAttributesSectionVisible</td>
+                    <td>${{ needs.phase3-quick.result }}</td>
+                    <td>${{ env.PHASE3_STATUS }}</td>
+                  </tr>
+                  <tr>
+                    <td>Phase 4</td>
+                    <td>TC_DS_ST_01_verifyAssetSubtypeFieldVisibility</td>
+                    <td>${{ needs.phase4-quick.result }}</td>
+                    <td>${{ env.PHASE4_STATUS }}</td>
+                  </tr>
+                  <tr>
+                    <td>Phase 5</td>
+                    <td>BUG_DUP_01_createAssetWithDuplicateName</td>
+                    <td>${{ needs.phase5-quick.result }}</td>
+                    <td>${{ env.PHASE5_STATUS }}</td>
+                  </tr>
+                </table>
+                
+                <h3>📎 Attachments</h3>
+                <p>${{ env.CLIENT_REPORTS }} client report(s) attached.</p>
+                
+                <h3>🔗 Links</h3>
+                <p>
+                  <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">
+                    View Workflow Run →
+                  </a>
+                </p>
+                
+                <div class="info-box">
+                  <strong>✅ If you received this email, the workflow is working!</strong><br>
+                  You can now run the full parallel test suite with confidence.
+                </div>
+              </div>
+              
+              <div class="footer">
+                <p>Quick Verification - eGalvanic iOS Automation</p>
+                <p>Expected Runtime: ~20-30 minutes</p>
+              </div>
+            </body>
+            </html>
+
+      - name: Print Summary
+        if: always()
+        run: |
+          echo "=============================================="
+          echo "📧 QUICK VERIFICATION SUMMARY"
+          echo "=============================================="
+          echo "Overall Status: ${{ env.OVERALL_STATUS }}"
+          echo "Jobs Completed: ${{ env.SUCCESS_COUNT }}/7"
+          echo "Jobs Failed: ${{ env.FAILURE_COUNT }}"
+          echo "Reports Available: ${{ env.TOTAL_REPORTS }}/7"
+          echo "Client Reports: ${{ env.CLIENT_REPORTS }}"
+          echo "=============================================="
+          echo ""
+          echo "Job Results:"
+          echo "  Auth:    ${{ needs.auth-quick.result }}"
+          echo "  Site:    ${{ needs.site-quick.result }}"
+          echo "  Phase1:  ${{ needs.phase1-quick.result }}"
+          echo "  Phase2:  ${{ needs.phase2-quick.result }}"
+          echo "  Phase3:  ${{ needs.phase3-quick.result }}"
+          echo "  Phase4:  ${{ needs.phase4-quick.result }}"
+          echo "  Phase5:  ${{ needs.phase5-quick.result }}"
+          echo "=============================================="

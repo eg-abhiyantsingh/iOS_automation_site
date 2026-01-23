@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="Job 3 - Asset Phase 1 Tests" parallel="false" verbose="2">
+    <!--
+    ============================================================
+    JOB 3: ASSET PHASE 1 TESTS
+    ============================================================
+    Depends on: Login + Site Selection (TC_SS_056 runs first)
+    Tests: 139 + 1 setup = 140
+    Est. Time: ~4 hours
+    ============================================================
+    -->
+    
+    <!-- First: Login and Select Site -->
+    <test name="Setup - Login and Site Selection">
+        <classes>
+            <class name="com.egalvanic.tests.SiteSelectionTest">
+                <methods>
+                    <include name="TC_SS_056_verifyPartialSyncFailureHandling"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+    
+    <!-- Then: Run Asset Phase 1 Tests -->
+    <test name="Asset Phase 1 Tests">
+        <classes>
+            <class name="com.egalvanic.tests.Asset_Phase1_Test"/>
+        </classes>
+    </test>
+</suite>

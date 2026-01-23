@@ -165,7 +165,7 @@ Site Selection (Module)
 |------|-------|
 | Company Code | acme.egalvanic |
 | Email | rahul+acme@egalvanic.com |
-| Password | RP@egalvanic123 |
+| Password |  |
 | Search Text | test |
 
 ## 📱 Locators Reference

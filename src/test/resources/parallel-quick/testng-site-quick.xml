@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="QUICK - Site Test (1 test)" parallel="false" verbose="2">
+    <!--
+    ============================================================
+    QUICK VERIFICATION - SITE SELECTION (1 TEST)
+    ============================================================
+    Purpose: Verify email workflow works correctly
+    Test: TC_SS_001_verifySelectSiteScreenUIElements
+    Expected Time: ~2-3 minutes (includes login)
+    ============================================================
+    -->
+    <test name="Site Quick Test">
+        <classes>
+            <class name="com.egalvanic.tests.SiteSelectionTest">
+                <methods>
+                    <include name="TC_SS_001_verifySelectSiteScreenUIElements"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+</suite>

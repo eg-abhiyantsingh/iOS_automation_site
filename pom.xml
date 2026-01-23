@@ -17,6 +17,19 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- 
+        ============================================================
+        TestNG Suite File Configuration
+        ============================================================
+        Default: testng.xml (runs all tests)
+        
+        Override via command line:
+          mvn test -DsuiteXmlFile=src/test/resources/parallel-quick/testng-auth-quick.xml
+          mvn test -DsuiteXmlFile=src/test/resources/parallel/testng-phase1.xml
+          mvn test -DsuiteXmlFile=src/test/resources/bug_tests_suite.xml
+        ============================================================
+        -->
+        <suiteXmlFile>testng.xml</suiteXmlFile>
     </properties>
 
     <dependencies>
@@ -118,8 +131,9 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.5.0</version>
                 <configuration>
+                    <!-- Uses ${suiteXmlFile} property - can be overridden via -DsuiteXmlFile=path -->
                     <suiteXmlFiles>
-                        <suiteXmlFile>testng.xml</suiteXmlFile>
+                        <suiteXmlFile>${suiteXmlFile}</suiteXmlFile>
                     </suiteXmlFiles>
                 </configuration>
             </plugin>

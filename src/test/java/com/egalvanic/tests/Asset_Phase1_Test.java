@@ -33,7 +33,7 @@ import org.openqa.selenium.WebElement;
  * - ATS_ECR_32: Verify Cancel Asset Creation
  * - ATS_ECR_37: Verify Asset Appears in Asset List
  */
-public final class AssetTest extends BaseTest {
+public final class Asset_Phase1_Test extends BaseTest {
 
     // ============================================================
     // TEST CLASS SETUP

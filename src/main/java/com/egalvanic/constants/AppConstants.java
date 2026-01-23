@@ -126,8 +126,8 @@ public class AppConstants {
     //email to here i think send proper email and secreat & variable ->action key send repo link by mail.  
     public static final String EMAIL_SUBJECT = "eGalvanic iOS Automation - Test Report";
 
-    public static final boolean SEND_EMAIL_ENABLED = false;
-    //public static final boolean SEND_EMAIL_ENABLED = true;
+    //public static final boolean SEND_EMAIL_ENABLED = false;
+    public static final boolean SEND_EMAIL_ENABLED = true;
 
     // ================================================================
     // APP RESET BEHAVIOR

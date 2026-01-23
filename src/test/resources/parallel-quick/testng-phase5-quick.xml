@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="QUICK - Phase 5 Test (1 test)" parallel="false" verbose="2">
+    <!--
+    ============================================================
+    QUICK VERIFICATION - ASSET PHASE 5 (1 TEST + SETUP)
+    ============================================================
+    Purpose: Verify email workflow works correctly
+    Setup: TC_SS_056 (Login + Site Selection)
+    Test: BUG_DUP_01_createAssetWithDuplicateName
+    Expected Time: ~4-5 minutes
+    ============================================================
+    -->
+    
+    <!-- Setup: Login and Select Site -->
+    <test name="Setup - Login and Site">
+        <classes>
+            <class name="com.egalvanic.tests.SiteSelectionTest">
+                <methods>
+                    <include name="TC_SS_056_verifyPartialSyncFailureHandling"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+    
+    <!-- Actual Test -->
+    <test name="Phase 5 Quick Test">
+        <classes>
+            <class name="com.egalvanic.tests.Asset_Phase5_Test">
+                <methods>
+                    <include name="BUG_DUP_01_createAssetWithDuplicateName"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+</suite>

@@ -44,3 +44,6 @@ apps/*.app
 
 # Sensitive files
 config/email-credentials.properties
+
+# Backup files
+*.backup

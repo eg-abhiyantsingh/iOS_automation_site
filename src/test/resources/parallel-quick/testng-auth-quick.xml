@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="QUICK - Auth Test (1 test)" parallel="false" verbose="2">
+    <!--
+    ============================================================
+    QUICK VERIFICATION - AUTHENTICATION (1 TEST)
+    ============================================================
+    Purpose: Verify email workflow works correctly
+    Test: TC01_verifyWelcomeScreenUILoads
+    Expected Time: ~2 minutes
+    ============================================================
+    -->
+    <test name="Auth Quick Test">
+        <classes>
+            <class name="com.egalvanic.tests.AuthenticationTest">
+                <methods>
+                    <include name="TC01_verifyWelcomeScreenUILoads"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+</suite>

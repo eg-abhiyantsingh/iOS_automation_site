@@ -42,7 +42,7 @@
     <!-- ======================================== -->
     <test name="2. CRITICAL BUGS - Data Validation (App Bugs)">
         <classes>
-            <class name="com.egalvanic.tests.AssetTest">
+            <class name="com.egalvanic.tests.Asset_Phase1_Test">
                 <methods>
                     <!-- CRITICAL: App allows spaces-only names -->
                     <include name="ATS_ECR_07_verifyNameWithOnlySpaces"/>
@@ -75,7 +75,7 @@
     <!-- ======================================== -->
     <test name="3. UI Consistency Tests (Fixed)">
         <classes>
-            <class name="com.egalvanic.tests.AssetTest">
+            <class name="com.egalvanic.tests.Asset_Phase1_Test">
                 <methods>
                     <!-- Busway UI consistency -->
                     <include name="BUS_EAD_04_verifyUIConsistencyForBusway"/>
@@ -89,7 +89,7 @@
     <!-- ======================================== -->
     <test name="4. Cancel Button Tests (Fixed Implementation)">
         <classes>
-            <class name="com.egalvanic.tests.AssetTest">
+            <class name="com.egalvanic.tests.Asset_Phase1_Test">
                 <methods>
                     <!-- Cancel tests with proper verification -->
                     <include name="CB_EAD_24_cancelEditOperation"/>

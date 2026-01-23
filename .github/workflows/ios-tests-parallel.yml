@@ -1,0 +1,890 @@
+name: iOS Automation Tests (Parallel)
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+    inputs:
+      job_selection:
+        description: 'Select which jobs to run'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - auth-only
+          - site-only
+          - phase1-only
+          - phase2-only
+          - phase3-only
+          - phase4-only
+          - phase5-only
+
+# ============================================================
+# PARALLEL TEST EXECUTION STRATEGY
+# ============================================================
+# 7 parallel jobs + 1 final job for email
+# Total wall clock time: ~5 hours instead of 17+ hours
+# 
+# IMPORTANT: Email is sent even if some jobs fail!
+# Each job uploads its own report independently.
+# ============================================================
+
+jobs:
+  # ========================================
+  # JOB 1: Authentication Tests (Independent)
+  # ========================================
+  auth-tests:
+    if: ${{ github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'auth-only' || github.event.inputs.job_selection == '' }}
+    runs-on: macos-15
+    timeout-minutes: 90
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Appium
+        run: |
+          npm install -g appium@next
+          appium driver install xcuitest
+
+      - name: Unzip App
+        run: |
+          unzip -o apps/Z-Platform-QA.zip -d apps/
+          ls -la apps/
+
+      - name: Boot Simulator
+        id: simulator
+        run: |
+          UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18.5" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          echo "UDID: $UDID"
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+          sleep 60
+          DEVICE=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
+          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+          echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
+          echo "PLATFORM_VERSION=18.5" >> $GITHUB_ENV
+
+      - name: Pre-install App
+        run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
+
+      - name: Start Appium
+        run: |
+          appium --relaxed-security --log-level info > appium.log 2>&1 &
+          sleep 30
+          curl -s http://127.0.0.1:4723/status || (cat appium.log && exit 1)
+
+      - name: Run Auth Tests
+        id: run_tests
+        continue-on-error: true
+        env:
+          SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
+          PLATFORM_VERSION: ${{ env.PLATFORM_VERSION }}
+          DEVICE_NAME: ${{ env.DEVICE_NAME }}
+          APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
+        run: |
+          mvn test -DsuiteXmlFile=src/test/resources/parallel/testng-auth.xml \
+            -DDEVICE_NAME="$DEVICE_NAME" \
+            -DPLATFORM_VERSION="$PLATFORM_VERSION" \
+            -DSIMULATOR_UDID="$SIMULATOR_UDID" \
+            -DAPP_PATH="$APP_PATH"
+
+      # ALWAYS upload report, even if tests fail
+      - name: Upload Auth Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: auth-report
+          path: |
+            target/surefire-reports/
+            reports/
+          retention-days: 7
+          if-no-files-found: warn
+
+  # ========================================
+  # JOB 2: Site Selection Tests (Independent)
+  # ========================================
+  site-tests:
+    if: ${{ github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'site-only' || github.event.inputs.job_selection == '' }}
+    runs-on: macos-15
+    timeout-minutes: 120
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Appium
+        run: |
+          npm install -g appium@next
+          appium driver install xcuitest
+
+      - name: Unzip App
+        run: |
+          unzip -o apps/Z-Platform-QA.zip -d apps/
+          ls -la apps/
+
+      - name: Boot Simulator
+        run: |
+          UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18.5" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+          sleep 60
+          DEVICE=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
+          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+          echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
+          echo "PLATFORM_VERSION=18.5" >> $GITHUB_ENV
+
+      - name: Pre-install App
+        run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
+
+      - name: Start Appium
+        run: |
+          appium --relaxed-security --log-level info > appium.log 2>&1 &
+          sleep 30
+          curl -s http://127.0.0.1:4723/status || (cat appium.log && exit 1)
+
+      - name: Run Site Tests
+        id: run_tests
+        continue-on-error: true
+        env:
+          SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
+          PLATFORM_VERSION: ${{ env.PLATFORM_VERSION }}
+          DEVICE_NAME: ${{ env.DEVICE_NAME }}
+          APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
+        run: |
+          mvn test -DsuiteXmlFile=src/test/resources/parallel/testng-site.xml \
+            -DDEVICE_NAME="$DEVICE_NAME" \
+            -DPLATFORM_VERSION="$PLATFORM_VERSION" \
+            -DSIMULATOR_UDID="$SIMULATOR_UDID" \
+            -DAPP_PATH="$APP_PATH"
+
+      - name: Upload Site Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-report
+          path: |
+            target/surefire-reports/
+            reports/
+          retention-days: 7
+          if-no-files-found: warn
+
+  # ========================================
+  # JOB 3: Asset Phase 1 Tests
+  # ========================================
+  phase1-tests:
+    if: ${{ github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'phase1-only' || github.event.inputs.job_selection == '' }}
+    runs-on: macos-15
+    timeout-minutes: 300
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Appium
+        run: |
+          npm install -g appium@next
+          appium driver install xcuitest
+
+      - name: Unzip App
+        run: |
+          unzip -o apps/Z-Platform-QA.zip -d apps/
+          ls -la apps/
+
+      - name: Boot Simulator
+        run: |
+          UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18.5" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+          sleep 60
+          DEVICE=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
+          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+          echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
+          echo "PLATFORM_VERSION=18.5" >> $GITHUB_ENV
+
+      - name: Pre-install App
+        run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
+
+      - name: Start Appium
+        run: |
+          appium --relaxed-security --log-level info > appium.log 2>&1 &
+          sleep 30
+          curl -s http://127.0.0.1:4723/status || (cat appium.log && exit 1)
+
+      - name: Run Phase 1 Tests
+        id: run_tests
+        continue-on-error: true
+        env:
+          SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
+          PLATFORM_VERSION: ${{ env.PLATFORM_VERSION }}
+          DEVICE_NAME: ${{ env.DEVICE_NAME }}
+          APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
+        run: |
+          mvn test -DsuiteXmlFile=src/test/resources/parallel/testng-phase1.xml \
+            -DDEVICE_NAME="$DEVICE_NAME" \
+            -DPLATFORM_VERSION="$PLATFORM_VERSION" \
+            -DSIMULATOR_UDID="$SIMULATOR_UDID" \
+            -DAPP_PATH="$APP_PATH"
+
+      - name: Upload Phase 1 Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase1-report
+          path: |
+            target/surefire-reports/
+            reports/
+          retention-days: 7
+          if-no-files-found: warn
+
+  # ========================================
+  # JOB 4: Asset Phase 2 Tests
+  # ========================================
+  phase2-tests:
+    if: ${{ github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'phase2-only' || github.event.inputs.job_selection == '' }}
+    runs-on: macos-15
+    timeout-minutes: 330
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Appium
+        run: |
+          npm install -g appium@next
+          appium driver install xcuitest
+
+      - name: Unzip App
+        run: |
+          unzip -o apps/Z-Platform-QA.zip -d apps/
+          ls -la apps/
+
+      - name: Boot Simulator
+        run: |
+          UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18.5" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+          sleep 60
+          DEVICE=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
+          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+          echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
+          echo "PLATFORM_VERSION=18.5" >> $GITHUB_ENV
+
+      - name: Pre-install App
+        run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
+
+      - name: Start Appium
+        run: |
+          appium --relaxed-security --log-level info > appium.log 2>&1 &
+          sleep 30
+          curl -s http://127.0.0.1:4723/status || (cat appium.log && exit 1)
+
+      - name: Run Phase 2 Tests
+        id: run_tests
+        continue-on-error: true
+        env:
+          SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
+          PLATFORM_VERSION: ${{ env.PLATFORM_VERSION }}
+          DEVICE_NAME: ${{ env.DEVICE_NAME }}
+          APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
+        run: |
+          mvn test -DsuiteXmlFile=src/test/resources/parallel/testng-phase2.xml \
+            -DDEVICE_NAME="$DEVICE_NAME" \
+            -DPLATFORM_VERSION="$PLATFORM_VERSION" \
+            -DSIMULATOR_UDID="$SIMULATOR_UDID" \
+            -DAPP_PATH="$APP_PATH"
+
+      - name: Upload Phase 2 Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase2-report
+          path: |
+            target/surefire-reports/
+            reports/
+          retention-days: 7
+          if-no-files-found: warn
+
+  # ========================================
+  # JOB 5: Asset Phase 3 Tests
+  # ========================================
+  phase3-tests:
+    if: ${{ github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'phase3-only' || github.event.inputs.job_selection == '' }}
+    runs-on: macos-15
+    timeout-minutes: 350
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Appium
+        run: |
+          npm install -g appium@next
+          appium driver install xcuitest
+
+      - name: Unzip App
+        run: |
+          unzip -o apps/Z-Platform-QA.zip -d apps/
+          ls -la apps/
+
+      - name: Boot Simulator
+        run: |
+          UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18.5" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+          sleep 60
+          DEVICE=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
+          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+          echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
+          echo "PLATFORM_VERSION=18.5" >> $GITHUB_ENV
+
+      - name: Pre-install App
+        run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
+
+      - name: Start Appium
+        run: |
+          appium --relaxed-security --log-level info > appium.log 2>&1 &
+          sleep 30
+          curl -s http://127.0.0.1:4723/status || (cat appium.log && exit 1)
+
+      - name: Run Phase 3 Tests
+        id: run_tests
+        continue-on-error: true
+        env:
+          SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
+          PLATFORM_VERSION: ${{ env.PLATFORM_VERSION }}
+          DEVICE_NAME: ${{ env.DEVICE_NAME }}
+          APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
+        run: |
+          mvn test -DsuiteXmlFile=src/test/resources/parallel/testng-phase3.xml \
+            -DDEVICE_NAME="$DEVICE_NAME" \
+            -DPLATFORM_VERSION="$PLATFORM_VERSION" \
+            -DSIMULATOR_UDID="$SIMULATOR_UDID" \
+            -DAPP_PATH="$APP_PATH"
+
+      - name: Upload Phase 3 Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase3-report
+          path: |
+            target/surefire-reports/
+            reports/
+          retention-days: 7
+          if-no-files-found: warn
+
+  # ========================================
+  # JOB 6: Asset Phase 4 Tests
+  # ========================================
+  phase4-tests:
+    if: ${{ github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'phase4-only' || github.event.inputs.job_selection == '' }}
+    runs-on: macos-15
+    timeout-minutes: 300
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Appium
+        run: |
+          npm install -g appium@next
+          appium driver install xcuitest
+
+      - name: Unzip App
+        run: |
+          unzip -o apps/Z-Platform-QA.zip -d apps/
+          ls -la apps/
+
+      - name: Boot Simulator
+        run: |
+          UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18.5" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+          sleep 60
+          DEVICE=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
+          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+          echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
+          echo "PLATFORM_VERSION=18.5" >> $GITHUB_ENV
+
+      - name: Pre-install App
+        run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
+
+      - name: Start Appium
+        run: |
+          appium --relaxed-security --log-level info > appium.log 2>&1 &
+          sleep 30
+          curl -s http://127.0.0.1:4723/status || (cat appium.log && exit 1)
+
+      - name: Run Phase 4 Tests
+        id: run_tests
+        continue-on-error: true
+        env:
+          SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
+          PLATFORM_VERSION: ${{ env.PLATFORM_VERSION }}
+          DEVICE_NAME: ${{ env.DEVICE_NAME }}
+          APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
+        run: |
+          mvn test -DsuiteXmlFile=src/test/resources/parallel/testng-phase4.xml \
+            -DDEVICE_NAME="$DEVICE_NAME" \
+            -DPLATFORM_VERSION="$PLATFORM_VERSION" \
+            -DSIMULATOR_UDID="$SIMULATOR_UDID" \
+            -DAPP_PATH="$APP_PATH"
+
+      - name: Upload Phase 4 Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase4-report
+          path: |
+            target/surefire-reports/
+            reports/
+          retention-days: 7
+          if-no-files-found: warn
+
+  # ========================================
+  # JOB 7: Asset Phase 5 Tests
+  # ========================================
+  phase5-tests:
+    if: ${{ github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'phase5-only' || github.event.inputs.job_selection == '' }}
+    runs-on: macos-15
+    timeout-minutes: 120
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Appium
+        run: |
+          npm install -g appium@next
+          appium driver install xcuitest
+
+      - name: Unzip App
+        run: |
+          unzip -o apps/Z-Platform-QA.zip -d apps/
+          ls -la apps/
+
+      - name: Boot Simulator
+        run: |
+          UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18.5" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+          sleep 60
+          DEVICE=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
+          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+          echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
+          echo "PLATFORM_VERSION=18.5" >> $GITHUB_ENV
+
+      - name: Pre-install App
+        run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
+
+      - name: Start Appium
+        run: |
+          appium --relaxed-security --log-level info > appium.log 2>&1 &
+          sleep 30
+          curl -s http://127.0.0.1:4723/status || (cat appium.log && exit 1)
+
+      - name: Run Phase 5 Tests
+        id: run_tests
+        continue-on-error: true
+        env:
+          SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
+          PLATFORM_VERSION: ${{ env.PLATFORM_VERSION }}
+          DEVICE_NAME: ${{ env.DEVICE_NAME }}
+          APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
+        run: |
+          mvn test -DsuiteXmlFile=src/test/resources/parallel/testng-phase5.xml \
+            -DDEVICE_NAME="$DEVICE_NAME" \
+            -DPLATFORM_VERSION="$PLATFORM_VERSION" \
+            -DSIMULATOR_UDID="$SIMULATOR_UDID" \
+            -DAPP_PATH="$APP_PATH"
+
+      - name: Upload Phase 5 Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase5-report
+          path: |
+            target/surefire-reports/
+            reports/
+          retention-days: 7
+          if-no-files-found: warn
+
+  # ========================================
+  # FINAL JOB: Collect Reports & Send Email
+  # ========================================
+  # IMPORTANT: This job runs ALWAYS, even if other jobs fail!
+  # It will collect whatever reports are available and send email.
+  # ========================================
+  send-email:
+    needs: [auth-tests, site-tests, phase1-tests, phase2-tests, phase3-tests, phase4-tests, phase5-tests]
+    # CRITICAL: if: always() ensures this runs even if ALL other jobs fail
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+      - name: Download All Available Reports
+        # continue-on-error: true ensures we proceed even if some artifacts are missing
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          path: all-reports
+          # Don't specify pattern - download ALL available artifacts
+          
+      - name: Check What Reports Were Downloaded
+        id: check_reports
+        run: |
+          echo "=== Checking downloaded artifacts ==="
+          
+          # Initialize counters
+          TOTAL_REPORTS=0
+          AUTH_STATUS="❌ Missing"
+          SITE_STATUS="❌ Missing"
+          PHASE1_STATUS="❌ Missing"
+          PHASE2_STATUS="❌ Missing"
+          PHASE3_STATUS="❌ Missing"
+          PHASE4_STATUS="❌ Missing"
+          PHASE5_STATUS="❌ Missing"
+          
+          # Check each report
+          if [ -d "all-reports/auth-report" ]; then
+            AUTH_STATUS="✅ Available"
+            TOTAL_REPORTS=$((TOTAL_REPORTS + 1))
+          fi
+          
+          if [ -d "all-reports/site-report" ]; then
+            SITE_STATUS="✅ Available"
+            TOTAL_REPORTS=$((TOTAL_REPORTS + 1))
+          fi
+          
+          if [ -d "all-reports/phase1-report" ]; then
+            PHASE1_STATUS="✅ Available"
+            TOTAL_REPORTS=$((TOTAL_REPORTS + 1))
+          fi
+          
+          if [ -d "all-reports/phase2-report" ]; then
+            PHASE2_STATUS="✅ Available"
+            TOTAL_REPORTS=$((TOTAL_REPORTS + 1))
+          fi
+          
+          if [ -d "all-reports/phase3-report" ]; then
+            PHASE3_STATUS="✅ Available"
+            TOTAL_REPORTS=$((TOTAL_REPORTS + 1))
+          fi
+          
+          if [ -d "all-reports/phase4-report" ]; then
+            PHASE4_STATUS="✅ Available"
+            TOTAL_REPORTS=$((TOTAL_REPORTS + 1))
+          fi
+          
+          if [ -d "all-reports/phase5-report" ]; then
+            PHASE5_STATUS="✅ Available"
+            TOTAL_REPORTS=$((TOTAL_REPORTS + 1))
+          fi
+          
+          # Find all client reports
+          echo "=== Client Reports Found ==="
+          find all-reports -name "Client_Report_*.html" 2>/dev/null || echo "No client reports found"
+          
+          # Count client reports
+          CLIENT_REPORTS=$(find all-reports -name "Client_Report_*.html" 2>/dev/null | wc -l | tr -d ' ')
+          
+          # Export to environment
+          echo "TOTAL_REPORTS=$TOTAL_REPORTS" >> $GITHUB_ENV
+          echo "CLIENT_REPORTS=$CLIENT_REPORTS" >> $GITHUB_ENV
+          echo "AUTH_STATUS=$AUTH_STATUS" >> $GITHUB_ENV
+          echo "SITE_STATUS=$SITE_STATUS" >> $GITHUB_ENV
+          echo "PHASE1_STATUS=$PHASE1_STATUS" >> $GITHUB_ENV
+          echo "PHASE2_STATUS=$PHASE2_STATUS" >> $GITHUB_ENV
+          echo "PHASE3_STATUS=$PHASE3_STATUS" >> $GITHUB_ENV
+          echo "PHASE4_STATUS=$PHASE4_STATUS" >> $GITHUB_ENV
+          echo "PHASE5_STATUS=$PHASE5_STATUS" >> $GITHUB_ENV
+          
+          echo ""
+          echo "=== Summary ==="
+          echo "Total job reports available: $TOTAL_REPORTS / 7"
+          echo "Client HTML reports found: $CLIENT_REPORTS"
+          
+      - name: Determine Job Statuses
+        id: job_status
+        run: |
+          # Determine overall status based on job results
+          # needs.*.result can be: success, failure, cancelled, skipped
+          
+          AUTH_RESULT="${{ needs.auth-tests.result }}"
+          SITE_RESULT="${{ needs.site-tests.result }}"
+          PHASE1_RESULT="${{ needs.phase1-tests.result }}"
+          PHASE2_RESULT="${{ needs.phase2-tests.result }}"
+          PHASE3_RESULT="${{ needs.phase3-tests.result }}"
+          PHASE4_RESULT="${{ needs.phase4-tests.result }}"
+          PHASE5_RESULT="${{ needs.phase5-tests.result }}"
+          
+          # Count successes and failures
+          SUCCESS_COUNT=0
+          FAILURE_COUNT=0
+          CANCELLED_COUNT=0
+          SKIPPED_COUNT=0
+          
+          for result in "$AUTH_RESULT" "$SITE_RESULT" "$PHASE1_RESULT" "$PHASE2_RESULT" "$PHASE3_RESULT" "$PHASE4_RESULT" "$PHASE5_RESULT"; do
+            case "$result" in
+              success) SUCCESS_COUNT=$((SUCCESS_COUNT + 1)) ;;
+              failure) FAILURE_COUNT=$((FAILURE_COUNT + 1)) ;;
+              cancelled) CANCELLED_COUNT=$((CANCELLED_COUNT + 1)) ;;
+              skipped) SKIPPED_COUNT=$((SKIPPED_COUNT + 1)) ;;
+            esac
+          done
+          
+          echo "SUCCESS_COUNT=$SUCCESS_COUNT" >> $GITHUB_ENV
+          echo "FAILURE_COUNT=$FAILURE_COUNT" >> $GITHUB_ENV
+          echo "CANCELLED_COUNT=$CANCELLED_COUNT" >> $GITHUB_ENV
+          echo "SKIPPED_COUNT=$SKIPPED_COUNT" >> $GITHUB_ENV
+          
+          # Determine overall status
+          if [ "$FAILURE_COUNT" -gt 0 ] || [ "$CANCELLED_COUNT" -gt 0 ]; then
+            echo "OVERALL_STATUS=⚠️ PARTIAL" >> $GITHUB_ENV
+          elif [ "$SUCCESS_COUNT" -eq 7 ]; then
+            echo "OVERALL_STATUS=✅ ALL PASSED" >> $GITHUB_ENV
+          else
+            echo "OVERALL_STATUS=ℹ️ COMPLETED" >> $GITHUB_ENV
+          fi
+
+      - name: Prepare Attachments
+        id: attachments
+        run: |
+          # Create a directory for attachments
+          mkdir -p attachments
+          
+          # Copy all client reports to attachments folder
+          find all-reports -name "Client_Report_*.html" -exec cp {} attachments/ \; 2>/dev/null || true
+          
+          # List what we're attaching
+          echo "=== Files to attach ==="
+          ls -la attachments/ 2>/dev/null || echo "No files to attach"
+          
+          # Create attachment list
+          ATTACH_LIST=$(find attachments -name "*.html" 2>/dev/null | tr '\n' ',' | sed 's/,$//')
+          echo "ATTACH_LIST=$ATTACH_LIST" >> $GITHUB_ENV
+          
+          # If no reports, create a placeholder
+          if [ -z "$ATTACH_LIST" ]; then
+            echo "No HTML reports found - creating summary file"
+            echo "<html><body><h1>No test reports available</h1><p>All test jobs may have failed or timed out.</p></body></html>" > attachments/no_reports.html
+            echo "ATTACH_LIST=attachments/no_reports.html" >> $GITHUB_ENV
+          fi
+
+      - name: Send Email with Available Reports
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "[${{ env.OVERALL_STATUS }}] iOS Test Results - ${{ env.SUCCESS_COUNT }}/7 Jobs Completed"
+          to: ${{ secrets.EMAIL_TO }}
+          from: "iOS Automation <${{ secrets.EMAIL_USERNAME }}>"
+          attachments: ${{ env.ATTACH_LIST }}
+          html_body: |
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px 10px 0 0; }
+                .content { background: #f8f9fa; padding: 20px; border: 1px solid #ddd; }
+                .status-table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+                .status-table td, .status-table th { padding: 10px; border: 1px solid #ddd; text-align: left; }
+                .status-table th { background: #f1f3f5; }
+                .success { color: #28a745; }
+                .failure { color: #dc3545; }
+                .warning { color: #ffc107; }
+                .footer { background: #f1f3f5; padding: 15px; text-align: center; color: #666; font-size: 12px; border-radius: 0 0 10px 10px; }
+              </style>
+            </head>
+            <body>
+              <div class="header">
+                <h1>🚀 iOS Automation Test Results</h1>
+                <p>Parallel Execution Report</p>
+              </div>
+              
+              <div class="content">
+                <h2>📊 Overall Status: ${{ env.OVERALL_STATUS }}</h2>
+                
+                <table class="status-table">
+                  <tr>
+                    <th>Metric</th>
+                    <th>Count</th>
+                  </tr>
+                  <tr>
+                    <td>✅ Successful Jobs</td>
+                    <td>${{ env.SUCCESS_COUNT }}</td>
+                  </tr>
+                  <tr>
+                    <td>❌ Failed Jobs</td>
+                    <td>${{ env.FAILURE_COUNT }}</td>
+                  </tr>
+                  <tr>
+                    <td>⏱️ Cancelled/Timeout</td>
+                    <td>${{ env.CANCELLED_COUNT }}</td>
+                  </tr>
+                  <tr>
+                    <td>⏭️ Skipped Jobs</td>
+                    <td>${{ env.SKIPPED_COUNT }}</td>
+                  </tr>
+                </table>
+                
+                <h3>📋 Job Status Details</h3>
+                <table class="status-table">
+                  <tr>
+                    <th>Job</th>
+                    <th>Status</th>
+                    <th>Report</th>
+                  </tr>
+                  <tr>
+                    <td>Auth Tests (38)</td>
+                    <td>${{ needs.auth-tests.result || 'unknown' }}</td>
+                    <td>${{ env.AUTH_STATUS }}</td>
+                  </tr>
+                  <tr>
+                    <td>Site Tests (52)</td>
+                    <td>${{ needs.site-tests.result || 'unknown' }}</td>
+                    <td>${{ env.SITE_STATUS }}</td>
+                  </tr>
+                  <tr>
+                    <td>Phase 1 Tests (139)</td>
+                    <td>${{ needs.phase1-tests.result || 'unknown' }}</td>
+                    <td>${{ env.PHASE1_STATUS }}</td>
+                  </tr>
+                  <tr>
+                    <td>Phase 2 Tests (159)</td>
+                    <td>${{ needs.phase2-tests.result || 'unknown' }}</td>
+                    <td>${{ env.PHASE2_STATUS }}</td>
+                  </tr>
+                  <tr>
+                    <td>Phase 3 Tests (169)</td>
+                    <td>${{ needs.phase3-tests.result || 'unknown' }}</td>
+                    <td>${{ env.PHASE3_STATUS }}</td>
+                  </tr>
+                  <tr>
+                    <td>Phase 4 Tests (141)</td>
+                    <td>${{ needs.phase4-tests.result || 'unknown' }}</td>
+                    <td>${{ env.PHASE4_STATUS }}</td>
+                  </tr>
+                  <tr>
+                    <td>Phase 5 Tests (45)</td>
+                    <td>${{ needs.phase5-tests.result || 'unknown' }}</td>
+                    <td>${{ env.PHASE5_STATUS }}</td>
+                  </tr>
+                </table>
+                
+                <h3>📎 Attachments</h3>
+                <p>${{ env.CLIENT_REPORTS }} client report(s) attached to this email.</p>
+                
+                <h3>🔗 Links</h3>
+                <p>
+                  <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">
+                    View Full Workflow Run →
+                  </a>
+                </p>
+                
+                <h3>📝 Build Info</h3>
+                <ul>
+                  <li><strong>Repository:</strong> ${{ github.repository }}</li>
+                  <li><strong>Branch:</strong> ${{ github.ref_name }}</li>
+                  <li><strong>Commit:</strong> ${{ github.sha }}</li>
+                  <li><strong>Triggered by:</strong> ${{ github.actor }}</li>
+                </ul>
+              </div>
+              
+              <div class="footer">
+                <p>This is an automated email from eGalvanic iOS Automation Framework.</p>
+                <p>Tests ran in PARALLEL across 7 jobs for faster results (~5 hours instead of 17+ hours)</p>
+              </div>
+            </body>
+            </html>
+
+      - name: Print Summary
+        if: always()
+        run: |
+          echo "=============================================="
+          echo "📧 EMAIL SEND SUMMARY"
+          echo "=============================================="
+          echo "Overall Status: ${{ env.OVERALL_STATUS }}"
+          echo "Jobs Completed: ${{ env.SUCCESS_COUNT }}/7"
+          echo "Jobs Failed: ${{ env.FAILURE_COUNT }}"
+          echo "Jobs Cancelled: ${{ env.CANCELLED_COUNT }}"
+          echo "Reports Attached: ${{ env.CLIENT_REPORTS }}"
+          echo "=============================================="
