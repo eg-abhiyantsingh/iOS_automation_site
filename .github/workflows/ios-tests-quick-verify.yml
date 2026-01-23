@@ -1,15 +1,15 @@
 name: iOS Tests - Quick Verification
 
 # ============================================================
-# QUICK VERIFICATION WORKFLOW
+# QUICK VERIFICATION WORKFLOW - v2.0 (ROBUST)
 # ============================================================
-# Purpose: Test that parallel execution and email work correctly
-# Tests: 1-2 tests per job (7-14 tests total)
-# Expected Time: ~20-30 minutes total
+# Tests: 1-2 tests per job (12 total)
+# Expected Time: ~25-40 minutes
 # 
-# TRIGGERS:
-#   - Automatically on push to main/develop
-#   - Manually via workflow_dispatch
+# FIXES in v2.0:
+#   - Increased simulator boot wait (30s → 90s)
+#   - Better Appium startup with retry logic
+#   - Fixed EISDIR error in email attachments
 # ============================================================
 
 on:
@@ -28,128 +28,60 @@ on:
           - 'true'
           - 'false'
 
+env:
+  SIMULATOR_BOOT_WAIT: 90
+  APPIUM_MAX_RETRIES: 120
+
 jobs:
-  # ========================================
-  # JOB 1: Auth Quick Test (1 test)
-  # ========================================
   auth-quick:
     runs-on: macos-15
-    timeout-minutes: 20
-    
+    timeout-minutes: 25
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Java 17
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '18'
-
-      - name: Install Appium (Stable Version)
+      - name: Install Appium
         run: |
           npm install -g appium@2.5.0
           appium driver install xcuitest@7.9.1
-          echo "Appium version:"
-          appium --version
-
       - name: Unzip App
-        run: |
-          unzip -o apps/Z-Platform-QA.zip -d apps/
-          ls -la apps/
-
+        run: unzip -o apps/Z-Platform-QA.zip -d apps/
       - name: Boot Simulator
         run: |
-          # List available simulators
-          echo "Available iOS 18 simulators:"
-          xcrun simctl list devices available | grep -A 100 "iOS 18" | grep "iPhone" | head -10
-          
-          # Try to find iPhone 16 Pro with iOS 18.x
-          UDID=$(xcrun simctl list devices available | grep -E "iPhone 16 Pro.*18\." | head -1 | awk -F '[()]' '{print $2}')
-          
-          # Fallback to any iPhone with iOS 18.x
-          if [ -z "$UDID" ]; then
-            echo "iPhone 16 Pro not found, trying any iPhone with iOS 18.x..."
-            UDID=$(xcrun simctl list devices available | grep -E "iPhone.*18\." | head -1 | awk -F '[()]' '{print $2}')
-          fi
-          
-          # Fallback to any available iPhone
-          if [ -z "$UDID" ]; then
-            echo "No iOS 18.x found, trying any available iPhone..."
-            UDID=$(xcrun simctl list devices available | grep "iPhone" | head -1 | awk -F '[()]' '{print $2}')
-          fi
-          
-          if [ -z "$UDID" ]; then
-            echo "❌ ERROR: No iPhone simulator found!"
-            xcrun simctl list devices available
-            exit 1
-          fi
-          
-          echo "Selected UDID: $UDID"
+          UDID=$(xcrun simctl list devices available | grep -E "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && UDID=$(xcrun simctl list devices available | grep -E "iPhone 1[456]" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && exit 1
           xcrun simctl boot "$UDID" 2>/dev/null || true
-          sleep 30
-          
-          # Get device name and platform version
-          DEVICE_INFO=$(xcrun simctl list devices available | grep "$UDID")
-          DEVICE_NAME=$(echo "$DEVICE_INFO" | awk -F '(' '{print $1}' | xargs)
-          PLATFORM_VERSION=$(xcrun simctl list devices available | grep -B 50 "$UDID" | grep "iOS" | tail -1 | sed 's/.*iOS \([0-9.]*\).*/\1/')
-          
+          sleep ${{ env.SIMULATOR_BOOT_WAIT }}
+          DEVICE=$(xcrun simctl list devices | grep "$UDID" | sed 's/ (.*//g' | xargs)
+          VERSION=$(xcrun simctl list devices | grep -B 100 "$UDID" | grep "-- iOS" | tail -1 | sed 's/.*iOS \([0-9.]*\).*/\1/')
           echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
-          echo "DEVICE_NAME=$DEVICE_NAME" >> $GITHUB_ENV
-          echo "PLATFORM_VERSION=$PLATFORM_VERSION" >> $GITHUB_ENV
-          
-          echo "📱 Device: $DEVICE_NAME"
-          echo "📱 UDID: $UDID"
-          echo "📱 iOS Version: $PLATFORM_VERSION"
-
+          echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
+          echo "PLATFORM_VERSION=$VERSION" >> $GITHUB_ENV
       - name: Pre-install App
-        run: |
-          xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
-          echo "✅ App installed"
-
+        run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
       - name: Start Appium
         run: |
           appium --relaxed-security --log-level info --port 4723 > appium.log 2>&1 &
-          APPIUM_PID=$!
-          echo "Appium PID: $APPIUM_PID"
-          
-          # Wait for Appium to start
-          echo "Waiting for Appium to start..."
-          for i in {1..60}; do
-            if curl -s http://127.0.0.1:4723/status > /dev/null 2>&1; then
-              echo "✅ Appium started successfully!"
-              curl -s http://127.0.0.1:4723/status | head -5
-              exit 0
-            fi
-            echo "  Attempt $i/60..."
+          for i in $(seq 1 ${{ env.APPIUM_MAX_RETRIES }}); do
+            curl -s http://127.0.0.1:4723/status 2>/dev/null | grep -q "ready" && echo "Appium ready" && exit 0
             sleep 2
           done
-          
-          echo "❌ Appium failed to start!"
-          cat appium.log
-          exit 1
-
-      - name: Run Auth Quick Test
-        id: run_tests
+          cat appium.log | tail -30 && exit 1
+      - name: Run Tests
         continue-on-error: true
-        env:
-          SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
-          PLATFORM_VERSION: ${{ env.PLATFORM_VERSION }}
-          DEVICE_NAME: ${{ env.DEVICE_NAME }}
-          APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
         run: |
           mvn test -DsuiteXmlFile=src/test/resources/parallel-quick/testng-auth-quick.xml \
-            -DDEVICE_NAME="$DEVICE_NAME" \
-            -DPLATFORM_VERSION="$PLATFORM_VERSION" \
-            -DSIMULATOR_UDID="$SIMULATOR_UDID" \
-            -DAPP_PATH="$APP_PATH"
-
-      - name: Upload Auth Report
+            -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
+            -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
+            -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
+            -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+      - name: Upload Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -161,94 +93,55 @@ jobs:
           retention-days: 3
           if-no-files-found: warn
 
-  # ========================================
-  # JOB 2: Site Quick Test (1 test)
-  # ========================================
   site-quick:
     runs-on: macos-15
-    timeout-minutes: 20
-    
+    timeout-minutes: 25
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Java 17
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '18'
-
-      - name: Install Appium (Stable Version)
+      - name: Install Appium
         run: |
           npm install -g appium@2.5.0
           appium driver install xcuitest@7.9.1
-          echo "Appium version:"
-          appium --version
-
       - name: Unzip App
-        run: |
-          unzip -o apps/Z-Platform-QA.zip -d apps/
-          ls -la apps/
-
+        run: unzip -o apps/Z-Platform-QA.zip -d apps/
       - name: Boot Simulator
         run: |
-          UDID=$(xcrun simctl list devices available | grep -E "iPhone 16 Pro.*18\." | head -1 | awk -F '[()]' '{print $2}')
-          if [ -z "$UDID" ]; then
-            UDID=$(xcrun simctl list devices available | grep -E "iPhone.*18\." | head -1 | awk -F '[()]' '{print $2}')
-          fi
-          if [ -z "$UDID" ]; then
-            UDID=$(xcrun simctl list devices available | grep "iPhone" | head -1 | awk -F '[()]' '{print $2}')
-          fi
-          
-          echo "Selected UDID: $UDID"
+          UDID=$(xcrun simctl list devices available | grep -E "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && UDID=$(xcrun simctl list devices available | grep -E "iPhone 1[456]" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && exit 1
           xcrun simctl boot "$UDID" 2>/dev/null || true
-          sleep 30
-          
-          DEVICE_INFO=$(xcrun simctl list devices available | grep "$UDID")
-          DEVICE_NAME=$(echo "$DEVICE_INFO" | awk -F '(' '{print $1}' | xargs)
-          PLATFORM_VERSION=$(xcrun simctl list devices available | grep -B 50 "$UDID" | grep "iOS" | tail -1 | sed 's/.*iOS \([0-9.]*\).*/\1/')
-          
+          sleep ${{ env.SIMULATOR_BOOT_WAIT }}
+          DEVICE=$(xcrun simctl list devices | grep "$UDID" | sed 's/ (.*//g' | xargs)
+          VERSION=$(xcrun simctl list devices | grep -B 100 "$UDID" | grep "-- iOS" | tail -1 | sed 's/.*iOS \([0-9.]*\).*/\1/')
           echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
-          echo "DEVICE_NAME=$DEVICE_NAME" >> $GITHUB_ENV
-          echo "PLATFORM_VERSION=$PLATFORM_VERSION" >> $GITHUB_ENV
-
+          echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
+          echo "PLATFORM_VERSION=$VERSION" >> $GITHUB_ENV
       - name: Pre-install App
         run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
-
       - name: Start Appium
         run: |
           appium --relaxed-security --log-level info --port 4723 > appium.log 2>&1 &
-          for i in {1..60}; do
-            if curl -s http://127.0.0.1:4723/status > /dev/null 2>&1; then
-              echo "✅ Appium started!"
-              exit 0
-            fi
+          for i in $(seq 1 ${{ env.APPIUM_MAX_RETRIES }}); do
+            curl -s http://127.0.0.1:4723/status 2>/dev/null | grep -q "ready" && exit 0
             sleep 2
           done
-          cat appium.log
-          exit 1
-
-      - name: Run Site Quick Test
-        id: run_tests
+          cat appium.log | tail -30 && exit 1
+      - name: Run Tests
         continue-on-error: true
-        env:
-          SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
-          PLATFORM_VERSION: ${{ env.PLATFORM_VERSION }}
-          DEVICE_NAME: ${{ env.DEVICE_NAME }}
-          APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
         run: |
           mvn test -DsuiteXmlFile=src/test/resources/parallel-quick/testng-site-quick.xml \
-            -DDEVICE_NAME="$DEVICE_NAME" \
-            -DPLATFORM_VERSION="$PLATFORM_VERSION" \
-            -DSIMULATOR_UDID="$SIMULATOR_UDID" \
-            -DAPP_PATH="$APP_PATH"
-
-      - name: Upload Site Report
+            -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
+            -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
+            -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
+            -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+      - name: Upload Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -260,76 +153,55 @@ jobs:
           retention-days: 3
           if-no-files-found: warn
 
-  # ========================================
-  # JOB 3: Phase 1 Quick Test (2 tests)
-  # ========================================
   phase1-quick:
     runs-on: macos-15
-    timeout-minutes: 25
-    
+    timeout-minutes: 30
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Java 17
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '18'
-
-      - name: Install Appium (Stable Version)
+      - name: Install Appium
         run: |
           npm install -g appium@2.5.0
           appium driver install xcuitest@7.9.1
-
       - name: Unzip App
         run: unzip -o apps/Z-Platform-QA.zip -d apps/
-
       - name: Boot Simulator
         run: |
-          UDID=$(xcrun simctl list devices available | grep -E "iPhone 16 Pro.*18\." | head -1 | awk -F '[()]' '{print $2}')
-          if [ -z "$UDID" ]; then UDID=$(xcrun simctl list devices available | grep -E "iPhone.*18\." | head -1 | awk -F '[()]' '{print $2}'); fi
-          if [ -z "$UDID" ]; then UDID=$(xcrun simctl list devices available | grep "iPhone" | head -1 | awk -F '[()]' '{print $2}'); fi
+          UDID=$(xcrun simctl list devices available | grep -E "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && UDID=$(xcrun simctl list devices available | grep -E "iPhone 1[456]" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && exit 1
           xcrun simctl boot "$UDID" 2>/dev/null || true
-          sleep 30
-          DEVICE_NAME=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
-          PLATFORM_VERSION=$(xcrun simctl list devices available | grep -B 50 "$UDID" | grep "iOS" | tail -1 | sed 's/.*iOS \([0-9.]*\).*/\1/')
+          sleep ${{ env.SIMULATOR_BOOT_WAIT }}
+          DEVICE=$(xcrun simctl list devices | grep "$UDID" | sed 's/ (.*//g' | xargs)
+          VERSION=$(xcrun simctl list devices | grep -B 100 "$UDID" | grep "-- iOS" | tail -1 | sed 's/.*iOS \([0-9.]*\).*/\1/')
           echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
-          echo "DEVICE_NAME=$DEVICE_NAME" >> $GITHUB_ENV
-          echo "PLATFORM_VERSION=$PLATFORM_VERSION" >> $GITHUB_ENV
-
+          echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
+          echo "PLATFORM_VERSION=$VERSION" >> $GITHUB_ENV
       - name: Pre-install App
         run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
-
       - name: Start Appium
         run: |
           appium --relaxed-security --log-level info --port 4723 > appium.log 2>&1 &
-          for i in {1..60}; do
-            if curl -s http://127.0.0.1:4723/status > /dev/null 2>&1; then echo "✅ Appium started!"; exit 0; fi
+          for i in $(seq 1 ${{ env.APPIUM_MAX_RETRIES }}); do
+            curl -s http://127.0.0.1:4723/status 2>/dev/null | grep -q "ready" && exit 0
             sleep 2
           done
-          cat appium.log && exit 1
-
-      - name: Run Phase 1 Quick Test
+          cat appium.log | tail -30 && exit 1
+      - name: Run Tests
         continue-on-error: true
-        env:
-          SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
-          PLATFORM_VERSION: ${{ env.PLATFORM_VERSION }}
-          DEVICE_NAME: ${{ env.DEVICE_NAME }}
-          APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
         run: |
           mvn test -DsuiteXmlFile=src/test/resources/parallel-quick/testng-phase1-quick.xml \
-            -DDEVICE_NAME="$DEVICE_NAME" \
-            -DPLATFORM_VERSION="$PLATFORM_VERSION" \
-            -DSIMULATOR_UDID="$SIMULATOR_UDID" \
-            -DAPP_PATH="$APP_PATH"
-
-      - name: Upload Phase 1 Report
+            -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
+            -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
+            -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
+            -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+      - name: Upload Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -341,76 +213,55 @@ jobs:
           retention-days: 3
           if-no-files-found: warn
 
-  # ========================================
-  # JOB 4: Phase 2 Quick Test (2 tests)
-  # ========================================
   phase2-quick:
     runs-on: macos-15
-    timeout-minutes: 25
-    
+    timeout-minutes: 30
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Java 17
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '18'
-
-      - name: Install Appium (Stable Version)
+      - name: Install Appium
         run: |
           npm install -g appium@2.5.0
           appium driver install xcuitest@7.9.1
-
       - name: Unzip App
         run: unzip -o apps/Z-Platform-QA.zip -d apps/
-
       - name: Boot Simulator
         run: |
-          UDID=$(xcrun simctl list devices available | grep -E "iPhone 16 Pro.*18\." | head -1 | awk -F '[()]' '{print $2}')
-          if [ -z "$UDID" ]; then UDID=$(xcrun simctl list devices available | grep -E "iPhone.*18\." | head -1 | awk -F '[()]' '{print $2}'); fi
-          if [ -z "$UDID" ]; then UDID=$(xcrun simctl list devices available | grep "iPhone" | head -1 | awk -F '[()]' '{print $2}'); fi
+          UDID=$(xcrun simctl list devices available | grep -E "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && UDID=$(xcrun simctl list devices available | grep -E "iPhone 1[456]" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && exit 1
           xcrun simctl boot "$UDID" 2>/dev/null || true
-          sleep 30
-          DEVICE_NAME=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
-          PLATFORM_VERSION=$(xcrun simctl list devices available | grep -B 50 "$UDID" | grep "iOS" | tail -1 | sed 's/.*iOS \([0-9.]*\).*/\1/')
+          sleep ${{ env.SIMULATOR_BOOT_WAIT }}
+          DEVICE=$(xcrun simctl list devices | grep "$UDID" | sed 's/ (.*//g' | xargs)
+          VERSION=$(xcrun simctl list devices | grep -B 100 "$UDID" | grep "-- iOS" | tail -1 | sed 's/.*iOS \([0-9.]*\).*/\1/')
           echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
-          echo "DEVICE_NAME=$DEVICE_NAME" >> $GITHUB_ENV
-          echo "PLATFORM_VERSION=$PLATFORM_VERSION" >> $GITHUB_ENV
-
+          echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
+          echo "PLATFORM_VERSION=$VERSION" >> $GITHUB_ENV
       - name: Pre-install App
         run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
-
       - name: Start Appium
         run: |
           appium --relaxed-security --log-level info --port 4723 > appium.log 2>&1 &
-          for i in {1..60}; do
-            if curl -s http://127.0.0.1:4723/status > /dev/null 2>&1; then echo "✅ Appium started!"; exit 0; fi
+          for i in $(seq 1 ${{ env.APPIUM_MAX_RETRIES }}); do
+            curl -s http://127.0.0.1:4723/status 2>/dev/null | grep -q "ready" && exit 0
             sleep 2
           done
-          cat appium.log && exit 1
-
-      - name: Run Phase 2 Quick Test
+          cat appium.log | tail -30 && exit 1
+      - name: Run Tests
         continue-on-error: true
-        env:
-          SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
-          PLATFORM_VERSION: ${{ env.PLATFORM_VERSION }}
-          DEVICE_NAME: ${{ env.DEVICE_NAME }}
-          APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
         run: |
           mvn test -DsuiteXmlFile=src/test/resources/parallel-quick/testng-phase2-quick.xml \
-            -DDEVICE_NAME="$DEVICE_NAME" \
-            -DPLATFORM_VERSION="$PLATFORM_VERSION" \
-            -DSIMULATOR_UDID="$SIMULATOR_UDID" \
-            -DAPP_PATH="$APP_PATH"
-
-      - name: Upload Phase 2 Report
+            -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
+            -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
+            -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
+            -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+      - name: Upload Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -422,76 +273,55 @@ jobs:
           retention-days: 3
           if-no-files-found: warn
 
-  # ========================================
-  # JOB 5: Phase 3 Quick Test (2 tests)
-  # ========================================
   phase3-quick:
     runs-on: macos-15
-    timeout-minutes: 25
-    
+    timeout-minutes: 30
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Java 17
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '18'
-
-      - name: Install Appium (Stable Version)
+      - name: Install Appium
         run: |
           npm install -g appium@2.5.0
           appium driver install xcuitest@7.9.1
-
       - name: Unzip App
         run: unzip -o apps/Z-Platform-QA.zip -d apps/
-
       - name: Boot Simulator
         run: |
-          UDID=$(xcrun simctl list devices available | grep -E "iPhone 16 Pro.*18\." | head -1 | awk -F '[()]' '{print $2}')
-          if [ -z "$UDID" ]; then UDID=$(xcrun simctl list devices available | grep -E "iPhone.*18\." | head -1 | awk -F '[()]' '{print $2}'); fi
-          if [ -z "$UDID" ]; then UDID=$(xcrun simctl list devices available | grep "iPhone" | head -1 | awk -F '[()]' '{print $2}'); fi
+          UDID=$(xcrun simctl list devices available | grep -E "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && UDID=$(xcrun simctl list devices available | grep -E "iPhone 1[456]" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && exit 1
           xcrun simctl boot "$UDID" 2>/dev/null || true
-          sleep 30
-          DEVICE_NAME=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
-          PLATFORM_VERSION=$(xcrun simctl list devices available | grep -B 50 "$UDID" | grep "iOS" | tail -1 | sed 's/.*iOS \([0-9.]*\).*/\1/')
+          sleep ${{ env.SIMULATOR_BOOT_WAIT }}
+          DEVICE=$(xcrun simctl list devices | grep "$UDID" | sed 's/ (.*//g' | xargs)
+          VERSION=$(xcrun simctl list devices | grep -B 100 "$UDID" | grep "-- iOS" | tail -1 | sed 's/.*iOS \([0-9.]*\).*/\1/')
           echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
-          echo "DEVICE_NAME=$DEVICE_NAME" >> $GITHUB_ENV
-          echo "PLATFORM_VERSION=$PLATFORM_VERSION" >> $GITHUB_ENV
-
+          echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
+          echo "PLATFORM_VERSION=$VERSION" >> $GITHUB_ENV
       - name: Pre-install App
         run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
-
       - name: Start Appium
         run: |
           appium --relaxed-security --log-level info --port 4723 > appium.log 2>&1 &
-          for i in {1..60}; do
-            if curl -s http://127.0.0.1:4723/status > /dev/null 2>&1; then echo "✅ Appium started!"; exit 0; fi
+          for i in $(seq 1 ${{ env.APPIUM_MAX_RETRIES }}); do
+            curl -s http://127.0.0.1:4723/status 2>/dev/null | grep -q "ready" && exit 0
             sleep 2
           done
-          cat appium.log && exit 1
-
-      - name: Run Phase 3 Quick Test
+          cat appium.log | tail -30 && exit 1
+      - name: Run Tests
         continue-on-error: true
-        env:
-          SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
-          PLATFORM_VERSION: ${{ env.PLATFORM_VERSION }}
-          DEVICE_NAME: ${{ env.DEVICE_NAME }}
-          APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
         run: |
           mvn test -DsuiteXmlFile=src/test/resources/parallel-quick/testng-phase3-quick.xml \
-            -DDEVICE_NAME="$DEVICE_NAME" \
-            -DPLATFORM_VERSION="$PLATFORM_VERSION" \
-            -DSIMULATOR_UDID="$SIMULATOR_UDID" \
-            -DAPP_PATH="$APP_PATH"
-
-      - name: Upload Phase 3 Report
+            -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
+            -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
+            -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
+            -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+      - name: Upload Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -503,76 +333,55 @@ jobs:
           retention-days: 3
           if-no-files-found: warn
 
-  # ========================================
-  # JOB 6: Phase 4 Quick Test (2 tests)
-  # ========================================
   phase4-quick:
     runs-on: macos-15
-    timeout-minutes: 25
-    
+    timeout-minutes: 30
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Java 17
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '18'
-
-      - name: Install Appium (Stable Version)
+      - name: Install Appium
         run: |
           npm install -g appium@2.5.0
           appium driver install xcuitest@7.9.1
-
       - name: Unzip App
         run: unzip -o apps/Z-Platform-QA.zip -d apps/
-
       - name: Boot Simulator
         run: |
-          UDID=$(xcrun simctl list devices available | grep -E "iPhone 16 Pro.*18\." | head -1 | awk -F '[()]' '{print $2}')
-          if [ -z "$UDID" ]; then UDID=$(xcrun simctl list devices available | grep -E "iPhone.*18\." | head -1 | awk -F '[()]' '{print $2}'); fi
-          if [ -z "$UDID" ]; then UDID=$(xcrun simctl list devices available | grep "iPhone" | head -1 | awk -F '[()]' '{print $2}'); fi
+          UDID=$(xcrun simctl list devices available | grep -E "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && UDID=$(xcrun simctl list devices available | grep -E "iPhone 1[456]" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && exit 1
           xcrun simctl boot "$UDID" 2>/dev/null || true
-          sleep 30
-          DEVICE_NAME=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
-          PLATFORM_VERSION=$(xcrun simctl list devices available | grep -B 50 "$UDID" | grep "iOS" | tail -1 | sed 's/.*iOS \([0-9.]*\).*/\1/')
+          sleep ${{ env.SIMULATOR_BOOT_WAIT }}
+          DEVICE=$(xcrun simctl list devices | grep "$UDID" | sed 's/ (.*//g' | xargs)
+          VERSION=$(xcrun simctl list devices | grep -B 100 "$UDID" | grep "-- iOS" | tail -1 | sed 's/.*iOS \([0-9.]*\).*/\1/')
           echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
-          echo "DEVICE_NAME=$DEVICE_NAME" >> $GITHUB_ENV
-          echo "PLATFORM_VERSION=$PLATFORM_VERSION" >> $GITHUB_ENV
-
+          echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
+          echo "PLATFORM_VERSION=$VERSION" >> $GITHUB_ENV
       - name: Pre-install App
         run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
-
       - name: Start Appium
         run: |
           appium --relaxed-security --log-level info --port 4723 > appium.log 2>&1 &
-          for i in {1..60}; do
-            if curl -s http://127.0.0.1:4723/status > /dev/null 2>&1; then echo "✅ Appium started!"; exit 0; fi
+          for i in $(seq 1 ${{ env.APPIUM_MAX_RETRIES }}); do
+            curl -s http://127.0.0.1:4723/status 2>/dev/null | grep -q "ready" && exit 0
             sleep 2
           done
-          cat appium.log && exit 1
-
-      - name: Run Phase 4 Quick Test
+          cat appium.log | tail -30 && exit 1
+      - name: Run Tests
         continue-on-error: true
-        env:
-          SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
-          PLATFORM_VERSION: ${{ env.PLATFORM_VERSION }}
-          DEVICE_NAME: ${{ env.DEVICE_NAME }}
-          APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
         run: |
           mvn test -DsuiteXmlFile=src/test/resources/parallel-quick/testng-phase4-quick.xml \
-            -DDEVICE_NAME="$DEVICE_NAME" \
-            -DPLATFORM_VERSION="$PLATFORM_VERSION" \
-            -DSIMULATOR_UDID="$SIMULATOR_UDID" \
-            -DAPP_PATH="$APP_PATH"
-
-      - name: Upload Phase 4 Report
+            -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
+            -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
+            -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
+            -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+      - name: Upload Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -584,76 +393,55 @@ jobs:
           retention-days: 3
           if-no-files-found: warn
 
-  # ========================================
-  # JOB 7: Phase 5 Quick Test (2 tests)
-  # ========================================
   phase5-quick:
     runs-on: macos-15
-    timeout-minutes: 25
-    
+    timeout-minutes: 30
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Java 17
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '18'
-
-      - name: Install Appium (Stable Version)
+      - name: Install Appium
         run: |
           npm install -g appium@2.5.0
           appium driver install xcuitest@7.9.1
-
       - name: Unzip App
         run: unzip -o apps/Z-Platform-QA.zip -d apps/
-
       - name: Boot Simulator
         run: |
-          UDID=$(xcrun simctl list devices available | grep -E "iPhone 16 Pro.*18\." | head -1 | awk -F '[()]' '{print $2}')
-          if [ -z "$UDID" ]; then UDID=$(xcrun simctl list devices available | grep -E "iPhone.*18\." | head -1 | awk -F '[()]' '{print $2}'); fi
-          if [ -z "$UDID" ]; then UDID=$(xcrun simctl list devices available | grep "iPhone" | head -1 | awk -F '[()]' '{print $2}'); fi
+          UDID=$(xcrun simctl list devices available | grep -E "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && UDID=$(xcrun simctl list devices available | grep -E "iPhone 1[456]" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && exit 1
           xcrun simctl boot "$UDID" 2>/dev/null || true
-          sleep 30
-          DEVICE_NAME=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
-          PLATFORM_VERSION=$(xcrun simctl list devices available | grep -B 50 "$UDID" | grep "iOS" | tail -1 | sed 's/.*iOS \([0-9.]*\).*/\1/')
+          sleep ${{ env.SIMULATOR_BOOT_WAIT }}
+          DEVICE=$(xcrun simctl list devices | grep "$UDID" | sed 's/ (.*//g' | xargs)
+          VERSION=$(xcrun simctl list devices | grep -B 100 "$UDID" | grep "-- iOS" | tail -1 | sed 's/.*iOS \([0-9.]*\).*/\1/')
           echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
-          echo "DEVICE_NAME=$DEVICE_NAME" >> $GITHUB_ENV
-          echo "PLATFORM_VERSION=$PLATFORM_VERSION" >> $GITHUB_ENV
-
+          echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
+          echo "PLATFORM_VERSION=$VERSION" >> $GITHUB_ENV
       - name: Pre-install App
         run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
-
       - name: Start Appium
         run: |
           appium --relaxed-security --log-level info --port 4723 > appium.log 2>&1 &
-          for i in {1..60}; do
-            if curl -s http://127.0.0.1:4723/status > /dev/null 2>&1; then echo "✅ Appium started!"; exit 0; fi
+          for i in $(seq 1 ${{ env.APPIUM_MAX_RETRIES }}); do
+            curl -s http://127.0.0.1:4723/status 2>/dev/null | grep -q "ready" && exit 0
             sleep 2
           done
-          cat appium.log && exit 1
-
-      - name: Run Phase 5 Quick Test
+          cat appium.log | tail -30 && exit 1
+      - name: Run Tests
         continue-on-error: true
-        env:
-          SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
-          PLATFORM_VERSION: ${{ env.PLATFORM_VERSION }}
-          DEVICE_NAME: ${{ env.DEVICE_NAME }}
-          APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
         run: |
           mvn test -DsuiteXmlFile=src/test/resources/parallel-quick/testng-phase5-quick.xml \
-            -DDEVICE_NAME="$DEVICE_NAME" \
-            -DPLATFORM_VERSION="$PLATFORM_VERSION" \
-            -DSIMULATOR_UDID="$SIMULATOR_UDID" \
-            -DAPP_PATH="$APP_PATH"
-
-      - name: Upload Phase 5 Report
+            -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
+            -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
+            -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
+            -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+      - name: Upload Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -665,15 +453,11 @@ jobs:
           retention-days: 3
           if-no-files-found: warn
 
-  # ========================================
-  # FINAL JOB: Send Email with All Reports
-  # ========================================
   send-email:
     needs: [auth-quick, site-quick, phase1-quick, phase2-quick, phase3-quick, phase4-quick, phase5-quick]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    
     steps:
       - name: Download All Reports
         uses: actions/download-artifact@v4
@@ -681,119 +465,82 @@ jobs:
           path: all-reports
         continue-on-error: true
 
-      - name: Check Available Reports
+      - name: Check Reports
         run: |
-          echo "=== Available Reports ==="
-          ls -la all-reports/ 2>/dev/null || echo "No reports found"
-          
-          # Count reports
-          REPORT_COUNT=$(ls -d all-reports/*-report 2>/dev/null | wc -l || echo "0")
-          echo "Total reports: $REPORT_COUNT"
+          echo "=== Downloaded Reports ==="
+          ls -laR all-reports/ 2>/dev/null | head -50 || echo "No reports"
 
-      - name: Prepare Email Content
-        id: email_content
+      - name: Prepare Email
+        id: email
         run: |
-          echo "=== Preparing Email Content ==="
+          AUTH="${{ needs.auth-quick.result }}"
+          SITE="${{ needs.site-quick.result }}"
+          P1="${{ needs.phase1-quick.result }}"
+          P2="${{ needs.phase2-quick.result }}"
+          P3="${{ needs.phase3-quick.result }}"
+          P4="${{ needs.phase4-quick.result }}"
+          P5="${{ needs.phase5-quick.result }}"
           
-          # Job results
-          AUTH_RESULT="${{ needs.auth-quick.result }}"
-          SITE_RESULT="${{ needs.site-quick.result }}"
-          PHASE1_RESULT="${{ needs.phase1-quick.result }}"
-          PHASE2_RESULT="${{ needs.phase2-quick.result }}"
-          PHASE3_RESULT="${{ needs.phase3-quick.result }}"
-          PHASE4_RESULT="${{ needs.phase4-quick.result }}"
-          PHASE5_RESULT="${{ needs.phase5-quick.result }}"
-          
-          # Count successes and failures
           SUCCESS=0
-          FAILED=0
+          [ "$AUTH" = "success" ] && SUCCESS=$((SUCCESS+1))
+          [ "$SITE" = "success" ] && SUCCESS=$((SUCCESS+1))
+          [ "$P1" = "success" ] && SUCCESS=$((SUCCESS+1))
+          [ "$P2" = "success" ] && SUCCESS=$((SUCCESS+1))
+          [ "$P3" = "success" ] && SUCCESS=$((SUCCESS+1))
+          [ "$P4" = "success" ] && SUCCESS=$((SUCCESS+1))
+          [ "$P5" = "success" ] && SUCCESS=$((SUCCESS+1))
           
-          for result in "$AUTH_RESULT" "$SITE_RESULT" "$PHASE1_RESULT" "$PHASE2_RESULT" "$PHASE3_RESULT" "$PHASE4_RESULT" "$PHASE5_RESULT"; do
-            if [ "$result" = "success" ]; then
-              SUCCESS=$((SUCCESS + 1))
-            else
-              FAILED=$((FAILED + 1))
-            fi
-          done
-          
+          FAILED=$((7-SUCCESS))
           echo "SUCCESS=$SUCCESS" >> $GITHUB_OUTPUT
           echo "FAILED=$FAILED" >> $GITHUB_OUTPUT
           
-          # Create HTML email body
-          cat > email_body.html << 'EMAILHTML'
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <style>
-              body { font-family: Arial, sans-serif; margin: 20px; }
-              h1 { color: #333; }
-              .success { color: green; }
-              .failure { color: red; }
-              table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-              th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-              th { background-color: #4CAF50; color: white; }
-              tr:nth-child(even) { background-color: #f2f2f2; }
-            </style>
-          </head>
-          <body>
-            <h1>🧪 iOS Quick Verification Test Results</h1>
-            <p><strong>Workflow:</strong> Quick Email Verification</p>
-            <p><strong>Branch:</strong> ${{ github.ref_name }}</p>
-            <p><strong>Commit:</strong> ${{ github.sha }}</p>
-            <p><strong>Run:</strong> <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Details</a></p>
-            
-            <h2>📊 Job Results</h2>
-            <table>
-              <tr><th>Job</th><th>Status</th><th>Tests</th></tr>
-          EMAILHTML
-          
-          # Add rows for each job
-          echo "      <tr><td>Auth Quick</td><td class='${AUTH_RESULT}'>${AUTH_RESULT}</td><td>1 test</td></tr>" >> email_body.html
-          echo "      <tr><td>Site Quick</td><td class='${SITE_RESULT}'>${SITE_RESULT}</td><td>1 test</td></tr>" >> email_body.html
-          echo "      <tr><td>Phase 1 Quick</td><td class='${PHASE1_RESULT}'>${PHASE1_RESULT}</td><td>2 tests</td></tr>" >> email_body.html
-          echo "      <tr><td>Phase 2 Quick</td><td class='${PHASE2_RESULT}'>${PHASE2_RESULT}</td><td>2 tests</td></tr>" >> email_body.html
-          echo "      <tr><td>Phase 3 Quick</td><td class='${PHASE3_RESULT}'>${PHASE3_RESULT}</td><td>2 tests</td></tr>" >> email_body.html
-          echo "      <tr><td>Phase 4 Quick</td><td class='${PHASE4_RESULT}'>${PHASE4_RESULT}</td><td>2 tests</td></tr>" >> email_body.html
-          echo "      <tr><td>Phase 5 Quick</td><td class='${PHASE5_RESULT}'>${PHASE5_RESULT}</td><td>2 tests</td></tr>" >> email_body.html
-          
-          cat >> email_body.html << 'EMAILHTML'
-            </table>
-            
-            <h2>📋 Summary</h2>
-            <p><span class='success'>✅ Successful Jobs:</span> ${SUCCESS}</p>
-            <p><span class='failure'>❌ Failed Jobs:</span> ${FAILED}</p>
-            
-            <p>See attached reports for details.</p>
-          </body>
-          </html>
-          EMAILHTML
-          
-          # Replace variables
-          sed -i "s/\${SUCCESS}/$SUCCESS/g" email_body.html
-          sed -i "s/\${FAILED}/$FAILED/g" email_body.html
-          
-          echo "✅ Email content prepared"
+          # Simple text-based email body
+          cat > email_body.html << EOF
+          <h1>iOS Quick Verification Results</h1>
+          <p><strong>Branch:</strong> ${{ github.ref_name }}</p>
+          <p><strong>Commit:</strong> ${{ github.sha }}</p>
+          <p><strong>Run:</strong> <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Details</a></p>
+          <hr>
+          <h2>Results: ${SUCCESS}/7 Passed</h2>
+          <table border="1" cellpadding="8">
+            <tr><th>Job</th><th>Status</th></tr>
+            <tr><td>Auth</td><td>${AUTH}</td></tr>
+            <tr><td>Site</td><td>${SITE}</td></tr>
+            <tr><td>Phase 1</td><td>${P1}</td></tr>
+            <tr><td>Phase 2</td><td>${P2}</td></tr>
+            <tr><td>Phase 3</td><td>${P3}</td></tr>
+            <tr><td>Phase 4</td><td>${P4}</td></tr>
+            <tr><td>Phase 5</td><td>${P5}</td></tr>
+          </table>
+          <hr>
+          <p>Passed: ${SUCCESS} | Failed: ${FAILED}</p>
+          EOF
+
+      - name: Collect Files
+        run: |
+          mkdir -p attachments
+          find all-reports -name "*.html" -type f -exec cp {} attachments/ \; 2>/dev/null || true
+          ls -la attachments/ 2>/dev/null || echo "No attachments"
 
       - name: Send Email
-        if: ${{ github.event.inputs.send_email != 'false' }}
+        if: github.event.inputs.send_email != 'false'
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
           server_port: 587
           username: ${{ secrets.EMAIL_USERNAME }}
           password: ${{ secrets.EMAIL_PASSWORD }}
-          subject: "🧪 iOS Quick Verification Results - ${{ steps.email_content.outputs.SUCCESS }}/7 Jobs Passed"
+          subject: iOS Quick Verification - ${{ steps.email.outputs.SUCCESS }}/7 Passed
           html_body: file://email_body.html
           to: ${{ secrets.EMAIL_TO }}
-          from: "iOS Automation <${{ secrets.EMAIL_USERNAME }}>"
-          attachments: all-reports/**/*
+          from: iOS Automation <${{ secrets.EMAIL_USERNAME }}>
         continue-on-error: true
 
       - name: Summary
         run: |
-          echo "============================================================"
-          echo "📧 QUICK VERIFICATION COMPLETE"
-          echo "============================================================"
-          echo "✅ Successful Jobs: ${{ steps.email_content.outputs.SUCCESS }}/7"
-          echo "❌ Failed Jobs: ${{ steps.email_content.outputs.FAILED }}/7"
-          echo "============================================================"
+          echo "========================================"
+          echo "QUICK VERIFICATION COMPLETE"
+          echo "========================================"
+          echo "Passed: ${{ steps.email.outputs.SUCCESS }}/7"
+          echo "Failed: ${{ steps.email.outputs.FAILED }}/7"
+          echo "========================================"

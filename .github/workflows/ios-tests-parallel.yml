@@ -77,7 +77,7 @@ jobs:
           UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18.5" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
           echo "UDID: $UDID"
           xcrun simctl boot "$UDID" 2>/dev/null || true
-          sleep 60
+          sleep 90
           DEVICE=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
           echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
           echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
@@ -89,7 +89,7 @@ jobs:
       - name: Start Appium
         run: |
           appium --relaxed-security --log-level info > appium.log 2>&1 &
-          sleep 30
+          sleep 90
           curl -s http://127.0.0.1:4723/status || (cat appium.log && exit 1)
 
       - name: Run Auth Tests
@@ -156,7 +156,7 @@ jobs:
         run: |
           UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18.5" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
           xcrun simctl boot "$UDID" 2>/dev/null || true
-          sleep 60
+          sleep 90
           DEVICE=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
           echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
           echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
@@ -168,7 +168,7 @@ jobs:
       - name: Start Appium
         run: |
           appium --relaxed-security --log-level info > appium.log 2>&1 &
-          sleep 30
+          sleep 90
           curl -s http://127.0.0.1:4723/status || (cat appium.log && exit 1)
 
       - name: Run Site Tests
@@ -234,7 +234,7 @@ jobs:
         run: |
           UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18.5" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
           xcrun simctl boot "$UDID" 2>/dev/null || true
-          sleep 60
+          sleep 90
           DEVICE=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
           echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
           echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
@@ -246,7 +246,7 @@ jobs:
       - name: Start Appium
         run: |
           appium --relaxed-security --log-level info > appium.log 2>&1 &
-          sleep 30
+          sleep 90
           curl -s http://127.0.0.1:4723/status || (cat appium.log && exit 1)
 
       - name: Run Phase 1 Tests
@@ -312,7 +312,7 @@ jobs:
         run: |
           UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18.5" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
           xcrun simctl boot "$UDID" 2>/dev/null || true
-          sleep 60
+          sleep 90
           DEVICE=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
           echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
           echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
@@ -324,7 +324,7 @@ jobs:
       - name: Start Appium
         run: |
           appium --relaxed-security --log-level info > appium.log 2>&1 &
-          sleep 30
+          sleep 90
           curl -s http://127.0.0.1:4723/status || (cat appium.log && exit 1)
 
       - name: Run Phase 2 Tests
@@ -390,7 +390,7 @@ jobs:
         run: |
           UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18.5" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
           xcrun simctl boot "$UDID" 2>/dev/null || true
-          sleep 60
+          sleep 90
           DEVICE=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
           echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
           echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
@@ -402,7 +402,7 @@ jobs:
       - name: Start Appium
         run: |
           appium --relaxed-security --log-level info > appium.log 2>&1 &
-          sleep 30
+          sleep 90
           curl -s http://127.0.0.1:4723/status || (cat appium.log && exit 1)
 
       - name: Run Phase 3 Tests
@@ -468,7 +468,7 @@ jobs:
         run: |
           UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18.5" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
           xcrun simctl boot "$UDID" 2>/dev/null || true
-          sleep 60
+          sleep 90
           DEVICE=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
           echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
           echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
@@ -480,7 +480,7 @@ jobs:
       - name: Start Appium
         run: |
           appium --relaxed-security --log-level info > appium.log 2>&1 &
-          sleep 30
+          sleep 90
           curl -s http://127.0.0.1:4723/status || (cat appium.log && exit 1)
 
       - name: Run Phase 4 Tests
@@ -546,7 +546,7 @@ jobs:
         run: |
           UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18.5" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
           xcrun simctl boot "$UDID" 2>/dev/null || true
-          sleep 60
+          sleep 90
           DEVICE=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
           echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
           echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
@@ -558,7 +558,7 @@ jobs:
       - name: Start Appium
         run: |
           appium --relaxed-security --log-level info > appium.log 2>&1 &
-          sleep 30
+          sleep 90
           curl -s http://127.0.0.1:4723/status || (cat appium.log && exit 1)
 
       - name: Run Phase 5 Tests
