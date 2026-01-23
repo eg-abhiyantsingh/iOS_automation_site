@@ -63,8 +63,8 @@ jobs:
 
       - name: Install Appium
         run: |
-          npm install -g appium@2.5.0
-          appium driver install xcuitest@7.9.1
+          npm install -g appium@next
+          appium driver install xcuitest
 
       - name: Unzip App
         run: |
@@ -144,8 +144,8 @@ jobs:
 
       - name: Install Appium
         run: |
-          npm install -g appium@2.5.0
-          appium driver install xcuitest@7.9.1
+          npm install -g appium@next
+          appium driver install xcuitest
 
       - name: Unzip App
         run: |
@@ -222,8 +222,8 @@ jobs:
 
       - name: Install Appium
         run: |
-          npm install -g appium@2.5.0
-          appium driver install xcuitest@7.9.1
+          npm install -g appium@next
+          appium driver install xcuitest
 
       - name: Unzip App
         run: |
@@ -300,8 +300,8 @@ jobs:
 
       - name: Install Appium
         run: |
-          npm install -g appium@2.5.0
-          appium driver install xcuitest@7.9.1
+          npm install -g appium@next
+          appium driver install xcuitest
 
       - name: Unzip App
         run: |
@@ -378,8 +378,8 @@ jobs:
 
       - name: Install Appium
         run: |
-          npm install -g appium@2.5.0
-          appium driver install xcuitest@7.9.1
+          npm install -g appium@next
+          appium driver install xcuitest
 
       - name: Unzip App
         run: |
@@ -456,8 +456,8 @@ jobs:
 
       - name: Install Appium
         run: |
-          npm install -g appium@2.5.0
-          appium driver install xcuitest@7.9.1
+          npm install -g appium@next
+          appium driver install xcuitest
 
       - name: Unzip App
         run: |
@@ -534,8 +534,8 @@ jobs:
 
       - name: Install Appium
         run: |
-          npm install -g appium@2.5.0
-          appium driver install xcuitest@7.9.1
+          npm install -g appium@next
+          appium driver install xcuitest
 
       - name: Unzip App
         run: |
