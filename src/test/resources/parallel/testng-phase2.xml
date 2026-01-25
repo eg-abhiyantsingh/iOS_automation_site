@@ -1,28 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<suite name="Job 4 - Asset Phase 2 Tests" parallel="false" verbose="2">
-    <!--
-    ============================================================
-    JOB 4: ASSET PHASE 2 TESTS
-    ============================================================
-    Depends on: Login + Site Selection (TC_SS_056 runs first)
-    Tests: 159 + 1 setup = 160
-    Est. Time: ~4.5 hours
-    ============================================================
-    -->
+<suite name="Asset Phase 2 Test Suite" parallel="false" verbose="2">
+    <listeners>
+        <listener class-name="com.egalvanic.utils.ExtentReportManager"/>
+    </listeners>
+    <!-- Site Selection first to login and select site -->
     
-    <!-- First: Login and Select Site -->
-    <test name="Setup - Login and Site Selection">
-        <classes>
-            <class name="com.egalvanic.tests.SiteSelectionTest">
-                <methods>
-                    <include name="TC_SS_056_verifyPartialSyncFailureHandling"/>
-                </methods>
-            </class>
-        </classes>
-    </test>
-    
-    <!-- Then: Run Asset Phase 2 Tests -->
+    <!-- Then run all Phase 2 Asset tests -->
     <test name="Asset Phase 2 Tests">
         <classes>
             <class name="com.egalvanic.tests.Asset_Phase2_Test"/>

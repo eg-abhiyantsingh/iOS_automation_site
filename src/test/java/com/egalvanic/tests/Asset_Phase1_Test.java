@@ -118,7 +118,7 @@ public final class Asset_Phase1_Test extends BaseTest {
             AppConstants.FEATURE_CREATE_ASSET,
             "ATS_ECR_01 - Verify New Asset Screen Loads Successfully"
         );
-
+        loginAndSelectSite();
         logStep("Navigating to New Asset screen");
         navigateToNewAssetScreen();
 

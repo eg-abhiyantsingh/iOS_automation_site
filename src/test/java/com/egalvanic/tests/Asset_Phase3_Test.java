@@ -176,6 +176,7 @@ public final class Asset_Phase3_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "PB-01 - Verify Core Attributes section is visible for Panelboard"
         );
+        loginAndSelectSite();
 
         logStep("Navigating to Panelboard Edit Asset Details screen");
         navigateToPanelboardEditScreen();

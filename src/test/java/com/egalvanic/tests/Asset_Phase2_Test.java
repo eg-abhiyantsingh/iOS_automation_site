@@ -221,6 +221,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "GEN_EAD_01 - Open Edit Asset Details screen for Generator"
         );
+        loginAndSelectSite();
 
         logStep("Navigating to Generator Edit Asset Details screen");
         navigateToGeneratorEditScreen();

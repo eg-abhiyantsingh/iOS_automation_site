@@ -136,6 +136,8 @@ public final class Asset_Phase5_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ASSET, AppConstants.FEATURE_CREATE_ASSET,
             "BUG_DUP_01 - BUG: Create asset with duplicate name");
         boolean testPassed = false;
+        loginAndSelectSite();
+
         try {
             long timestamp = System.currentTimeMillis();
             String assetName = "DupTest_" + timestamp;

@@ -1,15 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<suite name="Job 1 - Authentication Tests" parallel="false" verbose="2">
-    <!--
-    ============================================================
-    JOB 1: AUTHENTICATION TESTS
-    ============================================================
-    Independent - No dependencies
-    Tests: 38
-    Est. Time: ~45 minutes
-    ============================================================
-    -->
+<suite name="Authentication Test Suite" parallel="false" verbose="2">
+    <listeners>
+        <listener class-name="com.egalvanic.utils.ExtentReportManager"/>
+    </listeners>
     <test name="Authentication Tests">
         <classes>
             <class name="com.egalvanic.tests.AuthenticationTest"/>

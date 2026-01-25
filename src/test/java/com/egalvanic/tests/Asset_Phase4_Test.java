@@ -50,6 +50,8 @@ public final class Asset_Phase4_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ASSET, AppConstants.FEATURE_EDIT_ASSET,
             "TC-DS-ST-01 - Verify Asset Subtype field visibility for Disconnect Switch");
         boolean testPassed = false;
+        loginAndSelectSite();
+
         try {
             logStep("Navigating to Disconnect Switch Edit Asset Details screen");
             navigateToDisconnectSwitchEditScreen();
