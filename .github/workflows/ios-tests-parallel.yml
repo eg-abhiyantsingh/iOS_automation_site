@@ -22,6 +22,8 @@ name: iOS Tests - Full Parallel Suite
 # ============================================================
 
 on:
+  push:
+    branches: [main, develop]
   workflow_dispatch:
     inputs:
       job_selection:

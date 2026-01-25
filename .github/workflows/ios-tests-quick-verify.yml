@@ -13,8 +13,6 @@ name: iOS Tests - Quick Verification
 # ============================================================
 
 on:
-  push:
-    branches: [main, develop]
   workflow_dispatch:
     inputs:
       send_email:
