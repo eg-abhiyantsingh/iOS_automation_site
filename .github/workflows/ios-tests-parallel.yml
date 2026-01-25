@@ -46,7 +46,7 @@ jobs:
   # JOB 1: Auth Tests (38 tests, ~45 min)
   # ========================================
   auth-tests:
-    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'auth-only'
+    if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'auth-only'
     runs-on: macos-15
     timeout-minutes: 90
     
@@ -261,7 +261,7 @@ jobs:
   # JOB 2: Site Tests (52 tests, ~1.5 hr)
   # ========================================
   site-tests:
-    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'site-only'
+    if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'site-only'
     runs-on: macos-15
     timeout-minutes: 120
     
@@ -365,7 +365,7 @@ jobs:
   # JOB 3: Phase 1 Tests (139 tests, ~4 hr)
   # ========================================
   phase1-tests:
-    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'phase1-only'
+    if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'phase1-only'
     runs-on: macos-15
     timeout-minutes: 300
     
@@ -469,7 +469,7 @@ jobs:
   # JOB: Phase 2 Tests (159 tests)
   # ========================================
   phase2-tests:
-    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'phase2-only'
+    if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'phase2-only'
     runs-on: macos-15
     timeout-minutes: 330
     
@@ -569,7 +569,7 @@ jobs:
   # JOB: Phase 3 Tests (169 tests)
   # ========================================
   phase3-tests:
-    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'phase3-only'
+    if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'phase3-only'
     runs-on: macos-15
     timeout-minutes: 360
     
@@ -669,7 +669,7 @@ jobs:
   # JOB: Phase 4 Tests (141 tests)
   # ========================================
   phase4-tests:
-    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'phase4-only'
+    if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'phase4-only'
     runs-on: macos-15
     timeout-minutes: 300
     
@@ -769,7 +769,7 @@ jobs:
   # JOB: Phase 5 Tests (45 tests)
   # ========================================
   phase5-tests:
-    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'phase5-only'
+    if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'phase5-only'
     runs-on: macos-15
     timeout-minutes: 120
     
