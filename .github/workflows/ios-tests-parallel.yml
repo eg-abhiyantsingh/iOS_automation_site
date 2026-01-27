@@ -22,9 +22,8 @@ name: iOS Tests - Full Parallel Suite
 # ============================================================
 
 on:
-  # DISABLED: Now using ios-tests-core.yml and ios-tests-assets.yml
-  # push:
-  #   branches: [main, develop]
+  push:
+    branches: [main, develop]
   workflow_dispatch:
     inputs:
       job_selection:
