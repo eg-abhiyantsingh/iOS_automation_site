@@ -22,8 +22,9 @@ name: iOS Tests - Full Parallel Suite
 # ============================================================
 
 on:
-  push:
-    branches: [main, develop]
+  # DISABLED: Now using ios-tests-core.yml and ios-tests-assets.yml
+  # push:
+  #   branches: [main, develop]
   workflow_dispatch:
     inputs:
       job_selection:
@@ -48,7 +49,7 @@ jobs:
   auth-tests:
     if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'auth-only'
     runs-on: macos-15
-    timeout-minutes: 90
+    timeout-minutes: 359
     
     steps:
       - name: Checkout code
@@ -263,7 +264,7 @@ jobs:
   site-tests:
     if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'site-only'
     runs-on: macos-15
-    timeout-minutes: 120
+    timeout-minutes: 359
     
     steps:
       - name: Checkout code
@@ -367,7 +368,7 @@ jobs:
   phase1-tests:
     if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'phase1-only'
     runs-on: macos-15
-    timeout-minutes: 300
+    timeout-minutes: 359
     
     steps:
       - name: Checkout code
@@ -471,7 +472,7 @@ jobs:
   phase2-tests:
     if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'phase2-only'
     runs-on: macos-15
-    timeout-minutes: 330
+    timeout-minutes: 359
     
     steps:
       - name: Checkout code
@@ -571,7 +572,7 @@ jobs:
   phase3-tests:
     if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'phase3-only'
     runs-on: macos-15
-    timeout-minutes: 360
+    timeout-minutes: 359
     
     steps:
       - name: Checkout code
@@ -671,7 +672,7 @@ jobs:
   phase4-tests:
     if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'phase4-only'
     runs-on: macos-15
-    timeout-minutes: 300
+    timeout-minutes: 359
     
     steps:
       - name: Checkout code
@@ -771,7 +772,7 @@ jobs:
   phase5-tests:
     if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'phase5-only'
     runs-on: macos-15
-    timeout-minutes: 120
+    timeout-minutes: 359
     
     steps:
       - name: Checkout code

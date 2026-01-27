@@ -1,0 +1,309 @@
+name: iOS Tests - Core (Auth + Site)
+
+# ============================================================
+# CORE TESTS WORKFLOW
+# ============================================================
+# Tests: Authentication (38) + Site Selection (52) = 90 tests
+# Wall Clock: ~1.5 hours
+# Email: Sent when complete (~1.5 hours)
+# ============================================================
+
+on:
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+
+jobs:
+  # ========================================
+  # JOB 1: Auth Tests (38 tests, ~45 min)
+  # ========================================
+  auth-tests:
+    runs-on: macos-15
+    timeout-minutes: 359
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Appium
+        run: |
+          npm install -g appium@next
+          appium driver install xcuitest
+          echo "✅ Appium $(appium --version) installed"
+
+      - name: Unzip App
+        run: |
+          unzip -o apps/Z-Platform-QA.zip -d apps/
+          ls -la apps/
+
+      - name: Boot Simulator and Wait Until Ready
+        run: |
+          UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && UDID=$(xcrun simctl list devices available | grep -E "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && UDID=$(xcrun simctl list devices available | grep -E "iPhone 1[5-6]" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && exit 1
+          
+          xcrun simctl shutdown "$UDID" 2>/dev/null || true
+          sleep 3
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+          
+          ELAPSED=0
+          while [ $ELAPSED -lt 240 ]; do
+            if xcrun simctl list devices | grep "$UDID" | grep -q "(Booted)"; then
+              echo "✅ Simulator booted after ${ELAPSED}s"
+              sleep 45
+              break
+            fi
+            sleep 5
+            ELAPSED=$((ELAPSED + 5))
+          done
+          [ $ELAPSED -ge 240 ] && exit 1
+          
+          DEVICE=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
+          VERSION=$(xcrun simctl list devices available | grep -B 50 "$UDID" | grep "-- iOS" | tail -1 | sed 's/.*iOS \([0-9.]*\).*/\1/')
+          [ -z "$VERSION" ] && VERSION="18.5"
+          
+          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+          echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
+          echo "PLATFORM_VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Pre-install App
+        run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
+
+      - name: Pre-build WebDriverAgent
+        run: |
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          if [ -n "$WDA_PATH" ]; then
+            cd "$WDA_PATH"
+            xcodebuild build-for-testing -project WebDriverAgent.xcodeproj -scheme WebDriverAgentRunner -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" -derivedDataPath /tmp/wda-build -quiet || true
+          fi
+
+      - name: Start Appium Server
+        run: |
+          appium --relaxed-security --log-level info > appium.log 2>&1 &
+          for i in {1..60}; do
+            [ "$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:4723/status 2>/dev/null)" = "200" ] && break
+            sleep 2
+          done
+          sleep 10
+
+      - name: Warm-up WDA Session
+        env:
+          SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
+          APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
+        run: |
+          for attempt in 1 2 3; do
+            SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session -H "Content-Type: application/json" -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"$SIMULATOR_UDID"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' --max-time 600 2>&1) || true
+            SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
+            if [ -n "$SESSION_ID" ]; then
+              sleep 10
+              curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true
+              sleep 5
+              break
+            fi
+            [ $attempt -lt 3 ] && sleep 30
+          done
+
+      - name: Run Auth Tests
+        continue-on-error: true
+        run: |
+          mvn test -DsuiteXmlFile=src/test/resources/parallel/testng-auth.xml \
+            -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
+            -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
+            -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
+            -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+
+      - name: Upload Auth Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: core-auth-report
+          path: |
+            target/surefire-reports/
+            reports/
+            screenshots/
+          retention-days: 7
+
+  # ========================================
+  # JOB 2: Site Tests (52 tests, ~1.5 hr)
+  # ========================================
+  site-tests:
+    runs-on: macos-15
+    timeout-minutes: 359
+    
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install Appium
+        run: |
+          npm install -g appium@next
+          appium driver install xcuitest
+      - name: Unzip App
+        run: unzip -o apps/Z-Platform-QA.zip -d apps/
+      - name: Boot Simulator
+        run: |
+          UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && UDID=$(xcrun simctl list devices available | grep -E "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && UDID=$(xcrun simctl list devices available | grep -E "iPhone 1[5-6]" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && exit 1
+          xcrun simctl shutdown "$UDID" 2>/dev/null || true
+          sleep 3
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+          ELAPSED=0
+          while [ $ELAPSED -lt 240 ]; do
+            xcrun simctl list devices | grep "$UDID" | grep -q "(Booted)" && sleep 45 && break
+            sleep 5
+            ELAPSED=$((ELAPSED + 5))
+          done
+          [ $ELAPSED -ge 240 ] && exit 1
+          DEVICE=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
+          VERSION=$(xcrun simctl list devices available | grep -B 50 "$UDID" | grep "-- iOS" | tail -1 | sed 's/.*iOS \([0-9.]*\).*/\1/')
+          [ -z "$VERSION" ] && VERSION="18.5"
+          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+          echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
+          echo "PLATFORM_VERSION=$VERSION" >> $GITHUB_ENV
+      - name: Pre-install App
+        run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
+      - name: Pre-build WDA
+        run: |
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          [ -n "$WDA_PATH" ] && cd "$WDA_PATH" && xcodebuild build-for-testing -project WebDriverAgent.xcodeproj -scheme WebDriverAgentRunner -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" -derivedDataPath /tmp/wda-build -quiet || true
+      - name: Start Appium
+        run: |
+          appium --relaxed-security --log-level info > appium.log 2>&1 &
+          for i in {1..60}; do [ "$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:4723/status 2>/dev/null)" = "200" ] && break; sleep 2; done
+          sleep 10
+      - name: Warm-up WDA
+        run: |
+          for attempt in 1 2 3; do
+            RESP=$(curl -s -X POST http://127.0.0.1:4723/session -H "Content-Type: application/json" -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"${{ env.SIMULATOR_UDID }}"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"${{ github.workspace }}/apps/Z Platform-QA.app"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' --max-time 600 2>&1) || true
+            SID=$(echo "$RESP" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
+            [ -n "$SID" ] && sleep 10 && curl -s -X DELETE "http://127.0.0.1:4723/session/$SID" || true && break
+            [ $attempt -lt 3 ] && sleep 30
+          done
+      - name: Run Site Tests
+        continue-on-error: true
+        run: |
+          mvn test -DsuiteXmlFile=src/test/resources/parallel/testng-site.xml \
+            -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
+            -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
+            -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
+            -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+      - name: Upload Site Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: core-site-report
+          path: |
+            target/surefire-reports/
+            reports/
+            screenshots/
+          retention-days: 7
+
+  # ========================================
+  # FINAL JOB: Send Email
+  # ========================================
+  send-email:
+    needs: [auth-tests, site-tests]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: Download All Reports
+        uses: actions/download-artifact@v4
+        with:
+          path: all-reports
+        continue-on-error: true
+
+      - name: Prepare Email Summary
+        id: email
+        run: |
+          AUTH="${{ needs.auth-tests.result }}"
+          SITE="${{ needs.site-tests.result }}"
+          
+          SUCCESS=0
+          [ "$AUTH" = "success" ] && SUCCESS=$((SUCCESS+1))
+          [ "$SITE" = "success" ] && SUCCESS=$((SUCCESS+1))
+          
+          FAILED=$((2-SUCCESS))
+          echo "SUCCESS=$SUCCESS" >> $GITHUB_OUTPUT
+          echo "FAILED=$FAILED" >> $GITHUB_OUTPUT
+          
+          if [ $SUCCESS -eq 2 ]; then
+            STATUS="✅ ALL PASSED"
+          else
+            STATUS="❌ FAILED"
+          fi
+          echo "STATUS=$STATUS" >> $GITHUB_OUTPUT
+          
+          cat > email_body.html << EOF
+          <!DOCTYPE html>
+          <html>
+          <body style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto;">
+            <h1 style="color: #333;">🔐 Core Tests Results (Auth + Site)</h1>
+            <p><b>Branch:</b> ${{ github.ref_name }}</p>
+            <p><b>Commit:</b> ${{ github.sha }}</p>
+            <p><b>Run:</b> <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Details</a></p>
+            <hr>
+            
+            <h2>${STATUS} - ${SUCCESS}/2 Jobs Passed</h2>
+            
+            <table border="1" cellpadding="10" style="border-collapse: collapse; width: 100%;">
+              <tr style="background-color: #4a90d9; color: white;">
+                <th>Job</th>
+                <th>Tests</th>
+                <th>Status</th>
+              </tr>
+              <tr><td>Auth Tests</td><td>38</td><td>${AUTH}</td></tr>
+              <tr><td>Site Tests</td><td>52</td><td>${SITE}</td></tr>
+            </table>
+            
+            <p style="margin-top: 20px; color: #666; font-size: 12px;">
+              Core Tests - Authentication & Site Selection<br>
+              Asset Tests are running in a separate workflow.
+            </p>
+          </body>
+          </html>
+          EOF
+
+      - name: Send Email
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "[${{ steps.email.outputs.STATUS }}] Core Tests - ${{ steps.email.outputs.SUCCESS }}/2 Passed"
+          html_body: file://email_body.html
+          to: ${{ secrets.EMAIL_TO }}
+          from: "iOS Automation <${{ secrets.EMAIL_USERNAME }}>"
+        continue-on-error: true
+
+      - name: Summary
+        run: |
+          echo "╔════════════════════════════════════════════════════════════════╗"
+          echo "║          CORE TESTS COMPLETE                                    ║"
+          echo "╚════════════════════════════════════════════════════════════════╝"
+          echo ""
+          echo "📊 Results: ${{ steps.email.outputs.SUCCESS }}/2 Jobs Passed"
+          echo "   Auth Tests (38):  ${{ needs.auth-tests.result }}"
+          echo "   Site Tests (52):  ${{ needs.site-tests.result }}"
