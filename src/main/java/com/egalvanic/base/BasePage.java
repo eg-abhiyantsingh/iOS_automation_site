@@ -14,6 +14,10 @@ import org.openqa.selenium.support.ui.FluentWait;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.time.Duration;
+import java.util.Arrays;
+import org.openqa.selenium.Dimension;
+import org.openqa.selenium.interactions.PointerInput;
+import org.openqa.selenium.interactions.Sequence;
 import java.util.function.Function;
 
 /**
@@ -290,16 +294,48 @@ public abstract class BasePage {
      * Scroll down
      */
     protected void scrollDown() {
-        // iOS scroll implementation
-        // Can be extended based on specific needs
+        try {
+            Dimension size = driver.manage().window().getSize();
+            int startX = size.width / 2;
+            int startY = (int) (size.height * 0.7);
+            int endY = (int) (size.height * 0.3);
+            
+            PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
+            Sequence scroll = new Sequence(finger, 1);
+            scroll.addAction(finger.createPointerMove(Duration.ZERO, PointerInput.Origin.viewport(), startX, startY));
+            scroll.addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()));
+            scroll.addAction(finger.createPointerMove(Duration.ofMillis(300), PointerInput.Origin.viewport(), startX, endY));
+            scroll.addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
+            
+            driver.perform(Arrays.asList(scroll));
+            System.out.println("📜 Scrolled down");
+        } catch (Exception e) {
+            System.out.println("⚠️ Scroll down failed: " + e.getMessage());
+        }
     }
 
     /**
      * Scroll up
      */
     protected void scrollUp() {
-        // iOS scroll implementation
-        // Can be extended based on specific needs
+        try {
+            Dimension size = driver.manage().window().getSize();
+            int startX = size.width / 2;
+            int startY = (int) (size.height * 0.3);
+            int endY = (int) (size.height * 0.7);
+            
+            PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
+            Sequence scroll = new Sequence(finger, 1);
+            scroll.addAction(finger.createPointerMove(Duration.ZERO, PointerInput.Origin.viewport(), startX, startY));
+            scroll.addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()));
+            scroll.addAction(finger.createPointerMove(Duration.ofMillis(300), PointerInput.Origin.viewport(), startX, endY));
+            scroll.addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
+            
+            driver.perform(Arrays.asList(scroll));
+            System.out.println("📜 Scrolled up");
+        } catch (Exception e) {
+            System.out.println("⚠️ Scroll up failed: " + e.getMessage());
+        }
     }
 
     /**

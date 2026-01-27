@@ -216,6 +216,10 @@ public class BaseTest {
         // Enter credentials and login (Save Password popup is handled inside login())
         loginPage.loginTurbo(AppConstants.VALID_EMAIL, AppConstants.VALID_PASSWORD);
 
+
+        // Handle new Schedule screen (added Jan 2026)
+        // After login, app shows Schedule screen - click "View Sites" to proceed
+        siteSelectionPage.handleScheduleScreenIfPresent();
         System.out.println("✅ Login completed");
     }
 
@@ -500,6 +504,9 @@ public class BaseTest {
         welcomePage.submitCompanyCode(AppConstants.VALID_COMPANY_CODE);
         loginPage.waitForPageReady();
         loginPage.loginTurbo(AppConstants.VALID_EMAIL, AppConstants.VALID_PASSWORD);
+        
+        // Handle new Schedule screen (added Jan 2026)
+        siteSelectionPage.handleScheduleScreenIfPresent();
         
         // Turbo site selection
         System.out.println("⚡ TURBO: Selecting site...");

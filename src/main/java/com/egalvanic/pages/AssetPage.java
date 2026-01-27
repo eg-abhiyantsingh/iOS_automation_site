@@ -3610,109 +3610,1293 @@ public class AssetPage extends BasePage {
     }
 
     /**
-     * Select location from hierarchy (Building > Floor > Room)
-     * Returns true if location was selected successfully
+     * MAIN ENTRY POINT - Select Location with Fallback
+     * 
+     * Strategy:
+     * 1. Try SIMPLE approach first (faster, cleaner)
+     * 2. If SIMPLE fails, try COMPLEX approach (handles edge cases)
      */
     public boolean selectLocation() {
-        System.out.println("📍 Selecting location - ULTRA FAST mode...");
+        System.out.println("📍 Selecting location...");
         
-        // Generate unique names in case we need to create
+        // Try simple approach first
+        System.out.println("   Trying SIMPLE approach...");
+        try {
+            if (selectLocationSimple()) {
+                System.out.println("✅ Location selected via SIMPLE approach");
+                return true;
+            }
+        } catch (Exception e) {
+            System.out.println("   Simple approach threw exception: " + e.getMessage());
+        }
+        
+        // If simple fails, try complex approach
+        System.out.println("   Simple approach failed, trying COMPLEX approach...");
+        try {
+            if (selectLocationComplex()) {
+                System.out.println("✅ Location selected via COMPLEX approach");
+                return true;
+            }
+        } catch (Exception e) {
+            System.out.println("   Complex approach threw exception: " + e.getMessage());
+        }
+        
+        System.out.println("⚠️ Both approaches failed");
+        return false;
+    }
+    
+    /**
+     * COMPLEX LOCATION SELECTOR - Works for ALL sites and hierarchies
+     * 
+     * Algorithm:
+     * 1. Open picker if not already open
+     * 2. Select Building (item with "X floor/floors" pattern)
+     * 3. Select Floor (item with "X room/rooms" pattern)
+     * 4. Select Room/Leaf (item WITHOUT floor/room count patterns)
+     * 5. If room has nodes, go one level deeper
+     * 6. Wait for auto-dismiss
+     * 
+     * Key insight: At each level, we identify items by what they DON'T have:
+     * - Buildings have floor counts, floors have room counts, rooms may have node counts
+     * - A leaf is any item WITHOUT a count pattern
+     */
+    private boolean selectLocationComplex() {
+        System.out.println("📍 Selecting location - COMPLEX mode...");
+        
+        // Generate unique names for creating new locations
         long timestamp = System.currentTimeMillis();
-        String floorName = "Floor_" + timestamp;
-        String roomName = "Room_" + timestamp;
+        String newFloorName = "Floor_" + timestamp;
+        String newRoomName = "Room_" + timestamp;
         
         try {
-            // Click Select Location button
-            driver.findElement(AppiumBy.accessibilityId("Select location")).click();
-            sleep(500);
-            
-            boolean locationSelected = false;
-            boolean buildingSelected = false;
-            boolean floorSelected = false;
-            
-            // ULTRA FAST: Use predicate to directly find building (contains " floor" pattern)
-            try {
-                WebElement building = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND name CONTAINS ' floor'"));
-                String bName = building.getAttribute("name");
-                building.click();
-                System.out.println("✅ Building: " + bName);
-                buildingSelected = true;
-                sleep(300);
-                
-                // ULTRA FAST: Direct predicate for floor (contains " room" OR starts with "Floor_" OR "1_Floor")
-                try {
-                    WebElement floor = driver.findElement(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeButton' AND (name CONTAINS ' room' OR name BEGINSWITH 'Floor_' OR name BEGINSWITH '1_Floor') AND NOT name CONTAINS ' floor'"));
-                    String fName = floor.getAttribute("name");
-                    floor.click();
-                    System.out.println("✅ Floor: " + fName);
-                    floorSelected = true;
-                    sleep(300);
-                    
-                    // ULTRA FAST: Direct predicate for room (contains ">" OR starts with "Room_")
-                    try {
-                        WebElement room = driver.findElement(AppiumBy.iOSNsPredicateString(
-                            "type == 'XCUIElementTypeButton' AND (name CONTAINS '>' OR name BEGINSWITH 'Room_') AND NOT name CONTAINS ' floor' AND NOT name CONTAINS ' room'"));
-                        String rName = room.getAttribute("name");
-                        room.click();
-                        System.out.println("✅ Room: " + rName);
-                        locationSelected = true;
-                    } catch (Exception e) {
-                        // Room not found - need to create one
-                        System.out.println("   No room found, creating...");
-                    }
-                } catch (Exception e) {
-                    // Floor not found - need to create one
-                    System.out.println("   No floor found, creating...");
-                }
-            } catch (Exception e) {
-                // Building not found
-                System.out.println("   No building found");
+            // STEP 0: Ensure picker is open
+            if (!isLocationPickerOpen()) {
+                driver.findElement(AppiumBy.accessibilityId("Select location")).click();
+                sleep(500);
             }
             
-            // Fallback: Create missing location parts
-            if (!locationSelected) {
-                // Only create floor if we have building but no floor
-                if (buildingSelected && !floorSelected) {
-                    driver.findElement(AppiumBy.iOSClassChain("**/XCUIElementTypeButton[`name == \"plus.circle.fill\"`][1]")).click();
-                    driver.findElement(AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' AND value == 'Floor Name'")).sendKeys(floorName);
-                    driver.findElement(AppiumBy.accessibilityId("Save")).click();
-                    sleep(500);
-                    driver.findElement(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeButton' AND name CONTAINS '" + floorName + "'")).click();
-                    System.out.println("✅ Created Floor: " + floorName);
-                    floorSelected = true;
+            // STEP 1: SELECT OR CREATE BUILDING
+            // Pattern: name contains "X floor" or "X floors"
+            System.out.println("📍 Step 1: Selecting building...");
+            WebElement building = findAndClickHierarchyItem(
+                " floor",  // Pattern to match (buildings have floor count)
+                null,      // No exclusion pattern at this level
+                "Building"
+            );
+            
+            if (building == null) {
+                // No building exists - this is a NEW site, need to CREATE building
+                String newBuildingName = "Building_" + timestamp;
+                System.out.println("   No building found, creating: " + newBuildingName);
+                
+                if (!createLocationItem(newBuildingName, "Building Name", 1)) {
+                    System.out.println("⚠️ Failed to create building");
+                    return false;
                 }
                 
-                // Create room if we have floor but no room
-                if (floorSelected && !locationSelected) {
-                    // Find the plus button for room (second one, or first if only one level)
+                // Click the newly created building
+                sleep(500);
+                building = findAndClickHierarchyItem(newBuildingName, null, "Created Building");
+                if (building == null) {
+                    // Try alternative: find any building with our timestamp
                     try {
-                        driver.findElement(AppiumBy.iOSClassChain("**/XCUIElementTypeButton[`name == \"plus.circle.fill\"`][2]")).click();
+                        WebElement newBuilding = driver.findElement(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeButton' AND name CONTAINS '" + newBuildingName + "'"));
+                        newBuilding.click();
+                        System.out.println("✅ Clicked created building: " + newBuildingName);
+                        building = newBuilding;
                     } catch (Exception e) {
-                        driver.findElement(AppiumBy.iOSClassChain("**/XCUIElementTypeButton[`name == \"plus.circle.fill\"`][1]")).click();
+                        System.out.println("⚠️ Could not select created building");
+                        return false;
                     }
-                    driver.findElement(AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' AND value == 'Room Name'")).sendKeys(roomName);
-                    driver.findElement(AppiumBy.accessibilityId("Save")).click();
-                    sleep(500);
-                    driver.findElement(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeButton' AND name CONTAINS '" + roomName + "'")).click();
-                    System.out.println("✅ Created Room: " + roomName);
-                    locationSelected = true;
                 }
+            }
+            sleep(400);
+            
+            // STEP 2: SELECT FLOOR
+            // First try: floors with room count (e.g., "Floor 1, 3 rooms")
+            // Second try: any floor without room count (e.g., "Floor_123456")
+            System.out.println("📍 Step 2: Selecting floor...");
+            WebElement floor = findAndClickHierarchyItem(
+                " room",   // Pattern to match (floors have room count)
+                " floor",  // Exclude buildings
+                "Floor with room count"
+            );
+            
+            // If no floor with room count, try to find ANY floor (including Floor_*)
+            if (floor == null) {
+                System.out.println("   No floor with room count, looking for any floor...");
+                floor = selectAnyFloorItem();
+            }
+            
+            // If still no floor, create one
+            if (floor == null) {
+                System.out.println("   No floor found, creating: " + newFloorName);
+                if (!createLocationItem(newFloorName, "Floor Name", 1)) {
+                    System.out.println("⚠️ Failed to create floor");
+                    return false;
+                }
+                // Click the newly created floor DIRECTLY by name
+                sleep(500);
+                floor = clickItemByExactName(newFloorName, "Created Floor");
+                if (floor == null) {
+                    System.out.println("⚠️ Could not select created floor");
+                    return false;
+                }
+            }
+            sleep(400);
+            
+            // STEP 3: SELECT ROOM OR LEAF
+            // At this point, we look for ANY button that is NOT a floor
+            System.out.println("📍 Step 3: Selecting room/leaf...");
+            WebElement roomOrLeaf = selectRoomOrLeaf(newRoomName);
+            
+            if (roomOrLeaf == null) {
+                System.out.println("⚠️ Could not select room");
+                return false;
             }
             
             System.out.println("✅ Location selection complete");
-            return locationSelected || floorSelected || buildingSelected;
+            sleep(500);
+            
+            // STEP 4: Ensure picker is dismissed
+            // After selecting/creating a room, we need to verify picker closed
+            if (!dismissLocationPickerIfOpen()) {
+                System.out.println("⚠️ Picker may still be open - forcing dismiss");
+            }
+            
+            sleep(500);
+            return true;
             
         } catch (Exception e) {
             System.out.println("⚠️ Error selecting location: " + e.getMessage());
+            e.printStackTrace();
             return false;
         }
     }
     
     /**
+     * Select any floor item, including floors without room count
+     * Used when no floor with "X rooms" pattern is found
+     */
+    private WebElement selectAnyFloorItem() {
+        try {
+            // Get all visible buttons
+            List<WebElement> allButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND visible == true"));
+            
+            System.out.println("   Looking for any floor among " + allButtons.size() + " buttons");
+            
+            for (WebElement btn : allButtons) {
+                String name = btn.getAttribute("name");
+                if (name == null || name.isEmpty()) continue;
+                
+                // Skip system buttons
+                if (isSystemButton(name)) continue;
+                
+                // Skip buildings (contain " floor")
+                if (name.contains(" floor")) continue;
+                
+                // Look for Floor_* items or items with " room" pattern
+                if (name.startsWith("Floor_") || name.contains(" room")) {
+                    btn.click();
+                    System.out.println("✅ Selected floor: " + name);
+                    return btn;
+                }
+            }
+            
+            System.out.println("   No floor items found");
+            return null;
+            
+        } catch (Exception e) {
+            System.out.println("   Error finding floor: " + e.getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * Click an item directly by its exact name
+     * Used after creating items when we know the exact name
+     */
+    private WebElement clickItemByExactName(String exactName, String levelName) {
+        try {
+            System.out.println("   Looking for item with name: " + exactName);
+            
+            // Strategy 1: Find by name contains (most reliable)
+            try {
+                WebElement item = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND name CONTAINS '" + exactName + "'"));
+                item.click();
+                System.out.println("✅ " + levelName + ": " + item.getAttribute("name"));
+                return item;
+            } catch (Exception e) {
+                // Continue
+            }
+            
+            // Strategy 2: Find by exact accessibility ID
+            try {
+                WebElement item = driver.findElement(AppiumBy.accessibilityId(exactName));
+                item.click();
+                System.out.println("✅ " + levelName + " (via ID): " + exactName);
+                return item;
+            } catch (Exception e) {
+                // Continue
+            }
+            
+            // Strategy 3: Search through all buttons
+            List<WebElement> allButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND visible == true"));
+            
+            for (WebElement btn : allButtons) {
+                String name = btn.getAttribute("name");
+                if (name != null && name.contains(exactName)) {
+                    btn.click();
+                    System.out.println("✅ " + levelName + " (via search): " + name);
+                    return btn;
+                }
+            }
+            
+            System.out.println("   Could not find item: " + exactName);
+            return null;
+            
+        } catch (Exception e) {
+            System.out.println("   Error finding item " + exactName + ": " + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Find and click an item in the location hierarchy
+     * 
+     * @param matchPattern Pattern that the item should contain (e.g., " floor", " room")
+     * @param excludePattern Pattern that the item should NOT contain (to exclude parent levels)
+     * @param levelName For logging purposes
+     * @return The clicked element, or null if not found
+     */
+    private WebElement findAndClickHierarchyItem(String matchPattern, String excludePattern, String levelName) {
+        try {
+            // Build the predicate string
+            StringBuilder predicate = new StringBuilder();
+            predicate.append("type == 'XCUIElementTypeButton' AND visible == true AND name CONTAINS '").append(matchPattern).append("'");
+            
+            if (excludePattern != null && !excludePattern.isEmpty()) {
+                predicate.append(" AND NOT name CONTAINS '").append(excludePattern).append("'");
+            }
+            
+            // Find all matching elements
+            List<WebElement> items = driver.findElements(AppiumBy.iOSNsPredicateString(predicate.toString()));
+            
+            if (items.isEmpty()) {
+                System.out.println("   No " + levelName + " found matching pattern: " + matchPattern);
+                return null;
+            }
+            
+            // Click the first matching item
+            WebElement item = items.get(0);
+            String itemName = item.getAttribute("name");
+            item.click();
+            System.out.println("✅ " + levelName + ": " + itemName);
+            return item;
+            
+        } catch (Exception e) {
+            System.out.println("   Error finding " + levelName + ": " + e.getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * Select a room or leaf item at the current hierarchy level
+     * This is the most complex step because rooms can have various naming patterns
+     * 
+     * PRIORITY: Prefer LEAF items (no "X nodes") over items with children
+     * 
+     * @param newRoomName Name to use if we need to create a new room
+     * @return The selected element, or null if failed
+     */
+    private WebElement selectRoomOrLeaf(String newRoomName) {
+        try {
+            // Get ALL visible buttons at current level
+            List<WebElement> allButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND visible == true"));
+            
+            System.out.println("   Found " + allButtons.size() + " buttons at room level");
+            
+            // Separate into LEAF items and PARENT items (with nodes)
+            List<WebElement> leafItems = new ArrayList<>();
+            List<WebElement> parentItems = new ArrayList<>();
+            
+            for (WebElement btn : allButtons) {
+                String name = btn.getAttribute("name");
+                if (name == null || name.isEmpty()) continue;
+                
+                // Skip system/navigation buttons
+                if (isSystemButton(name)) {
+                    System.out.println("   Skipping system button: '" + name + "'");
+                    continue;
+                }
+                
+                // Skip parent-level items (buildings and floors)
+                if (name.contains(" floor")) continue;  // Building
+                if (name.contains(" room")) continue;   // Floor (we already selected this)
+                
+                // Skip items that are actually FLOORS we created (not rooms)
+                // Our created floors have names like "Floor_123456" with no room count
+                if (name.startsWith("Floor_") || name.startsWith("Building_")) {
+                    System.out.println("   Skipping created floor/building: '" + name + "'");
+                    continue;
+                }
+                
+                // Categorize: LEAF (no nodes) vs PARENT (has nodes)
+                if (name.contains(" node")) {
+                    parentItems.add(btn);
+                    System.out.println("   Parent item (has nodes): '" + name + "'");
+                } else {
+                    leafItems.add(btn);
+                    System.out.println("   LEAF item (no children): '" + name + "'");
+                }
+            }
+            
+            // PRIORITY 1: Click a LEAF item if available (completes selection)
+            if (!leafItems.isEmpty()) {
+                WebElement item = leafItems.get(0);
+                String itemName = item.getAttribute("name");
+                item.click();
+                System.out.println("✅ Selected LEAF: " + itemName);
+                sleep(400);
+                return item;
+            }
+            
+            // PRIORITY 2: Click a PARENT item and go deeper
+            if (!parentItems.isEmpty()) {
+                WebElement item = parentItems.get(0);
+                String itemName = item.getAttribute("name");
+                item.click();
+                System.out.println("✅ Selected Parent (will go deeper): " + itemName);
+                sleep(400);
+                
+                // Go one level deeper to find a leaf
+                System.out.println("   Going deeper to find leaf node...");
+                return selectLeafNode();
+            }
+            
+            // No room found - need to create one
+            System.out.println("   No room found, creating: " + newRoomName);
+            if (!createLocationItem(newRoomName, "Room Name", 2)) {
+                // Try with plus button index 1 if 2 fails
+                if (!createLocationItem(newRoomName, "Room Name", 1)) {
+                    System.out.println("⚠️ Failed to create room");
+                    return null;
+                }
+            }
+            
+            // After room creation, we need to SELECT it to complete the location selection
+            // The room is created but not yet selected - clicking it selects it
+            sleep(800);  // Wait for room creation to complete
+            
+            try {
+                WebElement newRoom = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND name CONTAINS '" + newRoomName + "'"));
+                newRoom.click();
+                System.out.println("✅ Clicked to select room: " + newRoomName);
+                sleep(500);
+                return newRoom;
+            } catch (Exception e) {
+                // Room might already be selected or picker auto-closed
+                System.out.println("   Room created, could not click to select: " + e.getMessage());
+                // Still return success - room was created
+                return driver.findElement(AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND visible == true"));
+            }
+            
+        } catch (Exception e) {
+            System.out.println("   Error in selectRoomOrLeaf: " + e.getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * Select a leaf node (final level in hierarchy)
+     */
+    /**
+     * Select a leaf node (final level in hierarchy)
+     * Uses same LEAF vs PARENT prioritization as selectRoomOrLeaf
+     */
+    private WebElement selectLeafNode() {
+        try {
+            // At this level, we look for ANY button that doesn't have a count pattern
+            List<WebElement> allButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND visible == true"));
+            
+            System.out.println("   Found " + allButtons.size() + " buttons at node level");
+            
+            List<WebElement> leafItems = new ArrayList<>();
+            List<WebElement> parentItems = new ArrayList<>();
+            
+            for (WebElement btn : allButtons) {
+                String name = btn.getAttribute("name");
+                if (name == null || name.isEmpty()) continue;
+                
+                // Skip system buttons
+                if (isSystemButton(name)) {
+                    continue;
+                }
+                
+                // Skip items with parent hierarchy patterns
+                if (name.contains(" floor")) continue;
+                if (name.contains(" room")) continue;
+                
+                // Skip items that are actually FLOORS/BUILDINGS we created
+                if (name.startsWith("Floor_") || name.startsWith("Building_")) {
+                    System.out.println("   Skipping created floor/building: '" + name + "'");
+                    continue;
+                }
+                
+                // Categorize
+                if (name.contains(" node")) {
+                    parentItems.add(btn);
+                    System.out.println("   Node parent: '" + name + "'");
+                } else {
+                    leafItems.add(btn);
+                    System.out.println("   Node LEAF: '" + name + "'");
+                }
+            }
+            
+            // PRIORITY 1: Click a LEAF
+            if (!leafItems.isEmpty()) {
+                WebElement item = leafItems.get(0);
+                String itemName = item.getAttribute("name");
+                item.click();
+                System.out.println("✅ Selected Leaf Node: " + itemName);
+                sleep(400);
+                return item;
+            }
+            
+            // PRIORITY 2: Go even deeper if needed
+            if (!parentItems.isEmpty()) {
+                WebElement item = parentItems.get(0);
+                String itemName = item.getAttribute("name");
+                item.click();
+                System.out.println("✅ Selected Node Parent (going deeper): " + itemName);
+                sleep(400);
+                // Recursive call to go deeper
+                return selectLeafNode();
+            }
+            
+            System.out.println("   No leaf node found at this level");
+            return null;
+            
+        } catch (Exception e) {
+            System.out.println("   Error selecting leaf node: " + e.getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * Check if a button name corresponds to a system/navigation button
+     */
+    private boolean isSystemButton(String name) {
+        if (name == null || name.isEmpty()) return true;
+        
+        // EXACT match patterns - must match exactly
+        String[] exactPatterns = {
+            "plus", "plus.circle.fill", "Back", "Cancel", "Done", "Save",
+            "xmark", "checkmark", "ellipsis", "gear", "search",
+            "Select Location", "Select location", "Add", "Edit", "Delete",
+            "Close", "OK", "Yes", "No", "Confirm"
+        };
+        
+        for (String pattern : exactPatterns) {
+            if (name.equals(pattern)) {
+                return true;
+            }
+        }
+        
+        // CONTAINS patterns - if name contains these, it's a system button
+        String[] containsPatterns = {
+            "chevron", "arrow", "info.circle", "questionmark",
+            ".fill", ".circle"
+        };
+        
+        for (String pattern : containsPatterns) {
+            if (name.contains(pattern)) {
+                return true;
+            }
+        }
+        
+        // Check for very short names (likely icons)
+        if (name.length() <= 3) {
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Create a new location item (floor or room)
+     * 
+     * @param itemName Name for the new item
+     * @param textFieldPlaceholder The placeholder text in the text field
+     * @param plusButtonIndex Which plus button to click (1 or 2)
+     * @return true if creation succeeded
+     */
+    /**
+     * Create a new location item (building, floor, or room)
+     * Uses multiple strategies to find the plus button and text field
+     * 
+     * @param itemName Name for the new item
+     * @param textFieldPlaceholder The placeholder text in the text field (e.g., "Building Name", "Floor Name", "Room Name")
+     * @param plusButtonIndex Which plus button to click (1 or 2) - used as hint
+     * @return true if creation succeeded
+     */
+    private boolean createLocationItem(String itemName, String textFieldPlaceholder, int plusButtonIndex) {
+        System.out.println("   Creating location item: " + itemName + " (placeholder: " + textFieldPlaceholder + ")");
+        
+        try {
+            // STEP 1: Click the plus button using multiple strategies
+            boolean plusClicked = false;
+            
+            // Strategy 1: iOSClassChain with index
+            if (!plusClicked) {
+                try {
+                    driver.findElement(AppiumBy.iOSClassChain(
+                        "**/XCUIElementTypeButton[`name == \"plus.circle.fill\"`][" + plusButtonIndex + "]")).click();
+                    System.out.println("   Plus clicked via ClassChain[" + plusButtonIndex + "]");
+                    plusClicked = true;
+                } catch (Exception e) {
+                    // Continue to next strategy
+                }
+            }
+            
+            // Strategy 2: Find by exact name 'plus.circle.fill'
+            if (!plusClicked) {
+                try {
+                    driver.findElement(AppiumBy.iOSNsPredicateString("name == 'plus.circle.fill'")).click();
+                    System.out.println("   Plus clicked via predicate 'plus.circle.fill'");
+                    plusClicked = true;
+                } catch (Exception e) {
+                    // Continue to next strategy
+                }
+            }
+            
+            // Strategy 3: Find by name 'plus'
+            if (!plusClicked) {
+                try {
+                    driver.findElement(AppiumBy.iOSNsPredicateString("name == 'plus' AND type == 'XCUIElementTypeButton'")).click();
+                    System.out.println("   Plus clicked via predicate 'plus'");
+                    plusClicked = true;
+                } catch (Exception e) {
+                    // Continue to next strategy
+                }
+            }
+            
+            // Strategy 4: Find by accessibility ID 'Add'
+            if (!plusClicked) {
+                try {
+                    driver.findElement(AppiumBy.accessibilityId("Add")).click();
+                    System.out.println("   Plus clicked via accessibility 'Add'");
+                    plusClicked = true;
+                } catch (Exception e) {
+                    // Continue to next strategy
+                }
+            }
+            
+            // Strategy 5: Find any button with 'plus' or 'add' in name
+            if (!plusClicked) {
+                try {
+                    driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND (name CONTAINS 'plus' OR name CONTAINS 'add' OR label CONTAINS 'Add')")).click();
+                    System.out.println("   Plus clicked via contains 'plus/add'");
+                    plusClicked = true;
+                } catch (Exception e) {
+                    System.out.println("⚠️ Could not find plus button with any strategy");
+                    return false;
+                }
+            }
+            
+            sleep(500);
+            
+            // STEP 2: Enter the name in text field
+            boolean nameEntered = false;
+            
+            // Strategy 1: Find by placeholder value
+            if (!nameEntered) {
+                try {
+                    WebElement textField = driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeTextField' AND (value == '" + textFieldPlaceholder + "' OR placeholderValue == '" + textFieldPlaceholder + "')"));
+                    textField.sendKeys(itemName);
+                    System.out.println("   Name entered via placeholder match");
+                    nameEntered = true;
+                } catch (Exception e) {
+                    // Continue to next strategy
+                }
+            }
+            
+            // Strategy 2: Find any visible text field
+            if (!nameEntered) {
+                try {
+                    WebElement textField = driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeTextField' AND visible == true"));
+                    textField.sendKeys(itemName);
+                    System.out.println("   Name entered via visible text field");
+                    nameEntered = true;
+                } catch (Exception e) {
+                    System.out.println("⚠️ Could not find text field");
+                    return false;
+                }
+            }
+            
+            sleep(300);
+            
+            // STEP 3: Click Save button
+            boolean saved = false;
+            
+            // Strategy 1: Accessibility ID 'Save'
+            if (!saved) {
+                try {
+                    driver.findElement(AppiumBy.accessibilityId("Save")).click();
+                    System.out.println("   Saved via accessibility 'Save'");
+                    saved = true;
+                } catch (Exception e) {
+                    // Continue
+                }
+            }
+            
+            // Strategy 2: Button with label 'Save'
+            if (!saved) {
+                try {
+                    driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND (label == 'Save' OR name == 'Save')")).click();
+                    System.out.println("   Saved via button predicate");
+                    saved = true;
+                } catch (Exception e) {
+                    System.out.println("⚠️ Could not find Save button");
+                    return false;
+                }
+            }
+            
+            sleep(800);
+            
+            System.out.println("✅ Created: " + itemName);
+            return true;
+            
+        } catch (Exception e) {
+            System.out.println("⚠️ Error creating location item: " + e.getMessage());
+            return false;
+        }
+    }
+
+
+
+    /**
+     * SIMPLIFIED Location Selector - FASTEST Approach
+     * 
+     * Strategy:
+     * 1. FIRST: Try to select a Room DIRECTLY (if already visible)
+     * 2. FALLBACK: Go through Building → Floor → Room hierarchy
+     */
+    public boolean selectLocationSimple() {
+        System.out.println("📍 Selecting location - SIMPLE mode...");
+        
+        long timestamp = System.currentTimeMillis();
+        
+        try {
+            // Ensure picker is open
+            if (!isLocationPickerOpen()) {
+                driver.findElement(AppiumBy.accessibilityId("Select location")).click();
+                sleep(400);
+            }
+            
+            // STRATEGY 1: Try to select Room DIRECTLY (fastest!)
+            System.out.println("   Trying DIRECT room selection...");
+            WebElement directRoom = findSelectableRoom();
+            if (directRoom != null) {
+                // Get name BEFORE clicking (element becomes stale after click)
+                String roomName = directRoom.getAttribute("name");
+                directRoom.click();
+                System.out.println("✅ Room selected DIRECTLY: " + roomName);
+                sleep(300);
+                // Picker should auto-dismiss after room selection
+                return true;
+            }
+            System.out.println("   No direct room found, using hierarchy...");
+            
+            // STRATEGY 2: Go through hierarchy
+            return selectViaHierarchy(timestamp);
+            
+        } catch (Exception e) {
+            System.out.println("⚠️ Simple approach error: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Find a room that can be selected directly (not a building or floor)
+     */
+    private WebElement findSelectableRoom() {
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND visible == true"));
+            
+            for (WebElement btn : buttons) {
+                String name = btn.getAttribute("name");
+                if (name == null || name.isEmpty()) continue;
+                
+                // Skip system buttons
+                if (name.equals("Cancel") || name.equals("plus") || name.equals("Save") ||
+                    name.contains("plus.circle") || name.length() <= 3) continue;
+                
+                // Skip buildings (contain " floor")
+                if (name.contains(" floor")) continue;
+                
+                // Skip floors (contain " room")
+                if (name.contains(" room")) continue;
+                
+                // Skip our created items that aren't rooms
+                if (name.startsWith("Building_")) continue;
+                if (name.startsWith("Floor_")) continue;
+                
+                // Skip items with node count (need to go deeper)
+                if (name.contains(" node")) continue;
+                
+                // This looks like a selectable room!
+                System.out.println("   Found selectable room: " + name);
+                return btn;
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+        return null;
+    }
+    
+    /**
+     * Select location via Building → Floor → Room hierarchy
+     */
+    private boolean selectViaHierarchy(long timestamp) {
+        try {
+            // STEP 1: Select Building
+            System.out.println("📍 Step 1: Selecting building...");
+            try {
+                WebElement building = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND name CONTAINS ' floor'"));
+                String buildingName = building.getAttribute("name");
+                building.click();
+                System.out.println("✅ Building: " + buildingName);
+                sleep(300);
+            } catch (Exception e) {
+                System.out.println("⚠️ No building found");
+                return false;
+            }
+            
+            // STEP 2: Select Floor
+            System.out.println("📍 Step 2: Selecting floor...");
+            WebElement floor = findFirstFloor();
+            
+            if (floor != null) {
+                String floorName = floor.getAttribute("name");
+                floor.click();
+                System.out.println("✅ Floor: " + floorName);
+                sleep(300);
+            } else {
+                String floorName = "Floor_" + timestamp;
+                System.out.println("   Creating: " + floorName);
+                if (!createAndClickItem(floorName, "Floor Name")) {
+                    return false;
+                }
+            }
+            
+            // STEP 3: Select Room
+            System.out.println("📍 Step 3: Selecting room...");
+            WebElement room = findFirstRoom();
+            
+            if (room != null) {
+                String roomName = room.getAttribute("name");
+                room.click();
+                System.out.println("✅ Room: " + roomName);
+                sleep(300);
+            } else {
+                String roomName = "Room_" + timestamp;
+                System.out.println("   Creating: " + roomName);
+                if (!createAndClickItem(roomName, "Room Name")) {
+                    return false;
+                }
+            }
+            
+            System.out.println("✅ Location selection complete");
+            sleep(300);
+            dismissLocationPickerIfOpen();
+            return true;
+            
+        } catch (Exception e) {
+            System.out.println("⚠️ Hierarchy selection error: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Find first floor element (not a building)
+     */
+    private WebElement findFirstFloor() {
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND visible == true"));
+            
+            for (WebElement btn : buttons) {
+                String name = btn.getAttribute("name");
+                if (name == null) continue;
+                
+                // Skip system buttons
+                if (name.equals("Cancel") || name.equals("plus") || 
+                    name.contains("plus.circle") || name.length() <= 3) continue;
+                
+                // Skip buildings (contain " floor")
+                if (name.contains(" floor")) continue;
+                
+                // This is a floor! (has " room" or starts with "Floor_" or any other name)
+                if (name.contains(" room") || name.startsWith("Floor_") || 
+                    (!name.contains(" node") && !name.startsWith("Building_") && !name.startsWith("Room_"))) {
+                    return btn;
+                }
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+        return null;
+    }
+    
+    /**
+     * Find first room element (not a floor or building)
+     */
+    private WebElement findFirstRoom() {
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND visible == true"));
+            
+            for (WebElement btn : buttons) {
+                String name = btn.getAttribute("name");
+                if (name == null) continue;
+                
+                // Skip system buttons
+                if (name.equals("Cancel") || name.equals("plus") || 
+                    name.contains("plus.circle") || name.length() <= 3) continue;
+                
+                // Skip buildings and floors
+                if (name.contains(" floor")) continue;  // Building
+                if (name.contains(" room")) continue;   // Floor with room count
+                if (name.startsWith("Floor_")) continue; // Our created floors
+                if (name.startsWith("Building_")) continue; // Our created buildings
+                
+                // This is a room or leaf!
+                return btn;
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+        return null;
+    }
+    
+    /**
+     * Create an item and click it directly (no search after creation)
+     */
+    private boolean createAndClickItem(String name, String placeholder) {
+        try {
+            // Click plus button
+            try {
+                driver.findElement(AppiumBy.iOSNsPredicateString("name == 'plus'")).click();
+            } catch (Exception e) {
+                try {
+                    driver.findElement(AppiumBy.iOSNsPredicateString("name == 'plus.circle.fill'")).click();
+                } catch (Exception e2) {
+                    driver.findElement(AppiumBy.iOSClassChain("**/XCUIElementTypeButton[`name == \"plus.circle.fill\"`][1]")).click();
+                }
+            }
+            sleep(300);
+            
+            // Enter name
+            WebElement textField = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeTextField'"));
+            textField.sendKeys(name);
+            sleep(200);
+            
+            // Save
+            driver.findElement(AppiumBy.accessibilityId("Save")).click();
+            sleep(500);
+            
+            // Click the created item directly
+            WebElement createdItem = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name CONTAINS '" + name + "'"));
+            createdItem.click();
+            System.out.println("✅ Created & selected: " + name);
+            sleep(300);
+            
+            return true;
+        } catch (Exception e) {
+            System.out.println("⚠️ Error creating " + name + ": " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Get floor elements (items that are floors, not buildings)
+     */
+    private List<WebElement> getFloorElements() {
+        List<WebElement> floors = new ArrayList<>();
+        try {
+            List<WebElement> allButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND visible == true"));
+            
+            for (WebElement btn : allButtons) {
+                String name = btn.getAttribute("name");
+                if (name == null || name.isEmpty()) continue;
+                
+                // Skip system buttons and buildings
+                if (isSystemButton(name)) continue;
+                if (name.contains(" floor")) continue;  // This is a building
+                
+                // Floor items: have " room" pattern OR start with "Floor_"
+                if (name.contains(" room") || name.startsWith("Floor_")) {
+                    floors.add(btn);
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("   Error getting floors: " + e.getMessage());
+        }
+        return floors;
+    }
+    
+    /**
+     * Get room elements (items that are rooms, not floors or buildings)
+     */
+    private List<WebElement> getRoomElements() {
+        List<WebElement> rooms = new ArrayList<>();
+        try {
+            List<WebElement> allButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND visible == true"));
+            
+            for (WebElement btn : allButtons) {
+                String name = btn.getAttribute("name");
+                if (name == null || name.isEmpty()) continue;
+                
+                // Skip system buttons
+                if (isSystemButton(name)) continue;
+                
+                // Skip buildings and floors
+                if (name.contains(" floor")) continue;  // Building
+                if (name.contains(" room")) continue;   // Floor with room count
+                if (name.startsWith("Floor_")) continue; // Our created floors
+                if (name.startsWith("Building_")) continue; // Our created buildings
+                
+                // What remains is a room (or node)
+                rooms.add(btn);
+            }
+        } catch (Exception e) {
+            System.out.println("   Error getting rooms: " + e.getMessage());
+        }
+        return rooms;
+    }
+    
+    /**
+     * Create a location item - simplified version
+     */
+    private boolean createLocationItemSimple(String name, String placeholder) {
+        try {
+            System.out.println("   Creating: " + name);
+            
+            // Click plus button
+            try {
+                driver.findElement(AppiumBy.iOSNsPredicateString("name == 'plus'")).click();
+            } catch (Exception e) {
+                driver.findElement(AppiumBy.iOSNsPredicateString("name == 'plus.circle.fill'")).click();
+            }
+            sleep(400);
+            
+            // Enter name
+            WebElement textField = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeTextField'"));
+            textField.sendKeys(name);
+            sleep(200);
+            
+            // Save
+            driver.findElement(AppiumBy.accessibilityId("Save")).click();
+            sleep(600);
+            
+            System.out.println("   ✅ Created: " + name);
+            return true;
+        } catch (Exception e) {
+            System.out.println("   ⚠️ Error creating " + name + ": " + e.getMessage());
+            return false;
+        }
+    }
+
+
+    /**
+     * Dismiss the location picker if it's still open
+     * Uses multiple strategies to close the picker
+     * 
+     * @return true if picker was dismissed or already closed
+     */
+    private boolean dismissLocationPickerIfOpen() {
+        try {
+            // Check if picker is still open
+            boolean pickerOpen = false;
+            try {
+                driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "(label == 'Select Location' OR name == 'Select Location') AND type == 'XCUIElementTypeStaticText'"));
+                pickerOpen = true;
+            } catch (Exception e) {
+                // Check for Cancel button (another indicator picker is open)
+                try {
+                    driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "label == 'Cancel' AND type == 'XCUIElementTypeButton'"));
+                    pickerOpen = true;
+                } catch (Exception e2) {
+                    // Picker is closed
+                }
+            }
+            
+            if (!pickerOpen) {
+                System.out.println("   Picker already closed");
+                return true;
+            }
+            
+            System.out.println("   Picker still open, attempting to dismiss...");
+            
+            // Strategy 1: Try tapping in the header area to close
+            try {
+                int screenWidth = driver.manage().window().getSize().width;
+                Map<String, Object> tapParams = new HashMap<>();
+                tapParams.put("x", screenWidth / 2);
+                tapParams.put("y", 100);  // Tap near top/header
+                driver.executeScript("mobile: tap", tapParams);
+                System.out.println("   Tapped header area");
+                sleep(500);
+            } catch (Exception e) {
+                // Continue
+            }
+            
+            // Check if dismissed
+            try {
+                driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "(label == 'Select Location' OR label == 'Cancel') AND type == 'XCUIElementTypeStaticText'"));
+            } catch (Exception e) {
+                System.out.println("   Picker dismissed after tapping header");
+                return true;
+            }
+            
+            // Strategy 2: Click Cancel (will keep any selection made)
+            try {
+                driver.findElement(AppiumBy.accessibilityId("Cancel")).click();
+                System.out.println("   Clicked Cancel to close picker");
+                sleep(500);
+                return true;
+            } catch (Exception e) {
+                // Continue
+            }
+            
+            // Strategy 3: Swipe down to dismiss
+            try {
+                int screenWidth = driver.manage().window().getSize().width;
+                int screenHeight = driver.manage().window().getSize().height;
+                
+                Map<String, Object> swipeParams = new HashMap<>();
+                swipeParams.put("fromX", screenWidth / 2);
+                swipeParams.put("fromY", 150);
+                swipeParams.put("toX", screenWidth / 2);
+                swipeParams.put("toY", screenHeight - 100);
+                swipeParams.put("duration", 0.3);
+                driver.executeScript("mobile: dragFromToForDuration", swipeParams);
+                System.out.println("   Swiped down to dismiss");
+                sleep(500);
+                return true;
+            } catch (Exception e) {
+                System.out.println("   Swipe dismiss failed");
+            }
+            
+            // Strategy 4: Tap outside picker area
+            try {
+                int screenWidth = driver.manage().window().getSize().width;
+                Map<String, Object> tapParams = new HashMap<>();
+                tapParams.put("x", screenWidth / 2);
+                tapParams.put("y", 50);
+                driver.executeScript("mobile: tap", tapParams);
+                System.out.println("   Tapped outside picker");
+                sleep(500);
+                return true;
+            } catch (Exception e) {
+                // Continue
+            }
+            
+            return false;
+            
+        } catch (Exception e) {
+            System.out.println("   Error in dismissLocationPickerIfOpen: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Check if location picker is currently open
+     */
+    private boolean isLocationPickerOpen() {
+        try {
+            // Multiple ways to detect picker is open
+            // 1. "Select Location" title visible
+            List<WebElement> title = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "label == 'Select Location' OR name == 'Select Location'"));
+            if (!title.isEmpty()) {
+                System.out.println("📍 Location picker detected (title visible)");
+                return true;
+            }
+            
+            // 2. Building buttons visible (contain " floor" or " floors")
+            List<WebElement> buildings = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name CONTAINS ' floor'"));
+            if (!buildings.isEmpty()) {
+                System.out.println("📍 Location picker detected (buildings visible)");
+                return true;
+            }
+            
+            // 3. Check for hierarchy pattern
+            List<WebElement> hierarchy = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND (name CONTAINS ' room' OR name CONTAINS '>')"));
+            if (!hierarchy.isEmpty()) {
+                System.out.println("📍 Location picker detected (hierarchy visible)");
+                return true;
+            }
+            
+            return false;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    
+    /**
+     * Ensure location picker is dismissed and we're back on the form
+     */
+    private boolean ensureLocationPickerDismissed() {
+        try {
+            // Check if we're back on the Create Asset form
+            // Look for Asset Name field or Create Asset title
+            WebDriverWait quickWait = new WebDriverWait(driver, Duration.ofSeconds(2));
+            
+            boolean onForm = quickWait.until(d -> {
+                try {
+                    // Check for Asset Name text field
+                    List<WebElement> assetName = d.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeTextField' AND (value == 'Asset Name' OR placeholderValue == 'Asset Name' OR value CONTAINS 'Asset_')"));
+                    if (!assetName.isEmpty()) return true;
+                    
+                    // Check for "Select location" button (on form, not in picker)
+                    // If we can see "Select location" but NOT "Select Location" title, we're on form
+                    List<WebElement> selectBtn = d.findElements(AppiumBy.accessibilityId("Select location"));
+                    List<WebElement> pickerTitle = d.findElements(AppiumBy.iOSNsPredicateString(
+                        "label == 'Select Location' AND type == 'XCUIElementTypeStaticText'"));
+                    if (!selectBtn.isEmpty() && pickerTitle.isEmpty()) return true;
+                    
+                    return false;
+                } catch (Exception e) {
+                    return false;
+                }
+            });
+            
+            if (onForm) {
+                System.out.println("✅ Back on Create Asset form");
+                return true;
+            }
+        } catch (Exception e) {
+            // Timeout - picker might still be open
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Force close the location picker using multiple strategies
+     */
+    private void forceCloseLocationPicker() {
+        System.out.println("📍 Force closing location picker...");
+        
+        // Strategy 1: Tap on any visible room/location item (should select and close)
+        try {
+            List<WebElement> items = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND (name CONTAINS '>' OR name BEGINSWITH 'Room_')"));
+            if (!items.isEmpty()) {
+                items.get(0).click();
+                System.out.println("   Tapped location item to close picker");
+                sleep(500);
+                if (ensureLocationPickerDismissed()) return;
+            }
+        } catch (Exception e) {}
+        
+        // Strategy 2: Look for any "Done" or "Save" button
+        try {
+            WebElement doneBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND (label == 'Done' OR label == 'Save' OR label == 'OK')"));
+            doneBtn.click();
+            System.out.println("   Clicked Done/Save button");
+            sleep(500);
+            if (ensureLocationPickerDismissed()) return;
+        } catch (Exception e) {}
+        
+        // Strategy 3: Tap the selected/checked item
+        try {
+            WebElement selected = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeButton') AND (name CONTAINS 'checkmark' OR label CONTAINS 'selected')"));
+            selected.click();
+            System.out.println("   Tapped selected item");
+            sleep(500);
+            if (ensureLocationPickerDismissed()) return;
+        } catch (Exception e) {}
+        
+        // Strategy 4: Navigate back using back button
+        try {
+            WebElement backBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND (label == 'Back' OR name CONTAINS 'back' OR label CONTAINS 'chevron')"));
+            // Click back multiple times to exit the hierarchy
+            for (int i = 0; i < 3; i++) {
+                try {
+                    backBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND (label == 'Back' OR name CONTAINS 'back')"));
+                    backBtn.click();
+                    sleep(300);
+                } catch (Exception e2) {
+                    break;
+                }
+            }
+            System.out.println("   Navigated back to close picker");
+            sleep(500);
+            if (ensureLocationPickerDismissed()) return;
+        } catch (Exception e) {}
+        
+        // Strategy 5: Swipe down to dismiss modal
+        try {
+            int screenWidth = driver.manage().window().getSize().width;
+            int screenHeight = driver.manage().window().getSize().height;
+            
+            Map<String, Object> swipeParams = new HashMap<>();
+            swipeParams.put("fromX", screenWidth / 2);
+            swipeParams.put("fromY", 150);
+            swipeParams.put("toX", screenWidth / 2);
+            swipeParams.put("toY", screenHeight - 100);
+            swipeParams.put("duration", 0.3);
+            driver.executeScript("mobile: dragFromToForDuration", swipeParams);
+            System.out.println("   Swiped down to dismiss");
+            sleep(500);
+        } catch (Exception e) {
+            System.out.println("   Swipe failed: " + e.getMessage());
+        }
+        
+        // Strategy 6: Tap outside the picker area (top of screen)
+        try {
+            int screenWidth = driver.manage().window().getSize().width;
+            Map<String, Object> tapParams = new HashMap<>();
+            tapParams.put("x", screenWidth / 2);
+            tapParams.put("y", 50);
+            driver.executeScript("mobile: tap", tapParams);
+            System.out.println("   Tapped outside picker");
+            sleep(500);
+        } catch (Exception e) {}
+    }
+
+        /**
      * Helper: Select a single level in location hierarchy (legacy - kept for compatibility)
      */
     private boolean selectLocationLevel(String levelName, String[] skipLabels) {

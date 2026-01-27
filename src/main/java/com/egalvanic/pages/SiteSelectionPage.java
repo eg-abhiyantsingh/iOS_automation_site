@@ -1691,4 +1691,174 @@ public class SiteSelectionPage extends BasePage {
     }
 
 
+
+    // ================================================================
+    // SCHEDULE SCREEN HANDLING (NEW - Added Jan 2026)
+    // ================================================================
+    // After login, app now shows a Schedule screen first.
+    // User must click "View Sites" to proceed to Site Selection.
+    // ================================================================
+
+    /**
+     * Check if we're on the Schedule screen (new intermediate screen after login)
+     * Schedule screen has: "View Sites" button, "Schedule" text, calendar view
+     */
+    public boolean isScheduleScreenDisplayed() {
+        try {
+            WebDriverWait quickWait = new WebDriverWait(driver, Duration.ofSeconds(2));
+            return quickWait.until(d -> {
+                try {
+                    // Check for "View Sites" button
+                    List<WebElement> viewSites = d.findElements(
+                        AppiumBy.iOSNsPredicateString("label == 'View Sites' OR name == 'View Sites'")
+                    );
+                    if (!viewSites.isEmpty()) {
+                        System.out.println("📅 Schedule screen detected (View Sites button found)");
+                        return true;
+                    }
+                    
+                    // Check for "Schedule" text
+                    List<WebElement> schedule = d.findElements(
+                        AppiumBy.iOSNsPredicateString("label == 'Schedule' OR name == 'Schedule'")
+                    );
+                    if (!schedule.isEmpty()) {
+                        System.out.println("📅 Schedule screen detected (Schedule text found)");
+                        return true;
+                    }
+                    
+                    // Check for "No scheduled work today" text
+                    List<WebElement> noWork = d.findElements(
+                        AppiumBy.iOSNsPredicateString("label CONTAINS 'No scheduled work' OR name CONTAINS 'No scheduled work'")
+                    );
+                    if (!noWork.isEmpty()) {
+                        System.out.println("📅 Schedule screen detected (No scheduled work text found)");
+                        return true;
+                    }
+                    
+                    return false;
+                } catch (Exception e) {
+                    return false;
+                }
+            });
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Click "View Sites" button on Schedule screen to proceed to Site Selection
+     */
+    public void clickViewSites() {
+        System.out.println("📅 Looking for 'View Sites' button...");
+        
+        try {
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+            
+            // Strategy 1: Direct label/name match
+            try {
+                WebElement viewSitesBtn = wait.until(ExpectedConditions.elementToBeClickable(
+                    AppiumBy.iOSNsPredicateString("label == 'View Sites' OR name == 'View Sites'")
+                ));
+                viewSitesBtn.click();
+                System.out.println("✅ Clicked 'View Sites' button (Strategy 1: label/name)");
+                Thread.sleep(500);
+                return;
+            } catch (Exception e) {
+                System.out.println("   Strategy 1 failed, trying next...");
+            }
+            
+            // Strategy 2: Button containing "View Sites" text
+            try {
+                WebElement viewSitesBtn = wait.until(ExpectedConditions.elementToBeClickable(
+                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND (label CONTAINS 'View Sites' OR name CONTAINS 'View Sites')")
+                ));
+                viewSitesBtn.click();
+                System.out.println("✅ Clicked 'View Sites' button (Strategy 2: button type)");
+                Thread.sleep(500);
+                return;
+            } catch (Exception e) {
+                System.out.println("   Strategy 2 failed, trying next...");
+            }
+            
+            // Strategy 3: Accessibility ID
+            try {
+                WebElement viewSitesBtn = wait.until(ExpectedConditions.elementToBeClickable(
+                    AppiumBy.accessibilityId("View Sites")
+                ));
+                viewSitesBtn.click();
+                System.out.println("✅ Clicked 'View Sites' button (Strategy 3: accessibilityId)");
+                Thread.sleep(500);
+                return;
+            } catch (Exception e) {
+                System.out.println("   Strategy 3 failed, trying next...");
+            }
+            
+            // Strategy 4: Scroll down first, then find button
+            try {
+                System.out.println("   Scrolling down to find 'View Sites'...");
+                scrollDown();
+                Thread.sleep(300);
+                
+                WebElement viewSitesBtn = driver.findElement(
+                    AppiumBy.iOSNsPredicateString("label == 'View Sites' OR name == 'View Sites'")
+                );
+                viewSitesBtn.click();
+                System.out.println("✅ Clicked 'View Sites' button (Strategy 4: after scroll)");
+                Thread.sleep(500);
+                return;
+            } catch (Exception e) {
+                System.out.println("   Strategy 4 failed, trying next...");
+            }
+            
+            // Strategy 5: Find by XPath with text
+            try {
+                WebElement viewSitesBtn = driver.findElement(
+                    AppiumBy.xpath("//*[contains(@label, 'View Sites') or contains(@name, 'View Sites')]")
+                );
+                viewSitesBtn.click();
+                System.out.println("✅ Clicked 'View Sites' button (Strategy 5: XPath)");
+                Thread.sleep(500);
+                return;
+            } catch (Exception e) {
+                System.out.println("   Strategy 5 failed");
+            }
+            
+            throw new RuntimeException("Could not find 'View Sites' button with any strategy");
+            
+        } catch (Exception e) {
+            System.out.println("❌ Failed to click 'View Sites': " + e.getMessage());
+            throw new RuntimeException("Failed to click 'View Sites' button", e);
+        }
+    }
+
+    /**
+     * Handle Schedule screen if present, then proceed to Site Selection
+     * Call this after login to handle the new app flow
+     */
+    public void handleScheduleScreenIfPresent() {
+        System.out.println("🔍 Checking for Schedule screen...");
+        
+        try {
+            // Quick check for Schedule screen (2 seconds max)
+            if (isScheduleScreenDisplayed()) {
+                System.out.println("📅 Schedule screen detected - clicking 'View Sites'");
+                clickViewSites();
+                
+                // Wait briefly for Site Selection to load
+                Thread.sleep(500);
+                System.out.println("✅ Navigated from Schedule to Site Selection");
+            } else {
+                System.out.println("   No Schedule screen - already on Site Selection");
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Schedule screen handling: " + e.getMessage());
+            // Try clicking View Sites anyway in case detection failed
+            try {
+                clickViewSites();
+            } catch (Exception e2) {
+                System.out.println("   View Sites not found - continuing...");
+            }
+        }
+    }
+
 }

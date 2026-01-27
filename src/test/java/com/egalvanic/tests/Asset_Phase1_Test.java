@@ -350,8 +350,20 @@ public final class Asset_Phase1_Test extends BaseTest {
             }
         }
 
-        assetPage.scrollFormUp();
+        // Wait a moment for picker to fully dismiss
+        shortWait();
+        
+        // Verify we're back on the form (picker should have auto-dismissed)
         boolean backOnForm = assetPage.isAssetNameFieldDisplayed() || assetPage.isCreateAssetFormDisplayed();
+        
+        // If not on form, try a gentle scroll to reveal form (use safe area)
+        if (!backOnForm) {
+            System.out.println("⚠️ Form not visible, checking if picker is still open...");
+            // Don't scroll - just wait and check again
+            shortWait();
+            backOnForm = assetPage.isAssetNameFieldDisplayed() || assetPage.isCreateAssetFormDisplayed();
+        }
+        
         assertTrue(backOnForm, "Should return to asset form after location selection");
 
         logStepWithScreenshot("Location selection verified");
