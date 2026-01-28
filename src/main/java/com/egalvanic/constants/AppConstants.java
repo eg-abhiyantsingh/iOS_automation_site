@@ -24,7 +24,7 @@ public class AppConstants {
     public static final String PLATFORM_VERSION = getEnv("PLATFORM_VERSION", "26.2");
     public static final String UDID = getEnv("SIMULATOR_UDID", "B745C0EF-01AA-4355-8B08-86812A8CBBAA");
     public static final String APP_PATH = getEnv("APP_PATH", "/Users/abhiyantsingh/Downloads/Z Platform-QA.app");
-    public static final String APP_BUNDLE_ID = "com.egalvanic.zplatform-QA";
+    public static final String APP_BUNDLE_ID = "com.egalvanic.zplatform-Dev";
 
     // ============================================
     // TEST DATA - AUTHENTICATION
@@ -69,6 +69,7 @@ public class AppConstants {
     public static final String MODULE_SITE_SELECTION = "Site Selection";
     public static final String MODULE_ASSET = "Asset Management";
     public static final String MODULE_LOCATIONS = "Locations";
+    public static final String MODULE_BUILDING = "Building Management";
     public static final String MODULE_SLDS = "SLDs";
     public static final String MODULE_CONNECTIONS = "Connections";
     public static final String MODULE_ISSUES = "Issues";
@@ -111,6 +112,38 @@ public class AppConstants {
     public static final String FEATURE_ASSET_SUBTYPE = "Asset Subtype";
     public static final String FEATURE_ASSET_QR_CODE = "Asset QR Code";
     public static final String FEATURE_ASSET_VALIDATION = "Asset Validation";
+    
+    // Building Management Features
+    public static final String FEATURE_NEW_BUILDING = "New Building";
+    public static final String FEATURE_BUILDING_VALIDATION = "Building Validation";
+    public static final String FEATURE_BUILDING_ACCESSIBILITY = "Building Accessibility";
+    public static final String FEATURE_BUILDING_LIST = "Building List";
+    public static final String FEATURE_EDIT_BUILDING = "Edit Building";
+    public static final String FEATURE_BUILDING_CONTEXT_MENU = "Building Context Menu";
+    public static final String FEATURE_DELETE_BUILDING = "Delete Building";
+    
+    // Floor Management Features
+    public static final String MODULE_FLOOR = "Floor Management";
+    public static final String FEATURE_NEW_FLOOR = "New Floor";
+    public static final String FEATURE_FLOOR_VALIDATION = "Floor Validation";
+    public static final String FEATURE_FLOOR_CREATION = "Floor Creation";
+    public static final String FEATURE_FLOOR_LIST = "Floor List";
+    public static final String FEATURE_FLOOR_CONTEXT_MENU = "Floor Context Menu";
+    public static final String FEATURE_EDIT_FLOOR = "Edit Floor";
+    public static final String FEATURE_DELETE_FLOOR = "Delete Floor";
+
+    // Room Management Constants
+    public static final String MODULE_ROOM = "Room Management";
+    public static final String FEATURE_NEW_ROOM = "New Room";
+    public static final String FEATURE_ROOM_VALIDATION = "Room Validation";
+    public static final String FEATURE_ROOM_CREATION = "Room Creation";
+    public static final String FEATURE_ROOM_LIST = "Room List";
+    public static final String FEATURE_ROOM_CONTEXT_MENU = "Room Context Menu";
+    public static final String FEATURE_EDIT_ROOM = "Edit Room";
+    public static final String FEATURE_DELETE_ROOM = "Delete Room";
+    public static final String FEATURE_ROOM_DETAIL = "Room Detail";
+    public static final String FEATURE_NO_LOCATION = "No Location";
+    public static final String FEATURE_ASSIGN_LOCATION = "Assign Location";
 
     // ============================================
     // EMAIL CONFIGURATION
@@ -126,8 +159,8 @@ public class AppConstants {
     //email to here i think send proper email and secreat & variable ->action key send repo link by mail.  
     public static final String EMAIL_SUBJECT = "eGalvanic iOS Automation - Test Report";
 
-    //public static final boolean SEND_EMAIL_ENABLED = false;
-    public static final boolean SEND_EMAIL_ENABLED = true;
+    public static final boolean SEND_EMAIL_ENABLED = false;
+    // public static final boolean SEND_EMAIL_ENABLED = true;
 
     // ================================================================
     // APP RESET BEHAVIOR

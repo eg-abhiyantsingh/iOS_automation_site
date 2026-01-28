@@ -3616,40 +3616,25 @@ public class AssetPage extends BasePage {
      * 1. Try SIMPLE approach first (faster, cleaner)
      * 2. If SIMPLE fails, try COMPLEX approach (handles edge cases)
      */
-    /**
-     * FAST Location Selection - Handles ALL cases including empty picker
-     * 
-     * Logic:
-     * 1. Try to select existing Building → Floor → Room
-     * 2. If any level missing, CREATE it using plus button
-     * 3. Works even when picker is completely empty
-     */
     public boolean selectLocation() {
         System.out.println("📍 Selecting location (FAST)...");
         
         long timestamp = System.currentTimeMillis();
-        String buildingName = "Building_" + timestamp;
         String floorName = "Floor_" + timestamp;
         String roomName = "Room_" + timestamp;
         
         try {
             // Open picker if not already open
             if (!isLocationPickerOpen()) {
-                selectLocationButton.click();
-                sleep(500);
+                driver.findElement(AppiumBy.accessibilityId("Select location")).click();
+                sleep(400);
             }
-            
-            if (!isLocationPickerOpen()) {
-                System.out.println("⚠️ Picker not open");
-                return false;
-            }
-            System.out.println("📍 Location picker detected (title visible)");
             
             boolean buildingSelected = false;
             boolean floorSelected = false;
-            boolean roomSelected = false;
+            boolean locationSelected = false;
             
-            // STEP 1: SELECT OR CREATE BUILDING
+            // STEP 1: Click Building (contains " floor")
             try {
                 WebElement building = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeButton' AND name CONTAINS ' floor'"));
@@ -3658,200 +3643,159 @@ public class AssetPage extends BasePage {
                 System.out.println("✅ Building: " + bName);
                 buildingSelected = true;
                 sleep(400);
-            } catch (Exception e) {
-                System.out.println("   No existing building, creating...");
-                if (clickPlusButtonForLocation()) {
+                
+                // STEP 2: Click Floor (contains " room" OR "Floor_", but NOT " floor")
+                try {
+                    WebElement floor = driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND (name CONTAINS ' room' OR name BEGINSWITH 'Floor_' OR name BEGINSWITH '1_Floor') AND NOT name CONTAINS ' floor'"));
+                    String fName = floor.getAttribute("name");
+                    floor.click();
+                    System.out.println("✅ Floor: " + fName);
+                    floorSelected = true;
                     sleep(400);
-                    if (enterLocationTextAndSave("Building Name", buildingName)) {
-                        sleep(500);
-                        try {
-                            driver.findElement(AppiumBy.iOSNsPredicateString(
-                                "type == 'XCUIElementTypeButton' AND name CONTAINS '" + buildingName + "'")).click();
-                            System.out.println("✅ Created Building: " + buildingName);
-                            buildingSelected = true;
-                            sleep(400);
-                        } catch (Exception e2) {
-                            System.out.println("⚠️ Could not click created building");
-                        }
+                    
+                    // STEP 3: Click Room (contains ">" OR "Room_", but NOT " floor" or " room")
+                    try {
+                        WebElement room = driver.findElement(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeButton' AND (name CONTAINS '>' OR name BEGINSWITH 'Room_') AND NOT name CONTAINS ' floor' AND NOT name CONTAINS ' room'"));
+                        String rName = room.getAttribute("name");
+                        room.click();
+                        System.out.println("✅ Room: " + rName);
+                        locationSelected = true;
+                    } catch (Exception e) {
+                        System.out.println("   No room found");
                     }
+                } catch (Exception e) {
+                    System.out.println("   No floor found");
                 }
-            }
-            
-            if (!buildingSelected) {
-                System.out.println("⚠️ Building selection failed");
-                dismissLocationPickerSafe();
+            } catch (Exception e) {
+                System.out.println("   No building found");
                 return false;
             }
             
-            // STEP 2: SELECT OR CREATE FLOOR
-            try {
-                WebElement floor = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND (name CONTAINS ' room' OR name BEGINSWITH 'Floor_') AND NOT name CONTAINS ' floor'"));
-                String fName = floor.getAttribute("name");
-                floor.click();
-                System.out.println("✅ Floor: " + fName);
-                floorSelected = true;
-                sleep(400);
-            } catch (Exception e) {
-                System.out.println("   No existing floor, creating...");
-                if (clickPlusButtonForLocation()) {
-                    sleep(400);
-                    if (enterLocationTextAndSave("Floor Name", floorName)) {
-                        sleep(500);
-                        try {
-                            driver.findElement(AppiumBy.iOSNsPredicateString(
-                                "type == 'XCUIElementTypeButton' AND name CONTAINS '" + floorName + "'")).click();
-                            System.out.println("✅ Created Floor: " + floorName);
-                            floorSelected = true;
-                            sleep(400);
-                        } catch (Exception e2) {
-                            System.out.println("⚠️ Could not click created floor");
-                        }
+            // Create missing parts if needed
+            if (!locationSelected) {
+                // Create floor if needed
+                if (buildingSelected && !floorSelected) {
+                    try {
+                        driver.findElement(AppiumBy.iOSClassChain("**/XCUIElementTypeButton[`name == \"plus.circle.fill\"`][1]")).click();
+                        sleep(300);
+                        driver.findElement(AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' AND value == 'Floor Name'")).sendKeys(floorName);
+                        driver.findElement(AppiumBy.accessibilityId("Save")).click();
+                        sleep(400);
+                        driver.findElement(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeButton' AND name CONTAINS '" + floorName + "'")).click();
+                        System.out.println("✅ Created Floor: " + floorName);
+                        floorSelected = true;
+                        sleep(300);
+                    } catch (Exception e) {
+                        System.out.println("⚠️ Could not create floor: " + e.getMessage());
                     }
                 }
-            }
-            
-            if (!floorSelected) {
-                System.out.println("⚠️ Floor selection failed");
-                dismissLocationPickerSafe();
-                return false;
-            }
-            
-            // STEP 3: SELECT OR CREATE ROOM (should auto-close picker)
-            try {
-                WebElement room = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND (name CONTAINS '>' OR name BEGINSWITH 'Room_') AND NOT name CONTAINS ' floor' AND NOT name CONTAINS ' room'"));
-                String rName = room.getAttribute("name");
-                room.click();
-                System.out.println("✅ Room: " + rName);
-                roomSelected = true;
-                sleep(400);
-            } catch (Exception e) {
-                System.out.println("   No existing room, creating...");
-                if (clickPlusButtonForLocation()) {
-                    sleep(400);
-                    if (enterLocationTextAndSave("Room Name", roomName)) {
-                        sleep(500);
+                
+                // Create room if needed
+                if (floorSelected && !locationSelected) {
+                    try {
                         try {
-                            driver.findElement(AppiumBy.iOSNsPredicateString(
-                                "type == 'XCUIElementTypeButton' AND name CONTAINS '" + roomName + "'")).click();
-                            System.out.println("✅ Created Room: " + roomName);
-                            roomSelected = true;
-                            sleep(400);
-                        } catch (Exception e2) {
-                            // Try any visible button that looks like a leaf
+                            driver.findElement(AppiumBy.iOSClassChain("**/XCUIElementTypeButton[`name == \"plus.circle.fill\"`][2]")).click();
+                        } catch (Exception e) {
+                            driver.findElement(AppiumBy.iOSClassChain("**/XCUIElementTypeButton[`name == \"plus.circle.fill\"`][1]")).click();
+                        }
+                        sleep(300);
+                        driver.findElement(AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' AND value == 'Room Name'")).sendKeys(roomName);
+                        driver.findElement(AppiumBy.accessibilityId("Save")).click();
+                        System.out.println("✅ Created Room: " + roomName);
+                        sleep(500);
+                        
+                        // Room is created - now click it to SELECT it
+                        driver.findElement(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeButton' AND name CONTAINS '" + roomName + "'")).click();
+                        System.out.println("   Clicked room to select");
+                        sleep(300);
+                        
+                        // Check if picker closed
+                        if (!isLocationPickerOpen()) {
+                            System.out.println("   Picker closed after room click");
+                            locationSelected = true;
+                        } else {
+                            // Try clicking the room text/cell instead
                             try {
-                                List<WebElement> btns = driver.findElements(AppiumBy.iOSNsPredicateString(
-                                    "type == 'XCUIElementTypeButton' AND visible == true"));
-                                for (WebElement btn : btns) {
-                                    String name = btn.getAttribute("name");
-                                    if (name != null && name.contains(roomName.substring(0, 5))) {
-                                        btn.click();
-                                        roomSelected = true;
-                                        break;
-                                    }
-                                }
-                            } catch (Exception e3) {}
+                                driver.findElement(AppiumBy.iOSNsPredicateString(
+                                    "type == 'XCUIElementTypeCell' AND name CONTAINS '" + roomName + "'")).click();
+                                System.out.println("   Clicked room cell");
+                                sleep(300);
+                            } catch (Exception e2) {}
+                            
+                            // Still need to mark as selected even if picker open
+                            locationSelected = true;
                         }
+                    } catch (Exception e) {
+                        System.out.println("⚠️ Could not create room: " + e.getMessage());
                     }
                 }
             }
-            
-            sleep(500);
             
             // Dismiss picker if still open
+            sleep(300);
             if (isLocationPickerOpen()) {
-                dismissLocationPickerSafe();
+                System.out.println("   Picker still open, dismissing...");
+                
+                // Try clicking Back button multiple times
+                for (int i = 0; i < 3; i++) {
+                    try {
+                        WebElement back = driver.findElement(AppiumBy.iOSNsPredicateString(
+                            "name == 'Back' OR label == 'Back'"));
+                        back.click();
+                        System.out.println("   Clicked Back button");
+                        sleep(400);
+                        if (!isLocationPickerOpen()) break;
+                    } catch (Exception e) {
+                        break;  // No more back buttons
+                    }
+                }
+                
+                // Try tapping outside
+                if (isLocationPickerOpen()) {
+                    try {
+                        int screenWidth = driver.manage().window().getSize().width;
+                        Map<String, Object> tap = new HashMap<>();
+                        tap.put("x", screenWidth / 2);
+                        tap.put("y", 50);
+                        driver.executeScript("mobile: tap", tap);
+                        sleep(400);
+                    } catch (Exception e) {}
+                }
+                
+                // Try edge swipe (iOS back gesture)
+                if (isLocationPickerOpen()) {
+                    try {
+                        int screenHeight = driver.manage().window().getSize().height;
+                        Map<String, Object> swipe = new HashMap<>();
+                        swipe.put("fromX", 10);
+                        swipe.put("fromY", screenHeight / 2);
+                        swipe.put("toX", 200);
+                        swipe.put("toY", screenHeight / 2);
+                        swipe.put("duration", 0.2);
+                        driver.executeScript("mobile: dragFromToForDuration", swipe);
+                        sleep(400);
+                    } catch (Exception e) {}
+                }
             }
             
-            if (roomSelected) {
+            // Final check
+            if (!isLocationPickerOpen()) {
                 System.out.println("✅ Location selected!");
                 return true;
             }
-            return false;
+            
+            return locationSelected;
             
         } catch (Exception e) {
             System.out.println("⚠️ Error: " + e.getMessage());
-            dismissLocationPickerSafe();
             return false;
         }
     }
     
-    /** Click plus button for location creation */
-    private boolean clickPlusButtonForLocation() {
-        try {
-            driver.findElement(AppiumBy.iOSNsPredicateString(
-                "name == 'plus.circle.fill' AND type == 'XCUIElementTypeButton'")).click();
-            System.out.println("   Plus clicked");
-            return true;
-        } catch (Exception e) {}
-        try {
-            driver.findElement(AppiumBy.accessibilityId("plus.circle.fill")).click();
-            System.out.println("   Plus clicked");
-            return true;
-        } catch (Exception e) {}
-        try {
-            driver.findElement(AppiumBy.iOSClassChain(
-                "**/XCUIElementTypeButton[`name == \"plus.circle.fill\"`][1]")).click();
-            System.out.println("   Plus clicked");
-            return true;
-        } catch (Exception e) {}
-        try {
-            driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Add'")).click();
-            System.out.println("   Plus clicked (Add)");
-            return true;
-        } catch (Exception e) {}
-        System.out.println("⚠️ Plus button not found");
-        return false;
-    }
-    
-    /** Enter text and save for location creation */
-    private boolean enterLocationTextAndSave(String placeholder, String text) {
-        try {
-            WebElement tf = null;
-            try {
-                tf = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeTextField' AND (value == '" + placeholder + "' OR placeholderValue == '" + placeholder + "')"));
-            } catch (Exception e) {
-                tf = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeTextField' AND visible == true"));
-            }
-            tf.sendKeys(text);
-            sleep(300);
-            try {
-                driver.findElement(AppiumBy.accessibilityId("Save")).click();
-            } catch (Exception e) {
-                driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND (name == 'Save' OR label == 'Save')")).click();
-            }
-            System.out.println("   Saved: " + text);
-            return true;
-        } catch (Exception e) {
-            System.out.println("⚠️ Text entry failed: " + e.getMessage());
-            return false;
-        }
-    }
-    
-    /** Safely dismiss location picker */
-    private void dismissLocationPickerSafe() {
-        System.out.println("   Dismissing picker...");
-        for (int i = 0; i < 5; i++) {
-            try {
-                driver.findElement(AppiumBy.iOSNsPredicateString("name == 'Back' OR label == 'Back'")).click();
-                sleep(300);
-                if (!isLocationPickerOpen()) return;
-            } catch (Exception e) { break; }
-        }
-        try {
-            int w = driver.manage().window().getSize().width;
-            Map<String, Object> tap = new HashMap<>();
-            tap.put("x", w / 2);
-            tap.put("y", 50);
-            driver.executeScript("mobile: tap", tap);
-        } catch (Exception e) {}
-    }
-
     /**
      * COMPLEX LOCATION SELECTOR - Works for ALL sites and hierarchies
      * 

@@ -2,6 +2,7 @@ package com.egalvanic.utils;
 
 import com.egalvanic.constants.AppConstants;
 import io.appium.java_client.ios.IOSDriver;
+import io.appium.java_client.appmanagement.ApplicationState;
 import io.appium.java_client.ios.options.XCUITestOptions;
 
 import java.net.URL;
@@ -185,25 +186,53 @@ public class DriverManager {
     /**
      * Close app and quit driver completely
      * Ensures clean state for next test
+     * 
+     * Flow:
+     * 1. Terminate app using bundle ID
+     * 2. Verify termination
+     * 3. Quit WebDriver session
      */
     public static void quitDriver() {
         IOSDriver driver = driverThreadLocal.get();
         if (driver != null) {
+            String bundleId = AppConstants.APP_BUNDLE_ID;
+            
             try {
-                // First terminate the app
+                // Step 1: Terminate the app
                 try {
-                    String bundleId = AppConstants.APP_BUNDLE_ID;
-                    driver.terminateApp(bundleId);
-                    System.out.println("✅ App terminated");
+                    ApplicationState state = driver.queryAppState(bundleId);
+                    if (state != ApplicationState.NOT_RUNNING) {
+                        driver.terminateApp(bundleId);
+                        Thread.sleep(500);  // Wait for app to terminate
+                        
+                        // Verify termination
+                        ApplicationState newState = driver.queryAppState(bundleId);
+                        if (newState == ApplicationState.NOT_RUNNING) {
+                            System.out.println("✅ App terminated successfully");
+                        } else {
+                            System.out.println("⚠️ App may still be running (state: " + newState + ")");
+                            // Try force terminate
+                            driver.terminateApp(bundleId);
+                        }
+                    } else {
+                        System.out.println("✅ App was not running");
+                    }
                 } catch (Exception e) {
-                    // App might already be closed
+                    System.out.println("⚠️ Could not terminate app: " + e.getMessage());
                 }
                 
-                // Then quit driver
+                // Step 2: Quit driver
                 driver.quit();
                 System.out.println("✅ Driver closed successfully");
+                
             } catch (Exception e) {
                 System.err.println("⚠️ Error closing driver: " + e.getMessage());
+                // Try to force quit even on error
+                try {
+                    driver.quit();
+                } catch (Exception e2) {
+                    // Ignore
+                }
             } finally {
                 driverThreadLocal.remove();
             }
