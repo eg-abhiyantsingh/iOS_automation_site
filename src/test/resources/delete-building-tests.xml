@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="Delete Building Tests" verbose="1">
+    <test name="Delete Building Tests">
+        <classes>
+            <class name="com.egalvanic.tests.LocationTest">
+                <methods>
+                    <include name="TC_DB_001_verifyBuildingDeletedImmediatelyOnTap"/>
+                    <include name="TC_DB_002_verifyDeleteBuildingButtonStyling"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+</suite>

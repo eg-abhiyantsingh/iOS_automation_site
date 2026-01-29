@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="Location Fixes Verification" verbose="1">
+    <test name="Building Tests - Verify Fixes">
+        <classes>
+            <class name="com.egalvanic.tests.LocationTest">
+                <methods>
+                    <!-- Building List Tests -->
+                    <include name="TC_BL_001_verifyBuildingListDisplaysBuildings"/>
+                    <include name="TC_BL_002_verifyLongPressShowsContextMenu"/>
+                    
+                    <!-- Delete Building Tests -->
+                    <include name="TC_DB_001_verifyBuildingDeletedImmediatelyOnTap"/>
+                    <include name="TC_DB_002_verifyDeleteBuildingButtonStyling"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+</suite>

@@ -1,7 +1,7 @@
 name: iOS Tests - Full Parallel Suite
 
 # ============================================================
-# FULL PARALLEL TEST SUITE - v3.0 (WORKING CONFIG)
+# FULL PARALLEL TEST SUITE - v3.1 (OPTIMIZED CONFIG)
 # ============================================================
 # Based on WORKING ios-tests.yml configuration:
 #   - appium@next (NOT 2.5.0)
@@ -13,12 +13,13 @@ name: iOS Tests - Full Parallel Suite
 # Test Distribution:
 #   Job 1: Auth (38 tests) - ~45 min
 #   Job 2: Site (52 tests) - ~1.5 hr
-#   Job 3: Phase1 (139 tests) - ~4 hr
-#   Job 4: Phase2 (159 tests) - ~4.5 hr
-#   Job 5: Phase3 (169 tests) - ~5 hr
-#   Job 6: Phase4 (141 tests) - ~4 hr
-#   Job 7: Phase5 (45 tests) - ~1.5 hr
-#   Total: ~743 tests
+#   Job 3: Phase1 (139 tests) - ~3 hr (optimized)
+#   Job 4: Phase2 (159 tests) - ~3.5 hr (optimized)
+#   Job 5: Phase3 (169 tests) - ~4 hr (optimized)
+#   Job 6: Phase4 (141 tests) - ~3 hr (optimized)
+#   Job 7: Phase5 (45 tests) - ~1 hr (optimized)
+#   Job 8: Location (84 tests) - ~2 hr
+#   Total: ~827 tests
 # ============================================================
 
 on:
@@ -40,6 +41,7 @@ on:
           - 'phase3-only'
           - 'phase4-only'
           - 'phase5-only'
+          - 'location-only'
 
 jobs:
   # ========================================
@@ -91,14 +93,10 @@ jobs:
           fi
           echo "Selected UDID: $UDID"
           
-          # Cleanup before boot
           xcrun simctl shutdown "$UDID" 2>/dev/null || true
           sleep 3
-          
-          # Boot simulator
           xcrun simctl boot "$UDID" 2>/dev/null || true
           
-          # Wait for boot with verification loop
           BOOT_TIMEOUT=240
           ELAPSED=0
           while [ $ELAPSED -lt $BOOT_TIMEOUT ]; do
@@ -362,7 +360,7 @@ jobs:
           retention-days: 7
 
   # ========================================
-  # JOB 3: Phase 1 Tests (139 tests, ~4 hr)
+  # JOB 3: Phase 1 Tests (139 tests, ~3 hr)
   # ========================================
   phase1-tests:
     if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'phase1-only'
@@ -466,7 +464,7 @@ jobs:
           retention-days: 7
 
   # ========================================
-  # JOB: Phase 2 Tests (159 tests)
+  # JOB 4: Phase 2 Tests (159 tests, ~3.5 hr)
   # ========================================
   phase2-tests:
     if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'phase2-only'
@@ -553,7 +551,11 @@ jobs:
       - name: Run Phase 2 Tests
         continue-on-error: true
         run: |
-          mvn test -DsuiteXmlFile=src/test/resources/parallel/testng-phase2.xml             -DDEVICE_NAME="${{ env.DEVICE_NAME }}"             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}"             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}"             -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+          mvn test -DsuiteXmlFile=src/test/resources/parallel/testng-phase2.xml \
+            -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
+            -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
+            -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
+            -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
       - name: Upload Phase 2 Report
         if: always()
         uses: actions/upload-artifact@v4
@@ -566,7 +568,7 @@ jobs:
           retention-days: 7
 
   # ========================================
-  # JOB: Phase 3 Tests (169 tests)
+  # JOB 5: Phase 3 Tests (169 tests, ~4 hr)
   # ========================================
   phase3-tests:
     if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'phase3-only'
@@ -653,7 +655,11 @@ jobs:
       - name: Run Phase 3 Tests
         continue-on-error: true
         run: |
-          mvn test -DsuiteXmlFile=src/test/resources/parallel/testng-phase3.xml             -DDEVICE_NAME="${{ env.DEVICE_NAME }}"             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}"             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}"             -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+          mvn test -DsuiteXmlFile=src/test/resources/parallel/testng-phase3.xml \
+            -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
+            -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
+            -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
+            -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
       - name: Upload Phase 3 Report
         if: always()
         uses: actions/upload-artifact@v4
@@ -666,7 +672,7 @@ jobs:
           retention-days: 7
 
   # ========================================
-  # JOB: Phase 4 Tests (141 tests)
+  # JOB 6: Phase 4 Tests (141 tests, ~3 hr)
   # ========================================
   phase4-tests:
     if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'phase4-only'
@@ -753,7 +759,11 @@ jobs:
       - name: Run Phase 4 Tests
         continue-on-error: true
         run: |
-          mvn test -DsuiteXmlFile=src/test/resources/parallel/testng-phase4.xml             -DDEVICE_NAME="${{ env.DEVICE_NAME }}"             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}"             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}"             -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+          mvn test -DsuiteXmlFile=src/test/resources/parallel/testng-phase4.xml \
+            -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
+            -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
+            -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
+            -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
       - name: Upload Phase 4 Report
         if: always()
         uses: actions/upload-artifact@v4
@@ -766,7 +776,7 @@ jobs:
           retention-days: 7
 
   # ========================================
-  # JOB: Phase 5 Tests (45 tests)
+  # JOB 7: Phase 5 Tests (45 tests, ~1 hr)
   # ========================================
   phase5-tests:
     if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'phase5-only'
@@ -853,7 +863,11 @@ jobs:
       - name: Run Phase 5 Tests
         continue-on-error: true
         run: |
-          mvn test -DsuiteXmlFile=src/test/resources/parallel/testng-phase5.xml             -DDEVICE_NAME="${{ env.DEVICE_NAME }}"             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}"             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}"             -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+          mvn test -DsuiteXmlFile=src/test/resources/parallel/testng-phase5.xml \
+            -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
+            -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
+            -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
+            -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
       - name: Upload Phase 5 Report
         if: always()
         uses: actions/upload-artifact@v4
@@ -866,10 +880,114 @@ jobs:
           retention-days: 7
 
   # ========================================
+  # JOB 8: Location Tests (84 tests, ~2 hr)
+  # ========================================
+  location-tests:
+    if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'location-only'
+    runs-on: macos-15
+    timeout-minutes: 359
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install Appium
+        run: |
+          npm install -g appium@next
+          appium driver install xcuitest
+      - name: Unzip App
+        run: unzip -o apps/Z-Platform-QA.zip -d apps/
+      - name: Boot Simulator and Wait Until Ready
+        run: |
+          UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && UDID=$(xcrun simctl list devices available | grep -E "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && UDID=$(xcrun simctl list devices available | grep -E "iPhone 1[5-6]" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && exit 1
+          xcrun simctl shutdown "$UDID" 2>/dev/null || true
+          sleep 3
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+          ELAPSED=0
+          while [ $ELAPSED -lt 240 ]; do
+            if xcrun simctl list devices | grep "$UDID" | grep -q "(Booted)"; then
+              echo "✅ Simulator booted after ${ELAPSED}s"
+              sleep 45
+              break
+            fi
+            sleep 5
+            ELAPSED=$((ELAPSED + 5))
+          done
+          [ $ELAPSED -ge 240 ] && exit 1
+          DEVICE=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
+          VERSION=$(xcrun simctl list devices available | grep -B 50 "$UDID" | grep "-- iOS" | tail -1 | sed 's/.*iOS \([0-9.]*\).*/\1/')
+          [ -z "$VERSION" ] && VERSION="18.5"
+          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+          echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
+          echo "PLATFORM_VERSION=$VERSION" >> $GITHUB_ENV
+      - name: Pre-install App
+        run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
+      - name: Pre-build WebDriverAgent
+        run: |
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          if [ -n "$WDA_PATH" ]; then
+            cd "$WDA_PATH"
+            xcodebuild build-for-testing -project WebDriverAgent.xcodeproj -scheme WebDriverAgentRunner -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" -derivedDataPath /tmp/wda-build -quiet || true
+          fi
+      - name: Start Appium Server
+        run: |
+          appium --relaxed-security --log-level info > appium.log 2>&1 &
+          for i in {1..60}; do
+            [ "$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:4723/status 2>/dev/null)" = "200" ] && break
+            sleep 2
+          done
+          sleep 10
+      - name: Warm-up WDA Session
+        env:
+          SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
+          APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
+        run: |
+          for attempt in 1 2 3; do
+            SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session -H "Content-Type: application/json" -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"$SIMULATOR_UDID"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' --max-time 600 2>&1) || true
+            SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
+            if [ -n "$SESSION_ID" ]; then
+              sleep 10
+              curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true
+              sleep 5
+              break
+            fi
+            [ $attempt -lt 3 ] && sleep 30
+          done
+      - name: Run Location Tests
+        continue-on-error: true
+        run: |
+          mvn test -DsuiteXmlFile=src/test/resources/parallel/testng-location.xml \
+            -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
+            -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
+            -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
+            -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+      - name: Upload Location Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: location-report
+          path: |
+            target/surefire-reports/
+            reports/
+            screenshots/
+          retention-days: 7
+
+  # ========================================
   # FINAL JOB: Merge Reports & Send Email
   # ========================================
   send-email:
-    needs: [auth-tests, site-tests, phase1-tests, phase2-tests, phase3-tests, phase4-tests, phase5-tests]
+    needs: [auth-tests, site-tests, phase1-tests, phase2-tests, phase3-tests, phase4-tests, phase5-tests, location-tests]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -891,6 +1009,7 @@ jobs:
           P3="${{ needs.phase3-tests.result }}"
           P4="${{ needs.phase4-tests.result }}"
           P5="${{ needs.phase5-tests.result }}"
+          LOC="${{ needs.location-tests.result }}"
           
           SUCCESS=0
           [ "$AUTH" = "success" ] && SUCCESS=$((SUCCESS+1))
@@ -900,22 +1019,21 @@ jobs:
           [ "$P3" = "success" ] && SUCCESS=$((SUCCESS+1))
           [ "$P4" = "success" ] && SUCCESS=$((SUCCESS+1))
           [ "$P5" = "success" ] && SUCCESS=$((SUCCESS+1))
+          [ "$LOC" = "success" ] && SUCCESS=$((SUCCESS+1))
           
-          FAILED=$((7-SUCCESS))
+          FAILED=$((8-SUCCESS))
           echo "SUCCESS=$SUCCESS" >> $GITHUB_OUTPUT
           echo "FAILED=$FAILED" >> $GITHUB_OUTPUT
           
-          # Determine overall status
-          if [ $SUCCESS -eq 7 ]; then
+          if [ $SUCCESS -eq 8 ]; then
             STATUS="✅ ALL PASSED"
-          elif [ $SUCCESS -ge 5 ]; then
+          elif [ $SUCCESS -ge 6 ]; then
             STATUS="⚠️ MOSTLY PASSED"
           else
             STATUS="❌ FAILED"
           fi
           echo "STATUS=$STATUS" >> $GITHUB_OUTPUT
           
-          # Create email body
           cat > email_body.html << EOF
           <!DOCTYPE html>
           <html>
@@ -927,7 +1045,7 @@ jobs:
             <p><b>Run:</b> <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Full Details</a></p>
             <hr>
             
-            <h2>Results: ${SUCCESS}/7 Jobs Passed - ${STATUS}</h2>
+            <h2>Results: ${SUCCESS}/8 Jobs Passed - ${STATUS}</h2>
             
             <table border="1" cellpadding="10" style="border-collapse: collapse; width: 100%;">
               <tr style="background-color: #4a90d9; color: white;">
@@ -938,19 +1056,20 @@ jobs:
               </tr>
               <tr><td>Auth Tests</td><td>38</td><td>~45 min</td><td>${AUTH}</td></tr>
               <tr><td>Site Tests</td><td>52</td><td>~1.5 hr</td><td>${SITE}</td></tr>
-              <tr><td>Phase 1 Tests</td><td>139</td><td>~4 hr</td><td>${P1}</td></tr>
-              <tr><td>Phase 2 Tests</td><td>159</td><td>~4.5 hr</td><td>${P2}</td></tr>
-              <tr><td>Phase 3 Tests</td><td>169</td><td>~5 hr</td><td>${P3}</td></tr>
-              <tr><td>Phase 4 Tests</td><td>141</td><td>~4 hr</td><td>${P4}</td></tr>
-              <tr><td>Phase 5 Tests</td><td>45</td><td>~1.5 hr</td><td>${P5}</td></tr>
+              <tr><td>Phase 1 Tests</td><td>139</td><td>~3 hr</td><td>${P1}</td></tr>
+              <tr><td>Phase 2 Tests</td><td>159</td><td>~3.5 hr</td><td>${P2}</td></tr>
+              <tr><td>Phase 3 Tests</td><td>169</td><td>~4 hr</td><td>${P3}</td></tr>
+              <tr><td>Phase 4 Tests</td><td>141</td><td>~3 hr</td><td>${P4}</td></tr>
+              <tr><td>Phase 5 Tests</td><td>45</td><td>~1 hr</td><td>${P5}</td></tr>
+              <tr><td>Location Tests</td><td>84</td><td>~2 hr</td><td>${LOC}</td></tr>
             </table>
             
             <hr>
             <h3>Summary</h3>
-            <p><b>Total Tests:</b> ~743</p>
+            <p><b>Total Tests:</b> ~827</p>
             <p><b>Jobs Passed:</b> ${SUCCESS}</p>
             <p><b>Jobs Failed:</b> ${FAILED}</p>
-            <p><b>Wall Clock Time:</b> ~5 hours (parallel execution)</p>
+            <p><b>Wall Clock Time:</b> ~4 hours (parallel execution)</p>
             
             <p style="margin-top: 20px; color: #666; font-size: 12px;">
               This is an automated report from eGalvanic iOS Automation Suite.<br>
@@ -968,7 +1087,7 @@ jobs:
           secure: true
           username: ${{ secrets.EMAIL_USERNAME }}
           password: ${{ secrets.EMAIL_PASSWORD }}
-          subject: "[${{ steps.email.outputs.STATUS }}] iOS Full Suite - ${{ steps.email.outputs.SUCCESS }}/7 Jobs Passed"
+          subject: "[${{ steps.email.outputs.STATUS }}] iOS Full Suite - ${{ steps.email.outputs.SUCCESS }}/8 Jobs Passed"
           html_body: file://email_body.html
           to: ${{ secrets.EMAIL_TO }}
           from: "iOS Automation <${{ secrets.EMAIL_USERNAME }}>"
@@ -980,7 +1099,7 @@ jobs:
           echo "║          FULL TEST SUITE COMPLETE                               ║"
           echo "╚════════════════════════════════════════════════════════════════╝"
           echo ""
-          echo "📊 Results: ${{ steps.email.outputs.SUCCESS }}/7 Jobs Passed"
+          echo "📊 Results: ${{ steps.email.outputs.SUCCESS }}/8 Jobs Passed"
           echo ""
           echo "   Auth Tests (38):    ${{ needs.auth-tests.result }}"
           echo "   Site Tests (52):    ${{ needs.site-tests.result }}"
@@ -989,6 +1108,7 @@ jobs:
           echo "   Phase 3 (169):      ${{ needs.phase3-tests.result }}"
           echo "   Phase 4 (141):      ${{ needs.phase4-tests.result }}"
           echo "   Phase 5 (45):       ${{ needs.phase5-tests.result }}"
+          echo "   Location (84):      ${{ needs.location-tests.result }}"
           echo ""
           echo "📧 Email sent to configured recipients"
           echo ""

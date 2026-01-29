@@ -627,21 +627,21 @@ public class BaseTest {
      * Short wait (1 second) - CI-safe
      */
     protected void shortWait() {
-        sleep(500);
+        sleep(300); // Optimized: 500ms -> 300ms
     }
 
     /**
      * Medium wait (1 second) - CI-safe
      */
     protected void mediumWait() {
-        sleep(1000);
+        sleep(600); // Optimized: 1000ms -> 600ms
     }
 
     /**
      * Long wait (2 seconds) - CI-safe
      */
     protected void longWait() {
-        sleep(2000);
+        sleep(1200); // Optimized: 2000ms -> 1200ms
     }
 
     /**
