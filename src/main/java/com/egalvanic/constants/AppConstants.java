@@ -24,7 +24,8 @@ public class AppConstants {
     public static final String PLATFORM_VERSION = getEnv("PLATFORM_VERSION", "26.2");
     public static final String UDID = getEnv("SIMULATOR_UDID", "B745C0EF-01AA-4355-8B08-86812A8CBBAA");
     public static final String APP_PATH = getEnv("APP_PATH", "/Users/abhiyantsingh/Downloads/Z Platform-QA.app");
-    public static final String APP_BUNDLE_ID = "com.egalvanic.zplatform-Dev";
+    //public static final String APP_BUNDLE_ID = "com.egalvanic.zplatform-Dev";
+    public static final String APP_BUNDLE_ID = "com.egalvanic.zplatform-QA";
 
     // ============================================
     // TEST DATA - AUTHENTICATION
@@ -160,7 +161,7 @@ public class AppConstants {
     public static final String EMAIL_SUBJECT = "eGalvanic iOS Automation - Test Report";
 
     //public static final boolean SEND_EMAIL_ENABLED = false;
-     public static final boolean SEND_EMAIL_ENABLED = true;
+    public static final boolean SEND_EMAIL_ENABLED = true;
 
     // ================================================================
     // APP RESET BEHAVIOR

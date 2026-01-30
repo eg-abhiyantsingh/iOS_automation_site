@@ -216,7 +216,7 @@ public class AssetPage extends BasePage {
             if (closeBtn.isDisplayed()) {
                 System.out.println("🔙 Found Close button - closing Asset Detail first...");
                 closeBtn.click();
-                sleep(500);
+                sleep(300); // OPTIMIZED: 500ms -> 300ms
             }
         } catch (Exception e) {
             // No Close button, that's fine - we might already be on Asset List
@@ -229,7 +229,7 @@ public class AssetPage extends BasePage {
                 AppiumBy.iOSNsPredicateString("label == 'Assets' AND type == 'XCUIElementTypeButton'")
             );
             assetsTab.click();
-            sleep(500);
+            sleep(300); // OPTIMIZED: 500ms -> 300ms
             System.out.println("✅ Asset List opened");
             return;
         } catch (Exception e) {
@@ -240,7 +240,7 @@ public class AssetPage extends BasePage {
         try {
             WebElement assetsTab = driver.findElement(AppiumBy.accessibilityId("list.bullet"));
             assetsTab.click();
-            sleep(500);
+            sleep(300); // OPTIMIZED: 500ms -> 300ms
             System.out.println("✅ Asset List opened (via list.bullet)");
             return;
         } catch (Exception e2) {
@@ -254,13 +254,13 @@ public class AssetPage extends BasePage {
                 AppiumBy.iOSNsPredicateString("label == 'Site' AND type == 'XCUIElementTypeButton'")
             );
             siteTab.click();
-            sleep(500);
+            sleep(300); // OPTIMIZED: 500ms -> 300ms
             
             WebElement assetsTab = driver.findElement(
                 AppiumBy.iOSNsPredicateString("label == 'Assets' AND type == 'XCUIElementTypeButton'")
             );
             assetsTab.click();
-            sleep(500);
+            sleep(300); // OPTIMIZED: 500ms -> 300ms
             System.out.println("✅ Asset List opened (via Site tab)");
         } catch (Exception e3) {
             System.out.println("⚠️ Could not open Asset List: " + e3.getMessage());
@@ -3142,8 +3142,8 @@ public class AssetPage extends BasePage {
     public String selectFirstAsset() {
         System.out.println("📦 Selecting first asset...");
         
-        // Wait for list to fully load
-        sleep(600);
+        // Wait for list to fully load - OPTIMIZED: 600ms -> 300ms
+        sleep(300);
         
         // STRATEGY 1: Find asset buttons directly (they contain full asset info in name)
         // Asset buttons have format: "AssetName, Location, Type" e.g. "TestAsset_123, Room_456, ATS"
@@ -3162,7 +3162,7 @@ public class AssetPage extends BasePage {
                 System.out.println("   🎯 First asset button: " + assetName);
                 firstAsset.click();
                 System.out.println("✅ Selected asset via button");
-                sleep(900);
+                sleep(400); // OPTIMIZED: 900ms -> 400ms
                 return assetName.split(",")[0].trim();
             }
         } catch (Exception e) {
@@ -6613,7 +6613,7 @@ public class AssetPage extends BasePage {
     public void clickEditTurbo() {
         // Asset Detail screen is DIRECTLY editable - no separate Edit button exists
         // The screen already shows editable fields (TextField for name, Buttons for class, etc.)
-        sleep(500);
+        sleep(200); // OPTIMIZED: 500ms -> 200ms
         
         // Verify we're on the Asset Details screen (which IS the edit screen)
         boolean onEditScreen = false;
