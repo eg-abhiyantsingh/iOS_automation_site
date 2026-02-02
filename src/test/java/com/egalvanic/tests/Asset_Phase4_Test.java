@@ -29,19 +29,27 @@ public final class Asset_Phase4_Test extends BaseTest {
         System.out.println("📋 Asset Phase 4 Test Suite - Complete");
     }
 
-    private void navigateToDisconnectSwitchEditScreen() {
+    /**
+     * OPTIMIZED: Generic navigation to Edit Asset screen
+     * Replaces sleep(1500) + sleep(2000) with shortWait() for 3.2 second savings per call
+     */
+    private void navigateToEditAssetScreen(String assetTypeName) {
         long start = System.currentTimeMillis();
-        System.out.println("📝 Navigating to Disconnect Switch Edit Asset screen...");
+        System.out.println("📝 Navigating to " + assetTypeName + " Edit Asset screen...");
         System.out.println("📦 Going to Asset List...");
         assetPage.navigateToAssetListTurbo();
         System.out.println("🔍 Selecting first asset...");
         assetPage.selectFirstAsset();
-        sleep(1500);
+        shortWait();  // OPTIMIZED: was sleep(1500)
         System.out.println("✏️ Clicking Edit...");
         assetPage.clickEditTurbo();
-        sleep(2000);
+        shortWait();  // OPTIMIZED: was sleep(2000)
         long elapsed = System.currentTimeMillis() - start;
-        System.out.println("✅ On Disconnect Switch Edit Asset screen (Total: " + elapsed + "ms)");
+        System.out.println("✅ On " + assetTypeName + " Edit Asset screen (Total: " + elapsed + "ms)");
+    }
+
+    private void navigateToDisconnectSwitchEditScreen() {
+        navigateToEditAssetScreen("Disconnect Switch");
     }
 
     // TC-DS-ST-01
@@ -554,27 +562,8 @@ public final class Asset_Phase4_Test extends BaseTest {
     // FUSE ASSET SUBTYPE TESTS (TC-FUSE-ST-01 to TC-FUSE-ST-11)
     // ============================================================
     
-    /**
-     * Helper method to navigate to Fuse Edit Asset screen
-     * Uses TURBO methods for fast navigation
-     */
     private void navigateToFuseEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("📝 Navigating to Fuse Edit Asset screen...");
-        
-        System.out.println("📦 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        System.out.println("🔍 Selecting first asset...");
-        assetPage.selectFirstAsset();
-        sleep(1500);
-        
-        System.out.println("✏️ Clicking Edit...");
-        assetPage.clickEditTurbo();
-        sleep(2000);
-        
-        long elapsed = System.currentTimeMillis() - start;
-        System.out.println("✅ On Fuse Edit Asset screen (Total: " + elapsed + "ms)");
+        navigateToEditAssetScreen("Fuse");
     }
 
     // ============================================================
@@ -1149,27 +1138,8 @@ public final class Asset_Phase4_Test extends BaseTest {
     //                  Manufacturer, Power Factor, Serial Number, Voltage
     // ============================================================
     
-    /**
-     * Helper method to navigate to Generator Edit Asset screen
-     * Uses TURBO methods for fast navigation
-     */
     private void navigateToGeneratorEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("📝 Navigating to Generator Edit Asset screen...");
-        
-        System.out.println("📦 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        System.out.println("🔍 Selecting first asset...");
-        assetPage.selectFirstAsset();
-        sleep(1500);
-        
-        System.out.println("✏️ Clicking Edit...");
-        assetPage.clickEditTurbo();
-        sleep(2000);
-        
-        long elapsed = System.currentTimeMillis() - start;
-        System.out.println("✅ On Generator Edit Asset screen (Total: " + elapsed + "ms)");
+        navigateToEditAssetScreen("Generator");
     }
 
     /**
@@ -1187,9 +1157,9 @@ public final class Asset_Phase4_Test extends BaseTest {
     private void scrollToCoreAttributesSection() {
         System.out.println("📜 Scrolling to Core Attributes section...");
         assetPage.scrollFormDown();
-        sleep(500);
+        shortWait();  // OPTIMIZED: was sleep(500)
         assetPage.scrollFormDown();
-        sleep(500);
+        shortWait();  // OPTIMIZED: was sleep(500)
         System.out.println("✅ Scrolled to Core Attributes area");
     }
 
@@ -1476,22 +1446,7 @@ public final class Asset_Phase4_Test extends BaseTest {
      * Uses TURBO methods for fast navigation
      */
     private void navigateToJunctionBoxEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("📝 Navigating to Junction Box Edit Asset screen...");
-        
-        System.out.println("📦 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        System.out.println("🔍 Selecting first asset...");
-        assetPage.selectFirstAsset();
-        sleep(1500);
-        
-        System.out.println("✏️ Clicking Edit...");
-        assetPage.clickEditTurbo();
-        sleep(2000);
-        
-        long elapsed = System.currentTimeMillis() - start;
-        System.out.println("✅ On Junction Box Edit Asset screen (Total: " + elapsed + "ms)");
+        navigateToEditAssetScreen("Junction Box");
     }
 
     // ============================================================
@@ -1592,22 +1547,7 @@ public final class Asset_Phase4_Test extends BaseTest {
      * Uses TURBO methods for fast navigation
      */
     private void navigateToLoadcenterEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("📝 Navigating to Loadcenter Edit Asset screen...");
-        
-        System.out.println("📦 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        System.out.println("🔍 Selecting first asset...");
-        assetPage.selectFirstAsset();
-        sleep(1500);
-        
-        System.out.println("✏️ Clicking Edit...");
-        assetPage.clickEditTurbo();
-        sleep(2000);
-        
-        long elapsed = System.currentTimeMillis() - start;
-        System.out.println("✅ On Loadcenter Edit Asset screen (Total: " + elapsed + "ms)");
+        navigateToEditAssetScreen("Loadcenter");
     }
 
     // ============================================================
@@ -1708,22 +1648,7 @@ public final class Asset_Phase4_Test extends BaseTest {
      * Uses TURBO methods for fast navigation
      */
     private void navigateToMCCEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("📝 Navigating to MCC Edit Asset screen...");
-        
-        System.out.println("📦 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        System.out.println("🔍 Selecting first asset...");
-        assetPage.selectFirstAsset();
-        sleep(1500);
-        
-        System.out.println("✏️ Clicking Edit...");
-        assetPage.clickEditTurbo();
-        sleep(2000);
-        
-        long elapsed = System.currentTimeMillis() - start;
-        System.out.println("✅ On MCC Edit Asset screen (Total: " + elapsed + "ms)");
+        navigateToEditAssetScreen("MCC");
     }
 
     // ============================================================
@@ -1959,22 +1884,7 @@ public final class Asset_Phase4_Test extends BaseTest {
      * Uses TURBO methods for fast navigation
      */
     private void navigateToMCCBucketEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("📝 Navigating to MCC Bucket Edit Asset screen...");
-        
-        System.out.println("📦 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        System.out.println("🔍 Selecting first asset...");
-        assetPage.selectFirstAsset();
-        sleep(1500);
-        
-        System.out.println("✏️ Clicking Edit...");
-        assetPage.clickEditTurbo();
-        sleep(2000);
-        
-        long elapsed = System.currentTimeMillis() - start;
-        System.out.println("✅ On MCC Bucket Edit Asset screen (Total: " + elapsed + "ms)");
+        navigateToEditAssetScreen("MCC Bucket");
     }
 
     // ============================================================
@@ -2070,22 +1980,7 @@ public final class Asset_Phase4_Test extends BaseTest {
      * Uses TURBO methods for fast navigation
      */
     private void navigateToMotorEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("📝 Navigating to Motor Edit Asset screen...");
-        
-        System.out.println("📦 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        System.out.println("🔍 Selecting first asset...");
-        assetPage.selectFirstAsset();
-        sleep(1500);
-        
-        System.out.println("✏️ Clicking Edit...");
-        assetPage.clickEditTurbo();
-        sleep(2000);
-        
-        long elapsed = System.currentTimeMillis() - start;
-        System.out.println("✅ On Motor Edit Asset screen (Total: " + elapsed + "ms)");
+        navigateToEditAssetScreen("Motor");
     }
 
     // ============================================================
@@ -2333,22 +2228,7 @@ public final class Asset_Phase4_Test extends BaseTest {
      * Uses TURBO methods for fast navigation
      */
     private void navigateToOtherOCPEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("📝 Navigating to Other (OCP) Edit Asset screen...");
-        
-        System.out.println("📦 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        System.out.println("🔍 Selecting first asset...");
-        assetPage.selectFirstAsset();
-        sleep(1500);
-        
-        System.out.println("✏️ Clicking Edit...");
-        assetPage.clickEditTurbo();
-        sleep(2000);
-        
-        long elapsed = System.currentTimeMillis() - start;
-        System.out.println("✅ On Other (OCP) Edit Asset screen (Total: " + elapsed + "ms)");
+        navigateToEditAssetScreen("Other (OCP)");
     }
 
     // ============================================================
@@ -2444,22 +2324,7 @@ public final class Asset_Phase4_Test extends BaseTest {
      * Uses TURBO methods for fast navigation
      */
     private void navigateToPanelboardEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("📝 Navigating to Panelboard Edit Asset screen...");
-        
-        System.out.println("📦 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        System.out.println("🔍 Selecting first asset...");
-        assetPage.selectFirstAsset();
-        sleep(1500);
-        
-        System.out.println("✏️ Clicking Edit...");
-        assetPage.clickEditTurbo();
-        sleep(2000);
-        
-        long elapsed = System.currentTimeMillis() - start;
-        System.out.println("✅ On Panelboard Edit Asset screen (Total: " + elapsed + "ms)");
+        navigateToEditAssetScreen("Panelboard");
     }
 
     // ============================================================
@@ -2648,22 +2513,7 @@ public final class Asset_Phase4_Test extends BaseTest {
      * Uses TURBO methods for fast navigation
      */
     private void navigateToPDUEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("📝 Navigating to PDU Edit Asset screen...");
-        
-        System.out.println("📦 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        System.out.println("🔍 Selecting first asset...");
-        assetPage.selectFirstAsset();
-        sleep(1500);
-        
-        System.out.println("✏️ Clicking Edit...");
-        assetPage.clickEditTurbo();
-        sleep(2000);
-        
-        long elapsed = System.currentTimeMillis() - start;
-        System.out.println("✅ On PDU Edit Asset screen (Total: " + elapsed + "ms)");
+        navigateToEditAssetScreen("PDU");
     }
 
     // ============================================================
@@ -2759,22 +2609,7 @@ public final class Asset_Phase4_Test extends BaseTest {
      * Uses TURBO methods for fast navigation
      */
     private void navigateToRelayEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("📝 Navigating to Relay Edit Asset screen...");
-        
-        System.out.println("📦 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        System.out.println("🔍 Selecting first asset...");
-        assetPage.selectFirstAsset();
-        sleep(1500);
-        
-        System.out.println("✏️ Clicking Edit...");
-        assetPage.clickEditTurbo();
-        sleep(2000);
-        
-        long elapsed = System.currentTimeMillis() - start;
-        System.out.println("✅ On Relay Edit Asset screen (Total: " + elapsed + "ms)");
+        navigateToEditAssetScreen("Relay");
     }
 
     // ============================================================
@@ -3022,22 +2857,7 @@ public final class Asset_Phase4_Test extends BaseTest {
      * Uses TURBO methods for fast navigation
      */
     private void navigateToSwitchboardEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("📝 Navigating to Switchboard Edit Asset screen...");
-        
-        System.out.println("📦 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        System.out.println("🔍 Selecting first asset...");
-        assetPage.selectFirstAsset();
-        sleep(1500);
-        
-        System.out.println("✏️ Clicking Edit...");
-        assetPage.clickEditTurbo();
-        sleep(2000);
-        
-        long elapsed = System.currentTimeMillis() - start;
-        System.out.println("✅ On Switchboard Edit Asset screen (Total: " + elapsed + "ms)");
+        navigateToEditAssetScreen("Switchboard");
     }
 
     // ============================================================
@@ -3287,22 +3107,7 @@ public final class Asset_Phase4_Test extends BaseTest {
      * Uses TURBO methods for fast navigation
      */
     private void navigateToTransformerEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("📝 Navigating to Transformer Edit Asset screen...");
-        
-        System.out.println("📦 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        System.out.println("🔍 Selecting first asset...");
-        assetPage.selectFirstAsset();
-        sleep(1500);
-        
-        System.out.println("✏️ Clicking Edit...");
-        assetPage.clickEditTurbo();
-        sleep(2000);
-        
-        long elapsed = System.currentTimeMillis() - start;
-        System.out.println("✅ On Transformer Edit Asset screen (Total: " + elapsed + "ms)");
+        navigateToEditAssetScreen("Transformer");
     }
 
     // ============================================================
@@ -3549,22 +3354,7 @@ public final class Asset_Phase4_Test extends BaseTest {
      * Uses TURBO methods for fast navigation
      */
     private void navigateToUPSEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("📝 Navigating to UPS Edit Asset screen...");
-        
-        System.out.println("📦 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        System.out.println("🔍 Selecting first asset...");
-        assetPage.selectFirstAsset();
-        sleep(1500);
-        
-        System.out.println("✏️ Clicking Edit...");
-        assetPage.clickEditTurbo();
-        sleep(2000);
-        
-        long elapsed = System.currentTimeMillis() - start;
-        System.out.println("✅ On UPS Edit Asset screen (Total: " + elapsed + "ms)");
+        navigateToEditAssetScreen("UPS");
     }
 
     // ============================================================
@@ -3811,22 +3601,7 @@ public final class Asset_Phase4_Test extends BaseTest {
      * Uses TURBO methods for fast navigation
      */
     private void navigateToUtilityEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("📝 Navigating to Utility Edit Asset screen...");
-        
-        System.out.println("📦 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        System.out.println("🔍 Selecting first asset...");
-        assetPage.selectFirstAsset();
-        sleep(1500);
-        
-        System.out.println("✏️ Clicking Edit...");
-        assetPage.clickEditTurbo();
-        sleep(2000);
-        
-        long elapsed = System.currentTimeMillis() - start;
-        System.out.println("✅ On Utility Edit Asset screen (Total: " + elapsed + "ms)");
+        navigateToEditAssetScreen("Utility");
     }
 
     // ============================================================
@@ -3922,22 +3697,7 @@ public final class Asset_Phase4_Test extends BaseTest {
      * Uses TURBO methods for fast navigation
      */
     private void navigateToVFDEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("📝 Navigating to VFD Edit Asset screen...");
-        
-        System.out.println("📦 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        System.out.println("🔍 Selecting first asset...");
-        assetPage.selectFirstAsset();
-        sleep(1500);
-        
-        System.out.println("✏️ Clicking Edit...");
-        assetPage.clickEditTurbo();
-        sleep(2000);
-        
-        long elapsed = System.currentTimeMillis() - start;
-        System.out.println("✅ On VFD Edit Asset screen (Total: " + elapsed + "ms)");
+        navigateToEditAssetScreen("VFD");
     }
 
     // ============================================================
@@ -4039,7 +3799,7 @@ public final class Asset_Phase4_Test extends BaseTest {
         
         System.out.println("🔍 Selecting first asset...");
         assetPage.selectFirstAsset();
-        sleep(1500);
+        shortWait();  // OPTIMIZED: was sleep(1500)
         
         long elapsed = System.currentTimeMillis() - start;
         System.out.println("✅ On Asset Details screen (Total: " + elapsed + "ms)");
@@ -4051,11 +3811,11 @@ public final class Asset_Phase4_Test extends BaseTest {
     private void scrollToConditionOfMaintenanceSection() {
         System.out.println("📜 Scrolling to Condition of Maintenance section...");
         assetPage.scrollFormDown();
-        sleep(500);
+        shortWait();  // OPTIMIZED: was sleep(500)
         assetPage.scrollFormDown();
-        sleep(500);
+        shortWait();  // OPTIMIZED: was sleep(500)
         assetPage.scrollFormDown();
-        sleep(500);
+        shortWait();  // OPTIMIZED: was sleep(500)
         System.out.println("✅ Scrolled to Condition of Maintenance area");
     }
 
@@ -4065,13 +3825,13 @@ public final class Asset_Phase4_Test extends BaseTest {
     private void scrollToTasksSection() {
         System.out.println("📜 Scrolling to Tasks section...");
         assetPage.scrollFormDown();
-        sleep(500);
+        shortWait();  // OPTIMIZED: was sleep(500)
         assetPage.scrollFormDown();
-        sleep(500);
+        shortWait();  // OPTIMIZED: was sleep(500)
         assetPage.scrollFormDown();
-        sleep(500);
+        shortWait();  // OPTIMIZED: was sleep(500)
         assetPage.scrollFormDown();
-        sleep(500);
+        shortWait();  // OPTIMIZED: was sleep(500)
         System.out.println("✅ Scrolled to Tasks area");
     }
 
@@ -4551,15 +4311,15 @@ public final class Asset_Phase4_Test extends BaseTest {
         
         System.out.println("📦 Going to Asset List...");
         assetPage.navigateToAssetList();
-        sleep(500);
+        shortWait();  // OPTIMIZED: was sleep(500)
         
         System.out.println("🔍 Selecting first asset...");
         assetPage.selectFirstAsset();
-        sleep(1500);
+        shortWait();  // OPTIMIZED: was sleep(1500)
         
         System.out.println("📜 Scrolling to Tasks section...");
         assetPage.scrollToTasksSection();
-        sleep(500);
+        shortWait();  // OPTIMIZED: was sleep(500)
         
         System.out.println("🔍 Clicking on existing task...");
         assetPage.clickExistingTask();
@@ -5071,11 +4831,11 @@ public final class Asset_Phase4_Test extends BaseTest {
         
         System.out.println("📦 Going to Asset List...");
         assetPage.navigateToAssetList();
-        sleep(500);
+        shortWait();  // OPTIMIZED: was sleep(500)
         
         System.out.println("🔍 Selecting first asset...");
         assetPage.selectFirstAsset();
-        sleep(1500);
+        shortWait();  // OPTIMIZED: was sleep(1500)
         
         System.out.println("📜 Scrolling to Issues section...");
         assetPage.scrollToIssuesSection();
@@ -5555,7 +5315,7 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             // Tap outside to dismiss dropdown (don't cancel the whole form)
             logStep("Dismissing Issue Class dropdown...");
-            sleep(500);
+            shortWait();  // OPTIMIZED: was sleep(500)
             // Tap on "Title" label area to dismiss dropdown
             assetPage.scrollFormDown();
             shortWait();
@@ -5601,11 +5361,11 @@ public final class Asset_Phase4_Test extends BaseTest {
         
         System.out.println("📦 Going to Asset List...");
         assetPage.navigateToAssetList();
-        sleep(500);
+        shortWait();  // OPTIMIZED: was sleep(500)
         
         System.out.println("🔍 Selecting first asset...");
         assetPage.selectFirstAsset();
-        sleep(1500);
+        shortWait();  // OPTIMIZED: was sleep(1500)
         
         System.out.println("📜 Scrolling to Connections section...");
         assetPage.scrollToConnectionsSection();
@@ -6498,7 +6258,7 @@ public final class Asset_Phase4_Test extends BaseTest {
         
         System.out.println("🔍 Selecting first asset...");
         assetPage.selectFirstAsset();
-        sleep(1500);
+        shortWait();  // OPTIMIZED: was sleep(1500)
         
         // Check if MCC
         boolean isMCC = assetPage.isAssetClassMCC();
@@ -6516,7 +6276,7 @@ public final class Asset_Phase4_Test extends BaseTest {
             // After Save, app returns to Asset List - re-open asset
             System.out.println("🔍 Re-opening asset to see OCP section...");
             assetPage.selectFirstAsset();
-            sleep(1500);
+            shortWait();  // OPTIMIZED: was sleep(1500)
         }
         
         // Scroll to OCP section (at bottom of MCC assets)
@@ -6538,7 +6298,7 @@ public final class Asset_Phase4_Test extends BaseTest {
         System.out.println("📝 Opening OCP Add options...");
         navigateToMCCOCPSection();
         assetPage.clickAddOCPButton();
-        sleep(500);
+        shortWait();  // OPTIMIZED: was sleep(500)
         System.out.println("✅ OCP Add options displayed");
     }
 
@@ -6549,7 +6309,7 @@ public final class Asset_Phase4_Test extends BaseTest {
         System.out.println("📝 Opening Create New Child Asset screen...");
         openOCPAddOptions();
         assetPage.clickCreateNewChild();
-        sleep(1000);
+        shortWait();  // OPTIMIZED: was sleep(1000)
         System.out.println("✅ Create New Child Asset screen opened");
     }
 
@@ -6569,38 +6329,38 @@ public final class Asset_Phase4_Test extends BaseTest {
         if (ocpCount > 0) {
             System.out.println("🔓 Unlinking an OCP item first...");
             assetPage.unlinkFirstOCPItem();
-            sleep(1000);
+            shortWait();  // OPTIMIZED: was sleep(1000)
         } else {
             // No OCPs - create one first, then it will be available to link
             System.out.println("📝 No OCPs exist - creating one first...");
             assetPage.clickAddOCPButton();
-            sleep(500);
+            shortWait();  // OPTIMIZED: was sleep(500)
             assetPage.clickCreateNewChild();
-            sleep(1000);
+            shortWait();  // OPTIMIZED: was sleep(1000)
             
             // Fill in the child asset form
             String childName = "LinkTest_" + System.currentTimeMillis();
             assetPage.enterChildAssetName(childName);
             assetPage.clickChildAssetClassDropdown();
-            sleep(300);
+            shortWait();  // OPTIMIZED: was sleep(300)
             assetPage.selectChildAssetClass("Other (OCP)");
-            sleep(300);
+            shortWait();  // OPTIMIZED: was sleep(300)
             assetPage.clickCreateChildAssetButton();
             mediumWait();
             
             // Now unlink it so it can be linked back
             System.out.println("🔓 Unlinking the newly created OCP...");
             assetPage.scrollToOCPSection();
-            sleep(500);
+            shortWait();  // OPTIMIZED: was sleep(500)
             assetPage.unlinkFirstOCPItem();
-            sleep(1000);
+            shortWait();  // OPTIMIZED: was sleep(1000)
         }
         
         // Now click Add and Link Existing Node
         assetPage.clickAddOCPButton();
-        sleep(500);
+        shortWait();  // OPTIMIZED: was sleep(500)
         assetPage.clickLinkExistingNode();
-        sleep(1000);
+        shortWait();  // OPTIMIZED: was sleep(1000)
         System.out.println("✅ Link Existing Node screen opened");
     }
 
@@ -7916,7 +7676,7 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Selecting first asset...");
             assetPage.selectFirstAsset();
-            sleep(1500);
+            shortWait();  // OPTIMIZED: was sleep(1500)
 
             logStep("Verifying Asset Details screen is opened...");
             shortWait();

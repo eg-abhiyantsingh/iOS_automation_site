@@ -2329,44 +2329,44 @@ public class BuildingPage extends BasePage {
             try {
                 // Get the building's position and look for chevron in same row
                 int buildingHeight = building.getSize().getHeight();
-                
+
                 List<WebElement> chevrons = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeButton' AND (name CONTAINS 'chevron' OR name CONTAINS 'disclosure')"));
-                
+
                 for (WebElement chevron : chevrons) {
                     int chevronY = chevron.getLocation().getY();
                     // Chevron should be within same vertical range as building
                     if (Math.abs(chevronY - buildingY) < buildingHeight) {
                         System.out.println("   Found chevron near building at Y=" + chevronY);
                         chevron.click();
-                        sleep(300);
+                        sleep(800);  // INCREASED: wait for iOS UI animation to complete
                         System.out.println("✅ Clicked chevron to expand building");
                         return true;
                     }
                 }
             } catch (Exception ignored) {}
-            
+
             // Strategy 2: Click the building button itself
             try {
                 building.click();
-                sleep(300);
+                sleep(800);  // INCREASED: wait for iOS UI animation to complete
                 System.out.println("✅ Clicked building to expand");
                 return true;
             } catch (Exception e2) {
                 System.out.println("   Click failed: " + e2.getMessage());
             }
-            
+
             // Strategy 3: Tap at building coordinates
             try {
                 int tapX = building.getLocation().getX() + building.getSize().getWidth() / 2;
                 int tapY = building.getLocation().getY() + building.getSize().getHeight() / 2;
-                
+
                 java.util.Map<String, Object> params = new java.util.HashMap<>();
                 params.put("x", tapX);
                 params.put("y", tapY);
                 params.put("duration", 0.1);
                 driver.executeScript("mobile: tap", params);
-                sleep(300);
+                sleep(800);  // INCREASED: wait for iOS UI animation to complete
                 System.out.println("✅ Tapped building at (" + tapX + ", " + tapY + ")");
                 return true;
             } catch (Exception e3) {
@@ -3535,7 +3535,7 @@ public class BuildingPage extends BasePage {
             // Click to expand
             if (floor != null) {
                 floor.click();
-                sleep(300);
+                sleep(800);  // INCREASED: wait for iOS UI animation to complete
                 System.out.println("✅ Floor expanded: " + floorName);
                 return true;
             }
@@ -4410,14 +4410,131 @@ public class BuildingPage extends BasePage {
 
     /**
      * Check if No Location section is displayed
+     * Uses multiple detection strategies for reliability
+     * IMPROVED: Uses dynamic screen height instead of hardcoded values
      */
     public boolean isNoLocationDisplayed() {
+        // Get dynamic screen height for proper coordinate checks
+        int screenHeight = driver.manage().window().getSize().height;
+        int safeMinY = 100;
+        int safeMaxY = screenHeight - 50; // Dynamic instead of hardcoded 800
+        
+        System.out.println("🔍 Checking for No Location section (screenHeight=" + screenHeight + ", Y range: " + safeMinY + "-" + safeMaxY + ")");
+        
+        // Strategy 1: Direct label match with "No Location"
         try {
-            return driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label CONTAINS 'No Location' OR name CONTAINS 'No Location' OR label CONTAINS 'unassigned'")).isDisplayed();
+            WebElement element = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "(label CONTAINS 'No Location' OR name CONTAINS 'No Location') AND visible == true"));
+            if (element.isDisplayed()) {
+                int y = element.getLocation().getY();
+                System.out.println("   Strategy 1: Found 'No Location' element at Y=" + y);
+                if (y > safeMinY && y < safeMaxY) {
+                    System.out.println("✓ No Location found via direct match at Y=" + y);
+                    return true;
+                } else {
+                    System.out.println("   Element outside safe zone, continuing search...");
+                }
+            }
         } catch (Exception e) {
-            return false;
+            System.out.println("   Strategy 1: No direct match found");
         }
+        
+        // Strategy 2: Look for Cell with "No Location" or "Unassigned" text
+        try {
+            java.util.List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"));
+            System.out.println("   Strategy 2: Found " + cells.size() + " visible cells");
+            for (WebElement cell : cells) {
+                String label = cell.getAttribute("label");
+                if (label != null && (label.contains("No Location") || label.contains("Unassigned") || 
+                    label.toLowerCase().contains("unassigned"))) {
+                    int y = cell.getLocation().getY();
+                    System.out.println("   Found matching cell at Y=" + y + " label=" + label);
+                    if (y > safeMinY && y < safeMaxY) {
+                        System.out.println("✓ No Location found in Cell at Y=" + y + " label=" + label);
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("   Strategy 2: Error checking cells - " + e.getMessage());
+        }
+        
+        // Strategy 3: Look for StaticText with "No Location"
+        try {
+            java.util.List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true AND label CONTAINS 'No Location'"));
+            System.out.println("   Strategy 3: Found " + texts.size() + " 'No Location' static texts");
+            for (WebElement text : texts) {
+                int y = text.getLocation().getY();
+                if (y > safeMinY && y < safeMaxY) {
+                    System.out.println("✓ No Location found via StaticText at Y=" + y);
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("   Strategy 3: Error - " + e.getMessage());
+        }
+        
+        // Strategy 4: Look for Button with "No Location" text
+        try {
+            java.util.List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND visible == true"));
+            for (WebElement btn : buttons) {
+                String label = btn.getAttribute("label");
+                if (label != null && label.contains("No Location")) {
+                    int y = btn.getLocation().getY();
+                    if (y > safeMinY && y < safeMaxY) {
+                        System.out.println("✓ No Location found via Button at Y=" + y + " label=" + label);
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("   Strategy 4: Error - " + e.getMessage());
+        }
+        
+        // Strategy 5: Look for element with unassigned asset count pattern (e.g., "13 assets")
+        try {
+            java.util.List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(label CONTAINS 'assets' OR label CONTAINS 'asset') AND visible == true"));
+            for (WebElement el : elements) {
+                String label = el.getAttribute("label");
+                // No Location typically shows count like "No Location, 13 assets" or standalone "13 assets"
+                if (label != null && label.toLowerCase().matches(".*\\d+\\s*asset.*")) {
+                    int y = el.getLocation().getY();
+                    // Accept elements in lower 60% of screen (No Location is usually at bottom)
+                    int lowerHalfY = (int)(screenHeight * 0.4);
+                    if (y > lowerHalfY && y < safeMaxY) {
+                        System.out.println("✓ Possible No Location section found at Y=" + y + " label=" + label);
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("   Strategy 5: Error - " + e.getMessage());
+        }
+        
+        // Strategy 6: Debug - print all visible elements to help identify the issue
+        System.out.println("⚠️ No Location section not found with any strategy. Debug info:");
+        try {
+            java.util.List<WebElement> allElements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "visible == true AND (type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeStaticText')"));
+            int count = 0;
+            for (WebElement el : allElements) {
+                String label = el.getAttribute("label");
+                if (label != null && !label.isEmpty() && label.length() < 100) {
+                    int y = el.getLocation().getY();
+                    if (y > 300) { // Only show lower half of screen
+                        System.out.println("   [Y=" + y + "] " + el.getAttribute("type") + ": " + label.substring(0, Math.min(label.length(), 60)));
+                        count++;
+                        if (count > 10) break; // Limit output
+                    }
+                }
+            }
+        } catch (Exception debugEx) {}
+        
+        return false;
     }
 
     /**
@@ -4496,17 +4613,113 @@ public class BuildingPage extends BasePage {
 
     /**
      * Tap on No Location section
+     * Uses multiple detection strategies for reliability
+     * IMPROVED: Uses dynamic screen height instead of hardcoded values
      */
     public boolean tapOnNoLocation() {
+        // Get dynamic screen height for proper coordinate checks
+        int screenHeight = driver.manage().window().getSize().height;
+        int safeMinY = 100;
+        int safeMaxY = screenHeight - 50;
+        
+        System.out.println("👆 Attempting to tap No Location section (screenHeight=" + screenHeight + ")");
+        
+        // Strategy 1: Direct label match with "No Location"
         try {
-            WebElement noLocation = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label CONTAINS 'No Location' OR name CONTAINS 'No Location'"));
-            noLocation.click();
-            sleep(300);
-            return true;
+            WebElement element = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "(label CONTAINS 'No Location' OR name CONTAINS 'No Location') AND visible == true"));
+            if (element.isDisplayed()) {
+                int y = element.getLocation().getY();
+                if (y > safeMinY && y < safeMaxY) {
+                    System.out.println("✓ Tapping No Location via direct match at Y=" + y);
+                    element.click();
+                    sleep(500);
+                    return true;
+                }
+            }
         } catch (Exception e) {
-            return false;
+            System.out.println("   Strategy 1: No direct match");
         }
+        
+        // Strategy 2: Look for Cell with "No Location" or "Unassigned" text
+        try {
+            java.util.List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"));
+            for (WebElement cell : cells) {
+                String label = cell.getAttribute("label");
+                if (label != null && (label.contains("No Location") || label.contains("Unassigned"))) {
+                    int y = cell.getLocation().getY();
+                    if (y > safeMinY && y < safeMaxY) {
+                        System.out.println("✓ Tapping No Location Cell at Y=" + y + " label=" + label);
+                        cell.click();
+                        sleep(500);
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("   Strategy 2: Error - " + e.getMessage());
+        }
+        
+        // Strategy 3: Look for Button with "No Location" text
+        try {
+            java.util.List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND visible == true"));
+            for (WebElement btn : buttons) {
+                String label = btn.getAttribute("label");
+                if (label != null && label.contains("No Location")) {
+                    int y = btn.getLocation().getY();
+                    if (y > safeMinY && y < safeMaxY) {
+                        System.out.println("✓ Tapping No Location Button at Y=" + y);
+                        btn.click();
+                        sleep(500);
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("   Strategy 3: Error - " + e.getMessage());
+        }
+        
+        // Strategy 4: Look for StaticText with "No Location" and tap it
+        try {
+            java.util.List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label CONTAINS 'No Location' AND visible == true"));
+            for (WebElement text : texts) {
+                int y = text.getLocation().getY();
+                if (y > safeMinY && y < safeMaxY) {
+                    System.out.println("✓ Tapping No Location StaticText at Y=" + y);
+                    text.click();
+                    sleep(500);
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("   Strategy 4: Error - " + e.getMessage());
+        }
+        
+        // Strategy 5: Tap using coordinates if element found but not clickable
+        try {
+            WebElement element = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "label CONTAINS 'No Location' AND visible == true"));
+            int x = element.getLocation().getX() + element.getSize().getWidth() / 2;
+            int y = element.getLocation().getY() + element.getSize().getHeight() / 2;
+            
+            if (y > safeMinY && y < safeMaxY) {
+                System.out.println("✓ Tapping No Location via coordinates at (" + x + ", " + y + ")");
+                java.util.Map<String, Object> params = new java.util.HashMap<>();
+                params.put("x", x);
+                params.put("y", y);
+                driver.executeScript("mobile: tap", params);
+                sleep(500);
+                return true;
+            }
+        } catch (Exception e) {
+            System.out.println("   Strategy 5: Error - " + e.getMessage());
+        }
+        
+        System.out.println("⚠️ Could not tap No Location with any strategy");
+        return false;
     }
 
     /**
@@ -4786,30 +4999,210 @@ public class BuildingPage extends BasePage {
 
     /**
      * Tap on Location field
+     * Uses multiple detection strategies for reliability
+     */
+    /**
+     * Tap on Location field to open location picker
+     * IMPROVED: Dynamic screen height and enhanced strategies
      */
     public boolean tapOnLocationField() {
+        int screenHeight = driver.manage().window().getSize().height;
+        int safeMaxY = screenHeight - 50;
+        
+        System.out.println("🔍 Attempting to tap Location field (screenHeight=" + screenHeight + ")");
+        
+        // Strategy 1: Direct "Select location" match
         try {
             WebElement locationField = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label CONTAINS 'Select location' OR label CONTAINS 'Location' OR (label CONTAINS '>' AND NOT label CONTAINS 'Done')"));
-            locationField.click();
-            sleep(300);
+                "(label == 'Select location' OR label == 'Select Location' OR value == 'Select location') AND visible == true"));
+            if (locationField.isDisplayed()) {
+                int y = locationField.getLocation().getY();
+                System.out.println("✓ Tapping Location field via 'Select location' match at Y=" + y);
+                locationField.click();
+                sleep(500);
+                return true;
+            }
+        } catch (Exception e) {
+            System.out.println("   Strategy 1: No 'Select location' match");
+        }
+        
+        // Strategy 2: Look for Cell with Location label
+        try {
+            java.util.List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"));
+            for (WebElement cell : cells) {
+                String label = cell.getAttribute("label");
+                int y = cell.getLocation().getY();
+                if (y > 100 && y < safeMaxY && label != null && 
+                    (label.contains("Select location") || label.contains("Location") || 
+                     (label.contains(">") && !label.contains("Done")))) {
+                    System.out.println("✓ Tapping Location Cell at Y=" + y + " label: " + label);
+                    cell.click();
+                    sleep(500);
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("   Strategy 2: Error - " + e.getMessage());
+        }
+        
+        // Strategy 3: Look for any element with Location in label (FIXED - dynamic Y)
+        try {
+            java.util.List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(label CONTAINS 'Location' OR label CONTAINS 'location') AND visible == true AND NOT label CONTAINS 'No Location'"));
+            for (WebElement el : elements) {
+                int y = el.getLocation().getY();
+                // Dynamic range - middle portion of screen
+                int middleStart = (int)(screenHeight * 0.15);
+                int middleEnd = (int)(screenHeight * 0.85);
+                if (y > middleStart && y < middleEnd) {
+                    System.out.println("✓ Tapping element with Location at Y=" + y);
+                    el.click();
+                    sleep(500);
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("   Strategy 3: Error - " + e.getMessage());
+        }
+        
+        // Strategy 4: Look for building icon or picker trigger
+        try {
+            WebElement picker = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "(name CONTAINS 'building' OR name CONTAINS 'location' OR name CONTAINS 'picker') AND visible == true"));
+            System.out.println("✓ Tapping location picker trigger");
+            picker.click();
+            sleep(500);
             return true;
         } catch (Exception e) {
-            return false;
+            System.out.println("   Strategy 4: No building/picker icon found");
         }
+        
+        // Strategy 5: Look for Button with Location
+        try {
+            java.util.List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND visible == true AND (label CONTAINS 'Location' OR label CONTAINS 'Select')"));
+            for (WebElement btn : buttons) {
+                int y = btn.getLocation().getY();
+                if (y > 150 && y < safeMaxY) {
+                    String label = btn.getAttribute("label");
+                    System.out.println("✓ Tapping Location Button at Y=" + y + " label: " + label);
+                    btn.click();
+                    sleep(500);
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("   Strategy 5: No Location button found");
+        }
+        
+        System.out.println("⚠️ Could not tap Location field with any strategy");
+        return false;
     }
 
     /**
      * Check if location picker is displayed
+     * Uses multiple detection strategies for reliability
+     */
+    /**
+     * Check if location picker is displayed
+     * IMPROVED: Dynamic screen height and enhanced detection strategies
      */
     public boolean isLocationPickerDisplayed() {
+        int screenHeight = driver.manage().window().getSize().height;
+        int safeMaxY = screenHeight - 50;
+        
+        System.out.println("🔍 Checking for Location picker (screenHeight=" + screenHeight + ")");
+        
+        // Strategy 1: Look for navigation bar title changes
         try {
-            // Location picker shows buildings or navigation view
-            return driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeTable' OR type == 'XCUIElementTypeCollectionView' OR label CONTAINS 'Select' OR label CONTAINS 'Building'")).isDisplayed();
+            WebElement navTitle = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeNavigationBar' AND visible == true"));
+            String title = navTitle.getAttribute("name");
+            if (title != null && (title.contains("Location") || title.contains("Building") || 
+                title.contains("Floor") || title.contains("Room") || title.contains("Select"))) {
+                System.out.println("✓ Location picker detected via nav bar: " + title);
+                return true;
+            }
         } catch (Exception e) {
-            return false;
+            System.out.println("   Strategy 1: No matching nav bar title");
         }
+        
+        // Strategy 2: Look for building cells or list items (FIXED - dynamic Y)
+        try {
+            java.util.List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"));
+            int validCellCount = 0;
+            for (WebElement cell : cells) {
+                String label = cell.getAttribute("label");
+                int y = cell.getLocation().getY();
+                if (y > 100 && y < safeMaxY && label != null && !label.isEmpty()) {
+                    validCellCount++;
+                }
+            }
+            if (validCellCount >= 1) {
+                System.out.println("✓ Location picker detected via " + validCellCount + " visible cells");
+                return true;
+            }
+        } catch (Exception e) {
+            System.out.println("   Strategy 2: Error checking cells - " + e.getMessage());
+        }
+        
+        // Strategy 3: Look for table or collection view
+        try {
+            WebElement table = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeTable' OR type == 'XCUIElementTypeCollectionView') AND visible == true"));
+            if (table.isDisplayed()) {
+                System.out.println("✓ Location picker detected via Table/CollectionView");
+                return true;
+            }
+        } catch (Exception e) {
+            System.out.println("   Strategy 3: No Table/CollectionView found");
+        }
+        
+        // Strategy 4: Look for Done/Cancel buttons (picker controls)
+        try {
+            boolean hasDone = false;
+            boolean hasCancel = false;
+            try {
+                hasDone = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "label == 'Done' AND visible == true")).isDisplayed();
+            } catch (Exception e) {}
+            try {
+                hasCancel = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "label == 'Cancel' AND visible == true")).isDisplayed();
+            } catch (Exception e) {}
+            if (hasDone || hasCancel) {
+                System.out.println("✓ Location picker detected via Done/Cancel buttons");
+                return true;
+            }
+        } catch (Exception e) {
+            System.out.println("   Strategy 4: No Done/Cancel buttons");
+        }
+        
+        // Strategy 5: Look for building/floor/room text elements
+        try {
+            java.util.List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true"));
+            int locationTextCount = 0;
+            for (WebElement text : texts) {
+                String label = text.getAttribute("label");
+                int y = text.getLocation().getY();
+                // Look for building/floor/room names in middle of screen
+                if (y > 150 && y < safeMaxY && label != null && label.length() > 0 && label.length() < 50) {
+                    locationTextCount++;
+                }
+            }
+            if (locationTextCount >= 3) {
+                System.out.println("✓ Location picker detected via " + locationTextCount + " text elements");
+                return true;
+            }
+        } catch (Exception e) {
+            System.out.println("   Strategy 5: Error checking text elements");
+        }
+        
+        System.out.println("⚠️ Location picker not detected with any strategy");
+        return false;
     }
 
     /**
@@ -5003,29 +5396,179 @@ public class BuildingPage extends BasePage {
 
     /**
      * Check if Save Changes button is displayed
+     * IMPROVED: Multiple detection strategies with dynamic screen height
      */
     public boolean isSaveChangesButtonDisplayed() {
+        int screenHeight = driver.manage().window().getSize().height;
+        int safeMaxY = screenHeight - 30;
+        
+        System.out.println("🔍 Checking for Save Changes button (screenHeight=" + screenHeight + ")");
+        
+        // Strategy 1: Exact "Save Changes" label
         try {
-            return driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label == 'Save Changes' OR label CONTAINS 'Save' OR name == 'Save Changes'")).isDisplayed();
+            WebElement saveBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "(label == 'Save Changes' OR name == 'Save Changes') AND visible == true"));
+            if (saveBtn.isDisplayed()) {
+                int y = saveBtn.getLocation().getY();
+                System.out.println("✓ Save Changes found via exact match at Y=" + y);
+                return true;
+            }
         } catch (Exception e) {
-            return false;
+            System.out.println("   Strategy 1: No exact 'Save Changes' match");
         }
+        
+        // Strategy 2: Look for button containing "Save" at bottom of screen
+        try {
+            java.util.List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND visible == true AND label CONTAINS 'Save'"));
+            for (WebElement btn : buttons) {
+                String label = btn.getAttribute("label");
+                int y = btn.getLocation().getY();
+                // Save Changes button typically at bottom (lower 40% of screen)
+                int lowerPortion = (int)(screenHeight * 0.6);
+                if (y > lowerPortion && y < safeMaxY) {
+                    System.out.println("✓ Save button found at bottom Y=" + y + " label=" + label);
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("   Strategy 2: Error - " + e.getMessage());
+        }
+        
+        // Strategy 3: Look for any visible element with "Save" (more lenient)
+        try {
+            java.util.List<WebElement> saveElements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(label CONTAINS 'Save' OR name CONTAINS 'Save') AND visible == true"));
+            for (WebElement el : saveElements) {
+                String label = el.getAttribute("label");
+                String type = el.getAttribute("type");
+                int y = el.getLocation().getY();
+                
+                // Exclude nav bar Save button (typically Y < 150)
+                if (y > 150) {
+                    System.out.println("✓ Save element found at Y=" + y + " type=" + type + " label=" + label);
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("   Strategy 3: Error - " + e.getMessage());
+        }
+        
+        // Strategy 4: Look for Cell or Other element with Save Changes
+        try {
+            java.util.List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeOther') AND visible == true AND label CONTAINS 'Save'"));
+            for (WebElement cell : cells) {
+                int y = cell.getLocation().getY();
+                if (y > 300) {
+                    System.out.println("✓ Save Changes found in Cell/Other at Y=" + y);
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("   Strategy 4: Error - " + e.getMessage());
+        }
+        
+        // Debug: Print visible elements at bottom of screen
+        System.out.println("⚠️ Save Changes button not found. Debug - elements in lower screen:");
+        try {
+            java.util.List<WebElement> allElements = driver.findElements(AppiumBy.iOSNsPredicateString("visible == true"));
+            int lowerHalf = (int)(screenHeight * 0.5);
+            int count = 0;
+            for (WebElement el : allElements) {
+                int y = el.getLocation().getY();
+                if (y > lowerHalf && y < safeMaxY) {
+                    String label = el.getAttribute("label");
+                    String type = el.getAttribute("type");
+                    if (label != null && !label.isEmpty() && label.length() < 50) {
+                        System.out.println("   [Y=" + y + "] " + type + ": " + label);
+                        count++;
+                        if (count > 8) break;
+                    }
+                }
+            }
+        } catch (Exception debugEx) {}
+        
+        return false;
     }
 
     /**
      * Click Save Changes button
+     * IMPROVED: Multiple click strategies with dynamic screen height
      */
     public boolean clickSaveChangesButton() {
+        int screenHeight = driver.manage().window().getSize().height;
+        int safeMaxY = screenHeight - 30;
+        
+        System.out.println("🔍 Attempting to click Save Changes button");
+        
+        // Strategy 1: Exact "Save Changes" label
         try {
             WebElement saveBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label == 'Save Changes' OR label CONTAINS 'Save' OR name == 'Save Changes'"));
+                "(label == 'Save Changes' OR name == 'Save Changes') AND visible == true"));
+            int y = saveBtn.getLocation().getY();
+            System.out.println("✓ Clicking Save Changes via exact match at Y=" + y);
             saveBtn.click();
-            sleep(300);
+            sleep(500);
             return true;
         } catch (Exception e) {
-            return false;
+            System.out.println("   Strategy 1: No exact 'Save Changes' match");
         }
+        
+        // Strategy 2: Look for button containing "Save" at bottom
+        try {
+            java.util.List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND visible == true AND label CONTAINS 'Save'"));
+            for (WebElement btn : buttons) {
+                String label = btn.getAttribute("label");
+                int y = btn.getLocation().getY();
+                int lowerPortion = (int)(screenHeight * 0.6);
+                if (y > lowerPortion && y < safeMaxY) {
+                    System.out.println("✓ Clicking Save button at bottom Y=" + y + " label=" + label);
+                    btn.click();
+                    sleep(500);
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("   Strategy 2: Error - " + e.getMessage());
+        }
+        
+        // Strategy 3: Any visible Save element (below nav bar)
+        try {
+            java.util.List<WebElement> saveElements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(label CONTAINS 'Save' OR name CONTAINS 'Save') AND visible == true"));
+            for (WebElement el : saveElements) {
+                int y = el.getLocation().getY();
+                if (y > 150) { // Below nav bar
+                    System.out.println("✓ Clicking Save element at Y=" + y);
+                    el.click();
+                    sleep(500);
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("   Strategy 3: Error - " + e.getMessage());
+        }
+        
+        // Strategy 4: Coordinate-based tap as fallback
+        try {
+            // Tap center-bottom where Save Changes typically appears
+            int centerX = driver.manage().window().getSize().width / 2;
+            int bottomY = (int)(screenHeight * 0.85);
+            System.out.println("   Strategy 4: Coordinate tap at (" + centerX + "," + bottomY + ")");
+            java.util.HashMap<String, Object> tapParams = new java.util.HashMap<>();
+            tapParams.put("x", centerX);
+            tapParams.put("y", bottomY);
+            driver.executeScript("mobile: tap", tapParams);
+            sleep(500);
+            return true;
+        } catch (Exception e) {
+            System.out.println("   Strategy 4: Coordinate tap failed - " + e.getMessage());
+        }
+        
+        System.out.println("⚠️ Could not click Save Changes button");
+        return false;
     }
 
     /**

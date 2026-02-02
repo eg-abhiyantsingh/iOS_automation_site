@@ -856,16 +856,16 @@ public class LocationTest extends BaseTest {
             "TC_EB_001 - Verify Edit Building opens with pre-filled data"
         );
 
-        String targetBuildingName = getAnyBuildingForTest(); // FAST - uses first available building
-
-        // Navigate to Locations screen
+        // Navigate to Locations screen FIRST
         logStep("Navigating to Locations screen");
         boolean onLocationsScreen = ensureOnLocationsScreen();
         assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
-        // Find building to edit (use target or fallback to first available)
-        String buildingToEdit = targetBuildingName; // Already from getAnyBuildingForTest()
+        // Find building to edit AFTER we're on Locations screen
+        String buildingToEdit = getAnyBuildingForTest(); // FAST - uses first available building
+        assertNotNull(buildingToEdit, "Should find a building for testing");
+        assertFalse("Building".equals(buildingToEdit), "Should find a real building, not fallback value");
         logStep("Testing with building: " + buildingToEdit);
 
         // Step 1: Long press on building
@@ -1354,7 +1354,7 @@ public class LocationTest extends BaseTest {
                 
                 System.out.println("🔐 Login required - performing TURBO login");
                 loginAndSelectSiteTurbo();
-                try { Thread.sleep(500); } catch (Exception ignored) {}
+                shortWait();  // OPTIMIZED: was Thread.sleep(500)
             } else if ("SITE_SELECTION".equals(currentScreen)) {
                 System.out.println("📋 Selecting site...");
                 siteSelectionPage.turboSelectSite();
@@ -1362,7 +1362,7 @@ public class LocationTest extends BaseTest {
             } else if ("SCHEDULE".equals(currentScreen)) {
                 System.out.println("📅 On Schedule - performing site selection");
                 loginAndSelectSiteTurbo();
-                try { Thread.sleep(500); } catch (Exception ignored) {}
+                shortWait();  // OPTIMIZED: was Thread.sleep(500)
             }
 
             // Navigate to Locations tab
@@ -1409,7 +1409,7 @@ public class LocationTest extends BaseTest {
         }
         
         // Quick verify
-        try { Thread.sleep(300); } catch (Exception ignored) {}
+        shortWait();  // OPTIMIZED: was Thread.sleep(300)
         boolean onLocations = buildingPage.isLocationsScreenDisplayed() || buildingPage.areBuildingEntriesDisplayed();
         if (onLocations) {
             System.out.println("✓ Successfully navigated to Locations screen");
@@ -1476,10 +1476,10 @@ public class LocationTest extends BaseTest {
                 return buildingName;
             }
         }
-        
-        // Last resort fallback
-        System.out.println("⚠️ No buildings found - using default");
-        return "Building";
+
+        // Return null instead of fallback to prevent infinite loops
+        System.out.println("⚠️ No buildings found - returning null (ensure you're on Locations screen first!)");
+        return null;
     }
 
     /**
@@ -1496,8 +1496,9 @@ public class LocationTest extends BaseTest {
                 return floorName;
             }
         }
-        System.out.println("⚠️ No floors found - using default");
-        return "Floor";
+        // Return null instead of fallback to prevent infinite loops
+        System.out.println("⚠️ No floors found - returning null (ensure building is expanded first!)");
+        return null;
     }
 
     /**
@@ -1514,8 +1515,9 @@ public class LocationTest extends BaseTest {
                 return roomName;
             }
         }
-        System.out.println("⚠️ No rooms found - using default");
-        return "Room";
+        // Return null instead of fallback to prevent infinite loops
+        System.out.println("⚠️ No rooms found - returning null (ensure floor is expanded first!)");
+        return null;
     }
 
     // ============================================================

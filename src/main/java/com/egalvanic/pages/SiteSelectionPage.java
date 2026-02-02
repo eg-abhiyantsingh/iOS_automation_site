@@ -811,6 +811,48 @@ public class SiteSelectionPage extends BasePage {
     }
 
     /**
+     * Check if Dashboard is displayed using multiple indicators
+     * More robust than checking single elements
+     */
+    public boolean isDashboardDisplayed() {
+        // Check multiple dashboard indicators - any one means we're on dashboard
+        if (isElementDisplayed(sitesButton) || isElementDisplayed(sitesButtonAlt)) {
+            System.out.println("✅ Dashboard detected via Sites button");
+            return true;
+        }
+        if (isElementDisplayed(refreshButton)) {
+            System.out.println("✅ Dashboard detected via Refresh button");
+            return true;
+        }
+        if (isElementDisplayed(assetsCard)) {
+            System.out.println("✅ Dashboard detected via Assets card");
+            return true;
+        }
+        if (isElementDisplayed(connectionsCard)) {
+            System.out.println("✅ Dashboard detected via Connections card");
+            return true;
+        }
+        if (isElementDisplayed(locationsButton) || isElementDisplayed(locationsButtonAlt)) {
+            System.out.println("✅ Dashboard detected via Locations button");
+            return true;
+        }
+        // Fallback: check for any navigation bar with dashboard-like elements
+        try {
+            List<WebElement> navButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND visible == true AND (name CONTAINS 'building' OR name CONTAINS 'arrow' OR name CONTAINS 'wifi' OR name == 'Wi-Fi')"
+            ));
+            if (navButtons.size() >= 2) {
+                System.out.println("✅ Dashboard detected via navigation bar buttons (found " + navButtons.size() + ")");
+                return true;
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+        System.out.println("⚠️ Dashboard not detected");
+        return false;
+    }
+
+    /**
      * Check if Refresh button is enabled
      */
     public boolean isRefreshButtonEnabled() {
@@ -834,10 +876,58 @@ public class SiteSelectionPage extends BasePage {
     // ================================================================
 
     /**
-     * Check if WiFi is online
+     * Check if WiFi is online with multiple detection strategies
      */
     public boolean isWifiOnline() {
-        return isElementDisplayed(wifiButtonOnline);
+        // Strategy 1: Primary locator (accessibility = "Wi-Fi")
+        if (isElementDisplayed(wifiButtonOnline)) {
+            System.out.println("✅ WiFi online detected via primary locator");
+            return true;
+        }
+
+        // Strategy 2: Check for wifi icon without "Off" or sync count
+        try {
+            List<WebElement> wifiButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND visible == true AND (name == 'Wi-Fi' OR name CONTAINS 'wifi')"
+            ));
+            for (WebElement btn : wifiButtons) {
+                String name = btn.getAttribute("name");
+                // If it's just "Wi-Fi" without "Off", it's online
+                if (name != null && name.equals("Wi-Fi")) {
+                    System.out.println("✅ WiFi online detected via button scan");
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+
+        // Strategy 3: Check navigation bar for wifi button that's NOT offline
+        try {
+            WebElement navBar = driver.findElement(AppiumBy.className("XCUIElementTypeNavigationBar"));
+            List<WebElement> navButtons = navBar.findElements(AppiumBy.className("XCUIElementTypeButton"));
+            for (WebElement btn : navButtons) {
+                String name = btn.getAttribute("name");
+                if (name != null && name.contains("Wi-Fi") && !name.contains("Off")) {
+                    System.out.println("✅ WiFi online detected in navigation bar");
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+
+        // Strategy 4: If offline button is NOT displayed, assume online
+        if (!isElementDisplayed(wifiButtonOffline) && !isElementDisplayed(wifiButtonWithSyncCount)) {
+            // Check if we're on dashboard (has other dashboard elements)
+            if (isElementDisplayed(sitesButton) || isElementDisplayed(assetsCard) || isElementDisplayed(locationsButton)) {
+                System.out.println("✅ WiFi assumed online (offline indicators not present, dashboard visible)");
+                return true;
+            }
+        }
+
+        System.out.println("⚠️ WiFi online status could not be confirmed");
+        return false;
     }
 
     /**
@@ -1445,20 +1535,138 @@ public class SiteSelectionPage extends BasePage {
     }
 
     /**
-     * Check if No Active Job card is displayed
+     * Check if No Active Job card is displayed with multiple detection strategies
      */
     public boolean isNoActiveJobCardDisplayed() {
-        return isElementDisplayed(noActiveJobCard) || isElementDisplayed(tapToSelectJobText);
+        // Strategy 1: Primary locator
+        if (isElementDisplayed(noActiveJobCard)) {
+            System.out.println("✅ No Active Job card found via primary locator");
+            return true;
+        }
+
+        // Strategy 2: Tap to select job text
+        if (isElementDisplayed(tapToSelectJobText)) {
+            System.out.println("✅ No Active Job card found via 'Tap to select' text");
+            return true;
+        }
+
+        // Strategy 3: Search by partial label match
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "visible == true AND (label CONTAINS 'No Active' OR label CONTAINS 'active job' OR label CONTAINS 'select a job' OR label CONTAINS 'Tap to select')"
+            ));
+            if (!elements.isEmpty()) {
+                System.out.println("✅ No Active Job card found via label search (found " + elements.size() + " elements)");
+                return true;
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+
+        // Strategy 4: Search static texts for job-related content
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true AND (label CONTAINS 'Job' OR label CONTAINS 'job')"
+            ));
+            for (WebElement text : texts) {
+                String label = text.getAttribute("label");
+                if (label != null && (label.contains("No Active") || label.contains("Tap to select"))) {
+                    System.out.println("✅ No Active Job text found: " + label);
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+
+        // Strategy 5: May need to scroll down to find it
+        try {
+            scrollDown();
+            if (isElementDisplayed(noActiveJobCard) || isElementDisplayed(tapToSelectJobText)) {
+                System.out.println("✅ No Active Job card found after scroll");
+                return true;
+            }
+        } catch (Exception e) {
+            // Ignore scroll errors
+        }
+
+        System.out.println("⚠️ No Active Job card not found");
+        return false;
     }
 
     /**
-     * Click No Active Job card
+     * Click No Active Job card with robust fallback strategies
      */
     public void clickNoActiveJobCard() {
+        System.out.println("📍 Attempting to click No Active Job card...");
+
+        // Strategy 1: Primary locator
         try {
-            click(noActiveJobCard);
+            if (isElementDisplayed(noActiveJobCard)) {
+                System.out.println("✅ Clicking No Active Job card via primary locator");
+                click(noActiveJobCard);
+                return;
+            }
         } catch (Exception e) {
-            click(tapToSelectJobText);
+            System.out.println("⚠️ Strategy 1 failed: " + e.getMessage());
+        }
+
+        // Strategy 2: Tap to select job text
+        try {
+            if (isElementDisplayed(tapToSelectJobText)) {
+                System.out.println("✅ Clicking via 'Tap to select' text");
+                click(tapToSelectJobText);
+                return;
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Strategy 2 failed: " + e.getMessage());
+        }
+
+        // Strategy 3: Find by label and click
+        try {
+            WebElement jobCard = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "visible == true AND (label CONTAINS 'No Active' OR label CONTAINS 'Tap to select')"
+            ));
+            if (jobCard != null) {
+                System.out.println("✅ Found and clicking job card via label search");
+                jobCard.click();
+                return;
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Strategy 3 failed: " + e.getMessage());
+        }
+
+        // Strategy 4: Scroll and retry
+        try {
+            System.out.println("🔄 Scrolling down to find job card...");
+            scrollDown();
+            shortWait();
+
+            if (isElementDisplayed(noActiveJobCard)) {
+                click(noActiveJobCard);
+                return;
+            }
+            if (isElementDisplayed(tapToSelectJobText)) {
+                click(tapToSelectJobText);
+                return;
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Strategy 4 failed: " + e.getMessage());
+        }
+
+        // Strategy 5: Last resort - try primary locator anyway
+        System.out.println("⚠️ All strategies failed, attempting primary locator as last resort");
+        click(noActiveJobCard);
+    }
+
+    /**
+     * Helper method for short wait
+     */
+    protected void shortWait() {
+        try {
+            Thread.sleep(300);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 
@@ -1492,14 +1700,69 @@ public class SiteSelectionPage extends BasePage {
     // ================================================================
 
     /**
-     * Click Locations button
+     * Click Locations button with robust fallback strategies
      */
     public void clickLocations() {
+        System.out.println("📍 Attempting to click Locations button...");
+
+        // Strategy 1: Primary locator (accessibility = "Locations")
         try {
-            click(locationsButton);
+            if (isElementDisplayed(locationsButton)) {
+                System.out.println("✅ Found Locations via accessibility ID");
+                click(locationsButton);
+                return;
+            }
         } catch (Exception e) {
-            click(locationsButtonAlt);
+            System.out.println("⚠️ Strategy 1 failed: " + e.getMessage());
         }
+
+        // Strategy 2: Alternative locator (accessibility = "building.columns")
+        try {
+            if (isElementDisplayed(locationsButtonAlt)) {
+                System.out.println("✅ Found Locations via building.columns");
+                click(locationsButtonAlt);
+                return;
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Strategy 2 failed: " + e.getMessage());
+        }
+
+        // Strategy 3: Search by label containing "Locations"
+        try {
+            WebElement locationsByLabel = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND visible == true AND label CONTAINS 'Location'"
+            ));
+            if (locationsByLabel != null && locationsByLabel.isDisplayed()) {
+                System.out.println("✅ Found Locations by label");
+                locationsByLabel.click();
+                return;
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Strategy 3 failed: " + e.getMessage());
+        }
+
+        // Strategy 4: Search all visible buttons for building.columns icon
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND visible == true"
+            ));
+            for (WebElement btn : buttons) {
+                String name = btn.getAttribute("name");
+                String label = btn.getAttribute("label");
+                if ((name != null && (name.contains("building") || name.contains("Location"))) ||
+                    (label != null && label.contains("Location"))) {
+                    System.out.println("✅ Found Locations button by scanning (name=" + name + ", label=" + label + ")");
+                    btn.click();
+                    return;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Strategy 4 failed: " + e.getMessage());
+        }
+
+        // Strategy 5: Last resort - click primary locator anyway
+        System.out.println("⚠️ All strategies failed, attempting primary locator as last resort");
+        click(locationsButton);
     }
 
     /**

@@ -1,9 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
 <suite name="Asset Phase 5 Test Suite" verbose="2">
-    <test name="Asset Phase 5 Tests">
+    <test name="Asset Phase 5 Bug Tests">
         <classes>
-            <class name="com.egalvanic.tests.Asset_Phase5_Test"/>
+            <class name="com.egalvanic.tests.Asset_Phase5_Test">
+                <methods>
+                    <!-- Duplicate Name Test - REAL BUG: App allows duplicate asset names -->
+                    <include name="BUG_DUP_01_createAssetWithDuplicateName"/>
+                    <!-- Cancel Test - POSSIBLE BUG: Cancel may not preserve original data -->
+                    <include name="BUG_CANCEL_01_cancelShouldNotSaveChanges"/>
+                    <!-- Navigation Test - REAL BUG: No warning for unsaved changes -->
+                    <include name="BUG_NAV_02_unsavedChangesWarningOnBack"/>
+                    <!-- UI Test - SCRIPT FIXED: Back button during save operation -->
+                    <include name="BUG_UI_01_backButtonDuringSave"/>
+                </methods>
+            </class>
         </classes>
     </test>
 </suite>

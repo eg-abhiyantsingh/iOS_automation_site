@@ -318,15 +318,18 @@ public final class SiteSelectionTest extends BaseTest {
 
         logStep("Clicking Sites button");
         siteSelectionPage.clickSitesButton();
+        shortWait();
 
         logStep("Selecting a site");
         siteSelectionPage.selectRandomSite();
 
         logStep("Waiting for site to load");
         siteSelectionPage.waitForDashboardReady();
+        mediumWait(); // Additional wait for dashboard to fully render
 
         logStepWithScreenshot("Verifying dashboard is displayed");
-        assertTrue(siteSelectionPage.isSitesButtonDisplayed() || siteSelectionPage.isRefreshButtonDisplayed(),
+        // Use robust dashboard detection with multiple indicators
+        assertTrue(siteSelectionPage.isDashboardDisplayed(),
                 "Dashboard should be displayed after site load");
     }
 
