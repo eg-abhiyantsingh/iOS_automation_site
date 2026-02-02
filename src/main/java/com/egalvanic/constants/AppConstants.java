@@ -176,6 +176,22 @@ public class AppConstants {
  // Set to true to send email reports
 
     // ============================================
+
+    // ============================================
+    // FEATURE NAMES - CONNECTIONS
+    // ============================================
+    public static final String FEATURE_CONNECTIONS_LIST = "Connections List";
+    public static final String FEATURE_MISSING_NODE = "Missing Node";
+    public static final String FEATURE_SEARCH_CONNECTIONS = "Search Connections";
+    public static final String FEATURE_ADD_CONNECTION = "Add Connection";
+    public static final String FEATURE_NEW_CONNECTION = "New Connection";
+    public static final String FEATURE_SOURCE_NODE = "Source Node";
+    public static final String FEATURE_TARGET_NODE = "Target Node";
+    public static final String FEATURE_CONNECTION_TYPE = "Connection Type";
+    public static final String FEATURE_CREATE_CONNECTION = "Create Connection";
+    public static final String FEATURE_SELECT_MULTIPLE = "Select Multiple";
+    public static final String FEATURE_DELETE_MULTIPLE = "Delete Multiple";
+
     // HELPER METHOD
     // ============================================
     private static String getEnv(String key, String defaultValue) {
