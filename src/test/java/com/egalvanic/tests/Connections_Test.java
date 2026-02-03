@@ -8,6 +8,7 @@ import com.egalvanic.utils.ExtentReportManager;
 import org.openqa.selenium.WebElement;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+import org.testng.SkipException;
 
 /**
  * Connections Test Suite
@@ -2669,7 +2670,7 @@ public final class Connections_Test extends BaseTest {
         logStepWithScreenshot("New Connection screen opened");
 
         // Step 1: Select a Source Node
-        logStep("Step 1: Selecting a Source Node first");
+        logStep("Step 1: Selecting a Source Node");
         boolean sourceNodeTapped = connectionsPage.tapOnSourceNodeDropdown();
         if (!sourceNodeTapped) {
             sourceNodeTapped = connectionsPage.tapOnSourceNodeField();
@@ -2687,51 +2688,76 @@ public final class Connections_Test extends BaseTest {
         connectionsPage.selectFirstAssetFromDropdown();
         shortWait();
 
-        // Verify Source Node was selected
-        String selectedSource = connectionsPage.getSelectedSourceNodeText();
-        logStep("Source Node selected: " + selectedSource);
-        logStepWithScreenshot("Source Node selected - now testing self-connection prevention");
+        logStepWithScreenshot("Source Node selected: " + selectedSourceName);
 
-        // Step 2: Try to select the same asset as Target Node
-        logStep("Step 2: Attempting to select same asset ('" + selectedSourceName + "') as Target Node");
+        // Step 2: Select the SAME asset as Target Node
+        logStep("Step 2: Selecting SAME asset ('" + selectedSourceName + "') as Target Node");
         boolean targetNodeTapped = connectionsPage.tapOnTargetNodeField();
         assertTrue(targetNodeTapped, "Should be able to tap Target Node dropdown");
         shortWait();
 
-        logStepWithScreenshot("Target Node dropdown opened - checking for source asset");
-
-        // Check if the source asset is selectable in target dropdown
-        boolean sourceIsSelectableAsTarget = connectionsPage.isAssetSelectableInTargetDropdown(selectedSourceName);
-
-        if (!sourceIsSelectableAsTarget) {
-            logStep("✓ Source asset is NOT selectable in Target dropdown (self-connection prevented)");
-        } else {
-            // Try to actually select it and see what happens
-            logStep("Source asset appears in Target list - attempting to select it");
-            boolean selectedAsSelf = connectionsPage.trySelectAssetInTargetDropdown(selectedSourceName);
-            shortWait();
-
-            // Check if warning was shown
-            boolean warningShown = connectionsPage.isWarningShownForSelfConnection();
-
-            if (warningShown) {
-                logStep("✓ Warning shown when attempting self-connection");
-            } else if (!selectedAsSelf) {
-                logStep("✓ Selection was prevented (could not select same asset as target)");
-            } else {
-                // App may allow self-connection - document this behavior
-                logWarning("⚠️ App may allow self-connections - this could be a bug or intended behavior");
-                logStep("Documenting: Self-connection was allowed - app behavior should be verified");
-            }
-        }
-
-        // Close dropdown and go back
-        connectionsPage.dismissTargetNodeDropdown();
+        // Select the same asset in target dropdown
+        logStep("Selecting same asset in Target dropdown...");
+        connectionsPage.selectAssetFromDropdown(selectedSourceName);
         shortWait();
+
+        logStepWithScreenshot("Selected same node as target - checking for validation error");
+
+        // Step 3: Verify validation - same asset should NOT be selectable
+        logStep("Step 3: Verifying validation - same asset should NOT be selected");
+        
+        // The app prevents self-connection by making the same asset non-clickable
+        // Check if Target Node is still empty (validation by prevention)
+        String selectedTargetText = connectionsPage.getSelectedTargetNodeText();
+        logStep("Target Node field value: " + (selectedTargetText != null ? selectedTargetText : "EMPTY/NULL"));
+        
+        // Check for explicit validation error message
+        boolean validationErrorShown = connectionsPage.isValidationErrorDisplayed();
+        
+        // Check for warning/alert
+        boolean warningShown = connectionsPage.isWarningShownForSelfConnection();
+        
+        // Validation passes if ANY of these are true:
+        // 1. Target field is still empty (selection was prevented)
+        // 2. Explicit validation error is shown
+        // 3. Warning message is shown
+        boolean targetStillEmpty = (selectedTargetText == null || 
+                                    selectedTargetText.isEmpty() || 
+                                    selectedTargetText.toLowerCase().contains("select") ||
+                                    !selectedTargetText.contains(selectedSourceName));
+        
+        logStep("Validation check results:");
+        logStep("  - Target still empty/placeholder: " + targetStillEmpty);
+        logStep("  - Validation error shown: " + validationErrorShown);
+        logStep("  - Warning shown: " + warningShown);
+        
+        if (targetStillEmpty) {
+            logStep("✓ VALIDATION PASSED: Same asset cannot be selected as Target");
+            logStep("✓ App prevents self-connection by disabling/hiding same asset in Target dropdown");
+            logStepWithScreenshot("Validation by prevention - same asset not selectable");
+        } else if (validationErrorShown) {
+            String errorMessage = connectionsPage.getValidationErrorMessage();
+            logStep("✓ VALIDATION PASSED: Error message displayed: " + errorMessage);
+            logStepWithScreenshot("Validation error shown for self-connection");
+        } else if (warningShown) {
+            logStep("✓ VALIDATION PASSED: Warning shown when attempting self-connection");
+            logStepWithScreenshot("Warning displayed for self-connection");
+        } else {
+            // If target contains same name, validation might have failed
+            logWarning("⚠️ Validation may have failed - Target appears to have same asset");
+            logStepWithScreenshot("Checking validation state");
+        }
+        
+        // Assert that validation worked (any method)
+        boolean validationWorked = targetStillEmpty || validationErrorShown || warningShown;
+        assertTrue(validationWorked, "Self-connection should be prevented (by disabling, error, or warning)");
+        logStep("✓ Test PASSED: Cannot select same node as source and target");
+
+        // Go back
         connectionsPage.tapOnCancelButton();
         shortWait();
 
-        logStepWithScreenshot("TC_CONN_030: Self-connection prevention test complete");
+        logStepWithScreenshot("TC_CONN_030: Self-connection validation test complete");
     }
 
     // ============================================================
@@ -3202,90 +3228,88 @@ public final class Connections_Test extends BaseTest {
             "TC_CONN_036 - Verify Create button enabled after all fields filled"
         );
 
-        // Navigate to New Connection screen
-        logStep("Navigating to New Connection screen");
+        // Navigate to Connections screen
+        logStep("Step 1: Navigate to Connections screen");
         boolean onConnections = ensureOnConnectionsScreen();
         assertTrue(onConnections, "Should be on Connections screen first");
         shortWait();
 
         // Open New Connection screen
-        logStep("Opening New Connection screen");
+        logStep("Step 2: Open New Connection screen");
         connectionsPage.tapOnAddButton();
         shortWait();
 
-        // Verify on New Connection screen
         assertTrue(connectionsPage.isNewConnectionScreenDisplayed(), "Should be on New Connection screen");
-        logStepWithScreenshot("New Connection screen - checking Create button initial state");
+        logStepWithScreenshot("New Connection screen opened");
 
-        // Check Create button initial state (should be disabled/grayed)
-        logStep("Checking Create button initial state (before filling fields)");
+        // Check Create button initial state
+        logStep("Step 3: Verify Create button is initially disabled");
         boolean initialEnabled = connectionsPage.isCreateButtonEnabled();
         logStep("Create button initially enabled: " + initialEnabled);
+        // Note: Some apps may have Create button always enabled - we just check state
 
-        if (!initialEnabled) {
-            logStep("✓ Create button is initially disabled (as expected)");
-        } else {
-            logWarning("Create button appears enabled even without all fields filled");
-        }
-
-        // Step 1: Fill all fields
-        logStep("Step 1: Filling all required fields");
-
-        // Select Source Node
-        logStep("Selecting Source Node...");
-        connectionsPage.tapOnSourceNodeDropdown();
+        // ===== SELECT SOURCE NODE =====
+        logStep("Step 4: Select Source Node");
+        boolean sourceDropdownOpened = connectionsPage.tapOnSourceNodeDropdown();
+        assertTrue(sourceDropdownOpened, "Should be able to open Source Node dropdown");
         shortWait();
-        connectionsPage.selectFirstAssetFromDropdown();
+
+        boolean sourceSelected = connectionsPage.selectFirstAssetFromDropdown();
+        assertTrue(sourceSelected, "Should be able to select Source Node");
         shortWait();
+
+        // ASSERTION: Verify Source Node was selected
         String selectedSource = connectionsPage.getSelectedSourceNodeText();
-        logStep("Source Node selected: " + selectedSource);
+        logStep("Selected Source: " + selectedSource);
+        assertNotNull(selectedSource, "Source Node should be selected");
+        assertFalse(selectedSource.toLowerCase().contains("select"), 
+            "Source should not show placeholder - actual: " + selectedSource);
 
-        // Select Target Node
-        logStep("Selecting Target Node...");
-        connectionsPage.tapOnTargetNodeField();
+        // ===== SELECT TARGET NODE (DIFFERENT FROM SOURCE) =====
+        logStep("Step 5: Select Target Node (different from Source)");
+        boolean targetDropdownOpened = connectionsPage.tapOnTargetNodeDropdown();
+        assertTrue(targetDropdownOpened, "Should be able to open Target Node dropdown");
         shortWait();
-        connectionsPage.selectFirstTargetAsset();
+
+        boolean targetSelected = connectionsPage.selectSecondAssetFromDropdown();
+        assertTrue(targetSelected, "Should be able to select Target Node");
         shortWait();
+
+        // ASSERTION: Verify Target Node was selected and is different from Source
         String selectedTarget = connectionsPage.getSelectedTargetNodeText();
-        logStep("Target Node selected: " + selectedTarget);
+        logStep("Selected Target: " + selectedTarget);
+        assertNotNull(selectedTarget, "Target Node should be selected");
+        assertFalse(selectedTarget.toLowerCase().contains("select"), 
+            "Target should not show placeholder - actual: " + selectedTarget);
+        assertFalse(selectedSource.equals(selectedTarget), 
+            "Source and Target must be different! Source=" + selectedSource + ", Target=" + selectedTarget);
 
-        // Select Connection Type
-        logStep("Selecting Connection Type...");
-        connectionsPage.tapOnConnectionTypeField();
+        // ===== SELECT CONNECTION TYPE =====
+        logStep("Step 6: Select Connection Type");
+        boolean typeDropdownOpened = connectionsPage.tapOnConnectionTypeDropdown();
+        assertTrue(typeDropdownOpened, "Should be able to open Connection Type dropdown");
         shortWait();
-        connectionsPage.selectConnectionType("Busway");
+
+        boolean typeSelected = connectionsPage.selectConnectionType("Busway");
+        assertTrue(typeSelected, "Should be able to select connection type");
         shortWait();
-        String selectedType = connectionsPage.getSelectedConnectionType();
-        logStep("Connection Type selected: " + selectedType);
 
-        logStepWithScreenshot("All fields filled - checking Create button state");
+        logStepWithScreenshot("All fields filled - Source: " + selectedSource + ", Target: " + selectedTarget);
 
-        // Step 2: Observe Create button
-        logStep("Step 2: Observing Create button after filling all fields");
-
-        // Check if all fields are filled
-        boolean allFieldsFilled = connectionsPage.areAllConnectionFieldsFilled();
-        logStep("All fields filled: " + allFieldsFilled);
-
-        // Check Create button enabled state
+        // ===== VERIFY CREATE BUTTON IS NOW ENABLED =====
+        logStep("Step 7: Verify Create button is enabled after all fields filled");
         boolean createEnabled = connectionsPage.isCreateButtonEnabled();
         logStep("Create button enabled: " + createEnabled);
-
-        boolean createVisuallyEnabled = connectionsPage.isCreateButtonVisuallyEnabled();
-        logStep("Create button visually enabled: " + createVisuallyEnabled);
-
-        if (createEnabled || createVisuallyEnabled) {
-            logStep("✓ Create button is now enabled (no longer grayed out)");
-            logStep("✓ Create button is tappable");
-        } else {
-            logWarning("Create button may still appear disabled - verify visually");
-        }
+        
+        // CRITICAL ASSERTION: Create button should be enabled now
+        assertTrue(createEnabled, "Create button should be ENABLED after all fields are filled");
+        logStep("✓ Create button is enabled");
 
         // Go back without creating
         connectionsPage.tapOnCancelButton();
         shortWait();
 
-        logStepWithScreenshot("TC_CONN_036: Create button enabled state verification complete");
+        logStepWithScreenshot("TC_CONN_036: Create button enabled verification PASSED");
     }
 
     /**
@@ -3303,112 +3327,126 @@ public final class Connections_Test extends BaseTest {
             "TC_CONN_037 - Verify Create connection successfully"
         );
 
-        // Navigate to New Connection screen
-        logStep("Navigating to New Connection screen");
+        // Navigate to Connections screen
+        logStep("Step 1: Navigate to Connections screen");
         boolean onConnections = ensureOnConnectionsScreen();
         assertTrue(onConnections, "Should be on Connections screen first");
         shortWait();
 
-        // Record initial connection count
+        // Record initial connection count (IMPORTANT for verification)
         int initialCount = connectionsPage.getConnectionsCount();
         logStep("Initial connections count: " + initialCount);
 
         // Open New Connection screen
-        logStep("Opening New Connection screen");
+        logStep("Step 2: Open New Connection screen");
         connectionsPage.tapOnAddButton();
         shortWait();
 
-        // Verify on New Connection screen
         assertTrue(connectionsPage.isNewConnectionScreenDisplayed(), "Should be on New Connection screen");
         logStepWithScreenshot("New Connection screen opened");
 
-        // Fill all required fields
-        logStep("Filling all required fields for new connection");
-
-        // Select Source Node
-        logStep("Selecting Source Node...");
-        connectionsPage.tapOnSourceNodeDropdown();
+        // ===== SELECT SOURCE NODE =====
+        logStep("Step 3: Select Source Node");
+        boolean sourceDropdownOpened = connectionsPage.tapOnSourceNodeDropdown();
+        assertTrue(sourceDropdownOpened, "Should be able to open Source Node dropdown");
         shortWait();
 
-        // Get first asset name
-        java.util.List<WebElement> sourceAssets = connectionsPage.getAssetListFromDropdown();
-        String sourceName = sourceAssets.size() > 0 ?
-            connectionsPage.getAssetNameFromEntry(sourceAssets.get(0)) : "Unknown Source";
-        connectionsPage.selectFirstAssetFromDropdown();
-        shortWait();
-        logStep("Source Node: " + sourceName);
-
-        // Select Target Node (different from source)
-        logStep("Selecting Target Node...");
-        connectionsPage.tapOnTargetNodeField();
+        // Select first asset for Source
+        boolean sourceSelected = connectionsPage.selectFirstAssetFromDropdown();
+        assertTrue(sourceSelected, "Should be able to select Source Node asset");
         shortWait();
 
-        // Get target assets and select second one if available
-        java.util.List<WebElement> targetAssets = connectionsPage.getFilteredTargetAssets();
-        String targetName = "Unknown Target";
-        if (targetAssets.size() > 1) {
-            targetName = targetAssets.get(1).getText();
-            targetAssets.get(1).click();
-        } else if (targetAssets.size() > 0) {
-            targetName = targetAssets.get(0).getText();
-            connectionsPage.selectFirstTargetAsset();
-        }
-        mediumWait();
-        logStep("Target Node: " + targetName);
+        // CRITICAL ASSERTION: Verify Source Node was actually selected
+        String selectedSource = connectionsPage.getSelectedSourceNodeText();
+        logStep("Selected Source Node: " + selectedSource);
+        assertNotNull(selectedSource, "Source Node should be selected (not null)");
+        assertFalse(selectedSource.toLowerCase().contains("select"), 
+            "Source Node should not show 'Select' placeholder - actual: " + selectedSource);
+        logStepWithScreenshot("Source Node selected: " + selectedSource);
 
-        // Select Connection Type
-        logStep("Selecting Connection Type: Busway");
-        connectionsPage.tapOnConnectionTypeField();
-        shortWait();
-        connectionsPage.selectConnectionType("Busway");
+        // ===== SELECT TARGET NODE (DIFFERENT FROM SOURCE) =====
+        logStep("Step 4: Select Target Node (different from Source)");
+        boolean targetDropdownOpened = connectionsPage.tapOnTargetNodeDropdown();
+        assertTrue(targetDropdownOpened, "Should be able to open Target Node dropdown");
         shortWait();
 
-        logStepWithScreenshot("All fields filled - ready to create connection");
+        // Select SECOND asset for Target (to be different from Source)
+        boolean targetSelected = connectionsPage.selectSecondAssetFromDropdown();
+        assertTrue(targetSelected, "Should be able to select Target Node asset");
+        shortWait();
 
-        // Verify Create button is enabled
+        // CRITICAL ASSERTION: Verify Target Node was actually selected
+        String selectedTarget = connectionsPage.getSelectedTargetNodeText();
+        logStep("Selected Target Node: " + selectedTarget);
+        assertNotNull(selectedTarget, "Target Node should be selected (not null)");
+        assertFalse(selectedTarget.toLowerCase().contains("select"), 
+            "Target Node should not show 'Select' placeholder - actual: " + selectedTarget);
+        
+        // CRITICAL ASSERTION: Source and Target must be DIFFERENT
+        assertFalse(selectedSource.equals(selectedTarget), 
+            "Source and Target must be different nodes! Source=" + selectedSource + ", Target=" + selectedTarget);
+        logStepWithScreenshot("Target Node selected: " + selectedTarget);
+
+        // ===== SELECT CONNECTION TYPE =====
+        logStep("Step 5: Select Connection Type");
+        boolean typeDropdownOpened = connectionsPage.tapOnConnectionTypeDropdown();
+        assertTrue(typeDropdownOpened, "Should be able to open Connection Type dropdown");
+        shortWait();
+
+        boolean typeSelected = connectionsPage.selectConnectionType("Busway");
+        assertTrue(typeSelected, "Should be able to select Busway connection type");
+        shortWait();
+
+        logStepWithScreenshot("All fields filled - Source: " + selectedSource + ", Target: " + selectedTarget);
+
+        // ===== VERIFY CREATE BUTTON ENABLED =====
+        logStep("Step 6: Verify Create button is enabled");
         boolean createEnabled = connectionsPage.isCreateButtonEnabled();
-        logStep("Create button enabled: " + createEnabled);
+        assertTrue(createEnabled, "Create button should be enabled after all fields filled");
 
-        // Step 1: Tap Create button
-        logStep("Step 1: Tapping Create button");
+        // ===== CREATE CONNECTION =====
+        logStep("Step 7: Tap Create button");
         boolean createTapped = connectionsPage.tapOnCreateButton();
         assertTrue(createTapped, "Should be able to tap Create button");
         longWait();
 
-        logStepWithScreenshot("After tapping Create");
+        logStepWithScreenshot("After tapping Create button");
 
-        // Verify connection created successfully
-        logStep("Verifying connection created successfully");
+        // ===== VERIFY CONNECTION CREATED =====
+        logStep("Step 8: Verify connection was created");
 
-        // Check if returned to Connections list
-        boolean returnedToList = connectionsPage.isConnectionCreatedSuccessfully();
-        if (returnedToList) {
-            logStep("✓ Returned to Connections list (creation successful)");
-        } else {
-            // May still be on the form - check for error or success
-            boolean stillOnNewConnection = connectionsPage.isNewConnectionScreenDisplayed();
-            if (stillOnNewConnection) {
-                logWarning("Still on New Connection screen - may have error or need more time");
-                longWait();
-                returnedToList = connectionsPage.isConnectionCreatedSuccessfully();
-            }
-        }
+        // Wait for navigation back to Connections list
+        mediumWait();
 
-        // Check if on Connections screen
+        // CRITICAL ASSERTION: Should be back on Connections screen
         boolean onConnectionsScreen = connectionsPage.isConnectionsScreenDisplayed();
-        if (onConnectionsScreen) {
-            logStep("✓ On Connections screen after creation");
-
-            // Check new connection count
-            int newCount = connectionsPage.getConnectionsCount();
-            logStep("New connections count: " + newCount);
-
-            if (newCount > initialCount) {
-                logStep("✓ Connection count increased (new connection added)");
+        
+        if (!onConnectionsScreen) {
+            // Check if still on New Connection - means creation failed
+            boolean stillOnForm = connectionsPage.isNewConnectionScreenDisplayed();
+            if (stillOnForm) {
+                // Check for error message
+                boolean errorShown = connectionsPage.isErrorMessageDisplayed();
+                String errorMsg = errorShown ? "Error message displayed" : "Unknown failure";
+                logStepWithScreenshot("Connection creation FAILED - still on form. " + errorMsg);
+                fail("Connection creation failed - still on New Connection screen. " + errorMsg);
             }
+            longWait();
+            onConnectionsScreen = connectionsPage.isConnectionsScreenDisplayed();
         }
+        
+        assertTrue(onConnectionsScreen, "Should return to Connections screen after successful creation");
+        logStep("✓ Returned to Connections screen");
 
-        logStepWithScreenshot("TC_CONN_037: Create connection verification complete");
+        // CRITICAL ASSERTION: Connection count should INCREASE
+        int newCount = connectionsPage.getConnectionsCount();
+        logStep("New connections count: " + newCount + " (was: " + initialCount + ")");
+        
+        assertTrue(newCount > initialCount, 
+            "Connection count should increase after creation! Initial: " + initialCount + ", New: " + newCount);
+        logStep("✓ Connection count increased from " + initialCount + " to " + newCount);
+
+        logStepWithScreenshot("TC_CONN_037: Connection created successfully - VERIFIED");
     }
 
     /**
@@ -3483,10 +3521,11 @@ public final class Connections_Test extends BaseTest {
         int newCount = connectionsPage.getConnectionsCount();
         logStep("New connection count: " + newCount);
 
-        // Check if connection count increased
-        if (newCount > initialCount) {
-            logStep("✓ Connection count increased from " + initialCount + " to " + newCount);
-        }
+        // CRITICAL ASSERTION: Connection count should INCREASE
+        assertTrue(newCount > initialCount, 
+            "Connection count should increase! Initial: " + initialCount + ", New: " + newCount + 
+            ". Connection creation may have failed or connection was deleted.");
+        logStep("✓ Connection count increased from " + initialCount + " to " + newCount);
 
         // Look for the newly created connection
         if (createdSource != null && createdTarget != null) {
@@ -3679,7 +3718,7 @@ public final class Connections_Test extends BaseTest {
         boolean targetTapped = connectionsPage.tapOnTargetNodeDropdown();
         if (targetTapped) {
             shortWait();
-            connectionsPage.selectFirstAssetFromDropdown();
+            connectionsPage.selectSecondAssetFromDropdown();  // Use second asset for Target
             shortWait();
             logStep("Target Node selected");
         } else {
@@ -3852,7 +3891,7 @@ public final class Connections_Test extends BaseTest {
         boolean targetTapped = connectionsPage.tapOnTargetNodeDropdown();
         if (targetTapped) {
             shortWait();
-            connectionsPage.selectFirstAssetFromDropdown();
+            connectionsPage.selectSecondAssetFromDropdown();  // Use second asset for Target
             shortWait();
         }
 
@@ -4245,9 +4284,8 @@ public final class Connections_Test extends BaseTest {
         boolean connectionTapped = connectionsPage.tapOnFirstConnection();
         
         if (!connectionTapped) {
-            logWarning("No connections available to test Edit option");
             logStepWithScreenshot("No connections found");
-            return;
+            throw new SkipException("SKIPPED: No connections available to test Edit option");
         }
         
         mediumWait();
@@ -4335,9 +4373,8 @@ public final class Connections_Test extends BaseTest {
         boolean connectionTapped = connectionsPage.tapOnFirstConnection();
         
         if (!connectionTapped) {
-            logWarning("No connections available to test editing");
             logStepWithScreenshot("No connections found");
-            return;
+            throw new SkipException("SKIPPED: No connections available to test editing");
         }
         
         mediumWait();
@@ -4358,11 +4395,10 @@ public final class Connections_Test extends BaseTest {
             editTapped = connectionsPage.tapOnEditOption();
             
             if (!editTapped) {
-                logWarning("Could not access Edit option");
                 logStep("Edit flow may vary - test marked as partial");
                 connectionsPage.dismissOptionsMenu();
                 connectionsPage.goBackFromConnectionDetails();
-                return;
+                throw new SkipException("SKIPPED: Could not access Edit option - edit flow may vary");
             }
         }
         
@@ -4440,9 +4476,8 @@ public final class Connections_Test extends BaseTest {
         logStep("Initial connection count: " + initialCount);
 
         if (initialCount == 0) {
-            logWarning("No connections available to test Delete option");
             logStepWithScreenshot("No connections found");
-            return;
+            throw new SkipException("SKIPPED: No connections available to test Delete option");
         }
 
         // Tap on a connection to open details
@@ -4531,7 +4566,7 @@ public final class Connections_Test extends BaseTest {
         boolean onConnections = ensureOnConnectionsScreen();
         assertTrue(onConnections, "Should be on Connections screen");
         int connectionCount = connectionsPage.getConnectionCount();
-        if (connectionCount == 0) { logWarning("No connections to test deletion"); return; }
+        if (connectionCount == 0) { throw new SkipException("SKIPPED: No connections to test deletion"); }
         connectionsPage.tapOnFirstConnection();
         shortWait();
         boolean deleteAvailable = connectionsPage.isDeleteOptionAvailable();
@@ -4559,7 +4594,7 @@ public final class Connections_Test extends BaseTest {
         boolean onConnections = ensureOnConnectionsScreen();
         assertTrue(onConnections, "Should be on Connections screen");
         int initialCount = connectionsPage.getConnectionCount();
-        if (initialCount == 0) { logWarning("No connections to test deletion"); return; }
+        if (initialCount == 0) { throw new SkipException("SKIPPED: No connections to test deletion"); }
         logStep("Initial count: " + initialCount);
         connectionsPage.tapOnFirstConnection();
         shortWait();
@@ -4696,7 +4731,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Navigating to Connections screen");
         boolean onConnections = ensureOnConnectionsScreen();
         assertTrue(onConnections, "Should be on Connections screen");
-        if (connectionsPage.getConnectionCount() == 0) { logWarning("No connections to search"); return; }
+        if (connectionsPage.getConnectionCount() == 0) { throw new SkipException("SKIPPED: No connections to search"); }
         long responseTime = connectionsPage.measureSearchResponseTime("A");
         logStep("Search response time: " + responseTime + "ms");
         if (responseTime < 500) { logStep("✓ Search response is real-time"); }
@@ -4846,8 +4881,8 @@ public final class Connections_Test extends BaseTest {
         // Select Target Node
         logStep("Selecting Target Node");
         connectionsPage.tapOnTargetNodeDropdown();
-        shortWait();
-        connectionsPage.selectFirstAssetFromDropdown();
+            shortWait();
+            connectionsPage.selectSecondAssetFromDropdown();  // Use second asset for Target
         shortWait();
 
         // Create connection
@@ -4874,10 +4909,21 @@ public final class Connections_Test extends BaseTest {
                 }
             }
         } else {
-            logStep("May still be on form - connection type might be required");
-            connectionsPage.tapOnCancelButton();
+            logStep("⚠️ Still on form - trying to select connection type");
+            // Maybe Connection Type wasn't selected
+            connectionsPage.tapOnConnectionTypeField();
             shortWait();
+            connectionsPage.selectConnectionType("Cable");
+            shortWait();
+            connectionsPage.tapOnCreateButton();
+            mediumWait();
+            
+            createdSuccessfully = connectionsPage.isConnectionsScreenDisplayed();
         }
+
+        // CRITICAL ASSERTION: Connection must be created
+        assertTrue(createdSuccessfully, 
+            "Connection should be created! Test failed - still on form or creation failed.");
 
         logStepWithScreenshot("TC_CONN_060: Special characters test complete");
     }
@@ -4925,15 +4971,20 @@ public final class Connections_Test extends BaseTest {
             
             connectionsPage.tapOnTargetNodeDropdown();
             shortWait();
-            connectionsPage.selectFirstAssetFromDropdown();
+            connectionsPage.selectSecondAssetFromDropdown();  // Use second asset for Target
             shortWait();
             
             connectionsPage.tapOnCreateButton();
-            shortWait();
+            mediumWait();
             
             // Re-navigate to connections
             ensureOnConnectionsScreen();
-            connectionCount = connectionsPage.getConnectionCount();
+            int newCount = connectionsPage.getConnectionCount();
+            
+            // CRITICAL ASSERTION: Connection should be created
+            assertTrue(newCount > 0, 
+                "Connection should be created! Count is still 0 after creation attempt.");
+            connectionCount = newCount;
         }
 
         logStep("Verifying list display with " + connectionCount + " connection(s)");
@@ -5006,8 +5057,8 @@ public final class Connections_Test extends BaseTest {
         shortWait();
         
         connectionsPage.tapOnTargetNodeDropdown();
-        shortWait();
-        connectionsPage.selectFirstAssetFromDropdown();
+            shortWait();
+            connectionsPage.selectSecondAssetFromDropdown();  // Use second asset for Target
         shortWait();
         
         connectionsPage.tapOnCreateButton();
@@ -5035,8 +5086,8 @@ public final class Connections_Test extends BaseTest {
         shortWait();
         
         connectionsPage.tapOnTargetNodeDropdown();
-        shortWait();
-        connectionsPage.selectFirstAssetFromDropdown();
+            shortWait();
+            connectionsPage.selectSecondAssetFromDropdown();  // Use second asset for Target
         shortWait();
         
         connectionsPage.tapOnCreateButton();
@@ -5063,8 +5114,8 @@ public final class Connections_Test extends BaseTest {
         shortWait();
         
         connectionsPage.tapOnTargetNodeDropdown();
-        shortWait();
-        connectionsPage.selectFirstAssetFromDropdown();
+            shortWait();
+            connectionsPage.selectSecondAssetFromDropdown();  // Use second asset for Target
         shortWait();
         
         connectionsPage.tapOnCreateButton();
@@ -5089,20 +5140,25 @@ public final class Connections_Test extends BaseTest {
         int createdCount = finalCount - initialCount;
         logStep("Connections created in rapid succession: " + createdCount);
 
-        // At least some should have been created
-        boolean someCreated = createdCount > 0 || (firstCreated || secondCreated || thirdCreated);
+        // Verify connections were created
+        int createdCount_actual = finalCount - initialCount;
         
-        if (createdCount >= 3) {
+        if (createdCount_actual >= 3) {
             logStep("✓ All 3 connections created successfully");
-        } else if (createdCount > 0) {
-            logStep("✓ " + createdCount + " connection(s) created");
-            logStep("Note: Some connections may have failed due to duplicate source/target");
+        } else if (createdCount_actual > 0) {
+            logStep("✓ " + createdCount_actual + " connection(s) created");
+            logStep("Note: Some may have failed due to duplicate source/target pairs");
         } else {
-            logStep("Connections may not have been created (validation/duplicate issues)");
-            logStep("Note: Rapid creation test depends on available unique assets");
+            logStep("⚠️ No new connections created - checking if any creation was detected");
         }
 
-        assertTrue(someCreated || finalCount > 0, "Should have some connections after rapid creation");
+        // CRITICAL ASSERTION: At least one connection should be created
+        // Note: Duplicates may cause some to fail, but at least 1 should succeed
+        boolean atLeastOneCreated = createdCount_actual > 0 || 
+            (firstCreated && !connectionsPage.isNewConnectionScreenDisplayed());
+        assertTrue(atLeastOneCreated, 
+            "At least one connection should be created! Initial: " + initialCount + ", Final: " + finalCount + 
+            ". All 3 creations may have failed.");
 
         logStepWithScreenshot("TC_CONN_062: Rapid creation test complete");
     }
@@ -5169,8 +5225,8 @@ public final class Connections_Test extends BaseTest {
         shortWait();
 
         connectionsPage.tapOnTargetNodeDropdown();
-        shortWait();
-        connectionsPage.selectFirstAssetFromDropdown();
+            shortWait();
+            connectionsPage.selectSecondAssetFromDropdown();  // Use second asset for Target
         shortWait();
 
         connectionsPage.tapOnCreateButton();
@@ -5198,12 +5254,16 @@ public final class Connections_Test extends BaseTest {
             logStep("✓ Connection created (sync status depends on network state)");
         }
 
-        // Verification
+        // CRITICAL ASSERTION: Connection must be created (locally at minimum)
+        // Even in offline mode, local-first apps should create the connection
+        assertTrue(connectionCreated || pendingSync, 
+            "Connection should be created! Initial: " + initialCount + ", Final: " + finalCount + 
+            ". Connection was not created - this is a failure.");
+        
         if (connectionCreated) {
-            logStep("✓ Connection created - will sync when online");
-        } else {
-            logStep("Connection creation behavior tested");
-            logStep("Note: Offline mode may require manual airplane mode toggle for full test");
+            logStep("✓ Connection created successfully - will sync when online");
+        } else if (pendingSync) {
+            logStep("✓ Connection pending sync - offline creation detected");
         }
 
         logStepWithScreenshot("TC_CONN_063: Offline creation test complete");
@@ -5482,9 +5542,8 @@ public final class Connections_Test extends BaseTest {
         logStep("Connection count: " + connectionCount);
 
         if (connectionCount == 0) {
-            logStep("No connections to test AF Punchlist view");
             logStepWithScreenshot("No connections available");
-            return;
+            throw new SkipException("SKIPPED: No connections to test AF Punchlist view");
         }
 
         logStepWithScreenshot("Before enabling AF Punchlist");
@@ -5501,9 +5560,8 @@ public final class Connections_Test extends BaseTest {
         }
 
         if (!menuOpened) {
-            logWarning("Could not open options menu");
             logStepWithScreenshot("Options menu not accessible");
-            return;
+            throw new SkipException("SKIPPED: Could not open options menu");
         }
 
         mediumWait();
@@ -5604,9 +5662,8 @@ public final class Connections_Test extends BaseTest {
         logStep("Connection count: " + connectionCount);
 
         if (connectionCount == 0) {
-            logWarning("No connections to test AF Punchlist");
             logStepWithScreenshot("No connections available");
-            return;
+            throw new SkipException("SKIPPED: No connections to test AF Punchlist");
         }
 
         // First enable AF Punchlist mode
@@ -5716,9 +5773,8 @@ public final class Connections_Test extends BaseTest {
         logStep("Connection count: " + connectionCount);
 
         if (connectionCount == 0) {
-            logWarning("No connections to test X icons");
             logStepWithScreenshot("No connections available");
-            return;
+            throw new SkipException("SKIPPED: No connections to test X icons");
         }
 
         // Check initial state - should not have X icons
@@ -5805,8 +5861,7 @@ public final class Connections_Test extends BaseTest {
         // Verify we have connections
         int connectionCount = connectionsPage.getConnectionCount();
         if (connectionCount == 0) {
-            logWarning("No connections available");
-            return;
+            throw new SkipException("SKIPPED: No connections available");
         }
 
         // First enable AF Punchlist mode
@@ -5904,9 +5959,8 @@ public final class Connections_Test extends BaseTest {
         logStep("Initial connection count: " + initialCount);
 
         if (initialCount == 0) {
-            logWarning("No connections to test deletion");
             logStepWithScreenshot("No connections available");
-            return;
+            throw new SkipException("SKIPPED: No connections to test deletion");
         }
 
         // Enable AF Punchlist mode
@@ -5929,13 +5983,11 @@ public final class Connections_Test extends BaseTest {
         boolean xIconsVisible = connectionsPage.areRedXIconsVisible();
         
         if (!xIconsVisible) {
-            logWarning("X icons not visible - cannot test deletion");
-            
             // Cleanup
             connectionsPage.tapOnEmojiOptionsIcon();
             shortWait();
             connectionsPage.tapOnHideAFPunchlistOption();
-            return;
+            throw new SkipException("SKIPPED: X icons not visible - cannot test deletion");
         }
 
         logStep("X icons visible - proceeding with deletion test");
@@ -5971,7 +6023,7 @@ public final class Connections_Test extends BaseTest {
                 }
             }
         } else {
-            logWarning("Could not tap X icon");
+            // Could not tap X icon - will continue to see if test can proceed
         }
 
         // Cleanup - disable AF Punchlist
@@ -6023,9 +6075,8 @@ public final class Connections_Test extends BaseTest {
         logStep("Connection count: " + connectionCount);
 
         if (connectionCount == 0) {
-            logWarning("No connections to test selection mode");
             logStepWithScreenshot("No connections available");
-            return;
+            throw new SkipException("SKIPPED: No connections to test selection mode");
         }
 
         logStepWithScreenshot("Before selection mode");
@@ -6051,9 +6102,8 @@ public final class Connections_Test extends BaseTest {
             java.util.List<String> options = connectionsPage.getOptionsMenuItems();
             logStep("Available options: " + options);
             
-            logWarning("Could not tap 'Select Multiple' option");
             connectionsPage.dismissOptionsMenu();
-            return;
+            throw new SkipException("SKIPPED: Could not tap 'Select Multiple' option");
         }
 
         mediumWait();
@@ -6133,8 +6183,7 @@ public final class Connections_Test extends BaseTest {
         // Verify we have connections
         int connectionCount = connectionsPage.getConnectionCount();
         if (connectionCount == 0) {
-            logWarning("No connections available");
-            return;
+            throw new SkipException("SKIPPED: No connections available");
         }
 
         // Enter selection mode
@@ -6149,9 +6198,8 @@ public final class Connections_Test extends BaseTest {
         boolean selectMultipleTapped = connectionsPage.tapOnSelectMultipleOption();
 
         if (!selectMultipleTapped) {
-            logWarning("Could not enter selection mode");
             connectionsPage.dismissOptionsMenu();
-            return;
+            throw new SkipException("SKIPPED: Could not enter selection mode");
         }
 
         mediumWait();
@@ -6226,8 +6274,7 @@ public final class Connections_Test extends BaseTest {
         // Verify we have connections
         int connectionCount = connectionsPage.getConnectionCount();
         if (connectionCount == 0) {
-            logWarning("No connections available");
-            return;
+            throw new SkipException("SKIPPED: No connections available");
         }
 
         // Enter selection mode
@@ -6242,9 +6289,8 @@ public final class Connections_Test extends BaseTest {
         boolean selectMultipleTapped = connectionsPage.tapOnSelectMultipleOption();
 
         if (!selectMultipleTapped) {
-            logWarning("Could not enter selection mode");
             connectionsPage.dismissOptionsMenu();
-            return;
+            throw new SkipException("SKIPPED: Could not enter selection mode");
         }
 
         mediumWait();
@@ -6312,8 +6358,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Connection count: " + connectionCount);
 
         if (connectionCount == 0) {
-            logWarning("No connections available");
-            return;
+            throw new SkipException("SKIPPED: No connections available");
         }
 
         // Verify no checkboxes in normal mode
@@ -6333,9 +6378,8 @@ public final class Connections_Test extends BaseTest {
         boolean selectMultipleTapped = connectionsPage.tapOnSelectMultipleOption();
 
         if (!selectMultipleTapped) {
-            logWarning("Could not enter selection mode");
             connectionsPage.dismissOptionsMenu();
-            return;
+            throw new SkipException("SKIPPED: Could not enter selection mode");
         }
 
         mediumWait();
@@ -6402,8 +6446,7 @@ public final class Connections_Test extends BaseTest {
         // Verify we have connections
         int connectionCount = connectionsPage.getConnectionCount();
         if (connectionCount == 0) {
-            logWarning("No connections available");
-            return;
+            throw new SkipException("SKIPPED: No connections available");
         }
 
         // Enter selection mode
@@ -6418,9 +6461,8 @@ public final class Connections_Test extends BaseTest {
         boolean selectMultipleTapped = connectionsPage.tapOnSelectMultipleOption();
 
         if (!selectMultipleTapped) {
-            logWarning("Could not enter selection mode");
             connectionsPage.dismissOptionsMenu();
-            return;
+            throw new SkipException("SKIPPED: Could not enter selection mode");
         }
 
         mediumWait();
@@ -6504,9 +6546,8 @@ public final class Connections_Test extends BaseTest {
         logStep("Connection count: " + connectionCount);
 
         if (connectionCount < 2) {
-            logWarning("Need at least 2 connections to test count update");
             logStepWithScreenshot("Insufficient connections");
-            return;
+            throw new SkipException("SKIPPED: Need at least 2 connections to test count update");
         }
 
         // Enter selection mode
@@ -6521,9 +6562,8 @@ public final class Connections_Test extends BaseTest {
         boolean selectMultipleTapped = connectionsPage.tapOnSelectMultipleOption();
 
         if (!selectMultipleTapped) {
-            logWarning("Could not enter selection mode");
             connectionsPage.dismissOptionsMenu();
-            return;
+            throw new SkipException("SKIPPED: Could not enter selection mode");
         }
 
         mediumWait();
@@ -6545,9 +6585,8 @@ public final class Connections_Test extends BaseTest {
         boolean secondTapped = connectionsPage.tapOnSecondConnectionToSelect();
         
         if (!secondTapped) {
-            logWarning("Could not tap second connection");
             connectionsPage.tapCancelInHeader();
-            return;
+            throw new SkipException("SKIPPED: Could not tap second connection");
         }
 
         shortWait();
@@ -6618,8 +6657,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Connection count: " + connectionCount);
 
         if (connectionCount == 0) {
-            logWarning("No connections available to test");
-            return;
+            throw new SkipException("SKIPPED: No connections available to test");
         }
 
         // Enter selection mode
@@ -6627,8 +6665,7 @@ public final class Connections_Test extends BaseTest {
         boolean enteredSelectionMode = connectionsPage.enterSelectMultipleMode();
 
         if (!enteredSelectionMode) {
-            logWarning("Could not enter selection mode");
-            return;
+            throw new SkipException("SKIPPED: Could not enter selection mode");
         }
 
         mediumWait();
@@ -6701,8 +6738,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Total connections: " + totalConnections);
 
         if (totalConnections == 0) {
-            logWarning("No connections available to test Select All");
-            return;
+            throw new SkipException("SKIPPED: No connections available to test Select All");
         }
 
         // Enter selection mode
@@ -6710,8 +6746,7 @@ public final class Connections_Test extends BaseTest {
         boolean enteredSelectionMode = connectionsPage.enterSelectMultipleMode();
 
         if (!enteredSelectionMode) {
-            logWarning("Could not enter selection mode");
-            return;
+            throw new SkipException("SKIPPED: Could not enter selection mode");
         }
 
         mediumWait();
@@ -6722,9 +6757,8 @@ public final class Connections_Test extends BaseTest {
         logStep("Select All button visible: " + selectAllVisible);
 
         if (!selectAllVisible) {
-            logWarning("Select All button not visible");
             connectionsPage.tapCancelInHeader();
-            return;
+            throw new SkipException("SKIPPED: Select All button not visible");
         }
 
         // Tap Select All
@@ -6783,8 +6817,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Total connections: " + totalConnections);
 
         if (totalConnections == 0) {
-            logWarning("No connections available");
-            return;
+            throw new SkipException("SKIPPED: No connections available");
         }
 
         // Enter selection mode
@@ -6792,8 +6825,7 @@ public final class Connections_Test extends BaseTest {
         boolean enteredSelectionMode = connectionsPage.enterSelectMultipleMode();
 
         if (!enteredSelectionMode) {
-            logWarning("Could not enter selection mode");
-            return;
+            throw new SkipException("SKIPPED: Could not enter selection mode");
         }
 
         mediumWait();
@@ -6807,9 +6839,8 @@ public final class Connections_Test extends BaseTest {
         boolean tappedSelectAll = connectionsPage.tapSelectAll();
 
         if (!tappedSelectAll) {
-            logWarning("Could not tap Select All");
             connectionsPage.tapCancelInHeader();
-            return;
+            throw new SkipException("SKIPPED: Could not tap Select All");
         }
 
         mediumWait();
@@ -6881,8 +6912,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Connection count: " + connectionCount);
 
         if (connectionCount == 0) {
-            logWarning("No connections available");
-            return;
+            throw new SkipException("SKIPPED: No connections available");
         }
 
         // Enter selection mode
@@ -6890,8 +6920,7 @@ public final class Connections_Test extends BaseTest {
         boolean enteredSelectionMode = connectionsPage.enterSelectMultipleMode();
 
         if (!enteredSelectionMode) {
-            logWarning("Could not enter selection mode");
-            return;
+            throw new SkipException("SKIPPED: Could not enter selection mode");
         }
 
         mediumWait();
@@ -6956,8 +6985,7 @@ public final class Connections_Test extends BaseTest {
         boolean enteredSelectionMode = connectionsPage.enterSelectMultipleMode();
 
         if (!enteredSelectionMode) {
-            logWarning("Could not enter selection mode");
-            return;
+            throw new SkipException("SKIPPED: Could not enter selection mode");
         }
 
         mediumWait();
@@ -7035,8 +7063,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Connection count: " + connectionCount);
 
         if (connectionCount == 0) {
-            logWarning("No connections available for deletion test");
-            return;
+            throw new SkipException("SKIPPED: No connections available for deletion test");
         }
 
         // Enter selection mode
@@ -7044,8 +7071,7 @@ public final class Connections_Test extends BaseTest {
         boolean enteredSelectionMode = connectionsPage.enterSelectMultipleMode();
 
         if (!enteredSelectionMode) {
-            logWarning("Could not enter selection mode");
-            return;
+            throw new SkipException("SKIPPED: Could not enter selection mode");
         }
 
         mediumWait();
@@ -7063,9 +7089,8 @@ public final class Connections_Test extends BaseTest {
         boolean tappedDelete = connectionsPage.tapDeleteIconInHeader();
 
         if (!tappedDelete) {
-            logWarning("Could not tap delete icon");
             connectionsPage.tapCancelInHeader();
-            return;
+            throw new SkipException("SKIPPED: Could not tap delete icon");
         }
 
         mediumWait();
@@ -7123,8 +7148,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Connection count: " + connectionCount);
 
         if (connectionCount < 2) {
-            logWarning("Need at least 2 connections to test count in message");
-            return;
+            throw new SkipException("SKIPPED: Need at least 2 connections to test count in message");
         }
 
         // Enter selection mode
@@ -7132,8 +7156,7 @@ public final class Connections_Test extends BaseTest {
         boolean enteredSelectionMode = connectionsPage.enterSelectMultipleMode();
 
         if (!enteredSelectionMode) {
-            logWarning("Could not enter selection mode");
-            return;
+            throw new SkipException("SKIPPED: Could not enter selection mode");
         }
 
         mediumWait();
@@ -7153,9 +7176,8 @@ public final class Connections_Test extends BaseTest {
         boolean tappedDelete = connectionsPage.tapDeleteIconInHeader();
 
         if (!tappedDelete) {
-            logWarning("Could not tap delete icon");
             connectionsPage.tapCancelInHeader();
-            return;
+            throw new SkipException("SKIPPED: Could not tap delete icon");
         }
 
         mediumWait();
@@ -7218,8 +7240,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Initial connection count: " + connectionCount);
 
         if (connectionCount == 0) {
-            logWarning("No connections available");
-            return;
+            throw new SkipException("SKIPPED: No connections available");
         }
 
         // Enter selection mode
@@ -7227,8 +7248,7 @@ public final class Connections_Test extends BaseTest {
         boolean enteredSelectionMode = connectionsPage.enterSelectMultipleMode();
 
         if (!enteredSelectionMode) {
-            logWarning("Could not enter selection mode");
-            return;
+            throw new SkipException("SKIPPED: Could not enter selection mode");
         }
 
         mediumWait();
@@ -7248,9 +7268,8 @@ public final class Connections_Test extends BaseTest {
         boolean tappedDelete = connectionsPage.tapDeleteIconInHeader();
 
         if (!tappedDelete) {
-            logWarning("Could not tap delete icon");
             connectionsPage.tapCancelInHeader();
-            return;
+            throw new SkipException("SKIPPED: Could not tap delete icon");
         }
 
         mediumWait();
@@ -7258,9 +7277,8 @@ public final class Connections_Test extends BaseTest {
         // Verify confirmation dialog appears
         boolean confirmationShown = connectionsPage.isDeleteConfirmationDialogDisplayed();
         if (!confirmationShown) {
-            logWarning("Delete confirmation not shown");
             connectionsPage.tapCancelInHeader();
-            return;
+            throw new SkipException("SKIPPED: Delete confirmation not shown");
         }
 
         logStepWithScreenshot("Delete confirmation shown");
@@ -7328,8 +7346,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Connection count before: " + connectionCountBefore);
 
         if (connectionCountBefore == 0) {
-            logWarning("No connections available for deletion test");
-            return;
+            throw new SkipException("SKIPPED: No connections available for deletion test");
         }
 
         // Enter selection mode
@@ -7337,8 +7354,7 @@ public final class Connections_Test extends BaseTest {
         boolean enteredSelectionMode = connectionsPage.enterSelectMultipleMode();
 
         if (!enteredSelectionMode) {
-            logWarning("Could not enter selection mode");
-            return;
+            throw new SkipException("SKIPPED: Could not enter selection mode");
         }
 
         mediumWait();
@@ -7356,9 +7372,8 @@ public final class Connections_Test extends BaseTest {
         boolean tappedDelete = connectionsPage.tapDeleteIconInHeader();
 
         if (!tappedDelete) {
-            logWarning("Could not tap delete icon");
             connectionsPage.tapCancelInHeader();
-            return;
+            throw new SkipException("SKIPPED: Could not tap delete icon");
         }
 
         mediumWait();
@@ -7366,9 +7381,8 @@ public final class Connections_Test extends BaseTest {
         // Verify confirmation dialog appears
         boolean confirmationShown = connectionsPage.isDeleteConfirmationDialogDisplayed();
         if (!confirmationShown) {
-            logWarning("Delete confirmation not shown");
             connectionsPage.tapCancelInHeader();
-            return;
+            throw new SkipException("SKIPPED: Delete confirmation not shown");
         }
 
         logStepWithScreenshot("Delete confirmation shown");
@@ -7422,8 +7436,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Connection count before: " + connectionCountBefore);
 
         if (connectionCountBefore < 2) {
-            logWarning("Need at least 2 connections to test bulk deletion");
-            return;
+            throw new SkipException("SKIPPED: Need at least 2 connections to test bulk deletion");
         }
 
         // Enter selection mode
@@ -7431,8 +7444,7 @@ public final class Connections_Test extends BaseTest {
         boolean enteredSelectionMode = connectionsPage.enterSelectMultipleMode();
 
         if (!enteredSelectionMode) {
-            logWarning("Could not enter selection mode");
-            return;
+            throw new SkipException("SKIPPED: Could not enter selection mode");
         }
 
         mediumWait();
@@ -7446,9 +7458,8 @@ public final class Connections_Test extends BaseTest {
         shortWait();
 
         if (actuallySelected == 0) {
-            logWarning("Could not select connections");
             connectionsPage.tapCancelInHeader();
-            return;
+            throw new SkipException("SKIPPED: Could not select connections");
         }
 
         logStepWithScreenshot("Multiple connections selected");
@@ -7507,8 +7518,7 @@ public final class Connections_Test extends BaseTest {
         logStepWithScreenshot("Initial state");
 
         if (initialCount == 0) {
-            logWarning("No connections available to test deletion");
-            return;
+            throw new SkipException("SKIPPED: No connections available to test deletion");
         }
 
         // Get first connection text for reference
@@ -7520,8 +7530,7 @@ public final class Connections_Test extends BaseTest {
         boolean selectionMode = connectionsPage.enterSelectMultipleMode();
         
         if (!selectionMode) {
-            logWarning("Could not enter selection mode");
-            return;
+            throw new SkipException("SKIPPED: Could not enter selection mode");
         }
 
         mediumWait();
@@ -7559,9 +7568,8 @@ public final class Connections_Test extends BaseTest {
                 }
             }
         } else {
-            logWarning("Could not tap Delete icon");
             connectionsPage.exitSelectMultipleMode();
-            return;
+            throw new SkipException("SKIPPED: Could not tap Delete icon");
         }
 
         // Step 1: Observe Connections list after deletion
@@ -7635,8 +7643,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Connection count: " + connectionCount);
 
         if (connectionCount == 0) {
-            logWarning("No connections available");
-            return;
+            throw new SkipException("SKIPPED: No connections available");
         }
 
         // Enter selection mode
@@ -7644,8 +7651,7 @@ public final class Connections_Test extends BaseTest {
         boolean selectionMode = connectionsPage.enterSelectMultipleMode();
         
         if (!selectionMode) {
-            logWarning("Could not enter selection mode");
-            return;
+            throw new SkipException("SKIPPED: Could not enter selection mode");
         }
 
         mediumWait();
@@ -7659,7 +7665,7 @@ public final class Connections_Test extends BaseTest {
             logStep("Search field may not be available in selection mode");
             logStep("Note: Some apps hide search during selection");
             connectionsPage.exitSelectMultipleMode();
-            return;
+            throw new SkipException("SKIPPED: Search not available in selection mode");
         }
 
         // Step 1 & 2: Type in Search bar - Enter 'ATS'
@@ -7744,8 +7750,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Connection count: " + connectionCount);
 
         if (connectionCount < 2) {
-            logWarning("Need at least 2 connections for this test");
-            return;
+            throw new SkipException("SKIPPED: Need at least 2 connections for this test");
         }
 
         // Enter selection mode
@@ -7753,8 +7758,7 @@ public final class Connections_Test extends BaseTest {
         boolean selectionMode = connectionsPage.enterSelectMultipleMode();
         
         if (!selectionMode) {
-            logWarning("Could not enter selection mode");
-            return;
+            throw new SkipException("SKIPPED: Could not enter selection mode");
         }
 
         mediumWait();
@@ -7779,7 +7783,7 @@ public final class Connections_Test extends BaseTest {
         if (!searchVisible) {
             logStep("Search not available in selection mode - test limited");
             connectionsPage.exitSelectMultipleMode();
-            return;
+            throw new SkipException("SKIPPED: Search not available in selection mode");
         }
 
         // Step 2: Search to filter
@@ -7869,8 +7873,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Connection count: " + connectionCount);
 
         if (connectionCount == 0) {
-            logWarning("No connections available");
-            return;
+            throw new SkipException("SKIPPED: No connections available");
         }
 
         logStepWithScreenshot("Initial state");
@@ -7899,14 +7902,13 @@ public final class Connections_Test extends BaseTest {
         boolean selectionMode = connectionsPage.enterSelectMultipleMode();
         
         if (!selectionMode) {
-            logStep("Could not enter Select Multiple mode");
             logStep("Note: Modes may be mutually exclusive");
             
             // Cleanup AF Punchlist
             if (punchlistEnabled) {
                 connectionsPage.exitAFPunchlistMode();
             }
-            return;
+            throw new SkipException("SKIPPED: Could not enter Select Multiple mode");
         }
 
         mediumWait();
@@ -7983,8 +7985,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Initial connection count: " + initialCount);
 
         if (initialCount == 0) {
-            logWarning("No connections available to delete");
-            return;
+            throw new SkipException("SKIPPED: No connections available to delete");
         }
 
         logStepWithScreenshot("Before deletion - " + initialCount + " connections");
@@ -8002,9 +8003,8 @@ public final class Connections_Test extends BaseTest {
         boolean selectAllTapped = connectionsPage.tapSelectAllButton();
         
         if (!selectAllTapped) {
-            logWarning("Could not tap Select All button");
             connectionsPage.exitSelectMultipleMode();
-            return;
+            throw new SkipException("SKIPPED: Could not tap Select All button");
         }
 
         shortWait();
@@ -8101,8 +8101,7 @@ public final class Connections_Test extends BaseTest {
         boolean selectionMode = connectionsPage.enterSelectMultipleMode();
         
         if (!selectionMode) {
-            logWarning("Could not enter selection mode");
-            return;
+            throw new SkipException("SKIPPED: Could not enter selection mode");
         }
 
         mediumWait();
@@ -8186,8 +8185,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Connection count: " + connectionCount);
 
         if (connectionCount == 0) {
-            logWarning("No connections to test AF Punchlist");
-            return;
+            throw new SkipException("SKIPPED: No connections to test AF Punchlist");
         }
 
         // Step 1: Enable AF Punchlist
@@ -8196,8 +8194,7 @@ public final class Connections_Test extends BaseTest {
         boolean punchlistEnabled = connectionsPage.enterAFPunchlistMode();
         
         if (!punchlistEnabled) {
-            logWarning("Could not enable AF Punchlist mode");
-            return;
+            throw new SkipException("SKIPPED: Could not enable AF Punchlist mode");
         }
 
         mediumWait();
@@ -8215,12 +8212,11 @@ public final class Connections_Test extends BaseTest {
         boolean switchedToAssets = connectionsPage.switchToAssetsTab();
         
         if (!switchedToAssets) {
-            logStep("Could not switch to Assets tab");
             logStep("Note: Tab structure may be different in this app");
             
-            // Cleanup and return
+            // Cleanup
             connectionsPage.exitAFPunchlistMode();
-            return;
+            throw new SkipException("SKIPPED: Could not switch to Assets tab");
         }
 
         mediumWait();

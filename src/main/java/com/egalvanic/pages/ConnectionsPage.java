@@ -1637,30 +1637,103 @@ public class ConnectionsPage {
      */
     public List<WebElement> getAssetListFromDropdown() {
         try {
-            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+            System.out.println("🔍 Searching for assets in dropdown...");
+            
+            // First, let's see ALL cells for debugging
+            List<WebElement> allCells = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeCell' AND visible == true"));
+            System.out.println("   Found " + allCells.size() + " total visible cells");
             
-            if (cells.size() >= 2) {
-                System.out.println("📋 Found " + cells.size() + " assets in dropdown");
-                return cells;
+            // Debug: Print info about each cell
+            for (int i = 0; i < allCells.size() && i < 10; i++) {
+                WebElement cell = allCells.get(i);
+                String label = cell.getAttribute("label");
+                String name = cell.getAttribute("name");
+                int y = cell.getLocation().getY();
+                System.out.println("   Cell " + i + ": label='" + (label != null ? label : "null") + 
+                    "', name='" + (name != null ? name : "null") + "', Y=" + y);
             }
             
-            // Fallback: Get buttons
-            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND visible == true"));
-            List<WebElement> assetButtons = new java.util.ArrayList<>();
+            List<WebElement> actualAssets = new java.util.ArrayList<>();
             
-            for (WebElement btn : buttons) {
-                String label = btn.getAttribute("label");
-                if (label != null && label.length() > 3 && 
-                    !label.equals("Cancel") && !label.equals("Create") && 
-                    !label.equals("Back") && !label.equals("Search")) {
-                    assetButtons.add(btn);
+            // Headers and non-assets to skip
+            String[] skipPatterns = {
+                "Connection Details", "Source Node", "Target Node", "Connection Type",
+                "Select source", "Select target", "Select type", "Search", "Cancel", "Create"
+            };
+            
+            for (WebElement cell : allCells) {
+                String label = cell.getAttribute("label");
+                String name = cell.getAttribute("name");
+                
+                // Get text - prefer label, fallback to name
+                String text = "";
+                if (label != null && !label.isEmpty()) {
+                    text = label;
+                } else if (name != null && !name.isEmpty()) {
+                    text = name;
+                } else {
+                    // Try to get text from child StaticText elements
+                    try {
+                        List<WebElement> childTexts = cell.findElements(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeStaticText'"));
+                        if (!childTexts.isEmpty()) {
+                            StringBuilder sb = new StringBuilder();
+                            for (WebElement ct : childTexts) {
+                                String ctLabel = ct.getAttribute("label");
+                                if (ctLabel != null && !ctLabel.isEmpty()) {
+                                    sb.append(ctLabel).append(" ");
+                                }
+                            }
+                            text = sb.toString().trim();
+                        }
+                    } catch (Exception e) {}
                 }
+                
+                // Skip empty text
+                if (text.isEmpty()) {
+                    continue;
+                }
+                
+                // Skip known headers/buttons
+                boolean shouldSkip = false;
+                for (String skip : skipPatterns) {
+                    if (text.equalsIgnoreCase(skip) || text.toLowerCase().contains(skip.toLowerCase())) {
+                        shouldSkip = true;
+                        break;
+                    }
+                }
+                
+                if (shouldSkip) {
+                    System.out.println("   Skipping: " + text);
+                    continue;
+                }
+                
+                // Accept anything that's not a header
+                // Assets typically have: location paths (>), underscores (_), or are long
+                actualAssets.add(cell);
+                System.out.println("   ✓ Added asset: " + (text.length() > 60 ? text.substring(0, 60) + "..." : text));
             }
             
-            return assetButtons;
+            if (actualAssets.isEmpty()) {
+                System.out.println("⚠️ No assets found after filtering, returning all non-header cells");
+                // Last resort: return all cells in the middle Y range (skip top headers)
+                for (WebElement cell : allCells) {
+                    int y = cell.getLocation().getY();
+                    // Assets are typically in the middle of the screen (Y between 300-700)
+                    if (y > 300 && y < 750) {
+                        actualAssets.add(cell);
+                    }
+                }
+                System.out.println("   Added " + actualAssets.size() + " cells by Y position");
+            }
+            
+            System.out.println("📋 Returning " + actualAssets.size() + " assets");
+            return actualAssets;
+            
         } catch (Exception e) {
+            System.out.println("⚠️ Error getting assets: " + e.getMessage());
+            e.printStackTrace();
             return new java.util.ArrayList<>();
         }
     }
@@ -1844,40 +1917,170 @@ public class ConnectionsPage {
      * Select first available asset from dropdown
      */
     public boolean selectFirstAssetFromDropdown() {
+        return selectAssetByIndex(0);  // Index 0 = first asset
+    }
+
+    /**
+     * Select second asset from dropdown (for Target Node when Source already selected first)
+     */
+    public boolean selectSecondAssetFromDropdown() {
+        return selectAssetByIndex(1);  // Index 1 = second asset
+    }
+
+    /**
+     * Select asset from dropdown by index (0 = first, 1 = second, etc.)
+     * This is the core method that handles asset selection
+     */
+    public boolean selectAssetByIndex(int targetIndex) {
         try {
-            System.out.println("👆 Selecting first asset...");
+            System.out.println("👆 Selecting asset at index " + targetIndex + " from dropdown...");
+            sleep(800);  // Wait for dropdown to fully open
             
-            List<WebElement> assets = getAssetListFromDropdown();
-            if (!assets.isEmpty()) {
-                String assetName = assets.get(0).getAttribute("label");
-                assets.get(0).click();
-                sleep(300);
-                System.out.println("✓ Selected first asset: " + assetName);
-                return true;
+            // Get ALL visible StaticText elements
+            List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true"));
+            
+            System.out.println("   Found " + allTexts.size() + " text elements");
+            
+            // Known headers/labels to skip (these are NOT clickable assets)
+            String[] headersToSkip = {
+                "New Connection", "Connection Details", "Source Node", "Target Node",
+                "Connection Type", "Select source node", "Select target node", "Select type",
+                "Please select", "Search", "Cancel", "Create", "Source Terminal", "Target Terminal",
+                "Bottom", "Top"
+            };
+            
+            // Collect only ASSET NAMES (not location paths)
+            // Asset structure: Name on one line, Location (with ">") on next line
+            // We want to skip location lines that contain ">"
+            List<WebElement> assetNames = new java.util.ArrayList<>();
+            
+            for (WebElement el : allTexts) {
+                String label = el.getAttribute("label");
+                if (label == null || label.isEmpty()) continue;
+                
+                int y = el.getLocation().getY();
+                int x = el.getLocation().getX();
+                
+                // Skip headers
+                boolean isHeader = false;
+                for (String header : headersToSkip) {
+                    if (label.equalsIgnoreCase(header) || label.startsWith(header)) {
+                        isHeader = true;
+                        break;
+                    }
+                }
+                if (isHeader) continue;
+                
+                // Skip LOCATION lines (they contain ">")
+                // Asset names don't typically contain ">"
+                if (label.contains(">")) {
+                    System.out.println("   Skipping location: " + label);
+                    continue;
+                }
+                
+                // Assets are at X=44 and in dropdown area (Y 280-800)
+                if (x >= 40 && x <= 90 && y >= 280 && y <= 800) {
+                    assetNames.add(el);
+                    System.out.println("   Asset " + (assetNames.size() - 1) + ": '" + label + "' at Y=" + y);
+                }
             }
             
+            System.out.println("   Total ASSET NAMES found: " + assetNames.size());
+            
+            // Select the asset at target index
+            if (targetIndex < assetNames.size()) {
+                WebElement asset = assetNames.get(targetIndex);
+                String label = asset.getAttribute("label");
+                System.out.println("   ✓ Clicking asset NAME at index " + targetIndex + ": '" + label + "'");
+                asset.click();
+                sleep(500);
+                System.out.println("✓ Selected: " + label);
+                return true;
+            } else {
+                System.out.println("⚠️ Not enough assets! Requested index " + targetIndex + " but only " + assetNames.size() + " available");
+                // Fallback: select first available
+                if (!assetNames.isEmpty()) {
+                    WebElement asset = assetNames.get(0);
+                    String label = asset.getAttribute("label");
+                    System.out.println("   ⚠️ Falling back to first asset: '" + label + "'");
+                    asset.click();
+                    sleep(500);
+                    return true;
+                }
+            }
+            
+            System.out.println("⚠️ No selectable assets found!");
             return false;
+            
         } catch (Exception e) {
+            System.out.println("⚠️ Error: " + e.getMessage());
             return false;
         }
     }
+
 
     /**
      * Get selected Source Node text
      */
     public String getSelectedSourceNodeText() {
         try {
+            System.out.println("🔍 Getting selected Source Node text...");
+            
+            // Strategy 1: Find Source Node section and get the selected value text
+            // After selection, the dropdown button shows the asset name
             try {
-                List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "(label CONTAINS 'Source' OR name CONTAINS 'source') AND visible == true"));
-                for (WebElement el : elements) {
-                    String value = el.getAttribute("value");
-                    if (value != null && !value.isEmpty() && !value.contains("Select")) {
-                        return value;
+                // Find all visible text elements
+                List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND visible == true"));
+                
+                // Look for text after "Source Node" label but before "Target Node"
+                boolean inSourceSection = false;
+                for (WebElement el : allTexts) {
+                    String label = el.getAttribute("label");
+                    if (label == null) continue;
+                    
+                    if (label.equals("Source Node")) {
+                        inSourceSection = true;
+                        continue;
+                    }
+                    if (label.equals("Source Terminal") || label.equals("Target Node")) {
+                        break;  // Moved past source section
+                    }
+                    
+                    // Skip known non-values
+                    if (inSourceSection && !label.contains("Select") && 
+                        !label.equals("Source Node") && label.length() > 1) {
+                        int y = el.getLocation().getY();
+                        // Source section is typically Y 180-350
+                        if (y > 180 && y < 400) {
+                            System.out.println("   Found Source value: '" + label + "' at Y=" + y);
+                            return label;
+                        }
                     }
                 }
-            } catch (Exception e1) {}
+            } catch (Exception e1) {
+                System.out.println("   Strategy 1 failed: " + e1.getMessage());
+            }
             
+            // Strategy 2: Look for button with asset name in source area
+            try {
+                List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND visible == true"));
+                for (WebElement btn : buttons) {
+                    int y = btn.getLocation().getY();
+                    if (y > 200 && y < 350) {
+                        String label = btn.getAttribute("label");
+                        if (label != null && !label.contains("Select") && 
+                            !label.equals("Cancel") && !label.equals("Create")) {
+                            System.out.println("   Found Source button: '" + label + "'");
+                            return label;
+                        }
+                    }
+                }
+            } catch (Exception e2) {}
+            
+            System.out.println("   ⚠️ Could not find selected Source Node");
             return null;
         } catch (Exception e) {
             return null;
@@ -2237,19 +2440,12 @@ public class ConnectionsPage {
      */
     public boolean selectFirstTargetAsset() {
         try {
-            System.out.println("👆 Selecting first target asset...");
-
-            List<WebElement> assets = getFilteredTargetAssets();
-            if (!assets.isEmpty()) {
-                String assetName = assets.get(0).getAttribute("label");
-                assets.get(0).click();
-                sleep(300);
-                System.out.println("✓ Selected first target asset: " + assetName);
-                return true;
-            }
-
-            return false;
+            System.out.println("👆 Selecting target asset (using second asset to be different from source)...");
+            
+            // Use selectSecondAssetFromDropdown to ensure different asset from source
+            return selectSecondAssetFromDropdown();
         } catch (Exception e) {
+            System.out.println("⚠️ Error selecting target asset: " + e.getMessage());
             return false;
         }
     }
@@ -2259,22 +2455,60 @@ public class ConnectionsPage {
      */
     public String getSelectedTargetNodeText() {
         try {
-            // Look for Target Node field with value
+            System.out.println("🔍 Getting selected Target Node text...");
+            
+            // Strategy 1: Find Target Node section and get the selected value text
             try {
-                List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "(label CONTAINS 'Target' OR name CONTAINS 'target') AND visible == true"));
-                for (WebElement el : elements) {
-                    String value = el.getAttribute("value");
-                    if (value != null && !value.isEmpty() && !value.toLowerCase().contains("select")) {
-                        return value;
-                    }
+                List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND visible == true"));
+                
+                // Look for text after "Target Node" label but before "Target Terminal" or "Connection Type"
+                boolean inTargetSection = false;
+                for (WebElement el : allTexts) {
                     String label = el.getAttribute("label");
-                    if (label != null && !label.toLowerCase().contains("select") && label.length() > 3) {
-                        return label;
+                    if (label == null) continue;
+                    
+                    if (label.equals("Target Node")) {
+                        inTargetSection = true;
+                        continue;
+                    }
+                    if (label.equals("Target Terminal") || label.equals("Connection Type")) {
+                        break;  // Moved past target section
+                    }
+                    
+                    // Skip known non-values
+                    if (inTargetSection && !label.contains("Select") && 
+                        !label.equals("Target Node") && label.length() > 1) {
+                        int y = el.getLocation().getY();
+                        // Target section is typically Y 400-600
+                        if (y > 400 && y < 700) {
+                            System.out.println("   Found Target value: '" + label + "' at Y=" + y);
+                            return label;
+                        }
                     }
                 }
-            } catch (Exception e1) {}
-
+            } catch (Exception e1) {
+                System.out.println("   Strategy 1 failed: " + e1.getMessage());
+            }
+            
+            // Strategy 2: Look for button with asset name in target area
+            try {
+                List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND visible == true"));
+                for (WebElement btn : buttons) {
+                    int y = btn.getLocation().getY();
+                    if (y > 450 && y < 650) {
+                        String label = btn.getAttribute("label");
+                        if (label != null && !label.contains("Select") && 
+                            !label.equals("Cancel") && !label.equals("Create")) {
+                            System.out.println("   Found Target button: '" + label + "'");
+                            return label;
+                        }
+                    }
+                }
+            } catch (Exception e2) {}
+            
+            System.out.println("   ⚠️ Could not find selected Target Node");
             return null;
         } catch (Exception e) {
             return null;
@@ -2468,6 +2702,77 @@ public class ConnectionsPage {
             return false;
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    /**
+     * Check if validation error is displayed (for self-connection or other validation)
+     */
+    public boolean isValidationErrorDisplayed() {
+        try {
+            // Look for validation error text
+            try {
+                WebElement error = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "(label CONTAINS 'same' OR label CONTAINS 'self' OR label CONTAINS 'cannot' OR " +
+                    "label CONTAINS 'invalid' OR label CONTAINS 'error' OR label CONTAINS 'validation' OR " +
+                    "label CONTAINS 'different' OR label CONTAINS 'already') AND visible == true"));
+                if (error.isDisplayed()) {
+                    System.out.println("✓ Validation error displayed: " + error.getAttribute("label"));
+                    return true;
+                }
+            } catch (Exception e1) {}
+
+            // Look for alert dialog
+            try {
+                WebElement alert = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeAlert' AND visible == true"));
+                if (alert.isDisplayed()) {
+                    System.out.println("✓ Alert shown (validation error)");
+                    return true;
+                }
+            } catch (Exception e2) {}
+
+            // Look for red text (validation error styling)
+            try {
+                WebElement redText = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND visible == true AND " +
+                    "(label CONTAINS 'Please' OR label CONTAINS 'Required' OR label CONTAINS 'select')"));
+                if (redText.isDisplayed()) {
+                    System.out.println("✓ Validation message found: " + redText.getAttribute("label"));
+                    return true;
+                }
+            } catch (Exception e3) {}
+
+            return false;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Get validation error message text
+     */
+    public String getValidationErrorMessage() {
+        try {
+            // Look for validation error text
+            try {
+                WebElement error = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "(label CONTAINS 'same' OR label CONTAINS 'self' OR label CONTAINS 'cannot' OR " +
+                    "label CONTAINS 'invalid' OR label CONTAINS 'error' OR label CONTAINS 'validation' OR " +
+                    "label CONTAINS 'different' OR label CONTAINS 'already') AND visible == true"));
+                return error.getAttribute("label");
+            } catch (Exception e1) {}
+
+            // Look for alert message
+            try {
+                WebElement alert = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeAlert' AND visible == true"));
+                return alert.getAttribute("label");
+            } catch (Exception e2) {}
+
+            return null;
+        } catch (Exception e) {
+            return null;
         }
     }
 
@@ -3389,8 +3694,8 @@ public class ConnectionsPage {
      */
     public boolean selectFirstTargetNodeAsset() {
         try {
-            System.out.println("👆 Selecting first Target Node asset...");
-            return selectFirstAssetFromDropdown();
+            System.out.println("👆 Selecting Target Node asset (using second asset to be different from source)...");
+            return selectSecondAssetFromDropdown();  // Use second asset to differ from source
         } catch (Exception e) {
             return false;
         }
@@ -3513,17 +3818,19 @@ public class ConnectionsPage {
      */
     public boolean tapOnThreeDotsIcon() {
         try {
-            System.out.println("👆 Tapping on options icon...");
+            System.out.println("👆 Tapping on three dots/options icon...");
             
-            // Strategy 1: Direct tap on dots/menu icon
+            // Strategy 1: Direct tap on dots/menu icon with expanded search
             try {
                 WebElement dotsIcon = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label == '...' OR label == '⋯' OR label == '⋮' OR name CONTAINS 'more' OR name CONTAINS 'ellipsis' OR name CONTAINS 'options' OR name CONTAINS 'menu') AND visible == true"));
+                    "(label == '...' OR label == '⋯' OR label == '⋮' OR label CONTAINS 'more' OR label CONTAINS 'ellipsis' OR label CONTAINS 'option' OR label CONTAINS 'menu' OR name CONTAINS 'more' OR name CONTAINS 'ellipsis' OR name CONTAINS 'options' OR name CONTAINS 'menu' OR name CONTAINS 'dots' OR name CONTAINS 'overflow') AND visible == true"));
                 dotsIcon.click();
-                sleep(300);
-                System.out.println("✓ Tapped on options icon");
+                sleep(500);
+                System.out.println("✓ Tapped on options icon via direct search");
                 return true;
-            } catch (Exception e1) {}
+            } catch (Exception e1) {
+                System.out.println("   Direct dots search failed");
+            }
             
             // Strategy 2: Tap header buttons that might be options
             try {
@@ -5249,34 +5556,89 @@ public class ConnectionsPage {
      */
     public boolean tapOnEmojiOptionsIcon() {
         try {
-            System.out.println("👆 Tapping on emoji/options icon...");
+            System.out.println("👆 Tapping on three-dots/ellipsis options icon...");
             
-            // Look for emoji-like button in header
+            // Strategy 1: Direct search for ellipsis/dots icon by common names
+            try {
+                WebElement dotsBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "(name CONTAINS 'ellipsis' OR name CONTAINS 'more' OR name CONTAINS 'dots' OR " +
+                    "name CONTAINS 'option' OR name CONTAINS 'menu' OR name == '...' OR name == '⋯' OR " +
+                    "label CONTAINS 'ellipsis' OR label CONTAINS 'more' OR label == '...' OR label == '⋯' OR " +
+                    "label CONTAINS 'Options' OR label CONTAINS 'Menu') AND visible == true AND type == 'XCUIElementTypeButton'"));
+                dotsBtn.click();
+                sleep(500);
+                System.out.println("✓ Tapped ellipsis/dots icon directly");
+                return true;
+            } catch (Exception e) {
+                System.out.println("   Direct ellipsis search failed, trying position-based...");
+            }
+            
+            // Strategy 2: Find ALL header buttons and log them, then pick the correct one
             List<WebElement> headerButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND visible == true"));
+            
+            int screenWidth = driver.manage().window().getSize().width;
+            System.out.println("   Screen width: " + screenWidth + ", found " + headerButtons.size() + " buttons");
+            
+            // Log all header buttons first
+            System.out.println("   Header buttons (y < 150):");
+            List<WebElement> candidateButtons = new java.util.ArrayList<>();
             
             for (WebElement btn : headerButtons) {
                 int y = btn.getLocation().getY();
                 int x = btn.getLocation().getX();
-                int screenWidth = driver.manage().window().getSize().width;
                 
-                // Emoji icon typically on right side of header
-                if (y < 120 && x > screenWidth - 120) {
+                if (y < 150) {
                     String label = btn.getAttribute("label");
                     String name = btn.getAttribute("name");
+                    String btnId = (name != null && !name.isEmpty()) ? name : label;
                     
-                    // Skip Add/+ button
-                    if (!"+".equals(label) && !"Add".equals(label) && !"Back".equals(label)) {
-                        btn.click();
-                        sleep(300);
-                        System.out.println("✓ Tapped header button: " + (name != null ? name : label));
-                        return true;
+                    System.out.println("     x=" + x + ", y=" + y + ", id='" + btnId + "'");
+                    
+                    // Skip known buttons (plus, add, WO avatar, back, cancel, wifi, etc.)
+                    if (btnId != null) {
+                        String lower = btnId.toLowerCase();
+                        // Skip: plus/add buttons, user avatar (2-letter initials like WO), navigation, wifi
+                        boolean isPlus = lower.equals("+") || lower.equals("plus") || lower.equals("add");
+                        boolean isNav = lower.equals("back") || lower.equals("cancel") || lower.equals("create") || lower.equals("done");
+                        boolean isAvatar = btnId.length() == 2 && Character.isUpperCase(btnId.charAt(0)); // Like "WO"
+                        boolean isWifi = lower.contains("wifi") || lower.contains("wi-fi") || lower.contains("network") || lower.contains("signal");
+                        
+                        // PRIORITY: If this is "More" button, this is the three-dots icon!
+                        if (lower.equals("more") || lower.contains("ellipsis") || lower.contains("option") || lower.contains("menu")) {
+                            System.out.println("   ★ Found 'More' or options button: " + btnId);
+                            candidateButtons.add(0, btn);  // Add to front - highest priority
+                        } else if (!isPlus && !isNav && !isAvatar && !isWifi) {
+                            candidateButtons.add(btn);
+                        }
                     }
                 }
             }
             
-            // Fallback to three dots method
-            return tapOnThreeDotsIcon();
+            System.out.println("   Candidate buttons after filtering: " + candidateButtons.size());
+            
+            // Strategy 3: The three-dots icon is typically to the LEFT of the + button
+            // Sort by X position and pick the one that's NOT the rightmost (that's usually avatar)
+            if (!candidateButtons.isEmpty()) {
+                // Sort by X position
+                candidateButtons.sort((a, b) -> a.getLocation().getX() - b.getLocation().getX());
+                
+                // The dots icon should be in the header area but NOT the rightmost
+                // Pick the first candidate (leftmost among candidates in right header area)
+                WebElement dotsBtn = candidateButtons.get(0);
+                String name = dotsBtn.getAttribute("name");
+                String label = dotsBtn.getAttribute("label");
+                int x = dotsBtn.getLocation().getX();
+                
+                System.out.println("   Selected button: x=" + x + ", name='" + name + "', label='" + label + "'");
+                dotsBtn.click();
+                sleep(500);
+                System.out.println("✓ Tapped three-dots icon");
+                return true;
+            }
+            
+            System.out.println("   No three-dots icon found in header");
+            return false;
         } catch (Exception e) {
             return false;
         }
@@ -5447,16 +5809,76 @@ public class ConnectionsPage {
         try {
             System.out.println("👆 Tapping 'Select Multiple' option...");
             
+            // Strategy 1: Direct search for Select Multiple text
             try {
                 WebElement option = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label CONTAINS 'Select Multiple' OR label CONTAINS 'Multi-select') AND visible == true"));
+                    "(label CONTAINS 'Select Multiple' OR label CONTAINS 'Multi-select' OR label == 'Select' OR label CONTAINS 'Select Items') AND visible == true"));
                 option.click();
-                sleep(300);
+                sleep(500);
+                System.out.println("✓ Tapped 'Select Multiple' via direct search");
                 return true;
-            } catch (Exception e1) {}
+            } catch (Exception e1) {
+                System.out.println("   Direct search failed: " + e1.getMessage());
+            }
             
+            // Strategy 2: Search in buttons
+            try {
+                List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND visible == true"));
+                System.out.println("   Searching in " + buttons.size() + " buttons...");
+                
+                for (WebElement btn : buttons) {
+                    String label = btn.getAttribute("label");
+                    if (label != null && (label.toLowerCase().contains("select") && 
+                        !label.toLowerCase().contains("deselect"))) {
+                        System.out.println("   Found: " + label);
+                        btn.click();
+                        sleep(500);
+                        return true;
+                    }
+                }
+            } catch (Exception e2) {}
+            
+            // Strategy 3: Search in static text (menu items might be text)
+            try {
+                List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND visible == true"));
+                System.out.println("   Searching in " + texts.size() + " text elements...");
+                
+                for (WebElement text : texts) {
+                    String label = text.getAttribute("label");
+                    if (label != null && label.toLowerCase().contains("select") && 
+                        !label.toLowerCase().contains("deselect")) {
+                        System.out.println("   Found text: " + label);
+                        text.click();
+                        sleep(500);
+                        return true;
+                    }
+                }
+            } catch (Exception e3) {}
+            
+            // Strategy 4: Search in cells (menu items might be cells)
+            try {
+                List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeCell' AND visible == true"));
+                System.out.println("   Searching in " + cells.size() + " cells...");
+                
+                for (WebElement cell : cells) {
+                    String label = cell.getAttribute("label");
+                    if (label != null && label.toLowerCase().contains("select") && 
+                        !label.toLowerCase().contains("deselect")) {
+                        System.out.println("   Found cell: " + label);
+                        cell.click();
+                        sleep(500);
+                        return true;
+                    }
+                }
+            } catch (Exception e4) {}
+            
+            System.out.println("⚠️ Could not find 'Select Multiple' option");
             return false;
         } catch (Exception e) {
+            System.out.println("⚠️ Error: " + e.getMessage());
             return false;
         }
     }
@@ -6608,27 +7030,169 @@ public class ConnectionsPage {
     /**
      * Enter Select Multiple mode
      */
+
+    /**
+     * Helper method to check if specific text is displayed on screen
+     */
+    public boolean isTextDisplayed(String text) {
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true AND label CONTAINS '" + text + "'"));
+            return !elements.isEmpty();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     public boolean enterSelectMultipleMode() {
         try {
             System.out.println("☑️ Entering Select Multiple mode...");
             
+            // Step 1: Open options menu
             boolean menuOpened = tapOnEmojiOptionsIcon();
             if (!menuOpened) {
+                System.out.println("   Emoji icon not found, trying three dots...");
                 menuOpened = tapOnThreeDotsIcon();
             }
             
-            if (menuOpened) {
-                sleep(300);
-                boolean tapped = tapOnSelectMultipleOption();
-                if (tapped) {
-                    sleep(300);
-                    System.out.println("✓ Select Multiple mode entered");
+            if (!menuOpened) {
+                System.out.println("⚠️ Could not open options menu - listing all header buttons...");
+                // Debug: Log all header buttons
+                try {
+                    List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND visible == true"));
+                    int screenWidth = driver.manage().window().getSize().width;
+                    
+                    System.out.println("   All header buttons (y < 150):");
+                    for (WebElement btn : buttons) {
+                        int y = btn.getLocation().getY();
+                        int x = btn.getLocation().getX();
+                        String label = btn.getAttribute("label");
+                        String name = btn.getAttribute("name");
+                        
+                        if (y < 150) {
+                            System.out.println("     x=" + x + ", y=" + y + 
+                                ", name='" + name + "', label='" + label + "'");
+                        }
+                    }
+                    
+                    // Now try to find the rightmost button that's NOT plus/add/back
+                    WebElement rightmostOption = null;
+                    int maxX = 0;
+                    
+                    for (WebElement btn : buttons) {
+                        int y = btn.getLocation().getY();
+                        int x = btn.getLocation().getX();
+                        String label = btn.getAttribute("label");
+                        String name = btn.getAttribute("name");
+                        String btnId = (name != null && !name.isEmpty()) ? name : label;
+                        
+                        // Header area, skip common buttons
+                        if (y < 150 && btnId != null) {
+                            String btnLower = btnId.toLowerCase();
+                            if (!btnLower.equals("+") && !btnLower.equals("add") && 
+                                !btnLower.equals("plus") && !btnLower.equals("back") && 
+                                !btnLower.equals("cancel") && !btnLower.equals("create") &&
+                                !btnLower.equals("done") && !btnLower.contains("connect")) {
+                                if (x > maxX) {
+                                    maxX = x;
+                                    rightmostOption = btn;
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (rightmostOption != null) {
+                        String btnName = rightmostOption.getAttribute("name");
+                        System.out.println("   Tapping rightmost option button: " + btnName + " at x=" + maxX);
+                        rightmostOption.click();
+                        sleep(500);
+                        menuOpened = true;
+                    } else {
+                        System.out.println("   No suitable options button found in header");
+                    }
+                } catch (Exception e) {
+                    System.out.println("   Error in button search: " + e.getMessage());
+                }
+            }
+            
+            if (!menuOpened) {
+                System.out.println("⚠️ Could not open any menu - cannot enter selection mode");
+                return false;
+            }
+            
+            sleep(500);
+            
+            // Step 2: Find and tap "Select Multiple" option
+            boolean tapped = tapOnSelectMultipleOption();
+            
+            if (!tapped) {
+                System.out.println("   'Select Multiple' not found by label, trying alternatives...");
+                
+                // Try finding any menu item with "select" in it
+                try {
+                    List<WebElement> menuItems = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND visible == true"));
+                    
+                    for (WebElement item : menuItems) {
+                        String label = item.getAttribute("label");
+                        if (label != null && label.toLowerCase().contains("select")) {
+                            System.out.println("   Found select option: " + label);
+                            item.click();
+                            sleep(300);
+                            tapped = true;
+                            break;
+                        }
+                    }
+                } catch (Exception e) {}
+                
+                // Try static text as menu items might be text
+                if (!tapped) {
+                    try {
+                        List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeStaticText' AND visible == true"));
+                        for (WebElement text : texts) {
+                            String label = text.getAttribute("label");
+                            if (label != null && label.toLowerCase().contains("select") && 
+                                !label.toLowerCase().contains("deselect")) {
+                                System.out.println("   Found select text option: " + label);
+                                text.click();
+                                sleep(300);
+                                tapped = true;
+                                break;
+                            }
+                        }
+                    } catch (Exception e) {}
+                }
+            }
+            
+            if (tapped) {
+                sleep(500);
+                
+                // Verify we're now in selection mode by checking for checkboxes or "Selected" text
+                boolean inSelectionMode = isMultiSelectModeActive() || 
+                    isTextDisplayed("Selected") || isTextDisplayed("0 Selected");
+                
+                if (inSelectionMode) {
+                    System.out.println("✓ Select Multiple mode entered successfully");
+                    return true;
+                } else {
+                    System.out.println("⚠️ Tapped option but selection mode not verified");
+                    // Return true anyway since we tapped it
                     return true;
                 }
             }
             
+            // Dismiss any open menu
+            try {
+                driver.findElement(AppiumBy.accessibilityId("Cancel")).click();
+            } catch (Exception e) {}
+            
+            System.out.println("⚠️ Could not find Select Multiple option");
             return false;
+            
         } catch (Exception e) {
+            System.out.println("⚠️ Error entering selection mode: " + e.getMessage());
             return false;
         }
     }

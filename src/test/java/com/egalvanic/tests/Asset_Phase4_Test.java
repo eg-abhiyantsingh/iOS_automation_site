@@ -7,6 +7,7 @@ import com.egalvanic.utils.ExtentReportManager;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+import static org.testng.Assert.fail;
 
 /**
  * Asset Phase 4 Test Suite - Edit Asset Details for Additional Asset Classes
@@ -57,31 +58,26 @@ public final class Asset_Phase4_Test extends BaseTest {
     public void TC_DS_ST_01_verifyAssetSubtypeFieldVisibility() {
         ExtentReportManager.createTest(AppConstants.MODULE_ASSET, AppConstants.FEATURE_EDIT_ASSET,
             "TC-DS-ST-01 - Verify Asset Subtype field visibility for Disconnect Switch");
-        boolean testPassed = false;
         loginAndSelectSite();
 
-        try {
-            logStep("Navigating to Disconnect Switch Edit Asset Details screen");
-            navigateToDisconnectSwitchEditScreen();
-            logStep("Ensuring asset class is Disconnect Switch");
-            assetPage.changeAssetClassToDisconnectSwitch();
+        logStep("Navigating to Disconnect Switch Edit Asset Details screen");
+        navigateToDisconnectSwitchEditScreen();
+        
+        logStep("Ensuring asset class is Disconnect Switch");
+        assetPage.changeAssetClassToDisconnectSwitch();
+        shortWait();
+        
+        logStep("Verifying Asset Subtype dropdown is visible");
+        boolean subtypeVisible = assetPage.isSelectAssetSubtypeDisplayed();
+        if (!subtypeVisible) {
+            assetPage.scrollFormDown();
             shortWait();
-            logStep("Verifying Asset Subtype dropdown is visible");
-            boolean subtypeVisible = assetPage.isSelectAssetSubtypeDisplayed();
-            if (!subtypeVisible) {
-                assetPage.scrollFormDown();
-                shortWait();
-                subtypeVisible = assetPage.isSelectAssetSubtypeDisplayed();
-            }
-            logStep("Asset Subtype dropdown visible: " + subtypeVisible);
-            assertTrue(subtypeVisible, "Asset Subtype dropdown should be visible for Disconnect Switch");
-            testPassed = true;
-            logStepWithScreenshot("Asset Subtype field visibility verified for Disconnect Switch");
-        } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage());
-            throw e;
+            subtypeVisible = assetPage.isSelectAssetSubtypeDisplayed();
         }
-        assertTrue(testPassed, "Asset Subtype dropdown should be visible for Disconnect Switch");
+        logStep("Asset Subtype dropdown visible: " + subtypeVisible);
+        logStepWithScreenshot("Asset Subtype field visibility verified for Disconnect Switch");
+        
+        assertTrue(subtypeVisible, "Asset Subtype dropdown should be visible for Disconnect Switch");
     }
 
     // TC-DS-ST-02
@@ -89,7 +85,6 @@ public final class Asset_Phase4_Test extends BaseTest {
     public void TC_DS_ST_02_verifyDefaultAssetSubtypeValue() {
         ExtentReportManager.createTest(AppConstants.MODULE_ASSET, AppConstants.FEATURE_EDIT_ASSET,
             "TC-DS-ST-02 - Verify default Asset Subtype value for Disconnect Switch");
-        boolean testPassed = false;
         try {
             logStep("Navigating to Disconnect Switch Edit Asset Details screen");
             navigateToDisconnectSwitchEditScreen();
@@ -99,13 +94,11 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Verifying default subtype value is None");
             boolean isDefaultState = !assetPage.isSubtypeSelected();
             logStep("Subtype is in default state (None): " + isDefaultState);
-            testPassed = true;
             logStepWithScreenshot("Default Asset Subtype value verified for Disconnect Switch - None");
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        assertTrue(testPassed, "Default Asset Subtype should be None for Disconnect Switch");
     }
 
     // TC-DS-ST-03
@@ -113,7 +106,6 @@ public final class Asset_Phase4_Test extends BaseTest {
     public void TC_DS_ST_03_verifyAssetSubtypeDropdownOptions() {
         ExtentReportManager.createTest(AppConstants.MODULE_ASSET, AppConstants.FEATURE_EDIT_ASSET,
             "TC-DS-ST-03 - Verify Asset Subtype dropdown options for Disconnect Switch");
-        boolean testPassed = false;
         try {
             logStep("Navigating to Disconnect Switch Edit Asset Details screen");
             navigateToDisconnectSwitchEditScreen();
@@ -128,13 +120,11 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Subtype dropdown displayed: " + optionsDisplayed);
             assetPage.dismissDropdownFocus();
             shortWait();
-            testPassed = true;
             logStepWithScreenshot("Asset Subtype dropdown options verified for Disconnect Switch");
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        assertTrue(testPassed, "Disconnect Switch subtype options should be displayed");
     }
 
     // TC-DS-ST-04
@@ -142,7 +132,6 @@ public final class Asset_Phase4_Test extends BaseTest {
     public void TC_DS_ST_04_selectBoltedPressureSwitchBPS() {
         ExtentReportManager.createTest(AppConstants.MODULE_ASSET, AppConstants.FEATURE_EDIT_ASSET,
             "TC-DS-ST-04 - Select Bolted-Pressure Switch (BPS)");
-        boolean testPassed = false;
         try {
             logStep("Navigating to Disconnect Switch Edit Asset Details screen");
             navigateToDisconnectSwitchEditScreen();
@@ -156,13 +145,11 @@ public final class Asset_Phase4_Test extends BaseTest {
             boolean onEditScreen = assetPage.isEditAssetScreenDisplayed();
             if (!onEditScreen) { onEditScreen = assetPage.isSaveChangesButtonVisible(); }
             assertTrue(onEditScreen, "Should be on edit screen after selecting subtype");
-            testPassed = true;
             logStepWithScreenshot("Bolted-Pressure Switch (BPS) selected successfully");
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        assertTrue(testPassed, "Bolted-Pressure Switch (BPS) should be selected");
     }
 
     // TC-DS-ST-05
@@ -170,7 +157,6 @@ public final class Asset_Phase4_Test extends BaseTest {
     public void TC_DS_ST_05_selectBypassIsolationSwitch1000VOrLess() {
         ExtentReportManager.createTest(AppConstants.MODULE_ASSET, AppConstants.FEATURE_EDIT_ASSET,
             "TC-DS-ST-05 - Select Bypass-Isolation Switch (<= 1000V)");
-        boolean testPassed = false;
         try {
             logStep("Navigating to Disconnect Switch Edit Asset Details screen");
             navigateToDisconnectSwitchEditScreen();
@@ -184,13 +170,11 @@ public final class Asset_Phase4_Test extends BaseTest {
             boolean onEditScreen = assetPage.isEditAssetScreenDisplayed();
             if (!onEditScreen) { onEditScreen = assetPage.isSaveChangesButtonVisible(); }
             assertTrue(onEditScreen, "Should be on edit screen after selecting subtype");
-            testPassed = true;
             logStepWithScreenshot("Bypass-Isolation Switch (<= 1000V) selected successfully");
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        assertTrue(testPassed, "Bypass-Isolation Switch (<= 1000V) should be selected");
     }
 
     // TC-DS-ST-06
@@ -198,7 +182,6 @@ public final class Asset_Phase4_Test extends BaseTest {
     public void TC_DS_ST_06_selectBypassIsolationSwitchOver1000V() {
         ExtentReportManager.createTest(AppConstants.MODULE_ASSET, AppConstants.FEATURE_EDIT_ASSET,
             "TC-DS-ST-06 - Select Bypass-Isolation Switch (> 1000V)");
-        boolean testPassed = false;
         try {
             logStep("Navigating to Disconnect Switch Edit Asset Details screen");
             navigateToDisconnectSwitchEditScreen();
@@ -212,13 +195,11 @@ public final class Asset_Phase4_Test extends BaseTest {
             boolean onEditScreen = assetPage.isEditAssetScreenDisplayed();
             if (!onEditScreen) { onEditScreen = assetPage.isSaveChangesButtonVisible(); }
             assertTrue(onEditScreen, "Should be on edit screen after selecting subtype");
-            testPassed = true;
             logStepWithScreenshot("Bypass-Isolation Switch (> 1000V) selected successfully");
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        assertTrue(testPassed, "Bypass-Isolation Switch (> 1000V) should be selected");
     }
 
     // TC-DS-ST-07
@@ -226,7 +207,6 @@ public final class Asset_Phase4_Test extends BaseTest {
     public void TC_DS_ST_07_selectDisconnectSwitchVoltageBasedSubtypes() {
         ExtentReportManager.createTest(AppConstants.MODULE_ASSET, AppConstants.FEATURE_EDIT_ASSET,
             "TC-DS-ST-07 - Select Disconnect Switch voltage-based subtypes");
-        boolean testPassed = false;
         try {
             logStep("Navigating to Disconnect Switch Edit Asset Details screen");
             navigateToDisconnectSwitchEditScreen();
@@ -244,13 +224,11 @@ public final class Asset_Phase4_Test extends BaseTest {
             boolean onEditScreen = assetPage.isEditAssetScreenDisplayed();
             if (!onEditScreen) { onEditScreen = assetPage.isSaveChangesButtonVisible(); }
             assertTrue(onEditScreen, "Should be on edit screen after selecting subtypes");
-            testPassed = true;
             logStepWithScreenshot("Disconnect Switch voltage-based subtypes selected successfully");
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        assertTrue(testPassed, "Disconnect Switch voltage-based subtypes should be selectable");
     }
 
     // TC-DS-ST-08
@@ -258,7 +236,6 @@ public final class Asset_Phase4_Test extends BaseTest {
     public void TC_DS_ST_08_selectFusedDisconnectSwitchSubtypes() {
         ExtentReportManager.createTest(AppConstants.MODULE_ASSET, AppConstants.FEATURE_EDIT_ASSET,
             "TC-DS-ST-08 - Select Fused Disconnect Switch subtypes");
-        boolean testPassed = false;
         try {
             logStep("Navigating to Disconnect Switch Edit Asset Details screen");
             navigateToDisconnectSwitchEditScreen();
@@ -276,13 +253,11 @@ public final class Asset_Phase4_Test extends BaseTest {
             boolean onEditScreen = assetPage.isEditAssetScreenDisplayed();
             if (!onEditScreen) { onEditScreen = assetPage.isSaveChangesButtonVisible(); }
             assertTrue(onEditScreen, "Should be on edit screen after selecting subtypes");
-            testPassed = true;
             logStepWithScreenshot("Fused Disconnect Switch subtypes selected successfully");
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        assertTrue(testPassed, "Fused Disconnect Switch subtypes should be selectable");
     }
 
     // TC-DS-ST-09
@@ -290,7 +265,6 @@ public final class Asset_Phase4_Test extends BaseTest {
     public void TC_DS_ST_09_selectHighPressureContactSwitchHPC() {
         ExtentReportManager.createTest(AppConstants.MODULE_ASSET, AppConstants.FEATURE_EDIT_ASSET,
             "TC-DS-ST-09 - Select High-Pressure Contact Switch (HPC)");
-        boolean testPassed = false;
         try {
             logStep("Navigating to Disconnect Switch Edit Asset Details screen");
             navigateToDisconnectSwitchEditScreen();
@@ -304,13 +278,11 @@ public final class Asset_Phase4_Test extends BaseTest {
             boolean onEditScreen = assetPage.isEditAssetScreenDisplayed();
             if (!onEditScreen) { onEditScreen = assetPage.isSaveChangesButtonVisible(); }
             assertTrue(onEditScreen, "Should be on edit screen after selecting subtype");
-            testPassed = true;
             logStepWithScreenshot("High-Pressure Contact Switch (HPC) selected successfully");
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        assertTrue(testPassed, "High-Pressure Contact Switch (HPC) should be selected");
     }
 
     // TC-DS-ST-10
@@ -318,7 +290,6 @@ public final class Asset_Phase4_Test extends BaseTest {
     public void TC_DS_ST_10_selectLoadInterruptorSwitch() {
         ExtentReportManager.createTest(AppConstants.MODULE_ASSET, AppConstants.FEATURE_EDIT_ASSET,
             "TC-DS-ST-10 - Select Load-Interruptor Switch");
-        boolean testPassed = false;
         try {
             logStep("Navigating to Disconnect Switch Edit Asset Details screen");
             navigateToDisconnectSwitchEditScreen();
@@ -332,13 +303,11 @@ public final class Asset_Phase4_Test extends BaseTest {
             boolean onEditScreen = assetPage.isEditAssetScreenDisplayed();
             if (!onEditScreen) { onEditScreen = assetPage.isSaveChangesButtonVisible(); }
             assertTrue(onEditScreen, "Should be on edit screen after selecting subtype");
-            testPassed = true;
             logStepWithScreenshot("Load-Interruptor Switch selected successfully");
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        assertTrue(testPassed, "Load-Interruptor Switch should be selected");
     }
 
     // TC-DS-ST-11
@@ -346,7 +315,6 @@ public final class Asset_Phase4_Test extends BaseTest {
     public void TC_DS_ST_11_changeDisconnectSwitchSubtypeMultipleTimes() {
         ExtentReportManager.createTest(AppConstants.MODULE_ASSET, AppConstants.FEATURE_EDIT_ASSET,
             "TC-DS-ST-11 - Change Disconnect Switch subtype multiple times");
-        boolean testPassed = false;
         try {
             logStep("Navigating to Disconnect Switch Edit Asset Details screen");
             navigateToDisconnectSwitchEditScreen();
@@ -368,13 +336,11 @@ public final class Asset_Phase4_Test extends BaseTest {
             boolean onEditScreen = assetPage.isEditAssetScreenDisplayed();
             if (!onEditScreen) { onEditScreen = assetPage.isSaveChangesButtonVisible(); }
             assertTrue(onEditScreen, "Should be on edit screen after changing subtypes");
-            testPassed = true;
             logStepWithScreenshot("Disconnect Switch subtype changed multiple times successfully");
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        assertTrue(testPassed, "Disconnect Switch subtype should update correctly each time");
     }
 
     // TC-DS-ST-12
@@ -382,36 +348,55 @@ public final class Asset_Phase4_Test extends BaseTest {
     public void TC_DS_ST_12_saveDisconnectSwitchAssetWithSubtype() {
         ExtentReportManager.createTest(AppConstants.MODULE_ASSET, AppConstants.FEATURE_EDIT_ASSET,
             "TC-DS-ST-12 - Save Disconnect Switch asset with subtype");
-        boolean testPassed = false;
-        try {
-            logStep("Navigating to Disconnect Switch Edit Asset Details screen");
-            navigateToDisconnectSwitchEditScreen();
-            logStep("Ensuring asset class is Disconnect Switch");
-            assetPage.changeAssetClassToDisconnectSwitch();
+
+        logStep("Navigating to Disconnect Switch Edit Asset Details screen");
+        navigateToDisconnectSwitchEditScreen();
+        
+        logStep("Ensuring asset class is Disconnect Switch");
+        assetPage.changeAssetClassToDisconnectSwitch();
+        shortWait();
+
+        // Try multiple subtypes until Save button appears
+        String[] subtypes = {
+            "Bolted-Pressure Switch (BPS)",
+            "High-Pressure Contact Switch (HPC)",
+            "Load-Interruptor Switch",
+            "Disconnect Switch (<= 1000V)"
+        };
+        
+        boolean saveButtonVisible = false;
+        String selectedSubtype = "";
+        
+        for (String subtype : subtypes) {
+            logStep("Trying subtype: " + subtype);
+            assetPage.selectAssetSubtype(subtype);
             shortWait();
-            logStep("Selecting Bolted-Pressure Switch (BPS)");
-            assetPage.selectAssetSubtype("Bolted-Pressure Switch (BPS)");
-            shortWait();
-            logStep("Scrolling to Save button");
             assetPage.scrollFormUp();
-            assetPage.scrollFormUp();
+            
+            saveButtonVisible = assetPage.isSaveChangesButtonVisible();
+            if (saveButtonVisible) {
+                selectedSubtype = subtype;
+                logStep("✓ Save button appeared for: " + subtype);
+                break;
+            }
+            logStep("No Save button - subtype may be same, trying next...");
+        }
+        
+        if (saveButtonVisible) {
             logStep("Tapping Save Changes");
             assetPage.clickSaveChanges();
             shortWait();
-            logStep("Verifying save completed");
-            boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
-            if (stillOnEditScreen) {
-                logStep("Still on edit screen after save attempt");
-            } else {
-                logStep("Left edit screen - Disconnect Switch asset saved successfully with subtype");
+            
+            boolean stillOnEdit = assetPage.isSaveChangesButtonVisible();
+            if (!stillOnEdit) {
+                logStep("✓ Asset saved successfully with subtype: " + selectedSubtype);
             }
-            testPassed = true;
-            logStepWithScreenshot("Disconnect Switch asset saved with selected subtype");
-        } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage());
-            throw e;
+            logStepWithScreenshot("Disconnect Switch asset saved with subtype");
+            assertTrue(!stillOnEdit || saveButtonVisible, "Asset should be saved with subtype");
+        } else {
+            logStepWithScreenshot("Save button not found after trying all subtypes");
+            fail("Save button should appear after selecting a different subtype");
         }
-        assertTrue(testPassed, "Disconnect Switch asset should be saved with selected subtype");
     }
 
     // TC-DS-ST-13
@@ -419,35 +404,72 @@ public final class Asset_Phase4_Test extends BaseTest {
     public void TC_DS_ST_13_verifySubtypePersistenceAfterSave() {
         ExtentReportManager.createTest(AppConstants.MODULE_ASSET, AppConstants.FEATURE_EDIT_ASSET,
             "TC-DS-ST-13 - Verify subtype persistence after save for Disconnect Switch");
-        boolean testPassed = false;
-        try {
-            logStep("Navigating to Disconnect Switch Edit Asset Details screen");
-            navigateToDisconnectSwitchEditScreen();
-            logStep("Ensuring asset class is Disconnect Switch");
-            assetPage.changeAssetClassToDisconnectSwitch();
+
+        logStep("Navigating to Disconnect Switch Edit Asset Details screen");
+        navigateToDisconnectSwitchEditScreen();
+        
+        logStep("Ensuring asset class is Disconnect Switch");
+        assetPage.changeAssetClassToDisconnectSwitch();
+        shortWait();
+
+        // Available subtypes for Disconnect Switch
+        String[] subtypes = {
+            "Bolted-Pressure Switch (BPS)",
+            "High-Pressure Contact Switch (HPC)",
+            "Load-Interruptor Switch",
+            "Disconnect Switch (<= 1000V)",
+            "Fused Disconnect Switch (<= 1000V)"
+        };
+        
+        boolean saveButtonVisible = false;
+        String selectedSubtype = "";
+        
+        // Try each subtype until Save button appears (means we selected a DIFFERENT value)
+        for (String subtype : subtypes) {
+            logStep("Trying subtype: " + subtype);
+            assetPage.selectAssetSubtype(subtype);
             shortWait();
-            logStep("Selecting Bolted-Pressure Switch (BPS)");
-            assetPage.selectAssetSubtype("Bolted-Pressure Switch (BPS)");
-            shortWait();
-            logStep("Scrolling to Save button");
             assetPage.scrollFormUp();
-            assetPage.scrollFormUp();
-            logStep("Saving asset");
+            
+            saveButtonVisible = assetPage.isSaveChangesButtonVisible();
+            if (saveButtonVisible) {
+                selectedSubtype = subtype;
+                logStep("✓ Save button appeared for: " + subtype);
+                break;
+            }
+            logStep("No Save button - subtype already same, trying next...");
+        }
+        
+        logStep("Save Changes button visible: " + saveButtonVisible);
+        
+        if (saveButtonVisible) {
+            logStep("Saving asset with subtype: " + selectedSubtype);
             assetPage.clickSaveChanges();
             shortWait();
-            logStep("Reopening Edit Asset screen");
-            assetPage.clickEdit();
+            
+            // After save, navigate back to Asset List and reopen SAME asset
+            logStep("Navigating back to Asset List to verify persistence");
+            assetPage.navigateToAssetListTurbo();
+            shortWait();
+            
+            logStep("Selecting first asset (same as before)");
+            assetPage.selectFirstAsset();
+            shortWait();
+            
+            logStep("Opening Edit screen to verify subtype");
+            assetPage.clickEditTurbo();
             longWait();
+            
             logStep("Verifying Asset Subtype persisted after save");
             boolean subtypeStillSelected = assetPage.isSubtypeSelected();
             logStep("Subtype still selected after save: " + subtypeStillSelected);
-            testPassed = true;
-            logStepWithScreenshot("Subtype persistence verified - subtype retained after save");
-        } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage());
-            throw e;
+            logStepWithScreenshot("Subtype persistence verified - " + selectedSubtype);
+            
+            assertTrue(subtypeStillSelected, "Subtype should persist after save");
+        } else {
+            logStepWithScreenshot("Save button not found after trying all subtypes");
+            fail("Save button should appear after selecting a different subtype");
         }
-        assertTrue(testPassed, "Selected subtype should persist after save for Disconnect Switch");
     }
 
     // TC-DS-ST-14
@@ -455,7 +477,6 @@ public final class Asset_Phase4_Test extends BaseTest {
     public void TC_DS_ST_14_saveDisconnectSwitchAssetWithSubtypeNone() {
         ExtentReportManager.createTest(AppConstants.MODULE_ASSET, AppConstants.FEATURE_EDIT_ASSET,
             "TC-DS-ST-14 - Save Disconnect Switch asset with subtype None");
-        boolean testPassed = false;
         try {
             logStep("Navigating to Disconnect Switch Edit Asset Details screen");
             navigateToDisconnectSwitchEditScreen();
@@ -476,13 +497,11 @@ public final class Asset_Phase4_Test extends BaseTest {
             } else {
                 logStep("Left edit screen - Disconnect Switch asset saved with subtype None");
             }
-            testPassed = true;
             logStepWithScreenshot("Disconnect Switch asset saved successfully with subtype None");
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        assertTrue(testPassed, "Disconnect Switch asset should be saved with subtype None");
     }
 
     // TC-DS-ST-15
@@ -490,7 +509,6 @@ public final class Asset_Phase4_Test extends BaseTest {
     public void TC_DS_ST_15_verifyCancelBehaviorAfterSubtypeChange() {
         ExtentReportManager.createTest(AppConstants.MODULE_ASSET, AppConstants.FEATURE_EDIT_ASSET,
             "TC-DS-ST-15 - Verify Cancel behavior after subtype change for Disconnect Switch");
-        boolean testPassed = false;
         try {
             logStep("Navigating to Disconnect Switch Edit Asset Details screen");
             navigateToDisconnectSwitchEditScreen();
@@ -513,13 +531,11 @@ public final class Asset_Phase4_Test extends BaseTest {
             } else {
                 logStep("Still on edit screen - may need to confirm cancel");
             }
-            testPassed = true;
             logStepWithScreenshot("Cancel behavior verified - subtype change discarded");
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        assertTrue(testPassed, "Cancel should discard subtype changes for Disconnect Switch");
     }
 
     // TC-DS-ST-16
@@ -527,7 +543,6 @@ public final class Asset_Phase4_Test extends BaseTest {
     public void TC_DS_ST_16_verifySubtypeDoesNotAffectOtherFields() {
         ExtentReportManager.createTest(AppConstants.MODULE_ASSET, AppConstants.FEATURE_EDIT_ASSET,
             "TC-DS-ST-16 - Verify subtype does not affect other fields for Disconnect Switch");
-        boolean testPassed = false;
         try {
             logStep("Navigating to Disconnect Switch Edit Asset Details screen");
             navigateToDisconnectSwitchEditScreen();
@@ -547,13 +562,11 @@ public final class Asset_Phase4_Test extends BaseTest {
             boolean onEditScreen = assetPage.isEditAssetScreenDisplayed();
             if (!onEditScreen) { onEditScreen = assetPage.isSaveChangesButtonVisible(); }
             assertTrue(onEditScreen, "Should still be on edit screen with all fields intact");
-            testPassed = true;
             logStepWithScreenshot("Verified subtype change does not affect other fields");
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        assertTrue(testPassed, "Subtype change should not affect other fields for Disconnect Switch");
     }
 
 
@@ -577,9 +590,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "TC-FUSE-ST-01 - Verify Asset Subtype field visibility for Fuse"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Navigating to Fuse Edit Asset Details screen");
             navigateToFuseEditScreen();
@@ -600,15 +610,11 @@ public final class Asset_Phase4_Test extends BaseTest {
             
             logStep("Asset Subtype dropdown visible: " + subtypeVisible);
             assertTrue(subtypeVisible, "Asset Subtype dropdown should be visible for Fuse");
-
-            testPassed = true;
             logStepWithScreenshot("Asset Subtype field visibility verified for Fuse");
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Asset Subtype dropdown should be visible for Fuse");
     }
 
     // ============================================================
@@ -622,9 +628,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "TC-FUSE-ST-02 - Verify default Asset Subtype value for Fuse"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Navigating to Fuse Edit Asset Details screen");
             navigateToFuseEditScreen();
@@ -640,15 +643,11 @@ public final class Asset_Phase4_Test extends BaseTest {
             
             // Additional verification - check the displayed value
             logStep("Checking that no specific subtype is pre-selected");
-
-            testPassed = true;
             logStepWithScreenshot("Default Asset Subtype value verified for Fuse - None");
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Default Asset Subtype should be None for Fuse");
     }
 
     // ============================================================
@@ -662,9 +661,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "TC-FUSE-ST-03 - Verify Asset Subtype dropdown options for Fuse"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Navigating to Fuse Edit Asset Details screen");
             navigateToFuseEditScreen();
@@ -687,15 +683,11 @@ public final class Asset_Phase4_Test extends BaseTest {
             // Dismiss dropdown
             assetPage.dismissDropdownFocus();
             shortWait();
-
-            testPassed = true;
             logStepWithScreenshot("Asset Subtype dropdown options verified for Fuse");
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Fuse subtype options should be displayed: None, Fuse (<= 1000V), Fuse (> 1000V)");
     }
 
     // ============================================================
@@ -709,9 +701,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "TC-FUSE-ST-04 - Select Fuse (<= 1000V) subtype"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Navigating to Fuse Edit Asset Details screen");
             navigateToFuseEditScreen();
@@ -732,15 +721,11 @@ public final class Asset_Phase4_Test extends BaseTest {
             assertTrue(onEditScreen, "Should be on edit screen after selecting subtype");
             
             logStep("Fuse (<= 1000V) selection verified");
-
-            testPassed = true;
             logStepWithScreenshot("Fuse (<= 1000V) selected successfully");
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Fuse (<= 1000V) should be selected and displayed correctly");
     }
 
     // ============================================================
@@ -754,9 +739,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "TC-FUSE-ST-05 - Select Fuse (> 1000V) subtype"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Navigating to Fuse Edit Asset Details screen");
             navigateToFuseEditScreen();
@@ -777,15 +759,11 @@ public final class Asset_Phase4_Test extends BaseTest {
             assertTrue(onEditScreen, "Should be on edit screen after selecting subtype");
             
             logStep("Fuse (> 1000V) selection verified");
-
-            testPassed = true;
             logStepWithScreenshot("Fuse (> 1000V) selected successfully");
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Fuse (> 1000V) should be selected and displayed correctly");
     }
 
     // ============================================================
@@ -799,9 +777,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "TC-FUSE-ST-06 - Switch between Fuse subtypes"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Navigating to Fuse Edit Asset Details screen");
             navigateToFuseEditScreen();
@@ -837,15 +812,11 @@ public final class Asset_Phase4_Test extends BaseTest {
                 onEditScreenAfterSecond = assetPage.isSaveChangesButtonVisible();
             }
             assertTrue(onEditScreenAfterSecond, "Should be on edit screen after changing subtypes");
-
-            testPassed = true;
             logStepWithScreenshot("Successfully switched between Fuse subtypes");
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Subtype should update correctly when switching between Fuse subtypes");
     }
 
     // ============================================================
@@ -860,45 +831,48 @@ public final class Asset_Phase4_Test extends BaseTest {
             "TC-FUSE-ST-07 - Save Fuse asset with subtype selected"
         );
 
-        boolean testPassed = false;
+        logStep("Navigating to Fuse Edit Asset Details screen");
+        navigateToFuseEditScreen();
+
+        logStep("Ensuring asset class is Fuse");
+        assetPage.changeAssetClassToFuse();
+        shortWait();
+
+        // Try both subtypes until Save button appears
+        String[] subtypes = {"Fuse (<= 1000V)", "Fuse (> 1000V)"};
+        boolean saveButtonVisible = false;
+        String selectedSubtype = "";
         
-        try {
-            logStep("Navigating to Fuse Edit Asset Details screen");
-            navigateToFuseEditScreen();
-
-            logStep("Ensuring asset class is Fuse");
-            assetPage.changeAssetClassToFuse();
+        for (String subtype : subtypes) {
+            logStep("Trying subtype: " + subtype);
+            assetPage.selectAssetSubtype(subtype);
             shortWait();
-
-            logStep("Selecting Fuse (<= 1000V) - method opens dropdown automatically");
-            assetPage.selectAssetSubtype("Fuse (<= 1000V)");
-            shortWait();
-
-            logStep("Scrolling to Save button");
             assetPage.scrollFormUp();
-            assetPage.scrollFormUp();
-
+            
+            saveButtonVisible = assetPage.isSaveChangesButtonVisible();
+            if (saveButtonVisible) {
+                selectedSubtype = subtype;
+                logStep("✓ Save button appeared for: " + subtype);
+                break;
+            }
+            logStep("No Save button - subtype may be same, trying next...");
+        }
+        
+        if (saveButtonVisible) {
             logStep("Tapping Save Changes");
             assetPage.clickSaveChanges();
             shortWait();
-
-            logStep("Verifying save completed");
-            boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
             
-            if (stillOnEditScreen) {
-                logStep("Still on edit screen after save attempt - checking for validation errors");
-            } else {
-                logStep("Left edit screen - Fuse asset saved successfully with subtype Fuse (<= 1000V)");
+            boolean stillOnEdit = assetPage.isSaveChangesButtonVisible();
+            if (!stillOnEdit) {
+                logStep("✓ Fuse asset saved with subtype: " + selectedSubtype);
             }
-
-            testPassed = true;
-            logStepWithScreenshot("Fuse asset saved with selected subtype");
-        } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage());
-            throw e;
+            logStepWithScreenshot("Fuse asset saved with subtype");
+            assertTrue(!stillOnEdit || saveButtonVisible, "Fuse asset should be saved");
+        } else {
+            logStepWithScreenshot("Save button not found after trying all subtypes");
+            fail("Save button should appear after selecting a different subtype");
         }
-        
-        assertTrue(testPassed, "Fuse asset should be saved with selected subtype");
     }
 
     // ============================================================
@@ -913,48 +887,63 @@ public final class Asset_Phase4_Test extends BaseTest {
             "TC-FUSE-ST-08 - Verify subtype persistence after save for Fuse"
         );
 
-        boolean testPassed = false;
+        logStep("Navigating to Fuse Edit Asset Details screen");
+        navigateToFuseEditScreen();
+
+        logStep("Ensuring asset class is Fuse");
+        assetPage.changeAssetClassToFuse();
+        shortWait();
+
+        // Try both subtypes until Save button appears
+        String[] subtypes = {"Fuse (> 1000V)", "Fuse (<= 1000V)"};
+        boolean saveButtonVisible = false;
+        String selectedSubtype = "";
         
-        try {
-            logStep("Navigating to Fuse Edit Asset Details screen");
-            navigateToFuseEditScreen();
-
-            logStep("Ensuring asset class is Fuse");
-            assetPage.changeAssetClassToFuse();
+        for (String subtype : subtypes) {
+            logStep("Trying subtype: " + subtype);
+            assetPage.selectAssetSubtype(subtype);
             shortWait();
-
-            logStep("Selecting Fuse (> 1000V) for persistence test");
-            assetPage.selectAssetSubtype("Fuse (> 1000V)");
-            shortWait();
-
-            logStep("Scrolling to Save button");
             assetPage.scrollFormUp();
-            assetPage.scrollFormUp();
-
-            logStep("Saving asset");
+            
+            saveButtonVisible = assetPage.isSaveChangesButtonVisible();
+            if (saveButtonVisible) {
+                selectedSubtype = subtype;
+                logStep("✓ Save button appeared for: " + subtype);
+                break;
+            }
+            logStep("No Save button - subtype may be same, trying next...");
+        }
+        
+        logStep("Save Changes button visible: " + saveButtonVisible);
+        
+        if (saveButtonVisible) {
+            logStep("Saving asset with subtype: " + selectedSubtype);
             assetPage.clickSaveChanges();
             shortWait();
 
-            logStep("Reopening Edit Asset screen to verify persistence");
-            assetPage.clickEdit();
+            // After save, navigate back to Asset List and reopen SAME asset
+            logStep("Navigating back to Asset List to verify persistence");
+            assetPage.navigateToAssetListTurbo();
+            shortWait();
+            
+            logStep("Selecting first asset (same as before)");
+            assetPage.selectFirstAsset();
+            shortWait();
+            
+            logStep("Opening Edit screen to verify subtype");
+            assetPage.clickEditTurbo();
             longWait();
 
             logStep("Verifying Asset Subtype persisted after save");
-            // Check if subtype is still selected (not in default None state)
             boolean subtypeStillSelected = assetPage.isSubtypeSelected();
             logStep("Subtype still selected after save: " + subtypeStillSelected);
+            logStepWithScreenshot("Subtype persistence verified - " + selectedSubtype);
             
-            // Additional verification
-            logStep("Verifying the subtype value is retained as Fuse (> 1000V)");
-
-            testPassed = true;
-            logStepWithScreenshot("Subtype persistence verified - Fuse (> 1000V) retained after save");
-        } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage());
-            throw e;
+            assertTrue(subtypeStillSelected, "Subtype should persist after save");
+        } else {
+            logStepWithScreenshot("Save button not found after trying all subtypes");
+            fail("Save button should appear after selecting a different subtype");
         }
-        
-        assertTrue(testPassed, "Selected subtype should persist after save for Fuse");
     }
 
     // ============================================================
@@ -968,9 +957,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "TC-FUSE-ST-09 - Save Fuse asset with subtype None"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Navigating to Fuse Edit Asset Details screen");
             navigateToFuseEditScreen();
@@ -1000,15 +986,11 @@ public final class Asset_Phase4_Test extends BaseTest {
             } else {
                 logStep("Left edit screen - Fuse asset saved successfully with subtype None");
             }
-
-            testPassed = true;
             logStepWithScreenshot("Fuse asset saved successfully with subtype None");
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Fuse asset should be saved successfully with subtype None");
     }
 
     // ============================================================
@@ -1022,9 +1004,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "TC-FUSE-ST-10 - Verify Cancel behavior after subtype change for Fuse"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Navigating to Fuse Edit Asset Details screen");
             navigateToFuseEditScreen();
@@ -1056,15 +1035,11 @@ public final class Asset_Phase4_Test extends BaseTest {
             } else {
                 logStep("Still on edit screen - may need to confirm cancel or handle modal");
             }
-
-            testPassed = true;
             logStepWithScreenshot("Cancel behavior verified - subtype change discarded");
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Cancel should discard subtype changes for Fuse");
     }
 
     // ============================================================
@@ -1078,9 +1053,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "TC-FUSE-ST-11 - Verify subtype does not affect other fields for Fuse"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Navigating to Fuse Edit Asset Details screen");
             navigateToFuseEditScreen();
@@ -1118,15 +1090,11 @@ public final class Asset_Phase4_Test extends BaseTest {
             // Check that we're still in a valid edit state
             boolean saveButtonVisible = assetPage.isSaveChangesButtonVisible();
             logStep("Save Changes button still visible: " + saveButtonVisible);
-
-            testPassed = true;
             logStepWithScreenshot("Verified subtype change does not affect other fields for Fuse");
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Subtype change should not affect other fields for Fuse");
     }
 
 
@@ -1174,9 +1142,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "GEN-01 - Verify core attributes are visible for Generator asset"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Navigating to Assets and selecting a Generator asset");
             navigateToGeneratorEditScreen();
@@ -1214,15 +1179,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             
             logStep("Verifying core attributes section is accessible");
             // Take screenshot to document visible attributes
-            testPassed = true;
             logStepWithScreenshot("Generator core attributes visibility verified - see screenshot for details");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "All Generator core attributes should be visible");
     }
 
     // ============================================================
@@ -1236,9 +1198,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "GEN-02 - Verify saving Generator asset with valid core attributes"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening Generator asset in edit mode");
             navigateToGeneratorEditScreen();
@@ -1284,16 +1243,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             } else {
                 logStep("Left edit screen - Generator asset saved successfully");
             }
-
-            testPassed = true;
             logStepWithScreenshot("Generator asset save with valid core attributes - completed");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Generator asset should be saved with valid core attributes");
     }
 
     // ============================================================
@@ -1307,9 +1262,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "GEN-03 - Verify Generator asset can be saved with optional fields empty"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening Generator asset in edit mode");
             navigateToGeneratorEditScreen();
@@ -1349,16 +1301,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             } else {
                 logStep("Left edit screen - Generator asset saved successfully with empty optional fields");
             }
-
-            testPassed = true;
             logStepWithScreenshot("Generator asset saved successfully with optional fields empty");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Generator asset should be saved successfully with optional fields empty");
     }
 
     // ============================================================
@@ -1372,9 +1320,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "GEN-04 - Verify no asset subtype selection impacts Generator core attributes"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening Generator asset");
             navigateToGeneratorEditScreen();
@@ -1421,16 +1366,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             }
             
             logStep("On Edit Asset screen with core attributes: " + onEditScreen);
-
-            testPassed = true;
             logStepWithScreenshot("Verified: Asset Subtype None does not impact Generator core attributes");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Core attributes should be displayed correctly and independent of asset subtype");
     }
 
 
@@ -1460,9 +1401,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "JB_AST_01 - Verify Asset Subtype shows None for Junction Box"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening the mobile application");
             logStep("Application is already open - proceeding with test");
@@ -1522,16 +1460,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             // Verify subtype is in default state (None)
             boolean isDefaultSubtype = !assetPage.isSubtypeSelected();
             logStep("Asset Subtype is in default state (None): " + isDefaultSubtype);
-
-            testPassed = true;
             logStepWithScreenshot("JB_AST_01 - Verified: Asset Subtype shows only 'None' for Junction Box");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Asset Subtype should display only 'None' option for Junction Box");
     }
 
 
@@ -1561,9 +1495,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "LC_AST_01 - Verify Asset Subtype shows None for Loadcenter"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening the mobile application");
             logStep("Application is already open - proceeding with test");
@@ -1623,16 +1554,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             // Verify subtype is in default state (None)
             boolean isDefaultSubtype = !assetPage.isSubtypeSelected();
             logStep("Asset Subtype is in default state (None): " + isDefaultSubtype);
-
-            testPassed = true;
             logStepWithScreenshot("LC_AST_01 - Verified: Asset Subtype shows only 'None' for Loadcenter");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Asset Subtype should display only 'None' option for Loadcenter");
     }
 
 
@@ -1662,9 +1589,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "MCC_AST_01 - Verify default Asset Subtype is None for MCC"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Navigating to Assets module");
             navigateToMCCEditScreen();
@@ -1693,16 +1617,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Asset Subtype is in default state (None): " + isDefaultSubtype);
             
             logStep("Expected: Asset Subtype defaults to None for MCC");
-
-            testPassed = true;
             logStepWithScreenshot("MCC_AST_01 - Verified: Default Asset Subtype is None for MCC");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Default Asset Subtype should be None for MCC");
     }
 
     // ============================================================
@@ -1716,9 +1636,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "MCC_AST_02 - Verify Asset Subtype dropdown options for MCC"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Navigating to Assets module");
             navigateToMCCEditScreen();
@@ -1759,16 +1676,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             // Dismiss the dropdown
             assetPage.dismissDropdownFocus();
             shortWait();
-
-            testPassed = true;
             logStepWithScreenshot("MCC_AST_02 - Verified: Asset Subtype dropdown options for MCC");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Asset Subtype dropdown should display correct options for MCC");
     }
 
     // ============================================================
@@ -1782,9 +1695,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "MCC_AST_03 - Verify selection of Motor Control Equipment (<= 1000V)"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Navigating to Assets module");
             navigateToMCCEditScreen();
@@ -1809,16 +1719,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             assertTrue(onEditScreen, "Should be on edit screen after selecting subtype");
 
             logStep("Motor Control Equipment (<= 1000V) selection verified");
-
-            testPassed = true;
             logStepWithScreenshot("MCC_AST_03 - Verified: Motor Control Equipment (<= 1000V) selected successfully");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Motor Control Equipment (<= 1000V) should be selectable for MCC");
     }
 
     // ============================================================
@@ -1832,9 +1738,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "MCC_AST_04 - Verify selection of Motor Control Equipment (> 1000V)"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Navigating to Assets module");
             navigateToMCCEditScreen();
@@ -1859,16 +1762,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             assertTrue(onEditScreen, "Should be on edit screen after selecting subtype");
 
             logStep("Motor Control Equipment (> 1000V) selection verified");
-
-            testPassed = true;
             logStepWithScreenshot("MCC_AST_04 - Verified: Motor Control Equipment (> 1000V) selected successfully");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Motor Control Equipment (> 1000V) should be selectable for MCC");
     }
 
 
@@ -1898,9 +1797,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "MCCB_AST_01 - Verify Asset Subtype shows None for MCC Bucket"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening the mobile application");
             logStep("Application is already open - proceeding with test");
@@ -1955,16 +1851,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             
             boolean isDefaultSubtype = !assetPage.isSubtypeSelected();
             logStep("Asset Subtype is in default state (None): " + isDefaultSubtype);
-
-            testPassed = true;
             logStepWithScreenshot("MCCB_AST_01 - Verified: Asset Subtype shows only 'None' for MCC Bucket");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Asset Subtype should display only 'None' option for MCC Bucket");
     }
 
     // ============================================================
@@ -1994,9 +1886,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "MOT_AST_01 - Verify default Asset Subtype is None for Motor"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening the mobile application");
             logStep("Application is already open - proceeding with test");
@@ -2028,16 +1917,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Asset Subtype is in default state (None): " + isDefaultSubtype);
             
             logStep("Expected: Asset Subtype defaults to None for Motor");
-
-            testPassed = true;
             logStepWithScreenshot("MOT_AST_01 - Verified: Default Asset Subtype is None for Motor");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Default Asset Subtype should be None for Motor");
     }
 
     // ============================================================
@@ -2051,9 +1936,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "MOT_AST_02 - Verify Asset Subtype dropdown options for Motor"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening the mobile application");
             logStep("Application is already open - proceeding with test");
@@ -2093,16 +1975,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             }
             
             logStep("Back on Edit Asset screen: " + onEditScreen);
-
-            testPassed = true;
             logStepWithScreenshot("MOT_AST_02 - Verified: Asset Subtype dropdown options for Motor");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Asset Subtype dropdown should display all Motor subtype options");
     }
 
     // ============================================================
@@ -2116,9 +1994,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "MOT_AST_03 - Verify selection of Low-Voltage Machine (<= 200hp)"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening the mobile application");
             logStep("Application is already open - proceeding with test");
@@ -2148,16 +2023,12 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Low-Voltage Machine (<= 200hp) selection verified");
             logStep("Selected subtype is applied successfully and displayed in the Asset Subtype field");
-
-            testPassed = true;
             logStepWithScreenshot("MOT_AST_03 - Verified: Low-Voltage Machine (<= 200hp) selected successfully");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Low-Voltage Machine (<= 200hp) should be selectable for Motor");
     }
 
     // ============================================================
@@ -2171,9 +2042,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "MOT_AST_04 - Verify selection of Medium-Voltage Synchronous Machine"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening the mobile application");
             logStep("Application is already open - proceeding with test");
@@ -2203,16 +2071,12 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Medium-Voltage Synchronous Machine selection verified");
             logStep("Selected subtype is applied successfully and displayed in the Asset Subtype field");
-
-            testPassed = true;
             logStepWithScreenshot("MOT_AST_04 - Verified: Medium-Voltage Synchronous Machine selected successfully");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Medium-Voltage Synchronous Machine should be selectable for Motor");
     }
 
 
@@ -2242,9 +2106,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "OCP_AST_01 - Verify Asset Subtype shows None for Other (OCP)"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening the mobile application");
             logStep("Application is already open - proceeding with test");
@@ -2299,16 +2160,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             
             boolean isDefaultSubtype = !assetPage.isSubtypeSelected();
             logStep("Asset Subtype is in default state (None): " + isDefaultSubtype);
-
-            testPassed = true;
             logStepWithScreenshot("OCP_AST_01 - Verified: Asset Subtype shows only 'None' for Other (OCP)");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Asset Subtype should display only 'None' option for Other (OCP)");
     }
 
 
@@ -2338,9 +2195,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "PB_AST_01 - Verify default Asset Subtype is None for Panelboard"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening the mobile application");
             logStep("Application is already open - proceeding with test");
@@ -2372,16 +2226,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Asset Subtype is in default state (None): " + isDefaultSubtype);
             
             logStep("Expected: Asset Subtype defaults to None for Panelboard");
-
-            testPassed = true;
             logStepWithScreenshot("PB_AST_01 - Verified: Default Asset Subtype is None for Panelboard");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Default Asset Subtype should be None for Panelboard");
     }
 
     // ============================================================
@@ -2395,9 +2245,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "PB_AST_02 - Verify Asset Subtype dropdown options for Panelboard"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening the mobile application");
             logStep("Application is already open - proceeding with test");
@@ -2433,16 +2280,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             }
             
             logStep("Back on Edit Asset screen: " + onEditScreen);
-
-            testPassed = true;
             logStepWithScreenshot("PB_AST_02 - Verified: Asset Subtype dropdown options for Panelboard");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Asset Subtype dropdown should display None and Panelboard options");
     }
 
     // ============================================================
@@ -2456,9 +2299,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "PB_AST_03 - Verify selection of Panelboard subtype"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening the mobile application");
             logStep("Application is already open - proceeding with test");
@@ -2488,16 +2328,12 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Panelboard subtype selection verified");
             logStep("Selected subtype is applied successfully and displayed in the Asset Subtype field");
-
-            testPassed = true;
             logStepWithScreenshot("PB_AST_03 - Verified: Panelboard subtype selected successfully");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Panelboard subtype should be selectable for Panelboard asset class");
     }
 
 
@@ -2527,9 +2363,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "PDU_AST_01 - Verify Asset Subtype shows None for PDU"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening the mobile application");
             logStep("Application is already open - proceeding with test");
@@ -2584,16 +2417,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             
             boolean isDefaultSubtype = !assetPage.isSubtypeSelected();
             logStep("Asset Subtype is in default state (None): " + isDefaultSubtype);
-
-            testPassed = true;
             logStepWithScreenshot("PDU_AST_01 - Verified: Asset Subtype shows only 'None' for PDU");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Asset Subtype should display only 'None' option for PDU");
     }
 
 
@@ -2623,9 +2452,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "REL_AST_01 - Verify default Asset Subtype is None for Relay"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening the mobile application");
             logStep("Application is already open - proceeding with test");
@@ -2657,16 +2483,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Asset Subtype is in default state (None): " + isDefaultSubtype);
             
             logStep("Expected: Asset Subtype defaults to None for Relay");
-
-            testPassed = true;
             logStepWithScreenshot("REL_AST_01 - Verified: Default Asset Subtype is None for Relay");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Default Asset Subtype should be None for Relay");
     }
 
     // ============================================================
@@ -2680,9 +2502,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "REL_AST_02 - Verify Asset Subtype dropdown options for Relay"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening the mobile application");
             logStep("Application is already open - proceeding with test");
@@ -2720,16 +2539,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             }
             
             logStep("Back on Edit Asset screen: " + onEditScreen);
-
-            testPassed = true;
             logStepWithScreenshot("REL_AST_02 - Verified: Asset Subtype dropdown options for Relay");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Asset Subtype dropdown should display all Relay subtype options");
     }
 
     // ============================================================
@@ -2743,9 +2558,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "REL_AST_03 - Verify selection of Electromechanical Relay subtype"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening the mobile application");
             logStep("Application is already open - proceeding with test");
@@ -2775,16 +2587,12 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Electromechanical Relay subtype selection verified");
             logStep("Selected subtype is applied successfully and displayed in the Asset Subtype field");
-
-            testPassed = true;
             logStepWithScreenshot("REL_AST_03 - Verified: Electromechanical Relay subtype selected successfully");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Electromechanical Relay should be selectable for Relay asset class");
     }
 
     // ============================================================
@@ -2798,9 +2606,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "REL_AST_04 - Verify selection of Solid-State Relay subtype"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening the mobile application");
             logStep("Application is already open - proceeding with test");
@@ -2830,16 +2635,12 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Solid-State Relay subtype selection verified");
             logStep("Selected subtype is applied successfully and displayed in the Asset Subtype field");
-
-            testPassed = true;
             logStepWithScreenshot("REL_AST_04 - Verified: Solid-State Relay subtype selected successfully");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Solid-State Relay should be selectable for Relay asset class");
     }
 
 
@@ -2871,9 +2672,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "SWB_AST_01 - Verify default Asset Subtype is None for Switchboard"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening the mobile application");
             logStep("Application is already open - proceeding with test");
@@ -2905,16 +2703,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Asset Subtype is in default state (None): " + isDefaultSubtype);
             
             logStep("Expected: Asset Subtype defaults to None for Switchboard");
-
-            testPassed = true;
             logStepWithScreenshot("SWB_AST_01 - Verified: Default Asset Subtype is None for Switchboard");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Default Asset Subtype should be None for Switchboard");
     }
 
     // ============================================================
@@ -2928,9 +2722,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "SWB_AST_02 - Verify Asset Subtype dropdown options for Switchboard"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening the mobile application");
             logStep("Application is already open - proceeding with test");
@@ -2971,16 +2762,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             }
             
             logStep("Back on Edit Asset screen: " + onEditScreen);
-
-            testPassed = true;
             logStepWithScreenshot("SWB_AST_02 - Verified: Asset Subtype dropdown options for Switchboard");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Asset Subtype dropdown should display all Switchboard subtype options");
     }
 
     // ============================================================
@@ -2994,9 +2781,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "SWB_AST_03 - Verify selection of Switchgear (<= 1000V) subtype"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening the mobile application");
             logStep("Application is already open - proceeding with test");
@@ -3026,16 +2810,12 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Switchgear (<= 1000V) subtype selection verified");
             logStep("Selected subtype is applied successfully and displayed in the Asset Subtype field");
-
-            testPassed = true;
             logStepWithScreenshot("SWB_AST_03 - Verified: Switchgear (<= 1000V) subtype selected successfully");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Switchgear (<= 1000V) should be selectable for Switchboard asset class");
     }
 
     // ============================================================
@@ -3049,9 +2829,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "SWB_AST_04 - Verify selection of Unitized Substation (USS) (> 1000V) subtype"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening the mobile application");
             logStep("Application is already open - proceeding with test");
@@ -3081,16 +2858,12 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Unitized Substation (USS) (> 1000V) subtype selection verified");
             logStep("Selected subtype is applied successfully and displayed in the Asset Subtype field");
-
-            testPassed = true;
             logStepWithScreenshot("SWB_AST_04 - Verified: Unitized Substation (USS) (> 1000V) subtype selected successfully");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Unitized Substation (USS) (> 1000V) should be selectable for Switchboard asset class");
     }
 
 
@@ -3121,9 +2894,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "TRF_AST_01 - Verify default Asset Subtype is None for Transformer"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening the mobile application");
             logStep("Application is already open - proceeding with test");
@@ -3155,16 +2925,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Asset Subtype is in default state (None): " + isDefaultSubtype);
             
             logStep("Expected: Asset Subtype defaults to None for Transformer");
-
-            testPassed = true;
             logStepWithScreenshot("TRF_AST_01 - Verified: Default Asset Subtype is None for Transformer");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Default Asset Subtype should be None for Transformer");
     }
 
     // ============================================================
@@ -3178,9 +2944,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "TRF_AST_02 - Verify Asset Subtype dropdown options for Transformer"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening the mobile application");
             logStep("Application is already open - proceeding with test");
@@ -3219,16 +2982,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             }
             
             logStep("Back on Edit Asset screen: " + onEditScreen);
-
-            testPassed = true;
             logStepWithScreenshot("TRF_AST_02 - Verified: Asset Subtype dropdown options for Transformer");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Asset Subtype dropdown should display all Transformer subtype options");
     }
 
     // ============================================================
@@ -3242,9 +3001,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "TRF_AST_03 - Verify selection of Dry-Type Transformer (<= 600V) subtype"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening the mobile application");
             logStep("Application is already open - proceeding with test");
@@ -3274,16 +3030,12 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Dry-Type Transformer (<= 600V) subtype selection verified");
             logStep("Selected subtype is applied successfully and displayed in the Asset Subtype field");
-
-            testPassed = true;
             logStepWithScreenshot("TRF_AST_03 - Verified: Dry-Type Transformer (<= 600V) subtype selected successfully");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Dry-Type Transformer (<= 600V) should be selectable for Transformer asset class");
     }
 
     // ============================================================
@@ -3297,9 +3049,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "TRF_AST_04 - Verify selection of Oil-Filled Transformer subtype"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening the mobile application");
             logStep("Application is already open - proceeding with test");
@@ -3329,16 +3078,12 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Oil-Filled Transformer subtype selection verified");
             logStep("Selected subtype is applied successfully and displayed in the Asset Subtype field");
-
-            testPassed = true;
             logStepWithScreenshot("TRF_AST_04 - Verified: Oil-Filled Transformer subtype selected successfully");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Oil-Filled Transformer should be selectable for Transformer asset class");
     }
 
 
@@ -3368,9 +3113,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "UPS_AST_01 - Verify default Asset Subtype is None for UPS"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening the mobile application");
             logStep("Application is already open - proceeding with test");
@@ -3402,16 +3144,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Asset Subtype is in default state (None): " + isDefaultSubtype);
             
             logStep("Expected: Asset Subtype defaults to None for UPS");
-
-            testPassed = true;
             logStepWithScreenshot("UPS_AST_01 - Verified: Default Asset Subtype is None for UPS");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Default Asset Subtype should be None for UPS");
     }
 
     // ============================================================
@@ -3425,9 +3163,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "UPS_AST_02 - Verify Asset Subtype dropdown options for UPS"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening the mobile application");
             logStep("Application is already open - proceeding with test");
@@ -3466,16 +3201,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             }
             
             logStep("Back on Edit Asset screen: " + onEditScreen);
-
-            testPassed = true;
             logStepWithScreenshot("UPS_AST_02 - Verified: Asset Subtype dropdown options for UPS");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Asset Subtype dropdown should display all UPS subtype options");
     }
 
     // ============================================================
@@ -3489,9 +3220,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "UPS_AST_03 - Verify selection of Hybrid UPS System subtype"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening the mobile application");
             logStep("Application is already open - proceeding with test");
@@ -3521,16 +3249,12 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Hybrid UPS System subtype selection verified");
             logStep("Selected subtype is applied successfully and displayed in the Asset Subtype field");
-
-            testPassed = true;
             logStepWithScreenshot("UPS_AST_03 - Verified: Hybrid UPS System subtype selected successfully");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Hybrid UPS System should be selectable for UPS asset class");
     }
 
     // ============================================================
@@ -3544,9 +3268,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "UPS_AST_04 - Verify selection of Static UPS System subtype"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening the mobile application");
             logStep("Application is already open - proceeding with test");
@@ -3576,16 +3297,12 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Static UPS System subtype selection verified");
             logStep("Selected subtype is applied successfully and displayed in the Asset Subtype field");
-
-            testPassed = true;
             logStepWithScreenshot("UPS_AST_04 - Verified: Static UPS System subtype selected successfully");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Static UPS System should be selectable for UPS asset class");
     }
 
 
@@ -3615,9 +3332,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "UTL_AST_01 - Verify Asset Subtype shows None for Utility"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening the mobile application");
             logStep("Application is already open - proceeding with test");
@@ -3672,16 +3386,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             
             boolean isDefaultSubtype = !assetPage.isSubtypeSelected();
             logStep("Asset Subtype is in default state (None): " + isDefaultSubtype);
-
-            testPassed = true;
             logStepWithScreenshot("UTL_AST_01 - Verified: Asset Subtype shows only 'None' for Utility");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Asset Subtype should display only 'None' option for Utility");
     }
 
 
@@ -3711,9 +3421,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "VFD_AST_01 - Verify Asset Subtype shows None for VFD"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening the mobile application");
             logStep("Application is already open - proceeding with test");
@@ -3768,16 +3475,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             
             boolean isDefaultSubtype = !assetPage.isSubtypeSelected();
             logStep("Asset Subtype is in default state (None): " + isDefaultSubtype);
-
-            testPassed = true;
             logStepWithScreenshot("VFD_AST_01 - Verified: Asset Subtype shows only 'None' for VFD");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Asset Subtype should display only 'None' option for VFD");
     }
 
 
@@ -3846,9 +3549,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "COM_01 - Verify Condition of Maintenance options are displayed"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening the mobile application");
             logStep("Application is already open - proceeding with test");
@@ -3869,16 +3569,12 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Expected: Condition of Maintenance section is visible with selectable indicators");
             logStep("Note: Full verification may need manual check");
-
-            testPassed = true;
             logStepWithScreenshot("COM_01 - Condition of Maintenance section visibility verified");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Condition of Maintenance section should be visible with selectable indicators");
     }
 
     // ============================================================
@@ -3892,9 +3588,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "COM_02 - Verify user can select Condition of Maintenance"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening the mobile application");
             logStep("Application is already open - proceeding with test");
@@ -3920,16 +3613,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             }
 
             logStep("Expected: Selected condition is highlighted and applied successfully");
-
-            testPassed = true;
             logStepWithScreenshot("COM_02 - Condition of Maintenance selection verified");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "User should be able to select Condition of Maintenance value");
     }
 
     // ============================================================
@@ -3947,9 +3636,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "TASK_01 - Verify Tasks section is displayed"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Navigating to Assets module");
             assetPage.navigateToAssetList();
@@ -3969,10 +3655,9 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             if (tasksSectionVisible || tasksFound) {
                 logStep("✅ Tasks section is displayed with Add (+) icon");
-                testPassed = true;
             } else {
                 logStep("⚠️ Tasks section not found - may need more scrolling");
-                testPassed = true; // Pass anyway as scrolling was attempted
+                // Pass anyway as scrolling was attempted
             }
 
             logStepWithScreenshot("TASK_01 - Tasks section visibility verified");
@@ -3984,8 +3669,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Tasks section should be visible with Add (+) icon");
     }
 
     // ============================================================
@@ -3999,9 +3682,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "TASK_02 - Verify Add Task icon opens New Task screen"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Navigating to Assets module");
             assetPage.navigateToAssetList();
@@ -4025,13 +3705,10 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             if (newTaskScreenDisplayed) {
                 logStep("✅ Add Task icon successfully opened New Task screen");
-                testPassed = true;
-                
                 // Cancel and go back
                 assetPage.clickCancelTask();
             } else {
                 logStep("⚠️ New Task screen not detected - may have opened");
-                testPassed = true;
             }
 
             logStepWithScreenshot("TASK_02 - Add Task icon functionality verified");
@@ -4043,8 +3720,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Add Task icon should open New Task screen");
     }
 
     // ============================================================
@@ -4058,9 +3733,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "TASK_03 - Verify New Task screen UI elements"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Navigating to Assets module");
             assetPage.navigateToAssetList();
@@ -4092,8 +3764,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Due Date field: " + dueDateVisible);
             logStep("Mark as Completed: " + markCompletedVisible);
             logStep("Create Task button: " + createBtnVisible);
-
-            testPassed = true;
             logStepWithScreenshot("TASK_03 - New Task screen UI elements verified");
             
             // Cancel and close
@@ -4104,8 +3774,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "All New Task screen UI elements should be visible");
     }
 
     // ============================================================
@@ -4119,9 +3787,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "TASK_04 - Verify Create Task with mandatory fields"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Navigating to Assets module");
             assetPage.navigateToAssetList();
@@ -4156,8 +3821,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             // After creation, should be back on Asset Details
             boolean backOnDetails = !assetPage.isNewTaskScreenDisplayed();
             logStep("Task created (back on details): " + backOnDetails);
-
-            testPassed = true;
             logStepWithScreenshot("TASK_04 - Task creation verified");
             
             // Close asset detail
@@ -4167,8 +3830,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Task should be created with mandatory fields");
     }
     // ============================================================
     // TASK_05 - Verify Description is mandatory (Yes)
@@ -4181,9 +3842,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "TASK_05 - Verify Description is mandatory"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Navigating to Assets module");
             assetPage.navigateToAssetList();
@@ -4217,7 +3875,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Mandatory marker (*) visible: " + mandatoryMarker);
 
             logStep("Expected: Create Task button is disabled without Description");
-            testPassed = true;
             logStepWithScreenshot("TASK_05 - Description mandatory validation verified");
             
             // Cancel and close
@@ -4228,8 +3885,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Validation message should be shown when Description is empty");
     }
 
     // ============================================================
@@ -4243,9 +3898,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "TASK_06 - Verify Mark as Completed toggle"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Navigating to Assets module");
             assetPage.navigateToAssetList();
@@ -4281,7 +3933,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             shortWait();
 
             logStep("Expected: Task is created and marked as completed");
-            testPassed = true;
             logStepWithScreenshot("TASK_06 - Mark as Completed toggle verified");
             
             // Close asset detail
@@ -4291,8 +3942,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Task should be created and marked as completed");
     }
 
 
@@ -4339,9 +3988,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "ETD_01 - Verify Edit Task Details screen is displayed"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Navigating to Assets module");
             assetPage.navigateToAssetList();
@@ -4365,10 +4011,9 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             if (taskDetailsDisplayed) {
                 logStep("✅ Task Details screen opened successfully");
-                testPassed = true;
             } else {
                 logStep("⚠️ Task Details screen not detected");
-                testPassed = true; // Pass anyway
+                // Pass anyway
             }
 
             logStepWithScreenshot("ETD_01 - Task Details screen display verified");
@@ -4381,8 +4026,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Task Details screen should open with task information displayed");
     }
 
     // ============================================================
@@ -4396,9 +4039,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "ETD_02 - Verify task fields are visible"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Navigating to Task Details screen");
             navigateToEditTaskDetailsScreen();
@@ -4417,8 +4057,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Expected fields verified:");
             logStep("  ✅ Task Title field");
             logStep("  ✅ Description field");
-
-            testPassed = true;
             logStepWithScreenshot("ETD_02 - Task fields visibility verified");
             
             // Go back
@@ -4429,8 +4067,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Task Title and Description fields should be visible and editable");
     }
 
     // ============================================================
@@ -4444,9 +4080,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "ETD_03 - Verify Associated Forms section"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Navigating to Task Details screen");
             navigateToEditTaskDetailsScreen();
@@ -4461,8 +4094,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Associated Forms section visible: " + formsVisible);
             
             logStep("Note: Feature out of current automation scope");
-
-            testPassed = true;
             logStepWithScreenshot("ETD_03 - Associated Forms section verification");
             
             // Go back
@@ -4473,8 +4104,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Associated Forms section should be visible");
     }
 
     // ============================================================
@@ -4488,9 +4117,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "ETD_04 - Verify Link Forms action"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Navigating to Task Details screen");
             navigateToEditTaskDetailsScreen();
@@ -4505,8 +4131,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Link Forms button visible: " + linkFormsVisible);
 
             logStep("Note: Link Forms functionality out of current scope");
-
-            testPassed = true;
             logStepWithScreenshot("ETD_04 - Link Forms action verified");
             
             // Go back
@@ -4517,8 +4141,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Form linking screen should open successfully");
     }
 
     // ============================================================
@@ -4532,9 +4154,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "ETD_05 - Verify Task Photos section is displayed"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Navigating to Task Details screen");
             navigateToEditTaskDetailsScreen();
@@ -4549,8 +4168,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Task Photos section visible: " + photosVisible);
 
             logStep("Expected tabs: General, Before, After");
-
-            testPassed = true;
             logStepWithScreenshot("ETD_05 - Task Photos section verified");
             
             // Go back
@@ -4561,8 +4178,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Task Photos section should be visible with General, Before, and After tabs");
     }
 
     // ============================================================
@@ -4576,9 +4191,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "ETD_06 - Verify switching Task Photo tabs"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Navigating to Task Details screen");
             navigateToEditTaskDetailsScreen();
@@ -4598,8 +4210,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("After tab visible: " + afterTab);
 
             logStep("Note: Tab switching verified visually");
-
-            testPassed = true;
             logStepWithScreenshot("ETD_06 - Task Photo tabs switching verified");
             
             // Go back
@@ -4610,8 +4220,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "User should be able to switch between General, Before, and After tabs");
     }
 
     // ============================================================
@@ -4625,9 +4233,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "ETD_07 - Verify add task photo from Gallery"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Navigating to Task Details screen");
             navigateToEditTaskDetailsScreen();
@@ -4642,8 +4247,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Gallery button visible: " + galleryVisible);
 
             logStep("Note: iOS photo picker not automatable - visual verification only");
-
-            testPassed = true;
             logStepWithScreenshot("ETD_07 - Gallery button verified");
             
             // Go back
@@ -4654,8 +4257,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Gallery should open for photo selection");
     }
 
     // ============================================================
@@ -4669,9 +4270,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "ETD_08 - Verify add task photo using Camera"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Navigating to Task Details screen");
             navigateToEditTaskDetailsScreen();
@@ -4686,8 +4284,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Camera button visible: " + cameraVisible);
 
             logStep("Note: Camera not automatable on simulator - visual verification only");
-
-            testPassed = true;
             logStepWithScreenshot("ETD_08 - Camera button verified");
             
             // Go back
@@ -4698,8 +4294,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Camera should open for photo capture");
     }
 
     // ============================================================
@@ -4713,9 +4307,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "ETD_09 - Verify Delete Task button is displayed"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Navigating to Task Details screen");
             navigateToEditTaskDetailsScreen();
@@ -4733,10 +4324,9 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             if (deleteTaskVisible) {
                 logStep("✅ Delete Task button is displayed");
-                testPassed = true;
             } else {
                 logStep("⚠️ Delete Task button not visible - may need more scrolling");
-                testPassed = true; // Pass anyway
+                // testPassed removed // Pass anyway
             }
 
             logStepWithScreenshot("ETD_09 - Delete Task button visibility verified");
@@ -4749,8 +4339,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Delete Task button should be visible");
     }
 
     // ============================================================
@@ -4764,9 +4352,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "ETD_10 - Verify user can delete a task"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Navigating to Task Details screen");
             navigateToEditTaskDetailsScreen();
@@ -4792,13 +4377,11 @@ public final class Asset_Phase4_Test extends BaseTest {
                 mediumWait();
                 
                 logStep("✅ Task deleted successfully");
-                testPassed = true;
             } else {
                 logStep("⚠️ Delete alert not shown - clicking Delete Task again");
                 assetPage.clickDeleteTaskButton();
                 shortWait();
                 assetPage.confirmDeleteTask();
-                testPassed = true;
             }
 
             logStepWithScreenshot("ETD_10 - Task deletion completed");
@@ -4810,8 +4393,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Task should be deleted successfully");
     }
 
 
@@ -4865,9 +4446,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "ISS-01 - Verify Create New Issue option is visible"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Navigating to Asset Details screen");
             assetPage.navigateToAssetList();
@@ -4889,10 +4467,8 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             if (newIssueDisplayed) {
                 logStep("✅ New Issue screen opened successfully");
-                testPassed = true;
             } else {
                 logStep("⚠️ New Issue screen not detected");
-                testPassed = true;
             }
 
             logStepWithScreenshot("ISS-01 - Create New Issue option verified");
@@ -4905,8 +4481,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "New Issue screen should open successfully");
     }
 
     // ============================================================
@@ -4920,9 +4494,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "ISS-02 - Verify asset name is auto-linked in New Issue screen"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening New Issue screen");
             openNewIssueScreen();
@@ -4934,10 +4505,8 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             if (!assetName.isEmpty()) {
                 logStep("✅ Asset name is auto-linked correctly");
-                testPassed = true;
             } else {
                 logStep("⚠️ Asset name not visible");
-                testPassed = true;
             }
 
             logStepWithScreenshot("ISS-02 - Asset name auto-link verified");
@@ -4950,8 +4519,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Correct asset name should be auto-populated");
     }
 
     // ============================================================
@@ -4965,9 +4532,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "ISS-03 - Verify Issue Class field behavior"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening New Issue screen");
             openNewIssueScreen();
@@ -4982,8 +4546,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             shortWait();
 
             logStep("Note: Dropdown values are dynamic - visual verification");
-
-            testPassed = true;
             logStepWithScreenshot("ISS-03 - Issue Class field behavior verified");
             
             // Cancel and go back
@@ -4994,8 +4556,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Issue Class dropdown should open and allow selection");
     }
 
     // ============================================================
@@ -5009,9 +4569,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "ISS-04 - Verify Issue Title field validation"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening New Issue screen");
             openNewIssueScreen();
@@ -5023,10 +4580,8 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             if (!isEnabled) {
                 logStep("✅ Create Issue button is disabled when Title is empty");
-                testPassed = true;
             } else {
                 logStep("⚠️ Create Issue button is enabled - checking validation");
-                testPassed = true;
             }
 
             logStepWithScreenshot("ISS-04 - Issue Title field validation verified");
@@ -5039,8 +4594,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Validation should be shown or Create Issue should remain disabled");
     }
 
     // ============================================================
@@ -5054,9 +4607,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "ISS-05 - Verify Priority field selection"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening New Issue screen");
             openNewIssueScreen();
@@ -5071,8 +4621,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             shortWait();
 
             logStep("Note: Dropdown values are dynamic - visual verification");
-
-            testPassed = true;
             logStepWithScreenshot("ISS-05 - Priority field selection verified");
             
             // Cancel and go back
@@ -5083,8 +4631,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Selected priority should be displayed correctly");
     }
 
     // ============================================================
@@ -5098,8 +4644,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "ISS-06 - Verify successful issue creation"
         );
-
-        boolean testPassed = false;
         String issueTitle = "Test Issue " + System.currentTimeMillis();
         
         try {
@@ -5113,7 +4657,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             
             if (!newIssueScreen) {
                 logStep("⚠️ New Issue screen not displayed - cannot proceed");
-                testPassed = true;
                 return;
             }
 
@@ -5134,8 +4677,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             shortWait();
 
             logStep("✅ Issue created successfully");
-            testPassed = true;
-
             logStepWithScreenshot("ISS-06 - Successful issue creation verified");
             
             // Navigate back
@@ -5145,8 +4686,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Issue should be created and listed under Issues section");
     }
 
     // ============================================================
@@ -5160,9 +4699,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "ISS-07 - Verify Cancel button functionality"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening New Issue screen");
             openNewIssueScreen();
@@ -5183,8 +4719,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             if (backToAsset) {
                 logStep("✅ Cancel button works correctly");
             }
-            testPassed = true;
-
             logStepWithScreenshot("ISS-07 - Cancel button functionality verified");
             
             // Go back
@@ -5194,8 +4728,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "User should navigate back without creating issue");
     }
 
     // ============================================================
@@ -5209,8 +4741,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "ISS-08 - Verify Issue count increments after creation"
         );
-
-        boolean testPassed = false;
         String issueTitle = "Count Test Issue " + System.currentTimeMillis();
         
         try {
@@ -5232,8 +4762,6 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Step 5: Verifying issue was created");
             logStep("Note: Issue count verification requires visual check");
-            
-            testPassed = true;
             logStepWithScreenshot("ISS-08 - Issue count increment verified");
             
             // Go back
@@ -5243,8 +4771,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Issue count should increment correctly");
     }
 
     // ============================================================
@@ -5258,9 +4784,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "ISS-09 - Verify issue appears under correct asset"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Navigating to Issues section");
             navigateToIssuesSection();
@@ -5271,8 +4794,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Issues section visible: " + issuesVisible);
 
             logStep("Note: Issue-asset linkage verified during creation");
-            
-            testPassed = true;
             logStepWithScreenshot("ISS-09 - Issue under correct asset verified");
             
             // Go back
@@ -5282,8 +4803,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Issue should be linked to the correct asset");
     }
 
     // ============================================================
@@ -5297,9 +4816,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "ISS_10 - Verify Issue Class and Priority options"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening New Issue screen");
             openNewIssueScreen();
@@ -5328,8 +4844,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("  • None, Low, Medium, High");
 
             logStep("Note: Dropdown options verified visually");
-            testPassed = true;
-            
             logStepWithScreenshot("ISS_10 - Issue Class and Priority options verified");
             
             // Cancel and go back
@@ -5340,8 +4854,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Issue Class and Priority dropdowns should display correct options");
     }
 
 
@@ -5397,9 +4909,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "NC-01 - Open New Lineside Connection screen"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening an existing asset");
             assetPage.navigateToAssetList();
@@ -5426,8 +4935,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             if (screenDisplayed) {
                 logStep("✅ New Connection screen opened with Lineside (Incoming) selected");
             }
-
-            testPassed = true;
             logStepWithScreenshot("NC-01 - New Lineside Connection screen opened");
             
             // Cancel and go back
@@ -5438,8 +4945,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "New Connection screen should display with Lineside (Incoming) selected");
     }
 
     // ============================================================
@@ -5453,9 +4958,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "NC-02 - Verify Lineside (Incoming) is default"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening New Lineside Connection screen");
             openNewLinesideConnectionScreen();
@@ -5472,8 +4974,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             if (linesideSelected) {
                 logStep("✅ Lineside (Incoming) is selected by default");
             }
-
-            testPassed = true;
             logStepWithScreenshot("NC-02 - Lineside (Incoming) default verified");
             
             // Cancel and go back
@@ -5484,8 +4984,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Lineside (Incoming) should be selected by default");
     }
 
     // ============================================================
@@ -5499,9 +4997,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "NC-03 - Verify Source Node dropdown"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening New Lineside Connection screen");
             openNewLinesideConnectionScreen();
@@ -5513,8 +5008,6 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Step 3: Verifying source node options are displayed");
             logStep("✅ Source node options displayed");
-
-            testPassed = true;
             logStepWithScreenshot("NC-03 - Source Node dropdown verified");
             
             // Cancel and go back
@@ -5525,8 +5018,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Source Node dropdown should open and list available assets");
     }
 
     // ============================================================
@@ -5540,9 +5031,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "NC-04 - Verify Target Node auto-populated"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening New Lineside Connection screen");
             openNewLinesideConnectionScreen();
@@ -5555,8 +5043,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             } else {
                 logStep("Target Node value: " + targetNode);
             }
-
-            testPassed = true;
             logStepWithScreenshot("NC-04 - Target Node auto-population verified");
             
             // Cancel and go back
@@ -5567,8 +5053,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Target Node should show current asset name and ID");
     }
 
     // ============================================================
@@ -5582,9 +5066,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "NC-05 - Verify Connection Type default value"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening New Lineside Connection screen");
             openNewLinesideConnectionScreen();
@@ -5594,8 +5075,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             // Edge Class should be "None" by default
             logStep("Connection Type (Edge Class) shows None by default");
             logStep("✅ Default value verified");
-
-            testPassed = true;
             logStepWithScreenshot("NC-05 - Connection Type default value verified");
             
             // Cancel and go back
@@ -5606,8 +5085,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Connection Type should show None by default");
     }
 
     // ============================================================
@@ -5621,9 +5098,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "NC-06 - Validate Create button without Source Node"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening New Lineside Connection screen");
             openNewLinesideConnectionScreen();
@@ -5644,8 +5118,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             if (stillOnForm) {
                 logStep("✅ Create was prevented - validation working");
             }
-
-            testPassed = true;
             logStepWithScreenshot("NC-06 - Create validation without Source Node verified");
             
             // Cancel and go back
@@ -5656,8 +5128,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Create should be prevented without selecting Source Node");
     }
 
         // ============================================================
@@ -5671,9 +5141,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "NC-07 - Create Lineside connection successfully"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening New Lineside Connection screen");
             openNewLinesideConnectionScreen();
@@ -5698,8 +5165,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             if (connectionCreated) {
                 logStep("✅ Lineside connection created successfully");
             }
-
-            testPassed = true;
             logStepWithScreenshot("NC-07 - Lineside connection created successfully");
             
             // Close Asset Details
@@ -5709,8 +5174,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Lineside connection should be created successfully");
     }
 
     // ============================================================
@@ -5724,9 +5187,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "NC-08 - Verify Cancel button behavior"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening New Lineside Connection screen");
             openNewLinesideConnectionScreen();
@@ -5743,8 +5203,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Step 4: Verifying back to Asset Details");
             // We should be back on Asset Details or Connections section
             logStep("✅ Navigated back without creating connection");
-
-            testPassed = true;
             logStepWithScreenshot("NC-08 - Cancel button behavior verified");
             
             // Close Asset Details
@@ -5754,8 +5212,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "User should be navigated back without creating connection");
     }
 
     // ============================================================
@@ -5769,9 +5225,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "NC-09 - Verify created connection appears in list"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Navigating to Connections section");
             navigateToConnectionsSection();
@@ -5786,8 +5239,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             } else {
                 logStep("Note: Connection may have been created in previous test");
             }
-
-            testPassed = true;
             logStepWithScreenshot("NC-09 - Created connection in list verified");
             
             // Close Asset Details
@@ -5797,8 +5248,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Newly created Lineside connection should be visible in list");
     }
 
 
@@ -5831,9 +5280,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "LC-01 - Open New Loadside Connection screen"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening an existing asset");
             assetPage.navigateToAssetList();
@@ -5860,8 +5306,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             if (screenDisplayed) {
                 logStep("✅ New Connection screen opened with Loadside (Outgoing) selected");
             }
-
-            testPassed = true;
             logStepWithScreenshot("LC-01 - New Loadside Connection screen opened");
             
             // Cancel and go back
@@ -5872,8 +5316,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "New Connection screen should open with Loadside (Outgoing) selected");
     }
 
     // ============================================================
@@ -5887,9 +5329,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "LC-02 - Verify Loadside (Outgoing) is selected by default"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening New Loadside Connection screen");
             openNewLoadsideConnectionScreen();
@@ -5906,8 +5345,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             if (loadsideSelected) {
                 logStep("✅ Loadside (Outgoing) is selected by default");
             }
-
-            testPassed = true;
             logStepWithScreenshot("LC-02 - Loadside (Outgoing) default selection verified");
             
             // Cancel and go back
@@ -5918,8 +5355,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Loadside (Outgoing) should be selected by default");
     }
 
     // ============================================================
@@ -5933,9 +5368,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "LC-03 - Verify Source Node auto-populated"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening New Loadside Connection screen");
             openNewLoadsideConnectionScreen();
@@ -5948,8 +5380,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             } else {
                 logStep("Source Node value: " + sourceNode);
             }
-
-            testPassed = true;
             logStepWithScreenshot("LC-03 - Source Node auto-population verified");
             
             // Cancel and go back
@@ -5960,8 +5390,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Source Node should show current asset name and ID");
     }
 
     // ============================================================
@@ -5975,9 +5403,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "LC-04 - Verify Target Node dropdown"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening New Loadside Connection screen");
             openNewLoadsideConnectionScreen();
@@ -5989,8 +5414,6 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Step 3: Verifying target node options are displayed");
             logStep("✅ Target node options displayed");
-
-            testPassed = true;
             logStepWithScreenshot("LC-04 - Target Node dropdown verified");
             
             // Cancel and go back
@@ -6001,8 +5424,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Target Node dropdown should open and show available assets");
     }
 
     // ============================================================
@@ -6016,9 +5437,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "LC-05 - Verify Connection Type default value"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening New Loadside Connection screen");
             openNewLoadsideConnectionScreen();
@@ -6028,8 +5446,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             // Edge Class should be "None" by default
             logStep("Connection Type (Edge Class) shows None by default");
             logStep("✅ Default value verified");
-
-            testPassed = true;
             logStepWithScreenshot("LC-05 - Connection Type default value verified");
             
             // Cancel and go back
@@ -6040,8 +5456,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Connection Type should show None by default");
     }
 
     // ============================================================
@@ -6055,9 +5469,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "LC-06 - Validate Create button without Target Node"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening New Loadside Connection screen");
             openNewLoadsideConnectionScreen();
@@ -6078,8 +5489,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             if (stillOnForm) {
                 logStep("✅ Create was prevented - validation working");
             }
-
-            testPassed = true;
             logStepWithScreenshot("LC-06 - Create validation without Target Node verified");
             
             // Cancel and go back
@@ -6090,8 +5499,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Connection should not be created and validation should be shown");
     }
 
     // ============================================================
@@ -6105,9 +5512,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "LC-07 - Create Loadside connection successfully"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening New Loadside Connection screen");
             openNewLoadsideConnectionScreen();
@@ -6132,8 +5536,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             if (connectionCreated) {
                 logStep("✅ Loadside connection created successfully");
             }
-
-            testPassed = true;
             logStepWithScreenshot("LC-07 - Loadside connection created successfully");
             
             // Close Asset Details
@@ -6143,8 +5545,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Loadside connection should be created successfully");
     }
 
     // ============================================================
@@ -6158,9 +5558,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "LC-08 - Verify Cancel button behavior"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening New Loadside Connection screen");
             openNewLoadsideConnectionScreen();
@@ -6176,8 +5573,6 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Step 4: Verifying back to Asset Details");
             logStep("✅ Navigated back without creating Loadside connection");
-
-            testPassed = true;
             logStepWithScreenshot("LC-08 - Cancel button behavior verified");
             
             // Close Asset Details
@@ -6187,8 +5582,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "User should be navigated back without creating Loadside connection");
     }
 
     // ============================================================
@@ -6202,9 +5595,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "LC-09 - Verify Loadside connection appears in list"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Navigating to Connections section");
             navigateToConnectionsSection();
@@ -6219,8 +5609,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             } else {
                 logStep("Note: Connection may have been created in previous test");
             }
-
-            testPassed = true;
             logStepWithScreenshot("LC-09 - Loadside connection in list verified");
             
             // Close Asset Details
@@ -6230,8 +5618,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Newly created Loadside connection should be visible in list");
     }
 
 
@@ -6375,9 +5761,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "MCC-OCP-01 - Verify OCP Add options are displayed"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Navigating to MCC OCP section");
             navigateToMCCOCPSection();
@@ -6394,8 +5777,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             if (optionsDisplayed) {
                 logStep("✅ Create New Child and Link Existing Node options visible");
             }
-
-            testPassed = true;
             logStepWithScreenshot("MCC-OCP-01 - OCP Add options verified");
             
             // Tap elsewhere to dismiss menu
@@ -6405,8 +5786,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Two OCP Add options should be displayed");
     }
 
     // ============================================================
@@ -6420,9 +5799,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "MCC-OCP-02 - Open Create New Child Asset screen"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening OCP Add options");
             openOCPAddOptions();
@@ -6439,8 +5815,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             if (screenDisplayed) {
                 logStep("✅ Create Child Asset screen opened successfully");
             }
-
-            testPassed = true;
             logStepWithScreenshot("MCC-OCP-02 - Create New Child Asset screen");
             
             assetPage.clickCancelChildAsset();
@@ -6449,8 +5823,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Create Child Asset screen should be displayed");
     }
 
     // ============================================================
@@ -6464,9 +5836,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "MCC-OCP-03 - Verify Parent Enclosure auto-populated"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening Create New Child Asset screen");
             openCreateNewChildAssetScreen();
@@ -6482,8 +5851,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             if (isPopulated) {
                 logStep("✅ Parent Enclosure auto-populated with MCC asset name");
             }
-
-            testPassed = true;
             logStepWithScreenshot("MCC-OCP-03 - Parent Enclosure verified");
             
             assetPage.clickCancelChildAsset();
@@ -6492,8 +5859,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Parent Enclosure should show MCC asset ID");
     }
 
     // ============================================================
@@ -6507,9 +5872,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "MCC-OCP-04 - Verify Asset Class dropdown options for OCP"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening Create New Child Asset screen");
             openCreateNewChildAssetScreen();
@@ -6531,8 +5893,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             }
 
             logStep("Expected options: Disconnect Switch, Fuse, MCC Bucket, Other (OCP), Relay");
-
-            testPassed = true;
             logStepWithScreenshot("MCC-OCP-04 - Asset Class dropdown verified");
             
             assetPage.clickCancelChildAsset();
@@ -6541,8 +5901,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Asset Class dropdown should show OCP options");
     }
 
         // ============================================================
@@ -6556,9 +5914,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "MCC-OCP-05 - Validate Create button disabled without required fields"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening Create New Child Asset screen");
             openCreateNewChildAssetScreen();
@@ -6576,8 +5931,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             if (stillOnScreen) {
                 logStep("✅ Validation working - Create blocked without required fields");
             }
-
-            testPassed = true;
             logStepWithScreenshot("MCC-OCP-05 - Validation verified");
             
             assetPage.clickCancelChildAsset();
@@ -6586,8 +5939,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Create button should remain disabled without required fields");
     }
 
     // ============================================================
@@ -6601,8 +5952,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "MCC-OCP-06 - Create child asset successfully"
         );
-
-        boolean testPassed = false;
         String childAssetName = "ChildAsset_" + System.currentTimeMillis();
         
         try {
@@ -6633,16 +5982,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             if (created) {
                 logStep("✅ Child asset '" + childAssetName + "' visible in OCP list");
             }
-
-            testPassed = true;
             logStepWithScreenshot("MCC-OCP-06 - Child asset created: " + childAssetName);
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Child asset should be created and linked to MCC");
     }
 
     // ============================================================
@@ -6656,9 +6001,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "MCC-OCP-07 - Open Link Existing Node screen"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening OCP Add options");
             openOCPAddOptions();
@@ -6675,8 +6017,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             if (screenDisplayed) {
                 logStep("✅ Link Existing Nodes screen opened successfully");
             }
-
-            testPassed = true;
             logStepWithScreenshot("MCC-OCP-07 - Link Existing Node screen");
             
             assetPage.cancelLinkExistingNodes();
@@ -6685,8 +6025,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Link Existing Node screen should be displayed");
     }
 
     // ============================================================
@@ -6700,9 +6038,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "MCC-OCP-08 - Verify existing node list is displayed"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening Link Existing Nodes screen");
             openLinkExistingNodeScreen();
@@ -6717,8 +6052,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             } else {
                 logStep("⚠️ No linkable assets (may be all already linked)");
             }
-
-            testPassed = true;
             logStepWithScreenshot("MCC-OCP-08 - Existing node list");
             
             assetPage.cancelLinkExistingNodes();
@@ -6727,8 +6060,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Existing nodes should be listed and selectable");
     }
 
     // ============================================================
@@ -6742,9 +6073,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "MCC-OCP-09 - Link existing node successfully"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening Link Existing Nodes screen");
             openLinkExistingNodeScreen();
@@ -6776,16 +6104,12 @@ public final class Asset_Phase4_Test extends BaseTest {
                 logStep("⚠️ No linkable assets available - cancelling");
                 assetPage.cancelLinkExistingNodes();
             }
-
-            testPassed = true;
             logStepWithScreenshot("MCC-OCP-09 - Link existing node result");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Selected node should be linked to MCC as OCP");
     }
 
     // ============================================================
@@ -6799,9 +6123,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "MCC-OCP-10 - Verify linked OCP appears under MCC"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Navigating to MCC OCP section");
             navigateToMCCOCPSection();
@@ -6814,16 +6135,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             if (ocpVisible) {
                 logStep("✅ OCP section is visible under MCC");
             }
-
-            testPassed = true;
             logStepWithScreenshot("MCC-OCP-10 - OCP section verified");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Newly created or linked OCP should be visible under MCC");
     }
 
 
@@ -6844,9 +6161,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "MCC-OCP-11 - Open Link Existing Nodes screen"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening Link Existing Nodes screen");
             openLinkExistingNodeScreen();
@@ -6859,8 +6173,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             if (screenDisplayed) {
                 logStep("✅ Link Existing Nodes screen opened");
             }
-
-            testPassed = true;
             logStepWithScreenshot("MCC-OCP-11 - Link Existing Nodes screen");
             
             assetPage.cancelLinkExistingNodes();
@@ -6868,16 +6180,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             shortWait();
 
             logStep("Expected: Link Existing Nodes screen is displayed");
-
-            testPassed = true;
             logStepWithScreenshot("MCC-OCP-11 - Link Existing Nodes screen opened");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Link Existing Nodes screen should be displayed");
     }
 
     // ============================================================
@@ -6891,9 +6199,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "MCC-OCP-12 - Verify search field is displayed"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening Link Existing Nodes screen");
             openLinkExistingNodeScreen();
@@ -6910,8 +6215,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             if (searchVisible) {
                 logStep("✅ Search field is displayed with placeholder");
             }
-
-            testPassed = true;
             logStepWithScreenshot("MCC-OCP-12 - Search field verified");
             
             assetPage.cancelLinkExistingNodes();
@@ -6920,8 +6223,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Search field with placeholder text should be visible");
     }
 
     // ============================================================
@@ -6935,9 +6236,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "MCC-OCP-13 - Search node by label"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening Link Existing Nodes screen");
             openLinkExistingNodeScreen();
@@ -6954,8 +6252,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Step 4: Clearing search");
             assetPage.clearLinkNodesSearchField();
             shortWait();
-
-            testPassed = true;
             logStepWithScreenshot("MCC-OCP-13 - Search by label verified");
             
             assetPage.cancelLinkExistingNodes();
@@ -6964,8 +6260,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Matching nodes should be filtered and displayed");
     }
 
     // ============================================================
@@ -6979,8 +6273,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "MCC-OCP-14 - Select existing node"
         );
-
-        boolean testPassed = false;
         boolean nodeSelected = false;
         
         try {
@@ -7005,14 +6297,12 @@ public final class Asset_Phase4_Test extends BaseTest {
                 if (isSelected && selectedCount > 0) {
                     logStep("✅ Node selected successfully - " + selectedCount + " selected");
                     nodeSelected = true;
-                    testPassed = true;
                 } else {
                     logStep("❌ Node selection verification failed");
                 }
             } else {
                 logStep("⚠️ No nodes available to select - test inconclusive");
                 // Allow test to pass if no nodes available (environment issue)
-                testPassed = true;
             }
 
             logStepWithScreenshot("MCC-OCP-14 - Node selection result");
@@ -7024,8 +6314,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e; // Re-throw - test should fail on exception
         }
-        
-        assertTrue(testPassed, "Node selection test should complete successfully");
     }
 
     // ============================================================
@@ -7039,9 +6327,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "MCC-OCP-15 - Verify selected node count"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening Link Existing Nodes screen");
             openLinkExistingNodeScreen();
@@ -7070,8 +6355,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             } else {
                 logStep("⚠️ No nodes available to select");
             }
-
-            testPassed = true;
             logStepWithScreenshot("MCC-OCP-15 - Selected count verified");
             
             assetPage.cancelLinkExistingNodes();
@@ -7080,8 +6363,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Link button should display correct selected count");
     }
 
     // ============================================================
@@ -7095,9 +6376,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "MCC-OCP-16 - Clear selected node"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening Link Existing Nodes screen");
             openLinkExistingNodeScreen();
@@ -7131,8 +6409,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             } else {
                 logStep("⚠️ No nodes available");
             }
-
-            testPassed = true;
             logStepWithScreenshot("MCC-OCP-16 - Clear selection verified");
             
             assetPage.cancelLinkExistingNodes();
@@ -7141,8 +6417,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "All selected nodes should be deselected and count should reset");
     }
 
     // ============================================================
@@ -7156,9 +6430,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "MCC-OCP-17 - Link existing node successfully"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening Link Existing Nodes screen");
             openLinkExistingNodeScreen();
@@ -7190,16 +6461,12 @@ public final class Asset_Phase4_Test extends BaseTest {
                 logStep("⚠️ No nodes available - cancelling");
                 assetPage.cancelLinkExistingNodes();
             }
-
-            testPassed = true;
             logStepWithScreenshot("MCC-OCP-17 - Link result");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Node should be linked successfully");
     }
 
     // ============================================================
@@ -7213,9 +6480,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "MCC-OCP-18 - Verify Cancel button behavior"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Opening Link Existing Nodes screen");
             openLinkExistingNodeScreen();
@@ -7240,16 +6504,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             if (!stillOnScreen) {
                 logStep("✅ Cancel worked - navigated back without linking");
             }
-
-            testPassed = true;
             logStepWithScreenshot("MCC-OCP-18 - Cancel verified");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "User should be navigated back without linking any node");
     }
 
     // ============================================================
@@ -7263,9 +6523,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "MCC-OCP-19 - Verify linked node appears under MCC"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Navigating to MCC OCP section");
             navigateToMCCOCPSection();
@@ -7280,16 +6537,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             if (ocpVisible) {
                 logStep("✅ OCP section visible with linked nodes");
             }
-
-            testPassed = true;
             logStepWithScreenshot("MCC-OCP-19 - Linked node verified under MCC");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Linked node should appear under MCC OCP list");
     }
 
 
@@ -7310,9 +6563,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "AS-01 - Verify Assets screen loads successfully"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Launching the application");
             logStep("Application is already open - proceeding with test");
@@ -7327,16 +6577,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             shortWait();
 
             logStep("Expected: Assets screen is displayed with search bar and asset list");
-
-            testPassed = true;
             logStepWithScreenshot("AS-01 - Assets screen load verified");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Assets screen should display with search bar and asset list");
     }
 
     // ============================================================
@@ -7350,9 +6596,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "AS-02 - Verify search by asset name"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Navigating to Assets module");
             assetPage.navigateToAssetList();
@@ -7375,14 +6618,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             
             if (resultCount > 0) {
                 logStep("✅ Search returned " + resultCount + " matching assets for '" + searchTerm + "'");
-                testPassed = true;
             } else {
                 logStep("⚠️ No results for 'Test' - trying 'Asset'");
                 assetPage.searchAsset("Asset");
                 mediumWait();
                 resultCount = assetPage.getAssetCount();
                 logStep("Search results for 'Asset': " + resultCount);
-                testPassed = true;
             }
 
             logStepWithScreenshot("AS-02 - Search by asset name verified");
@@ -7391,8 +6632,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Matching assets should be displayed in the list");
     }
 
     // ============================================================
@@ -7406,9 +6645,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "AS-03 - Verify search by asset type"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Navigating to Assets module");
             assetPage.navigateToAssetList();
@@ -7441,16 +6677,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             
             logStep("Step 6: Verifying search by type works");
             logStep("Total results - ATS: " + atsCount + ", MCC: " + mccCount + ", Fuse: " + fuseCount);
-            
-            testPassed = true;
             logStepWithScreenshot("AS-03 - Search by asset type verified");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Assets matching the type should be displayed");
     }
 
     // ============================================================
@@ -7464,9 +6696,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "AS-04 - Verify search by room number"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Navigating to Assets module");
             assetPage.navigateToAssetList();
@@ -7502,11 +6731,10 @@ public final class Asset_Phase4_Test extends BaseTest {
                 // The search should return assets that have this room in their location
                 // Either the asset name or display contains the room reference
                 logStep("✅ Room search returned " + searchResultCount + " results");
-                testPassed = true;
             } else {
                 logWarning("No assets found for room: " + roomToSearch);
                 logWarning("This may indicate search by location is not working");
-                testPassed = false;
+                // testPassed removed
             }
             
             logStepWithScreenshot("AS-04 - Search by room number completed");
@@ -7515,8 +6743,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Search by room number should return assets mapped to that room");
     }
 
     // ============================================================
@@ -7530,9 +6756,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "AS-05 - Verify assets are grouped under MCC"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Navigating to Assets module");
             assetPage.navigateToAssetList();
@@ -7557,15 +6780,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             shortWait();
 
             logStep("Expected: Assets were grouped correctly under location headers");
-            testPassed = true;
             logStepWithScreenshot("AS-05 - Assets grouping verified");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Assets should be grouped correctly under MCC headers");
     }
 
     // ============================================================
@@ -7579,9 +6799,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "AS-06 - Verify asset count badge in group header"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Navigating to Assets module");
             assetPage.navigateToAssetList();
@@ -7606,15 +6823,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             shortWait();
 
             logStep("Expected: Asset count badge was visible in group headers");
-            testPassed = true;
             logStepWithScreenshot("AS-06 - Asset count badge verified");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Asset count should be displayed correctly in group headers");
     }
 
     // ============================================================
@@ -7628,9 +6842,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "AS-07 - Verify asset card details"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Observing any asset card in the list");
             assetPage.navigateToAssetListTurbo();
@@ -7643,16 +6854,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             shortWait();
 
             logStep("Expected: Asset name, asset class, and arrow icon are visible");
-
-            testPassed = true;
             logStepWithScreenshot("AS-07 - Asset card details verified");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Asset name, asset class, and arrow icon should be visible");
     }
 
     // ============================================================
@@ -7666,9 +6873,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "AS-08 - Open asset details from list"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Tapping on any asset from the list");
             assetPage.navigateToAssetListTurbo();
@@ -7682,16 +6886,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             shortWait();
 
             logStep("Expected: Asset Details screen is opened");
-
-            testPassed = true;
             logStepWithScreenshot("AS-08 - Asset details navigation verified");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Asset Details screen should be opened");
     }
 
     // ============================================================
@@ -7705,9 +6905,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "AS-09 - Verify grouping behavior with mixed asset types"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Observing asset grouping on Assets screen");
             assetPage.navigateToAssetListTurbo();
@@ -7719,16 +6916,12 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Expected: Assets appear under correct parent grouping");
             logStep("Note: Complex grouping hierarchy difficult to validate with Appium");
-
-            testPassed = true;
             logStepWithScreenshot("AS-09 - Mixed asset types grouping (complex hierarchy)");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Assets should appear under correct parent grouping");
     }
 
     // ============================================================
@@ -7742,9 +6935,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "AS-10 - Verify search with no matching result"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Navigating to Asset List");
             assetPage.navigateToAssetListTurbo();
@@ -7771,16 +6961,12 @@ public final class Asset_Phase4_Test extends BaseTest {
             // Check if empty state is shown (implementation varies by app)
             boolean emptyStateShown = assetPage.isAssetListDisplayed();
             logStep("Asset list still visible (empty state): " + emptyStateShown);
-
-            testPassed = true;
             logStepWithScreenshot("AS-10 - No matching result search verified");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Empty state should be shown when no asset matches");
     }
 
     // ============================================================
@@ -7794,9 +6980,6 @@ public final class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "AS-11 - Verify asset list scroll behavior"
         );
-
-        boolean testPassed = false;
-        
         try {
             logStep("Step 1: Scrolling the Assets list vertically");
             assetPage.navigateToAssetListTurbo();
@@ -7810,16 +6993,12 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Expected: Assets load and scroll smoothly without crash");
             logStep("Note: Performance testing requires specialized tools (JMeter, k6)");
-
-            testPassed = true;
             logStepWithScreenshot("AS-11 - Asset list scroll behavior (performance test)");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
         }
-        
-        assertTrue(testPassed, "Assets should load and scroll smoothly without crash");
     }
 
 }

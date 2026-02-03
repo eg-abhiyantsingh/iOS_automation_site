@@ -606,6 +606,14 @@ public class BaseTest {
         }
     }
 
+    /**
+     * Fail test with message
+     */
+    protected void fail(String message) {
+        ExtentReportManager.logFail("Test FAILED: " + message);
+        throw new AssertionError(message);
+    }
+
     // ================================================================
     // WAIT HELPER METHODS (CI-safe explicit waits)
     // ================================================================
