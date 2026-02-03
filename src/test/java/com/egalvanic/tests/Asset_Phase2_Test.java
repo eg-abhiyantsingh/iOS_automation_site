@@ -376,7 +376,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -427,7 +427,7 @@ public final class Asset_Phase2_Test extends BaseTest {
         assetPage.scrollFormUp();
         assetPage.scrollFormUp();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         logStep("Verifying save behavior");
         boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -471,7 +471,7 @@ public final class Asset_Phase2_Test extends BaseTest {
         assetPage.scrollFormUp();
         assetPage.scrollFormUp();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         logStep("Verifying save behavior");
         boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -515,7 +515,7 @@ public final class Asset_Phase2_Test extends BaseTest {
         assetPage.scrollFormUp();
         assetPage.scrollFormUp();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         logStep("Verifying save behavior");
         boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -559,7 +559,7 @@ public final class Asset_Phase2_Test extends BaseTest {
         assetPage.scrollFormUp();
         assetPage.scrollFormUp();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         logStep("Verifying save behavior");
         boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -603,7 +603,7 @@ public final class Asset_Phase2_Test extends BaseTest {
         assetPage.scrollFormUp();
         assetPage.scrollFormUp();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         logStep("Verifying save behavior");
         boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -647,7 +647,7 @@ public final class Asset_Phase2_Test extends BaseTest {
         assetPage.scrollFormUp();
         assetPage.scrollFormUp();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         logStep("Verifying save behavior");
         boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -691,7 +691,7 @@ public final class Asset_Phase2_Test extends BaseTest {
         assetPage.scrollFormUp();
         assetPage.scrollFormUp();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         logStep("Verifying save behavior");
         boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -735,7 +735,7 @@ public final class Asset_Phase2_Test extends BaseTest {
         logStep("Save Changes button visible: " + saveButtonVisible);
         
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         logStep("Verifying save behavior with empty fields");
         boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -786,7 +786,7 @@ public final class Asset_Phase2_Test extends BaseTest {
         logStep("Save Changes button visible: " + saveButtonVisible);
         
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         logStep("Verifying save behavior with partial data");
         boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -833,7 +833,7 @@ public final class Asset_Phase2_Test extends BaseTest {
         logStep("Save Changes button visible: " + saveButtonVisible);
         
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         logStep("Verifying asset saved successfully");
         boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -907,7 +907,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
         logStep("Canceling edit operation");
         assetPage.clickEditCancel();
-        mediumWait();
+        shortWait();
 
         logStep("Verifying cancel behavior");
         boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -1266,7 +1266,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -1320,7 +1320,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -1374,7 +1374,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -1428,7 +1428,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -1482,7 +1482,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -1531,7 +1531,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             // Check result - should save successfully per test case
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -1584,7 +1584,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
             
@@ -1636,7 +1636,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
             
@@ -2277,7 +2277,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -2331,7 +2331,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -2385,7 +2385,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -2439,7 +2439,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -2493,7 +2493,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -2547,7 +2547,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -2601,7 +2601,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -2655,7 +2655,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -2709,7 +2709,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -2763,7 +2763,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -2817,7 +2817,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -2871,7 +2871,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             logStep("Save Changes button visible: " + saveButtonVisible);
             
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior with empty required fields");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -2931,7 +2931,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             logStep("Save Changes button visible: " + saveButtonVisible);
             
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior with partial required fields");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -2985,7 +2985,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             logStep("Save Changes button visible: " + saveButtonVisible);
             
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying asset saved successfully");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -3106,7 +3106,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save is allowed despite indicators");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -3152,7 +3152,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
         logStep("Canceling edit operation");
         assetPage.clickEditCancel();
-        mediumWait();
+        shortWait();
 
         logStep("Verifying cancel behavior");
         boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -3678,7 +3678,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -3732,7 +3732,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -3786,7 +3786,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -3840,7 +3840,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -3894,7 +3894,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -3948,7 +3948,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -4002,7 +4002,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -4056,7 +4056,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -4110,7 +4110,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -4164,7 +4164,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             logStep("Save Changes button visible: " + saveButtonVisible);
             
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior with empty required fields");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -4224,7 +4224,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             logStep("Save Changes button visible: " + saveButtonVisible);
             
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior with partial required fields");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -4278,7 +4278,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             logStep("Save Changes button visible: " + saveButtonVisible);
             
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying asset saved successfully");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -4399,7 +4399,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save is allowed despite indicators");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -4445,7 +4445,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
         logStep("Canceling edit operation");
         assetPage.clickEditCancel();
-        mediumWait();
+        shortWait();
 
         logStep("Verifying cancel behavior");
         boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -4756,7 +4756,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             logStep("Save Changes button visible: " + saveButtonVisible);
             
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -4807,7 +4807,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -4882,7 +4882,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
         logStep("Canceling edit operation");
         assetPage.clickEditCancel();
-        mediumWait();
+        shortWait();
 
         logStep("Verifying cancel behavior");
         boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -4932,7 +4932,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             
             if (saveButtonEnabled) {
                 assetPage.clickSaveChanges();
-                mediumWait();
+                shortWait();
             }
 
             logStep("Verifying no error occurs");
@@ -5385,7 +5385,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
             logStep("Saving changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             testPassed = true;
             logStepWithScreenshot("Mains Type saved successfully for Motor");
@@ -5428,7 +5428,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
             logStep("Saving changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             testPassed = true;
             logStepWithScreenshot("Catalog Number saved successfully for Motor");
@@ -5471,7 +5471,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
             logStep("Saving changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             testPassed = true;
             logStepWithScreenshot("Configuration saved successfully for Motor");
@@ -5514,7 +5514,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
             logStep("Saving changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             testPassed = true;
             logStepWithScreenshot("Duty Cycle saved successfully for Motor");
@@ -5557,7 +5557,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
             logStep("Saving changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             testPassed = true;
             logStepWithScreenshot("Frame saved successfully for Motor");
@@ -5600,7 +5600,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
             logStep("Saving changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             testPassed = true;
             logStepWithScreenshot("Full Load Amps saved successfully for Motor");
@@ -5643,7 +5643,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
             logStep("Saving changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             testPassed = true;
             logStepWithScreenshot("Horsepower saved successfully for Motor");
@@ -5686,7 +5686,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
             logStep("Saving changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             testPassed = true;
             logStepWithScreenshot("Manufacturer saved successfully for Motor");
@@ -5729,7 +5729,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
             logStep("Saving changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             testPassed = true;
             logStepWithScreenshot("Model saved successfully for Motor");
@@ -5772,7 +5772,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
             logStep("Saving changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             testPassed = true;
             logStepWithScreenshot("Motor Class saved successfully for Motor");
@@ -5815,7 +5815,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
             logStep("Saving changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             testPassed = true;
             logStepWithScreenshot("Power Factor saved successfully for Motor");
@@ -5858,7 +5858,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
             logStep("Saving changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             testPassed = true;
             logStepWithScreenshot("RPM saved successfully for Motor");
@@ -5904,7 +5904,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
             logStep("Saving changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             testPassed = true;
             logStepWithScreenshot("Serial Number saved successfully for Motor");
@@ -5950,7 +5950,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
             logStep("Saving changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             testPassed = true;
             logStepWithScreenshot("Service Factor saved successfully for Motor");
@@ -5996,7 +5996,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
             logStep("Saving changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             testPassed = true;
             logStepWithScreenshot("Size saved successfully for Motor");
@@ -6042,7 +6042,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
             logStep("Saving changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             testPassed = true;
             logStepWithScreenshot("Temperature Rating saved successfully for Motor");
@@ -6088,7 +6088,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
             logStep("Saving changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             testPassed = true;
             logStepWithScreenshot("Voltage saved successfully for Motor");
@@ -6130,7 +6130,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             logStep("Save Changes button visible: " + saveButtonVisible);
             
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior without required field");
             // Motor allows save without Mains Type per test case specification
@@ -6175,7 +6175,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             
             logStep("Saving changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save with required field filled");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -6256,7 +6256,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
         logStep("Canceling edit operation");
         assetPage.clickEditCancel();
-        mediumWait();
+        shortWait();
 
         logStep("Verifying cancel behavior");
         boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -6507,7 +6507,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
             logStep("Saving changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             testPassed = true;
             logStepWithScreenshot("Model field saved successfully for Other");
@@ -6550,7 +6550,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
             logStep("Saving changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             testPassed = true;
             logStepWithScreenshot("Notes field saved successfully for Other");
@@ -6593,7 +6593,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
             logStep("Saving changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             testPassed = true;
             logStepWithScreenshot("NP Volts field saved successfully for Other");
@@ -6639,7 +6639,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
             logStep("Saving changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             testPassed = true;
             logStepWithScreenshot("Serial Number field saved successfully for Other");
@@ -6682,7 +6682,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
             logStep("Saving changes with empty fields");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             // Other asset class allows save with all empty fields (no required fields)
@@ -6731,7 +6731,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
             logStep("Saving changes with partial data");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             testPassed = true;
@@ -6775,7 +6775,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
             logStep("Saving changes with all fields filled");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -6852,7 +6852,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
         logStep("Tapping Cancel button");
         assetPage.clickEditCancel();
-        mediumWait();
+        shortWait();
 
         logStep("Verifying cancel behavior");
         boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -7121,7 +7121,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             logStep("Save Changes button visible: " + saveButtonVisible);
             
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             // Other (OCP) has no Core Attributes, so save should succeed
@@ -7175,7 +7175,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
             logStep("Saving changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             testPassed = true;
             logStepWithScreenshot("Save after non-core edits completed for Other (OCP)");
@@ -7239,7 +7239,7 @@ public final class Asset_Phase2_Test extends BaseTest {
 
         logStep("Tapping Cancel button");
         assetPage.clickEditCancel();
-        mediumWait();
+        shortWait();
 
         logStep("Verifying cancel behavior");
         boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -7289,7 +7289,7 @@ public final class Asset_Phase2_Test extends BaseTest {
             
             if (saveButtonEnabled) {
                 assetPage.clickSaveChanges();
-                mediumWait();
+                shortWait();
             }
 
             logStep("Verifying no error occurs");

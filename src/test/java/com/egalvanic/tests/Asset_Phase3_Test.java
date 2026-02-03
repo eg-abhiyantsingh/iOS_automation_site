@@ -361,7 +361,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
             logStep("Tapping Save Changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             // Asset should be saved successfully without blocking validation
@@ -500,7 +500,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
             logStep("Saving changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             testPassed = true;
             logStepWithScreenshot("Size field input verified for Panelboard (partial)");
@@ -543,7 +543,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
             logStep("Saving changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -595,7 +595,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
             logStep("Tapping Save Changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -648,7 +648,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
             logStep("Saving Core Attributes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Reopening the same asset");
             navigateToPanelboardEditScreen();
@@ -696,7 +696,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
         logStep("Tapping Cancel");
         assetPage.clickEditCancel();
-        mediumWait();
+        shortWait();
 
         logStep("Verifying cancel behavior");
         boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -1307,7 +1307,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
             logStep("Saving changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -1356,7 +1356,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
             logStep("Tapping Save Changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             // Asset should be saved successfully (current behavior - no blocking validation)
@@ -1443,7 +1443,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
         logStep("Tapping Cancel");
         assetPage.clickEditCancel();
-        mediumWait();
+        shortWait();
 
         logStep("Verifying cancel behavior");
         boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -1867,7 +1867,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
             logStep("Tapping Save Changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -1916,7 +1916,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
             logStep("Tapping Save Changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             // Asset should be saved successfully (current behavior - no blocking validation)
@@ -1962,7 +1962,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
         logStep("Tapping Cancel");
         assetPage.clickEditCancel();
-        mediumWait();
+        shortWait();
 
         logStep("Verifying cancel behavior");
         boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -2011,7 +2011,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
             logStep("Saving asset");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Reopening the same asset");
             navigateToRelayEditScreen();
@@ -2115,7 +2115,7 @@ public final class Asset_Phase3_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Relay fields should be saved successfully");
@@ -2867,7 +2867,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
             logStep("Saving changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -2916,7 +2916,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
             logStep("Tapping Save Changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             // Asset should be saved successfully (current behavior - no blocking validation)
@@ -2962,7 +2962,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
         logStep("Tapping Cancel");
         assetPage.clickEditCancel();
-        mediumWait();
+        shortWait();
 
         logStep("Verifying cancel behavior");
         boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -3011,7 +3011,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
             logStep("Saving asset");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Reopening the same asset");
             navigateToSwitchboardEditScreen();
@@ -3394,7 +3394,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
             logStep("Saving changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -4003,7 +4003,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
             logStep("Tapping Save Changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             // Asset should be saved successfully (current behavior - no blocking validation)
@@ -4057,7 +4057,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
             logStep("Saving asset");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Reopening the same asset");
             navigateToTransformerEditScreen();
@@ -4105,7 +4105,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
         logStep("Tapping Cancel");
         assetPage.clickEditCancel();
-        mediumWait();
+        shortWait();
 
         logStep("Verifying cancel behavior");
         boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -4729,7 +4729,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
             logStep("Tapping Save Changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             // Asset should save successfully even with empty required fields based on test case expectation
@@ -4775,7 +4775,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
         logStep("Tapping Cancel");
         assetPage.clickEditCancel();
-        mediumWait();
+        shortWait();
 
         logStep("Verifying cancel behavior");
         boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -4824,7 +4824,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
             logStep("Saving asset");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Reopening the same asset");
             navigateToUPSEditScreen();
@@ -5066,7 +5066,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
             logStep("Saving changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Reopening the same asset to verify persistence");
             navigateToUtilityEditScreen();
@@ -5167,7 +5167,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
             logStep("Saving changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Reopening the same asset to verify persistence");
             navigateToUtilityEditScreen();
@@ -5219,7 +5219,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
             logStep("Tapping Save Changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save behavior");
             // Asset should be saved successfully
@@ -5265,7 +5265,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
         logStep("Tapping Cancel");
         assetPage.clickEditCancel();
-        mediumWait();
+        shortWait();
 
         logStep("Verifying cancel behavior");
         boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -5347,7 +5347,7 @@ public final class Asset_Phase3_Test extends BaseTest {
         assetPage.navigateToAssetList();
         shortWait();
         assetPage.selectFirstAsset();
-        mediumWait();
+        shortWait();
         assetPage.clickEdit();
         longWait();
         System.out.println("✅ On VFD Edit Asset screen");
@@ -5540,7 +5540,7 @@ public final class Asset_Phase3_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save completed");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -5585,7 +5585,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
             logStep("Tapping Cancel");
             assetPage.clickEditCancel();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying cancel behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -5679,7 +5679,7 @@ public final class Asset_Phase3_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Reopening Edit Asset screen");
             // Click Edit again to verify persistence
@@ -6103,7 +6103,7 @@ public final class Asset_Phase3_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save completed");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -6154,7 +6154,7 @@ public final class Asset_Phase3_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Reopening Edit Asset screen");
             assetPage.clickEdit();
@@ -6203,7 +6203,7 @@ public final class Asset_Phase3_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save completed");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -6308,7 +6308,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
             logStep("Tapping Cancel");
             assetPage.clickEditCancel();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying cancel behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -6636,7 +6636,7 @@ public final class Asset_Phase3_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save completed");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -6687,7 +6687,7 @@ public final class Asset_Phase3_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Reopening Edit Asset screen");
             assetPage.clickEdit();
@@ -6736,7 +6736,7 @@ public final class Asset_Phase3_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save completed");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -6785,7 +6785,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
             logStep("Tapping Cancel");
             assetPage.clickEditCancel();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying cancel behavior");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -7096,7 +7096,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
             logStep("Tapping Save Changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save completed");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -7148,7 +7148,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
             logStep("Saving asset");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Reopening Edit Asset screen");
             assetPage.clickEdit();
@@ -7657,7 +7657,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
             logStep("Tapping Save Changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save completed");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -7714,7 +7714,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
             logStep("Saving asset");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Reopening Edit Asset screen");
             assetPage.clickEdit();
@@ -7766,7 +7766,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
             logStep("Tapping Save Changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save completed");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -7827,7 +7827,7 @@ public final class Asset_Phase3_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickCancel();
-            mediumWait();
+            shortWait();
             
             // Handle any confirmation dialog
             try {
@@ -8228,7 +8228,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
             logStep("Tapping Save Changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save completed");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -8280,7 +8280,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
             logStep("Saving asset");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Reopening Edit Asset screen");
             assetPage.clickEdit();
@@ -8339,7 +8339,7 @@ public final class Asset_Phase3_Test extends BaseTest {
 
             logStep("Tapping Cancel to discard changes");
             assetPage.clickCancel();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying left Edit screen without saving");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -8386,7 +8386,7 @@ public final class Asset_Phase3_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Reopening Edit Asset screen");
             assetPage.clickEdit();

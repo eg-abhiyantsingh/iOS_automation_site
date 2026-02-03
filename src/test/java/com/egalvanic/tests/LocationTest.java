@@ -731,7 +731,7 @@ public class LocationTest extends BaseTest {
             // Take screenshot for debugging and retry once
             logStepWithScreenshot("Context menu not immediately visible - retrying long press");
             buildingPage.longPressOnBuilding(buildingToTest);
-            mediumWait();
+            shortWait();
             contextMenuDisplayed = buildingPage.isContextMenuDisplayed();
         }
         
@@ -796,7 +796,7 @@ public class LocationTest extends BaseTest {
         logStep("Step 1: Opening context menu via long press");
         boolean longPressSuccess = buildingPage.longPressOnBuilding(buildingToTest);
         assertTrue(longPressSuccess, "Long press should be performed successfully");
-        mediumWait();
+        shortWait();
 
         // Verify context menu is open
         logStep("Verifying context menu is open");
@@ -806,7 +806,7 @@ public class LocationTest extends BaseTest {
             // Retry long press
             logWarning("Context menu not visible, retrying long press");
             buildingPage.longPressOnBuilding(buildingToTest);
-            mediumWait();
+            shortWait();
             menuOpenBefore = buildingPage.isContextMenuDisplayed();
         }
         
@@ -872,7 +872,7 @@ public class LocationTest extends BaseTest {
         logStep("Step 1: Performing long press on building: " + buildingToEdit);
         boolean longPressSuccess = buildingPage.longPressOnBuilding(buildingToEdit);
         assertTrue(longPressSuccess, "Long press should be performed successfully");
-        mediumWait();
+        shortWait();
 
         // Step 2: Tap 'Edit Building' option
         logStep("Step 2: Tapping 'Edit Building' option");
@@ -882,12 +882,12 @@ public class LocationTest extends BaseTest {
         if (!menuDisplayed) {
             logWarning("Context menu not visible, retrying long press");
             buildingPage.longPressOnBuilding(buildingToEdit);
-            mediumWait();
+            shortWait();
         }
         
         boolean editClicked = buildingPage.clickEditBuildingOption();
         assertTrue(editClicked, "'Edit Building' option should be clicked successfully");
-        mediumWait();
+        shortWait();
 
         // Step 3: Verify Edit Building screen is displayed
         logStep("Step 3: Verifying Edit Building screen is displayed");
@@ -972,9 +972,9 @@ public class LocationTest extends BaseTest {
         if (!editScreenOpened) {
             // Manual navigation
             buildingPage.longPressOnBuilding(buildingToEdit);
-            mediumWait();
+            shortWait();
             buildingPage.clickEditBuildingOption();
-            mediumWait();
+            shortWait();
             editScreenOpened = buildingPage.isEditBuildingScreenDisplayed();
         }
         
@@ -1005,7 +1005,7 @@ public class LocationTest extends BaseTest {
         logStep("Step 3: Clicking Save button");
         boolean saveClicked = buildingPage.clickSave();
         assertTrue(saveClicked, "Save button should be clicked successfully");
-        mediumWait();
+        shortWait();
 
         // Step 4: Verify in building list
         logStep("Step 4: Verifying updated building appears in list");
@@ -1070,9 +1070,9 @@ public class LocationTest extends BaseTest {
         // Navigate to Edit Building screen
         logStep("Opening Edit Building screen");
         buildingPage.longPressOnBuilding(buildingToEdit);
-        mediumWait();
+        shortWait();
         buildingPage.clickEditBuildingOption();
-        mediumWait();
+        shortWait();
 
         boolean editScreenDisplayed = buildingPage.isEditBuildingScreenDisplayed();
         assertTrue(editScreenDisplayed, "Edit Building screen should be displayed");
@@ -1100,7 +1100,7 @@ public class LocationTest extends BaseTest {
         logStep("Step 3: Clicking Save button");
         boolean saveClicked = buildingPage.clickSave();
         assertTrue(saveClicked, "Save button should be clicked successfully");
-        mediumWait();
+        shortWait();
 
         // Step 4: Verify changes saved - should be back on building list
         logStep("Step 4: Verifying save was successful");
@@ -1110,9 +1110,9 @@ public class LocationTest extends BaseTest {
         // Optionally: Re-open edit screen to verify notes were saved
         logStep("Re-opening Edit Building to verify Access Notes were saved");
         buildingPage.longPressOnBuilding(buildingToEdit);
-        mediumWait();
+        shortWait();
         buildingPage.clickEditBuildingOption();
-        mediumWait();
+        shortWait();
 
         if (buildingPage.isEditBuildingScreenDisplayed()) {
             String savedNotes = buildingPage.getEditAccessNotesValue();
@@ -1169,9 +1169,9 @@ public class LocationTest extends BaseTest {
         // Navigate to Edit Building screen
         logStep("Opening Edit Building screen");
         buildingPage.longPressOnBuilding(buildingToEdit);
-        mediumWait();
+        shortWait();
         buildingPage.clickEditBuildingOption();
-        mediumWait();
+        shortWait();
 
         boolean editScreenDisplayed = buildingPage.isEditBuildingScreenDisplayed();
         assertTrue(editScreenDisplayed, "Edit Building screen should be displayed");
@@ -1197,7 +1197,7 @@ public class LocationTest extends BaseTest {
         // Step 2: Click Cancel
         logStep("Step 2: Clicking Cancel button to discard changes");
         buildingPage.clickCancel();
-        mediumWait();
+        shortWait();
 
         // Verify returned to building list
         logStep("Verifying returned to building list");
@@ -1256,9 +1256,9 @@ public class LocationTest extends BaseTest {
         // Navigate to Edit Building screen
         logStep("Opening Edit Building screen");
         buildingPage.longPressOnBuilding(buildingToEdit);
-        mediumWait();
+        shortWait();
         buildingPage.clickEditBuildingOption();
-        mediumWait();
+        shortWait();
 
         boolean editScreenDisplayed = buildingPage.isEditBuildingScreenDisplayed();
         assertTrue(editScreenDisplayed, "Edit Building screen should be displayed");
@@ -1637,13 +1637,13 @@ public class LocationTest extends BaseTest {
         logStep("Step 1: Long pressing on building to open context menu");
         boolean longPressSuccess = buildingPage.longPressOnBuilding(buildingToTest);
         assertTrue(longPressSuccess, "Long press should be performed successfully");
-        mediumWait();
+        shortWait();
 
         // Verify context menu is displayed
         boolean contextMenuDisplayed = buildingPage.isContextMenuDisplayed();
         if (!contextMenuDisplayed) {
             buildingPage.longPressOnBuilding(buildingToTest);
-            mediumWait();
+            shortWait();
             contextMenuDisplayed = buildingPage.isContextMenuDisplayed();
         }
         assertTrue(contextMenuDisplayed, "Context menu should be displayed");
@@ -2746,7 +2746,7 @@ public class LocationTest extends BaseTest {
         logStep("Step 2: Performing long press on floor");
         boolean longPressSuccess = buildingPage.longPressOnFloor(floorToTest);
         assertTrue(longPressSuccess, "Long press should be performed on floor");
-        mediumWait();
+        shortWait();
 
         // Step 3: Verify context menu
         logStep("Step 3: Verifying context menu is displayed");
@@ -2756,7 +2756,7 @@ public class LocationTest extends BaseTest {
             // Retry long press
             logWarning("Context menu not visible, retrying long press");
             buildingPage.longPressOnFloor(floorToTest);
-            mediumWait();
+            shortWait();
             contextMenuDisplayed = buildingPage.isFloorContextMenuDisplayed();
         }
         
@@ -2840,7 +2840,7 @@ public class LocationTest extends BaseTest {
         logStep("Step 1: Long pressing on floor: " + floorToTest);
         boolean longPressSuccess = buildingPage.longPressOnFloor(floorToTest);
         assertTrue(longPressSuccess, "Long press should be performed on floor");
-        mediumWait();
+        shortWait();
 
         // Step 2: Tap 'Edit Floor'
         logStep("Step 2: Tapping 'Edit Floor' option");
@@ -2850,11 +2850,11 @@ public class LocationTest extends BaseTest {
             // Context menu might not have appeared, retry
             logWarning("Edit Floor click failed, retrying long press");
             buildingPage.longPressOnFloor(floorToTest);
-            mediumWait();
+            shortWait();
             editClicked = buildingPage.clickEditFloorOption();
         }
         assertTrue(editClicked, "'Edit Floor' option should be clicked");
-        mediumWait();
+        shortWait();
 
         // Step 3: Verify Edit Floor screen is displayed
         logStep("Step 3: Verifying Edit Floor screen is displayed");
@@ -2939,10 +2939,10 @@ public class LocationTest extends BaseTest {
         // Navigate to Edit Floor screen
         logStep("Opening Edit Floor screen");
         buildingPage.longPressOnFloor(floorToEdit);
-        mediumWait();
+        shortWait();
         boolean editClicked = buildingPage.clickEditFloorOption();
         assertTrue(editClicked, "Should navigate to Edit Floor screen");
-        mediumWait();
+        shortWait();
 
         // Verify on Edit Floor screen
         assertTrue(buildingPage.isEditFloorScreenDisplayed(), "Should be on Edit Floor screen");
@@ -2969,7 +2969,7 @@ public class LocationTest extends BaseTest {
         logStep("Step 3: Clicking Save");
         boolean saveSuccess = buildingPage.clickSave();
         assertTrue(saveSuccess, "Save should be clicked successfully");
-        mediumWait();
+        shortWait();
 
         // Step 4: Verify in list
         logStep("Step 4: Verifying updated floor name in list");
@@ -3037,9 +3037,9 @@ public class LocationTest extends BaseTest {
         // Navigate to Edit Floor
         logStep("Navigating to Edit Floor for: " + floorToEdit);
         buildingPage.longPressOnFloor(floorToEdit);
-        mediumWait();
+        shortWait();
         buildingPage.clickEditFloorOption();
-        mediumWait();
+        shortWait();
 
         assertTrue(buildingPage.isEditFloorScreenDisplayed(), "Should be on Edit Floor screen");
 
@@ -3115,9 +3115,9 @@ public class LocationTest extends BaseTest {
         // Navigate to Edit Floor
         logStep("Opening Edit Floor screen");
         buildingPage.longPressOnFloor(floorToTest);
-        mediumWait();
+        shortWait();
         buildingPage.clickEditFloorOption();
-        mediumWait();
+        shortWait();
 
         assertTrue(buildingPage.isEditFloorScreenDisplayed(), "Should be on Edit Floor screen");
 
@@ -3141,7 +3141,7 @@ public class LocationTest extends BaseTest {
         // Step 2: Click Cancel
         logStep("Step 2: Clicking Cancel to discard changes");
         buildingPage.clickCancel();
-        mediumWait();
+        shortWait();
 
         // Verify returned to list
         boolean backToList = buildingPage.waitForEditFloorScreenToDisappear();
@@ -3250,21 +3250,21 @@ public class LocationTest extends BaseTest {
         logStep("Step 1: Long pressing on floor: " + testFloorName);
         boolean longPressSuccess = buildingPage.longPressOnFloor(testFloorName);
         assertTrue(longPressSuccess, "Long press should be performed on floor");
-        mediumWait();
+        shortWait();
 
         // Verify context menu
         boolean menuDisplayed = buildingPage.isFloorContextMenuDisplayed();
         if (!menuDisplayed) {
             logWarning("Context menu not visible, retrying long press");
             buildingPage.longPressOnFloor(testFloorName);
-            mediumWait();
+            shortWait();
         }
 
         // Step 2: Tap 'Delete Floor'
         logStep("Step 2: Tapping 'Delete Floor' option");
         boolean deleteClicked = buildingPage.clickDeleteFloorOption();
         assertTrue(deleteClicked, "'Delete Floor' should be clicked");
-        mediumWait();
+        shortWait();
         logStepWithScreenshot("After clicking Delete Floor");
 
         // Step 3: Verify floor removed
@@ -4559,7 +4559,7 @@ public class LocationTest extends BaseTest {
         logStep("Step 2: Performing long press on room");
         boolean longPressSuccess = buildingPage.longPressOnRoom(roomToTest);
         assertTrue(longPressSuccess, "Long press should be performed on room");
-        mediumWait();
+        shortWait();
 
         // Step 3: Verify context menu
         logStep("Step 3: Verifying context menu is displayed");
@@ -4569,7 +4569,7 @@ public class LocationTest extends BaseTest {
             // Retry long press
             logWarning("Context menu not visible, retrying long press");
             buildingPage.longPressOnRoom(roomToTest);
-            mediumWait();
+            shortWait();
             contextMenuDisplayed = buildingPage.isRoomContextMenuDisplayed();
         }
         
@@ -4679,7 +4679,7 @@ public class LocationTest extends BaseTest {
         logStep("Step 1: Long pressing on room: " + roomToTest);
         boolean longPressSuccess = buildingPage.longPressOnRoom(roomToTest);
         assertTrue(longPressSuccess, "Long press should be performed on room");
-        mediumWait();
+        shortWait();
 
         // Step 2: Tap 'Edit Room'
         logStep("Step 2: Tapping 'Edit Room' option");
@@ -4689,11 +4689,11 @@ public class LocationTest extends BaseTest {
             // Context menu might not have appeared, retry
             logWarning("Edit Room click failed, retrying long press");
             buildingPage.longPressOnRoom(roomToTest);
-            mediumWait();
+            shortWait();
             editClicked = buildingPage.clickEditRoomOption();
         }
         assertTrue(editClicked, "'Edit Room' option should be clicked");
-        mediumWait();
+        shortWait();
 
         // Step 3: Verify Edit Room screen is displayed
         logStep("Step 3: Verifying Edit Room screen is displayed");
@@ -4795,10 +4795,10 @@ public class LocationTest extends BaseTest {
         // Navigate to Edit Room screen
         logStep("Opening Edit Room screen");
         buildingPage.longPressOnRoom(roomToEdit);
-        mediumWait();
+        shortWait();
         boolean editClicked = buildingPage.clickEditRoomOption();
         assertTrue(editClicked, "Should navigate to Edit Room screen");
-        mediumWait();
+        shortWait();
 
         // Verify on Edit Room screen
         assertTrue(buildingPage.isEditRoomScreenDisplayed(), "Should be on Edit Room screen");
@@ -4825,7 +4825,7 @@ public class LocationTest extends BaseTest {
         logStep("Step 3: Clicking Save");
         boolean saveSuccess = buildingPage.clickSave();
         assertTrue(saveSuccess, "Save should be clicked successfully");
-        mediumWait();
+        shortWait();
 
         // Step 4: Verify in list
         logStep("Step 4: Verifying updated room name in list");
@@ -4909,9 +4909,9 @@ public class LocationTest extends BaseTest {
         // Navigate to Edit Room
         logStep("Navigating to Edit Room for: " + roomToEdit);
         buildingPage.longPressOnRoom(roomToEdit);
-        mediumWait();
+        shortWait();
         buildingPage.clickEditRoomOption();
-        mediumWait();
+        shortWait();
 
         assertTrue(buildingPage.isEditRoomScreenDisplayed(), "Should be on Edit Room screen");
 
@@ -5016,9 +5016,9 @@ public class LocationTest extends BaseTest {
         // Navigate to Edit Room screen
         logStep("Opening Edit Room screen");
         buildingPage.longPressOnRoom(roomToEdit);
-        mediumWait();
+        shortWait();
         buildingPage.clickEditRoomOption();
-        mediumWait();
+        shortWait();
 
         boolean editScreenDisplayed = buildingPage.isEditRoomScreenDisplayed();
         assertTrue(editScreenDisplayed, "Edit Room screen should be displayed");
@@ -5046,7 +5046,7 @@ public class LocationTest extends BaseTest {
         logStep("Step 3: Clicking Save button");
         boolean saveClicked = buildingPage.clickSave();
         assertTrue(saveClicked, "Save button should be clicked successfully");
-        mediumWait();
+        shortWait();
 
         // Verify save was successful - should be back on location list
         logStep("Verifying save was successful");
@@ -5063,9 +5063,9 @@ public class LocationTest extends BaseTest {
         shortWait();
         
         buildingPage.longPressOnRoom(roomToEdit);
-        mediumWait();
+        shortWait();
         buildingPage.clickEditRoomOption();
-        mediumWait();
+        shortWait();
 
         if (buildingPage.isEditRoomScreenDisplayed()) {
             String savedNotes = buildingPage.getEditRoomAccessNotesValue();
@@ -5142,9 +5142,9 @@ public class LocationTest extends BaseTest {
         // Navigate to Edit Room
         logStep("Opening Edit Room screen");
         buildingPage.longPressOnRoom(roomToTest);
-        mediumWait();
+        shortWait();
         buildingPage.clickEditRoomOption();
-        mediumWait();
+        shortWait();
 
         assertTrue(buildingPage.isEditRoomScreenDisplayed(), "Should be on Edit Room screen");
 
@@ -5168,7 +5168,7 @@ public class LocationTest extends BaseTest {
         // Step 2: Click Cancel
         logStep("Step 2: Clicking Cancel to discard changes");
         buildingPage.clickCancel();
-        mediumWait();
+        shortWait();
 
         // Verify returned to list
         boolean backToList = buildingPage.waitForEditRoomScreenToDisappear();
@@ -5295,21 +5295,21 @@ public class LocationTest extends BaseTest {
         logStep("Step 1: Long pressing on room: " + testRoomName);
         boolean longPressSuccess = buildingPage.longPressOnRoom(testRoomName);
         assertTrue(longPressSuccess, "Long press should be performed on room");
-        mediumWait();
+        shortWait();
 
         // Verify context menu
         boolean menuDisplayed = buildingPage.isRoomContextMenuDisplayed();
         if (!menuDisplayed) {
             logWarning("Context menu not visible, retrying long press");
             buildingPage.longPressOnRoom(testRoomName);
-            mediumWait();
+            shortWait();
         }
 
         // Step 2: Tap 'Delete Room'
         logStep("Step 2: Tapping 'Delete Room' option");
         boolean deleteClicked = buildingPage.clickDeleteRoomOption();
         assertTrue(deleteClicked, "'Delete Room' should be clicked");
-        mediumWait();
+        shortWait();
         logStepWithScreenshot("After clicking Delete Room");
 
         // Step 3: Verify room removed
@@ -5539,7 +5539,7 @@ public class LocationTest extends BaseTest {
         logStep("Step 3: Tapping on room to open Room Detail screen");
         boolean roomTapped = buildingPage.tapOnRoom(roomToTest);
         assertTrue(roomTapped, "Should tap on room to open detail screen");
-        mediumWait();
+        shortWait();
 
         // Step 4: Verify screen elements
         logStep("Step 4: Verifying Room Detail screen UI elements");
@@ -5650,7 +5650,7 @@ public class LocationTest extends BaseTest {
         logStep("Opening Room Detail for: " + roomToTest);
         boolean roomTapped = buildingPage.tapOnRoom(roomToTest);
         assertTrue(roomTapped, "Should open Room Detail screen");
-        mediumWait();
+        shortWait();
 
         // Step 1: Observe breadcrumb in header
         logStep("Step 1: Observing breadcrumb in header");
@@ -5786,7 +5786,7 @@ public class LocationTest extends BaseTest {
         logStep("Step 1: Opening Room Detail for room with no assets");
         boolean roomTapped = buildingPage.tapOnRoom(emptyRoomName);
         assertTrue(roomTapped, "Should open Room Detail screen");
-        mediumWait();
+        shortWait();
 
         // Step 2: Observe empty state
         logStep("Step 2: Observing empty state");
@@ -5909,7 +5909,7 @@ public class LocationTest extends BaseTest {
         logStep("Step 1: Tapping on room to open Room Detail");
         boolean roomTapped = buildingPage.tapOnRoom(roomWithAssets);
         assertTrue(roomTapped, "Should open Room Detail screen");
-        mediumWait();
+        shortWait();
 
         // Step 2: Verify assets list
         logStep("Step 2: Verifying assets list");
@@ -6027,7 +6027,7 @@ public class LocationTest extends BaseTest {
         logStep("Opening Room Detail for: " + roomWithAssets);
         boolean roomTapped = buildingPage.tapOnRoom(roomWithAssets);
         assertTrue(roomTapped, "Should open Room Detail screen");
-        mediumWait();
+        shortWait();
 
         // Check if room has assets
         boolean assetsDisplayed = buildingPage.areAssetsDisplayedInRoom();
@@ -6059,7 +6059,7 @@ public class LocationTest extends BaseTest {
             assetTapped = true;
         }
         assertTrue(assetTapped, "Should tap on asset");
-        mediumWait();
+        shortWait();
 
         // Step 2: Verify Asset Details screen opens
         logStep("Step 2: Verifying Asset Details screen is displayed");
@@ -6163,7 +6163,7 @@ public class LocationTest extends BaseTest {
         logStep("Opening Room Detail for: " + roomToTest);
         boolean roomTapped = buildingPage.tapOnRoom(roomToTest);
         assertTrue(roomTapped, "Should open Room Detail screen");
-        mediumWait();
+        shortWait();
 
         // Verify we are on Room Detail screen
         logStep("Verifying Room Detail screen is displayed");
@@ -6178,7 +6178,7 @@ public class LocationTest extends BaseTest {
         
         boolean doneTapped = buildingPage.clickDoneButton();
         assertTrue(doneTapped, "Should tap Done button");
-        mediumWait();
+        shortWait();
 
         // Step 2: Verify navigation
         logStep("Step 2: Verifying navigation back to Locations list");
@@ -6330,7 +6330,7 @@ public class LocationTest extends BaseTest {
         logStep("Step 1: Tapping on 'No Location' section");
         boolean tapped = buildingPage.tapOnNoLocation();
         assertTrue(tapped, "Should tap on 'No Location' section");
-        mediumWait();
+        shortWait();
 
         // Step 2: Verify No Location screen opens
         logStep("Step 2: Verifying No Location screen elements");
@@ -6424,7 +6424,7 @@ public class LocationTest extends BaseTest {
         logStep("Opening No Location screen");
         boolean tapped = buildingPage.tapOnNoLocation();
         assertTrue(tapped, "Should open No Location screen");
-        mediumWait();
+        shortWait();
 
         // Step 1: Observe assets list
         logStep("Step 1: Observing unassigned assets list");
@@ -6523,7 +6523,7 @@ public class LocationTest extends BaseTest {
         logStep("Opening No Location screen");
         boolean tapped = buildingPage.tapOnNoLocation();
         assertTrue(tapped, "Should open No Location screen");
-        mediumWait();
+        shortWait();
 
         // Check if assets are displayed
         boolean assetsDisplayed = buildingPage.areUnassignedAssetsDisplayed();
@@ -6549,7 +6549,7 @@ public class LocationTest extends BaseTest {
         // Step 1: Tap on asset
         logStep("Step 1: Tapping on asset to open Asset Details");
         firstAsset.click();
-        mediumWait();
+        shortWait();
 
         // Step 2: Verify Asset Details opens
         logStep("Step 2: Verifying Asset Details screen is displayed");
@@ -6639,7 +6639,7 @@ public class LocationTest extends BaseTest {
         logStep("Opening No Location screen");
         boolean tapped = buildingPage.tapOnNoLocation();
         assertTrue(tapped, "Should open No Location screen");
-        mediumWait();
+        shortWait();
 
         // Check if assets are displayed
         boolean assetsDisplayed = buildingPage.areUnassignedAssetsDisplayed();
@@ -6756,7 +6756,7 @@ public class LocationTest extends BaseTest {
         logStep("Opening No Location screen");
         boolean tapped = buildingPage.tapOnNoLocation();
         assertTrue(tapped, "Should open No Location screen");
-        mediumWait();
+        shortWait();
 
         // Verify we are on No Location screen
         logStep("Verifying No Location screen is displayed");
@@ -6769,7 +6769,7 @@ public class LocationTest extends BaseTest {
         
         boolean doneTapped = buildingPage.clickDoneButton();
         assertTrue(doneTapped, "Should tap Done button");
-        mediumWait();
+        shortWait();
 
         // Step 2: Verify navigation
         logStep("Step 2: Verifying navigation back to Locations list");
@@ -6825,7 +6825,7 @@ public class LocationTest extends BaseTest {
         logStep("Step 1: Performing long press on 'No Location'");
         boolean longPressPerformed = buildingPage.longPressOnNoLocation();
         assertTrue(longPressPerformed, "Long press should be performed on 'No Location'");
-        mediumWait();
+        shortWait();
 
         // Step 2: Observe behavior - verify NO context menu appears
         logStep("Step 2: Verifying NO context menu appears");
@@ -6921,7 +6921,7 @@ public class LocationTest extends BaseTest {
         logStep("Step 2: Opening No Location to assign an asset");
         boolean tapped = buildingPage.tapOnNoLocation();
         assertTrue(tapped, "Should open No Location screen");
-        mediumWait();
+        shortWait();
 
         // Get first unassigned asset
         WebElement firstAsset = buildingPage.getFirstUnassignedAsset();
@@ -6937,7 +6937,7 @@ public class LocationTest extends BaseTest {
         
         // Tap on asset to open details
         firstAsset.click();
-        mediumWait();
+        shortWait();
 
         // Try to assign location
         logStep("Attempting to assign location to asset");
@@ -6962,7 +6962,7 @@ public class LocationTest extends BaseTest {
         // Step 3: Return to Locations
         logStep("Step 3: Returning to Locations list");
         buildingPage.clickDoneButton();
-        mediumWait();
+        shortWait();
 
         // Step 4: Verify count decreased
         logStep("Step 4: Verifying No Location count decreased");
@@ -7056,7 +7056,7 @@ public class LocationTest extends BaseTest {
         logStep("Opening No Location screen");
         boolean tapped = buildingPage.tapOnNoLocation();
         assertTrue(tapped, "Should open No Location screen");
-        mediumWait();
+        shortWait();
 
         // Check if assets are displayed
         boolean assetsDisplayed = buildingPage.areUnassignedAssetsDisplayed();
@@ -7082,7 +7082,7 @@ public class LocationTest extends BaseTest {
         logStep("Opening asset: " + assetName);
         
         targetAsset.click();
-        mediumWait();
+        shortWait();
         logStepWithScreenshot("Asset Details screen opened");
 
         // Step 2: Observe Location field
@@ -7150,7 +7150,7 @@ public class LocationTest extends BaseTest {
         }
         
         buildingPage.tapOnNoLocation();
-        mediumWait();
+        shortWait();
 
         // Check if assets are displayed
         if (!buildingPage.areUnassignedAssetsDisplayed()) {
@@ -7167,7 +7167,7 @@ public class LocationTest extends BaseTest {
         String assetName = firstAsset.getAttribute("label");
         logStep("Opening asset: " + assetName);
         firstAsset.click();
-        mediumWait();
+        shortWait();
 
         // Verify Select location is displayed
         boolean hasSelectLocation = buildingPage.hasSelectLocationField();
@@ -7178,7 +7178,7 @@ public class LocationTest extends BaseTest {
         logStep("Step 1: Tapping on Location field");
         boolean locationTapped = buildingPage.tapOnLocationField();
         assertTrue(locationTapped, "Should tap on Location field");
-        mediumWait();
+        shortWait();
 
         // Step 2: Verify location picker opens
         logStep("Step 2: Verifying location picker opens");
@@ -7265,7 +7265,7 @@ public class LocationTest extends BaseTest {
         }
         
         buildingPage.tapOnNoLocation();
-        mediumWait();
+        shortWait();
 
         if (!buildingPage.areUnassignedAssetsDisplayed()) {
             logWarning("No unassigned assets found - test requires unassigned asset");
@@ -7278,14 +7278,14 @@ public class LocationTest extends BaseTest {
         WebElement firstAsset = buildingPage.getFirstUnassignedAsset();
         assertNotNull(firstAsset, "At least one unassigned asset should be available");
         firstAsset.click();
-        mediumWait();
+        shortWait();
         logStepWithScreenshot("Asset Details - before selecting location");
 
         // Step 1: Tap Location field
         logStep("Step 1: Tapping on Location field");
         boolean locationTapped = buildingPage.tapOnLocationField();
         assertTrue(locationTapped, "Should tap on Location field");
-        mediumWait();
+        shortWait();
 
         // Step 2: Select location hierarchy 'Abhi 12 > Floor 12 > 1'
         logStep("Step 2: Selecting location 'Abhi 12 > Floor 12 > 1'");
@@ -7399,7 +7399,7 @@ public class LocationTest extends BaseTest {
         logStep("Initial No Location count: " + initialNoLocationCount);
         
         buildingPage.tapOnNoLocation();
-        mediumWait();
+        shortWait();
 
         if (!buildingPage.areUnassignedAssetsDisplayed()) {
             logWarning("No unassigned assets found - test requires unassigned asset");
@@ -7420,12 +7420,12 @@ public class LocationTest extends BaseTest {
 
         // Open asset details
         assetToAssign.click();
-        mediumWait();
+        shortWait();
 
         // Tap Location field
         logStep("Opening location picker");
         buildingPage.tapOnLocationField();
-        mediumWait();
+        shortWait();
 
         // Step 1: Select location hierarchy
         logStep("Step 1: Selecting location 'Abhi 12 > Floor 12 > 1'");
@@ -7462,7 +7462,7 @@ public class LocationTest extends BaseTest {
         logStep("Step 2: Tapping 'Save Changes' button");
         boolean saveChangesClicked = buildingPage.clickSaveChangesButton();
         assertTrue(saveChangesClicked, "Should click 'Save Changes' button");
-        mediumWait();
+        shortWait();
         logStepWithScreenshot("After saving changes");
 
         // Close Asset Details
@@ -7626,7 +7626,7 @@ public class LocationTest extends BaseTest {
         // Step 1: Assign an asset to the target room
         logStep("Step 1: Assigning an asset to room '" + targetRoom + "'");
         buildingPage.tapOnNoLocation();
-        mediumWait();
+        shortWait();
 
         if (!buildingPage.areUnassignedAssetsDisplayed()) {
             logWarning("No unassigned assets found");
@@ -7641,22 +7641,22 @@ public class LocationTest extends BaseTest {
         logStep("Assigning asset: " + assetName);
         
         assetToAssign.click();
-        mediumWait();
+        shortWait();
 
         // Assign location
         buildingPage.tapOnLocationField();
-        mediumWait();
+        shortWait();
         
         buildingPage.selectBuildingInPicker(targetBuilding);
         shortWait();
         buildingPage.selectFloorInPicker(targetFloor);
         shortWait();
         buildingPage.selectRoomInPicker(targetRoom);
-        mediumWait();
+        shortWait();
 
         // Save changes
         buildingPage.clickSaveChangesButton();
-        mediumWait();
+        shortWait();
 
         // Close and return to Locations
         buildingPage.closeAssetDetails();
@@ -7757,7 +7757,7 @@ public class LocationTest extends BaseTest {
         // Step 1: Assign one asset to a room
         logStep("Step 1: Assigning one asset to a room");
         buildingPage.tapOnNoLocation();
-        mediumWait();
+        shortWait();
 
         if (!buildingPage.areUnassignedAssetsDisplayed()) {
             logWarning("No unassigned assets displayed");
@@ -7772,29 +7772,29 @@ public class LocationTest extends BaseTest {
         logStep("Assigning asset: " + assetName);
         
         assetToAssign.click();
-        mediumWait();
+        shortWait();
 
         // Assign to first available location
         buildingPage.tapOnLocationField();
-        mediumWait();
+        shortWait();
         
         buildingPage.selectFirstBuildingInPicker();
         shortWait();
         buildingPage.selectFirstFloorInPicker();
         shortWait();
         buildingPage.selectFirstRoomInPicker();
-        mediumWait();
+        shortWait();
 
         // Save changes
         buildingPage.clickSaveChangesButton();
-        mediumWait();
+        shortWait();
 
         // Step 2: Return to Locations list
         logStep("Step 2: Returning to Locations list");
         buildingPage.closeAssetDetails();
         shortWait();
         buildingPage.clickDoneButton();
-        mediumWait();
+        shortWait();
 
         // Step 3: Check No Location count
         logStep("Step 3: Checking No Location count after assignment");
@@ -7865,7 +7865,7 @@ public class LocationTest extends BaseTest {
         logStep("Initial No Location count: " + initialCount);
 
         buildingPage.tapOnNoLocation();
-        mediumWait();
+        shortWait();
 
         if (!buildingPage.areUnassignedAssetsDisplayed()) {
             logWarning("No unassigned assets found");
@@ -7884,13 +7884,13 @@ public class LocationTest extends BaseTest {
 
         // Open asset
         firstAsset.click();
-        mediumWait();
+        shortWait();
         logStepWithScreenshot("Asset Details - before making changes");
 
         // Step 1: Select a location
         logStep("Step 1: Selecting a location for asset");
         buildingPage.tapOnLocationField();
-        mediumWait();
+        shortWait();
 
         // Select location hierarchy
         buildingPage.selectFirstBuildingInPicker();
@@ -7898,7 +7898,7 @@ public class LocationTest extends BaseTest {
         buildingPage.selectFirstFloorInPicker();
         shortWait();
         buildingPage.selectFirstRoomInPicker();
-        mediumWait();
+        shortWait();
 
         // Verify Save Changes button appears
         logStep("Verifying Save Changes button is displayed");
@@ -7928,7 +7928,7 @@ public class LocationTest extends BaseTest {
 
         // Return to Locations
         buildingPage.clickDoneButton();
-        mediumWait();
+        shortWait();
 
         // Step 3: Verify asset remains unassigned
         logStep("Step 3: Verifying asset remains in No Location");
@@ -7953,7 +7953,7 @@ public class LocationTest extends BaseTest {
 
         // Open No Location to verify asset is still there
         buildingPage.tapOnNoLocation();
-        mediumWait();
+        shortWait();
 
         boolean assetStillThere = buildingPage.findAssetByName(assetName) != null ||
                                    buildingPage.areUnassignedAssetsDisplayed();
@@ -8055,13 +8055,13 @@ public class LocationTest extends BaseTest {
         logStep("Asset to reassign: " + assetName);
         
         assetToMove.click();
-        mediumWait();
+        shortWait();
         logStepWithScreenshot("Asset Details - current location");
 
         // Step 2: Change location to different room
         logStep("Step 2: Changing location to different room");
         buildingPage.tapOnLocationField();
-        mediumWait();
+        shortWait();
 
         // Select same building and floor, but different room
         buildingPage.selectBuildingInPicker(targetBuilding);
@@ -8089,7 +8089,7 @@ public class LocationTest extends BaseTest {
         // Step 3: Save Changes
         logStep("Step 3: Saving changes");
         buildingPage.clickSaveChangesButton();
-        mediumWait();
+        shortWait();
 
         // Close Asset Details
         buildingPage.closeAssetDetails();

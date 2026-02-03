@@ -397,7 +397,7 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.scrollFormUp();
             logStep("Tapping Save Changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
             logStep("Verifying save completed");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
             if (stillOnEditScreen) {
@@ -434,7 +434,7 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.scrollFormUp();
             logStep("Saving asset");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
             logStep("Reopening Edit Asset screen");
             assetPage.clickEdit();
             longWait();
@@ -468,7 +468,7 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.scrollFormUp();
             logStep("Tapping Save Changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
             logStep("Verifying save completed");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
             if (stillOnEditScreen) {
@@ -505,7 +505,7 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.scrollFormUp();
             logStep("Tapping Cancel to discard changes");
             assetPage.clickCancel();
-            mediumWait();
+            shortWait();
             logStep("Verifying left Edit screen without saving");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
             if (!stillOnEditScreen) {
@@ -880,7 +880,7 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Tapping Save Changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save completed");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -933,7 +933,7 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Saving asset");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Reopening Edit Asset screen to verify persistence");
             assetPage.clickEdit();
@@ -990,7 +990,7 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Tapping Save Changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying save completed");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -1045,7 +1045,7 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Tapping Cancel to discard changes");
             assetPage.clickCancel();
-            mediumWait();
+            shortWait();
 
             logStep("Verifying left Edit screen without saving");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -1274,7 +1274,7 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Step 6: Tapping Save Changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Step 7: Verifying save completed");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -1338,7 +1338,7 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Step 5: Tapping Save Changes");
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("Step 6: Verifying save completed without validation errors");
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -3957,7 +3957,7 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Step 2: Opening first asset");
             assetPage.selectFirstAsset();
-            mediumWait();
+            shortWait();
 
             logStep("Step 3: Scrolling to Tasks section");
             boolean tasksFound = assetPage.scrollToTasksSection();
@@ -4009,7 +4009,7 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Step 2: Opening first asset");
             assetPage.selectFirstAsset();
-            mediumWait();
+            shortWait();
 
             logStep("Step 3: Scrolling to Tasks section");
             assetPage.scrollToTasksSection();
@@ -4017,7 +4017,7 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Step 4: Clicking Add Task (+) button");
             assetPage.clickAddTaskButton();
-            mediumWait();
+            shortWait();
 
             logStep("Step 5: Verifying New Task screen is displayed");
             boolean newTaskScreenDisplayed = assetPage.isNewTaskScreenDisplayed();
@@ -4068,7 +4068,7 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Step 2: Opening first asset");
             assetPage.selectFirstAsset();
-            mediumWait();
+            shortWait();
 
             logStep("Step 3: Scrolling to Tasks section");
             assetPage.scrollToTasksSection();
@@ -4076,7 +4076,7 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Step 4: Clicking Add Task (+) button");
             assetPage.clickAddTaskButton();
-            mediumWait();
+            shortWait();
 
             logStep("Step 5: Verifying New Task screen UI elements");
             boolean newTaskScreen = assetPage.isNewTaskScreenDisplayed();
@@ -4129,7 +4129,7 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Step 2: Opening first asset");
             assetPage.selectFirstAsset();
-            mediumWait();
+            shortWait();
 
             logStep("Step 3: Scrolling to Tasks section");
             assetPage.scrollToTasksSection();
@@ -4137,7 +4137,7 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Step 4: Clicking Add Task (+) button");
             assetPage.clickAddTaskButton();
-            mediumWait();
+            shortWait();
 
             logStep("Step 5: Entering task title");
             String taskTitle = "Test Task " + System.currentTimeMillis();
@@ -4150,7 +4150,7 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Step 7: Clicking Create Task button");
             assetPage.clickCreateTaskButton();
-            mediumWait();
+            shortWait();
 
             logStep("Step 8: Verifying task creation");
             // After creation, should be back on Asset Details
@@ -4191,7 +4191,7 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Step 2: Opening first asset");
             assetPage.selectFirstAsset();
-            mediumWait();
+            shortWait();
 
             logStep("Step 3: Scrolling to Tasks section");
             assetPage.scrollToTasksSection();
@@ -4199,7 +4199,7 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Step 4: Clicking Add Task (+) button");
             assetPage.clickAddTaskButton();
-            mediumWait();
+            shortWait();
 
             logStep("Step 5: Entering only Title (leaving Description empty)");
             assetPage.enterTaskTitle("Test Task Without Description");
@@ -4253,7 +4253,7 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Step 2: Opening first asset");
             assetPage.selectFirstAsset();
-            mediumWait();
+            shortWait();
 
             logStep("Step 3: Scrolling to Tasks section");
             assetPage.scrollToTasksSection();
@@ -4261,7 +4261,7 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Step 4: Clicking Add Task (+) button");
             assetPage.clickAddTaskButton();
-            mediumWait();
+            shortWait();
 
             logStep("Step 5: Entering task title");
             String taskTitle = "Completed Task " + System.currentTimeMillis();
@@ -4278,7 +4278,7 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Step 8: Clicking Create Task button");
             assetPage.clickCreateTaskButton();
-            mediumWait();
+            shortWait();
 
             logStep("Expected: Task is created and marked as completed");
             testPassed = true;
@@ -4349,7 +4349,7 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Step 2: Opening first asset");
             assetPage.selectFirstAsset();
-            mediumWait();
+            shortWait();
 
             logStep("Step 3: Scrolling to Tasks section");
             assetPage.scrollToTasksSection();
@@ -4357,7 +4357,7 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Step 4: Clicking on existing task");
             assetPage.clickExistingTask();
-            mediumWait();
+            shortWait();
 
             logStep("Step 5: Verifying Task Details screen is displayed");
             boolean taskDetailsDisplayed = assetPage.isTaskDetailsScreenDisplayed();
@@ -4873,7 +4873,7 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.navigateToAssetList();
             shortWait();
             assetPage.selectFirstAsset();
-            mediumWait();
+            shortWait();
 
             logStep("Step 2: Scrolling to Issues section");
             assetPage.scrollToIssuesSection();
@@ -5131,7 +5131,7 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Step 6: Clicking Create Issue button");
             assetPage.clickCreateIssueButton();
-            mediumWait();
+            shortWait();
 
             logStep("✅ Issue created successfully");
             testPassed = true;
@@ -5228,7 +5228,7 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Step 4: Clicking Create Issue");
             assetPage.clickCreateIssueButton();
-            mediumWait();
+            shortWait();
 
             logStep("Step 5: Verifying issue was created");
             logStep("Note: Issue count verification requires visual check");
@@ -5405,7 +5405,7 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.navigateToAssetList();
             shortWait();
             assetPage.selectFirstAsset();
-            mediumWait();
+            shortWait();
 
             logStep("Step 2: Scrolling to Connections section");
             assetPage.scrollToConnectionsSection();
@@ -5689,7 +5689,7 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Step 4: Clicking Create button");
             assetPage.clickCreateConnectionButton();
-            mediumWait();
+            shortWait();
 
             logStep("Step 5: Verifying connection was created");
             boolean connectionCreated = assetPage.isConnectionCreated();
@@ -5839,7 +5839,7 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.navigateToAssetList();
             shortWait();
             assetPage.selectFirstAsset();
-            mediumWait();
+            shortWait();
 
             logStep("Step 2: Scrolling to Connections section");
             assetPage.scrollToConnectionsSection();
@@ -6123,7 +6123,7 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Step 4: Clicking Create button");
             assetPage.clickCreateConnectionButton();
-            mediumWait();
+            shortWait();
 
             logStep("Step 5: Verifying Loadside connection was created");
             boolean connectionCreated = assetPage.isLoadsideConnectionCreated();
@@ -6271,7 +6271,7 @@ public final class Asset_Phase4_Test extends BaseTest {
             
             System.out.println("💾 Saving changes...");
             assetPage.clickSaveButton();
-            mediumWait();
+            shortWait();
             
             // After Save, app returns to Asset List - re-open asset
             System.out.println("🔍 Re-opening asset to see OCP section...");
@@ -6346,7 +6346,7 @@ public final class Asset_Phase4_Test extends BaseTest {
             assetPage.selectChildAssetClass("Other (OCP)");
             shortWait();  // OPTIMIZED: was sleep(300)
             assetPage.clickCreateChildAssetButton();
-            mediumWait();
+            shortWait();
             
             // Now unlink it so it can be linked back
             System.out.println("🔓 Unlinking the newly created OCP...");
@@ -6624,7 +6624,7 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Step 5: Clicking Create button");
             assetPage.clickCreateChildAssetButton();
-            mediumWait();
+            shortWait();
 
             logStep("Step 6: Verifying child asset was created");
             boolean created = assetPage.isChildAssetCreated(childAssetName);
@@ -6766,7 +6766,7 @@ public final class Asset_Phase4_Test extends BaseTest {
                 if (selectedCount > 0) {
                     logStep("Step 5: Clicking Link button");
                     assetPage.clickLinkButton();
-                    mediumWait();
+                    shortWait();
                     logStep("✅ Node linked successfully");
                 } else {
                     logStep("⚠️ Selection failed - cancelling");
@@ -7180,7 +7180,7 @@ public final class Asset_Phase4_Test extends BaseTest {
                 if (selectedCount > 0) {
                     logStep("Step 5: Clicking Link button");
                     assetPage.clickLinkButton();
-                    mediumWait();
+                    shortWait();
                     logStep("✅ Node linked successfully");
                 } else {
                     logStep("⚠️ Selection failed - cancelling");
@@ -7544,7 +7544,7 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Step 3: Selecting 'Group by Location' option");
             assetPage.selectGroupingOption("Group by Location");
-            mediumWait();
+            shortWait();
 
             logStep("Step 4: Verifying assets are grouped by location");
             int groupCount = assetPage.getAssetCount();
@@ -7593,7 +7593,7 @@ public final class Asset_Phase4_Test extends BaseTest {
 
             logStep("Step 3: Selecting 'Group by Location' to see group headers");
             assetPage.selectGroupingOption("Group by Location");
-            mediumWait();
+            shortWait();
 
             logStep("Step 4: Observing group header with asset count badge");
             // Group headers show location name with count (e.g., "No Location" with "15")

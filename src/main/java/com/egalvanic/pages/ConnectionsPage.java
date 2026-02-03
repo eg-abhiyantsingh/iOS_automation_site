@@ -105,7 +105,7 @@ public class ConnectionsPage {
                 WebElement connectionsTab = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeButton' AND (label CONTAINS 'Connections' OR label CONTAINS 'connections')"));
                 connectionsTab.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped Connections tab via Button");
                 return true;
             } catch (Exception e1) {}
@@ -115,7 +115,7 @@ public class ConnectionsPage {
                 WebElement connectionsText = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeStaticText' AND label == 'Connections' AND visible == true"));
                 connectionsText.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped Connections tab via StaticText");
                 return true;
             } catch (Exception e2) {}
@@ -123,7 +123,7 @@ public class ConnectionsPage {
             // Strategy 3: Use accessibilityId
             try {
                 driver.findElement(AppiumBy.accessibilityId("Connections")).click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped Connections tab via accessibilityId");
                 return true;
             } catch (Exception e3) {}
@@ -135,7 +135,7 @@ public class ConnectionsPage {
                 for (WebElement el : elements) {
                     try {
                         el.click();
-                        sleep(500);
+                        sleep(300);
                         if (isConnectionsScreenDisplayed()) {
                             System.out.println("✓ Tapped Connections element");
                             return true;
@@ -165,7 +165,7 @@ public class ConnectionsPage {
             
             boolean tapped = tapOnConnectionsTab();
             if (tapped) {
-                sleep(500);
+                sleep(300);
                 if (isConnectionsScreenDisplayed()) {
                     System.out.println("✅ Successfully navigated to Connections screen");
                     return true;
@@ -621,7 +621,7 @@ public class ConnectionsPage {
         try {
             if (connectionEntry != null) {
                 connectionEntry.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped on connection entry");
                 return true;
             }
@@ -797,7 +797,7 @@ public class ConnectionsPage {
             WebElement missingEntry = getMissingNodeEntry();
             if (missingEntry != null) {
                 missingEntry.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped on Missing Node entry");
                 return true;
             }
@@ -806,7 +806,7 @@ public class ConnectionsPage {
                 WebElement missingText = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "label CONTAINS 'Missing Node' AND visible == true"));
                 missingText.click();
-                sleep(500);
+                sleep(300);
                 return true;
             } catch (Exception e1) {}
             
@@ -854,7 +854,7 @@ public class ConnectionsPage {
 
     public int getFilteredConnectionCount() {
         try {
-            sleep(500);
+            sleep(300);
             return getConnectionCount();
         } catch (Exception e) {
             return 0;
@@ -993,7 +993,7 @@ public class ConnectionsPage {
             try {
                 WebElement addBtn = driver.findElement(AppiumBy.accessibilityId("Add"));
                 addBtn.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped Add button (accessibility ID)");
                 return true;
             } catch (Exception e1) {}
@@ -1003,7 +1003,7 @@ public class ConnectionsPage {
                 WebElement addBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label == '+' OR label == 'Add' OR name == 'plus' OR name == 'add') AND type == 'XCUIElementTypeButton' AND visible == true"));
                 addBtn.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped + button");
                 return true;
             } catch (Exception e2) {}
@@ -1020,7 +1020,7 @@ public class ConnectionsPage {
                         if ((name != null && (name.contains("add") || name.contains("plus") || name.equals("+"))) ||
                             (label != null && (label.equals("+") || label.equalsIgnoreCase("add")))) {
                             btn.click();
-                            sleep(500);
+                            sleep(300);
                             System.out.println("✓ Tapped Add button in header");
                             return true;
                         }
@@ -1134,7 +1134,7 @@ public class ConnectionsPage {
             try {
                 WebElement cancelBtn = driver.findElement(AppiumBy.accessibilityId("Cancel"));
                 cancelBtn.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped Cancel");
                 return true;
             } catch (Exception e1) {}
@@ -1144,7 +1144,7 @@ public class ConnectionsPage {
                 WebElement cancelBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label == 'Cancel' OR name == 'Cancel') AND type == 'XCUIElementTypeButton' AND visible == true"));
                 cancelBtn.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped Cancel button");
                 return true;
             } catch (Exception e2) {}
@@ -1154,7 +1154,7 @@ public class ConnectionsPage {
                 WebElement cancelText = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "label == 'Cancel' AND visible == true"));
                 cancelText.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped Cancel text");
                 return true;
             } catch (Exception e3) {}
@@ -1283,7 +1283,7 @@ public class ConnectionsPage {
             WebElement createBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
                 "(label == 'Create' OR name == 'Create') AND visible == true"));
             createBtn.click();
-            sleep(500);
+            sleep(300);
             System.out.println("✓ Tapped Create button");
             return true;
         } catch (Exception e) {
@@ -1405,7 +1405,7 @@ public class ConnectionsPage {
                 WebElement sourceBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label CONTAINS 'Source' OR label CONTAINS 'Select source') AND type == 'XCUIElementTypeButton' AND visible == true"));
                 sourceBtn.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped Source Node field");
                 return true;
             } catch (Exception e1) {}
@@ -1415,7 +1415,7 @@ public class ConnectionsPage {
                 WebElement sourceField = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label CONTAINS 'Source Node' OR name CONTAINS 'Source Node') AND visible == true"));
                 sourceField.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped Source Node");
                 return true;
             } catch (Exception e2) {}
@@ -1563,7 +1563,7 @@ public class ConnectionsPage {
                 WebElement selectSource = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label CONTAINS 'Select source' OR label CONTAINS 'source node' OR name == 'Select source') AND visible == true"));
                 selectSource.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped on 'Select source node' dropdown");
                 return true;
             } catch (Exception e1) {}
@@ -1573,7 +1573,7 @@ public class ConnectionsPage {
                 WebElement sourceField = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "((label == 'Source Node' OR name CONTAINS 'source') AND type == 'XCUIElementTypeButton') AND visible == true"));
                 sourceField.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped on Source Node button");
                 return true;
             } catch (Exception e2) {}
@@ -1586,7 +1586,7 @@ public class ConnectionsPage {
                     String label = cell.getAttribute("label");
                     if (label != null && (label.toLowerCase().contains("source") || label.contains("Select source"))) {
                         cell.click();
-                        sleep(500);
+                        sleep(300);
                         System.out.println("✓ Tapped on Source Node cell");
                         return true;
                     }
@@ -1776,7 +1776,7 @@ public class ConnectionsPage {
                 sleep(300);
                 searchField.clear();
                 searchField.sendKeys(searchText);
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Entered search text: " + searchText);
                 return true;
             }
@@ -1807,7 +1807,7 @@ public class ConnectionsPage {
                 WebElement asset = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "label == '" + assetName + "' AND visible == true"));
                 asset.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Selected asset by exact match");
                 return true;
             } catch (Exception e1) {}
@@ -1817,7 +1817,7 @@ public class ConnectionsPage {
                 WebElement asset = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "label CONTAINS '" + assetName + "' AND visible == true"));
                 asset.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Selected asset by partial match");
                 return true;
             } catch (Exception e2) {}
@@ -1829,7 +1829,7 @@ public class ConnectionsPage {
                 String label = cell.getAttribute("label");
                 if (label != null && label.contains(assetName)) {
                     cell.click();
-                    sleep(500);
+                    sleep(300);
                     return true;
                 }
             }
@@ -1851,7 +1851,7 @@ public class ConnectionsPage {
             if (!assets.isEmpty()) {
                 String assetName = assets.get(0).getAttribute("label");
                 assets.get(0).click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Selected first asset: " + assetName);
                 return true;
             }
@@ -2034,7 +2034,7 @@ public class ConnectionsPage {
                 WebElement targetBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label CONTAINS 'Target' OR label CONTAINS 'Select target') AND type == 'XCUIElementTypeButton' AND visible == true"));
                 targetBtn.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped Target Node field");
                 return true;
             } catch (Exception e1) {}
@@ -2044,7 +2044,7 @@ public class ConnectionsPage {
                 WebElement targetField = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label CONTAINS 'Target Node' OR name CONTAINS 'Target Node') AND visible == true"));
                 targetField.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped Target Node");
                 return true;
             } catch (Exception e2) {}
@@ -2057,7 +2057,7 @@ public class ConnectionsPage {
                     String label = cell.getAttribute("label");
                     if (label != null && label.toLowerCase().contains("target")) {
                         cell.click();
-                        sleep(500);
+                        sleep(300);
                         System.out.println("✓ Tapped Target Node cell");
                         return true;
                     }
@@ -2156,7 +2156,7 @@ public class ConnectionsPage {
                 sleep(300);
                 searchField.clear();
                 searchField.sendKeys(searchText);
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Entered search text: " + searchText);
                 return true;
             }
@@ -2198,7 +2198,7 @@ public class ConnectionsPage {
                 WebElement asset = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "label == '" + assetName + "' AND visible == true"));
                 asset.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Selected target asset by exact match");
                 return true;
             } catch (Exception e1) {}
@@ -2208,7 +2208,7 @@ public class ConnectionsPage {
                 WebElement asset = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "label CONTAINS '" + assetName + "' AND visible == true"));
                 asset.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Selected target asset by partial match");
                 return true;
             } catch (Exception e2) {}
@@ -2220,7 +2220,7 @@ public class ConnectionsPage {
                 String label = cell.getAttribute("label");
                 if (label != null && label.toLowerCase().contains(assetName.toLowerCase())) {
                     cell.click();
-                    sleep(500);
+                    sleep(300);
                     System.out.println("✓ Selected target asset from cell: " + label);
                     return true;
                 }
@@ -2243,7 +2243,7 @@ public class ConnectionsPage {
             if (!assets.isEmpty()) {
                 String assetName = assets.get(0).getAttribute("label");
                 assets.get(0).click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Selected first target asset: " + assetName);
                 return true;
             }
@@ -2585,7 +2585,7 @@ public class ConnectionsPage {
                     "(label CONTAINS 'Type' OR label CONTAINS 'Select type') AND " +
                     "type == 'XCUIElementTypeButton' AND visible == true"));
                 typeBtn.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped Connection Type field (button)");
                 return true;
             } catch (Exception e1) {}
@@ -2595,7 +2595,7 @@ public class ConnectionsPage {
                 WebElement typeField = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label CONTAINS 'Connection Type' OR name CONTAINS 'type') AND visible == true"));
                 typeField.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped Connection Type field");
                 return true;
             } catch (Exception e2) {}
@@ -2608,7 +2608,7 @@ public class ConnectionsPage {
                     String label = cell.getAttribute("label");
                     if (label != null && label.toLowerCase().contains("type")) {
                         cell.click();
-                        sleep(500);
+                        sleep(300);
                         System.out.println("✓ Tapped Connection Type cell");
                         return true;
                     }
@@ -2620,7 +2620,7 @@ public class ConnectionsPage {
                 WebElement selectType = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "label == 'Select type' AND visible == true"));
                 selectType.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped 'Select type' text");
                 return true;
             } catch (Exception e4) {}
@@ -2733,7 +2733,7 @@ public class ConnectionsPage {
                 WebElement typeOption = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "label == '" + typeName + "' AND visible == true"));
                 typeOption.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Selected Connection Type: " + typeName);
                 return true;
             } catch (Exception e1) {}
@@ -2743,7 +2743,7 @@ public class ConnectionsPage {
                 WebElement typeOption = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "label CONTAINS '" + typeName + "' AND visible == true"));
                 typeOption.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Selected Connection Type (partial match): " + typeName);
                 return true;
             } catch (Exception e2) {}
@@ -2756,7 +2756,7 @@ public class ConnectionsPage {
                     String label = cell.getAttribute("label");
                     if (label != null && label.toLowerCase().contains(typeName.toLowerCase())) {
                         cell.click();
-                        sleep(500);
+                        sleep(300);
                         System.out.println("✓ Selected Connection Type from cell: " + typeName);
                         return true;
                     }
@@ -2771,7 +2771,7 @@ public class ConnectionsPage {
                     String label = btn.getAttribute("label");
                     if (label != null && label.toLowerCase().contains(typeName.toLowerCase())) {
                         btn.click();
-                        sleep(500);
+                        sleep(300);
                         System.out.println("✓ Selected Connection Type from button: " + typeName);
                         return true;
                     }
@@ -2964,34 +2964,34 @@ public class ConnectionsPage {
             // Step 1: Select Source Node
             System.out.println("  Step 1: Selecting Source Node...");
             tapOnSourceNodeDropdown();
-            sleep(500);
+            sleep(300);
             boolean sourceSelected = selectAssetFromDropdown(sourceNode);
             if (!sourceSelected) {
                 sourceSelected = selectFirstAssetFromDropdown();
             }
-            sleep(500);
+            sleep(300);
 
             // Step 2: Select Target Node
             System.out.println("  Step 2: Selecting Target Node...");
             tapOnTargetNodeField();
-            sleep(500);
+            sleep(300);
             boolean targetSelected = selectTargetAsset(targetNode);
             if (!targetSelected) {
                 targetSelected = selectFirstTargetAsset();
             }
-            sleep(500);
+            sleep(300);
 
             // Step 3: Select Connection Type
             System.out.println("  Step 3: Selecting Connection Type...");
             tapOnConnectionTypeField();
-            sleep(500);
+            sleep(300);
             boolean typeSelected = selectConnectionType(connectionType);
-            sleep(500);
+            sleep(300);
 
             // Step 4: Tap Create button
             System.out.println("  Step 4: Tapping Create button...");
             boolean createTapped = tapOnCreateButton();
-            sleep(1000);
+            sleep(600);
 
             if (createTapped) {
                 System.out.println("✓ Create button tapped - checking result...");
@@ -3139,7 +3139,7 @@ public class ConnectionsPage {
             if (!opened) {
                 opened = tapOnSourceNodeField();
             }
-            sleep(500);
+            sleep(300);
 
             // Select first asset
             return selectFirstAssetFromDropdown();
@@ -3157,7 +3157,7 @@ public class ConnectionsPage {
 
             // Open Target Node dropdown
             boolean opened = tapOnTargetNodeField();
-            sleep(500);
+            sleep(300);
 
             // Select first asset
             return selectFirstTargetAsset();
@@ -3175,7 +3175,7 @@ public class ConnectionsPage {
 
             // Open Connection Type dropdown
             boolean opened = tapOnConnectionTypeField();
-            sleep(500);
+            sleep(300);
 
             // Try to select Busway first, then Cable
             if (selectConnectionType("Busway")) {
@@ -3201,17 +3201,17 @@ public class ConnectionsPage {
             // Select Source Node
             boolean sourceSelected = selectFirstSourceNode();
             System.out.println("  Source Node selected: " + sourceSelected);
-            sleep(500);
+            sleep(300);
 
             // Select Target Node
             boolean targetSelected = selectFirstTargetNode();
             System.out.println("  Target Node selected: " + targetSelected);
-            sleep(500);
+            sleep(300);
 
             // Select Connection Type
             boolean typeSelected = selectFirstConnectionType();
             System.out.println("  Connection Type selected: " + typeSelected);
-            sleep(500);
+            sleep(300);
 
             return sourceSelected && targetSelected && typeSelected;
         } catch (Exception e) {
@@ -3335,7 +3335,7 @@ public class ConnectionsPage {
                 WebElement selectTarget = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label CONTAINS 'Select target' OR label CONTAINS 'target node' OR name == 'Select target') AND visible == true"));
                 selectTarget.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped on 'Select target node' dropdown");
                 return true;
             } catch (Exception e1) {}
@@ -3345,7 +3345,7 @@ public class ConnectionsPage {
                 WebElement targetField = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "((label CONTAINS 'Target' OR name CONTAINS 'target') AND type == 'XCUIElementTypeButton') AND visible == true"));
                 targetField.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped on Target Node button");
                 return true;
             } catch (Exception e2) {}
@@ -3358,7 +3358,7 @@ public class ConnectionsPage {
                     String label = cell.getAttribute("label");
                     if (label != null && label.toLowerCase().contains("target")) {
                         cell.click();
-                        sleep(500);
+                        sleep(300);
                         System.out.println("✓ Tapped on Target Node cell");
                         return true;
                     }
@@ -3416,7 +3416,7 @@ public class ConnectionsPage {
                 WebElement typeField = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label CONTAINS 'Select type' OR label CONTAINS 'Connection Type' OR label == 'Type') AND visible == true"));
                 typeField.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped on Connection Type dropdown");
                 return true;
             } catch (Exception e1) {}
@@ -3426,7 +3426,7 @@ public class ConnectionsPage {
                 WebElement typeField = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(name CONTAINS 'type' OR name CONTAINS 'Type') AND type == 'XCUIElementTypeButton' AND visible == true"));
                 typeField.click();
-                sleep(500);
+                sleep(300);
                 return true;
             } catch (Exception e2) {}
             
@@ -3520,7 +3520,7 @@ public class ConnectionsPage {
                 WebElement dotsIcon = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label == '...' OR label == '⋯' OR label == '⋮' OR name CONTAINS 'more' OR name CONTAINS 'ellipsis' OR name CONTAINS 'options' OR name CONTAINS 'menu') AND visible == true"));
                 dotsIcon.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped on options icon");
                 return true;
             } catch (Exception e1) {}
@@ -3540,7 +3540,7 @@ public class ConnectionsPage {
                         String label = btn.getAttribute("label");
                         if (!("Add".equals(label) || "+".equals(label) || "Back".equals(label))) {
                             btn.click();
-                            sleep(500);
+                            sleep(300);
                             System.out.println("✓ Tapped header button: " + (name != null ? name : label));
                             return true;
                         }
@@ -3635,7 +3635,7 @@ public class ConnectionsPage {
                 String label = cell.getAttribute("label");
                 if (label != null && label.contains(connectionText)) {
                     cell.click();
-                    sleep(500);
+                    sleep(300);
                     System.out.println("✓ Tapped on connection: " + label);
                     return true;
                 }
@@ -3646,7 +3646,7 @@ public class ConnectionsPage {
                 String label = cell.getAttribute("label");
                 if (label != null && (label.contains("→") || label.contains("->"))) {
                     cell.click();
-                    sleep(500);
+                    sleep(300);
                     System.out.println("✓ Tapped on first connection entry");
                     return true;
                 }
@@ -3667,7 +3667,7 @@ public class ConnectionsPage {
             if (firstConnection != null) {
                 String label = firstConnection.getAttribute("label");
                 firstConnection.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped on first connection: " + label);
                 return true;
             }
@@ -3820,7 +3820,7 @@ public class ConnectionsPage {
                 WebElement backBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label == 'Connections' OR label == 'Back' OR name CONTAINS 'back') AND type == 'XCUIElementTypeButton' AND visible == true"));
                 backBtn.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Navigated back from connection details");
                 return true;
             } catch (Exception e1) {}
@@ -3836,7 +3836,7 @@ public class ConnectionsPage {
             swipe.put("toY", screenHeight / 2);
             swipe.put("duration", 300);
             driver.executeScript("mobile: swipe", swipe);
-            sleep(500);
+            sleep(300);
             
             return true;
         } catch (Exception e) {
@@ -3895,7 +3895,7 @@ public class ConnectionsPage {
                 WebElement editBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label == 'Edit' OR name == 'edit' OR name CONTAINS 'Edit') AND visible == true"));
                 editBtn.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped Edit");
                 return true;
             } catch (Exception e1) {}
@@ -3949,7 +3949,7 @@ public class ConnectionsPage {
                 System.out.println("⚠️ Could not tap Connection Type field");
                 return false;
             }
-            sleep(500);
+            sleep(300);
             
             // Select new type
             boolean typeSelected = selectConnectionType(newType);
@@ -3976,7 +3976,7 @@ public class ConnectionsPage {
                 WebElement saveBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label == 'Save' OR label == 'Done' OR label == 'Update') AND visible == true"));
                 saveBtn.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Saved changes");
                 return true;
             } catch (Exception e1) {}
@@ -4037,7 +4037,7 @@ public class ConnectionsPage {
                 WebElement deleteBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label == 'Delete' OR label == 'Remove' OR name == 'delete' OR name CONTAINS 'trash') AND visible == true"));
                 deleteBtn.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped Delete");
                 return true;
             } catch (Exception e1) {}
@@ -4092,7 +4092,7 @@ public class ConnectionsPage {
                 WebElement confirmBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label == 'Delete' OR label == 'Confirm' OR label == 'Yes' OR label == 'OK') AND type == 'XCUIElementTypeButton' AND visible == true"));
                 confirmBtn.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Deletion confirmed");
                 return true;
             } catch (Exception e1) {}
@@ -4112,7 +4112,7 @@ public class ConnectionsPage {
                 WebElement cancelBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label == 'Cancel' OR label == 'No') AND visible == true"));
                 cancelBtn.click();
-                sleep(500);
+                sleep(300);
                 return true;
             } catch (Exception e1) {}
 
@@ -4179,7 +4179,7 @@ public class ConnectionsPage {
             params.put("element", ((org.openqa.selenium.remote.RemoteWebElement) connection).getId());
             params.put("duration", 1.5);
             driver.executeScript("mobile: touchAndHold", params);
-            sleep(500);
+            sleep(300);
 
             System.out.println("✓ Long pressed on connection");
             return true;
@@ -4218,7 +4218,7 @@ public class ConnectionsPage {
             swipe.put("toY", endY);
             swipe.put("duration", 300);
             driver.executeScript("mobile: swipe", swipe);
-            sleep(500);
+            sleep(300);
 
             System.out.println("✓ Swiped to reveal delete");
             return true;
@@ -4252,7 +4252,7 @@ public class ConnectionsPage {
             boolean deleteRevealed = swipeToDeleteOnConnection(connection);
             if (!deleteRevealed) {
                 longPressOnConnection(connection);
-                sleep(500);
+                sleep(300);
             }
 
             // Tap Delete
@@ -4266,7 +4266,7 @@ public class ConnectionsPage {
             if (isDeleteConfirmationDisplayed()) {
                 confirmDeletion();
             }
-            sleep(1000);
+            sleep(600);
 
             // Verify deletion
             int newCount = getConnectionCount();
@@ -4441,7 +4441,7 @@ public class ConnectionsPage {
                 WebElement sldTab = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label == 'SLD' OR label == 'Diagram' OR name CONTAINS 'sld' OR name CONTAINS 'diagram') AND visible == true"));
                 sldTab.click();
-                sleep(1000);
+                sleep(600);
                 System.out.println("✓ Navigated to SLD tab");
                 return true;
             } catch (Exception e1) {}
@@ -4460,7 +4460,7 @@ public class ConnectionsPage {
                         if ((label != null && (label.contains("SLD") || label.contains("Diagram"))) ||
                             (name != null && (name.contains("sld") || name.contains("diagram")))) {
                             btn.click();
-                            sleep(1000);
+                            sleep(600);
                             System.out.println("✓ Tapped SLD tab");
                             return true;
                         }
@@ -4602,7 +4602,7 @@ public class ConnectionsPage {
                 for (WebElement el : elements) {
                     try {
                         el.click();
-                        sleep(500);
+                        sleep(300);
                         System.out.println("✓ Tapped on SLD element");
                         return true;
                     } catch (Exception e) {}
@@ -4617,7 +4617,7 @@ public class ConnectionsPage {
             tap.put("x", screenWidth / 2);
             tap.put("y", screenHeight / 2);
             driver.executeScript("mobile: tap", tap);
-            sleep(500);
+            sleep(300);
 
             return true;
         } catch (Exception e) {
@@ -4741,7 +4741,7 @@ public class ConnectionsPage {
 
             // Type one character
             searchField.sendKeys("A");
-            sleep(500);
+            sleep(300);
 
             int afterCount = getFilteredConnectionCount();
 
@@ -4881,7 +4881,7 @@ public class ConnectionsPage {
 
             // Tap search field
             searchField.click();
-            sleep(500);
+            sleep(300);
 
             // Verify keyboard appeared
             boolean keyboardShown = isKeyboardDisplayed();
@@ -4904,7 +4904,7 @@ public class ConnectionsPage {
 
             // Select first asset
             boolean assetSelected = selectFirstAssetFromDropdown();
-            sleep(500);
+            sleep(300);
 
             // Verify keyboard dismissed
             boolean keyboardNowHidden = !isKeyboardDisplayed();
@@ -4938,7 +4938,7 @@ public class ConnectionsPage {
             // Use existing search method
             boolean searched = searchInSourceNodeDropdown(searchText);
             if (searched) {
-                sleep(500);
+                sleep(300);
                 return true;
             }
             
@@ -4948,7 +4948,7 @@ public class ConnectionsPage {
                     "(type == 'XCUIElementTypeSearchField' OR type == 'XCUIElementTypeTextField') AND visible == true"));
                 searchField.clear();
                 searchField.sendKeys(searchText);
-                sleep(500);
+                sleep(300);
                 return true;
             } catch (Exception e) {}
             
@@ -5033,7 +5033,7 @@ public class ConnectionsPage {
             
             // Open new connection
             tapOnAddButton();
-            sleep(500);
+            sleep(300);
             
             // Select Source
             tapOnSourceNodeDropdown();
@@ -5057,7 +5057,7 @@ public class ConnectionsPage {
             
             // Create
             tapOnCreateButton();
-            sleep(500);
+            sleep(300);
             
             System.out.println("✓ Quick connection created");
             return true;
@@ -5074,7 +5074,7 @@ public class ConnectionsPage {
         try {
             // Open new connection
             tapOnAddButton();
-            sleep(500);
+            sleep(300);
             
             // Select Source
             tapOnSourceNodeDropdown();
@@ -5103,7 +5103,7 @@ public class ConnectionsPage {
             
             // Create
             tapOnCreateButton();
-            sleep(500);
+            sleep(300);
             
             return true;
         } catch (Exception e) {
@@ -5211,7 +5211,7 @@ public class ConnectionsPage {
                 WebElement syncBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label == 'Sync' OR label == 'Refresh' OR name CONTAINS 'sync' OR name CONTAINS 'refresh') AND visible == true"));
                 syncBtn.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Sync triggered");
                 return true;
             } catch (Exception e1) {}
@@ -5228,7 +5228,7 @@ public class ConnectionsPage {
                 swipe.put("toY", screenHeight / 2);
                 swipe.put("duration", 500);
                 driver.executeScript("mobile: swipe", swipe);
-                sleep(1000);
+                sleep(600);
                 System.out.println("✓ Pull to refresh triggered");
                 return true;
             } catch (Exception e2) {}
@@ -5268,7 +5268,7 @@ public class ConnectionsPage {
                     // Skip Add/+ button
                     if (!"+".equals(label) && !"Add".equals(label) && !"Back".equals(label)) {
                         btn.click();
-                        sleep(500);
+                        sleep(300);
                         System.out.println("✓ Tapped header button: " + (name != null ? name : label));
                         return true;
                     }
@@ -5325,7 +5325,7 @@ public class ConnectionsPage {
                 WebElement option = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label CONTAINS 'AF Punchlist' OR label CONTAINS 'Show AF' OR label CONTAINS 'Punchlist') AND visible == true"));
                 option.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped AF Punchlist option");
                 return true;
             } catch (Exception e1) {}
@@ -5337,7 +5337,7 @@ public class ConnectionsPage {
                 String label = cell.getAttribute("label");
                 if (label != null && (label.contains("AF Punchlist") || label.contains("Punchlist"))) {
                     cell.click();
-                    sleep(500);
+                    sleep(300);
                     return true;
                 }
             }
@@ -5451,7 +5451,7 @@ public class ConnectionsPage {
                 WebElement option = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label CONTAINS 'Select Multiple' OR label CONTAINS 'Multi-select') AND visible == true"));
                 option.click();
-                sleep(500);
+                sleep(300);
                 return true;
             } catch (Exception e1) {}
             
@@ -5694,7 +5694,7 @@ public class ConnectionsPage {
                 WebElement option = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label CONTAINS 'Hide AF' OR label == 'Hide AF Punchlist' OR label CONTAINS 'Hide' AND label CONTAINS 'Punchlist') AND visible == true"));
                 option.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped Hide AF Punchlist option");
                 return true;
             } catch (Exception e1) {}
@@ -5706,7 +5706,7 @@ public class ConnectionsPage {
                 String label = item.getAttribute("label");
                 if (label != null && label.toLowerCase().contains("hide") && label.toLowerCase().contains("punchlist")) {
                     item.click();
-                    sleep(500);
+                    sleep(300);
                     return true;
                 }
             }
@@ -5788,7 +5788,7 @@ public class ConnectionsPage {
             List<WebElement> icons = getRedXIconsOnConnections();
             if (!icons.isEmpty()) {
                 icons.get(0).click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped red X icon");
                 return true;
             }
@@ -5805,7 +5805,7 @@ public class ConnectionsPage {
                             WebElement deleteBtn = cell.findElement(AppiumBy.iOSNsPredicateString(
                                 "(type == 'XCUIElementTypeButton' AND (name CONTAINS 'x' OR name CONTAINS 'delete' OR name CONTAINS 'minus')) AND visible == true"));
                             deleteBtn.click();
-                            sleep(500);
+                            sleep(300);
                             System.out.println("✓ Tapped delete button in cell");
                             return true;
                         } catch (Exception e) {}
@@ -5827,7 +5827,7 @@ public class ConnectionsPage {
             List<WebElement> icons = getRedXIconsOnConnections();
             if (icons.size() > index) {
                 icons.get(index).click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped red X icon at index " + index);
                 return true;
             }
@@ -5886,7 +5886,7 @@ public class ConnectionsPage {
                 WebElement deleteBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label == 'Delete' OR label == 'Remove' OR label == 'OK' OR label == 'Yes') AND type == 'XCUIElementTypeButton' AND visible == true"));
                 deleteBtn.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Deletion confirmed");
                 return true;
             } catch (Exception e1) {}
@@ -6059,7 +6059,7 @@ public class ConnectionsPage {
                 WebElement cancelBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "label == 'Cancel' AND type == 'XCUIElementTypeButton' AND visible == true"));
                 cancelBtn.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped Cancel");
                 return true;
             } catch (Exception e1) {}
@@ -6081,7 +6081,7 @@ public class ConnectionsPage {
                 WebElement selectAll = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label == 'Select All' OR label CONTAINS 'Select All') AND visible == true"));
                 selectAll.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped Select All");
                 return true;
             } catch (Exception e1) {}
@@ -6292,7 +6292,7 @@ public class ConnectionsPage {
                 WebElement deleteIcon = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(name CONTAINS 'trash' OR name CONTAINS 'delete' OR label == 'Delete') AND type == 'XCUIElementTypeButton' AND visible == true"));
                 deleteIcon.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped Delete icon");
                 return true;
             } catch (Exception e1) {}
@@ -6312,7 +6312,7 @@ public class ConnectionsPage {
                     String label = btn.getAttribute("label");
                     if (!"Cancel".equals(label) && !"Select All".equals(label)) {
                         btn.click();
-                        sleep(500);
+                        sleep(300);
                         System.out.println("✓ Tapped header button: " + (name != null ? name : label));
                         return true;
                     }
@@ -6337,7 +6337,7 @@ public class ConnectionsPage {
                 WebElement confirmBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label == 'Delete' OR label == 'Delete All' OR label == 'Confirm' OR label == 'Yes') AND type == 'XCUIElementTypeButton' AND visible == true"));
                 confirmBtn.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Bulk deletion confirmed");
                 return true;
             } catch (Exception e1) {}
@@ -6434,7 +6434,7 @@ public class ConnectionsPage {
             if (searchField != null) {
                 searchField.clear();
                 searchField.sendKeys(searchText);
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Entered search text: " + searchText);
                 return true;
             }
@@ -6445,7 +6445,7 @@ public class ConnectionsPage {
                     "type == 'XCUIElementTypeTextField' AND visible == true"));
                 searchInput.clear();
                 searchInput.sendKeys(searchText);
-                sleep(500);
+                sleep(300);
                 return true;
             } catch (Exception e) {}
             
@@ -6562,10 +6562,10 @@ public class ConnectionsPage {
             }
             
             if (menuOpened) {
-                sleep(500);
+                sleep(300);
                 boolean tapped = tapOnShowAFPunchlistOption();
                 if (tapped) {
-                    sleep(500);
+                    sleep(300);
                     System.out.println("✓ AF Punchlist mode entered");
                     return true;
                 }
@@ -6590,12 +6590,12 @@ public class ConnectionsPage {
             }
             
             if (menuOpened) {
-                sleep(500);
+                sleep(300);
                 boolean tapped = tapOnHideAFPunchlistOption();
                 if (!tapped) {
                     tapped = tapOnShowAFPunchlistOption(); // Toggle
                 }
-                sleep(500);
+                sleep(300);
                 return tapped;
             }
             
@@ -6618,10 +6618,10 @@ public class ConnectionsPage {
             }
             
             if (menuOpened) {
-                sleep(500);
+                sleep(300);
                 boolean tapped = tapOnSelectMultipleOption();
                 if (tapped) {
-                    sleep(500);
+                    sleep(300);
                     System.out.println("✓ Select Multiple mode entered");
                     return true;
                 }
@@ -6661,7 +6661,7 @@ public class ConnectionsPage {
                 WebElement selectAllBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label == 'Select All' OR label CONTAINS 'Select All' OR name == 'selectAll') AND visible == true"));
                 selectAllBtn.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped Select All");
                 return true;
             } catch (Exception e1) {}
@@ -6676,7 +6676,7 @@ public class ConnectionsPage {
                     String label = btn.getAttribute("label");
                     if (label != null && label.contains("All")) {
                         btn.click();
-                        sleep(500);
+                        sleep(300);
                         return true;
                     }
                 }
@@ -6743,13 +6743,13 @@ public class ConnectionsPage {
                 return false;
             }
             
-            sleep(500);
+            sleep(300);
             
             // Confirm deletion
             boolean confirmed = confirmBulkDelete();
             if (confirmed) {
                 System.out.println("✓ All selected connections deleted");
-                sleep(1000); // Wait for deletion to process
+                sleep(600); // Wait for deletion to process
                 return true;
             }
             
@@ -6889,7 +6889,7 @@ public class ConnectionsPage {
                 WebElement assetsTab = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label == 'Assets' OR name == 'Assets' OR label CONTAINS 'Asset') AND (type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeTabBar' OR type == 'XCUIElementTypeStaticText') AND visible == true"));
                 assetsTab.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Switched to Assets tab");
                 return true;
             } catch (Exception e1) {}
@@ -6905,7 +6905,7 @@ public class ConnectionsPage {
                     String label = tab.getAttribute("label");
                     if (label != null && label.toLowerCase().contains("asset")) {
                         tab.click();
-                        sleep(500);
+                        sleep(300);
                         return true;
                     }
                 }
@@ -6922,7 +6922,7 @@ public class ConnectionsPage {
                     String label = btn.getAttribute("label");
                     if (label != null && label.toLowerCase().contains("asset")) {
                         btn.click();
-                        sleep(500);
+                        sleep(300);
                         return true;
                     }
                 }
@@ -6946,7 +6946,7 @@ public class ConnectionsPage {
                 WebElement connectionsTab = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label == 'Connections' OR name == 'Connections' OR label CONTAINS 'Connection') AND (type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND visible == true"));
                 connectionsTab.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Switched to Connections tab");
                 return true;
             } catch (Exception e1) {}
@@ -6962,7 +6962,7 @@ public class ConnectionsPage {
                     String label = tab.getAttribute("label");
                     if (label != null && label.toLowerCase().contains("connection")) {
                         tab.click();
-                        sleep(500);
+                        sleep(300);
                         return true;
                     }
                 }
@@ -7074,7 +7074,7 @@ public class ConnectionsPage {
             System.out.println("Initial selected count: " + initialCount);
 
             toggleConnectionSelection(index);
-            sleep(500);
+            sleep(300);
 
             int newCount = getSelectedCount();
             System.out.println("New selected count: " + newCount);
@@ -7123,7 +7123,7 @@ public class ConnectionsPage {
                 WebElement deselectAll = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label == 'Deselect All' OR label CONTAINS 'Deselect All') AND visible == true"));
                 deselectAll.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped Deselect All");
                 return true;
             } catch (Exception e1) {}
@@ -7353,7 +7353,7 @@ public class ConnectionsPage {
                 WebElement cancelBtn = alert.findElement(AppiumBy.iOSNsPredicateString(
                     "label == 'Cancel' AND visible == true"));
                 cancelBtn.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped Cancel in alert");
                 return true;
             } catch (Exception e1) {}
@@ -7362,7 +7362,7 @@ public class ConnectionsPage {
                 WebElement cancelBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "label == 'Cancel' AND type == 'XCUIElementTypeButton' AND visible == true"));
                 cancelBtn.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped Cancel button");
                 return true;
             } catch (Exception e2) {}
@@ -7388,7 +7388,7 @@ public class ConnectionsPage {
                 WebElement deleteBtn = alert.findElement(AppiumBy.iOSNsPredicateString(
                     "label == 'Delete' AND visible == true"));
                 deleteBtn.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped Delete in alert");
                 return true;
             } catch (Exception e1) {}
@@ -7397,7 +7397,7 @@ public class ConnectionsPage {
                 WebElement deleteBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "label == 'Delete' AND type == 'XCUIElementTypeButton' AND visible == true"));
                 deleteBtn.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("✓ Tapped Delete button");
                 return true;
             } catch (Exception e2) {}
@@ -7424,7 +7424,7 @@ public class ConnectionsPage {
                 return false;
             }
 
-            sleep(500);
+            sleep(300);
 
             if (!isDeleteConfirmationDialogDisplayed()) {
                 System.out.println("⚠️ Delete confirmation not displayed");
@@ -7441,7 +7441,7 @@ public class ConnectionsPage {
                 return false;
             }
 
-            sleep(1000);
+            sleep(600);
 
             int countAfter = getConnectionsCount();
             System.out.println("Connections after: " + countAfter);
@@ -7530,7 +7530,7 @@ public class ConnectionsPage {
      */
     public boolean isSelectionModeStillActiveAfterCancel() {
         try {
-            sleep(500);
+            sleep(300);
 
             boolean hasCancel = isCancelButtonVisibleInHeader();
             boolean hasSelectAll = isSelectAllButtonVisible();

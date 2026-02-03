@@ -281,7 +281,7 @@ public class AssetPage extends BasePage {
             if (closeBtn.isDisplayed()) {
                 System.out.println("🔙 Closing Asset Detail first...");
                 closeBtn.click();
-                sleep(500);
+                sleep(200);
             }
         } catch (Exception e) {
             // No Close button - that's fine
@@ -293,7 +293,7 @@ public class AssetPage extends BasePage {
                 AppiumBy.iOSNsPredicateString("label == 'Assets' AND type == 'XCUIElementTypeButton'")
             );
             assetsTab.click();
-            sleep(500);
+            sleep(200);
             System.out.println("✅ Clicked Assets tab");
             return;
         } catch (Exception e) {
@@ -304,7 +304,7 @@ public class AssetPage extends BasePage {
         try {
             WebElement assetsTab = driver.findElement(AppiumBy.accessibilityId("list.bullet"));
             assetsTab.click();
-            sleep(500);
+            sleep(200);
             System.out.println("✅ Clicked Assets tab (via list.bullet)");
         } catch (Exception e2) {
             System.out.println("⚠️ Could not click Assets tab: " + e2.getMessage());
@@ -320,7 +320,7 @@ public class AssetPage extends BasePage {
         try {
             WebElement moreBtn = driver.findElement(AppiumBy.accessibilityId("More"));
             moreBtn.click();
-            sleep(500);
+            sleep(200);
             System.out.println("✅ Clicked More button");
         } catch (Exception e) {
             // Try by predicate
@@ -329,7 +329,7 @@ public class AssetPage extends BasePage {
                     AppiumBy.iOSNsPredicateString("label == 'More' AND type == 'XCUIElementTypeButton'")
                 );
                 moreBtn.click();
-                sleep(500);
+                sleep(200);
                 System.out.println("✅ Clicked More button (via predicate)");
             } catch (Exception e2) {
                 System.out.println("⚠️ Could not click More button: " + e2.getMessage());
@@ -349,7 +349,7 @@ public class AssetPage extends BasePage {
                 AppiumBy.iOSNsPredicateString("label == '" + option + "'")
             );
             optionBtn.click();
-            sleep(500);
+            sleep(200);
             System.out.println("✅ Selected: " + option);
         } catch (Exception e) {
             System.out.println("⚠️ Could not select option '" + option + "': " + e.getMessage());
@@ -366,7 +366,7 @@ public class AssetPage extends BasePage {
         try {
             WebElement closeBtn = driver.findElement(AppiumBy.accessibilityId("Close"));
             closeBtn.click();
-            sleep(500);
+            sleep(200);
             System.out.println("✅ Clicked Close button");
         } catch (Exception e) {
             System.out.println("⚠️ Close button not found: " + e.getMessage());
@@ -419,7 +419,7 @@ public class AssetPage extends BasePage {
                 if (tasksLabel.isDisplayed()) {
                     System.out.println("✅ Found Tasks section after " + (i + 1) + " scrolls");
                     // Wait a moment for Add button to be clickable
-                    sleep(500);
+                    sleep(200);
                     return true;
                 }
             } catch (Exception e) {
@@ -444,14 +444,14 @@ public class AssetPage extends BasePage {
             );
             addBtn.click();
             // Wait longer for New Task screen to appear (animation)
-            sleep(1200);
+            sleep(500);
             System.out.println("✅ Clicked Add Task button");
         } catch (Exception e) {
             System.out.println("⚠️ Could not find visible Add Task button, trying tap by coordinates...");
             // Fallback: tap at typical Tasks Add button location
             try {
                 driver.executeScript("mobile: tap", Map.of("x", 348, "y", 571));
-                sleep(1200);
+                sleep(500);
                 System.out.println("✅ Tapped Add Task button at coordinates");
             } catch (Exception e2) {
                 System.out.println("⚠️ Could not click Add Task button: " + e2.getMessage());
@@ -474,7 +474,7 @@ public class AssetPage extends BasePage {
             String taskName = taskBtn.getAttribute("name");
             System.out.println("   🎯 Found task: " + taskName.substring(0, Math.min(50, taskName.length())) + "...");
             taskBtn.click();
-            sleep(1200);
+            sleep(500);
             System.out.println("✅ Clicked existing task");
         } catch (Exception e) {
             System.out.println("⚠️ Could not find existing task: " + e.getMessage());
@@ -484,7 +484,7 @@ public class AssetPage extends BasePage {
                     AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name CONTAINS 'Test Task'")
                 );
                 taskBtn.click();
-                sleep(1200);
+                sleep(500);
                 System.out.println("✅ Clicked task (via Test Task search)");
             } catch (Exception e2) {
                 System.out.println("⚠️ No existing task found");
@@ -555,7 +555,7 @@ public class AssetPage extends BasePage {
                 AppiumBy.iOSNsPredicateString("label == 'Done' OR label == 'Save'")
             );
             saveBtn.click();
-            sleep(600);
+            sleep(400);
             System.out.println("✅ Clicked Save/Done");
         } catch (Exception e) {
             System.out.println("⚠️ Could not find Save/Done button: " + e.getMessage());
@@ -572,14 +572,14 @@ public class AssetPage extends BasePage {
                 AppiumBy.iOSNsPredicateString("label == 'Back' OR name == 'Back'")
             );
             backBtn.click();
-            sleep(600);
+            sleep(400);
             System.out.println("✅ Clicked Back");
         } catch (Exception e) {
             // Try Close button
             try {
                 WebElement closeBtn = driver.findElement(AppiumBy.accessibilityId("Close"));
                 closeBtn.click();
-                sleep(600);
+                sleep(400);
                 System.out.println("✅ Clicked Close");
             } catch (Exception e2) {
                 System.out.println("⚠️ Could not find Back/Close button");
@@ -614,7 +614,7 @@ public class AssetPage extends BasePage {
                 AppiumBy.iOSNsPredicateString("label == 'Delete Task' AND type == 'XCUIElementTypeButton'")
             );
             deleteBtn.click();
-            sleep(600);
+            sleep(400);
             System.out.println("✅ Clicked Delete Task button");
         } catch (Exception e) {
             System.out.println("⚠️ Delete Task button not visible, scrolling...");
@@ -627,7 +627,7 @@ public class AssetPage extends BasePage {
                         AppiumBy.iOSNsPredicateString("label == 'Delete Task' AND type == 'XCUIElementTypeButton' AND visible == true")
                     );
                     deleteBtn.click();
-                    sleep(600);
+                    sleep(400);
                     System.out.println("✅ Clicked Delete Task button after scroll");
                     return;
                 } catch (Exception e2) {
@@ -646,12 +646,12 @@ public class AssetPage extends BasePage {
         System.out.println("⚠️ Confirming task deletion...");
         try {
             // Wait for alert to appear
-            sleep(500);
+            sleep(200);
             WebElement deleteBtn = driver.findElement(
                 AppiumBy.iOSNsPredicateString("label == 'Delete' AND type == 'XCUIElementTypeButton'")
             );
             deleteBtn.click();
-            sleep(900);
+            sleep(600);
             System.out.println("✅ Confirmed task deletion");
         } catch (Exception e) {
             System.out.println("⚠️ Could not confirm deletion: " + e.getMessage());
@@ -666,7 +666,7 @@ public class AssetPage extends BasePage {
         try {
             WebElement cancelBtn = driver.findElement(AppiumBy.accessibilityId("Cancel"));
             cancelBtn.click();
-            sleep(500);
+            sleep(200);
             System.out.println("✅ Canceled task deletion");
         } catch (Exception e) {
             System.out.println("⚠️ Could not cancel deletion: " + e.getMessage());
@@ -711,7 +711,7 @@ public class AssetPage extends BasePage {
                 // Issues should be in middle of screen (y between 300-600 for optimal clicking)
                 if (y >= 300 && y <= 650) {
                     System.out.println("✅ Found Issues section at good position (y=" + y + ")");
-                    sleep(500);
+                    sleep(200);
                     return;
                 } else if (y < 300) {
                     // Scrolled too far, scroll back up
@@ -745,7 +745,7 @@ public class AssetPage extends BasePage {
     public void clickAddIssueButton() {
         System.out.println("➕ Clicking Add Issue button...");
         try {
-            sleep(500);
+            sleep(200);
             
             // First find the Issues label to get its Y position
             WebElement issuesLabel = null;
@@ -791,7 +791,7 @@ public class AssetPage extends BasePage {
                 int y = correctButton.getLocation().getY();
                 System.out.println("   Clicking Add button at y=" + y);
                 correctButton.click();
-                sleep(2500);
+                sleep(1500);
                 
                 // Verify New Issue screen opened
                 try {
@@ -859,7 +859,7 @@ public class AssetPage extends BasePage {
         System.out.println("📝 Entering issue title: " + title);
         try {
             // Wait for New Issue screen to be ready
-            sleep(500);
+            sleep(200);
             
             // Find title field by placeholderValue
             WebElement titleField = driver.findElement(
@@ -868,7 +868,7 @@ public class AssetPage extends BasePage {
             
             System.out.println("   Found title field, clicking...");
             titleField.click();
-            sleep(500);
+            sleep(200);
             titleField.sendKeys(title);
             sleep(300);
             
@@ -879,7 +879,7 @@ public class AssetPage extends BasePage {
                     AppiumBy.iOSNsPredicateString("label == 'Done' AND type == 'XCUIElementTypeButton'")
                 );
                 doneBtn.click();
-                sleep(500);
+                sleep(200);
                 System.out.println("   ✅ Clicked Done button");
             } catch (Exception doneEx) {
                 // Tap outside to dismiss keyboard
@@ -905,7 +905,7 @@ public class AssetPage extends BasePage {
                 AppiumBy.iOSNsPredicateString("name CONTAINS 'Issue Class' AND type == 'XCUIElementTypeButton'")
             );
             dropdown.click();
-            sleep(600);
+            sleep(400);
             System.out.println("✅ Clicked Issue Class dropdown");
         } catch (Exception e) {
             System.out.println("⚠️ Could not click Issue Class dropdown: " + e.getMessage());
@@ -921,14 +921,14 @@ public class AssetPage extends BasePage {
         try {
             // Click Issue Class dropdown first
             clickIssueClassDropdown();
-            sleep(500);
+            sleep(200);
             
             // Select the option
             WebElement option = driver.findElement(
                 AppiumBy.iOSNsPredicateString("name == '" + className + "' AND type == 'XCUIElementTypeButton'")
             );
             option.click();
-            sleep(500);
+            sleep(200);
             System.out.println("✅ Selected Issue Class: " + className);
         } catch (Exception e) {
             System.out.println("⚠️ Could not select Issue Class: " + e.getMessage());
@@ -945,7 +945,7 @@ public class AssetPage extends BasePage {
                 AppiumBy.iOSNsPredicateString("name CONTAINS 'Priority' AND type == 'XCUIElementTypeButton'")
             );
             dropdown.click();
-            sleep(600);
+            sleep(400);
             System.out.println("✅ Clicked Priority dropdown");
         } catch (Exception e) {
             System.out.println("⚠️ Could not click Priority dropdown: " + e.getMessage());
@@ -980,7 +980,7 @@ public class AssetPage extends BasePage {
             
             if ("true".equals(enabled)) {
                 createBtn.click();
-                sleep(1200);
+                sleep(500);
                 System.out.println("✅ Clicked Create Issue button");
             } else {
                 System.out.println("⚠️ Create Issue button is disabled - title may be empty");
@@ -1013,7 +1013,7 @@ public class AssetPage extends BasePage {
         try {
             WebElement cancelBtn = driver.findElement(AppiumBy.accessibilityId("Cancel"));
             cancelBtn.click();
-            sleep(600);
+            sleep(400);
             System.out.println("✅ Clicked Cancel");
         } catch (Exception e) {
             System.out.println("⚠️ Could not click Cancel: " + e.getMessage());
@@ -1115,7 +1115,7 @@ public class AssetPage extends BasePage {
                 } catch (Exception e) {
                     System.out.println("   Connections label not visible, scrolling up...");
                     scrollFormUp();
-                    sleep(500);
+                    sleep(200);
                     continue;
                 }
                 
@@ -1127,7 +1127,7 @@ public class AssetPage extends BasePage {
                 if (addBtns.isEmpty()) {
                     System.out.println("   No Add button found, scrolling up...");
                     scrollFormUp();
-                    sleep(500);
+                    sleep(200);
                     continue;
                 }
                 
@@ -1137,14 +1137,14 @@ public class AssetPage extends BasePage {
                 System.out.println("   Add button at y=" + addY);
                 
                 addBtn.click();
-                sleep(600);
+                sleep(400);
                 System.out.println("✅ Clicked Add Connection button");
                 return;
                 
             } catch (Exception e) {
                 System.out.println("   Attempt " + (attempt+1) + " failed, scrolling up...");
                 scrollFormUp();
-                sleep(500);
+                sleep(200);
             }
         }
         
@@ -1161,7 +1161,7 @@ public class AssetPage extends BasePage {
                 AppiumBy.iOSNsPredicateString("label == 'New Lineside Connection' AND type == 'XCUIElementTypeButton'")
             );
             lineside.click();
-            sleep(1200);
+            sleep(500);
             System.out.println("✅ Selected New Lineside Connection");
         } catch (Exception e) {
             System.out.println("⚠️ Could not select New Lineside Connection: " + e.getMessage());
@@ -1178,7 +1178,7 @@ public class AssetPage extends BasePage {
                 AppiumBy.iOSNsPredicateString("label == 'New Loadside Connection' AND type == 'XCUIElementTypeButton'")
             );
             loadside.click();
-            sleep(1200);
+            sleep(500);
             System.out.println("✅ Selected New Loadside Connection");
         } catch (Exception e) {
             System.out.println("⚠️ Could not select New Loadside Connection: " + e.getMessage());
@@ -1221,7 +1221,7 @@ public class AssetPage extends BasePage {
         try {
             WebElement cancelBtn = driver.findElement(AppiumBy.accessibilityId("Cancel"));
             cancelBtn.click();
-            sleep(600);
+            sleep(400);
             System.out.println("✅ Clicked Cancel");
         } catch (Exception e) {
             System.out.println("⚠️ Could not click Cancel: " + e.getMessage());
@@ -1238,7 +1238,7 @@ public class AssetPage extends BasePage {
                 AppiumBy.iOSNsPredicateString("name CONTAINS 'Source Node' AND type == 'XCUIElementTypeButton'")
             );
             dropdown.click();
-            sleep(600);
+            sleep(400);
             System.out.println("✅ Clicked Source Node dropdown");
         } catch (Exception e) {
             System.out.println("⚠️ Could not click Source Node dropdown: " + e.getMessage());
@@ -1255,7 +1255,7 @@ public class AssetPage extends BasePage {
                 AppiumBy.iOSNsPredicateString("name CONTAINS 'Target Node' AND type == 'XCUIElementTypeButton'")
             );
             dropdown.click();
-            sleep(600);
+            sleep(400);
             System.out.println("✅ Clicked Target Node dropdown");
         } catch (Exception e) {
             System.out.println("⚠️ Could not click Target Node dropdown: " + e.getMessage());
@@ -1273,7 +1273,7 @@ public class AssetPage extends BasePage {
                 AppiumBy.iOSNsPredicateString("name == 'Select source' AND type == 'XCUIElementTypeButton'")
             );
             dropdown.click();
-            sleep(600);
+            sleep(400);
             System.out.println("✅ Clicked Select source dropdown");
         } catch (Exception e) {
             System.out.println("⚠️ Could not click Select source: " + e.getMessage());
@@ -1305,7 +1305,7 @@ public class AssetPage extends BasePage {
                 String name = firstOption.getAttribute("name");
                 System.out.println("   Selecting: " + name);
                 firstOption.click();
-                sleep(600);
+                sleep(400);
                 System.out.println("✅ Selected source node");
             } else {
                 System.out.println("⚠️ No source node options found");
@@ -1325,7 +1325,7 @@ public class AssetPage extends BasePage {
                 AppiumBy.iOSNsPredicateString("name == 'Create' AND type == 'XCUIElementTypeButton' AND visible == true")
             );
             createBtn.click();
-            sleep(1200);
+            sleep(500);
             System.out.println("✅ Clicked Create button");
         } catch (Exception e) {
             System.out.println("⚠️ Could not click Create button: " + e.getMessage());
@@ -1378,7 +1378,7 @@ public class AssetPage extends BasePage {
                 AppiumBy.iOSNsPredicateString("name == 'Select target' AND type == 'XCUIElementTypeButton'")
             );
             dropdown.click();
-            sleep(600);
+            sleep(400);
             System.out.println("✅ Clicked Select target dropdown");
         } catch (Exception e) {
             System.out.println("⚠️ Could not click Select target: " + e.getMessage());
@@ -1410,7 +1410,7 @@ public class AssetPage extends BasePage {
                 String name = firstOption.getAttribute("name");
                 System.out.println("   Selecting: " + name);
                 firstOption.click();
-                sleep(600);
+                sleep(400);
                 System.out.println("✅ Selected target node");
             } else {
                 System.out.println("⚠️ No target node options found");
@@ -1569,7 +1569,7 @@ public class AssetPage extends BasePage {
                 if (Math.abs(btnY - ocpY) < 50) {
                     System.out.println("   Add button at y=" + btnY);
                     btn.click();
-                    sleep(600);
+                    sleep(400);
                     System.out.println("✅ Clicked Add OCP button");
                     return;
                 }
@@ -1578,7 +1578,7 @@ public class AssetPage extends BasePage {
             // Fallback: click first Add button
             if (!addButtons.isEmpty()) {
                 addButtons.get(0).click();
-                sleep(600);
+                sleep(400);
                 System.out.println("✅ Clicked first Add button (fallback)");
             }
         } catch (Exception e) {
@@ -1694,7 +1694,7 @@ public class AssetPage extends BasePage {
                     params.put("element", ((RemoteWebElement) firstOCP).getId());
                     params.put("duration", 2.0); // 2 seconds
                     driver.executeScript("mobile: touchAndHold", params);
-                    sleep(800);
+                    sleep(300);
                     System.out.println("✅ Long pressed using touchAndHold");
                     return;
                 } catch (Exception e) {
@@ -1719,7 +1719,7 @@ public class AssetPage extends BasePage {
                 longPress.addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
                 driver.perform(java.util.Arrays.asList(longPress));
                 
-                sleep(800);
+                sleep(300);
                 System.out.println("✅ Long pressed OCP item");
             } else {
                 System.out.println("⚠️ No OCP items found after scrolling");
@@ -1737,7 +1737,7 @@ public class AssetPage extends BasePage {
         System.out.println("🔗 Clicking Unlink from Parent...");
         try {
             // Wait a bit for context menu to appear
-            sleep(500);
+            sleep(200);
             
             // Try multiple strategies to find Unlink from Parent
             WebElement unlinkBtn = null;
@@ -1776,7 +1776,7 @@ public class AssetPage extends BasePage {
             
             if (unlinkBtn != null) {
                 unlinkBtn.click();
-                sleep(500);
+                sleep(200);
                 System.out.println("✅ Clicked Unlink from Parent");
             } else {
                 System.out.println("⚠️ Unlink from Parent not found - context menu may not have appeared");
@@ -1830,7 +1830,7 @@ public class AssetPage extends BasePage {
             
             if (unlinkBtn != null) {
                 unlinkBtn.click();
-                sleep(600);
+                sleep(400);
                 System.out.println("✅ Confirmed unlink");
             } else {
                 System.out.println("⚠️ Unlink confirmation button not found");
@@ -1846,9 +1846,9 @@ public class AssetPage extends BasePage {
     public void unlinkFirstOCPItem() {
         System.out.println("🔓 Unlinking first OCP item...");
         longPressFirstOCPItem();
-        sleep(500);
+        sleep(200);
         clickUnlinkFromParent();
-        sleep(500);
+        sleep(200);
         confirmUnlink();
         System.out.println("✅ OCP item unlinked");
     }
@@ -1863,7 +1863,7 @@ public class AssetPage extends BasePage {
                 AppiumBy.iOSNsPredicateString("label == 'Create New Child' AND type == 'XCUIElementTypeButton'")
             );
             btn.click();
-            sleep(1200);
+            sleep(500);
             System.out.println("✅ Clicked Create New Child");
         } catch (Exception e) {
             System.out.println("⚠️ Could not click Create New Child: " + e.getMessage());
@@ -1880,7 +1880,7 @@ public class AssetPage extends BasePage {
                 AppiumBy.iOSNsPredicateString("label == 'Link Existing Node' AND type == 'XCUIElementTypeButton'")
             );
             btn.click();
-            sleep(1200);
+            sleep(500);
             System.out.println("✅ Clicked Link Existing Node");
         } catch (Exception e) {
             System.out.println("⚠️ Could not click Link Existing Node: " + e.getMessage());
@@ -1929,7 +1929,7 @@ public class AssetPage extends BasePage {
             String name = firstNode.getAttribute("name");
             System.out.println("   Selecting: " + name);
             firstNode.click();
-            sleep(600);
+            sleep(400);
             System.out.println("✅ Selected first existing node");
         } catch (Exception e) {
             System.out.println("⚠️ Could not select existing node: " + e.getMessage());
@@ -1996,7 +1996,7 @@ public class AssetPage extends BasePage {
                 AppiumBy.iOSNsPredicateString("name CONTAINS 'Asset Class' AND name CONTAINS 'Select class' AND type == 'XCUIElementTypeButton'")
             );
             dropdown.click();
-            sleep(500);
+            sleep(200);
             System.out.println("✅ Clicked Asset Class dropdown");
         } catch (Exception e) {
             // Try alternate selector
@@ -2005,7 +2005,7 @@ public class AssetPage extends BasePage {
                     AppiumBy.iOSNsPredicateString("label CONTAINS 'Asset Class' AND type == 'XCUIElementTypeButton'")
                 );
                 dropdown.click();
-                sleep(500);
+                sleep(200);
                 System.out.println("✅ Clicked Asset Class dropdown (alt)");
             } catch (Exception e2) {
                 System.out.println("⚠️ Could not click dropdown: " + e2.getMessage());
@@ -2023,7 +2023,7 @@ public class AssetPage extends BasePage {
                 AppiumBy.iOSNsPredicateString("name == '" + className + "' AND type == 'XCUIElementTypeButton'")
             );
             option.click();
-            sleep(500);
+            sleep(200);
             System.out.println("✅ Selected class: " + className);
         } catch (Exception e) {
             System.out.println("⚠️ Could not select class: " + e.getMessage());
@@ -2040,7 +2040,7 @@ public class AssetPage extends BasePage {
                 AppiumBy.iOSNsPredicateString("name == 'Create' AND type == 'XCUIElementTypeButton'")
             );
             btn.click();
-            sleep(1200);
+            sleep(500);
             System.out.println("✅ Clicked Create");
         } catch (Exception e) {
             System.out.println("⚠️ Could not click Create: " + e.getMessage());
@@ -2149,7 +2149,7 @@ public class AssetPage extends BasePage {
                 AppiumBy.iOSNsPredicateString("name == 'Cancel' AND type == 'XCUIElementTypeButton'")
             );
             btn.click();
-            sleep(600);
+            sleep(400);
             System.out.println("✅ Clicked Cancel");
         } catch (Exception e) {
             System.out.println("⚠️ Could not click Cancel: " + e.getMessage());
@@ -2231,7 +2231,7 @@ public class AssetPage extends BasePage {
                 tap.addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
                 driver.perform(java.util.Arrays.asList(tap));
                 
-                sleep(500);
+                sleep(200);
                 System.out.println("✅ Selected asset via checkbox");
             } else {
                 System.out.println("⚠️ No circle checkboxes found");
@@ -2252,7 +2252,7 @@ public class AssetPage extends BasePage {
                 AppiumBy.iOSNsPredicateString("name BEGINSWITH 'Link ' AND type == 'XCUIElementTypeButton'")
             );
             btn.click();
-            sleep(1200);
+            sleep(500);
             System.out.println("✅ Clicked Link");
         } catch (Exception e) {
             System.out.println("⚠️ Could not click Link: " + e.getMessage());
@@ -2269,7 +2269,7 @@ public class AssetPage extends BasePage {
                 AppiumBy.iOSNsPredicateString("name == 'Cancel' AND type == 'XCUIElementTypeButton'")
             );
             btn.click();
-            sleep(600);
+            sleep(400);
             System.out.println("✅ Clicked Cancel");
         } catch (Exception e) {
             System.out.println("⚠️ Could not click Cancel: " + e.getMessage());
@@ -2324,7 +2324,7 @@ public class AssetPage extends BasePage {
             search.click();
             sleep(300);
             search.sendKeys(text);
-            sleep(500);
+            sleep(200);
             System.out.println("✅ Entered search text");
         } catch (Exception e) {
             System.out.println("⚠️ Could not enter search text: " + e.getMessage());
@@ -2407,7 +2407,7 @@ public class AssetPage extends BasePage {
                 AppiumBy.iOSNsPredicateString("name == 'Clear All' AND type == 'XCUIElementTypeButton' AND visible == true")
             );
             clearAll.click();
-            sleep(500);
+            sleep(200);
             System.out.println("✅ Clicked Clear All");
         } catch (Exception e) {
             System.out.println("⚠️ Clear All button not found: " + e.getMessage());
@@ -2469,7 +2469,7 @@ public class AssetPage extends BasePage {
                     AppiumBy.iOSNsPredicateString("label == 'Done' AND type == 'XCUIElementTypeButton'")
                 );
                 doneBtn.click();
-                sleep(500);
+                sleep(200);
                 System.out.println("   ✅ Clicked Done button");
             } catch (Exception doneEx) {
                 System.out.println("   Done button not found, trying alternatives...");
@@ -2501,7 +2501,7 @@ public class AssetPage extends BasePage {
                 AppiumBy.iOSNsPredicateString("label == 'Create Task' AND type == 'XCUIElementTypeButton'")
             );
             createBtn.click();
-            sleep(500);
+            sleep(200);
             System.out.println("✅ Clicked Create Task");
         } catch (Exception e) {
             System.out.println("⚠️ Could not click Create Task: " + e.getMessage());
@@ -2516,7 +2516,7 @@ public class AssetPage extends BasePage {
         try {
             WebElement cancelBtn = driver.findElement(AppiumBy.accessibilityId("Cancel"));
             cancelBtn.click();
-            sleep(500);
+            sleep(200);
             System.out.println("✅ Clicked Cancel");
         } catch (Exception e) {
             System.out.println("⚠️ Could not click Cancel: " + e.getMessage());
@@ -2543,7 +2543,7 @@ public class AssetPage extends BasePage {
                     // Ignore
                 }
             }
-            sleep(500);
+            sleep(200);
             
             WebElement toggle = driver.findElement(
                 AppiumBy.iOSNsPredicateString("name == 'Mark as Completed' AND type == 'XCUIElementTypeSwitch'")
@@ -2561,7 +2561,7 @@ public class AssetPage extends BasePage {
             
             System.out.println("   Tapping toggle at (" + tapX + ", " + tapY + ")");
             driver.executeScript("mobile: tap", Map.of("x", tapX, "y", tapY));
-            sleep(500);
+            sleep(200);
             
             // Verify the toggle changed
             String value = toggle.getAttribute("value");
@@ -2571,7 +2571,7 @@ public class AssetPage extends BasePage {
                 System.out.println("   Toggle still OFF, trying direct coordinates...");
                 // Try tapping directly on the switch part
                 driver.executeScript("mobile: tap", Map.of("x", 340, "y", tapY));
-                sleep(500);
+                sleep(200);
                 value = toggle.getAttribute("value");
                 System.out.println("   Toggle value after retry: " + value);
             }
@@ -2587,7 +2587,7 @@ public class AssetPage extends BasePage {
             
             try {
                 driver.executeScript("mobile: tap", Map.of("x", 340, "y", 756));
-                sleep(500);
+                sleep(200);
                 System.out.println("✅ Toggled Mark as Completed via coordinates");
             } catch (Exception e2) {
                 System.out.println("⚠️ Could not toggle: " + e2.getMessage());
@@ -2647,7 +2647,7 @@ public class AssetPage extends BasePage {
             WebElement plusBtn = driver.findElement(AppiumBy.accessibilityId("plus"));
             plusBtn.click();
             System.out.println("✅ Add Asset clicked");
-            sleep(500);
+            sleep(200);
         } catch (Exception e) {
             System.out.println("⚠️ Could not click Add Asset: " + e.getMessage());
         }
@@ -2672,7 +2672,7 @@ public class AssetPage extends BasePage {
             );
             backBtn.click();
             System.out.println("✅ Clicked Back (accessibility ID)");
-            sleep(500);
+            sleep(200);
             return;
         } catch (Exception e) {
             System.out.println("   Strategy 1 (accessibility ID) failed");
@@ -2686,7 +2686,7 @@ public class AssetPage extends BasePage {
             if (backBtn.isDisplayed()) {
                 backBtn.click();
                 System.out.println("✅ Clicked Back (button predicate)");
-                sleep(500);
+                sleep(200);
                 return;
             }
         } catch (Exception e) {
@@ -2710,7 +2710,7 @@ public class AssetPage extends BasePage {
                         
                         btn.click();
                         System.out.println("✅ Clicked Back (position-based)");
-                        sleep(500);
+                        sleep(200);
                         return;
                     }
                 } catch (Exception ex) {}
@@ -2724,7 +2724,7 @@ public class AssetPage extends BasePage {
             System.out.println("   Trying coordinate tap at (30, 55)...");
             driver.executeScript("mobile: tap", java.util.Map.of("x", 30, "y", 55));
             System.out.println("✅ Tapped Back position (30, 55)");
-            sleep(500);
+            sleep(200);
             return;
         } catch (Exception e) {
             System.out.println("   Strategy 4 (coordinate tap) failed");
@@ -2750,7 +2750,7 @@ public class AssetPage extends BasePage {
             );
             backBtn.click();
             System.out.println("✅ Clicked Back");
-            sleep(500);
+            sleep(200);
             return true;
         } catch (Exception e) {}
 
@@ -2762,7 +2762,7 @@ public class AssetPage extends BasePage {
             if (backBtn.isDisplayed()) {
                 backBtn.click();
                 System.out.println("✅ Clicked Back button");
-                sleep(500);
+                sleep(200);
                 return true;
             }
         } catch (Exception e) {}
@@ -2771,7 +2771,7 @@ public class AssetPage extends BasePage {
         try {
             driver.executeScript("mobile: tap", java.util.Map.of("x", 30, "y", 55));
             System.out.println("✅ Tapped Back position");
-            sleep(500);
+            sleep(200);
             return true;
         } catch (Exception e) {}
 
@@ -2798,7 +2798,7 @@ public class AssetPage extends BasePage {
             );
             cancelBtn.click();
             System.out.println("✅ Clicked Cancel (accessibility ID)");
-            sleep(500);
+            sleep(200);
             return;
         } catch (Exception e) {
             System.out.println("   Strategy 1 (accessibility ID) failed");
@@ -2812,7 +2812,7 @@ public class AssetPage extends BasePage {
             if (cancelBtn.isDisplayed()) {
                 cancelBtn.click();
                 System.out.println("✅ Clicked Cancel (button predicate)");
-                sleep(500);
+                sleep(200);
                 return;
             }
         } catch (Exception e) {
@@ -2834,7 +2834,7 @@ public class AssetPage extends BasePage {
                         System.out.println("   Found Cancel at Y=" + y + ", name='" + name + "'");
                         btn.click();
                         System.out.println("✅ Clicked Cancel (position-based)");
-                        sleep(500);
+                        sleep(200);
                         return;
                     }
                 } catch (Exception ex) {}
@@ -2850,7 +2850,7 @@ public class AssetPage extends BasePage {
             );
             cancelText.click();
             System.out.println("✅ Clicked Cancel (StaticText)");
-            sleep(500);
+            sleep(200);
             return;
         } catch (Exception e) {
             System.out.println("   Strategy 4 (StaticText) failed");
@@ -2861,7 +2861,7 @@ public class AssetPage extends BasePage {
             System.out.println("   Trying coordinate tap at (60, 55)...");
             driver.executeScript("mobile: tap", java.util.Map.of("x", 60, "y", 55));
             System.out.println("✅ Tapped Cancel position (60, 55)");
-            sleep(500);
+            sleep(200);
             return;
         } catch (Exception e) {
             System.out.println("   Strategy 5 (coordinate tap) failed");
@@ -3083,7 +3083,7 @@ public class AssetPage extends BasePage {
                 System.out.println("✅ Searched for asset: " + assetName);
                 
                 // Wait for search results to update
-                sleep(600);
+                sleep(400);
             } catch (Exception e) {
                 System.out.println("⚠️ Error during search: " + e.getMessage());
             }
@@ -3098,7 +3098,7 @@ public class AssetPage extends BasePage {
             WebElement asset = driver.findElement(AppiumBy.accessibilityId(assetName));
             asset.click();
             System.out.println("✅ Selected asset: " + assetName);
-            sleep(500);
+            sleep(200);
             return true;
         } catch (Exception e) {}
         
@@ -3110,7 +3110,7 @@ public class AssetPage extends BasePage {
                 if (name != null && name.contains(assetName)) {
                     text.click();
                     System.out.println("✅ Selected asset (text): " + name);
-                    sleep(500);
+                    sleep(200);
                     return true;
                 }
             }
@@ -3127,7 +3127,7 @@ public class AssetPage extends BasePage {
                         if (name != null && name.contains(assetName)) {
                             text.click();
                             System.out.println("✅ Selected asset (cell text): " + name);
-                            sleep(500);
+                            sleep(200);
                             return true;
                         }
                     }
@@ -3143,7 +3143,7 @@ public class AssetPage extends BasePage {
                 if (name != null && name.contains(assetName)) {
                     btn.click();
                     System.out.println("✅ Selected asset (button): " + name);
-                    sleep(500);
+                    sleep(200);
                     return true;
                 }
             }
@@ -3178,7 +3178,7 @@ public class AssetPage extends BasePage {
             }
         }
         
-        sleep(500);
+        sleep(200);
         
         // Select first available asset
         selectFirstAsset();
@@ -3229,7 +3229,7 @@ public class AssetPage extends BasePage {
                     System.out.println("   🎯 Button in cell: " + name);
                     buttonInCell.click();
                     System.out.println("✅ Selected asset via cell button");
-                    sleep(600);
+                    sleep(400);
                     return name.split(",")[0].trim();
                 } catch (Exception inner) {
                     // No button, try text
@@ -3240,7 +3240,7 @@ public class AssetPage extends BasePage {
                             String assetName = assetNameElement.getAttribute("name");
                             assetNameElement.click();
                             System.out.println("✅ Selected asset via text: " + assetName);
-                            sleep(600);
+                            sleep(400);
                             return assetName;
                         }
                     } catch (Exception te) {}
@@ -3251,7 +3251,7 @@ public class AssetPage extends BasePage {
                 int cellY = firstCell.getLocation().getY() + (firstCell.getSize().getHeight() / 2);
                 driver.executeScript("mobile: tap", Map.of("x", cellX, "y", cellY));
                 System.out.println("✅ Tapped cell center at (" + cellX + ", " + cellY + ")");
-                sleep(600);
+                sleep(400);
                 return "asset";
             }
         } catch (Exception e) {
@@ -3268,7 +3268,7 @@ public class AssetPage extends BasePage {
                     System.out.println("   🎯 Found asset text: " + name);
                     text.click();
                     System.out.println("✅ Selected asset via StaticText");
-                    sleep(600);
+                    sleep(400);
                     return name;
                 }
             }
@@ -3481,7 +3481,7 @@ public class AssetPage extends BasePage {
     public void selectAssetClass(String className) {
         System.out.println("📋 Selecting asset class: " + className);
         clickSelectAssetClass();
-        sleep(500);
+        sleep(200);
         
         // Strategy 1: Find by accessibility ID
         try {
@@ -3532,7 +3532,7 @@ public class AssetPage extends BasePage {
 
     public void selectATSClass() {
         clickSelectAssetClass();
-        sleep(500);
+        sleep(200);
         click(atsClassOption);
         System.out.println("✅ Selected ATS class");
     }
@@ -3605,11 +3605,11 @@ public class AssetPage extends BasePage {
                 if (attempt == 1) {
                     System.out.println("   Trying scroll down...");
                     scrollFormDown();
-                    sleep(500);
+                    sleep(200);
                 } else if (attempt == 2) {
                     System.out.println("   Trying scroll up...");
                     scrollFormUp();
-                    sleep(500);
+                    sleep(200);
                 }
             }
         }
@@ -3681,7 +3681,7 @@ public class AssetPage extends BasePage {
             // Open picker if not already open
             if (!isLocationPickerOpen()) {
                 selectLocationButton.click();
-                sleep(500);
+                sleep(200);
             }
             
             if (!isLocationPickerOpen()) {
@@ -3708,7 +3708,7 @@ public class AssetPage extends BasePage {
                 if (clickPlusButtonForLocation()) {
                     sleep(400);
                     if (enterLocationTextAndSave("Building Name", buildingName)) {
-                        sleep(500);
+                        sleep(200);
                         try {
                             driver.findElement(AppiumBy.iOSNsPredicateString(
                                 "type == 'XCUIElementTypeButton' AND name CONTAINS '" + buildingName + "'")).click();
@@ -3742,7 +3742,7 @@ public class AssetPage extends BasePage {
                 if (clickPlusButtonForLocation()) {
                     sleep(400);
                     if (enterLocationTextAndSave("Floor Name", floorName)) {
-                        sleep(500);
+                        sleep(200);
                         try {
                             driver.findElement(AppiumBy.iOSNsPredicateString(
                                 "type == 'XCUIElementTypeButton' AND name CONTAINS '" + floorName + "'")).click();
@@ -3776,7 +3776,7 @@ public class AssetPage extends BasePage {
                 if (clickPlusButtonForLocation()) {
                     sleep(400);
                     if (enterLocationTextAndSave("Room Name", roomName)) {
-                        sleep(500);
+                        sleep(200);
                         try {
                             driver.findElement(AppiumBy.iOSNsPredicateString(
                                 "type == 'XCUIElementTypeButton' AND name CONTAINS '" + roomName + "'")).click();
@@ -3802,7 +3802,7 @@ public class AssetPage extends BasePage {
                 }
             }
             
-            sleep(500);
+            sleep(200);
             
             // Dismiss picker if still open
             if (isLocationPickerOpen()) {
@@ -3881,7 +3881,7 @@ public class AssetPage extends BasePage {
     /** Safely dismiss location picker */
     private void dismissLocationPickerSafe() {
         System.out.println("   Dismissing picker...");
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 3; i++) {
             try {
                 driver.findElement(AppiumBy.iOSNsPredicateString("name == 'Back' OR label == 'Back'")).click();
                 sleep(300);
@@ -3924,7 +3924,7 @@ public class AssetPage extends BasePage {
             // STEP 0: Ensure picker is open
             if (!isLocationPickerOpen()) {
                 driver.findElement(AppiumBy.accessibilityId("Select location")).click();
-                sleep(500);
+                sleep(200);
             }
             
             // STEP 1: SELECT OR CREATE BUILDING
@@ -3947,7 +3947,7 @@ public class AssetPage extends BasePage {
                 }
                 
                 // Click the newly created building
-                sleep(500);
+                sleep(200);
                 building = findAndClickHierarchyItem(newBuildingName, null, "Created Building");
                 if (building == null) {
                     // Try alternative: find any building with our timestamp
@@ -3989,7 +3989,7 @@ public class AssetPage extends BasePage {
                     return false;
                 }
                 // Click the newly created floor DIRECTLY by name
-                sleep(500);
+                sleep(200);
                 floor = clickItemByExactName(newFloorName, "Created Floor");
                 if (floor == null) {
                     System.out.println("⚠️ Could not select created floor");
@@ -4009,7 +4009,7 @@ public class AssetPage extends BasePage {
             }
             
             System.out.println("✅ Location selection complete");
-            sleep(500);
+            sleep(200);
             
             // STEP 4: Ensure picker is dismissed
             // After selecting/creating a room, we need to verify picker closed
@@ -4017,7 +4017,7 @@ public class AssetPage extends BasePage {
                 System.out.println("⚠️ Picker may still be open - forcing dismiss");
             }
             
-            sleep(500);
+            sleep(200);
             return true;
             
         } catch (Exception e) {
@@ -4243,14 +4243,14 @@ public class AssetPage extends BasePage {
             
             // After room creation, we need to SELECT it to complete the location selection
             // The room is created but not yet selected - clicking it selects it
-            sleep(800);  // Wait for room creation to complete
+            sleep(300);  // Wait for room creation to complete
             
             try {
                 WebElement newRoom = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeButton' AND name CONTAINS '" + newRoomName + "'"));
                 newRoom.click();
                 System.out.println("✅ Clicked to select room: " + newRoomName);
-                sleep(500);
+                sleep(200);
                 return newRoom;
             } catch (Exception e) {
                 // Room might already be selected or picker auto-closed
@@ -4464,7 +4464,7 @@ public class AssetPage extends BasePage {
                 }
             }
             
-            sleep(500);
+            sleep(200);
             
             // STEP 2: Enter the name in text field
             boolean nameEntered = false;
@@ -4525,7 +4525,7 @@ public class AssetPage extends BasePage {
                 }
             }
             
-            sleep(800);
+            sleep(300);
             
             System.out.println("✅ Created: " + itemName);
             return true;
@@ -4770,7 +4770,7 @@ public class AssetPage extends BasePage {
             
             // Save
             driver.findElement(AppiumBy.accessibilityId("Save")).click();
-            sleep(500);
+            sleep(200);
             
             // Click the created item directly
             WebElement createdItem = driver.findElement(AppiumBy.iOSNsPredicateString(
@@ -4868,7 +4868,7 @@ public class AssetPage extends BasePage {
             
             // Save
             driver.findElement(AppiumBy.accessibilityId("Save")).click();
-            sleep(600);
+            sleep(400);
             
             System.out.println("   ✅ Created: " + name);
             return true;
@@ -4919,7 +4919,7 @@ public class AssetPage extends BasePage {
                 tapParams.put("y", 100);  // Tap near top/header
                 driver.executeScript("mobile: tap", tapParams);
                 System.out.println("   Tapped header area");
-                sleep(500);
+                sleep(200);
             } catch (Exception e) {
                 // Continue
             }
@@ -4937,7 +4937,7 @@ public class AssetPage extends BasePage {
             try {
                 driver.findElement(AppiumBy.accessibilityId("Cancel")).click();
                 System.out.println("   Clicked Cancel to close picker");
-                sleep(500);
+                sleep(200);
                 return true;
             } catch (Exception e) {
                 // Continue
@@ -4956,7 +4956,7 @@ public class AssetPage extends BasePage {
                 swipeParams.put("duration", 0.3);
                 driver.executeScript("mobile: dragFromToForDuration", swipeParams);
                 System.out.println("   Swiped down to dismiss");
-                sleep(500);
+                sleep(200);
                 return true;
             } catch (Exception e) {
                 System.out.println("   Swipe dismiss failed");
@@ -4970,7 +4970,7 @@ public class AssetPage extends BasePage {
                 tapParams.put("y", 50);
                 driver.executeScript("mobile: tap", tapParams);
                 System.out.println("   Tapped outside picker");
-                sleep(500);
+                sleep(200);
                 return true;
             } catch (Exception e) {
                 // Continue
@@ -5073,7 +5073,7 @@ public class AssetPage extends BasePage {
             if (!items.isEmpty()) {
                 items.get(0).click();
                 System.out.println("   Tapped location item to close picker");
-                sleep(500);
+                sleep(200);
                 if (ensureLocationPickerDismissed()) return;
             }
         } catch (Exception e) {}
@@ -5084,7 +5084,7 @@ public class AssetPage extends BasePage {
                 "type == 'XCUIElementTypeButton' AND (label == 'Done' OR label == 'Save' OR label == 'OK')"));
             doneBtn.click();
             System.out.println("   Clicked Done/Save button");
-            sleep(500);
+            sleep(200);
             if (ensureLocationPickerDismissed()) return;
         } catch (Exception e) {}
         
@@ -5094,7 +5094,7 @@ public class AssetPage extends BasePage {
                 "(type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeButton') AND (name CONTAINS 'checkmark' OR label CONTAINS 'selected')"));
             selected.click();
             System.out.println("   Tapped selected item");
-            sleep(500);
+            sleep(200);
             if (ensureLocationPickerDismissed()) return;
         } catch (Exception e) {}
         
@@ -5114,7 +5114,7 @@ public class AssetPage extends BasePage {
                 }
             }
             System.out.println("   Navigated back to close picker");
-            sleep(500);
+            sleep(200);
             if (ensureLocationPickerDismissed()) return;
         } catch (Exception e) {}
         
@@ -5131,7 +5131,7 @@ public class AssetPage extends BasePage {
             swipeParams.put("duration", 0.3);
             driver.executeScript("mobile: dragFromToForDuration", swipeParams);
             System.out.println("   Swiped down to dismiss");
-            sleep(500);
+            sleep(200);
         } catch (Exception e) {
             System.out.println("   Swipe failed: " + e.getMessage());
         }
@@ -5144,7 +5144,7 @@ public class AssetPage extends BasePage {
             tapParams.put("y", 50);
             driver.executeScript("mobile: tap", tapParams);
             System.out.println("   Tapped outside picker");
-            sleep(500);
+            sleep(200);
         } catch (Exception e) {}
     }
 
@@ -5215,7 +5215,7 @@ public class AssetPage extends BasePage {
         
         try {
             click(addFloorButton);
-            sleep(500);
+            sleep(200);
             
             WebElement floorField = driver.findElement(
                 AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' AND value == 'Floor Name'")
@@ -5223,7 +5223,7 @@ public class AssetPage extends BasePage {
             floorField.sendKeys(floorName);
             click(saveButton);
             System.out.println("✅ Created floor: " + floorName);
-            sleep(500);
+            sleep(200);
             
             List<WebElement> buttons = driver.findElements(AppiumBy.className("XCUIElementTypeButton"));
             for (WebElement btn : buttons) {
@@ -5233,10 +5233,10 @@ public class AssetPage extends BasePage {
                     break;
                 }
             }
-            sleep(500);
+            sleep(200);
             
             click(addRoomButton);
-            sleep(500);
+            sleep(200);
             
             WebElement roomField = driver.findElement(
                 AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' AND value == 'Room Name'")
@@ -5244,7 +5244,7 @@ public class AssetPage extends BasePage {
             roomField.sendKeys(roomName);
             click(saveButton);
             System.out.println("✅ Created room: " + roomName);
-            sleep(500);
+            sleep(200);
             
             buttons = driver.findElements(AppiumBy.className("XCUIElementTypeButton"));
             for (WebElement btn : buttons) {
@@ -5254,7 +5254,7 @@ public class AssetPage extends BasePage {
                     break;
                 }
             }
-            sleep(500);
+            sleep(200);
             
             buttons = driver.findElements(AppiumBy.className("XCUIElementTypeButton"));
             for (WebElement btn : buttons) {
@@ -5264,7 +5264,7 @@ public class AssetPage extends BasePage {
                     break;
                 }
             }
-            sleep(500);
+            sleep(200);
             
             buttons = driver.findElements(AppiumBy.className("XCUIElementTypeButton"));
             for (WebElement btn : buttons) {
@@ -5609,7 +5609,7 @@ public class AssetPage extends BasePage {
         try {
             System.out.println("   Trying scroll then retry...");
             scrollFormDown();
-            sleep(500);
+            sleep(200);
             
             // Retry Strategy 1 after scroll
             WebElement subtypeBtn = driver.findElement(AppiumBy.accessibilityId("Select asset subtype"));
@@ -5631,7 +5631,7 @@ public class AssetPage extends BasePage {
      */
     public void selectAssetSubtype(String subtypeName) {
         clickSelectAssetSubtype();
-        sleep(800);
+        sleep(300);
         
         // Try multiple strategies to select the subtype
         try {
@@ -5703,7 +5703,7 @@ public class AssetPage extends BasePage {
         System.out.println("📱 Entering QR code: " + qrCode);
         
         // QR Code field is at the bottom of the form - scroll down to find it
-        for (int scrollAttempt = 0; scrollAttempt < 4; scrollAttempt++) {
+        for (int scrollAttempt = 0; scrollAttempt < 2; scrollAttempt++) {
             
             // Strategy 1: Find by EXACT placeholder text "Enter or scan QR code"
             try {
@@ -5788,7 +5788,7 @@ public class AssetPage extends BasePage {
         // On Edit screen, QR Code field already has a value - DON'T scroll up first
         // Just scroll down once since QR Code is near the bottom
         scrollFormDown();
-        sleep(500);
+        sleep(200);
         
         // Try to find QR Code field (max 3 attempts with 1 scroll each)
         for (int attempt = 0; attempt < 3; attempt++) {
@@ -5869,7 +5869,7 @@ public class AssetPage extends BasePage {
             if (attempt < 2) {
                 System.out.println("   📜 Scrolling down...");
                 scrollFormDown();
-                sleep(500);
+                sleep(200);
             }
         }
         
@@ -5935,7 +5935,7 @@ public class AssetPage extends BasePage {
                 "fromY", startY,
                 "toX", scrollX,
                 "toY", endY,
-                "duration", 0.5
+                "duration", 0.3
             ));
             System.out.println("✅ Scrolled down");
         } catch (Exception e) {
@@ -5958,7 +5958,7 @@ public class AssetPage extends BasePage {
                 "fromY", startY,
                 "toX", scrollX,
                 "toY", endY,
-                "duration", 0.5
+                "duration", 0.3
             ));
             System.out.println("✅ Scrolled up");
         } catch (Exception e) {
@@ -6307,7 +6307,7 @@ public class AssetPage extends BasePage {
     // ================================================================
 
     public boolean isAssetCreatedSuccessfully() {
-        sleep(1200);
+        sleep(500);
         
         // Check if we're on Asset List (success)
         if (isAssetListDisplayed()) {
@@ -6360,7 +6360,7 @@ public class AssetPage extends BasePage {
     public boolean isAssetClassDropdownDisplayed() {
         try {
             // Wait a bit for dropdown to appear
-            sleep(500);
+            sleep(200);
             
             // Try multiple ways to detect dropdown
             if (isElementDisplayed(atsClassOption)) return true;
@@ -6538,7 +6538,7 @@ public class AssetPage extends BasePage {
     public List<String> getAvailableAssetClasses() {
         List<String> classes = new java.util.ArrayList<>();
         clickSelectAssetClass();
-        sleep(500);
+        sleep(200);
         
         try {
             List<WebElement> options = driver.findElements(
@@ -6908,7 +6908,7 @@ public class AssetPage extends BasePage {
             if (toggle != null) {
                 toggle.click();
                 System.out.println("✅ Toggled Required Fields Only switch");
-                sleep(500);
+                sleep(200);
             } else {
                 System.out.println("⚠️ Could not find Required Fields toggle to click");
             }
@@ -7114,7 +7114,7 @@ public class AssetPage extends BasePage {
                 if ((name != null && name.toLowerCase().contains(fieldName.toLowerCase())) ||
                     (label != null && label.toLowerCase().contains(fieldName.toLowerCase()))) {
                     btn.click();
-                    sleep(500);
+                    sleep(200);
                     break;
                 }
             }
@@ -7152,7 +7152,7 @@ public class AssetPage extends BasePage {
             ));
             saveBtn.click();
             System.out.println("✅ Clicked Save on Edit screen");
-            sleep(600);
+            sleep(400);
         } catch (Exception e) {
             System.out.println("⚠️ Could not click Save: " + e.getMessage());
         }
@@ -7176,13 +7176,13 @@ public class AssetPage extends BasePage {
             );
             saveBtn.click();
             System.out.println("✅ Clicked Save Changes (visible)");
-            sleep(600);
+            sleep(400);
             return;
         } catch (Exception e) {}
         
         // Try 2: Scroll DOWN to find Save Changes (it's at the bottom)
         System.out.println("   Scrolling down to find Save Changes...");
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 3; i++) {
             scrollFormDown();
             sleep(300);
             
@@ -7192,7 +7192,7 @@ public class AssetPage extends BasePage {
                 );
                 saveBtn.click();
                 System.out.println("✅ Clicked Save Changes (after scroll)");
-                sleep(600);
+                sleep(400);
                 return;
             } catch (Exception e) {}
         }
@@ -7209,7 +7209,7 @@ public class AssetPage extends BasePage {
                 );
                 saveBtn.click();
                 System.out.println("✅ Clicked Save Changes (after scroll up)");
-                sleep(600);
+                sleep(400);
                 return;
             } catch (Exception e) {}
         }
@@ -7219,7 +7219,7 @@ public class AssetPage extends BasePage {
             WebElement saveChangesBtn = driver.findElement(AppiumBy.accessibilityId("Save Changes"));
             saveChangesBtn.click();
             System.out.println("✅ Clicked Save Changes (accessibilityId)");
-            sleep(600);
+            sleep(400);
             return;
         } catch (Exception e) {}
         
@@ -7233,7 +7233,7 @@ public class AssetPage extends BasePage {
                 if (name != null && name.contains("Save")) {
                     btn.click();
                     System.out.println("✅ Clicked Save button: " + name);
-                    sleep(600);
+                    sleep(400);
                     return;
                 }
             }
@@ -7253,7 +7253,7 @@ public class AssetPage extends BasePage {
             WebElement cancelBtn = driver.findElement(AppiumBy.accessibilityId("Cancel"));
             cancelBtn.click();
             System.out.println("✅ Clicked Cancel on Edit screen");
-            sleep(500);
+            sleep(200);
             return;
         } catch (Exception e) {}
         
@@ -7264,7 +7264,7 @@ public class AssetPage extends BasePage {
             );
             cancelBtn.click();
             System.out.println("✅ Clicked Cancel button");
-            sleep(500);
+            sleep(200);
             return;
         } catch (Exception e) {}
         
@@ -7275,7 +7275,7 @@ public class AssetPage extends BasePage {
             );
             cancelText.click();
             System.out.println("✅ Clicked Cancel text");
-            sleep(500);
+            sleep(200);
             return;
         } catch (Exception e) {}
         
@@ -7283,7 +7283,7 @@ public class AssetPage extends BasePage {
         try {
             driver.executeScript("mobile: tap", Map.of("x", 60, "y", 60));
             System.out.println("✅ Tapped Cancel position (60, 60)");
-            sleep(500);
+            sleep(200);
             return;
         } catch (Exception e) {}
         
@@ -7325,7 +7325,7 @@ public class AssetPage extends BasePage {
         try {
             WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
             wait.until(d -> isEditAssetScreenDisplayed());
-            sleep(500);
+            sleep(200);
             System.out.println("✅ Edit Asset Details screen ready");
         } catch (Exception e) {
             System.out.println("⚠️ Edit screen wait timeout: " + e.getMessage());
@@ -7337,7 +7337,7 @@ public class AssetPage extends BasePage {
      */
     public boolean isEditSavedSuccessfully() {
         try {
-            sleep(600);
+            sleep(400);
             // After save, should return to asset details or list
             return !isEditAssetScreenDisplayed();
         } catch (Exception e) {
@@ -7368,7 +7368,7 @@ public class AssetPage extends BasePage {
                 );
                 if (!buttons.isEmpty()) {
                     buttons.get(0).click();
-                    sleep(500);
+                    sleep(200);
                     // Select the value from dropdown
                     selectDropdownValue(value);
                     return;
@@ -7391,7 +7391,7 @@ public class AssetPage extends BasePage {
                         int btnY = btn.getLocation().getY();
                         if (Math.abs(btnY - labelY) < 80) {
                             btn.click();
-                            sleep(500);
+                            sleep(200);
                             selectDropdownValue(value);
                             return;
                         }
@@ -7523,7 +7523,7 @@ public class AssetPage extends BasePage {
                 );
                 if (!buttons.isEmpty()) {
                     buttons.get(0).click();
-                    sleep(500);
+                    sleep(200);
                     selectDropdownValue(value);
                     return;
                 }
@@ -7545,7 +7545,7 @@ public class AssetPage extends BasePage {
                         int btnY = btn.getLocation().getY();
                         if (Math.abs(btnY - labelY) < 80) {
                             btn.click();
-                            sleep(500);
+                            sleep(200);
                             selectDropdownValue(value);
                             return;
                         }
@@ -7592,12 +7592,12 @@ public class AssetPage extends BasePage {
      */
     public void fillAllATSRequiredFields() {
         scrollFormDown();
-        sleep(500);
+        sleep(200);
         fillAmpereRating("100");
         fillInterruptingRating("50");
         fillVoltage("480");
         scrollFormDown();
-        sleep(500);
+        sleep(200);
         try {
             selectMainsType("Normal");
         } catch (Exception e) {
@@ -7795,7 +7795,7 @@ public class AssetPage extends BasePage {
             
             System.out.println("   Tapping Asset Class row at (" + tapX + ", " + tapY + ")...");
             driver.executeScript("mobile: tap", Map.of("x", tapX, "y", tapY));
-            sleep(800);
+            sleep(300);
             
             if (isAssetClassDropdownDisplayed()) {
                 System.out.println("   ✅ Dropdown opened via label tap!");
@@ -7814,7 +7814,7 @@ public class AssetPage extends BasePage {
                     if (el.isDisplayed()) {
                         System.out.println("   Found '" + className + "' - clicking to open dropdown");
                         el.click();
-                        sleep(800);
+                        sleep(300);
                         if (isAssetClassDropdownDisplayed()) {
                             System.out.println("   ✅ Dropdown opened by clicking " + className);
                             return true;
@@ -7838,7 +7838,7 @@ public class AssetPage extends BasePage {
                     String name = btn.getAttribute("name");
                     System.out.println("   Found button near Asset Class: " + name);
                     btn.click();
-                    sleep(800);
+                    sleep(300);
                     if (isAssetClassDropdownDisplayed()) {
                         System.out.println("   ✅ Dropdown opened via button!");
                         return true;
@@ -7861,7 +7861,7 @@ public class AssetPage extends BasePage {
             for (int tapX : xPositions) {
                 System.out.println("   Trying tap at (" + tapX + ", " + labelY + ")...");
                 driver.executeScript("mobile: tap", Map.of("x", tapX, "y", labelY));
-                sleep(600);
+                sleep(400);
                 if (isAssetClassDropdownDisplayed()) {
                     System.out.println("   ✅ Dropdown opened!");
                     return true;
@@ -7888,7 +7888,7 @@ public class AssetPage extends BasePage {
                 if (classElement.isDisplayed()) {
                     System.out.println("   Found current class: " + className + " - clicking it");
                     classElement.click();
-                    sleep(500);
+                    sleep(200);
                     
                     // Check if dropdown opened
                     if (isAssetClassDropdownDisplayed()) {
@@ -7908,7 +7908,7 @@ public class AssetPage extends BasePage {
                         if (name.equals(className)) {
                             System.out.println("   Found class text: " + name + " - clicking it");
                             text.click();
-                            sleep(500);
+                            sleep(200);
                             if (isAssetClassDropdownDisplayed()) {
                                 return true;
                             }
@@ -8009,7 +8009,7 @@ public class AssetPage extends BasePage {
                 if (classElement.isDisplayed()) {
                     System.out.println("   Found displayed class: " + className + " - clicking it");
                     classElement.click();
-                    sleep(500);
+                    sleep(200);
                     if (isDropdownOpen()) {
                         System.out.println("   ✅ Dropdown opened by clicking " + className);
                         return true;
@@ -8362,10 +8362,10 @@ public class AssetPage extends BasePage {
             int y = label.getLocation().getY() + label.getSize().getHeight() + 25;
             System.out.println("   Tapping dropdown at (" + x + ", " + y + ")");
             driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
-            sleep(500);
+            sleep(200);
             
             // Try to find Default - may need to scroll in dropdown
-            for (int scrollAttempt = 0; scrollAttempt < 5; scrollAttempt++) {
+            for (int scrollAttempt = 0; scrollAttempt < 2; scrollAttempt++) {
                 try {
                     WebElement defaultEl = driver.findElement(AppiumBy.accessibilityId("Default"));
                     if (defaultEl.isDisplayed()) {
@@ -8661,7 +8661,7 @@ public class AssetPage extends BasePage {
             int y = label.getLocation().getY() + label.getSize().getHeight() + 25;
             System.out.println("   Tapping Asset Class dropdown at (" + x + ", " + y + ")");
             driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
-            sleep(500);
+            sleep(200);
         } catch (Exception e) {
             System.out.println("   Asset Class label not found, trying button approach...");
             
@@ -8678,7 +8678,7 @@ public class AssetPage extends BasePage {
                 );
                 System.out.println("   Current class: " + classBtn.getAttribute("name"));
                 classBtn.click();
-                sleep(500);
+                sleep(200);
             } catch (Exception e2) {
                 System.out.println("⚠️ Could not find Asset Class button: " + e2.getMessage());
                 return;
@@ -8714,7 +8714,7 @@ public class AssetPage extends BasePage {
                 }
                 
                 // Try scroll down
-                for (int i = 0; i < 5; i++) {
+                for (int i = 0; i < 3; i++) {
                     driver.executeScript("mobile: swipe", Map.of(
                         "direction", "down",
                         "velocity", 500
@@ -8969,7 +8969,7 @@ public class AssetPage extends BasePage {
                 System.out.println("   Scrolling to find Save Changes...");
                 for (int i = 0; i < 3; i++) {
                     scrollFormDown();
-                    sleep(500);
+                    sleep(200);
                     try {
                         saveBtn = driver.findElement(
                             AppiumBy.iOSNsPredicateString("name == 'Save Changes' AND type == 'XCUIElementTypeButton' AND visible == true")
@@ -8998,7 +8998,7 @@ public class AssetPage extends BasePage {
             
             if (saveBtn != null) {
                 saveBtn.click();
-                sleep(1200);
+                sleep(500);
                 System.out.println("✅ Clicked Save button");
             } else {
                 System.out.println("⚠️ Save button not found");
@@ -9019,7 +9019,7 @@ public class AssetPage extends BasePage {
         System.out.println("📝 Editing field: " + fieldName);
         
         // Try to find and edit the field, scroll if needed (max 5 scrolls)
-        for (int scrollAttempt = 0; scrollAttempt < 5; scrollAttempt++) {
+        for (int scrollAttempt = 0; scrollAttempt < 2; scrollAttempt++) {
             
             // STRATEGY 1: Find TextField/TextView by accessibility ID (verify element type!)
             try {
@@ -9057,7 +9057,7 @@ public class AssetPage extends BasePage {
                     String beforeValue = field.getAttribute("value");
                     System.out.println("   🔍 Strategy 2: Found field, name=" + field.getAttribute("name") + ", before=" + beforeValue);
                     field.click();
-                    sleep(500);
+                    sleep(200);
                     field.clear();
                     sleep(200);
                     field.sendKeys(value);
@@ -9087,7 +9087,7 @@ public class AssetPage extends BasePage {
                     String beforeValue = field.getAttribute("value");
                     System.out.println("   🔍 Strategy 2B: Found lowercase field, before=" + beforeValue);
                     field.click();
-                    sleep(500);
+                    sleep(200);
                     field.clear();
                     sleep(200);
                     field.sendKeys(value);
@@ -9194,10 +9194,10 @@ public class AssetPage extends BasePage {
             } catch (Exception e) {}
             
             // Field not found on current screen - scroll down and try again
-            if (scrollAttempt < 4) {
+            if (scrollAttempt < 2) {
                 System.out.println("   Field '" + fieldName + "' not visible, scrolling... (attempt " + (scrollAttempt + 1) + ")");
                 scrollFormDown();
-                sleep(500);
+                sleep(200);
             }
         }
         
@@ -9231,7 +9231,7 @@ public class AssetPage extends BasePage {
     public void scrollToField(String fieldName) {
         System.out.println("📜 Scrolling to field: " + fieldName);
         
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 3; i++) {
             try {
                 WebElement field = driver.findElement(
                     AppiumBy.iOSNsPredicateString("name CONTAINS '" + fieldName + "' OR label CONTAINS '" + fieldName + "'")
@@ -9252,7 +9252,7 @@ public class AssetPage extends BasePage {
      * Verify asset was saved successfully after edit
      */
     public boolean isAssetSavedAfterEdit() {
-        sleep(900);  // Wait for save to complete
+        sleep(600);  // Wait for save to complete
         
         // Strategy 1: Check if Edit button is visible (view mode)
         try {
@@ -9318,7 +9318,7 @@ public class AssetPage extends BasePage {
      */
     public boolean isEditCancelled() {
         try {
-            sleep(500);
+            sleep(200);
             // Should be back to view mode with Edit button visible
             WebElement editBtn = driver.findElement(AppiumBy.accessibilityId("Edit"));
             return editBtn.isDisplayed();
@@ -9343,7 +9343,7 @@ public class AssetPage extends BasePage {
             ));
             busway.click();
             System.out.println("✅ Selected Busway (accessibility ID)");
-            sleep(500);
+            sleep(200);
             return;
         } catch (Exception e) {
             System.out.println("   Strategy 1 failed: " + e.getMessage());
@@ -9356,7 +9356,7 @@ public class AssetPage extends BasePage {
             );
             busway.click();
             System.out.println("✅ Selected Busway (predicate)");
-            sleep(500);
+            sleep(200);
             return;
         } catch (Exception e) {
             System.out.println("   Strategy 2 failed");
@@ -9374,7 +9374,7 @@ public class AssetPage extends BasePage {
                     if ("Busway".equals(name) || "Busway".equals(label)) {
                         el.click();
                         System.out.println("✅ Selected Busway from " + type);
-                        sleep(500);
+                        sleep(200);
                         return;
                     }
                 }
@@ -9389,14 +9389,14 @@ public class AssetPage extends BasePage {
                 "direction", "up",
                 "velocity", 500
             ));
-            sleep(500);
+            sleep(200);
             
             WebElement busway = driver.findElement(
                 AppiumBy.iOSNsPredicateString("name == 'Busway' OR label == 'Busway'")
             );
             busway.click();
             System.out.println("✅ Selected Busway (after scroll)");
-            sleep(500);
+            sleep(200);
             return;
         } catch (Exception e) {
             System.out.println("   Strategy 4 failed");
@@ -9411,7 +9411,7 @@ public class AssetPage extends BasePage {
                 System.out.println("   Found picker wheel, sending 'Busway'...");
                 pickerWheels.get(0).sendKeys("Busway");
                 System.out.println("✅ Selected Busway via picker wheel");
-                sleep(500);
+                sleep(200);
                 return;
             }
         } catch (Exception e) {
@@ -9497,11 +9497,11 @@ public class AssetPage extends BasePage {
         System.out.println("🔍 Checking if Core Attributes content is empty (for Busway)...");
         
         try {
-            sleep(600); // Wait for UI to update after class change
+            sleep(400); // Wait for UI to update after class change
             
             // Scroll to see Core Attributes area
             scrollFormDown();
-            sleep(500);
+            sleep(200);
             
             // For Busway: Check if there are any REQUIRED FIELD indicators or attribute inputs
             // These would only appear for asset classes WITH Core Attributes (like ATS)
@@ -9557,7 +9557,7 @@ public class AssetPage extends BasePage {
      */
     public boolean isPercentageIndicatorHidden() {
         try {
-            sleep(500);
+            sleep(200);
             
             // Look specifically for Core Attributes section header
             List<WebElement> coreAttributesHeaders = driver.findElements(
@@ -9910,11 +9910,11 @@ public class AssetPage extends BasePage {
             int y = label.getLocation().getY() + label.getSize().getHeight() + 25;
             System.out.println("   Tapping dropdown at (" + x + ", " + y + ")");
             driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
-            sleep(500);
+            sleep(200);
             
             // Try to find Relay - may need to scroll in dropdown
             // Relay is near bottom alphabetically so needs more scrolling
-            for (int scrollAttempt = 0; scrollAttempt < 5; scrollAttempt++) {
+            for (int scrollAttempt = 0; scrollAttempt < 2; scrollAttempt++) {
                 try {
                     WebElement relay = driver.findElement(AppiumBy.accessibilityId("Relay"));
                     if (relay.isDisplayed()) {
@@ -9968,12 +9968,12 @@ public class AssetPage extends BasePage {
             int y = label.getLocation().getY() + label.getSize().getHeight() + 25;
             System.out.println("   Tapping dropdown at (" + x + ", " + y + ")");
             driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
-            sleep(500);
+            sleep(200);
             
             // Try to find Switchboard - may need to scroll in dropdown
             // Asset classes alphabetical: ATS, Busway, Capacitor, Circuit Breaker, Disconnect Switch, 
             // Fuse, Generator, Motor, Panelboard, PDU, Relay, Switchboard, Transformer, UPS, Utility
-            for (int scrollAttempt = 0; scrollAttempt < 5; scrollAttempt++) {
+            for (int scrollAttempt = 0; scrollAttempt < 2; scrollAttempt++) {
                 try {
                     WebElement switchboard = driver.findElement(AppiumBy.accessibilityId("Switchboard"));
                     if (switchboard.isDisplayed()) {
@@ -10031,12 +10031,12 @@ public class AssetPage extends BasePage {
             int y = label.getLocation().getY() + label.getSize().getHeight() + 25;
             System.out.println("   Tapping dropdown at (" + x + ", " + y + ")");
             driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
-            sleep(500);
+            sleep(200);
             
             // Try to find Transformer - may need to scroll in dropdown
             // Asset classes alphabetical: ATS, Busway, Capacitor, Circuit Breaker, Disconnect Switch, 
             // Fuse, Generator, Motor, Panelboard, PDU, Relay, Switchboard, Transformer, UPS, Utility
-            for (int scrollAttempt = 0; scrollAttempt < 5; scrollAttempt++) {
+            for (int scrollAttempt = 0; scrollAttempt < 2; scrollAttempt++) {
                 try {
                     WebElement transformer = driver.findElement(AppiumBy.accessibilityId("Transformer"));
                     if (transformer.isDisplayed()) {
@@ -10093,10 +10093,10 @@ public class AssetPage extends BasePage {
             int y = label.getLocation().getY() + label.getSize().getHeight() + 25;
             System.out.println("   Tapping dropdown at (" + x + ", " + y + ")");
             driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
-            sleep(500);
+            sleep(200);
             
             // Try to find UPS - may need to scroll in dropdown (UPS is near the end)
-            for (int scrollAttempt = 0; scrollAttempt < 5; scrollAttempt++) {
+            for (int scrollAttempt = 0; scrollAttempt < 2; scrollAttempt++) {
                 try {
                     WebElement ups = driver.findElement(AppiumBy.accessibilityId("UPS"));
                     if (ups.isDisplayed()) {
@@ -10154,7 +10154,7 @@ public class AssetPage extends BasePage {
             int y = label.getLocation().getY() + label.getSize().getHeight() + 25;
             System.out.println("   Tapping dropdown at (" + x + ", " + y + ")");
             driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
-            sleep(500);
+            sleep(200);
             
             // Try to find Utility - needs many scrolls (at end of list)
             for (int scrollAttempt = 0; scrollAttempt < 8; scrollAttempt++) {
@@ -10211,7 +10211,7 @@ public class AssetPage extends BasePage {
             int y = label.getLocation().getY() + label.getSize().getHeight() + 25;
             System.out.println("   Tapping dropdown at (" + x + ", " + y + ")");
             driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
-            sleep(500);
+            sleep(200);
             
             // Try to find VFD - at the END of alphabetical list, needs many scrolls
             // List: ATS, Busway, Capacitor, Circuit Breaker, Disconnect Switch, Fuse, Generator, 
@@ -10255,7 +10255,7 @@ public class AssetPage extends BasePage {
      */
     public boolean isSaveCompletedForBusway() {
         try {
-            sleep(1200); // Wait for save to complete
+            sleep(500); // Wait for save to complete
             
             // Check if "Save Changes" button is still visible
             List<WebElement> saveChangesBtn = driver.findElements(
@@ -10466,7 +10466,7 @@ public class AssetPage extends BasePage {
         try {
             // Click to open Asset Class dropdown
             clickSelectAssetClass();
-            sleep(500);
+            sleep(200);
             
             // Get all visible options
             List<WebElement> options = driver.findElements(
@@ -10732,12 +10732,12 @@ public class AssetPage extends BasePage {
                 // Click back
                 try {
                     clickBack();
-                    sleep(500);
+                    sleep(200);
                 } catch (Exception e) {
                     // Try clicking Cancel if Back doesn't work
                     try {
                         clickCancel();
-                        sleep(500);
+                        sleep(200);
                     } catch (Exception ex) {}
                 }
             }

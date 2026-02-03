@@ -1,7 +1,7 @@
 name: iOS Tests - Full Parallel Suite
 
 # ============================================================
-# FULL PARALLEL TEST SUITE - v3.1 (OPTIMIZED CONFIG)
+# FULL PARALLEL TEST SUITE - v3.2 (CI OPTIMIZED - Feb 2026)
 # ============================================================
 # Based on WORKING ios-tests.yml configuration:
 #   - appium@next (NOT 2.5.0)
@@ -10,16 +10,23 @@ name: iOS Tests - Full Parallel Suite
 #   - Boot loop with (Booted) check
 #   - 45s post-boot stabilization
 #
-# Test Distribution:
-#   Job 1: Auth (38 tests) - ~45 min
-#   Job 2: Site (52 tests) - ~1.5 hr
-#   Job 3: Phase1 (139 tests) - ~3 hr (optimized)
-#   Job 4: Phase2 (159 tests) - ~3.5 hr (optimized)
-#   Job 5: Phase3 (169 tests) - ~4 hr (optimized)
-#   Job 6: Phase4 (141 tests) - ~3 hr (optimized)
-#   Job 7: Phase5 (45 tests) - ~1 hr (optimized)
-#   Job 8: Location (84 tests) - ~2 hr
-#   Total: ~827 tests
+# OPTIMIZATIONS APPLIED (v3.2):
+#   - Reduced scroll retries: 5 -> 2
+#   - Reduced sleep durations: 30-40% faster
+#   - Reduced retry loops: 5 -> 3
+#   - mediumWait -> shortWait: 532 conversions
+#   - Scroll duration: 0.5s -> 0.3s
+#
+# Expected Time Distribution (AFTER optimization):
+#   Job 1: Auth (38 tests) - ~30 min (was 45 min)
+#   Job 2: Site (52 tests) - ~1 hr (was 1.5 hr)
+#   Job 3: Phase1 (139 tests) - ~2 hr (was 3 hr)
+#   Job 4: Phase2 (159 tests) - ~2.5 hr (was 3.5 hr)
+#   Job 5: Phase3 (169 tests) - ~2.5 hr (was 4 hr)
+#   Job 6: Phase4 (141 tests) - ~2 hr (was 3 hr)
+#   Job 7: Phase5 (45 tests) - ~40 min (was 1 hr)
+#   Job 8: Location (84 tests) - ~1.5 hr (was 2 hr)
+#   Total: ~827 tests, ~2.5 hr wall clock (parallel)
 # ============================================================
 
 on:
@@ -50,7 +57,7 @@ jobs:
   auth-tests:
     if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'auth-only'
     runs-on: macos-15
-    timeout-minutes: 359
+    timeout-minutes: 90
     
     steps:
       - name: Checkout code
@@ -261,7 +268,7 @@ jobs:
   site-tests:
     if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'site-only'
     runs-on: macos-15
-    timeout-minutes: 359
+    timeout-minutes: 120
     
     steps:
       - name: Checkout code
@@ -365,7 +372,7 @@ jobs:
   phase1-tests:
     if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'phase1-only'
     runs-on: macos-15
-    timeout-minutes: 359
+    timeout-minutes: 240
     
     steps:
       - name: Checkout code
@@ -469,7 +476,7 @@ jobs:
   phase2-tests:
     if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'phase2-only'
     runs-on: macos-15
-    timeout-minutes: 359
+    timeout-minutes: 240
     
     steps:
       - name: Checkout code
@@ -573,7 +580,7 @@ jobs:
   phase3-tests:
     if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'phase3-only'
     runs-on: macos-15
-    timeout-minutes: 359
+    timeout-minutes: 240
     
     steps:
       - name: Checkout code
@@ -677,7 +684,7 @@ jobs:
   phase4-tests:
     if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'phase4-only'
     runs-on: macos-15
-    timeout-minutes: 359
+    timeout-minutes: 240
     
     steps:
       - name: Checkout code
@@ -781,7 +788,7 @@ jobs:
   phase5-tests:
     if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'phase5-only'
     runs-on: macos-15
-    timeout-minutes: 359
+    timeout-minutes: 90
     
     steps:
       - name: Checkout code
@@ -885,7 +892,7 @@ jobs:
   location-tests:
     if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'location-only'
     runs-on: macos-15
-    timeout-minutes: 359
+    timeout-minutes: 180
     
     steps:
       - name: Checkout code

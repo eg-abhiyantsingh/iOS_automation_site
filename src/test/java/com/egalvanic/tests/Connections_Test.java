@@ -42,7 +42,13 @@ public final class Connections_Test extends BaseTest {
         System.out.println("\n╔══════════════════════════════════════════════════════════════╗");
         System.out.println("║     Connections Test Suite - Starting                        ║");
         System.out.println("╚══════════════════════════════════════════════════════════════╝\n");
-        
+
+        // Skip app reinstall - just reopen the app
+        com.egalvanic.utils.DriverManager.setNoReset(true);
+
+        // Initialize driver (required before creating page objects)
+        com.egalvanic.utils.DriverManager.initDriver();
+
         // Initialize page objects
         connectionsPage = new ConnectionsPage();
         buildingPage = new BuildingPage();
@@ -164,7 +170,7 @@ public final class Connections_Test extends BaseTest {
             AppConstants.FEATURE_CONNECTIONS_LIST,
             "TC_CONN_001 - Verify Connections tab in bottom navigation"
         );
-
+        loginAndSelectSite();
         // Ensure on Dashboard
         logStep("Ensuring we are on Dashboard");
         boolean onDashboard = ensureOnDashboard();
@@ -184,7 +190,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Verifying Connections tab is tappable");
         boolean tapped = connectionsPage.tapOnConnectionsTab();
         assertTrue(tapped, "Connections tab should be tappable");
-        mediumWait();
+        shortWait();
 
         // Verify navigation to Connections screen
         boolean onConnectionsScreen = connectionsPage.isConnectionsScreenDisplayed();
@@ -475,7 +481,7 @@ public final class Connections_Test extends BaseTest {
                 boolean tapped = connectionsPage.tapOnConnectionEntry(longNameConnection);
                 
                 if (tapped) {
-                    mediumWait();
+                    shortWait();
                     logStepWithScreenshot("Connection detail - full name should be visible");
                     
                     // Verify detail screen opened
@@ -608,7 +614,7 @@ public final class Connections_Test extends BaseTest {
             logStep("Step 1: Tapping on Missing Node entry");
             boolean tapped = connectionsPage.tapOnMissingNode();
             assertTrue(tapped, "Should be able to tap on Missing Node entry");
-            mediumWait();
+            shortWait();
 
             logStepWithScreenshot("After tapping Missing Node");
 
@@ -1151,7 +1157,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Step 1: Tapping + button in header");
         boolean tapped = connectionsPage.tapOnAddButton();
         assertTrue(tapped, "Should be able to tap + button");
-        mediumWait();
+        shortWait();
 
         logStepWithScreenshot("After tapping + button");
 
@@ -1221,7 +1227,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Opening New Connection screen");
         boolean tapped = connectionsPage.tapOnAddButton();
         assertTrue(tapped, "Should be able to tap + button");
-        mediumWait();
+        shortWait();
 
         logStepWithScreenshot("New Connection screen - UI elements check");
 
@@ -1312,7 +1318,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Opening New Connection screen");
         boolean tapped = connectionsPage.tapOnAddButton();
         assertTrue(tapped, "Should be able to tap + button");
-        mediumWait();
+        shortWait();
 
         logStepWithScreenshot("New Connection screen - Create button state check");
 
@@ -1386,7 +1392,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Opening New Connection screen");
         boolean tapped = connectionsPage.tapOnAddButton();
         assertTrue(tapped, "Should be able to tap + button");
-        mediumWait();
+        shortWait();
 
         logStepWithScreenshot("New Connection screen opened");
 
@@ -1399,7 +1405,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Step 1: Tapping Cancel button");
         boolean cancelTapped = connectionsPage.tapOnCancelButton();
         assertTrue(cancelTapped, "Should be able to tap Cancel button");
-        mediumWait();
+        shortWait();
 
         logStepWithScreenshot("After tapping Cancel");
 
@@ -1449,7 +1455,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Opening New Connection screen");
         boolean tapped = connectionsPage.tapOnAddButton();
         assertTrue(tapped, "Should be able to tap + button");
-        mediumWait();
+        shortWait();
 
         logStepWithScreenshot("New Connection screen - validation message check");
 
@@ -1540,7 +1546,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Opening New Connection screen");
         boolean tapped = connectionsPage.tapOnAddButton();
         assertTrue(tapped, "Should be able to tap + button");
-        mediumWait();
+        shortWait();
 
         logStepWithScreenshot("New Connection screen - Source Node dropdown check");
 
@@ -1637,7 +1643,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Opening New Connection screen");
         boolean tapped = connectionsPage.tapOnAddButton();
         assertTrue(tapped, "Should be able to tap + button");
-        mediumWait();
+        shortWait();
 
         // Verify on New Connection screen
         boolean onNewConnection = connectionsPage.isNewConnectionScreenDisplayed();
@@ -1649,7 +1655,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Step 1: Tapping 'Select source node' dropdown");
         boolean sourceNodeTapped = connectionsPage.tapOnSourceNodeDropdown();
         assertTrue(sourceNodeTapped, "Should be able to tap Source Node dropdown");
-        mediumWait();
+        shortWait();
 
         logStepWithScreenshot("After tapping Source Node dropdown");
 
@@ -1712,7 +1718,7 @@ public final class Connections_Test extends BaseTest {
         // Open New Connection screen
         logStep("Opening New Connection screen");
         connectionsPage.tapOnAddButton();
-        mediumWait();
+        shortWait();
 
         // Verify on New Connection screen
         boolean onNewConnection = connectionsPage.isNewConnectionScreenDisplayed();
@@ -1722,7 +1728,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Opening Source Node dropdown");
         boolean sourceNodeTapped = connectionsPage.tapOnSourceNodeDropdown();
         assertTrue(sourceNodeTapped, "Should be able to tap Source Node dropdown");
-        mediumWait();
+        shortWait();
 
         logStepWithScreenshot("Source Node dropdown expanded - checking asset format");
 
@@ -1803,7 +1809,7 @@ public final class Connections_Test extends BaseTest {
         // Open New Connection screen
         logStep("Opening New Connection screen");
         connectionsPage.tapOnAddButton();
-        mediumWait();
+        shortWait();
 
         // Verify on New Connection screen
         assertTrue(connectionsPage.isNewConnectionScreenDisplayed(), "Should be on New Connection screen");
@@ -1812,7 +1818,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Opening Source Node dropdown");
         boolean sourceNodeTapped = connectionsPage.tapOnSourceNodeDropdown();
         assertTrue(sourceNodeTapped, "Should be able to tap Source Node dropdown");
-        mediumWait();
+        shortWait();
 
         // Get initial asset count
         int initialCount = connectionsPage.getFilteredAssetCount();
@@ -1895,7 +1901,7 @@ public final class Connections_Test extends BaseTest {
         // Open New Connection screen
         logStep("Opening New Connection screen");
         connectionsPage.tapOnAddButton();
-        mediumWait();
+        shortWait();
 
         // Verify on New Connection screen
         assertTrue(connectionsPage.isNewConnectionScreenDisplayed(), "Should be on New Connection screen");
@@ -1905,7 +1911,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Opening Source Node dropdown");
         boolean sourceNodeTapped = connectionsPage.tapOnSourceNodeDropdown();
         assertTrue(sourceNodeTapped, "Should be able to tap Source Node dropdown");
-        mediumWait();
+        shortWait();
 
         // Get list of assets
         java.util.List<WebElement> assets = connectionsPage.getAssetListFromDropdown();
@@ -1929,7 +1935,7 @@ public final class Connections_Test extends BaseTest {
         }
         
         assertTrue(assetSelected, "Should be able to select an asset");
-        mediumWait();
+        shortWait();
 
         logStepWithScreenshot("After selecting asset");
 
@@ -2002,7 +2008,7 @@ public final class Connections_Test extends BaseTest {
         // Open New Connection screen
         logStep("Opening New Connection screen");
         connectionsPage.tapOnAddButton();
-        mediumWait();
+        shortWait();
 
         // Verify on New Connection screen
         assertTrue(connectionsPage.isNewConnectionScreenDisplayed(), "Should be on New Connection screen");
@@ -2011,7 +2017,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Making initial Source Node selection");
         boolean sourceNodeTapped = connectionsPage.tapOnSourceNodeDropdown();
         assertTrue(sourceNodeTapped, "Should be able to tap Source Node dropdown");
-        mediumWait();
+        shortWait();
 
         // Get asset list
         java.util.List<WebElement> assets = connectionsPage.getAssetListFromDropdown();
@@ -2029,7 +2035,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Selecting first asset: " + firstAssetName);
         boolean firstSelected = connectionsPage.selectFirstAssetFromDropdown();
         assertTrue(firstSelected, "Should be able to select first asset");
-        mediumWait();
+        shortWait();
 
         // Record initial selection
         String initialSelection = connectionsPage.getSelectedSourceNodeText();
@@ -2140,7 +2146,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Opening New Connection screen");
         boolean tapped = connectionsPage.tapOnAddButton();
         assertTrue(tapped, "Should be able to tap + button");
-        mediumWait();
+        shortWait();
 
         // Verify on New Connection screen
         boolean onNewConnection = connectionsPage.isNewConnectionScreenDisplayed();
@@ -2232,7 +2238,7 @@ public final class Connections_Test extends BaseTest {
         // Open New Connection screen
         logStep("Opening New Connection screen");
         connectionsPage.tapOnAddButton();
-        mediumWait();
+        shortWait();
 
         // Verify on New Connection screen
         boolean onNewConnection = connectionsPage.isNewConnectionScreenDisplayed();
@@ -2244,7 +2250,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Step 1: Tapping 'Select target node' dropdown");
         boolean targetNodeTapped = connectionsPage.tapOnTargetNodeField();
         assertTrue(targetNodeTapped, "Should be able to tap Target Node dropdown");
-        mediumWait();
+        shortWait();
 
         logStepWithScreenshot("After tapping Target Node dropdown");
 
@@ -2321,7 +2327,7 @@ public final class Connections_Test extends BaseTest {
         // Open New Connection screen
         logStep("Opening New Connection screen");
         connectionsPage.tapOnAddButton();
-        mediumWait();
+        shortWait();
 
         // Verify on New Connection screen
         assertTrue(connectionsPage.isNewConnectionScreenDisplayed(), "Should be on New Connection screen");
@@ -2330,7 +2336,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Opening Target Node dropdown");
         boolean targetNodeTapped = connectionsPage.tapOnTargetNodeField();
         assertTrue(targetNodeTapped, "Should be able to tap Target Node dropdown");
-        mediumWait();
+        shortWait();
 
         // Get initial asset count
         java.util.List<WebElement> initialAssets = connectionsPage.getFilteredTargetAssets();
@@ -2423,7 +2429,7 @@ public final class Connections_Test extends BaseTest {
         // Open New Connection screen
         logStep("Opening New Connection screen");
         connectionsPage.tapOnAddButton();
-        mediumWait();
+        shortWait();
 
         // Verify on New Connection screen
         assertTrue(connectionsPage.isNewConnectionScreenDisplayed(), "Should be on New Connection screen");
@@ -2433,7 +2439,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Opening Target Node dropdown");
         boolean targetNodeTapped = connectionsPage.tapOnTargetNodeField();
         assertTrue(targetNodeTapped, "Should be able to tap Target Node dropdown");
-        mediumWait();
+        shortWait();
 
         // Get list of target assets
         java.util.List<WebElement> targetAssets = connectionsPage.getFilteredTargetAssets();
@@ -2456,7 +2462,7 @@ public final class Connections_Test extends BaseTest {
         }
 
         assertTrue(assetSelected, "Should be able to select a target asset");
-        mediumWait();
+        shortWait();
 
         logStepWithScreenshot("After selecting target asset");
 
@@ -2526,7 +2532,7 @@ public final class Connections_Test extends BaseTest {
         // Open New Connection screen
         logStep("Opening New Connection screen");
         connectionsPage.tapOnAddButton();
-        mediumWait();
+        shortWait();
 
         // Verify on New Connection screen
         assertTrue(connectionsPage.isNewConnectionScreenDisplayed(), "Should be on New Connection screen");
@@ -2537,7 +2543,7 @@ public final class Connections_Test extends BaseTest {
         // Open Target Node dropdown
         boolean targetNodeTapped = connectionsPage.tapOnTargetNodeField();
         assertTrue(targetNodeTapped, "Should be able to tap Target Node dropdown");
-        mediumWait();
+        shortWait();
 
         // Get list of target assets and record name of first one
         java.util.List<WebElement> targetAssets = connectionsPage.getFilteredTargetAssets();
@@ -2656,7 +2662,7 @@ public final class Connections_Test extends BaseTest {
         // Open New Connection screen
         logStep("Opening New Connection screen");
         connectionsPage.tapOnAddButton();
-        mediumWait();
+        shortWait();
 
         // Verify on New Connection screen
         assertTrue(connectionsPage.isNewConnectionScreenDisplayed(), "Should be on New Connection screen");
@@ -2669,7 +2675,7 @@ public final class Connections_Test extends BaseTest {
             sourceNodeTapped = connectionsPage.tapOnSourceNodeField();
         }
         assertTrue(sourceNodeTapped, "Should be able to tap Source Node dropdown");
-        mediumWait();
+        shortWait();
 
         // Get first asset name and select it
         java.util.List<WebElement> sourceAssets = connectionsPage.getAssetListFromDropdown();
@@ -2679,7 +2685,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Selecting Source Node: " + selectedSourceName);
 
         connectionsPage.selectFirstAssetFromDropdown();
-        mediumWait();
+        shortWait();
 
         // Verify Source Node was selected
         String selectedSource = connectionsPage.getSelectedSourceNodeText();
@@ -2690,7 +2696,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Step 2: Attempting to select same asset ('" + selectedSourceName + "') as Target Node");
         boolean targetNodeTapped = connectionsPage.tapOnTargetNodeField();
         assertTrue(targetNodeTapped, "Should be able to tap Target Node dropdown");
-        mediumWait();
+        shortWait();
 
         logStepWithScreenshot("Target Node dropdown opened - checking for source asset");
 
@@ -2756,7 +2762,7 @@ public final class Connections_Test extends BaseTest {
         // Open New Connection screen
         logStep("Opening New Connection screen");
         connectionsPage.tapOnAddButton();
-        mediumWait();
+        shortWait();
 
         // Verify on New Connection screen
         assertTrue(connectionsPage.isNewConnectionScreenDisplayed(), "Should be on New Connection screen");
@@ -2846,7 +2852,7 @@ public final class Connections_Test extends BaseTest {
         // Open New Connection screen
         logStep("Opening New Connection screen");
         connectionsPage.tapOnAddButton();
-        mediumWait();
+        shortWait();
 
         // Verify on New Connection screen
         assertTrue(connectionsPage.isNewConnectionScreenDisplayed(), "Should be on New Connection screen");
@@ -2856,7 +2862,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Step 1: Tapping 'Select type' dropdown");
         boolean tapped = connectionsPage.tapOnConnectionTypeField();
         assertTrue(tapped, "Should be able to tap Connection Type dropdown");
-        mediumWait();
+        shortWait();
 
         logStepWithScreenshot("Connection Type dropdown opened");
 
@@ -2937,7 +2943,7 @@ public final class Connections_Test extends BaseTest {
         // Open New Connection screen
         logStep("Opening New Connection screen");
         connectionsPage.tapOnAddButton();
-        mediumWait();
+        shortWait();
 
         // Verify on New Connection screen
         assertTrue(connectionsPage.isNewConnectionScreenDisplayed(), "Should be on New Connection screen");
@@ -2946,7 +2952,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Opening Connection Type dropdown");
         boolean tapped = connectionsPage.tapOnConnectionTypeField();
         assertTrue(tapped, "Should be able to tap Connection Type dropdown");
-        mediumWait();
+        shortWait();
 
         logStepWithScreenshot("Connection Type dropdown open - selecting Busway");
 
@@ -2954,7 +2960,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Step 1: Tapping 'Busway' option");
         boolean buswaySelected = connectionsPage.selectConnectionType("Busway");
         assertTrue(buswaySelected, "Should be able to select Busway");
-        mediumWait();
+        shortWait();
 
         logStepWithScreenshot("After selecting Busway");
 
@@ -3025,7 +3031,7 @@ public final class Connections_Test extends BaseTest {
         // Open New Connection screen
         logStep("Opening New Connection screen");
         connectionsPage.tapOnAddButton();
-        mediumWait();
+        shortWait();
 
         // Verify on New Connection screen
         assertTrue(connectionsPage.isNewConnectionScreenDisplayed(), "Should be on New Connection screen");
@@ -3034,7 +3040,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Opening Connection Type dropdown");
         boolean tapped = connectionsPage.tapOnConnectionTypeField();
         assertTrue(tapped, "Should be able to tap Connection Type dropdown");
-        mediumWait();
+        shortWait();
 
         logStepWithScreenshot("Connection Type dropdown open - selecting Cable");
 
@@ -3042,7 +3048,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Step 1: Tapping 'Cable' option");
         boolean cableSelected = connectionsPage.selectConnectionType("Cable");
         assertTrue(cableSelected, "Should be able to select Cable");
-        mediumWait();
+        shortWait();
 
         logStepWithScreenshot("After selecting Cable");
 
@@ -3113,7 +3119,7 @@ public final class Connections_Test extends BaseTest {
         // Open New Connection screen
         logStep("Opening New Connection screen");
         connectionsPage.tapOnAddButton();
-        mediumWait();
+        shortWait();
 
         // Verify on New Connection screen
         assertTrue(connectionsPage.isNewConnectionScreenDisplayed(), "Should be on New Connection screen");
@@ -3122,11 +3128,11 @@ public final class Connections_Test extends BaseTest {
         logStep("Making initial Connection Type selection (Busway)");
         boolean tapped = connectionsPage.tapOnConnectionTypeField();
         assertTrue(tapped, "Should be able to tap Connection Type dropdown");
-        mediumWait();
+        shortWait();
 
         boolean buswaySelected = connectionsPage.selectConnectionType("Busway");
         assertTrue(buswaySelected, "Should be able to select Busway initially");
-        mediumWait();
+        shortWait();
 
         // Record initial selection
         String initialSelection = connectionsPage.getSelectedConnectionType();
@@ -3148,7 +3154,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Step 2: Selecting different type (Cable)");
         boolean cableSelected = connectionsPage.selectConnectionType("Cable");
         assertTrue(cableSelected, "Should be able to select Cable");
-        mediumWait();
+        shortWait();
 
         logStepWithScreenshot("After selecting Cable");
 
@@ -3205,7 +3211,7 @@ public final class Connections_Test extends BaseTest {
         // Open New Connection screen
         logStep("Opening New Connection screen");
         connectionsPage.tapOnAddButton();
-        mediumWait();
+        shortWait();
 
         // Verify on New Connection screen
         assertTrue(connectionsPage.isNewConnectionScreenDisplayed(), "Should be on New Connection screen");
@@ -3228,27 +3234,27 @@ public final class Connections_Test extends BaseTest {
         // Select Source Node
         logStep("Selecting Source Node...");
         connectionsPage.tapOnSourceNodeDropdown();
-        mediumWait();
+        shortWait();
         connectionsPage.selectFirstAssetFromDropdown();
-        mediumWait();
+        shortWait();
         String selectedSource = connectionsPage.getSelectedSourceNodeText();
         logStep("Source Node selected: " + selectedSource);
 
         // Select Target Node
         logStep("Selecting Target Node...");
         connectionsPage.tapOnTargetNodeField();
-        mediumWait();
+        shortWait();
         connectionsPage.selectFirstTargetAsset();
-        mediumWait();
+        shortWait();
         String selectedTarget = connectionsPage.getSelectedTargetNodeText();
         logStep("Target Node selected: " + selectedTarget);
 
         // Select Connection Type
         logStep("Selecting Connection Type...");
         connectionsPage.tapOnConnectionTypeField();
-        mediumWait();
+        shortWait();
         connectionsPage.selectConnectionType("Busway");
-        mediumWait();
+        shortWait();
         String selectedType = connectionsPage.getSelectedConnectionType();
         logStep("Connection Type selected: " + selectedType);
 
@@ -3310,7 +3316,7 @@ public final class Connections_Test extends BaseTest {
         // Open New Connection screen
         logStep("Opening New Connection screen");
         connectionsPage.tapOnAddButton();
-        mediumWait();
+        shortWait();
 
         // Verify on New Connection screen
         assertTrue(connectionsPage.isNewConnectionScreenDisplayed(), "Should be on New Connection screen");
@@ -3322,20 +3328,20 @@ public final class Connections_Test extends BaseTest {
         // Select Source Node
         logStep("Selecting Source Node...");
         connectionsPage.tapOnSourceNodeDropdown();
-        mediumWait();
+        shortWait();
 
         // Get first asset name
         java.util.List<WebElement> sourceAssets = connectionsPage.getAssetListFromDropdown();
         String sourceName = sourceAssets.size() > 0 ?
             connectionsPage.getAssetNameFromEntry(sourceAssets.get(0)) : "Unknown Source";
         connectionsPage.selectFirstAssetFromDropdown();
-        mediumWait();
+        shortWait();
         logStep("Source Node: " + sourceName);
 
         // Select Target Node (different from source)
         logStep("Selecting Target Node...");
         connectionsPage.tapOnTargetNodeField();
-        mediumWait();
+        shortWait();
 
         // Get target assets and select second one if available
         java.util.List<WebElement> targetAssets = connectionsPage.getFilteredTargetAssets();
@@ -3353,9 +3359,9 @@ public final class Connections_Test extends BaseTest {
         // Select Connection Type
         logStep("Selecting Connection Type: Busway");
         connectionsPage.tapOnConnectionTypeField();
-        mediumWait();
+        shortWait();
         connectionsPage.selectConnectionType("Busway");
-        mediumWait();
+        shortWait();
 
         logStepWithScreenshot("All fields filled - ready to create connection");
 
@@ -3436,7 +3442,7 @@ public final class Connections_Test extends BaseTest {
         // Create a new connection
         logStep("Creating a new connection...");
         connectionsPage.tapOnAddButton();
-        mediumWait();
+        shortWait();
 
         assertTrue(connectionsPage.isNewConnectionScreenDisplayed(), "Should be on New Connection screen");
 
@@ -3537,7 +3543,7 @@ public final class Connections_Test extends BaseTest {
         // Open New Connection screen
         logStep("Opening New Connection screen");
         connectionsPage.tapOnAddButton();
-        mediumWait();
+        shortWait();
 
         assertTrue(connectionsPage.isNewConnectionScreenDisplayed(), "Should be on New Connection screen");
 
@@ -3549,19 +3555,19 @@ public final class Connections_Test extends BaseTest {
             // Manual fill
             logStep("Using manual field fill approach");
             connectionsPage.tapOnSourceNodeDropdown();
-            mediumWait();
+            shortWait();
             connectionsPage.selectFirstAssetFromDropdown();
-            mediumWait();
+            shortWait();
 
             connectionsPage.tapOnTargetNodeField();
-            mediumWait();
+            shortWait();
             connectionsPage.selectFirstTargetAsset();
-            mediumWait();
+            shortWait();
 
             connectionsPage.tapOnConnectionTypeField();
-            mediumWait();
+            shortWait();
             connectionsPage.selectConnectionType("Cable");
-            mediumWait();
+            shortWait();
         }
 
         logStepWithScreenshot("Connection form filled - ready to create");
@@ -3659,7 +3665,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Opening New Connection screen");
         boolean addTapped = connectionsPage.tapOnAddButton();
         assertTrue(addTapped, "Should be able to tap + button");
-        mediumWait();
+        shortWait();
 
         // Verify on New Connection screen
         assertTrue(connectionsPage.isNewConnectionScreenDisplayed(), "Should be on New Connection screen");
@@ -3672,9 +3678,9 @@ public final class Connections_Test extends BaseTest {
         logStep("Selecting Target Node to partially fill form");
         boolean targetTapped = connectionsPage.tapOnTargetNodeDropdown();
         if (targetTapped) {
-            mediumWait();
+            shortWait();
             connectionsPage.selectFirstAssetFromDropdown();
-            mediumWait();
+            shortWait();
             logStep("Target Node selected");
         } else {
             logStep("Target Node dropdown not accessible - continuing");
@@ -3746,7 +3752,7 @@ public final class Connections_Test extends BaseTest {
         // Open New Connection screen
         logStep("Opening New Connection screen");
         connectionsPage.tapOnAddButton();
-        mediumWait();
+        shortWait();
 
         assertTrue(connectionsPage.isNewConnectionScreenDisplayed(), "Should be on New Connection screen");
         logStepWithScreenshot("New Connection screen opened");
@@ -3755,9 +3761,9 @@ public final class Connections_Test extends BaseTest {
         logStep("Selecting Source Node to partially fill form");
         boolean sourceTapped = connectionsPage.tapOnSourceNodeDropdown();
         if (sourceTapped) {
-            mediumWait();
+            shortWait();
             connectionsPage.selectFirstAssetFromDropdown();
-            mediumWait();
+            shortWait();
             logStep("Source Node selected");
         }
 
@@ -3828,7 +3834,7 @@ public final class Connections_Test extends BaseTest {
         // Open New Connection screen
         logStep("Opening New Connection screen");
         connectionsPage.tapOnAddButton();
-        mediumWait();
+        shortWait();
 
         assertTrue(connectionsPage.isNewConnectionScreenDisplayed(), "Should be on New Connection screen");
 
@@ -3836,18 +3842,18 @@ public final class Connections_Test extends BaseTest {
         logStep("Selecting Source Node");
         boolean sourceTapped = connectionsPage.tapOnSourceNodeDropdown();
         if (sourceTapped) {
-            mediumWait();
+            shortWait();
             connectionsPage.selectFirstAssetFromDropdown();
-            mediumWait();
+            shortWait();
         }
 
         // Select Target Node
         logStep("Selecting Target Node");
         boolean targetTapped = connectionsPage.tapOnTargetNodeDropdown();
         if (targetTapped) {
-            mediumWait();
+            shortWait();
             connectionsPage.selectFirstAssetFromDropdown();
-            mediumWait();
+            shortWait();
         }
 
         // Step 1: Leave Connection Type as 'Select type' (don't change)
@@ -3868,7 +3874,7 @@ public final class Connections_Test extends BaseTest {
         if (createEnabled && !connectionTypeSelected) {
             logStep("Create may be enabled without Connection Type - trying to create");
             connectionsPage.tapOnCreateButton();
-            mediumWait();
+            shortWait();
             
             // Check result
             boolean stillOnForm = connectionsPage.isNewConnectionScreenDisplayed();
@@ -3998,7 +4004,7 @@ public final class Connections_Test extends BaseTest {
         boolean iconTapped = connectionsPage.tapOnThreeDotsIcon();
 
         if (iconTapped) {
-            mediumWait();
+            shortWait();
             logStepWithScreenshot("After tapping options icon");
 
             // Verify options menu appears
@@ -4085,7 +4091,7 @@ public final class Connections_Test extends BaseTest {
         }
 
         assertTrue(connectionTapped, "Should be able to tap on a connection");
-        mediumWait();
+        shortWait();
 
         logStepWithScreenshot("After tapping connection");
 
@@ -4150,7 +4156,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Tapping on connection to open details");
         boolean connectionTapped = connectionsPage.tapOnFirstConnection();
         assertTrue(connectionTapped, "Should be able to tap on a connection");
-        mediumWait();
+        shortWait();
 
         logStepWithScreenshot("Connection details screen");
 
@@ -4260,7 +4266,7 @@ public final class Connections_Test extends BaseTest {
             boolean editTapped = connectionsPage.tapOnEditOption();
             
             if (editTapped) {
-                mediumWait();
+                shortWait();
                 logStepWithScreenshot("After tapping Edit");
                 
                 // Check if in edit mode
@@ -4282,7 +4288,7 @@ public final class Connections_Test extends BaseTest {
             // Try options menu
             boolean optionsTapped = connectionsPage.tapOnThreeDotsIcon();
             if (optionsTapped) {
-                mediumWait();
+                shortWait();
                 editAvailable = connectionsPage.isEditOptionAvailable();
                 if (editAvailable) {
                     logStep("✓ Edit found in options menu");
@@ -4443,7 +4449,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Tapping on connection to open details");
         boolean connectionTapped = connectionsPage.tapOnFirstConnection();
         assertTrue(connectionTapped, "Should be able to tap on a connection");
-        mediumWait();
+        shortWait();
 
         logStepWithScreenshot("Connection details screen");
 
@@ -4464,7 +4470,7 @@ public final class Connections_Test extends BaseTest {
             logStep("Verifying Delete tap shows confirmation...");
             boolean deleteTapped = connectionsPage.tapOnDeleteOption();
             if (deleteTapped) {
-                mediumWait();
+                shortWait();
                 boolean confirmationShown = connectionsPage.isDeleteConfirmationDisplayed();
                 if (confirmationShown) {
                     logStep("✓ Delete confirmation dialog displayed");
@@ -4478,7 +4484,7 @@ public final class Connections_Test extends BaseTest {
             // Try options menu
             boolean optionsTapped = connectionsPage.tapOnThreeDotsIcon();
             if (optionsTapped) {
-                mediumWait();
+                shortWait();
                 logStepWithScreenshot("Options menu opened");
                 
                 deleteAvailable = connectionsPage.isDeleteOptionAvailable();
@@ -4527,12 +4533,12 @@ public final class Connections_Test extends BaseTest {
         int connectionCount = connectionsPage.getConnectionCount();
         if (connectionCount == 0) { logWarning("No connections to test deletion"); return; }
         connectionsPage.tapOnFirstConnection();
-        mediumWait();
+        shortWait();
         boolean deleteAvailable = connectionsPage.isDeleteOptionAvailable();
         if (!deleteAvailable) { connectionsPage.tapOnThreeDotsIcon(); mediumWait(); }
         if (connectionsPage.isDeleteOptionAvailable()) {
             connectionsPage.tapOnDeleteOption();
-            mediumWait();
+            shortWait();
             boolean confirmationShown = connectionsPage.isDeleteConfirmationDisplayed();
             if (confirmationShown) { logStep("✓ Delete confirmation displayed"); connectionsPage.cancelDeletion(); }
         }
@@ -4556,12 +4562,12 @@ public final class Connections_Test extends BaseTest {
         if (initialCount == 0) { logWarning("No connections to test deletion"); return; }
         logStep("Initial count: " + initialCount);
         connectionsPage.tapOnFirstConnection();
-        mediumWait();
+        shortWait();
         boolean deleteAvailable = connectionsPage.isDeleteOptionAvailable();
         if (!deleteAvailable) { connectionsPage.tapOnThreeDotsIcon(); mediumWait(); }
         if (connectionsPage.isDeleteOptionAvailable()) {
             connectionsPage.tapOnDeleteOption();
-            mediumWait();
+            shortWait();
             if (connectionsPage.isDeleteConfirmationDisplayed()) { connectionsPage.confirmDeletion(); longWait(); }
         }
         if (!connectionsPage.isConnectionsScreenDisplayed()) { connectionsPage.goBackFromConnectionDetails(); }
@@ -4714,10 +4720,10 @@ public final class Connections_Test extends BaseTest {
         boolean onConnections = ensureOnConnectionsScreen();
         assertTrue(onConnections, "Should be on Connections screen");
         connectionsPage.tapOnAddButton();
-        mediumWait();
+        shortWait();
         assertTrue(connectionsPage.isNewConnectionScreenDisplayed(), "Should be on New Connection screen");
         connectionsPage.tapOnSourceNodeDropdown();
-        mediumWait();
+        shortWait();
         boolean keyboardAppeared = connectionsPage.tapSearchFieldAndVerifyKeyboard();
         logStep("Keyboard appeared: " + keyboardAppeared);
         if (keyboardAppeared) { logStep("✓ Keyboard appeared for search"); connectionsPage.dismissKeyboard(); }
@@ -4738,15 +4744,15 @@ public final class Connections_Test extends BaseTest {
         boolean onConnections = ensureOnConnectionsScreen();
         assertTrue(onConnections, "Should be on Connections screen");
         connectionsPage.tapOnAddButton();
-        mediumWait();
+        shortWait();
         assertTrue(connectionsPage.isNewConnectionScreenDisplayed(), "Should be on New Connection screen");
         connectionsPage.tapOnSourceNodeDropdown();
-        mediumWait();
+        shortWait();
         connectionsPage.tapSearchFieldAndVerifyKeyboard();
         boolean keyboardBefore = connectionsPage.isKeyboardDisplayed();
         logStep("Keyboard before selection: " + keyboardBefore);
         boolean dismissed = connectionsPage.selectAssetAndVerifyKeyboardDismissed();
-        mediumWait();
+        shortWait();
         boolean keyboardAfter = connectionsPage.isKeyboardDisplayed();
         logStep("Keyboard after selection: " + keyboardAfter);
         if (!keyboardAfter) { logStep("✓ Keyboard dismissed after selection"); }
@@ -4784,7 +4790,7 @@ public final class Connections_Test extends BaseTest {
         // Open New Connection screen
         logStep("Opening New Connection screen");
         connectionsPage.tapOnAddButton();
-        mediumWait();
+        shortWait();
 
         assertTrue(connectionsPage.isNewConnectionScreenDisplayed(), "Should be on New Connection screen");
 
@@ -4793,7 +4799,7 @@ public final class Connections_Test extends BaseTest {
 
         // Open Source Node dropdown
         connectionsPage.tapOnSourceNodeDropdown();
-        mediumWait();
+        shortWait();
 
         // Try to search for special character asset
         String specialCharAsset = "Test @#$%";
@@ -4840,14 +4846,14 @@ public final class Connections_Test extends BaseTest {
         // Select Target Node
         logStep("Selecting Target Node");
         connectionsPage.tapOnTargetNodeDropdown();
-        mediumWait();
+        shortWait();
         connectionsPage.selectFirstAssetFromDropdown();
-        mediumWait();
+        shortWait();
 
         // Create connection
         logStep("Creating connection");
         connectionsPage.tapOnCreateButton();
-        mediumWait();
+        shortWait();
 
         logStepWithScreenshot("After connection creation");
 
@@ -4910,7 +4916,7 @@ public final class Connections_Test extends BaseTest {
             
             // Create a connection
             connectionsPage.tapOnAddButton();
-            mediumWait();
+            shortWait();
             
             connectionsPage.tapOnSourceNodeDropdown();
             shortWait();
@@ -4923,7 +4929,7 @@ public final class Connections_Test extends BaseTest {
             shortWait();
             
             connectionsPage.tapOnCreateButton();
-            mediumWait();
+            shortWait();
             
             // Re-navigate to connections
             ensureOnConnectionsScreen();
@@ -4992,7 +4998,7 @@ public final class Connections_Test extends BaseTest {
         // Step 1: Create first connection
         logStep("Step 1: Creating first connection");
         connectionsPage.tapOnAddButton();
-        mediumWait();
+        shortWait();
         
         connectionsPage.tapOnSourceNodeDropdown();
         shortWait();
@@ -5005,7 +5011,7 @@ public final class Connections_Test extends BaseTest {
         shortWait();
         
         connectionsPage.tapOnCreateButton();
-        mediumWait();
+        shortWait();
         
         boolean firstCreated = !connectionsPage.isNewConnectionScreenDisplayed();
         logStep("First connection created: " + firstCreated);
@@ -5034,7 +5040,7 @@ public final class Connections_Test extends BaseTest {
         shortWait();
         
         connectionsPage.tapOnCreateButton();
-        mediumWait();
+        shortWait();
         
         boolean secondCreated = !connectionsPage.isNewConnectionScreenDisplayed();
         logStep("Second connection created: " + secondCreated);
@@ -5062,7 +5068,7 @@ public final class Connections_Test extends BaseTest {
         shortWait();
         
         connectionsPage.tapOnCreateButton();
-        mediumWait();
+        shortWait();
         
         boolean thirdCreated = !connectionsPage.isNewConnectionScreenDisplayed();
         logStep("Third connection created: " + thirdCreated);
@@ -5155,7 +5161,7 @@ public final class Connections_Test extends BaseTest {
         int initialCount = connectionsPage.getConnectionCount();
         
         connectionsPage.tapOnAddButton();
-        mediumWait();
+        shortWait();
 
         connectionsPage.tapOnSourceNodeDropdown();
         shortWait();
@@ -5168,7 +5174,7 @@ public final class Connections_Test extends BaseTest {
         shortWait();
 
         connectionsPage.tapOnCreateButton();
-        mediumWait();
+        shortWait();
 
         logStepWithScreenshot("After connection creation attempt");
 
@@ -5334,7 +5340,7 @@ public final class Connections_Test extends BaseTest {
         }
 
         if (iconTapped) {
-            mediumWait();
+            shortWait();
             logStepWithScreenshot("Options menu opened");
 
             // Step 2: Observe dropdown options
@@ -5407,7 +5413,7 @@ public final class Connections_Test extends BaseTest {
         }
 
         if (iconTapped) {
-            mediumWait();
+            shortWait();
             logStepWithScreenshot("Options menu opened");
 
             // Step 2: Observe dropdown options
@@ -5509,7 +5515,7 @@ public final class Connections_Test extends BaseTest {
         boolean afPunchlistTapped = connectionsPage.tapOnShowAFPunchlistOption();
         
         if (afPunchlistTapped) {
-            mediumWait();
+            shortWait();
             logStepWithScreenshot("After tapping Show AF Punchlist");
 
             // Verify AF Punchlist view enabled
@@ -5618,7 +5624,7 @@ public final class Connections_Test extends BaseTest {
             // Tap Show AF Punchlist
             boolean showTapped = connectionsPage.tapOnShowAFPunchlistOption();
             if (showTapped) {
-                mediumWait();
+                shortWait();
                 logStep("AF Punchlist mode enabled");
                 logStepWithScreenshot("AF Punchlist mode active");
             } else {
@@ -5731,7 +5737,7 @@ public final class Connections_Test extends BaseTest {
         if (menuOpened) {
             shortWait();
             connectionsPage.tapOnShowAFPunchlistOption();
-            mediumWait();
+            shortWait();
         }
 
         logStepWithScreenshot("AF Punchlist mode enabled");
@@ -5814,7 +5820,7 @@ public final class Connections_Test extends BaseTest {
         if (menuOpened) {
             shortWait();
             connectionsPage.tapOnShowAFPunchlistOption();
-            mediumWait();
+            shortWait();
         }
 
         // Verify X icons are visible
@@ -5914,7 +5920,7 @@ public final class Connections_Test extends BaseTest {
         if (menuOpened) {
             shortWait();
             connectionsPage.tapOnShowAFPunchlistOption();
-            mediumWait();
+            shortWait();
         }
 
         logStepWithScreenshot("AF Punchlist mode enabled");
@@ -5940,7 +5946,7 @@ public final class Connections_Test extends BaseTest {
         boolean xIconTapped = connectionsPage.tapOnRedXIcon();
 
         if (xIconTapped) {
-            mediumWait();
+            shortWait();
             logStepWithScreenshot("After tapping X icon");
 
             // Check for confirmation dialog
@@ -6725,7 +6731,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Tapping Select All button");
         boolean tappedSelectAll = connectionsPage.tapSelectAll();
         assertTrue(tappedSelectAll, "Should be able to tap Select All");
-        mediumWait();
+        shortWait();
 
         logStepWithScreenshot("After tapping Select All");
 
@@ -6823,7 +6829,7 @@ public final class Connections_Test extends BaseTest {
             logStep("Testing Deselect All functionality");
             boolean tappedDeselectAll = connectionsPage.tapDeselectAll();
             if (tappedDeselectAll) {
-                mediumWait();
+                shortWait();
                 int selectedAfterDeselect = connectionsPage.getSelectedCount();
                 logStep("Selected count after Deselect All: " + selectedAfterDeselect);
 
@@ -6836,7 +6842,7 @@ public final class Connections_Test extends BaseTest {
             logStep("Button may not change - testing tap again to deselect");
             boolean tappedAgain = connectionsPage.tapSelectAll();
             if (tappedAgain) {
-                mediumWait();
+                shortWait();
                 int selectedAfterTapAgain = connectionsPage.getSelectedCount();
                 logStep("Selected count after tap again: " + selectedAfterTapAgain);
             }
@@ -6899,7 +6905,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Selecting first connection");
         boolean selected = connectionsPage.tapOnFirstConnectionToSelect();
         assertTrue(selected, "Should be able to select connection");
-        mediumWait();
+        shortWait();
 
         logStepWithScreenshot("After selecting connection");
 
@@ -7048,7 +7054,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Selecting first connection");
         boolean selected = connectionsPage.tapOnFirstConnectionToSelect();
         assertTrue(selected, "Should be able to select connection");
-        mediumWait();
+        shortWait();
 
         logStepWithScreenshot("Connection selected");
 
@@ -7138,7 +7144,7 @@ public final class Connections_Test extends BaseTest {
 
         int actuallySelected = connectionsPage.selectMultipleConnections(toSelect);
         logStep("Actually selected: " + actuallySelected);
-        mediumWait();
+        shortWait();
 
         logStepWithScreenshot("Multiple connections selected");
 
@@ -7231,7 +7237,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Selecting first connection");
         boolean selected = connectionsPage.tapOnFirstConnectionToSelect();
         assertTrue(selected, "Should be able to select connection");
-        mediumWait();
+        shortWait();
 
         int selectedBefore = connectionsPage.getSelectedCount();
         logStep("Selected count before: " + selectedBefore);
@@ -7263,7 +7269,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Tapping Cancel button");
         boolean cancelled = connectionsPage.tapCancelOnDeleteConfirmation();
         assertTrue(cancelled, "Should be able to tap Cancel");
-        mediumWait();
+        shortWait();
 
         logStepWithScreenshot("After tapping Cancel");
 
@@ -7341,7 +7347,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Selecting first connection for deletion");
         boolean selected = connectionsPage.tapOnFirstConnectionToSelect();
         assertTrue(selected, "Should be able to select connection");
-        mediumWait();
+        shortWait();
 
         logStepWithScreenshot("Connection selected for deletion");
 
@@ -7437,7 +7443,7 @@ public final class Connections_Test extends BaseTest {
 
         int actuallySelected = connectionsPage.selectMultipleConnections(toSelect);
         logStep("Actually selected: " + actuallySelected);
-        mediumWait();
+        shortWait();
 
         if (actuallySelected == 0) {
             logWarning("Could not select connections");
@@ -7536,7 +7542,7 @@ public final class Connections_Test extends BaseTest {
         boolean deleteTapped = connectionsPage.tapDeleteIconInHeader();
         
         if (deleteTapped) {
-            mediumWait();
+            shortWait();
             logStepWithScreenshot("After tapping Delete");
 
             // Check for confirmation dialog
@@ -7786,7 +7792,7 @@ public final class Connections_Test extends BaseTest {
         }
         
         connectionsPage.searchInSelectionMode(searchTerm);
-        mediumWait();
+        shortWait();
         logStepWithScreenshot("After search filter");
 
         // Step 3: Clear search
@@ -7988,7 +7994,7 @@ public final class Connections_Test extends BaseTest {
 
         boolean selectionMode = connectionsPage.enterSelectMultipleMode();
         assertTrue(selectionMode, "Should be able to enter selection mode");
-        mediumWait();
+        shortWait();
 
         // Step 2: Tap Select All
         logStep("Step 2: Tapping Select All");
@@ -8016,7 +8022,7 @@ public final class Connections_Test extends BaseTest {
         logStep("⚠️ WARNING: About to delete ALL connections");
 
         boolean deleteSuccess = connectionsPage.deleteAllSelectedConnections();
-        mediumWait();
+        shortWait();
 
         logStepWithScreenshot("After delete attempt");
 

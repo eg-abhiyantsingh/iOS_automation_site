@@ -118,7 +118,7 @@ public final class Asset_Phase5_Test extends BaseTest {
         assetPage.scrollFormUp();
         assetPage.scrollFormUp();
         assetPage.clickCreateAsset();
-        mediumWait();
+        shortWait();
         return assetName;
     }
 
@@ -160,7 +160,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             
             logStep("Clicking Create Asset with duplicate name");
             assetPage.clickCreateAsset();
-            mediumWait();
+            shortWait();
 
             logStep("BUG CHECK: Verifying if duplicate name was prevented or allowed");
             boolean stillOnCreateScreen = assetPage.isCreateAssetFormDisplayed();
@@ -211,7 +211,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickCreateAsset();
-            mediumWait();
+            shortWait();
 
             logStep("BUG CHECK: Verifying case-insensitive duplicate detection");
             boolean stillOnCreateScreen = assetPage.isCreateAssetFormDisplayed();
@@ -261,7 +261,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickCreateAsset();
-            mediumWait();
+            shortWait();
             
             logStep("Attempting to create second asset with SAME QR code: " + qrCode);
             navigateToNewAssetScreen();
@@ -276,7 +276,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickCreateAsset();
-            mediumWait();
+            shortWait();
 
             logStep("BUG CHECK: Verifying if duplicate QR code was prevented");
             boolean stillOnCreateScreen = assetPage.isCreateAssetFormDisplayed();
@@ -338,7 +338,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickCreateAsset();
-            mediumWait();
+            shortWait();
             
             // Create Asset B with QR code B
             logStep("Step 2: Creating Asset B with QR code: " + qrCodeB);
@@ -354,7 +354,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickCreateAsset();
-            mediumWait();
+            shortWait();
             
             logStep("=== TEST: Editing Asset B's QR code to match Asset A's QR code ===");
             
@@ -365,7 +365,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             assetPage.searchAsset(assetNameB);
             shortWait();
             assetPage.selectAssetByName(assetNameB);
-            mediumWait();
+            shortWait();
             
             // Open edit screen
             logStep("Step 4: Opening Edit Asset Details screen");
@@ -387,7 +387,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
             
             // Check result - if still on edit screen, duplicate was prevented (GOOD)
             boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -443,7 +443,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickCreateAsset();
-            mediumWait();
+            shortWait();
 
             logStep("BUG CHECK: Verifying HTML tag handling");
             boolean created = assetPage.isAssetCreatedSuccessfully();
@@ -490,7 +490,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickCreateAsset();
-            mediumWait();
+            shortWait();
 
             logStep("BUG CHECK: Verifying SQL injection handling");
             boolean created = assetPage.isAssetCreatedSuccessfully();
@@ -541,7 +541,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickCreateAsset();
-            mediumWait();
+            shortWait();
 
             logStep("BUG CHECK: Verifying emoji handling");
             boolean created = assetPage.isAssetCreatedSuccessfully();
@@ -589,7 +589,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickCreateAsset();
-            mediumWait();
+            shortWait();
 
             logStep("BUG CHECK: Verifying control character handling");
             boolean created = assetPage.isAssetCreatedSuccessfully();
@@ -637,7 +637,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickCreateAsset();
-            mediumWait();
+            shortWait();
 
             logStep("BUG CHECK: Verifying special character sequence handling");
             boolean created = assetPage.isAssetCreatedSuccessfully();
@@ -699,7 +699,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickCreateAsset();
-            mediumWait();
+            shortWait();
 
             testPassed = true;
             logStepWithScreenshot("Max length name test completed");
@@ -748,7 +748,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickCreateAsset();
-            mediumWait();
+            shortWait();
 
             boolean created = assetPage.isAssetCreatedSuccessfully();
             logStep("Asset created with long QR: " + created);
@@ -794,7 +794,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             boolean saved = assetPage.isAssetDetailDisplayed();
             logStep("Save with long notes: " + (saved ? "Success" : "Possibly truncated/rejected"));
@@ -839,7 +839,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             testPassed = true;
             logStepWithScreenshot("Serial number max length test completed");
@@ -1274,7 +1274,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             if (stillOnForm) {
                 logStep("Button tap may have been missed - retrying with short delay");
                 assetPage.clickCreateAsset();
-                mediumWait();
+                shortWait();
             }
 
             testPassed = true;
@@ -1452,7 +1452,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
 
             logStep("BUG CHECK: Verifying final value was saved (not stale)");
             // Re-open to verify
@@ -1558,7 +1558,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickCreateAsset();
-            mediumWait();
+            shortWait();
             
             logStep("BUG CHECK: Verifying if empty name was blocked");
             boolean stillOnCreateScreen = assetPage.isCreateAssetFormDisplayed();
@@ -1613,7 +1613,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickCreateAsset();
-            mediumWait();
+            shortWait();
             
             logStep("BUG CHECK: Verifying if whitespace-only name was blocked");
             boolean stillOnCreateScreen = assetPage.isCreateAssetFormDisplayed();
@@ -1750,7 +1750,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickCreateAsset();
-            mediumWait();
+            shortWait();
             
             logStep("BUG CHECK: Verifying if missing asset class was blocked");
             boolean stillOnCreateScreen = assetPage.isCreateAssetFormDisplayed();
@@ -1801,7 +1801,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickCreateAsset();
-            mediumWait();
+            shortWait();
             
             logStep("Step 2: Navigating to the created asset");
             assetPage.navigateToAssetList();
@@ -1809,7 +1809,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             assetPage.searchAsset(originalName);
             shortWait();
             assetPage.selectAssetByName(originalName);
-            mediumWait();
+            shortWait();
             
             logStep("Step 3: Opening Edit screen");
             assetPage.clickEdit();
@@ -1822,7 +1822,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             
             logStep("Step 5: Clicking CANCEL (not save)");
             assetPage.clickEditCancel();
-            mediumWait();
+            shortWait();
             
             logStep("Step 6: Verifying original name is preserved");
             // Search for original name - should find it
@@ -1890,7 +1890,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickCreateAsset();
-            mediumWait();
+            shortWait();
             
             logStep("Step 2: Navigating to the created asset");
             assetPage.navigateToAssetList();
@@ -1898,7 +1898,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             assetPage.searchAsset(originalName);
             shortWait();
             assetPage.selectAssetByName(originalName);
-            mediumWait();
+            shortWait();
             
             logStep("Step 3: Opening Edit screen and changing name to: " + newName);
             assetPage.clickEdit();
@@ -1911,7 +1911,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
             
             logStep("Step 5: Navigating away and back to verify persistence");
             assetPage.navigateToAssetList();
@@ -1978,7 +1978,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickCreateAsset();
-            mediumWait();
+            shortWait();
             
             logStep("Step 2: Navigating to the created asset");
             assetPage.navigateToAssetList();
@@ -1986,7 +1986,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             assetPage.searchAsset(originalName);
             shortWait();
             assetPage.selectAssetByName(originalName);
-            mediumWait();
+            shortWait();
             
             logStep("Step 3: Opening Edit screen");
             assetPage.clickEdit();
@@ -2176,7 +2176,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickCreateAsset();
-            mediumWait();
+            shortWait();
             
             logStep("Step 2: Navigating to Asset List");
             assetPage.navigateToAssetList();
@@ -2244,7 +2244,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickCreateAsset();
-            mediumWait();
+            shortWait();
             
             logStep("Step 2: Navigating to Asset List");
             assetPage.navigateToAssetList();
@@ -2418,7 +2418,7 @@ public final class Asset_Phase5_Test extends BaseTest {
                 
                 if (createEnabled) {
                     assetPage.clickCreateAsset();
-                    mediumWait();
+                    shortWait();
                     logStep("✅ App accepted emoji without crashing");
                     testPassed = true;
                 } else {
@@ -2486,7 +2486,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             } else {
                 logStep("⚠️ Create enabled for 500 char name - checking if it saves...");
                 assetPage.clickCreateAsset();
-                mediumWait();
+                shortWait();
                 
                 // Check if saved or if there's an error
                 boolean stillOnForm = assetPage.isAssetNameFieldDisplayed();
@@ -2547,7 +2547,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             
             if (createEnabled) {
                 assetPage.clickCreateAsset();
-                mediumWait();
+                shortWait();
                 logStep("✅ Long QR code was accepted - checking integrity");
                 testPassed = true;
             } else {
@@ -2592,7 +2592,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickCreateAsset();
-            mediumWait();
+            shortWait();
             
             logStep("Step 2: Finding and selecting the asset");
             assetPage.navigateToAssetList();
@@ -2600,7 +2600,7 @@ public final class Asset_Phase5_Test extends BaseTest {
             assetPage.searchAsset(testAssetName);
             shortWait();
             assetPage.selectAssetByName(testAssetName);
-            mediumWait();
+            shortWait();
             
             logStep("Step 3: Attempting to delete the asset");
             // Note: This assumes there's a delete functionality

@@ -266,7 +266,7 @@ public class SiteSelectionPage extends BasePage {
             System.out.println("   Attempt " + attempt + "/" + maxAttempts);
             
             // Wait for screen transition
-            sleep(1000);
+            sleep(600);
             
             if (checkSelectSiteScreenElements()) {
                 return true;
@@ -1106,7 +1106,7 @@ public class SiteSelectionPage extends BasePage {
             
             if (isWifiOnline()) {
                 clickWifiButton();
-                sleep(1000); // Wait for popup animation
+                sleep(600); // Wait for popup animation
                 
                 // Try to click the popup button with multiple strategies
                 try {
@@ -1125,7 +1125,7 @@ public class SiteSelectionPage extends BasePage {
                 }
                 
                 // Wait for offline state
-                sleep(2000);
+                sleep(1200);
                 if (!isWifiOffline()) {
                     System.out.println("⚠️ Not in offline mode yet, waiting longer...");
                     waitForCondition(() -> isWifiOffline(), 5);
@@ -1149,7 +1149,7 @@ public class SiteSelectionPage extends BasePage {
             
             if (isWifiOffline()) {
                 clickWifiButton();
-                sleep(1000); // Wait for popup animation
+                sleep(600); // Wait for popup animation
                 
                 // Try to click the popup button with multiple strategies
                 try {
@@ -1168,7 +1168,7 @@ public class SiteSelectionPage extends BasePage {
                 }
                 
                 // Wait for online state
-                sleep(2000);
+                sleep(1200);
                 if (!isWifiOnline()) {
                     System.out.println("⚠️ Not in online mode yet, waiting longer...");
                     waitForCondition(() -> isWifiOnline(), 5);
@@ -1222,7 +1222,7 @@ public class SiteSelectionPage extends BasePage {
                 System.out.println("✅ Found: " + label);
                 syncElement.click();
                 System.out.println("✅ Clicked on Sync records");
-                sleep(2000); // Wait for sync to process
+                sleep(1200); // Wait for sync to process
                 return;
             }
             
@@ -1230,7 +1230,7 @@ public class SiteSelectionPage extends BasePage {
             if (isElementDisplayed(syncRecordsButton)) {
                 click(syncRecordsButton);
                 System.out.println("✅ Clicked Sync records button via fallback");
-                sleep(2000);
+                sleep(1200);
                 return;
             }
             
@@ -1238,7 +1238,7 @@ public class SiteSelectionPage extends BasePage {
             if (isElementDisplayed(syncRecordsText)) {
                 click(syncRecordsText);
                 System.out.println("✅ Clicked Sync records text");
-                sleep(2000);
+                sleep(1200);
                 return;
             }
             
@@ -1351,7 +1351,7 @@ public class SiteSelectionPage extends BasePage {
         
         while (elapsed < maxWaitSeconds) {
             try {
-                Thread.sleep(2000);
+                Thread.sleep(1200);
                 elapsed += 2;
                 System.out.println("⏳ Sync in progress... (" + elapsed + "s/" + maxWaitSeconds + "s)");
                 
@@ -2024,7 +2024,7 @@ public class SiteSelectionPage extends BasePage {
                 ));
                 viewSitesBtn.click();
                 System.out.println("✅ Clicked 'View Sites' button (Strategy 1: label/name)");
-                Thread.sleep(500);
+                Thread.sleep(350);
                 return;
             } catch (Exception e) {
                 System.out.println("   Strategy 1 failed, trying next...");
@@ -2037,7 +2037,7 @@ public class SiteSelectionPage extends BasePage {
                 ));
                 viewSitesBtn.click();
                 System.out.println("✅ Clicked 'View Sites' button (Strategy 2: button type)");
-                Thread.sleep(500);
+                Thread.sleep(350);
                 return;
             } catch (Exception e) {
                 System.out.println("   Strategy 2 failed, trying next...");
@@ -2050,7 +2050,7 @@ public class SiteSelectionPage extends BasePage {
                 ));
                 viewSitesBtn.click();
                 System.out.println("✅ Clicked 'View Sites' button (Strategy 3: accessibilityId)");
-                Thread.sleep(500);
+                Thread.sleep(350);
                 return;
             } catch (Exception e) {
                 System.out.println("   Strategy 3 failed, trying next...");
@@ -2067,7 +2067,7 @@ public class SiteSelectionPage extends BasePage {
                 );
                 viewSitesBtn.click();
                 System.out.println("✅ Clicked 'View Sites' button (Strategy 4: after scroll)");
-                Thread.sleep(500);
+                Thread.sleep(350);
                 return;
             } catch (Exception e) {
                 System.out.println("   Strategy 4 failed, trying next...");
@@ -2080,7 +2080,7 @@ public class SiteSelectionPage extends BasePage {
                 );
                 viewSitesBtn.click();
                 System.out.println("✅ Clicked 'View Sites' button (Strategy 5: XPath)");
-                Thread.sleep(500);
+                Thread.sleep(350);
                 return;
             } catch (Exception e) {
                 System.out.println("   Strategy 5 failed");
@@ -2108,7 +2108,7 @@ public class SiteSelectionPage extends BasePage {
                 clickViewSites();
                 
                 // Wait briefly for Site Selection to load
-                Thread.sleep(500);
+                Thread.sleep(350);
                 System.out.println("✅ Navigated from Schedule to Site Selection");
             } else {
                 System.out.println("   No Schedule screen - already on Site Selection");

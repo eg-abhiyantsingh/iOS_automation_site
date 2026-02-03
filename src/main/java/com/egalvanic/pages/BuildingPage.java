@@ -62,7 +62,7 @@ public class BuildingPage extends BasePage {
                 WebElement plusBtn = driver.findElement(AppiumBy.accessibilityId("plus"));
                 System.out.println("   Found 'plus' button via accessibilityId");
                 plusBtn.click();
-                sleep(400);
+                sleep(250);
                 if (isNewBuildingScreenDisplayed()) {
                     System.out.println("✅ New Building screen opened (Strategy 1)");
                     return true;
@@ -74,7 +74,7 @@ public class BuildingPage extends BasePage {
                 WebElement addBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "name == 'plus.circle.fill' OR name == 'plus.circle' OR name == 'plus'"));
                 addBtn.click();
-                sleep(400);
+                sleep(250);
                 if (isNewBuildingScreenDisplayed()) {
                     System.out.println("✅ New Building screen opened (Strategy 2)");
                     return true;
@@ -86,7 +86,7 @@ public class BuildingPage extends BasePage {
                 WebElement addBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeButton' AND (label CONTAINS 'Add' OR label CONTAINS 'New')"));
                 addBtn.click();
-                sleep(400);
+                sleep(250);
                 if (isNewBuildingScreenDisplayed()) {
                     System.out.println("✅ New Building screen opened (Strategy 3)");
                     return true;
@@ -533,7 +533,7 @@ public class BuildingPage extends BasePage {
                     "type == 'XCUIElementTypeButton' AND label CONTAINS 'Locations'"));
                 System.out.println("   Strategy 1: Found Locations button");
                 locationsBtn.click();
-                sleep(400);
+                sleep(250);
                 if (isLocationsScreenDisplayed() || areBuildingEntriesDisplayed()) {
                     System.out.println("✅ Navigated to Locations screen");
                     return true;
@@ -545,7 +545,7 @@ public class BuildingPage extends BasePage {
                 WebElement locationsText = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeStaticText' AND label == 'Locations'"));
                 locationsText.click();
-                sleep(400);
+                sleep(250);
                 if (isLocationsScreenDisplayed() || areBuildingEntriesDisplayed()) {
                     System.out.println("✅ Navigated to Locations screen");
                     return true;
@@ -555,7 +555,7 @@ public class BuildingPage extends BasePage {
             // Strategy 3: accessibilityId
             try {
                 driver.findElement(AppiumBy.accessibilityId("Locations")).click();
-                sleep(400);
+                sleep(250);
                 if (isLocationsScreenDisplayed() || areBuildingEntriesDisplayed()) {
                     System.out.println("✅ Navigated to Locations screen");
                     return true;
@@ -568,7 +568,7 @@ public class BuildingPage extends BasePage {
                 for (WebElement el : elements) {
                     try {
                         el.click();
-                        sleep(400);
+                        sleep(250);
                         if (isLocationsScreenDisplayed() || areBuildingEntriesDisplayed()) {
                             System.out.println("✅ Navigated to Locations screen");
                             return true;
@@ -1649,7 +1649,7 @@ public class BuildingPage extends BasePage {
     public boolean verifyBuildingDeleted(String buildingName) {
         try {
             System.out.println("🔍 Verifying building '" + buildingName + "' is deleted...");
-            sleep(600); // Wait for UI to update after deletion
+            sleep(250); // Wait for UI to update after deletion
             
             // Scroll to top first to ensure we're at the start of the list
             for (int i = 0; i < 3; i++) {
@@ -1658,7 +1658,7 @@ public class BuildingPage extends BasePage {
             }
             
             // Search through the list (scroll down a few times to check)
-            for (int scrollAttempt = 0; scrollAttempt < 5; scrollAttempt++) {
+            for (int scrollAttempt = 0; scrollAttempt < 2; scrollAttempt++) {
                 // Use precise matching to avoid false positives
                 // For exact full name matches (e.g., "TestDelete_58238")
                 try {
@@ -1743,7 +1743,7 @@ public class BuildingPage extends BasePage {
             }
             
             // Wait for save to complete
-            sleep(600);
+            sleep(250);
             
             // Even if verification is uncertain, assume success if Save was clicked
             // The building was likely created - verify by checking if we're back on list
@@ -2309,7 +2309,7 @@ public class BuildingPage extends BasePage {
             
             if (buildingY < 0 || buildingY > screenHeight) {
                 System.out.println("   Building is off-screen, scrolling...");
-                for (int i = 0; i < 5; i++) {
+                for (int i = 0; i < 3; i++) {
                     if (buildingY > screenHeight) scrollDown();
                     else scrollUp();
                     sleep(300);
@@ -2339,7 +2339,7 @@ public class BuildingPage extends BasePage {
                     if (Math.abs(chevronY - buildingY) < buildingHeight) {
                         System.out.println("   Found chevron near building at Y=" + chevronY);
                         chevron.click();
-                        sleep(800);  // INCREASED: wait for iOS UI animation to complete
+                        sleep(300);  // INCREASED: wait for iOS UI animation to complete
                         System.out.println("✅ Clicked chevron to expand building");
                         return true;
                     }
@@ -2349,7 +2349,7 @@ public class BuildingPage extends BasePage {
             // Strategy 2: Click the building button itself
             try {
                 building.click();
-                sleep(800);  // INCREASED: wait for iOS UI animation to complete
+                sleep(300);  // INCREASED: wait for iOS UI animation to complete
                 System.out.println("✅ Clicked building to expand");
                 return true;
             } catch (Exception e2) {
@@ -2366,7 +2366,7 @@ public class BuildingPage extends BasePage {
                 params.put("y", tapY);
                 params.put("duration", 0.1);
                 driver.executeScript("mobile: tap", params);
-                sleep(800);  // INCREASED: wait for iOS UI animation to complete
+                sleep(300);  // INCREASED: wait for iOS UI animation to complete
                 System.out.println("✅ Tapped building at (" + tapX + ", " + tapY + ")");
                 return true;
             } catch (Exception e3) {
@@ -2398,7 +2398,7 @@ public class BuildingPage extends BasePage {
             
             // Click the building to collapse (toggle)
             building.click();
-            sleep(400);
+            sleep(250);
             System.out.println("✅ Clicked building to collapse");
             return true;
         } catch (Exception e) {
@@ -2540,7 +2540,7 @@ public class BuildingPage extends BasePage {
             int screenHeight = driver.manage().window().getSize().height;
             if (centerY < 0 || centerY > screenHeight) {
                 System.out.println("   Floor is off-screen, scrolling...");
-                for (int i = 0; i < 5; i++) {
+                for (int i = 0; i < 3; i++) {
                     if (centerY > screenHeight) scrollDown();
                     else scrollUp();
                     sleep(300);
@@ -3221,7 +3221,7 @@ public class BuildingPage extends BasePage {
             System.out.println("📋 Floors visible under " + buildingName + ": " + areFloorsVisibleUnderBuilding(buildingName));
             if (!areFloorsVisibleUnderBuilding(buildingName)) {
                 expandBuilding(buildingName);
-                sleep(400);
+                sleep(250);
             }
             
             // Find the floor entry - RE-FIND to avoid stale element
@@ -3521,7 +3521,7 @@ public class BuildingPage extends BasePage {
             
             if (floorY < 0 || floorY > screenHeight) {
                 System.out.println("   Floor is off-screen, scrolling...");
-                for (int i = 0; i < 5; i++) {
+                for (int i = 0; i < 3; i++) {
                     if (floorY > screenHeight) scrollDown();
                     else scrollUp();
                     sleep(300);
@@ -3535,7 +3535,7 @@ public class BuildingPage extends BasePage {
             // Click to expand
             if (floor != null) {
                 floor.click();
-                sleep(800);  // INCREASED: wait for iOS UI animation to complete
+                sleep(300);  // INCREASED: wait for iOS UI animation to complete
                 System.out.println("✅ Floor expanded: " + floorName);
                 return true;
             }
@@ -3573,7 +3573,7 @@ public class BuildingPage extends BasePage {
             
             if (roomY < 0 || roomY > screenHeight) {
                 System.out.println("   Room is off-screen, scrolling...");
-                for (int i = 0; i < 5; i++) {
+                for (int i = 0; i < 3; i++) {
                     if (roomY > screenHeight) scrollDown();
                     else scrollUp();
                     sleep(300);
@@ -4396,7 +4396,7 @@ public class BuildingPage extends BasePage {
                 swipe.put("toY", screenHeight / 2);
                 swipe.put("duration", 0.2);
                 driver.executeScript("mobile: dragFromToForDuration", swipe);
-                sleep(400);
+                sleep(250);
                 return true;
             }
         } catch (Exception e) {
@@ -4633,7 +4633,7 @@ public class BuildingPage extends BasePage {
                 if (y > safeMinY && y < safeMaxY) {
                     System.out.println("✓ Tapping No Location via direct match at Y=" + y);
                     element.click();
-                    sleep(500);
+                    sleep(350);
                     return true;
                 }
             }
@@ -4652,7 +4652,7 @@ public class BuildingPage extends BasePage {
                     if (y > safeMinY && y < safeMaxY) {
                         System.out.println("✓ Tapping No Location Cell at Y=" + y + " label=" + label);
                         cell.click();
-                        sleep(500);
+                        sleep(350);
                         return true;
                     }
                 }
@@ -4672,7 +4672,7 @@ public class BuildingPage extends BasePage {
                     if (y > safeMinY && y < safeMaxY) {
                         System.out.println("✓ Tapping No Location Button at Y=" + y);
                         btn.click();
-                        sleep(500);
+                        sleep(350);
                         return true;
                     }
                 }
@@ -4690,7 +4690,7 @@ public class BuildingPage extends BasePage {
                 if (y > safeMinY && y < safeMaxY) {
                     System.out.println("✓ Tapping No Location StaticText at Y=" + y);
                     text.click();
-                    sleep(500);
+                    sleep(350);
                     return true;
                 }
             }
@@ -4711,7 +4711,7 @@ public class BuildingPage extends BasePage {
                 params.put("x", x);
                 params.put("y", y);
                 driver.executeScript("mobile: tap", params);
-                sleep(500);
+                sleep(350);
                 return true;
             }
         } catch (Exception e) {
@@ -5019,7 +5019,7 @@ public class BuildingPage extends BasePage {
                 int y = locationField.getLocation().getY();
                 System.out.println("✓ Tapping Location field via 'Select location' match at Y=" + y);
                 locationField.click();
-                sleep(500);
+                sleep(350);
                 return true;
             }
         } catch (Exception e) {
@@ -5038,7 +5038,7 @@ public class BuildingPage extends BasePage {
                      (label.contains(">") && !label.contains("Done")))) {
                     System.out.println("✓ Tapping Location Cell at Y=" + y + " label: " + label);
                     cell.click();
-                    sleep(500);
+                    sleep(350);
                     return true;
                 }
             }
@@ -5058,7 +5058,7 @@ public class BuildingPage extends BasePage {
                 if (y > middleStart && y < middleEnd) {
                     System.out.println("✓ Tapping element with Location at Y=" + y);
                     el.click();
-                    sleep(500);
+                    sleep(350);
                     return true;
                 }
             }
@@ -5072,7 +5072,7 @@ public class BuildingPage extends BasePage {
                 "(name CONTAINS 'building' OR name CONTAINS 'location' OR name CONTAINS 'picker') AND visible == true"));
             System.out.println("✓ Tapping location picker trigger");
             picker.click();
-            sleep(500);
+            sleep(350);
             return true;
         } catch (Exception e) {
             System.out.println("   Strategy 4: No building/picker icon found");
@@ -5088,7 +5088,7 @@ public class BuildingPage extends BasePage {
                     String label = btn.getAttribute("label");
                     System.out.println("✓ Tapping Location Button at Y=" + y + " label: " + label);
                     btn.click();
-                    sleep(500);
+                    sleep(350);
                     return true;
                 }
             }
@@ -5227,7 +5227,7 @@ public class BuildingPage extends BasePage {
                 "type == 'XCUIElementTypeCell' OR (type == 'XCUIElementTypeButton' AND visible == true AND NOT label == 'Cancel' AND NOT label == 'Done')"));
             if (!items.isEmpty()) {
                 items.get(0).click();
-                sleep(400);
+                sleep(250);
                 return true;
             }
             return false;
@@ -5244,7 +5244,7 @@ public class BuildingPage extends BasePage {
             WebElement building = driver.findElement(AppiumBy.iOSNsPredicateString(
                 "label CONTAINS '" + buildingName + "'"));
             building.click();
-            sleep(400);
+            sleep(250);
             return true;
         } catch (Exception e) {
             return selectFirstBuildingInPicker();
@@ -5286,7 +5286,7 @@ public class BuildingPage extends BasePage {
             WebElement floor = driver.findElement(AppiumBy.iOSNsPredicateString(
                 "label CONTAINS '" + floorName + "'"));
             floor.click();
-            sleep(400);
+            sleep(250);
             return true;
         } catch (Exception e) {
             return selectFirstFloorInPicker();
@@ -5322,7 +5322,7 @@ public class BuildingPage extends BasePage {
             WebElement room = driver.findElement(AppiumBy.iOSNsPredicateString(
                 "label CONTAINS '" + roomName + "' OR label == '" + roomName + "'"));
             room.click();
-            sleep(400);
+            sleep(250);
             return true;
         } catch (Exception e) {
             return selectFirstRoomInPicker();
@@ -5350,7 +5350,7 @@ public class BuildingPage extends BasePage {
                 if (label != null && !label.contains(excludeRoom) && 
                     !label.equals("Cancel") && !label.equals("Done")) {
                     room.click();
-                    sleep(400);
+                    sleep(250);
                     if (label.contains(",")) {
                         return label.split(",")[0].trim();
                     }
@@ -5371,7 +5371,7 @@ public class BuildingPage extends BasePage {
             WebElement cancelBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
                 "label == 'Cancel' OR name == 'Cancel'"));
             cancelBtn.click();
-            sleep(400);
+            sleep(250);
             return true;
         } catch (Exception e) {
             // Try navigating back
@@ -5387,7 +5387,7 @@ public class BuildingPage extends BasePage {
             WebElement cancelBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
                 "label == 'Cancel' OR name == 'Cancel'"));
             cancelBtn.click();
-            sleep(400);
+            sleep(250);
             return true;
         } catch (Exception e) {
             return false;
@@ -5509,7 +5509,7 @@ public class BuildingPage extends BasePage {
             int y = saveBtn.getLocation().getY();
             System.out.println("✓ Clicking Save Changes via exact match at Y=" + y);
             saveBtn.click();
-            sleep(500);
+            sleep(350);
             return true;
         } catch (Exception e) {
             System.out.println("   Strategy 1: No exact 'Save Changes' match");
@@ -5526,7 +5526,7 @@ public class BuildingPage extends BasePage {
                 if (y > lowerPortion && y < safeMaxY) {
                     System.out.println("✓ Clicking Save button at bottom Y=" + y + " label=" + label);
                     btn.click();
-                    sleep(500);
+                    sleep(350);
                     return true;
                 }
             }
@@ -5543,7 +5543,7 @@ public class BuildingPage extends BasePage {
                 if (y > 150) { // Below nav bar
                     System.out.println("✓ Clicking Save element at Y=" + y);
                     el.click();
-                    sleep(500);
+                    sleep(350);
                     return true;
                 }
             }
@@ -5561,7 +5561,7 @@ public class BuildingPage extends BasePage {
             tapParams.put("x", centerX);
             tapParams.put("y", bottomY);
             driver.executeScript("mobile: tap", tapParams);
-            sleep(500);
+            sleep(350);
             return true;
         } catch (Exception e) {
             System.out.println("   Strategy 4: Coordinate tap failed - " + e.getMessage());
@@ -5580,7 +5580,7 @@ public class BuildingPage extends BasePage {
             WebElement discardBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
                 "label == 'Discard' OR label == 'Discard Changes' OR label == 'Yes' OR label == 'OK'"));
             discardBtn.click();
-            sleep(400);
+            sleep(250);
         } catch (Exception ignore) {
             // No confirmation dialog
         }
@@ -5594,7 +5594,7 @@ public class BuildingPage extends BasePage {
             int screenHeight = driver.manage().window().getSize().height;
             int screenWidth = driver.manage().window().getSize().width;
             
-            for (int i = 0; i < 5; i++) {
+            for (int i = 0; i < 3; i++) {
                 java.util.Map<String, Object> params = new java.util.HashMap<>();
                 params.put("fromX", screenWidth / 2);
                 params.put("fromY", (int) (screenHeight * 0.3));

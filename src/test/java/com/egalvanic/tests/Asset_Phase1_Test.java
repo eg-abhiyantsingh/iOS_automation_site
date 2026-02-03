@@ -260,7 +260,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         assetPage.scrollFormUp();
         assetPage.clickCreateAsset();
-        mediumWait();
+        shortWait();
 
         logStep("Verifying asset was created");
         boolean created = assetPage.isAssetCreatedSuccessfully();
@@ -568,7 +568,7 @@ public final class Asset_Phase1_Test extends BaseTest {
 
         logStep("Selecting Asset Class first (required to enable Subtype)");
         assetPage.selectAssetClass("ATS");
-        mediumWait(); // Wait for subtype to become enabled
+        shortWait(); // Wait for subtype to become enabled
 
         logStep("Dismissing keyboard if open");
         assetPage.dismissKeyboard();
@@ -766,7 +766,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.scrollFormUp();
         assetPage.scrollFormUp();
         assetPage.clickCreateAsset();
-        mediumWait();
+        shortWait();
 
         logStep("Verifying asset was created with QR code");
         boolean created = assetPage.isAssetCreatedSuccessfully();
@@ -810,7 +810,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.scrollFormUp();
         assetPage.scrollFormUp();
         assetPage.clickCreateAsset();
-        mediumWait();
+        shortWait();
 
         logStep("Verifying asset was created successfully without photo");
         assertTrue(assetPage.isAssetCreatedSuccessfully(), "Asset should be saved successfully without profile photo");
@@ -858,7 +858,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.scrollFormUp();
         assetPage.scrollFormUp();
         assetPage.clickCreateAsset();
-        mediumWait();
+        shortWait();
 
         logStep("Verifying asset creation");
         assertTrue(assetPage.isAssetCreatedSuccessfully(), "Asset should be created successfully");
@@ -923,7 +923,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.scrollFormUp();
         assetPage.scrollFormUp();
         assetPage.clickCreateAsset();
-        mediumWait();
+        shortWait();
 
         logStep("Verifying asset was created");
         assertTrue(assetPage.isAssetCreatedSuccessfully(), "Asset should be created");
@@ -1370,7 +1370,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         logStep("Save Changes button visible: " + saveButtonVisible);
         
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         logStep("Verifying save behavior");
         // After clicking save, we either:
@@ -1428,7 +1428,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         logStep("Save Changes button visible: " + saveButtonVisible);
         
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         logStep("Verifying save behavior");
         // After clicking save, we either:
@@ -1482,7 +1482,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         logStep("Save Changes button visible: " + saveButtonVisible);
         
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         logStep("Verifying asset saved successfully");
         // After clicking save, check if we left the edit screen
@@ -1531,7 +1531,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         logStep("Save Changes button visible: " + saveButtonVisible);
         
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         logStep("Verifying save behavior");
         boolean stillOnEditScreen = assetPage.isSaveChangesButtonVisible();
@@ -1650,7 +1650,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         
         try {
             assetPage.clickSaveChanges();
-            mediumWait();
+            shortWait();
         } catch (Exception e) {
             logStep("Save button interaction completed");
         }
@@ -1880,7 +1880,7 @@ public final class Asset_Phase1_Test extends BaseTest {
 
         logStep("Clicking Save Changes button directly");
         assetPage.scrollFormUp();
-        mediumWait();
+        shortWait();
         assetPage.clickSaveChanges();
         sleep(3000);
 
@@ -2127,9 +2127,9 @@ public final class Asset_Phase1_Test extends BaseTest {
 
         logStep("Scrolling to Core Attributes to find A Phase Serial Number");
         assetPage.scrollFormDown();
-        mediumWait();
+        shortWait();
         assetPage.scrollFormDown();
-        mediumWait();
+        shortWait();
 
         logStep("Editing A Phase Serial Number");
         String testValue = "A_" + System.currentTimeMillis();
@@ -2146,7 +2146,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         assetPage.scrollFormUp();
         assetPage.scrollFormUp();
-        mediumWait();
+        shortWait();
         
         assetPage.clickSaveChanges();
         sleep(3000);
@@ -2175,9 +2175,9 @@ public final class Asset_Phase1_Test extends BaseTest {
 
         logStep("Scrolling to Core Attributes");
         assetPage.scrollFormDown();
-        mediumWait();
+        shortWait();
         assetPage.scrollFormDown();
-        mediumWait();
+        shortWait();
 
         logStep("Editing B Phase Serial Number");
         String testValue = "B_" + System.currentTimeMillis();
@@ -2193,7 +2193,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         assetPage.scrollFormUp();
         assetPage.scrollFormUp();
-        mediumWait();
+        shortWait();
         
         assetPage.clickSaveChanges();
         sleep(3000);
@@ -2231,7 +2231,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "C Phase Serial Number should be saved successfully");
@@ -2268,7 +2268,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Catalog Number should be saved successfully");
@@ -2304,7 +2304,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Fluid Capacity should be saved successfully");
@@ -2340,7 +2340,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Fluid Type should be saved successfully");
@@ -2376,7 +2376,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Fuse Amperage should be saved successfully");
@@ -2412,7 +2412,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Fuse Manufacturer should be saved successfully");
@@ -2448,7 +2448,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Fuse Refill Number should be saved successfully");
@@ -2484,7 +2484,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "KVAR Rating should be saved successfully");
@@ -2520,7 +2520,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Manufacturer should be saved successfully");
@@ -2556,7 +2556,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Model should be saved successfully");
@@ -2592,7 +2592,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Notes should be saved successfully");
@@ -2635,7 +2635,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         assetPage.scrollFormUp();
         assetPage.scrollFormUp();
-        mediumWait();
+        shortWait();
         
         assetPage.clickSaveChanges();
         sleep(3000);
@@ -2675,7 +2675,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Serial Number should be saved successfully");
@@ -2711,7 +2711,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Spare Fuses should be saved successfully");
@@ -2750,7 +2750,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         assetPage.scrollFormUp();
         assetPage.scrollFormUp();
-        mediumWait();
+        shortWait();
         
         assetPage.clickSaveChanges();
         sleep(3000);
@@ -2789,7 +2789,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Type should be saved successfully");
@@ -2825,7 +2825,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "UF Rating should be saved successfully");
@@ -2861,7 +2861,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Voltage should be saved successfully");
@@ -2928,9 +2928,9 @@ public final class Asset_Phase1_Test extends BaseTest {
 
         logStep("Making a modification");
         assetPage.scrollFormDown();
-        mediumWait();
+        shortWait();
         assetPage.scrollFormDown();
-        mediumWait();
+        shortWait();
         
         assetPage.editTextField("Manufacturer", "TestCancel_" + System.currentTimeMillis());
         longWait();
@@ -2939,7 +2939,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         assetPage.scrollFormUp();
         assetPage.scrollFormUp();
-        mediumWait();
+        shortWait();
         
         assetPage.clickCancel();
         longWait();
@@ -3225,7 +3225,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Ampere Rating should be saved successfully");
@@ -3260,7 +3260,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Breaker Settings should be saved successfully");
@@ -3294,7 +3294,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.scrollFormUp();
         assetPage.scrollFormUp();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Interrupting Rating should be saved successfully");
@@ -3329,7 +3329,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Manufacturer should be saved successfully");
@@ -3364,7 +3364,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Model should be saved successfully");
@@ -3399,7 +3399,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Voltage should be saved successfully");
@@ -3434,7 +3434,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Catalog Number should be saved successfully");
@@ -3469,7 +3469,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Notes should be saved successfully");
@@ -3494,7 +3494,7 @@ public final class Asset_Phase1_Test extends BaseTest {
 
         logStep("Leaving required fields empty and saving");
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Asset should save even with empty required fields");
@@ -3528,7 +3528,7 @@ public final class Asset_Phase1_Test extends BaseTest {
 
         logStep("Saving changes");
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Asset should save with partial required fields");
@@ -3565,7 +3565,7 @@ public final class Asset_Phase1_Test extends BaseTest {
 
         logStep("Saving changes");
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Asset should save with all required fields filled");
@@ -3644,7 +3644,7 @@ public final class Asset_Phase1_Test extends BaseTest {
 
         logStep("Attempting to save");
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Save should be allowed despite red indicators");
@@ -3697,7 +3697,7 @@ public final class Asset_Phase1_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickCancel();
-            mediumWait();
+            shortWait();
             
             logStep("Step 7: Handling any confirmation dialog");
             try {
@@ -4042,7 +4042,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Ampere Rating should be saved successfully");
@@ -4076,7 +4076,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.scrollFormUp();
         assetPage.scrollFormUp();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Interrupting Rating should be saved successfully");
@@ -4111,7 +4111,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Voltage should be saved successfully");
@@ -4146,7 +4146,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Catalog Number should be saved successfully");
@@ -4181,7 +4181,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Manufacturer should be saved successfully");
@@ -4216,7 +4216,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Notes should be saved successfully");
@@ -4241,7 +4241,7 @@ public final class Asset_Phase1_Test extends BaseTest {
 
         logStep("Leaving required fields empty and saving");
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Asset should save even with empty required fields");
@@ -4275,7 +4275,7 @@ public final class Asset_Phase1_Test extends BaseTest {
 
         logStep("Saving changes");
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Asset should save with partial required fields");
@@ -4312,7 +4312,7 @@ public final class Asset_Phase1_Test extends BaseTest {
 
         logStep("Saving changes");
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Asset should save with all required fields filled");
@@ -4390,7 +4390,7 @@ public final class Asset_Phase1_Test extends BaseTest {
 
         logStep("Attempting to save");
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Save should be allowed despite red indicators");
@@ -4437,7 +4437,7 @@ public final class Asset_Phase1_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickCancel();
-            mediumWait();
+            shortWait();
             
             // Handle any confirmation dialog
             try {
@@ -4793,7 +4793,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Fuse Amperage should be saved successfully");
@@ -4828,7 +4828,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Fuse Manufacturer should be saved successfully");
@@ -4863,7 +4863,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "KA Rating should be saved successfully");
@@ -4898,7 +4898,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Voltage should be saved successfully");
@@ -4933,7 +4933,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Fuse Refill Number should be saved successfully");
@@ -4968,7 +4968,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Notes should be saved successfully");
@@ -5003,7 +5003,7 @@ public final class Asset_Phase1_Test extends BaseTest {
         assetPage.dismissKeyboard();
         shortWait();
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Spare Fuses should be saved successfully");
@@ -5028,7 +5028,7 @@ public final class Asset_Phase1_Test extends BaseTest {
 
         logStep("Leaving required fields empty and saving");
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Asset should save even with empty required fields");
@@ -5062,7 +5062,7 @@ public final class Asset_Phase1_Test extends BaseTest {
 
         logStep("Saving changes");
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Asset should save with partial required fields");
@@ -5100,7 +5100,7 @@ public final class Asset_Phase1_Test extends BaseTest {
 
         logStep("Saving changes");
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Asset should save with all required fields filled");
@@ -5178,7 +5178,7 @@ public final class Asset_Phase1_Test extends BaseTest {
 
         logStep("Attempting to save");
         assetPage.clickSaveChanges();
-        mediumWait();
+        shortWait();
 
         boolean saved = assetPage.isAssetSavedAfterEdit();
         assertTrue(saved, "Save should be allowed despite red indicators");
@@ -5223,7 +5223,7 @@ public final class Asset_Phase1_Test extends BaseTest {
             assetPage.scrollFormUp();
             assetPage.scrollFormUp();
             assetPage.clickCancel();
-            mediumWait();
+            shortWait();
             
             // Handle any confirmation dialog
             try {
