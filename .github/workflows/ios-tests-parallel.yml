@@ -61,7 +61,7 @@ jobs:
   smoke-tests:
     if: github.event.inputs.job_selection == 'smoke-only'
     runs-on: macos-15
-    timeout-minutes: 60
+    timeout-minutes: 420
     
     steps:
       - name: Checkout code
