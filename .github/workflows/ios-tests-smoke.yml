@@ -18,6 +18,12 @@ name: iOS Tests - Smoke Suite
 #   - Asset Management: 3 tests (New Asset, Fields, Class)
 #   - Location: 3 tests (Building UI, Save, Name)
 #   - Connections: 3 tests (Tab, Header, List)
+#
+# Configuration (matching ios-tests-parallel.yml):
+#   - Pre-build WebDriverAgent
+#   - Warm-up WDA Session with 3 retry attempts
+#   - Boot loop with (Booted) check
+#   - 45s post-boot stabilization
 # ============================================================
 
 on:
@@ -120,58 +126,105 @@ jobs:
         run: |
           echo "Pre-building WebDriverAgent to avoid timeout on first test..."
           WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          
           if [ -n "$WDA_PATH" ]; then
+            echo "Found WDA at: $WDA_PATH"
             cd "$WDA_PATH"
+            
             xcodebuild build-for-testing \
               -project WebDriverAgent.xcodeproj \
               -scheme WebDriverAgentRunner \
               -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" \
+              -derivedDataPath /tmp/wda-build \
               -quiet || echo "WDA pre-build completed (may have warnings)"
+            
+            echo "✅ WDA pre-built"
+          else
+            echo "⚠️ WDA not found, will be built on first test run"
           fi
 
       - name: Start Appium Server
         run: |
-          echo "Starting Appium server..."
-          appium --address 127.0.0.1 --port 4723 --base-path / \
-            --relaxed-security --log-level info \
-            --session-override --log appium.log &
+          echo "Starting Appium..."
+          appium --relaxed-security --log-level info > appium.log 2>&1 &
+          APPIUM_PID=$!
+          echo "Appium PID: $APPIUM_PID"
+          
+          APPIUM_READY=false
+          for i in {1..60}; do
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:4723/status 2>/dev/null || echo "000")
+            if [ "$HTTP_STATUS" = "200" ]; then
+              echo "✅ Appium server is ready! (HTTP $HTTP_STATUS)"
+              APPIUM_READY=true
+              break
+            fi
+            echo "Waiting for Appium... ($i/60) - HTTP: $HTTP_STATUS"
+            sleep 2
+          done
+          
+          if [ "$APPIUM_READY" = false ]; then
+            echo "❌ Appium failed to start"
+            cat appium.log | tail -30
+            exit 1
+          fi
+          
+          echo "Waiting 10s for Appium to fully initialize..."
           sleep 10
-          echo "✅ Appium server started"
+          echo "✅ Appium server verified and ready"
 
       - name: Warm-up WDA Session
-        continue-on-error: true
+        env:
+          SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
+          APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
         run: |
-          echo "Creating warm-up session..."
-          curl -s -X POST http://127.0.0.1:4723/session \
-            -H "Content-Type: application/json" \
-            -d '{
-              "capabilities": {
-                "alwaysMatch": {
-                  "platformName": "iOS",
-                  "appium:automationName": "XCUITest",
-                  "appium:deviceName": "${{ env.DEVICE_NAME }}",
-                  "appium:udid": "${{ env.SIMULATOR_UDID }}",
-                  "appium:platformVersion": "${{ env.PLATFORM_VERSION }}",
-                  "appium:app": "${{ github.workspace }}/apps/Z Platform-QA.app",
-                  "appium:newCommandTimeout": 300,
-                  "appium:wdaStartupRetries": 4,
-                  "appium:wdaStartupRetryInterval": 20000
-                }
-              }
-            }' > session.json
+          echo "=== Warming up WDA with a test session ==="
           
-          SESSION_ID=$(cat session.json | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4)
-          if [ -n "$SESSION_ID" ]; then
-            echo "✅ Warm-up session created: $SESSION_ID"
-            sleep 5
-            curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true
-            echo "✅ Warm-up session closed"
-          fi
-          sleep 5
+          for attempt in 1 2 3; do
+            echo "Warm-up attempt $attempt/3..."
+            
+            SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
+              -H "Content-Type: application/json" \
+              -d '{
+                "capabilities": {
+                  "alwaysMatch": {
+                    "platformName": "iOS",
+                    "appium:automationName": "XCUITest",
+                    "appium:deviceName": "'"${{ env.DEVICE_NAME }}"'",
+                    "appium:udid": "'"$SIMULATOR_UDID"'",
+                    "appium:platformVersion": "'"${{ env.PLATFORM_VERSION }}"'",
+                    "appium:app": "'"$APP_PATH"'",
+                    "appium:wdaLaunchTimeout": 600000,
+                    "appium:wdaConnectionTimeout": 300000,
+                    "appium:useNewWDA": false,
+                    "appium:noReset": false
+                  }
+                }
+              }' --max-time 600 2>&1) || true
+            
+            SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
+            
+            if [ -n "$SESSION_ID" ]; then
+              echo "✅ WDA warm-up session created: $SESSION_ID"
+              sleep 10
+              curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true
+              echo "✅ Warm-up session closed"
+              sleep 5
+              echo "✅ WDA warm-up complete"
+              break
+            else
+              echo "⚠️ Attempt $attempt failed"
+              [ $attempt -lt 3 ] && sleep 30
+            fi
+          done
 
       - name: Run Smoke Tests
         id: smoke_tests
         continue-on-error: true
+        env:
+          SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
+          PLATFORM_VERSION: ${{ env.PLATFORM_VERSION }}
+          DEVICE_NAME: ${{ env.DEVICE_NAME }}
+          APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
         run: |
           echo "╔════════════════════════════════════════════════════════════╗"
           echo "║         🔥 SMOKE TEST SUITE (17 tests)                     ║"
@@ -186,10 +239,10 @@ jobs:
           echo "   Connections: TC_CONN_001, TC_CONN_002, TC_CONN_004"
           echo ""
           mvn test -DsuiteXmlFile=src/test/resources/parallel/testng-smoke.xml \
-            -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
-            -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
-            -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
-            -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+            -DDEVICE_NAME="$DEVICE_NAME" \
+            -DPLATFORM_VERSION="$PLATFORM_VERSION" \
+            -DSIMULATOR_UDID="$SIMULATOR_UDID" \
+            -DAPP_PATH="$APP_PATH"
 
       - name: Capture Smoke Test Status
         id: smoke_status

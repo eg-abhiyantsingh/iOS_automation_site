@@ -2,55 +2,66 @@
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
 <suite name="eGalvanic iOS Automation Suite" verbose="2">
 
-    <!-- Failed Location Tests (for re-run) - 31 failed tests -->
-    <test name="Failed Location Tests">
+    <!-- Authentication Tests -->
+    <test name="Authentication Tests">
         <classes>
-            <class name="com.egalvanic.tests.LocationTest">
-                <methods>
-                    <!-- New Building Tests -->
-                    <include name="TC_NB_001_verifyNewBuildingScreenUIElements"/>
-                    <include name="TC_NB_006_verifyBuildingNameWhitespaceValidation"/>
-                    <include name="TC_NB_007_verifyBuildingNameMaximumLength"/>
-                    <!-- Building List Tests -->
-                    <include name="TC_BL_003_verifyTappingOutsideClosesContextMenu"/>
-                    <!-- Edit Building Tests -->
-                    <include name="TC_EB_001_verifyEditBuildingOpensWithPrefilledData"/>
-                    <!-- Delete Building Tests -->
-                    <include name="TC_DB_001_verifyBuildingDeletedImmediatelyOnTap"/>
-                    <!-- New Floor Tests -->
-                    <include name="TC_NF_006_verifyFloorNameWhitespaceOnlyValidation"/>
-                    <!-- Room List Tests -->
-                    <include name="TC_RL_002_verifyRoomShowsAssetCount"/>
-                    <include name="TC_RL_003_verifyLongPressOnRoomShowsContextMenu"/>
-                    <!-- Edit Room Tests -->
-                    <include name="TC_ER_001_verifyEditRoomOpensWithPrefilledData"/>
-                    <include name="TC_ER_002_verifyRoomNameCanBeUpdated"/>
-                    <include name="TC_ER_003_verifyFloorAndBuildingFieldsNotEditable"/>
-                    <include name="TC_ER_004_verifyAccessNotesCanBeUpdated"/>
-                    <include name="TC_ER_005_verifyCancelDiscardsRoomEditChanges"/>
-                    <!-- Delete Room Tests -->
-                    <include name="TC_DR_001_verifyRoomDeletedImmediatelyOnTap"/>
-                    <include name="TC_DR_002_verifyRoomCountUpdatesAfterDeletion"/>
-                    <!-- Room Detail Tests -->
-                    <include name="TC_RD_001_verifyRoomDetailScreenUIElements"/>
-                    <include name="TC_RD_002_verifyBreadcrumbNavigationDisplaysCorrectly"/>
-                    <include name="TC_RD_004_verifyAssetsListInRoom"/>
-                    <include name="TC_RD_005_verifyTappingAssetOpensAssetDetails"/>
-                    <include name="TC_RD_006_verifyDoneButtonNavigatesBack"/>
-                    <!-- No Location Tests -->
-                    <include name="TC_NL_001_verifyNoLocationSectionDisplaysInLocationsList"/>
-                    <include name="TC_NL_002_verifyTappingNoLocationOpensAssetList"/>
-                    <include name="TC_NL_006_verifyDoneButtonOnNoLocationScreen"/>
-                    <include name="TC_NL_007_verifyNoLocationIsNotEditableOrDeletable"/>
-                    <include name="TC_NL_008_verifyNoLocationCountUpdatesDynamically"/>
-                    <!-- Asset Location Tests -->
-                    <include name="TC_AL_001_verifyAssetDetailsShowsSelectLocationForUnassignedAsset"/>
-                    <include name="TC_AL_002_verifyTappingLocationOpensLocationPicker"/>
-                    <include name="TC_AL_003_verifySelectingLocationShowsSaveChangesButton"/>
-                    <include name="TC_AL_004_verifySaveChangesAssignsLocationToAsset"/>
-                    <include name="TC_AL_007_verifyCancelDiscardsLocationChange"/>
-                </methods>
-            </class>
+            <class name="com.egalvanic.tests.AuthenticationTest"/>
+        </classes>
+    </test>
+
+    <!-- Site Selection Tests -->
+    <test name="Site Selection Tests">
+        <classes>
+            <class name="com.egalvanic.tests.SiteSelectionTest"/>
+        </classes>
+    </test>
+
+    <!-- Location Tests -->
+    <test name="Location Tests">
+        <classes>
+            <class name="com.egalvanic.tests.LocationTest"/>
+        </classes>
+    </test>
+
+    <!-- Asset Phase 1 Tests -->
+    <test name="Asset Phase 1 Tests">
+        <classes>
+            <class name="com.egalvanic.tests.Asset_Phase1_Test"/>
+        </classes>
+    </test>
+
+    <!-- Asset Phase 2 Tests -->
+    <test name="Asset Phase 2 Tests">
+        <classes>
+            <class name="com.egalvanic.tests.Asset_Phase2_Test"/>
+        </classes>
+    </test>
+
+    <!-- Asset Phase 3 Tests -->
+    <test name="Asset Phase 3 Tests">
+        <classes>
+            <class name="com.egalvanic.tests.Asset_Phase3_Test"/>
+        </classes>
+    </test>
+
+    <!-- Asset Phase 4 Tests -->
+    <test name="Asset Phase 4 Tests">
+        <classes>
+            <class name="com.egalvanic.tests.Asset_Phase4_Test"/>
+        </classes>
+    </test>
+
+    <!-- Asset Phase 5 Tests -->
+    <test name="Asset Phase 5 Tests">
+        <classes>
+            <class name="com.egalvanic.tests.Asset_Phase5_Test"/>
+        </classes>
+    </test>
+
+    <!-- Connections Tests -->
+    <test name="Connections Tests">
+        <classes>
+            <class name="com.egalvanic.tests.Connections_Test"/>
         </classes>
     </test>
 

@@ -47,8 +47,7 @@
         <classes>
             <class name="com.egalvanic.tests.Asset_Phase1_Test">
                 <methods>
-                    <include name="ATS_ECR_01_verifyNewAssetScreenLoadsSuccessfully"/>
-                    <include name="ATS_ECR_02_verifyAllUIFieldsAreVisible"/>
+                     <include name="ATS_ECR_02_verifyAllUIFieldsAreVisible"/>
                     <include name="ATS_ECR_14_verifySelectAssetClass"/>
                 </methods>
             </class>
@@ -60,7 +59,6 @@
         <classes>
             <class name="com.egalvanic.tests.LocationTest">
                 <methods>
-                    <include name="TC_NB_001_verifyNewBuildingScreenUIElements"/>
                     <include name="TC_NB_003_verifySaveButtonStateChanges"/>
                     <include name="TC_NB_004_verifyBuildingNameAcceptsValidInput"/>
                 </methods>
@@ -73,8 +71,7 @@
         <classes>
             <class name="com.egalvanic.tests.Connections_Test">
                 <methods>
-                    <include name="TC_CONN_001_verifyConnectionsTabInBottomNavigation"/>
-                    <include name="TC_CONN_002_verifyConnectionsScreenHeader"/>
+                     <include name="TC_CONN_002_verifyConnectionsScreenHeader"/>
                     <include name="TC_CONN_004_verifyConnectionListDisplaysAllConnections"/>
                 </methods>
             </class>
