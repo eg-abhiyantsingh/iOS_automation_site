@@ -31,8 +31,10 @@ name: iOS Tests - Full Parallel Suite
 # ============================================================
 
 on:
-  push:
-    branches: [main, develop]
+  # NOTE: Push trigger removed - smoke tests run first on push
+  # This workflow is triggered:
+  #   1. Manually via Actions UI (workflow_dispatch)
+  #   2. Automatically by smoke tests when they pass (if enabled)
   workflow_dispatch:
     inputs:
       job_selection:
