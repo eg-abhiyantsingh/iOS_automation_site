@@ -31,11 +31,14 @@ name: iOS Tests - Full Parallel Suite
 # ============================================================
 
 on:
-  # NOTE: Both smoke and parallel workflows trigger on push
-  # Parallel workflow has 60s delay so smoke tests START FIRST
-  # You can cancel this workflow without affecting smoke tests (separate files)
-  push:
+  # TRIGGER: Waits for Smoke Tests to START before running
+  # This ensures smoke tests get runner priority
+  workflow_run:
+    workflows: ["iOS Tests - Smoke Suite"]
+    types: [in_progress]
     branches: [main, develop]
+  
+  # Manual trigger still available
   workflow_dispatch:
     inputs:
       job_selection:
@@ -67,22 +70,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Wait for Smoke Tests to Start First
-        run: |
-          echo "╔════════════════════════════════════════════════════════════╗"
-          echo "║  ⏳ PRIORITY DELAY - Giving Smoke Tests 60s Head Start     ║"
-          echo "╚════════════════════════════════════════════════════════════╝"
-          echo ""
-          echo "🔥 Smoke tests are starting first (high priority)"
-          echo "📦 This parallel job will begin in 60 seconds..."
-          echo ""
-          for i in $(seq 60 -10 10); do
-            echo "   Starting in ${i} seconds..."
-            sleep 10
-          done
-          echo ""
-          echo "✅ Delay complete - Starting parallel tests now!"
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -295,22 +282,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Wait for Smoke Tests to Start First
-        run: |
-          echo "╔════════════════════════════════════════════════════════════╗"
-          echo "║  ⏳ PRIORITY DELAY - Giving Smoke Tests 60s Head Start     ║"
-          echo "╚════════════════════════════════════════════════════════════╝"
-          echo ""
-          echo "🔥 Smoke tests are starting first (high priority)"
-          echo "📦 This parallel job will begin in 60 seconds..."
-          echo ""
-          for i in $(seq 60 -10 10); do
-            echo "   Starting in ${i} seconds..."
-            sleep 10
-          done
-          echo ""
-          echo "✅ Delay complete - Starting parallel tests now!"
-
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
@@ -415,22 +386,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Wait for Smoke Tests to Start First
-        run: |
-          echo "╔════════════════════════════════════════════════════════════╗"
-          echo "║  ⏳ PRIORITY DELAY - Giving Smoke Tests 60s Head Start     ║"
-          echo "╚════════════════════════════════════════════════════════════╝"
-          echo ""
-          echo "🔥 Smoke tests are starting first (high priority)"
-          echo "📦 This parallel job will begin in 60 seconds..."
-          echo ""
-          for i in $(seq 60 -10 10); do
-            echo "   Starting in ${i} seconds..."
-            sleep 10
-          done
-          echo ""
-          echo "✅ Delay complete - Starting parallel tests now!"
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -537,22 +492,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Wait for Smoke Tests to Start First
-        run: |
-          echo "╔════════════════════════════════════════════════════════════╗"
-          echo "║  ⏳ PRIORITY DELAY - Giving Smoke Tests 60s Head Start     ║"
-          echo "╚════════════════════════════════════════════════════════════╝"
-          echo ""
-          echo "🔥 Smoke tests are starting first (high priority)"
-          echo "📦 This parallel job will begin in 60 seconds..."
-          echo ""
-          for i in $(seq 60 -10 10); do
-            echo "   Starting in ${i} seconds..."
-            sleep 10
-          done
-          echo ""
-          echo "✅ Delay complete - Starting parallel tests now!"
-
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
@@ -657,22 +596,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Wait for Smoke Tests to Start First
-        run: |
-          echo "╔════════════════════════════════════════════════════════════╗"
-          echo "║  ⏳ PRIORITY DELAY - Giving Smoke Tests 60s Head Start     ║"
-          echo "╚════════════════════════════════════════════════════════════╝"
-          echo ""
-          echo "🔥 Smoke tests are starting first (high priority)"
-          echo "📦 This parallel job will begin in 60 seconds..."
-          echo ""
-          for i in $(seq 60 -10 10); do
-            echo "   Starting in ${i} seconds..."
-            sleep 10
-          done
-          echo ""
-          echo "✅ Delay complete - Starting parallel tests now!"
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -779,22 +702,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Wait for Smoke Tests to Start First
-        run: |
-          echo "╔════════════════════════════════════════════════════════════╗"
-          echo "║  ⏳ PRIORITY DELAY - Giving Smoke Tests 60s Head Start     ║"
-          echo "╚════════════════════════════════════════════════════════════╝"
-          echo ""
-          echo "🔥 Smoke tests are starting first (high priority)"
-          echo "📦 This parallel job will begin in 60 seconds..."
-          echo ""
-          for i in $(seq 60 -10 10); do
-            echo "   Starting in ${i} seconds..."
-            sleep 10
-          done
-          echo ""
-          echo "✅ Delay complete - Starting parallel tests now!"
-
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
@@ -899,22 +806,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Wait for Smoke Tests to Start First
-        run: |
-          echo "╔════════════════════════════════════════════════════════════╗"
-          echo "║  ⏳ PRIORITY DELAY - Giving Smoke Tests 60s Head Start     ║"
-          echo "╚════════════════════════════════════════════════════════════╝"
-          echo ""
-          echo "🔥 Smoke tests are starting first (high priority)"
-          echo "📦 This parallel job will begin in 60 seconds..."
-          echo ""
-          for i in $(seq 60 -10 10); do
-            echo "   Starting in ${i} seconds..."
-            sleep 10
-          done
-          echo ""
-          echo "✅ Delay complete - Starting parallel tests now!"
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -1021,22 +912,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Wait for Smoke Tests to Start First
-        run: |
-          echo "╔════════════════════════════════════════════════════════════╗"
-          echo "║  ⏳ PRIORITY DELAY - Giving Smoke Tests 60s Head Start     ║"
-          echo "╚════════════════════════════════════════════════════════════╝"
-          echo ""
-          echo "🔥 Smoke tests are starting first (high priority)"
-          echo "📦 This parallel job will begin in 60 seconds..."
-          echo ""
-          for i in $(seq 60 -10 10); do
-            echo "   Starting in ${i} seconds..."
-            sleep 10
-          done
-          echo ""
-          echo "✅ Delay complete - Starting parallel tests now!"
-
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
@@ -1142,22 +1017,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Wait for Smoke Tests to Start First
-        run: |
-          echo "╔════════════════════════════════════════════════════════════╗"
-          echo "║  ⏳ PRIORITY DELAY - Giving Smoke Tests 60s Head Start     ║"
-          echo "╚════════════════════════════════════════════════════════════╝"
-          echo ""
-          echo "🔥 Smoke tests are starting first (high priority)"
-          echo "📦 This parallel job will begin in 60 seconds..."
-          echo ""
-          for i in $(seq 60 -10 10); do
-            echo "   Starting in ${i} seconds..."
-            sleep 10
-          done
-          echo ""
-          echo "✅ Delay complete - Starting parallel tests now!"
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
