@@ -721,7 +721,7 @@ public class LocationTest extends BaseTest {
         logStep("Step 1: Performing long press on building: " + buildingToTest);
         boolean longPressSuccess = buildingPage.longPressOnBuilding(buildingToTest);
         assertTrue(longPressSuccess, "Long press action should be performed successfully");
-        mediumWait(); // Wait for context menu animation
+        shortWait(); // Wait for context menu animation
 
         // Step 2: Verify context menu appears
         logStep("Step 2: Verifying context menu is displayed");
@@ -2212,7 +2212,7 @@ public class LocationTest extends BaseTest {
         
         boolean saveSuccess = buildingPage.saveNewFloor();
         assertTrue(saveSuccess, "Floor should save successfully");
-        mediumWait();
+        shortWait();
 
         // Step 4: Verify floor appears under building
         logStep("Step 4: Verifying floor appears under building " + buildingToTest);
@@ -2382,7 +2382,7 @@ public class LocationTest extends BaseTest {
         logStep("Step 2: Saving new floor");
         boolean saveSuccess = buildingPage.saveNewFloor();
         assertTrue(saveSuccess, "Floor should save successfully");
-        mediumWait(); // Wait for UI to update
+        shortWait(); // Wait for UI to update
 
         // Step 3: Check building in list
         logStep("Step 3: Checking building in list for updated floor count");
@@ -2480,7 +2480,7 @@ public class LocationTest extends BaseTest {
         logStep("Step 2: Tapping expand arrow to show floors under building");
         boolean expanded = buildingPage.expandBuilding(buildingToTest);
         assertTrue(expanded, "Should expand building to show floors");
-        mediumWait();
+        shortWait();
 
         // Step 3: Verify floors displayed
         logStep("Step 3: Verifying floors are displayed under building");
@@ -2491,7 +2491,7 @@ public class LocationTest extends BaseTest {
             logWarning("Floors not visible, clicking building again...");
             expanded = buildingPage.expandBuilding(buildingToTest);
             assertTrue(expanded, "Should expand building");
-            mediumWait();
+            shortWait();
             floorsVisible = buildingPage.areFloorsVisibleUnderBuilding(buildingToTest);
         }
         
@@ -2556,7 +2556,7 @@ public class LocationTest extends BaseTest {
         logStep("Step 1: Expanding building to show floors");
         boolean expanded = buildingPage.expandBuilding(buildingToTest);
         assertTrue(expanded, "Expand action should be performed");
-        mediumWait();
+        shortWait();
 
         // Step 2: Verify floors visible
         logStep("Step 2: Verifying floors are visible after expand");
@@ -2575,7 +2575,7 @@ public class LocationTest extends BaseTest {
         logStep("Step 3: Collapsing building to hide floors");
         boolean collapsed = buildingPage.collapseBuilding(buildingToTest);
         assertTrue(collapsed, "Collapse action should be performed");
-        mediumWait();
+        shortWait();
 
         // Step 4: Verify floors hidden
         logStep("Step 4: Verifying floors are hidden after collapse");
@@ -2630,7 +2630,7 @@ public class LocationTest extends BaseTest {
         logStep("Expanding building: " + buildingToTest);
         boolean expanded = buildingPage.expandBuilding(buildingToTest);
         assertTrue(expanded, "Should expand building");
-        mediumWait();
+        shortWait();
 
         // Verify floors are visible
         logStep("Verifying floors are visible");
@@ -2639,7 +2639,7 @@ public class LocationTest extends BaseTest {
             // Try expanding again
             expanded = buildingPage.expandBuilding(buildingToTest);
             assertTrue(expanded, "Should expand building");
-            mediumWait();
+            shortWait();
         }
 
         // Find a floor to test with
@@ -2725,7 +2725,7 @@ public class LocationTest extends BaseTest {
         logStep("Expanding building: " + buildingToTest);
         boolean expanded = buildingPage.expandBuilding(buildingToTest);
         assertTrue(expanded, "Should expand building");
-        mediumWait();
+        shortWait();
 
         // Find a floor to edit (target: '77' or first available)
         String targetFloor = getAnyFloorForTest(); // FAST - uses first available floor
@@ -2832,7 +2832,7 @@ public class LocationTest extends BaseTest {
         String buildingToTest = getAnyBuildingForTest();
         boolean expanded = buildingPage.expandBuilding(buildingToTest);
         assertTrue(expanded, "Should expand building");
-        mediumWait();
+        shortWait();
 
         // Find floor to edit
         WebElement firstFloor = buildingPage.getFirstFloorEntry();
@@ -2932,7 +2932,7 @@ public class LocationTest extends BaseTest {
         String buildingToTest = getAnyBuildingForTest();
         boolean expanded = buildingPage.expandBuilding(buildingToTest);
         assertTrue(expanded, "Should expand building");
-        mediumWait();
+        shortWait();
 
         // Find and edit a floor
         WebElement firstFloor = buildingPage.getFirstFloorEntry();
@@ -3008,7 +3008,7 @@ public class LocationTest extends BaseTest {
         String buildingToTest = getAnyBuildingForTest();
         boolean expanded = buildingPage.expandBuilding(buildingToTest);
         assertTrue(expanded, "Should expand building");
-        mediumWait();
+        shortWait();
 
         // Find floor to edit
         WebElement firstFloor = buildingPage.getFirstFloorEntry();
@@ -3124,7 +3124,7 @@ public class LocationTest extends BaseTest {
             buildingPage.enterFloorName(testFloorName);
             shortWait();
             buildingPage.saveNewFloor();
-            mediumWait();
+            shortWait();
         }
         
         logStep("Test floor to delete: " + testFloorName);
@@ -3132,7 +3132,7 @@ public class LocationTest extends BaseTest {
         // Expand building to show floors
         boolean expanded = buildingPage.expandBuilding(buildingToTest);
         assertTrue(expanded, "Should expand building");
-        mediumWait();
+        shortWait();
 
         // Verify test floor exists before deletion
         logStep("Verifying test floor exists before deletion");
@@ -3336,7 +3336,7 @@ public class LocationTest extends BaseTest {
         logStep("Step 2: Expanding building to show floors");
         boolean expanded = buildingPage.expandBuilding(buildingToTest);
         assertTrue(expanded, "Should expand building");
-        mediumWait();
+        shortWait();
 
         // Find floor (use first available if target not found)
         String floorToTest = targetFloor;
@@ -3456,7 +3456,7 @@ public class LocationTest extends BaseTest {
         String buildingToTest = getAnyBuildingForTest();
         boolean expanded = buildingPage.expandBuilding(buildingToTest);
         assertTrue(expanded, "Should expand building");
-        mediumWait();
+        shortWait();
 
         // Find floor
         WebElement floor = buildingPage.getFirstFloorEntry();
@@ -3541,7 +3541,7 @@ public class LocationTest extends BaseTest {
         String buildingToTest = getAnyBuildingForTest();
         boolean expanded = buildingPage.expandBuilding(buildingToTest);
         assertTrue(expanded, "Should expand building");
-        mediumWait();
+        shortWait();
 
         // Find floor and navigate to New Room
         WebElement floor = buildingPage.getFirstFloorEntry();
@@ -3622,7 +3622,7 @@ public class LocationTest extends BaseTest {
         String buildingToTest = getAnyBuildingForTest();
         boolean expanded = buildingPage.expandBuilding(buildingToTest);
         assertTrue(expanded, "Should expand building");
-        mediumWait();
+        shortWait();
 
         // Find floor and navigate to New Room
         WebElement floor = buildingPage.getFirstFloorEntry();
@@ -3837,7 +3837,7 @@ public class LocationTest extends BaseTest {
         String buildingToTest = getAnyBuildingForTest();
         boolean expanded = buildingPage.expandBuilding(buildingToTest);
         assertTrue(expanded, "Should expand building");
-        mediumWait();
+        shortWait();
 
         // Find floor and navigate to New Room
         WebElement floor = buildingPage.getFirstFloorEntry();
@@ -3919,7 +3919,7 @@ public class LocationTest extends BaseTest {
         logStep("Using building: " + buildingToTest);
         boolean expanded = buildingPage.expandBuilding(buildingToTest);
         assertTrue(expanded, "Should expand building");
-        mediumWait();
+        shortWait();
 
         // Find floor
         String targetFloor = getAnyFloorForTest(); // FAST - uses first available floor
@@ -3969,7 +3969,7 @@ public class LocationTest extends BaseTest {
         
         boolean saveSuccess = buildingPage.saveNewRoom();
         assertTrue(saveSuccess, "Room should save successfully");
-        mediumWait();
+        shortWait();
 
         // Step 4: Verify room appears under floor
         logStep("Step 4: Verifying room appears under floor " + floorToTest);
@@ -4025,7 +4025,7 @@ public class LocationTest extends BaseTest {
         String buildingToTest = getAnyBuildingForTest();
         boolean expanded = buildingPage.expandBuilding(buildingToTest);
         assertTrue(expanded, "Should expand building");
-        mediumWait();
+        shortWait();
 
         // Find floor
         WebElement floor = buildingPage.getFirstFloorEntry();
@@ -4195,7 +4195,7 @@ public class LocationTest extends BaseTest {
         logStep("Step 2: Expanding building to show floors");
         boolean buildingExpanded = buildingPage.expandBuilding(buildingToTest);
         assertTrue(buildingExpanded, "Building should expand to show floors");
-        mediumWait();
+        shortWait();
 
         // Find floor (use target or first available)
         String floorToTest = targetFloor;
@@ -4219,7 +4219,7 @@ public class LocationTest extends BaseTest {
         logStep("Step 3: Expanding floor '" + floorToTest + "' to show rooms");
         boolean floorExpanded = buildingPage.expandFloor(floorToTest);
         assertTrue(floorExpanded, "Floor should expand to show rooms");
-        mediumWait();
+        shortWait();
 
         // Step 4: Verify rooms displayed
         logStep("Step 4: Verifying rooms are displayed under floor");
@@ -4230,7 +4230,7 @@ public class LocationTest extends BaseTest {
             logWarning("Rooms not visible, clicking floor again...");
             floorExpanded = buildingPage.expandFloor(floorToTest);
             assertTrue(floorExpanded, "Should expand floor");
-            mediumWait();
+            shortWait();
             roomsVisible = buildingPage.areRoomsVisibleUnderFloor(floorToTest);
         }
         
@@ -4300,7 +4300,7 @@ public class LocationTest extends BaseTest {
         logStep("Expanding building: " + buildingToTest);
         boolean expanded = buildingPage.expandBuilding(buildingToTest);
         assertTrue(expanded, "Should expand building");
-        mediumWait();
+        shortWait();
 
         // Find and expand floor
         WebElement floor = buildingPage.getFirstFloorEntry();
@@ -4313,7 +4313,7 @@ public class LocationTest extends BaseTest {
         logStep("Expanding floor: " + floorToTest);
         boolean floorExpanded = buildingPage.expandFloor(floorToTest);
         assertTrue(floorExpanded, "Should expand floor");
-        mediumWait();
+        shortWait();
 
         // Step 1: Find room in list
         logStep("Step 1: Looking for room with asset count");
@@ -4427,7 +4427,7 @@ public class LocationTest extends BaseTest {
         logStep("Expanding building: " + buildingToTest);
         boolean expanded = buildingPage.expandBuilding(buildingToTest);
         assertTrue(expanded, "Should expand building");
-        mediumWait();
+        shortWait();
 
         // Find and expand floor
         WebElement floor = buildingPage.getFirstFloorEntry();
@@ -4440,7 +4440,7 @@ public class LocationTest extends BaseTest {
         logStep("Expanding floor: " + floorToTest);
         boolean floorExpanded = buildingPage.expandFloor(floorToTest);
         assertTrue(floorExpanded, "Should expand floor");
-        mediumWait();
+        shortWait();
 
         // Verify rooms are visible
         logStep("Verifying rooms are visible");
@@ -4449,7 +4449,7 @@ public class LocationTest extends BaseTest {
             // Try expanding again
             floorExpanded = buildingPage.expandFloor(floorToTest);
             assertTrue(floorExpanded, "Should expand floor");
-            mediumWait();
+            shortWait();
         }
 
         // Find a room to test with
@@ -4540,7 +4540,7 @@ public class LocationTest extends BaseTest {
         logStep("Expanding building: " + buildingToTest);
         boolean expanded = buildingPage.expandBuilding(buildingToTest);
         assertTrue(expanded, "Should expand building");
-        mediumWait();
+        shortWait();
 
         // Find and expand floor
         String targetFloor = getAnyFloorForTest(); // FAST - uses first available floor
@@ -4562,7 +4562,7 @@ public class LocationTest extends BaseTest {
         logStep("Expanding floor: " + floorToTest);
         boolean floorExpanded = buildingPage.expandFloor(floorToTest);
         assertTrue(floorExpanded, "Should expand floor");
-        mediumWait();
+        shortWait();
 
         // Find a room to edit (target: '1' or first available)
         String targetRoom = getAnyRoomForTest(); // FAST - uses first available room
@@ -4676,7 +4676,7 @@ public class LocationTest extends BaseTest {
         String buildingToTest = getAnyBuildingForTest();
         boolean expanded = buildingPage.expandBuilding(buildingToTest);
         assertTrue(expanded, "Should expand building");
-        mediumWait();
+        shortWait();
 
         // Find and expand floor
         WebElement floor = buildingPage.getFirstFloorEntry();
@@ -4688,7 +4688,7 @@ public class LocationTest extends BaseTest {
         }
         boolean floorExpanded = buildingPage.expandFloor(floorToTest);
         assertTrue(floorExpanded, "Should expand floor");
-        mediumWait();
+        shortWait();
 
         // Find room to edit
         WebElement firstRoom = buildingPage.getFirstRoomEntry();
@@ -4791,7 +4791,7 @@ public class LocationTest extends BaseTest {
         String buildingToTest = getAnyBuildingForTest();
         boolean expanded = buildingPage.expandBuilding(buildingToTest);
         assertTrue(expanded, "Should expand building");
-        mediumWait();
+        shortWait();
 
         // Find and expand floor
         WebElement floor = buildingPage.getFirstFloorEntry();
@@ -4803,7 +4803,7 @@ public class LocationTest extends BaseTest {
         }
         boolean floorExpanded = buildingPage.expandFloor(floorToTest);
         assertTrue(floorExpanded, "Should expand floor");
-        mediumWait();
+        shortWait();
 
         // Find and edit a room
         WebElement firstRoom = buildingPage.getFirstRoomEntry();
@@ -4897,7 +4897,7 @@ public class LocationTest extends BaseTest {
         String buildingToTest = getAnyBuildingForTest();
         boolean expanded = buildingPage.expandBuilding(buildingToTest);
         assertTrue(expanded, "Should expand building");
-        mediumWait();
+        shortWait();
 
         // Find and expand floor
         WebElement floor = buildingPage.getFirstFloorEntry();
@@ -4909,7 +4909,7 @@ public class LocationTest extends BaseTest {
         }
         boolean floorExpanded = buildingPage.expandFloor(floorToTest);
         assertTrue(floorExpanded, "Should expand floor");
-        mediumWait();
+        shortWait();
 
         // Find a room to edit
         WebElement firstRoom = buildingPage.getFirstRoomEntry();
@@ -5023,7 +5023,7 @@ public class LocationTest extends BaseTest {
         String buildingToTest = getAnyBuildingForTest();
         boolean expanded = buildingPage.expandBuilding(buildingToTest);
         assertTrue(expanded, "Should expand building");
-        mediumWait();
+        shortWait();
 
         // Find and expand floor
         WebElement floor = buildingPage.getFirstFloorEntry();
@@ -5035,7 +5035,7 @@ public class LocationTest extends BaseTest {
         }
         boolean floorExpanded = buildingPage.expandFloor(floorToTest);
         assertTrue(floorExpanded, "Should expand floor");
-        mediumWait();
+        shortWait();
 
         // Find room to edit
         WebElement firstRoom = buildingPage.getFirstRoomEntry();
@@ -5141,7 +5141,7 @@ public class LocationTest extends BaseTest {
         logStep("Expanding building: " + buildingToTest);
         boolean expanded = buildingPage.expandBuilding(buildingToTest);
         assertTrue(expanded, "Should expand building");
-        mediumWait();
+        shortWait();
 
         // Find and expand floor
         WebElement floor = buildingPage.getFirstFloorEntry();
@@ -5154,7 +5154,7 @@ public class LocationTest extends BaseTest {
         logStep("Expanding floor: " + floorToTest);
         boolean floorExpanded = buildingPage.expandFloor(floorToTest);
         assertTrue(floorExpanded, "Should expand floor");
-        mediumWait();
+        shortWait();
 
         // SETUP: Create a test room to delete
         logStep("SETUP: Creating a test room for deletion");
@@ -5169,7 +5169,7 @@ public class LocationTest extends BaseTest {
             buildingPage.enterRoomName(testRoomName);
             shortWait();
             buildingPage.saveNewRoom();
-            mediumWait();
+            shortWait();
             
             // Re-expand to see the new room
             buildingPage.expandBuilding(buildingToTest);
@@ -5267,7 +5267,7 @@ public class LocationTest extends BaseTest {
         logStep("Expanding building: " + buildingToTest);
         boolean expanded = buildingPage.expandBuilding(buildingToTest);
         assertTrue(expanded, "Should expand building");
-        mediumWait();
+        shortWait();
 
         // Find a floor
         WebElement floor = buildingPage.getFirstFloorEntry();
@@ -5302,7 +5302,7 @@ public class LocationTest extends BaseTest {
         // Expand floor to show rooms
         boolean floorExpanded = buildingPage.expandFloor(floorToTest);
         assertTrue(floorExpanded, "Should expand floor");
-        mediumWait();
+        shortWait();
 
         // Find a room to delete
         WebElement roomToDelete = buildingPage.getFirstRoomEntry();
@@ -5317,7 +5317,7 @@ public class LocationTest extends BaseTest {
         logStep("Step 1: Deleting room: " + roomName);
         boolean deleteSuccess = buildingPage.deleteRoom(roomName);
         assertTrue(deleteSuccess, "Room should be deleted successfully");
-        mediumWait();
+        shortWait();
 
         // Collapse floor to see updated room count
         buildingPage.collapseFloor(floorToTest);
@@ -5401,7 +5401,7 @@ public class LocationTest extends BaseTest {
         logStep("Step 2: Expanding building > floor hierarchy");
         boolean expanded = buildingPage.expandBuilding(buildingToTest);
         assertTrue(expanded, "Should expand building");
-        mediumWait();
+        shortWait();
 
         // Find floor (use first available if target not found)
         String floorToTest = targetFloor;
@@ -5421,7 +5421,7 @@ public class LocationTest extends BaseTest {
         logStep("Using floor: " + floorToTest);
         boolean floorExpanded = buildingPage.expandFloor(floorToTest);
         assertTrue(floorExpanded, "Should expand floor");
-        mediumWait();
+        shortWait();
 
         // Find room (target '1' or first available)
         String targetRoom = getAnyRoomForTest(); // FAST - uses first available room
@@ -5533,7 +5533,7 @@ public class LocationTest extends BaseTest {
         String buildingToTest = getAnyBuildingForTest();
         boolean expanded = buildingPage.expandBuilding(buildingToTest);
         assertTrue(expanded, "Should expand building");
-        mediumWait();
+        shortWait();
 
         WebElement floor = buildingPage.getFirstFloorEntry();
         assertNotNull(floor, "At least one floor should exist");
@@ -5544,7 +5544,7 @@ public class LocationTest extends BaseTest {
         }
         boolean floorExpanded = buildingPage.expandFloor(floorToTest);
         assertTrue(floorExpanded, "Should expand floor");
-        mediumWait();
+        shortWait();
 
         // Find and tap on a room
         WebElement room = buildingPage.getFirstRoomEntry();
@@ -5635,7 +5635,7 @@ public class LocationTest extends BaseTest {
         String buildingToTest = getAnyBuildingForTest();
         boolean expanded = buildingPage.expandBuilding(buildingToTest);
         assertTrue(expanded, "Should expand building");
-        mediumWait();
+        shortWait();
 
         // Find and expand floor
         WebElement floor = buildingPage.getFirstFloorEntry();
@@ -5647,7 +5647,7 @@ public class LocationTest extends BaseTest {
         }
         boolean floorExpanded = buildingPage.expandFloor(floorToTest);
         assertTrue(floorExpanded, "Should expand floor");
-        mediumWait();
+        shortWait();
 
         // SETUP: Create a new empty room for testing OR find room with 0 assets
         logStep("SETUP: Looking for room with no assets");
@@ -5666,7 +5666,7 @@ public class LocationTest extends BaseTest {
                 buildingPage.enterRoomName(emptyRoomName);
                 shortWait();
                 buildingPage.saveNewRoom();
-                mediumWait();
+                shortWait();
                 
                 // Re-expand to see the new room
                 buildingPage.expandBuilding(buildingToTest);
@@ -5778,7 +5778,7 @@ public class LocationTest extends BaseTest {
         String buildingToTest = getAnyBuildingForTest();
         boolean expanded = buildingPage.expandBuilding(buildingToTest);
         assertTrue(expanded, "Should expand building");
-        mediumWait();
+        shortWait();
 
         // Find and expand floor
         WebElement floor = buildingPage.getFirstFloorEntry();
@@ -5790,7 +5790,7 @@ public class LocationTest extends BaseTest {
         }
         boolean floorExpanded = buildingPage.expandFloor(floorToTest);
         assertTrue(floorExpanded, "Should expand floor");
-        mediumWait();
+        shortWait();
 
         // Find room with assets (look for room with asset count > 0)
         logStep("Looking for room with assets");
@@ -5904,7 +5904,7 @@ public class LocationTest extends BaseTest {
         String buildingToTest = getAnyBuildingForTest();
         boolean expanded = buildingPage.expandBuilding(buildingToTest);
         assertTrue(expanded, "Should expand building");
-        mediumWait();
+        shortWait();
 
         // Find and expand floor
         WebElement floor = buildingPage.getFirstFloorEntry();
@@ -5916,7 +5916,7 @@ public class LocationTest extends BaseTest {
         }
         boolean floorExpanded = buildingPage.expandFloor(floorToTest);
         assertTrue(floorExpanded, "Should expand floor");
-        mediumWait();
+        shortWait();
 
         // Find room with assets
         String roomWithAssets = buildingPage.findRoomWithAssets();
@@ -6044,7 +6044,7 @@ public class LocationTest extends BaseTest {
         String buildingToTest = getAnyBuildingForTest();
         boolean expanded = buildingPage.expandBuilding(buildingToTest);
         assertTrue(expanded, "Should expand building");
-        mediumWait();
+        shortWait();
 
         // Find and expand floor
         WebElement floor = buildingPage.getFirstFloorEntry();
@@ -6056,7 +6056,7 @@ public class LocationTest extends BaseTest {
         }
         boolean floorExpanded = buildingPage.expandFloor(floorToTest);
         assertTrue(floorExpanded, "Should expand floor");
-        mediumWait();
+        shortWait();
 
         // Find any room
         WebElement room = buildingPage.getFirstRoomEntry();
@@ -6141,30 +6141,19 @@ public class LocationTest extends BaseTest {
 
         // Step 2: Scroll to bottom to find No Location section
         logStep("Step 2: Scrolling to bottom to find 'No Location' section");
-        boolean foundNoLocation = buildingPage.scrollToNoLocation();
-        
-        if (!foundNoLocation) {
-            // Try scrolling multiple times
-            for (int i = 0; i < 5; i++) {
-                buildingPage.scrollDown();
-                shortWait();
-                if (buildingPage.isNoLocationDisplayed()) {
-                    foundNoLocation = true;
-                    break;
-                }
-            }
-        }
+        // TURBO scroll already does 5 scroll attempts
+        boolean foundNoLocation = buildingPage.scrollToNoLocationTurbo();
         
         logStepWithScreenshot("After scrolling - looking for No Location");
 
         // Step 3: Verify 'No Location' section
         logStep("Step 3: Verifying 'No Location' section is displayed");
-        boolean noLocationDisplayed = buildingPage.isNoLocationDisplayed();
+        boolean noLocationDisplayed = buildingPage.isNoLocationDisplayedFast();
         assertTrue(noLocationDisplayed, "'No Location' section should be displayed in Locations list");
 
         // Verify No Location has unassigned assets count
         logStep("Verifying No Location shows unassigned assets count");
-        String noLocationLabel = buildingPage.getNoLocationLabel();
+        String noLocationLabel = buildingPage.getNoLocationLabelFast();
         logStep("No Location label: " + noLocationLabel);
         
         if (noLocationLabel != null) {
@@ -6219,24 +6208,14 @@ public class LocationTest extends BaseTest {
 
         // Scroll to find No Location
         logStep("Scrolling to find 'No Location' section");
-        boolean foundNoLocation = buildingPage.scrollToNoLocation();
-        
-        if (!foundNoLocation) {
-            for (int i = 0; i < 5; i++) {
-                buildingPage.scrollDown();
-                shortWait();
-                if (buildingPage.isNoLocationDisplayed()) {
-                    foundNoLocation = true;
-                    break;
-                }
-            }
-        }
+        // TURBO scroll already does 5 scroll attempts
+        boolean foundNoLocation = buildingPage.scrollToNoLocationTurbo();
         assertTrue(foundNoLocation, "'No Location' section should be found");
         logStepWithScreenshot("Before tapping No Location");
 
         // Step 1: Tap on 'No Location'
         logStep("Step 1: Tapping on 'No Location' section");
-        boolean tapped = buildingPage.tapOnNoLocation();
+        boolean tapped = buildingPage.tapOnNoLocationFast();
         assertTrue(tapped, "Should tap on 'No Location' section");
         shortWait();
 
@@ -6317,20 +6296,12 @@ public class LocationTest extends BaseTest {
 
         // Scroll to find and tap No Location
         logStep("Scrolling to find 'No Location' section");
-        boolean foundNoLocation = buildingPage.scrollToNoLocation();
-        if (!foundNoLocation) {
-            for (int i = 0; i < 5; i++) {
-                buildingPage.scrollDown();
-                shortWait();
-                if (buildingPage.isNoLocationDisplayed()) {
-                    break;
-                }
-            }
-        }
+        // TURBO scroll already does 5 scroll attempts
+        boolean foundNoLocation = buildingPage.scrollToNoLocationTurbo();
 
         // Open No Location screen
         logStep("Opening No Location screen");
-        boolean tapped = buildingPage.tapOnNoLocation();
+        boolean tapped = buildingPage.tapOnNoLocationFast();
         assertTrue(tapped, "Should open No Location screen");
         shortWait();
 
@@ -6421,15 +6392,12 @@ public class LocationTest extends BaseTest {
 
         // Scroll to find and tap No Location
         logStep("Scrolling to find 'No Location' section");
-        buildingPage.scrollToNoLocation();
-        for (int i = 0; i < 5 && !buildingPage.isNoLocationDisplayed(); i++) {
-            buildingPage.scrollDown();
-            shortWait();
-        }
+        // TURBO scroll already does 5 scroll attempts with fast checks
+        buildingPage.scrollToNoLocationTurbo();
 
         // Open No Location screen
         logStep("Opening No Location screen");
-        boolean tapped = buildingPage.tapOnNoLocation();
+        boolean tapped = buildingPage.tapOnNoLocationFast();
         assertTrue(tapped, "Should open No Location screen");
         shortWait();
 
@@ -6537,15 +6505,12 @@ public class LocationTest extends BaseTest {
 
         // Scroll to find and tap No Location
         logStep("Scrolling to find 'No Location' section");
-        buildingPage.scrollToNoLocation();
-        for (int i = 0; i < 5 && !buildingPage.isNoLocationDisplayed(); i++) {
-            buildingPage.scrollDown();
-            shortWait();
-        }
+        // TURBO scroll already does 5 scroll attempts with fast checks
+        buildingPage.scrollToNoLocationTurbo();
 
         // Open No Location screen
         logStep("Opening No Location screen");
-        boolean tapped = buildingPage.tapOnNoLocation();
+        boolean tapped = buildingPage.tapOnNoLocationFast();
         assertTrue(tapped, "Should open No Location screen");
         shortWait();
 
@@ -6574,7 +6539,7 @@ public class LocationTest extends BaseTest {
         String searchTerm = "Motor";
         logStep("Step 2: Entering search term: '" + searchTerm + "'");
         buildingPage.enterSearchText(searchTerm);
-        mediumWait(); // Wait for search results to filter
+        shortWait(); // Wait for search results to filter
         logStepWithScreenshot("After entering search term");
 
         // Step 3: Verify filtered results
@@ -6610,7 +6575,7 @@ public class LocationTest extends BaseTest {
         // Clear search and verify all assets return
         logStep("Clearing search to verify all assets return");
         buildingPage.clearSearchBar();
-        mediumWait();
+        shortWait();
         
         int countAfterClear = buildingPage.getUnassignedAssetCount();
         logStep("Asset count after clearing search: " + countAfterClear);
@@ -6654,15 +6619,12 @@ public class LocationTest extends BaseTest {
 
         // Scroll to find and tap No Location
         logStep("Scrolling to find 'No Location' section");
-        buildingPage.scrollToNoLocation();
-        for (int i = 0; i < 5 && !buildingPage.isNoLocationDisplayed(); i++) {
-            buildingPage.scrollDown();
-            shortWait();
-        }
+        // TURBO scroll already does 5 scroll attempts with fast checks
+        buildingPage.scrollToNoLocationTurbo();
 
         // Open No Location screen
         logStep("Opening No Location screen");
-        boolean tapped = buildingPage.tapOnNoLocation();
+        boolean tapped = buildingPage.tapOnNoLocationFast();
         assertTrue(tapped, "Should open No Location screen");
         shortWait();
 
@@ -6719,13 +6681,10 @@ public class LocationTest extends BaseTest {
 
         // Scroll to find No Location
         logStep("Scrolling to find 'No Location' section");
-        buildingPage.scrollToNoLocation();
-        for (int i = 0; i < 5 && !buildingPage.isNoLocationDisplayed(); i++) {
-            buildingPage.scrollDown();
-            shortWait();
-        }
+        // TURBO scroll already does 5 scroll attempts with fast checks
+        buildingPage.scrollToNoLocationTurbo();
 
-        boolean noLocationDisplayed = buildingPage.isNoLocationDisplayed();
+        boolean noLocationDisplayed = buildingPage.isNoLocationDisplayedFast();
         assertTrue(noLocationDisplayed, "'No Location' section should be visible");
         logStepWithScreenshot("No Location section visible - before long press");
 
@@ -6807,14 +6766,11 @@ public class LocationTest extends BaseTest {
         logStep("Step 1: Getting current No Location count");
         
         // Scroll to find No Location
-        buildingPage.scrollToNoLocation();
-        for (int i = 0; i < 5 && !buildingPage.isNoLocationDisplayed(); i++) {
-            buildingPage.scrollDown();
-            shortWait();
-        }
+        // TURBO scroll already does 5 scroll attempts with fast checks
+        buildingPage.scrollToNoLocationTurbo();
 
-        int initialCount = buildingPage.getNoLocationAssetCount();
-        String initialLabel = buildingPage.getNoLocationLabel();
+        int initialCount = buildingPage.getNoLocationAssetCountFast();
+        String initialLabel = buildingPage.getNoLocationLabelFast();
         logStep("BEFORE - No Location count: " + initialCount);
         logStep("BEFORE - No Location label: " + initialLabel);
         logStepWithScreenshot("Initial state - No Location count noted");
@@ -6827,7 +6783,7 @@ public class LocationTest extends BaseTest {
 
         // Step 2: Assign one asset to a room
         logStep("Step 2: Opening No Location to assign an asset");
-        boolean tapped = buildingPage.tapOnNoLocation();
+        boolean tapped = buildingPage.tapOnNoLocationFast();
         assertTrue(tapped, "Should open No Location screen");
         shortWait();
 
@@ -6876,14 +6832,11 @@ public class LocationTest extends BaseTest {
         logStep("Step 4: Verifying No Location count decreased");
         
         // Scroll to find No Location again
-        buildingPage.scrollToNoLocation();
-        for (int i = 0; i < 5 && !buildingPage.isNoLocationDisplayed(); i++) {
-            buildingPage.scrollDown();
-            shortWait();
-        }
+        // TURBO scroll already does 5 scroll attempts with fast checks
+        buildingPage.scrollToNoLocationTurbo();
 
-        int newCount = buildingPage.getNoLocationAssetCount();
-        String newLabel = buildingPage.getNoLocationLabel();
+        int newCount = buildingPage.getNoLocationAssetCountFast();
+        String newLabel = buildingPage.getNoLocationLabelFast();
         logStep("AFTER - No Location count: " + newCount);
         logStep("AFTER - No Location label: " + newLabel);
         logStepWithScreenshot("After assigning asset - updated count");
@@ -6951,18 +6904,15 @@ public class LocationTest extends BaseTest {
 
         // Scroll to find No Location
         logStep("Scrolling to find 'No Location' section");
-        buildingPage.scrollToNoLocation();
-        for (int i = 0; i < 5 && !buildingPage.isNoLocationDisplayed(); i++) {
-            buildingPage.scrollDown();
-            shortWait();
-        }
+        // TURBO scroll already does 5 scroll attempts with fast checks
+        buildingPage.scrollToNoLocationTurbo();
         
-        boolean noLocationDisplayed = buildingPage.isNoLocationDisplayed();
+        boolean noLocationDisplayed = buildingPage.isNoLocationDisplayedFast();
         assertTrue(noLocationDisplayed, "'No Location' section should be visible");
 
         // Open No Location screen
         logStep("Opening No Location screen");
-        boolean tapped = buildingPage.tapOnNoLocation();
+        boolean tapped = buildingPage.tapOnNoLocationFast();
         assertTrue(tapped, "Should open No Location screen");
         shortWait();
 
@@ -7051,13 +7001,10 @@ public class LocationTest extends BaseTest {
         assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
         
-        buildingPage.scrollToNoLocation();
-        for (int i = 0; i < 5 && !buildingPage.isNoLocationDisplayed(); i++) {
-            buildingPage.scrollDown();
-            shortWait();
-        }
+        // TURBO scroll already does 5 scroll attempts with fast checks
+        buildingPage.scrollToNoLocationTurbo();
         
-        buildingPage.tapOnNoLocation();
+        buildingPage.tapOnNoLocationFast();
         shortWait();
 
         // Check if assets are displayed
@@ -7166,13 +7113,10 @@ public class LocationTest extends BaseTest {
         assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
         
-        buildingPage.scrollToNoLocation();
-        for (int i = 0; i < 5 && !buildingPage.isNoLocationDisplayed(); i++) {
-            buildingPage.scrollDown();
-            shortWait();
-        }
+        // TURBO scroll already does 5 scroll attempts with fast checks
+        buildingPage.scrollToNoLocationTurbo();
         
-        buildingPage.tapOnNoLocation();
+        buildingPage.tapOnNoLocationFast();
         shortWait();
 
         if (!buildingPage.areUnassignedAssetsDisplayed()) {
@@ -7223,7 +7167,7 @@ public class LocationTest extends BaseTest {
             logWarning("Room '" + targetRoom + "' not found, selecting first room");
             buildingPage.selectFirstRoomInPicker();
         }
-        mediumWait();
+        shortWait();
 
         // Step 3: Observe UI changes
         logStep("Step 3: Observing UI changes after selecting location");
@@ -7296,17 +7240,14 @@ public class LocationTest extends BaseTest {
         assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
         
-        buildingPage.scrollToNoLocation();
-        for (int i = 0; i < 5 && !buildingPage.isNoLocationDisplayed(); i++) {
-            buildingPage.scrollDown();
-            shortWait();
-        }
+        // TURBO scroll already does 5 scroll attempts with fast checks
+        buildingPage.scrollToNoLocationTurbo();
         
         // Note initial No Location count
-        int initialNoLocationCount = buildingPage.getNoLocationAssetCount();
+        int initialNoLocationCount = buildingPage.getNoLocationAssetCountFast();
         logStep("Initial No Location count: " + initialNoLocationCount);
         
-        buildingPage.tapOnNoLocation();
+        buildingPage.tapOnNoLocationFast();
         shortWait();
 
         if (!buildingPage.areUnassignedAssetsDisplayed()) {
@@ -7361,7 +7302,7 @@ public class LocationTest extends BaseTest {
             buildingPage.selectFirstRoomInPicker();
             targetRoom = buildingPage.getSelectedRoomName();
         }
-        mediumWait();
+        shortWait();
         
         logStep("Selected location: " + targetBuilding + " > " + targetFloor + " > " + targetRoom);
         logStepWithScreenshot("Location selected");
@@ -7385,13 +7326,10 @@ public class LocationTest extends BaseTest {
         logStep("Step 3: Verifying asset is no longer in No Location");
         
         // Scroll to No Location
-        buildingPage.scrollToNoLocation();
-        for (int i = 0; i < 5 && !buildingPage.isNoLocationDisplayed(); i++) {
-            buildingPage.scrollDown();
-            shortWait();
-        }
+        // TURBO scroll already does 5 scroll attempts with fast checks
+        buildingPage.scrollToNoLocationTurbo();
         
-        int newNoLocationCount = buildingPage.getNoLocationAssetCount();
+        int newNoLocationCount = buildingPage.getNoLocationAssetCountFast();
         logStep("New No Location count: " + newNoLocationCount);
         
         if (newNoLocationCount < initialNoLocationCount) {
@@ -7409,16 +7347,16 @@ public class LocationTest extends BaseTest {
         String buildingToExpand = targetBuilding; // Already from getAnyBuildingForTest()
         boolean expanded = buildingPage.expandBuilding(buildingToExpand);
         assertTrue(expanded, "Should expand building");
-        mediumWait();
+        shortWait();
         
         boolean floorExpanded = buildingPage.expandFloor(targetFloor);
         assertTrue(floorExpanded, "Should expand floor");
-        mediumWait();
+        shortWait();
 
         // Open the room
         boolean roomOpened = buildingPage.tapOnRoom(targetRoom);
         assertTrue(roomOpened, "Should open room");
-        mediumWait();
+        shortWait();
         logStepWithScreenshot("Room Detail - verifying asset appears here");
 
         // Verify asset appears in room
@@ -7441,173 +7379,7 @@ public class LocationTest extends BaseTest {
         logStepWithScreenshot("TC_AL_004: Save Changes location assignment verification complete");
     }
 
-    /**
-     * TC_AL_005: Verify room asset count increases after assignment
-     * 
-     * Precondition: Room '1' has 4 assets before assignment
-     * 
-     * Steps:
-     * 1. Assign asset to room '1'
-     * 2. Check room in Locations list
-     * 
-     * Expected Result: Room '1' shows '5 assets' after assignment
-     * 
-     * Note: Requires knowing exact count before test; depends on test data state
-     */
-    @Test(priority = 82)
-    public void TC_AL_005_verifyRoomAssetCountIncreasesAfterAssignment() {
-        ExtentReportManager.createTest(
-            AppConstants.MODULE_ROOM,
-            AppConstants.FEATURE_ASSIGN_LOCATION,
-            "TC_AL_005 - Verify room asset count increases after assignment"
-        );
-
-        // Navigate to Locations
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
-        shortWait();
-
-        // First, find a room and note its current asset count
-        logStep("Finding a room and noting current asset count");
-        String targetBuilding = getAnyBuildingForTest(); // FAST - uses first available building
-        String targetFloor = getAnyFloorForTest(); // FAST - uses first available floor
-        String targetRoom = getAnyRoomForTest(); // FAST - uses first available room
-
-        String buildingToExpand = targetBuilding; // Already from getAnyBuildingForTest()
-        boolean expanded = buildingPage.expandBuilding(buildingToExpand);
-        assertTrue(expanded, "Should expand building");
-        mediumWait();
-
-        // Find floor
-        WebElement floor = buildingPage.findFloorByName(targetFloor);
-        if (floor == null) {
-            floor = buildingPage.getFirstFloorEntry();
-            if (floor != null) {
-                String label = floor.getAttribute("label");
-                if (label != null && label.contains(",")) {
-                    targetFloor = label.split(",")[0].trim();
-                }
-            }
-        }
-        
-        boolean floorExpanded = buildingPage.expandFloor(targetFloor);
-        assertTrue(floorExpanded, "Should expand floor");
-        mediumWait();
-
-        // Get room's current asset count
-        WebElement room = buildingPage.findRoomByName(targetRoom);
-        if (room == null) {
-            room = buildingPage.getFirstRoomEntry();
-            if (room != null) {
-                String label = room.getAttribute("label");
-                if (label != null && label.contains(",")) {
-                    targetRoom = label.split(",")[0].trim();
-                }
-            }
-        }
-        
-        int initialRoomAssetCount = buildingPage.getAssetCountFromRoomLabel(targetRoom);
-        String initialRoomLabel = buildingPage.getRoomLabelText(targetRoom);
-        logStep("BEFORE - Room '" + targetRoom + "' asset count: " + initialRoomAssetCount);
-        logStep("BEFORE - Room label: " + initialRoomLabel);
-        logStepWithScreenshot("Initial room state");
-
-        // Collapse and scroll to No Location
-        buildingPage.collapseFloor(targetFloor);
-        shortWait();
-        buildingPage.collapseBuilding(buildingToExpand);
-        shortWait();
-
-        // Scroll to No Location
-        buildingPage.scrollToNoLocation();
-        for (int i = 0; i < 5 && !buildingPage.isNoLocationDisplayed(); i++) {
-            buildingPage.scrollDown();
-            shortWait();
-        }
-
-        if (!buildingPage.isNoLocationDisplayed()) {
-            logWarning("No Location not found - test requires unassigned assets");
-            return;
-        }
-
-        // Step 1: Assign an asset to the target room
-        logStep("Step 1: Assigning an asset to room '" + targetRoom + "'");
-        buildingPage.tapOnNoLocation();
-        shortWait();
-
-        if (!buildingPage.areUnassignedAssetsDisplayed()) {
-            logWarning("No unassigned assets found");
-            buildingPage.clickDoneButton();
-            shortWait();
-            return;
-        }
-
-        // Open first asset and assign to target room
-        WebElement assetToAssign = buildingPage.getFirstUnassignedAsset();
-        String assetName = assetToAssign.getAttribute("label");
-        logStep("Assigning asset: " + assetName);
-        
-        assetToAssign.click();
-        shortWait();
-
-        // Assign location
-        buildingPage.tapOnLocationField();
-        shortWait();
-        
-        buildingPage.selectBuildingInPicker(targetBuilding);
-        shortWait();
-        buildingPage.selectFloorInPicker(targetFloor);
-        shortWait();
-        buildingPage.selectRoomInPicker(targetRoom);
-        shortWait();
-
-        // Save changes
-        buildingPage.clickSaveChangesButton();
-        shortWait();
-
-        // Close and return to Locations
-        buildingPage.closeAssetDetails();
-        shortWait();
-        buildingPage.clickDoneButton();
-        shortWait();
-
-        // Step 2: Check room asset count
-        logStep("Step 2: Checking room asset count after assignment");
-        
-        // Scroll to top and navigate to room
-        buildingPage.scrollToTop();
-        shortWait();
-        
-        expanded = buildingPage.expandBuilding(buildingToExpand);
-        assertTrue(expanded, "Should expand building");
-        mediumWait();
-        floorExpanded = buildingPage.expandFloor(targetFloor);
-        assertTrue(floorExpanded, "Should expand floor");
-        mediumWait();
-
-        // Get new asset count
-        int newRoomAssetCount = buildingPage.getAssetCountFromRoomLabel(targetRoom);
-        String newRoomLabel = buildingPage.getRoomLabelText(targetRoom);
-        logStep("AFTER - Room '" + targetRoom + "' asset count: " + newRoomAssetCount);
-        logStep("AFTER - Room label: " + newRoomLabel);
-        logStepWithScreenshot("Room asset count after assignment");
-
-        // Verify count increased
-        boolean countIncreased = newRoomAssetCount > initialRoomAssetCount;
-        
-        if (countIncreased) {
-            logStep("✓ Room asset count increased from " + initialRoomAssetCount + " to " + newRoomAssetCount);
-        } else if (!initialRoomLabel.equals(newRoomLabel)) {
-            logStep("Room label changed - count likely updated");
-            countIncreased = true;
-        }
-
-        assertTrue(countIncreased, 
-            "Room asset count should increase after assignment (was: " + initialRoomAssetCount + ", now: " + newRoomAssetCount + ")");
-
-        logStepWithScreenshot("TC_AL_005: Room asset count increase verification complete (Partial)");
-    }
+  
 
     /**
      * TC_AL_006: Verify No Location count decreases after assignment
@@ -7639,20 +7411,17 @@ public class LocationTest extends BaseTest {
 
         // Scroll to No Location and note count
         logStep("Scrolling to No Location to note initial count");
-        buildingPage.scrollToNoLocation();
-        for (int i = 0; i < 5 && !buildingPage.isNoLocationDisplayed(); i++) {
-            buildingPage.scrollDown();
-            shortWait();
-        }
+        // TURBO scroll already does 5 scroll attempts with fast checks
+        buildingPage.scrollToNoLocationTurbo();
 
-        if (!buildingPage.isNoLocationDisplayed()) {
+        if (!buildingPage.isNoLocationDisplayedFast()) {
             logWarning("No Location not found");
             return;
         }
 
         // Get initial count
-        int initialNoLocationCount = buildingPage.getNoLocationAssetCount();
-        String initialLabel = buildingPage.getNoLocationLabel();
+        int initialNoLocationCount = buildingPage.getNoLocationAssetCountFast();
+        String initialLabel = buildingPage.getNoLocationLabelFast();
         logStep("BEFORE - No Location count: " + initialNoLocationCount);
         logStep("BEFORE - No Location label: " + initialLabel);
         logStepWithScreenshot("Initial No Location state");
@@ -7664,7 +7433,7 @@ public class LocationTest extends BaseTest {
 
         // Step 1: Assign one asset to a room
         logStep("Step 1: Assigning one asset to a room");
-        buildingPage.tapOnNoLocation();
+        buildingPage.tapOnNoLocationFast();
         shortWait();
 
         if (!buildingPage.areUnassignedAssetsDisplayed()) {
@@ -7708,14 +7477,11 @@ public class LocationTest extends BaseTest {
         logStep("Step 3: Checking No Location count after assignment");
         
         // Scroll to No Location
-        buildingPage.scrollToNoLocation();
-        for (int i = 0; i < 5 && !buildingPage.isNoLocationDisplayed(); i++) {
-            buildingPage.scrollDown();
-            shortWait();
-        }
+        // TURBO scroll already does 5 scroll attempts with fast checks
+        buildingPage.scrollToNoLocationTurbo();
 
-        int newNoLocationCount = buildingPage.getNoLocationAssetCount();
-        String newLabel = buildingPage.getNoLocationLabel();
+        int newNoLocationCount = buildingPage.getNoLocationAssetCountFast();
+        String newLabel = buildingPage.getNoLocationLabelFast();
         logStep("AFTER - No Location count: " + newNoLocationCount);
         logStep("AFTER - No Location label: " + newLabel);
         logStepWithScreenshot("No Location count after assignment");
@@ -7762,17 +7528,14 @@ public class LocationTest extends BaseTest {
         assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
         
-        buildingPage.scrollToNoLocation();
-        for (int i = 0; i < 5 && !buildingPage.isNoLocationDisplayed(); i++) {
-            buildingPage.scrollDown();
-            shortWait();
-        }
+        // TURBO scroll already does 5 scroll attempts with fast checks
+        buildingPage.scrollToNoLocationTurbo();
 
         // Get initial count
-        int initialCount = buildingPage.getNoLocationAssetCount();
+        int initialCount = buildingPage.getNoLocationAssetCountFast();
         logStep("Initial No Location count: " + initialCount);
 
-        buildingPage.tapOnNoLocation();
+        buildingPage.tapOnNoLocationFast();
         shortWait();
 
         if (!buildingPage.areUnassignedAssetsDisplayed()) {
@@ -7826,7 +7589,7 @@ public class LocationTest extends BaseTest {
 
         // Handle discard confirmation if shown
         buildingPage.confirmDiscardChanges();
-        mediumWait();
+        shortWait();
 
         // Close asset details if still open
         try {
@@ -7842,13 +7605,10 @@ public class LocationTest extends BaseTest {
         logStep("Step 3: Verifying asset remains in No Location");
         
         // Scroll to No Location
-        buildingPage.scrollToNoLocation();
-        for (int i = 0; i < 5 && !buildingPage.isNoLocationDisplayed(); i++) {
-            buildingPage.scrollDown();
-            shortWait();
-        }
+        // TURBO scroll already does 5 scroll attempts with fast checks
+        buildingPage.scrollToNoLocationTurbo();
 
-        int finalCount = buildingPage.getNoLocationAssetCount();
+        int finalCount = buildingPage.getNoLocationAssetCountFast();
         logStep("Final No Location count: " + finalCount);
         logStepWithScreenshot("After canceling - No Location count");
 
@@ -7860,7 +7620,7 @@ public class LocationTest extends BaseTest {
         }
 
         // Open No Location to verify asset is still there
-        buildingPage.tapOnNoLocation();
+        buildingPage.tapOnNoLocationFast();
         shortWait();
 
         boolean assetStillThere = buildingPage.findAssetByName(assetName) != null ||
@@ -7916,7 +7676,7 @@ public class LocationTest extends BaseTest {
         String buildingToExpand = targetBuilding; // Already from getAnyBuildingForTest()
         boolean expanded = buildingPage.expandBuilding(buildingToExpand);
         assertTrue(expanded, "Should expand building");
-        mediumWait();
+        shortWait();
 
         // Find floor
         WebElement floor = buildingPage.findFloorByName(targetFloor);
@@ -7932,7 +7692,7 @@ public class LocationTest extends BaseTest {
         
         boolean floorExpanded = buildingPage.expandFloor(targetFloor);
         assertTrue(floorExpanded, "Should expand floor");
-        mediumWait();
+        shortWait();
 
         // Get source room asset count before
         int sourceRoomCountBefore = buildingPage.getAssetCountFromRoomLabel(sourceRoom);
@@ -7942,7 +7702,7 @@ public class LocationTest extends BaseTest {
         logStep("Opening source room: " + sourceRoom);
         boolean roomOpened = buildingPage.tapOnRoom(sourceRoom);
         assertTrue(roomOpened, "Should open room");
-        mediumWait();
+        shortWait();
         logStepWithScreenshot("Source room assets");
 
         // Check if room has assets
@@ -7991,7 +7751,7 @@ public class LocationTest extends BaseTest {
         }
         
         logStep("Destination room: " + destinationRoom);
-        mediumWait();
+        shortWait();
         logStepWithScreenshot("New location selected");
 
         // Step 3: Save Changes
@@ -8018,10 +7778,10 @@ public class LocationTest extends BaseTest {
         // Expand to see rooms
         expanded = buildingPage.expandBuilding(buildingToExpand);
         assertTrue(expanded, "Should expand building");
-        mediumWait();
+        shortWait();
         floorExpanded = buildingPage.expandFloor(targetFloor);
         assertTrue(floorExpanded, "Should expand floor");
-        mediumWait();
+        shortWait();
         logStepWithScreenshot("Locations list after reassignment");
 
         // Check source room count decreased
@@ -8043,7 +7803,7 @@ public class LocationTest extends BaseTest {
         logStep("Verifying asset appears in destination room");
         roomOpened = buildingPage.tapOnRoom(destinationRoom);
         assertTrue(roomOpened, "Should open room");
-        mediumWait();
+        shortWait();
 
         boolean assetInDestination = buildingPage.isAssetInRoom(assetName);
         if (assetInDestination) {

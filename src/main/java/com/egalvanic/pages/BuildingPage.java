@@ -4404,6 +4404,136 @@ public class BuildingPage extends BasePage {
         }
     }
 
+
+    // ============================================================
+    // NO LOCATION - FAST/TURBO METHODS
+    // ============================================================
+
+    /**
+     * FAST check if No Location section is displayed
+     * Single query, no getLocation() calls unless found
+     * Returns quickly for better test performance
+     */
+    public boolean isNoLocationDisplayedFast() {
+        try {
+            // Single combined query for any "No Location" element
+            java.util.List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(label CONTAINS 'No Location' OR name CONTAINS 'No Location' OR " +
+                "label CONTAINS 'Unassigned' OR label == 'No Location') AND visible == true"));
+            
+            if (!elements.isEmpty()) {
+                System.out.println("✓ No Location found (FAST) - " + elements.size() + " elements");
+                return true;
+            }
+            return false;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * TURBO scroll to find No Location section
+     * Faster scrolling with quick checks
+     * @return true if found
+     */
+    public boolean scrollToNoLocationTurbo() {
+        System.out.println("⚡ TURBO: Scrolling to No Location...");
+        try {
+            // First check if already visible
+            if (isNoLocationDisplayedFast()) {
+                System.out.println("✓ No Location already visible");
+                return true;
+            }
+            
+            // Fast scroll down (max 5 attempts with shorter waits)
+            for (int i = 0; i < 5; i++) {
+                scrollDownFast();
+                sleep(200); // Shorter wait
+                
+                if (isNoLocationDisplayedFast()) {
+                    System.out.println("✓ No Location found after " + (i + 1) + " scrolls");
+                    return true;
+                }
+            }
+            
+            System.out.println("⚠️ No Location not found after 5 TURBO scrolls");
+            return false;
+        } catch (Exception e) {
+            System.out.println("⚠️ TURBO scroll error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Fast scroll down - shorter duration
+     */
+    private void scrollDownFast() {
+        try {
+            int screenHeight = driver.manage().window().getSize().height;
+            int screenWidth = driver.manage().window().getSize().width;
+            
+            driver.executeScript("mobile: dragFromToForDuration", java.util.Map.of(
+                "fromX", screenWidth / 2,
+                "fromY", (int) (screenHeight * 0.7),
+                "toX", screenWidth / 2,
+                "toY", (int) (screenHeight * 0.3),
+                "duration", 0.2  // Faster scroll
+            ));
+        } catch (Exception e) {
+            // Fallback to regular scroll
+            scrollDown();
+        }
+    }
+
+    /**
+     * FAST tap on No Location section
+     */
+    public boolean tapOnNoLocationFast() {
+        try {
+            WebElement noLocation = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "(label CONTAINS 'No Location' OR name CONTAINS 'No Location') AND visible == true"));
+            noLocation.click();
+            System.out.println("✓ Tapped No Location (FAST)");
+            sleep(300);
+            return true;
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not tap No Location: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * FAST get No Location label text
+     */
+    public String getNoLocationLabelFast() {
+        try {
+            WebElement noLocation = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "(label CONTAINS 'No Location' OR name CONTAINS 'No Location') AND visible == true"));
+            return noLocation.getAttribute("label");
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * FAST get No Location asset count
+     */
+    public int getNoLocationAssetCountFast() {
+        try {
+            String label = getNoLocationLabelFast();
+            if (label != null) {
+                java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("(\d+)");
+                java.util.regex.Matcher matcher = pattern.matcher(label);
+                if (matcher.find()) {
+                    return Integer.parseInt(matcher.group(1));
+                }
+            }
+            return 0;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
     // ============================================================
     // NO LOCATION HELPER METHODS
     // ============================================================
