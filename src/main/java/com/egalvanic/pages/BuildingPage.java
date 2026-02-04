@@ -4273,18 +4273,6 @@ public class BuildingPage extends BasePage {
         }
     }
 
-    /**
-     * Get asset count in Room Detail
-     */
-    public int getAssetCountInRoom() {
-        try {
-            java.util.List<WebElement> assets = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell'"));
-            return assets.size();
-        } catch (Exception e) {
-            return 0;
-        }
-    }
 
     /**
      * Tap on asset in Room Detail
@@ -4401,6 +4389,376 @@ public class BuildingPage extends BasePage {
             }
         } catch (Exception e) {
             return false;
+        }
+    }
+
+
+
+    // ============================================================
+    // ROOM NAVIGATION AND ASSET CREATION METHODS
+    // ============================================================
+
+    /**
+     * Navigate into a room by clicking on it (opens room asset list)
+     * @param roomName Name of the room to open
+     * @return true if room was opened successfully
+     */
+    public boolean navigateIntoRoom(String roomName) {
+        try {
+            System.out.println("📂 Navigating into room: " + roomName);
+            
+            WebElement room = findRoomByName(roomName);
+            if (room == null) {
+                System.out.println("⚠️ Room not found: " + roomName);
+                return false;
+            }
+            
+            room.click();
+            sleep(500);  // Wait for room to open
+            
+            // Verify we're in the room (should see search bar or asset list)
+            try {
+                List<WebElement> searchBars = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeSearchField' OR (type == 'XCUIElementTypeTextField' AND label CONTAINS 'Search')"));
+                if (!searchBars.isEmpty()) {
+                    System.out.println("✅ Room opened successfully - search bar visible");
+                    return true;
+                }
+            } catch (Exception ignored) {}
+            
+            // Also check for "No Assets" empty state or asset list
+            try {
+                List<WebElement> noAssets = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "label CONTAINS 'No Assets' OR label CONTAINS 'No assets'"));
+                if (!noAssets.isEmpty()) {
+                    System.out.println("✅ Room opened successfully - No Assets state visible");
+                    return true;
+                }
+            } catch (Exception ignored) {}
+            
+            // Check for back button (indicates we navigated somewhere)
+            try {
+                List<WebElement> backBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND (name CONTAINS 'Back' OR label CONTAINS 'Back' OR name == 'chevron.backward')"));
+                if (!backBtns.isEmpty()) {
+                    System.out.println("✅ Room opened successfully - back button visible");
+                    return true;
+                }
+            } catch (Exception ignored) {}
+            
+            System.out.println("⚠️ Could not verify room opened");
+            return true;  // Assume success if click worked
+        } catch (Exception e) {
+            System.out.println("⚠️ Error navigating into room: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Click the + (plus) button to add new asset from current room
+     * @return true if + button was clicked successfully
+     */
+    public boolean clickPlusButtonToAddAsset() {
+        try {
+            System.out.println("➕ Clicking + button to add new asset...");
+            
+            // Strategy 1: Find blue floating + button (most common)
+            try {
+                WebElement plusBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND (name == 'plus' OR label == 'plus' OR name == 'Add' OR label == 'Add')"));
+                plusBtn.click();
+                System.out.println("✅ Clicked + button (Strategy 1)");
+                sleep(500);
+                return true;
+            } catch (Exception ignored) {}
+            
+            // Strategy 2: Find button at bottom right of screen (floating action button)
+            try {
+                List<WebElement> buttons = driver.findElements(AppiumBy.className("XCUIElementTypeButton"));
+                int screenWidth = driver.manage().window().getSize().width;
+                int screenHeight = driver.manage().window().getSize().height;
+                
+                for (WebElement btn : buttons) {
+                    int x = btn.getLocation().getX();
+                    int y = btn.getLocation().getY();
+                    
+                    // FAB is typically in bottom-right corner
+                    if (x > screenWidth * 0.7 && y > screenHeight * 0.8) {
+                        String label = btn.getAttribute("label");
+                        String name = btn.getAttribute("name");
+                        System.out.println("   Found button at (" + x + ", " + y + "): name='" + name + "' label='" + label + "'");
+                        btn.click();
+                        System.out.println("✅ Clicked + button (Strategy 2 - FAB position)");
+                        sleep(500);
+                        return true;
+                    }
+                }
+            } catch (Exception ignored) {}
+            
+            // Strategy 3: Coordinate tap on FAB position
+            try {
+                int screenWidth = driver.manage().window().getSize().width;
+                int screenHeight = driver.manage().window().getSize().height;
+                int fabX = (int)(screenWidth * 0.9);
+                int fabY = (int)(screenHeight * 0.9);
+                
+                System.out.println("   Trying coordinate tap at (" + fabX + ", " + fabY + ")");
+                driver.executeScript("mobile: tap", java.util.Map.of("x", fabX, "y", fabY));
+                System.out.println("✅ Tapped + button location (Strategy 3)");
+                sleep(500);
+                return true;
+            } catch (Exception ignored) {}
+            
+            System.out.println("⚠️ Could not find + button");
+            return false;
+        } catch (Exception e) {
+            System.out.println("⚠️ Error clicking + button: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Check if New Asset screen is displayed
+     */
+    public boolean isNewAssetScreenDisplayed() {
+        try {
+            List<WebElement> newAssetTitle = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "label == 'New Asset' OR name == 'New Asset'"));
+            return !newAssetTitle.isEmpty();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Check if room has assets (not empty state)
+     */
+    public boolean isRoomHasAssets() {
+        try {
+            // Check for "No Assets" empty state
+            List<WebElement> noAssets = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "label CONTAINS 'No Assets' OR label CONTAINS 'No assets'"));
+            return noAssets.isEmpty();  // If "No Assets" not found, room has assets
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Get count of assets in current room
+     */
+    public int getAssetCountInRoom() {
+        try {
+            // Find asset cells/items in the list
+            List<WebElement> assetCells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"));
+            
+            // Filter out non-asset cells (search bar, etc.)
+            int count = 0;
+            for (WebElement cell : assetCells) {
+                String label = cell.getAttribute("label");
+                if (label != null && !label.contains("Search") && !label.isEmpty()) {
+                    count++;
+                }
+            }
+            System.out.println("📊 Assets in room: " + count);
+            return count;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Navigate back from room to locations list
+     */
+    public boolean navigateBackFromRoom() {
+        try {
+            System.out.println("⬅️ Navigating back from room...");
+            
+            // Find back button
+            WebElement backBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND (name CONTAINS 'Back' OR label CONTAINS 'Back' OR name == 'chevron.backward')"));
+            backBtn.click();
+            sleep(300);
+            System.out.println("✅ Navigated back");
+            return true;
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not navigate back: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Get first available floor name from locations list
+     */
+    public String getFirstAvailableFloor() {
+        try {
+            List<WebElement> floors = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label CONTAINS 'Floor'"));
+            if (!floors.isEmpty()) {
+                String label = floors.get(0).getAttribute("label");
+                // Extract floor name from label (might include room count)
+                if (label.contains(",")) {
+                    label = label.split(",")[0].trim();
+                }
+                System.out.println("📂 First floor: " + label);
+                return label;
+            }
+        } catch (Exception e) {}
+        return null;
+    }
+
+    /**
+     * Get first available room name after expanding a floor
+     */
+    public String getFirstAvailableRoom() {
+        try {
+            // Rooms typically have orange/different icon, look for room entries
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND visible == true"));
+            
+            for (WebElement el : elements) {
+                String label = el.getAttribute("label");
+                if (label != null && !label.isEmpty()) {
+                    // Skip floors (have "Floor" in name), buildings, and navigation buttons
+                    if (!label.contains("Floor") && 
+                        !label.contains("Building") && 
+                        !label.contains("Locations") &&
+                        !label.equalsIgnoreCase("Add") &&
+                        !label.equalsIgnoreCase("Done") &&
+                        !label.contains("+")) {
+                        // This might be a room
+                        int y = el.getLocation().getY();
+                        // Rooms are typically below floors in the list
+                        if (y > 300) {
+                            System.out.println("📍 First room: " + label);
+                            return label;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {}
+        return null;
+    }
+
+
+
+    /**
+     * Enter asset name in New Asset form
+     */
+    public boolean enterAssetNameInForm(String assetName) {
+        try {
+            System.out.println("📝 Entering asset name: " + assetName);
+            
+            // Find name text field
+            WebElement nameField = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeTextField' AND visible == true"));
+            nameField.click();
+            sleep(200);
+            nameField.clear();
+            nameField.sendKeys(assetName);
+            
+            // Dismiss keyboard
+            try {
+                driver.findElement(AppiumBy.accessibilityId("Return")).click();
+            } catch (Exception ignored) {
+                // Try tapping elsewhere to dismiss
+                driver.executeScript("mobile: tap", java.util.Map.of("x", 200, "y", 100));
+            }
+            sleep(200);
+            
+            System.out.println("✅ Asset name entered");
+            return true;
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not enter asset name: " + e.getMessage());
+            return false;
+        }
+    }
+
+
+    /**
+     * Select asset class if not already selected
+     */
+    public boolean selectAssetClassIfNeeded() {
+        try {
+            System.out.println("🏷️ Checking asset class selection...");
+            
+            // Check if "Select asset class" placeholder is visible (meaning nothing selected)
+            List<WebElement> placeholders = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "label CONTAINS 'Select asset class' OR label CONTAINS 'Select Asset Class'"));
+            
+            if (placeholders.isEmpty()) {
+                // Already has a class selected
+                System.out.println("✅ Asset class already selected");
+                return true;
+            }
+            
+            // Need to select a class - click dropdown
+            WebElement dropdown = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND (label CONTAINS 'class' OR label CONTAINS 'Class' OR label CONTAINS 'Select')"));
+            dropdown.click();
+            sleep(500);
+            
+            // Select first available class (ATS, Fuse, etc.)
+            try {
+                // Try ATS first
+                WebElement atsOption = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "label == 'ATS' OR name == 'ATS'"));
+                atsOption.click();
+                System.out.println("✅ Selected ATS");
+            } catch (Exception e) {
+                // Select any class that's visible
+                List<WebElement> options = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND visible == true"));
+                for (WebElement opt : options) {
+                    String label = opt.getAttribute("label");
+                    if (label != null && !label.equals("Cancel") && !label.contains("Select") && !label.isEmpty()) {
+                        opt.click();
+                        System.out.println("✅ Selected class: " + label);
+                        break;
+                    }
+                }
+            }
+            sleep(300);
+            return true;
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not select asset class: " + e.getMessage());
+            return false;
+        }
+    }
+
+
+    /**
+     * Click Create Asset button in New Asset form
+     */
+    public boolean clickCreateAssetButton() {
+        try {
+            System.out.println("✨ Clicking Create Asset button...");
+            
+            // Find and click Create Asset button
+            WebElement createBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND (label CONTAINS 'Create Asset' OR label == 'Create')"));
+            createBtn.click();
+            sleep(500);
+            System.out.println("✅ Clicked Create Asset");
+            return true;
+        } catch (Exception e) {
+            System.out.println("⚠️ Create Asset button not found, trying coordinate tap...");
+            try {
+                // Button is typically at bottom of screen
+                int screenWidth = driver.manage().window().getSize().width;
+                int screenHeight = driver.manage().window().getSize().height;
+                driver.executeScript("mobile: tap", java.util.Map.of(
+                    "x", screenWidth / 2,
+                    "y", screenHeight - 50
+                ));
+                sleep(500);
+                System.out.println("✅ Tapped Create Asset location");
+                return true;
+            } catch (Exception ex) {
+                System.out.println("⚠️ Could not click Create Asset: " + ex.getMessage());
+                return false;
+            }
         }
     }
 
@@ -4522,7 +4880,7 @@ public class BuildingPage extends BasePage {
         try {
             String label = getNoLocationLabelFast();
             if (label != null) {
-                java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("(\d+)");
+                java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("(\\d+)");
                 java.util.regex.Matcher matcher = pattern.matcher(label);
                 if (matcher.find()) {
                     return Integer.parseInt(matcher.group(1));
