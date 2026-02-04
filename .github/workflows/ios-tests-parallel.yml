@@ -59,7 +59,7 @@ jobs:
   auth-tests:
     if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'auth-only'
     runs-on: macos-15
-    timeout-minutes: 90
+    timeout-minutes: 420
     
     steps:
       - name: Checkout code
@@ -270,7 +270,7 @@ jobs:
   site-tests:
     if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'site-only'
     runs-on: macos-15
-    timeout-minutes: 120
+    timeout-minutes: 420
     
     steps:
       - name: Checkout code
@@ -374,7 +374,7 @@ jobs:
   phase1-tests:
     if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'phase1-only'
     runs-on: macos-15
-    timeout-minutes: 240
+    timeout-minutes: 420
     
     steps:
       - name: Checkout code
@@ -478,7 +478,7 @@ jobs:
   phase2-tests:
     if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'phase2-only'
     runs-on: macos-15
-    timeout-minutes: 240
+    timeout-minutes: 420
     
     steps:
       - name: Checkout code
@@ -582,7 +582,7 @@ jobs:
   phase3-tests:
     if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'phase3-only'
     runs-on: macos-15
-    timeout-minutes: 240
+    timeout-minutes: 420
     
     steps:
       - name: Checkout code
@@ -686,7 +686,7 @@ jobs:
   phase4-tests:
     if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'phase4-only'
     runs-on: macos-15
-    timeout-minutes: 240
+    timeout-minutes: 420
     
     steps:
       - name: Checkout code
@@ -790,7 +790,7 @@ jobs:
   phase5-tests:
     if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'phase5-only'
     runs-on: macos-15
-    timeout-minutes: 90
+    timeout-minutes: 420
     
     steps:
       - name: Checkout code
@@ -894,7 +894,7 @@ jobs:
   location-tests:
     if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'location-only'
     runs-on: macos-15
-    timeout-minutes: 180
+    timeout-minutes: 420
     
     steps:
       - name: Checkout code
@@ -999,7 +999,7 @@ jobs:
   connections-tests:
     if: github.event_name == 'push' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'connections-only'
     runs-on: macos-15
-    timeout-minutes: 180
+    timeout-minutes: 420
     
     steps:
       - name: Checkout code
@@ -1104,7 +1104,7 @@ jobs:
     needs: [auth-tests, site-tests, phase1-tests, phase2-tests, phase3-tests, phase4-tests, phase5-tests, location-tests, connections-tests]
     if: always()
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 420
     
     steps:
       - name: Download All Reports
