@@ -7122,38 +7122,20 @@ public class LocationTest extends BaseTest {
         shortWait();
         logStepWithScreenshot("Locations screen");
 
-        // Step 2: Find and expand a floor
-        logStep("Step 2: Finding and expanding a floor");
-        String floorName = buildingPage.getFirstAvailableFloor();
-        if (floorName == null) {
-            // Scroll down to find floors
-            buildingPage.scrollDown();
-            shortWait();
-            floorName = buildingPage.getFirstAvailableFloor();
-        }
-        
-        if (floorName != null) {
-            logStep("Found floor: " + floorName);
-            buildingPage.expandFloor(floorName);
-            shortWait();
-        } else {
-            logWarning("No floor found - looking for any room directly");
-        }
-        logStepWithScreenshot("Floor expanded");
-
-        // Step 3: Find and click on a room
-        logStep("Step 3: Finding and clicking on a room");
-        String roomName = buildingPage.getFirstAvailableRoom();
-        
-        if (roomName == null) {
-            logWarning("No room found - test requires at least one room");
+        // Step 2 & 3: FAST - Use index-based approach (expand floor 0, open room 0)
+        logStep("Step 2: Expanding first floor using fast index-based approach");
+        boolean floorExpanded = buildingPage.expandFloorByIndex(0);
+        if (!floorExpanded) {
+            logWarning("Could not expand first floor");
             return;
         }
-        
-        logStep("Opening room: " + roomName);
-        boolean roomOpened = buildingPage.navigateIntoRoom(roomName);
+        shortWait();
+        logStepWithScreenshot("Floor expanded");
+
+        logStep("Step 3: Opening first room using fast index-based approach");
+        boolean roomOpened = buildingPage.navigateIntoRoomByIndex(0);
         if (!roomOpened) {
-            logWarning("Could not open room: " + roomName);
+            logWarning("Could not open first room");
             return;
         }
         shortWait();

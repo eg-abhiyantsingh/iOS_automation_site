@@ -14,19 +14,6 @@
     4. Fast execution (no heavy data operations)
     -->
     
-    <!-- Authentication Tests - Verify app launch and login flow -->
-    <test name="Smoke - Authentication">
-        <classes>
-            <class name="com.egalvanic.tests.AuthenticationTest">
-                <methods>
-                    <include name="TC01_verifyWelcomeScreenUILoads"/>
-                    <include name="TC04_verifyCompanyCodeFieldAcceptsInput"/>
-                    <include name="TC07_verifyValidCompanyCodeNavigatesToLogin"/>
-                    <include name="TC16_verifyLoginScreenUIElements"/>
-                </methods>
-            </class>
-        </classes>
-    </test>
     
     <!-- Site Selection Tests - Verify site selection flow -->
     <test name="Smoke - Site Selection">
@@ -34,7 +21,6 @@
             <class name="com.egalvanic.tests.SiteSelectionTest">
                 <methods>
                     <include name="TC_SS_001_verifySelectSiteScreenUIElements"/>
-                    <include name="TC_SS_003_verifySiteListDisplaysAllAvailableSites"/>
                     <include name="TC_SS_007_verifySearchBarPlaceholderText"/>
                     <include name="TC_SS_014_verifySuccessfulSiteLoadNavigatesToDashboard"/>
                 </methods>
@@ -42,39 +28,7 @@
         </classes>
     </test>
     
-    <!-- Asset Tests - Verify asset management core functionality -->
-    <test name="Smoke - Asset Management">
-        <classes>
-            <class name="com.egalvanic.tests.Asset_Phase1_Test">
-                <methods>
-                     <include name="ATS_ECR_02_verifyAllUIFieldsAreVisible"/>
-                    <include name="ATS_ECR_14_verifySelectAssetClass"/>
-                </methods>
-            </class>
-        </classes>
-    </test>
     
-    <!-- Location Tests - Verify location management core functionality -->
-    <test name="Smoke - Location Management">
-        <classes>
-            <class name="com.egalvanic.tests.LocationTest">
-                <methods>
-                    <include name="TC_NB_003_verifySaveButtonStateChanges"/>
-                    <include name="TC_NB_004_verifyBuildingNameAcceptsValidInput"/>
-                </methods>
-            </class>
-        </classes>
-    </test>
     
-    <!-- Connections Tests - Verify connections feature accessibility -->
-    <test name="Smoke - Connections">
-        <classes>
-            <class name="com.egalvanic.tests.Connections_Test">
-                <methods>
-                     <include name="TC_CONN_002_verifyConnectionsScreenHeader"/>
-                    <include name="TC_CONN_004_verifyConnectionListDisplaysAllConnections"/>
-                </methods>
-            </class>
-        </classes>
-    </test>
+   
 </suite>

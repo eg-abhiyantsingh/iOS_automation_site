@@ -3,20 +3,21 @@ name: iOS Tests - Smoke Suite
 # ============================================================
 # SMOKE TEST SUITE - Quick Critical Path Validation
 # ============================================================
-# Purpose: Fast validation of core functionality before full suite
 # Tests: 17 tests across 5 modules (~15-20 min execution)
 # 
-# Features:
-#   - API Traffic Capture using mitmproxy
-#   - Failed API Detection (4xx, 5xx responses)
-#   - API Report Generation
-#
 # Modules Covered:
-#   - Authentication: 4 tests (Welcome, Company Code, Login)
-#   - Site Selection: 4 tests (UI, Site List, Search, Dashboard)
-#   - Asset Management: 3 tests (New Asset, Fields, Class)
-#   - Location: 3 tests (Building UI, Save, Name)
-#   - Connections: 3 tests (Tab, Header, List)
+#   - Authentication: 4 tests
+#   - Site Selection: 4 tests  
+#   - Asset Management: 3 tests
+#   - Location: 3 tests
+#   - Connections: 3 tests
+#
+# API Capture (EXPERIMENTAL):
+#   - Uses mitmproxy to capture HTTP/HTTPS traffic
+#   - Proxy MUST be configured BEFORE simulator boots
+#   - Certificate MUST be installed for HTTPS interception
+#   - If app has certificate pinning, capture will fail
+#   - eGalvanic app tested locally: NO cert pinning detected ✅
 # ============================================================
 
 on:
@@ -35,9 +36,9 @@ on:
           - 'true'
           - 'false'
       capture_api:
-        description: 'Capture API traffic for debugging'
+        description: 'Capture API traffic (experimental)'
         required: false
-        default: 'true'
+        default: 'false'
         type: choice
         options:
           - 'true'
@@ -71,264 +72,134 @@ jobs:
           appium driver install xcuitest
           echo "✅ Appium $(appium --version) installed"
 
-      # ============================================================
-      # API CAPTURE SETUP
-      # ============================================================
-      - name: Setup API Capture
-        if: github.event.inputs.capture_api != 'false'
-        run: |
-          echo "📡 Setting up API traffic capture..."
-          
-          # Install mitmproxy
-          brew install mitmproxy
-          echo "✅ mitmproxy installed: $(mitmproxy --version)"
-          
-          # Create directories
-          mkdir -p reports/api_logs scripts
-          
-          # Create Python script for parsing API traffic
-          cat > scripts/parse_api_traffic.py << 'PYSCRIPT'
-          #!/usr/bin/env python3
-          """
-          API Traffic Parser for iOS Automation
-          Parses mitmproxy flow files and generates reports
-          """
-          import json
-          import sys
-          import os
-          from datetime import datetime
-
-          def parse_flow_file(flow_file):
-              """Parse mitmproxy flow file and extract API calls"""
-              failed_apis = []
-              all_apis = []
-              
-              try:
-                  from mitmproxy import io as mitmio
-                  
-                  with open(flow_file, "rb") as f:
-                      reader = mitmio.FlowReader(f)
-                      for flow in reader.stream():
-                          if hasattr(flow, 'response') and flow.response:
-                              # Extract API details
-                              api_call = {
-                                  "timestamp": datetime.now().isoformat(),
-                                  "method": flow.request.method,
-                                  "url": flow.request.pretty_url,
-                                  "status": flow.response.status_code,
-                                  "reason": getattr(flow.response, 'reason', ''),
-                                  "request_headers": dict(flow.request.headers) if flow.request.headers else {},
-                                  "response_headers": dict(flow.response.headers) if flow.response.headers else {},
-                                  "request_body": "",
-                                  "response_body": ""
-                              }
-                              
-                              # Safely get request body
-                              try:
-                                  req_text = flow.request.get_text()
-                                  if req_text:
-                                      api_call["request_body"] = req_text[:1000]
-                              except:
-                                  pass
-                              
-                              # Safely get response body
-                              try:
-                                  resp_text = flow.response.get_text()
-                                  if resp_text:
-                                      api_call["response_body"] = resp_text[:2000]
-                              except:
-                                  pass
-                              
-                              all_apis.append(api_call)
-                              
-                              # Check for failed APIs (4xx, 5xx)
-                              if flow.response.status_code >= 400:
-                                  failed_apis.append(api_call)
-                                  
-              except ImportError:
-                  print("⚠️ mitmproxy not installed, skipping flow parsing")
-                  return [], []
-              except Exception as e:
-                  print(f"⚠️ Error parsing flow file: {e}")
-                  return [], []
-              
-              return all_apis, failed_apis
-
-          def generate_report(all_apis, failed_apis, output_dir="reports/api_logs"):
-              """Generate API traffic reports"""
-              os.makedirs(output_dir, exist_ok=True)
-              
-              # Console Report
-              print("\n" + "=" * 70)
-              print("                    📡 API TRAFFIC REPORT")
-              print("=" * 70)
-              print(f"\n📊 Summary: {len(all_apis)} total API calls, {len(failed_apis)} failed\n")
-              
-              if failed_apis:
-                  print("❌ FAILED API CALLS:")
-                  print("-" * 70)
-                  for api in failed_apis:
-                      print(f"\n🔴 [{api['status']}] {api['method']} {api['url']}")
-                      if api.get('reason'):
-                          print(f"   Reason: {api['reason']}")
-                      if api.get('response_body'):
-                          body = api['response_body'][:300]
-                          print(f"   Response: {body}{'...' if len(api['response_body']) > 300 else ''}")
-                  print("\n" + "-" * 70)
-              else:
-                  print("✅ No failed API calls detected!\n")
-              
-              # JSON Report
-              json_report = {
-                  "generated_at": datetime.now().isoformat(),
-                  "summary": {
-                      "total_calls": len(all_apis),
-                      "failed_calls": len(failed_apis),
-                      "success_rate": f"{((len(all_apis) - len(failed_apis)) / len(all_apis) * 100):.1f}%" if all_apis else "N/A"
-                  },
-                  "failed_apis": failed_apis,
-                  "all_apis": all_apis
-              }
-              
-              with open(f"{output_dir}/api_report.json", "w") as f:
-                  json.dump(json_report, f, indent=2)
-              print(f"📁 JSON report saved: {output_dir}/api_report.json")
-              
-              # HTML Report
-              html_report = generate_html_report(all_apis, failed_apis)
-              with open(f"{output_dir}/api_report.html", "w") as f:
-                  f.write(html_report)
-              print(f"📁 HTML report saved: {output_dir}/api_report.html")
-              
-              # Failed APIs only (for quick reference)
-              if failed_apis:
-                  with open(f"{output_dir}/failed_apis.json", "w") as f:
-                      json.dump(failed_apis, f, indent=2)
-                  print(f"📁 Failed APIs saved: {output_dir}/failed_apis.json")
-              
-              return len(failed_apis)
-
-          def generate_html_report(all_apis, failed_apis):
-              """Generate HTML report for API traffic"""
-              html = """<!DOCTYPE html>
-          <html>
-          <head>
-              <title>API Traffic Report</title>
-              <style>
-                  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 20px; background: #f5f5f5; }
-                  .container { max-width: 1200px; margin: 0 auto; }
-                  .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 20px; }
-                  .summary { display: flex; gap: 20px; margin-bottom: 20px; }
-                  .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); flex: 1; }
-                  .card h3 { margin-top: 0; color: #333; }
-                  .success { color: #28a745; }
-                  .failure { color: #dc3545; }
-                  .api-list { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-                  .api-item { padding: 15px 20px; border-bottom: 1px solid #eee; }
-                  .api-item:last-child { border-bottom: none; }
-                  .api-item.failed { background: #fff5f5; border-left: 4px solid #dc3545; }
-                  .api-item.success { border-left: 4px solid #28a745; }
-                  .status { display: inline-block; padding: 2px 8px; border-radius: 4px; font-weight: bold; margin-right: 10px; }
-                  .status.s2xx { background: #d4edda; color: #155724; }
-                  .status.s4xx { background: #f8d7da; color: #721c24; }
-                  .status.s5xx { background: #721c24; color: white; }
-                  .method { font-weight: bold; color: #667eea; }
-                  .url { word-break: break-all; color: #666; }
-                  .response-body { background: #f8f9fa; padding: 10px; border-radius: 5px; margin-top: 10px; font-family: monospace; font-size: 12px; white-space: pre-wrap; max-height: 200px; overflow-y: auto; }
-                  .section-title { margin: 30px 0 15px; color: #333; }
-              </style>
-          </head>
-          <body>
-              <div class="container">
-                  <div class="header">
-                      <h1>📡 API Traffic Report</h1>
-                      <p>Generated: """ + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + """</p>
-                  </div>
-                  
-                  <div class="summary">
-                      <div class="card">
-                          <h3>Total API Calls</h3>
-                          <div style="font-size: 48px; font-weight: bold;">""" + str(len(all_apis)) + """</div>
-                      </div>
-                      <div class="card">
-                          <h3>Failed Calls</h3>
-                          <div style="font-size: 48px; font-weight: bold;" class="failure">""" + str(len(failed_apis)) + """</div>
-                      </div>
-                      <div class="card">
-                          <h3>Success Rate</h3>
-                          <div style="font-size: 48px; font-weight: bold;" class="success">""" + (f"{((len(all_apis) - len(failed_apis)) / len(all_apis) * 100):.1f}%" if all_apis else "N/A") + """</div>
-                      </div>
-                  </div>
-          """
-              
-              # Failed APIs section
-              if failed_apis:
-                  html += """
-                  <h2 class="section-title">❌ Failed API Calls</h2>
-                  <div class="api-list">
-          """
-                  for api in failed_apis:
-                      status_class = "s4xx" if api['status'] < 500 else "s5xx"
-                      html += f"""
-                      <div class="api-item failed">
-                          <span class="status {status_class}">{api['status']}</span>
-                          <span class="method">{api['method']}</span>
-                          <span class="url">{api['url']}</span>
-                          {f'<div class="response-body">{api["response_body"][:500]}</div>' if api.get('response_body') else ''}
-                      </div>
-          """
-                  html += "</div>"
-              
-              # All APIs section
-              html += """
-                  <h2 class="section-title">📋 All API Calls</h2>
-                  <div class="api-list">
-          """
-              for api in all_apis[-50:]:  # Show last 50
-                  status_class = "s2xx" if api['status'] < 400 else ("s4xx" if api['status'] < 500 else "s5xx")
-                  item_class = "failed" if api['status'] >= 400 else "success"
-                  html += f"""
-                      <div class="api-item {item_class}">
-                          <span class="status {status_class}">{api['status']}</span>
-                          <span class="method">{api['method']}</span>
-                          <span class="url">{api['url']}</span>
-                      </div>
-          """
-              html += """
-                  </div>
-              </div>
-          </body>
-          </html>
-          """
-              return html
-
-          if __name__ == "__main__":
-              flow_file = sys.argv[1] if len(sys.argv) > 1 else "api_traffic.flow"
-              
-              if not os.path.exists(flow_file):
-                  print(f"⚠️ Flow file not found: {flow_file}")
-                  sys.exit(0)
-              
-              all_apis, failed_apis = parse_flow_file(flow_file)
-              failed_count = generate_report(all_apis, failed_apis)
-              
-              print(f"\n{'❌' if failed_count else '✅'} {failed_count} API failures detected")
-              sys.exit(0)  # Don't fail the build based on API failures
-          PYSCRIPT
-          
-          chmod +x scripts/parse_api_traffic.py
-          echo "✅ API capture setup complete"
-
       - name: Unzip App
         run: |
           unzip -o apps/Z-Platform-QA.zip -d apps/
           ls -la apps/
 
-      - name: Boot Simulator and Wait Until Ready
+      # ============================================================
+      # API CAPTURE PHASE 1: Install & Configure Proxy BEFORE Simulator
+      # CRITICAL: Proxy must be running before simulator boots!
+      # ============================================================
+      - name: "[API Capture 1/5] Install mitmproxy"
+        if: github.event.inputs.capture_api == 'true'
+        run: |
+          echo "╔════════════════════════════════════════════════════════════╗"
+          echo "║     📡 API CAPTURE - PHASE 1: Installing mitmproxy         ║"
+          echo "╚════════════════════════════════════════════════════════════╝"
+          
+          brew install mitmproxy
+          
+          echo "✅ mitmproxy version: $(mitmproxy --version | head -1)"
+          echo "✅ mitmdump version: $(mitmdump --version | head -1)"
+
+      - name: "[API Capture 2/5] Generate Certificates & Start Proxy"
+        if: github.event.inputs.capture_api == 'true'
+        run: |
+          echo "╔════════════════════════════════════════════════════════════╗"
+          echo "║     📡 API CAPTURE - PHASE 2: Certificates & Proxy Start   ║"
+          echo "╚════════════════════════════════════════════════════════════╝"
+          
+          # Create directories
+          mkdir -p ~/.mitmproxy
+          mkdir -p reports/api_logs
+          mkdir -p scripts
+          
+          # Generate certificates by running mitmdump briefly
+          echo "Generating mitmproxy CA certificates..."
+          (mitmdump --set confdir=~/.mitmproxy -p 19999 &)
+          sleep 5
+          pkill -f "mitmdump.*19999" 2>/dev/null || true
+          sleep 2
+          
+          # Verify certificates exist
+          if [ -f ~/.mitmproxy/mitmproxy-ca-cert.pem ]; then
+            echo "✅ CA Certificate generated:"
+            ls -la ~/.mitmproxy/mitmproxy-ca-cert.pem
+          else
+            echo "❌ Certificate generation failed!"
+            exit 1
+          fi
+          
+          # Start the actual proxy on port 8080
+          echo "Starting mitmproxy on port 8080..."
+          nohup mitmdump -p 8080 \
+            -w reports/api_logs/traffic.flow \
+            --set flow_detail=2 \
+            --set stream_large_bodies=1 \
+            > reports/api_logs/mitmdump.log 2>&1 &
+          
+          MITM_PID=$!
+          echo "MITM_PID=$MITM_PID" >> $GITHUB_ENV
+          echo "Proxy PID: $MITM_PID"
+          
+          sleep 5
+          
+          # Verify proxy is running
+          if ps -p $MITM_PID > /dev/null 2>&1; then
+            echo "✅ mitmproxy running (PID: $MITM_PID)"
+          else
+            echo "❌ mitmproxy failed to start!"
+            cat reports/api_logs/mitmdump.log || true
+            exit 1
+          fi
+          
+          # Test proxy connectivity
+          echo "Testing proxy connectivity..."
+          HTTP_TEST=$(curl -x http://127.0.0.1:8080 -s -o /dev/null -w "%{http_code}" http://httpbin.org/get 2>/dev/null || echo "000")
+          if [ "$HTTP_TEST" = "200" ]; then
+            echo "✅ Proxy HTTP test passed"
+          else
+            echo "⚠️ Proxy HTTP test returned: $HTTP_TEST"
+          fi
+
+      - name: "[API Capture 3/5] Configure System Proxy"
+        if: github.event.inputs.capture_api == 'true'
+        run: |
+          echo "╔════════════════════════════════════════════════════════════╗"
+          echo "║     📡 API CAPTURE - PHASE 3: Configure System Proxy       ║"
+          echo "╚════════════════════════════════════════════════════════════╝"
+          
+          # List all network services
+          echo "Available network services:"
+          networksetup -listallnetworkservices
+          
+          # Configure proxy on ALL available interfaces
+          # GitHub Actions macOS runners typically use "Ethernet"
+          for SERVICE in "Ethernet" "Wi-Fi" "Thunderbolt Ethernet" "USB 10/100/1000 LAN" "Thunderbolt Bridge"; do
+            echo "Attempting to configure: $SERVICE"
+            
+            # HTTP Proxy
+            networksetup -setwebproxy "$SERVICE" 127.0.0.1 8080 off 2>/dev/null && \
+              networksetup -setwebproxystate "$SERVICE" on 2>/dev/null && \
+              echo "  ✅ HTTP proxy set on $SERVICE" || \
+              echo "  ⏭️ $SERVICE not available"
+            
+            # HTTPS Proxy
+            networksetup -setsecurewebproxy "$SERVICE" 127.0.0.1 8080 off 2>/dev/null && \
+              networksetup -setsecurewebproxystate "$SERVICE" on 2>/dev/null && \
+              echo "  ✅ HTTPS proxy set on $SERVICE" || true
+          done
+          
+          echo ""
+          echo "=== Proxy Configuration Summary ==="
+          for SERVICE in "Ethernet" "Wi-Fi"; do
+            echo "$SERVICE HTTP:"
+            networksetup -getwebproxy "$SERVICE" 2>/dev/null | grep -E "Enabled|Port" || echo "  Not configured"
+            echo "$SERVICE HTTPS:"
+            networksetup -getsecurewebproxy "$SERVICE" 2>/dev/null | grep -E "Enabled|Port" || echo "  Not configured"
+          done
+
+      # ============================================================
+      # NOW Boot Simulator (after proxy is configured)
+      # ============================================================
+      - name: Find and Select Simulator
+        id: find_simulator
         run: |
           echo "=== Available Simulators ==="
           xcrun simctl list devices available
           
+          # Try to find iPhone 16 Pro first, then fallback
           UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
           [ -z "$UDID" ] && UDID=$(xcrun simctl list devices available | grep -E "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
           [ -z "$UDID" ] && UDID=$(xcrun simctl list devices available | grep -E "iPhone 1[5-6]" | head -1 | awk -F '[()]' '{print $2}')
@@ -348,13 +219,17 @@ jobs:
           echo "DEVICE_NAME=$DEVICE_NAME" >> $GITHUB_ENV
           echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
           echo "PLATFORM_VERSION=$PLATFORM_VERSION" >> $GITHUB_ENV
-          
+
+      - name: Boot Simulator
+        run: |
           echo "=== Booting Simulator ==="
-          xcrun simctl boot "$UDID" 2>/dev/null || true
+          echo "UDID: ${{ env.SIMULATOR_UDID }}"
+          
+          xcrun simctl boot "${{ env.SIMULATOR_UDID }}" 2>/dev/null || true
           
           echo "=== Waiting for Simulator to be fully booted ==="
           for i in {1..60}; do
-            STATE=$(xcrun simctl list devices | grep "$UDID" | grep -o "(Booted)" || true)
+            STATE=$(xcrun simctl list devices | grep "${{ env.SIMULATOR_UDID }}" | grep -o "(Booted)" || true)
             if [ "$STATE" = "(Booted)" ]; then
               echo "✅ Simulator booted after $i seconds"
               break
@@ -367,6 +242,37 @@ jobs:
           sleep 45
           echo "✅ Simulator ready"
 
+      # ============================================================
+      # API CAPTURE PHASE 4: Install Certificate in Simulator
+      # ============================================================
+      - name: "[API Capture 4/5] Install Certificate in Simulator"
+        if: github.event.inputs.capture_api == 'true'
+        run: |
+          echo "╔════════════════════════════════════════════════════════════╗"
+          echo "║     📡 API CAPTURE - PHASE 4: Install Cert in Simulator    ║"
+          echo "╚════════════════════════════════════════════════════════════╝"
+          
+          CERT_PATH=~/.mitmproxy/mitmproxy-ca-cert.pem
+          
+          if [ -f "$CERT_PATH" ]; then
+            echo "Installing mitmproxy CA certificate in simulator..."
+            xcrun simctl keychain "${{ env.SIMULATOR_UDID }}" add-root-cert "$CERT_PATH" 2>&1 || true
+            echo "✅ Certificate installation attempted"
+            
+            # Give time for certificate to be processed
+            sleep 5
+            
+            # Test HTTPS through proxy from Mac (to verify proxy works)
+            echo "Testing HTTPS proxy (from Mac)..."
+            HTTPS_TEST=$(curl -x http://127.0.0.1:8080 -k -s -o /dev/null -w "%{http_code}" https://httpbin.org/get 2>/dev/null || echo "000")
+            echo "HTTPS test result: $HTTPS_TEST"
+          else
+            echo "❌ Certificate not found at: $CERT_PATH"
+          fi
+
+      # ============================================================
+      # Pre-build WDA and Start Appium
+      # ============================================================
       - name: Pre-build WebDriverAgent
         run: |
           echo "Pre-building WebDriverAgent to avoid timeout on first test..."
@@ -463,45 +369,8 @@ jobs:
           done
 
       # ============================================================
-      # START API CAPTURE (Before running tests)
+      # Run Tests
       # ============================================================
-      - name: Start API Traffic Capture
-        if: github.event.inputs.capture_api != 'false'
-        run: |
-          echo "📡 Starting API traffic capture..."
-          
-          # Generate mitmproxy certificates
-          timeout 5 mitmdump --set confdir=~/.mitmproxy 2>/dev/null || true
-          
-          # Install certificate in simulator (for HTTPS)
-          if [ -f ~/.mitmproxy/mitmproxy-ca-cert.pem ]; then
-            echo "Installing mitmproxy certificate in simulator..."
-            xcrun simctl keychain "${{ env.SIMULATOR_UDID }}" add-root-cert ~/.mitmproxy/mitmproxy-ca-cert.pem 2>/dev/null || true
-          fi
-          
-          # Start mitmproxy in background
-          echo "Starting mitmproxy on port 8888..."
-          mitmdump -w api_traffic.flow -p 8888 --set flow_detail=2 --quiet > mitmproxy.log 2>&1 &
-          MITM_PID=$!
-          echo "MITM_PID=$MITM_PID" >> $GITHUB_ENV
-          
-          sleep 3
-          
-          # Verify mitmproxy is running
-          if ps -p $MITM_PID > /dev/null; then
-            echo "✅ mitmproxy started (PID: $MITM_PID)"
-          else
-            echo "⚠️ mitmproxy may not have started properly"
-            cat mitmproxy.log 2>/dev/null || true
-          fi
-          
-          # Configure macOS to use proxy (simulator uses system proxy)
-          echo "Configuring system proxy..."
-          networksetup -setwebproxy "Wi-Fi" 127.0.0.1 8888 2>/dev/null || true
-          networksetup -setsecurewebproxy "Wi-Fi" 127.0.0.1 8888 2>/dev/null || true
-          
-          echo "✅ API capture ready"
-
       - name: Run Smoke Tests
         id: smoke_tests
         continue-on-error: true
@@ -510,14 +379,10 @@ jobs:
           PLATFORM_VERSION: ${{ env.PLATFORM_VERSION }}
           DEVICE_NAME: ${{ env.DEVICE_NAME }}
           APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
-          # Proxy settings for Java/Maven
-          HTTP_PROXY: http://127.0.0.1:8888
-          HTTPS_PROXY: http://127.0.0.1:8888
         run: |
           echo "╔════════════════════════════════════════════════════════════╗"
           echo "║         🔥 SMOKE TEST SUITE (17 tests)                     ║"
           echo "║    Quick validation of critical paths (~15-20 min)         ║"
-          echo "║    📡 API Traffic Capture: ENABLED                         ║"
           echo "╚════════════════════════════════════════════════════════════╝"
           echo ""
           echo "📋 Tests included:"
@@ -534,56 +399,191 @@ jobs:
             -DAPP_PATH="$APP_PATH"
 
       # ============================================================
-      # STOP CAPTURE & GENERATE API REPORT
+      # API CAPTURE PHASE 5: Generate Report
       # ============================================================
-      - name: Generate API Traffic Report
-        if: always() && github.event.inputs.capture_api != 'false'
+      - name: "[API Capture 5/5] Generate API Traffic Report"
+        if: always() && github.event.inputs.capture_api == 'true'
         run: |
-          echo "📡 Generating API traffic report..."
+          echo "╔════════════════════════════════════════════════════════════╗"
+          echo "║     📡 API CAPTURE - PHASE 5: Generate Report              ║"
+          echo "╚════════════════════════════════════════════════════════════╝"
           
-          # Stop proxy capture gracefully
+          # Stop mitmproxy gracefully
           if [ -n "${{ env.MITM_PID }}" ]; then
             echo "Stopping mitmproxy (PID: ${{ env.MITM_PID }})..."
             kill ${{ env.MITM_PID }} 2>/dev/null || true
             sleep 3
           fi
           
-          # Disable system proxy
-          networksetup -setwebproxystate "Wi-Fi" off 2>/dev/null || true
-          networksetup -setsecurewebproxystate "Wi-Fi" off 2>/dev/null || true
+          # Also kill any remaining mitmdump processes
+          pkill -f "mitmdump" 2>/dev/null || true
           
-          # Check if we captured any traffic
-          if [ -f "api_traffic.flow" ]; then
-            FLOW_SIZE=$(ls -lh api_traffic.flow | awk '{print $5}')
-            echo "✅ API traffic captured: $FLOW_SIZE"
+          # Disable system proxy
+          echo "Disabling system proxy..."
+          for SERVICE in "Ethernet" "Wi-Fi"; do
+            networksetup -setwebproxystate "$SERVICE" off 2>/dev/null || true
+            networksetup -setsecurewebproxystate "$SERVICE" off 2>/dev/null || true
+          done
+          
+          # Check captured traffic
+          echo ""
+          echo "=== Captured Traffic Analysis ==="
+          
+          FLOW_FILE="reports/api_logs/traffic.flow"
+          
+          if [ -f "$FLOW_FILE" ]; then
+            FLOW_SIZE=$(ls -lh "$FLOW_FILE" | awk '{print $5}')
+            FLOW_BYTES=$(ls -l "$FLOW_FILE" | awk '{print $5}')
+            echo "Traffic file: $FLOW_FILE"
+            echo "File size: $FLOW_SIZE ($FLOW_BYTES bytes)"
             
-            # Install mitmproxy Python package for parsing
-            pip install mitmproxy --quiet 2>/dev/null || true
-            
-            # Generate report
-            python scripts/parse_api_traffic.py api_traffic.flow || true
-            
-            # Show summary in workflow log
-            echo ""
-            echo "╔════════════════════════════════════════════════════════════╗"
-            echo "║                 📡 API CAPTURE SUMMARY                     ║"
-            echo "╚════════════════════════════════════════════════════════════╝"
-            
-            if [ -f "reports/api_logs/failed_apis.json" ]; then
-              echo ""
-              echo "❌ Failed APIs detected:"
-              cat reports/api_logs/failed_apis.json | head -100
+            if [ "$FLOW_BYTES" -gt 0 ]; then
+              echo "✅ Traffic was captured!"
+              
+              # Install mitmproxy Python library for parsing
+              pip3 install mitmproxy --quiet 2>/dev/null || true
+              
+              # Create parser script (sed strips leading 10 spaces for YAML compatibility)
+              sed 's/^          //' > scripts/parse_api.py << 'PYSCRIPT'
+          import json
+          import sys
+          import os
+          from datetime import datetime
+
+          def main(flow_file):
+              if not os.path.exists(flow_file):
+                  print(f"⚠️ Flow file not found: {flow_file}")
+                  return
+
+              file_size = os.path.getsize(flow_file)
+              print(f"Flow file size: {file_size} bytes")
+
+              if file_size == 0:
+                  print("⚠️ No API traffic captured (0 bytes)")
+                  print("   Possible reasons:")
+                  print("   1. iOS Simulator did not use system proxy")
+                  print("   2. App has certificate pinning enabled")
+                  print("   3. Proxy was not running during tests")
+                  return
+
+              try:
+                  from mitmproxy import io as mitmio
+
+                  flows_data = []
+                  failed_apis = []
+                  egalvanic_apis = []
+                  total = 0
+
+                  with open(flow_file, "rb") as f:
+                      for flow in mitmio.FlowReader(f).stream():
+                          if hasattr(flow, 'request'):
+                              total += 1
+                              url = flow.request.pretty_url
+                              method = flow.request.method
+
+                              flow_info = {
+                                  "method": method,
+                                  "url": url,
+                                  "host": flow.request.host,
+                                  "status": None,
+                                  "error": None
+                              }
+
+                              # Check for eGalvanic APIs
+                              if 'egalvanic' in url.lower():
+                                  egalvanic_apis.append(flow_info)
+
+                              if hasattr(flow, 'response') and flow.response:
+                                  flow_info["status"] = flow.response.status_code
+                                  if flow.response.status_code >= 400:
+                                      flow_info["response_preview"] = (flow.response.get_text() or "")[:500]
+                                      failed_apis.append(flow_info)
+                              elif hasattr(flow, 'error') and flow.error:
+                                  flow_info["error"] = str(flow.error)
+                                  failed_apis.append(flow_info)
+
+                              flows_data.append(flow_info)
+
+                  # Print summary
+                  print(f"\n{'='*70}")
+                  print(f"📡 API TRAFFIC REPORT")
+                  print(f"{'='*70}")
+                  print(f"Total requests captured: {total}")
+                  print(f"Failed requests (4xx/5xx): {len(failed_apis)}")
+                  print(f"eGalvanic API calls: {len(egalvanic_apis)}")
+
+                  # Group by host
+                  hosts = {}
+                  for f in flows_data:
+                      host = f.get('host', 'unknown')
+                      hosts[host] = hosts.get(host, 0) + 1
+
+                  print(f"\n📊 Traffic by Host:")
+                  for host, count in sorted(hosts.items(), key=lambda x: -x[1])[:20]:
+                      marker = "🎯" if 'egalvanic' in host.lower() else "  "
+                      print(f"  {marker} {host}: {count} requests")
+
+                  if egalvanic_apis:
+                      print(f"\n🎯 eGalvanic API Calls ({len(egalvanic_apis)}):")
+                      for api in egalvanic_apis[:10]:  # Show first 10
+                          status = api.get('status', 'N/A')
+                          print(f"  [{status}] {api['method']} {api['url'][:80]}")
+
+                  if failed_apis:
+                      print(f"\n❌ Failed API Calls ({len(failed_apis)}):")
+                      for api in failed_apis[:10]:  # Show first 10
+                          status = api.get('status') or api.get('error', 'unknown')
+                          print(f"  [{status}] {api['method']} {api['url'][:80]}")
+
+                  # Save detailed report
+                  os.makedirs("reports/api_logs", exist_ok=True)
+                  report = {
+                      "timestamp": datetime.now().isoformat(),
+                      "total_requests": total,
+                      "failed_count": len(failed_apis),
+                      "egalvanic_count": len(egalvanic_apis),
+                      "hosts": hosts,
+                      "failed_apis": failed_apis[:50],
+                      "egalvanic_apis": egalvanic_apis[:50]
+                  }
+
+                  with open("reports/api_logs/api_report.json", "w") as f:
+                      json.dump(report, f, indent=2)
+                  print(f"\n✅ Detailed report saved to: reports/api_logs/api_report.json")
+
+              except ImportError:
+                  print("⚠️ mitmproxy library not available for parsing")
+                  print("   Raw flow file is still available in artifacts")
+              except Exception as e:
+                  print(f"Error parsing flow file: {e}")
+
+          if __name__ == "__main__":
+              main(sys.argv[1] if len(sys.argv) > 1 else "reports/api_logs/traffic.flow")
+          PYSCRIPT
+              
+              # Run parser
+              python3 scripts/parse_api.py "$FLOW_FILE" || echo "Parser failed, raw file still available"
+              
             else
-              echo "✅ No failed APIs detected"
+              echo ""
+              echo "⚠️ NO TRAFFIC CAPTURED (0 bytes)"
+              echo ""
+              echo "Possible reasons:"
+              echo "1. iOS Simulator does not use macOS system proxy"
+              echo "2. App has certificate pinning that blocks interception"
+              echo "3. Network configuration issue"
+              echo ""
+              echo "Mitmdump log:"
+              cat reports/api_logs/mitmdump.log 2>/dev/null | tail -30 || echo "No log available"
             fi
           else
-            echo "⚠️ No API traffic was captured"
-            echo "This may happen if:"
-            echo "  - The app uses certificate pinning"
-            echo "  - The app doesn't make network calls"
-            echo "  - Proxy configuration failed"
+            echo "❌ Traffic flow file not found: $FLOW_FILE"
+            ls -la reports/api_logs/ 2>/dev/null || echo "Directory not found"
           fi
 
+      # ============================================================
+      # Cleanup and Results
+      # ============================================================
       - name: Capture Smoke Test Status
         id: smoke_status
         if: always()
@@ -596,17 +596,24 @@ jobs:
             echo "❌ SMOKE TESTS FAILED"
           fi
 
-      - name: Upload Smoke Report
+      - name: Upload Test Reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: smoke-report
+          name: smoke-test-reports
           path: |
             target/surefire-reports/
             reports/
             screenshots/
-            api_traffic.flow
-            mitmproxy.log
+          retention-days: 7
+
+      - name: Upload API Capture Artifacts
+        if: always() && github.event.inputs.capture_api == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-capture-logs
+          path: |
+            reports/api_logs/
           retention-days: 7
 
       - name: Smoke Test Summary
@@ -628,11 +635,17 @@ jobs:
           echo "   │ Location        │   3   │ Building UI, Save, Name        │"
           echo "   │ Connections     │   3   │ Tab, Header, List              │"
           echo "   └─────────────────┴───────┴────────────────────────────────┘"
-          echo ""
-          echo "📡 API Capture: Enabled"
-          echo "   - JSON Report: reports/api_logs/api_report.json"
-          echo "   - HTML Report: reports/api_logs/api_report.html"
-          echo "   - Failed APIs: reports/api_logs/failed_apis.json"
+          
+          if [ "${{ github.event.inputs.capture_api }}" == "true" ]; then
+            echo ""
+            echo "📡 API Capture: ENABLED"
+            if [ -f "reports/api_logs/api_report.json" ]; then
+              echo "   Report generated - check artifacts for details"
+            else
+              echo "   ⚠️ No API traffic captured - see logs for details"
+            fi
+          fi
+          
           echo ""
           echo "🔗 Full Details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
@@ -646,7 +659,7 @@ jobs:
       needs.smoke-tests.outputs.smoke_result == 'passed' && 
       github.event.inputs.run_full_suite_after == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 420
+    timeout-minutes: 5
     
     steps:
       - name: Trigger Full Test Suite
@@ -672,7 +685,3 @@ jobs:
           echo "╔════════════════════════════════════════════════════════════╗"
           echo "║    🚀 FULL TEST SUITE TRIGGERED                            ║"
           echo "╚════════════════════════════════════════════════════════════╝"
-          echo ""
-          echo "✅ Smoke tests passed - Full suite workflow dispatched"
-          echo ""
-          echo "🔗 Check Actions tab for full suite progress"

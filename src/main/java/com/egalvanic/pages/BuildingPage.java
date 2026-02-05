@@ -4641,6 +4641,147 @@ public class BuildingPage extends BasePage {
         return null;
     }
 
+    // ============================================================
+    // FAST INDEX-BASED METHODS - Optimized for speed
+    // ============================================================
+
+    /**
+     * FAST: Expand floor by index (0-based) - avoids slow name-based searching
+     * @param index 0-based index of floor to expand
+     * @return true if floor expanded successfully
+     */
+    public boolean expandFloorByIndex(int index) {
+        try {
+            System.out.println("⚡ FAST: Expanding floor at index " + index);
+
+            // Get all floor elements in one query
+            List<WebElement> floors = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label CONTAINS 'Floor'"));
+
+            if (floors.isEmpty()) {
+                System.out.println("⚠️ No floors found");
+                return false;
+            }
+
+            if (index >= floors.size()) {
+                System.out.println("⚠️ Floor index " + index + " out of bounds (found " + floors.size() + " floors)");
+                return false;
+            }
+
+            WebElement floor = floors.get(index);
+            String label = floor.getAttribute("label");
+            System.out.println("   Clicking floor: " + label);
+            floor.click();
+            sleep(400);
+
+            // Check if rooms are visible after click - if not, floor was collapsed (already expanded before)
+            List<WebElement> rooms = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND visible == true " +
+                "AND (label CONTAINS 'asset' OR label CONTAINS 'Asset') " +
+                "AND NOT label CONTAINS 'Floor' " +
+                "AND NOT label CONTAINS 'Building' " +
+                "AND NOT label CONTAINS 'No Location'"));
+
+            if (rooms.isEmpty()) {
+                // Floor was already expanded - we just collapsed it! Click again to re-expand
+                System.out.println("   Floor was already expanded - re-expanding...");
+                floor = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND label CONTAINS 'Floor'")).get(index);
+                floor.click();
+                sleep(400);
+            }
+
+            System.out.println("✅ Floor expanded by index");
+            return true;
+        } catch (Exception e) {
+            System.out.println("⚠️ Error expanding floor by index: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * FAST: Navigate into room by index - uses single optimized query
+     * Rooms typically have "asset" in label (e.g., "RoomName, 5 assets")
+     * @param index 0-based index of room to open
+     * @return true if room opened successfully
+     */
+    public boolean navigateIntoRoomByIndex(int index) {
+        try {
+            System.out.println("⚡ FAST: Opening room at index " + index);
+
+            // Single optimized query - rooms have "asset" in label after floor expansion
+            // Exclude floors, buildings, "No Location" system button, and nav buttons
+            List<WebElement> rooms = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND visible == true " +
+                "AND (label CONTAINS 'asset' OR label CONTAINS 'Asset') " +
+                "AND NOT label CONTAINS 'Floor' " +
+                "AND NOT label CONTAINS 'Building' " +
+                "AND NOT label CONTAINS 'No Location' " +
+                "AND NOT label CONTAINS 'No location'"));
+
+            // Fallback: if no "asset" rooms, try cells under the expanded floor
+            if (rooms.isEmpty()) {
+                System.out.println("   Trying fallback query...");
+                rooms = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeCell' AND visible == true " +
+                    "AND NOT label CONTAINS 'Floor' " +
+                    "AND NOT label CONTAINS 'Building' " +
+                    "AND NOT label CONTAINS 'No Location' " +
+                    "AND NOT label CONTAINS 'No location'"));
+            }
+
+            if (rooms.isEmpty()) {
+                System.out.println("⚠️ No rooms found after floor expansion");
+                return false;
+            }
+
+            System.out.println("   Found " + rooms.size() + " room(s)");
+
+            if (index >= rooms.size()) {
+                System.out.println("⚠️ Room index " + index + " out of bounds");
+                index = 0; // Default to first room
+            }
+
+            WebElement room = rooms.get(index);
+            System.out.println("   Clicking room...");
+            room.click();
+            sleep(500);
+            System.out.println("✅ Room opened by index");
+            return true;
+        } catch (Exception e) {
+            System.out.println("⚠️ Error opening room by index: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * FAST: Combined expand first floor and open first room in one flow
+     * @return true if successfully navigated to first room
+     */
+    public boolean fastNavigateToFirstRoom() {
+        try {
+            System.out.println("⚡ FAST: Quick navigate to first room...");
+
+            // Step 1: Expand first floor (index 0)
+            if (!expandFloorByIndex(0)) {
+                System.out.println("⚠️ Could not expand first floor");
+                return false;
+            }
+            sleep(300);
+
+            // Step 2: Open first room (index 0)
+            if (!navigateIntoRoomByIndex(0)) {
+                System.out.println("⚠️ Could not open first room");
+                return false;
+            }
+
+            System.out.println("✅ FAST: Navigated to first room");
+            return true;
+        } catch (Exception e) {
+            System.out.println("⚠️ Error in fast navigation: " + e.getMessage());
+            return false;
+        }
+    }
 
 
     /**
