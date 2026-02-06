@@ -129,7 +129,7 @@ jobs:
         run: |
           echo "Starting Appium..."
           # Start Appium in background with log file
-          appium --relaxed-security --log-level info > appium.log 2>&1 &
+          appium --relaxed-security --log-level error > appium.log 2>&1 &
           APPIUM_PID=$!
           echo "Appium PID: $APPIUM_PID"
           

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<suite name="QUICK - Phase 4 Test (1 test)" parallel="false" verbose="2">
+<suite name="QUICK - Phase 4 Test (1 test)" parallel="false" verbose="0">
     <!--
     ============================================================
     QUICK VERIFICATION - ASSET PHASE 4 (1 TEST + SETUP)
@@ -11,7 +11,11 @@
     Expected Time: ~3-4 minutes
     ============================================================
     -->
-    
+
+    <listeners>
+        <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
+    </listeners>
+
     <!-- Setup: Login and Select Site -->
     <test name="Setup - Login and Site">
         <classes>
@@ -22,7 +26,7 @@
             </class>
         </classes>
     </test>
-    
+
     <!-- Actual Test -->
     <test name="Phase 4 Quick Test">
         <classes>

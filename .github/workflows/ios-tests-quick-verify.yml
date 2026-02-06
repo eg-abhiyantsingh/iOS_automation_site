@@ -150,7 +150,7 @@ jobs:
       - name: Start Appium Server
         run: |
           echo "Starting Appium..."
-          appium --relaxed-security --log-level info > appium.log 2>&1 &
+          appium --relaxed-security --log-level error > appium.log 2>&1 &
           APPIUM_PID=$!
           echo "Appium PID: $APPIUM_PID"
           
@@ -330,7 +330,7 @@ jobs:
 
       - name: Start Appium Server
         run: |
-          appium --relaxed-security --log-level info > appium.log 2>&1 &
+          appium --relaxed-security --log-level error > appium.log 2>&1 &
           for i in {1..60}; do
             HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:4723/status 2>/dev/null || echo "000")
             [ "$HTTP_STATUS" = "200" ] && echo "✅ Appium ready" && break
@@ -453,7 +453,7 @@ jobs:
 
       - name: Start Appium Server
         run: |
-          appium --relaxed-security --log-level info > appium.log 2>&1 &
+          appium --relaxed-security --log-level error > appium.log 2>&1 &
           for i in {1..60}; do
             HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:4723/status 2>/dev/null || echo "000")
             [ "$HTTP_STATUS" = "200" ] && break
@@ -569,7 +569,7 @@ jobs:
 
       - name: Start Appium Server
         run: |
-          appium --relaxed-security --log-level info > appium.log 2>&1 &
+          appium --relaxed-security --log-level error > appium.log 2>&1 &
           for i in {1..60}; do
             HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:4723/status 2>/dev/null || echo "000")
             [ "$HTTP_STATUS" = "200" ] && break
@@ -658,7 +658,7 @@ jobs:
           [ -n "$WDA_PATH" ] && cd "$WDA_PATH" && xcodebuild build-for-testing -project WebDriverAgent.xcodeproj -scheme WebDriverAgentRunner -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" -derivedDataPath /tmp/wda-build -quiet || true
       - name: Start Appium
         run: |
-          appium --relaxed-security --log-level info > appium.log 2>&1 &
+          appium --relaxed-security --log-level error > appium.log 2>&1 &
           for i in {1..60}; do
             [ "$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:4723/status 2>/dev/null)" = "200" ] && break
             sleep 2
@@ -735,7 +735,7 @@ jobs:
           [ -n "$WDA_PATH" ] && cd "$WDA_PATH" && xcodebuild build-for-testing -project WebDriverAgent.xcodeproj -scheme WebDriverAgentRunner -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" -derivedDataPath /tmp/wda-build -quiet || true
       - name: Start Appium
         run: |
-          appium --relaxed-security --log-level info > appium.log 2>&1 &
+          appium --relaxed-security --log-level error > appium.log 2>&1 &
           for i in {1..60}; do
             [ "$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:4723/status 2>/dev/null)" = "200" ] && break
             sleep 2
@@ -812,7 +812,7 @@ jobs:
           [ -n "$WDA_PATH" ] && cd "$WDA_PATH" && xcodebuild build-for-testing -project WebDriverAgent.xcodeproj -scheme WebDriverAgentRunner -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" -derivedDataPath /tmp/wda-build -quiet || true
       - name: Start Appium
         run: |
-          appium --relaxed-security --log-level info > appium.log 2>&1 &
+          appium --relaxed-security --log-level error > appium.log 2>&1 &
           for i in {1..60}; do
             [ "$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:4723/status 2>/dev/null)" = "200" ] && break
             sleep 2
