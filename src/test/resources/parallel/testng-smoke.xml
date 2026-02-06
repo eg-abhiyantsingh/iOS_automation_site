@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<suite name="Smoke Test Suite" verbose="2">
+<suite name="Smoke Test Suite" verbose="0">
     <!-- 
     SMOKE TEST SUITE
     =================
@@ -14,6 +14,10 @@
     4. Fast execution (no heavy data operations)
     -->
     
+    <!-- Custom Listener for Clean Console Output -->
+    <listeners>
+        <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
+    </listeners>
     
     <!-- Site Selection Tests - Verify site selection flow -->
     <test name="Smoke - Site Selection">
@@ -28,7 +32,4 @@
         </classes>
     </test>
     
-    
-    
-   
 </suite>

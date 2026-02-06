@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<suite name="Location Test Suite" verbose="2">
+<suite name="Location Test Suite" verbose="0">
+    
+    <!-- Custom Listener for Clean Console Output -->
+    <listeners>
+        <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
+    </listeners>
+    
     <test name="Location Tests">
         <classes>
             <class name="com.egalvanic.tests.LocationTest"/>
