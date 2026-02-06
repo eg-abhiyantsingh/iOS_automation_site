@@ -253,7 +253,7 @@ jobs:
           DEVICE_NAME: ${{ env.DEVICE_NAME }}
           APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
         run: |
-          mvn test -DsuiteXmlFile=src/test/resources/parallel/testng-auth.xml \
+          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel/testng-auth.xml \
             -DDEVICE_NAME="$DEVICE_NAME" \
             -DPLATFORM_VERSION="$PLATFORM_VERSION" \
             -DSIMULATOR_UDID="$SIMULATOR_UDID" \
@@ -359,7 +359,7 @@ jobs:
       - name: Run Site Tests
         continue-on-error: true
         run: |
-          mvn test -DsuiteXmlFile=src/test/resources/parallel/testng-site.xml \
+          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel/testng-site.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
@@ -464,7 +464,7 @@ jobs:
       - name: Run Phase 1 Tests
         continue-on-error: true
         run: |
-          mvn test -DsuiteXmlFile=src/test/resources/parallel/testng-phase1.xml \
+          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel/testng-phase1.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
@@ -569,7 +569,7 @@ jobs:
       - name: Run Phase 2 Tests
         continue-on-error: true
         run: |
-          mvn test -DsuiteXmlFile=src/test/resources/parallel/testng-phase2.xml \
+          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel/testng-phase2.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
@@ -674,7 +674,7 @@ jobs:
       - name: Run Phase 3 Tests
         continue-on-error: true
         run: |
-          mvn test -DsuiteXmlFile=src/test/resources/parallel/testng-phase3.xml \
+          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel/testng-phase3.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
@@ -779,7 +779,7 @@ jobs:
       - name: Run Phase 4 Tests
         continue-on-error: true
         run: |
-          mvn test -DsuiteXmlFile=src/test/resources/parallel/testng-phase4.xml \
+          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel/testng-phase4.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
@@ -884,7 +884,7 @@ jobs:
       - name: Run Phase 5 Tests
         continue-on-error: true
         run: |
-          mvn test -DsuiteXmlFile=src/test/resources/parallel/testng-phase5.xml \
+          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel/testng-phase5.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
@@ -989,7 +989,7 @@ jobs:
       - name: Run Location Tests
         continue-on-error: true
         run: |
-          mvn test -DsuiteXmlFile=src/test/resources/parallel/testng-location.xml \
+          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel/testng-location.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
@@ -1095,7 +1095,7 @@ jobs:
       - name: Run Connections Tests
         continue-on-error: true
         run: |
-          mvn test -DsuiteXmlFile=src/test/resources/parallel/testng-connections.xml \
+          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel/testng-connections.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \

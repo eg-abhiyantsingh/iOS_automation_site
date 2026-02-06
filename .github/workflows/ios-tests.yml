@@ -265,7 +265,7 @@ jobs:
           echo "UDID: $SIMULATOR_UDID"
           echo "App: $APP_PATH"
 
-          mvn clean test \
+          mvn clean test -q -B \
             -DDEVICE_NAME="$DEVICE_NAME" \
             -DPLATFORM_VERSION="$PLATFORM_VERSION" \
             -DSIMULATOR_UDID="$SIMULATOR_UDID" \

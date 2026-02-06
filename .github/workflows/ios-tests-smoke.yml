@@ -392,7 +392,7 @@ jobs:
           echo "   Location: TC_NB_001, TC_NB_003, TC_NB_004"
           echo "   Connections: TC_CONN_001, TC_CONN_002, TC_CONN_004"
           echo ""
-          mvn test -DsuiteXmlFile=src/test/resources/parallel/testng-smoke.xml \
+          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel/testng-smoke.xml \
             -DDEVICE_NAME="$DEVICE_NAME" \
             -DPLATFORM_VERSION="$PLATFORM_VERSION" \
             -DSIMULATOR_UDID="$SIMULATOR_UDID" \

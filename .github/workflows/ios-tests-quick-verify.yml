@@ -232,7 +232,7 @@ jobs:
           DEVICE_NAME: ${{ env.DEVICE_NAME }}
           APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
         run: |
-          mvn test -DsuiteXmlFile=src/test/resources/parallel-quick/testng-auth-quick.xml \
+          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel-quick/testng-auth-quick.xml \
             -DDEVICE_NAME="$DEVICE_NAME" \
             -DPLATFORM_VERSION="$PLATFORM_VERSION" \
             -DSIMULATOR_UDID="$SIMULATOR_UDID" \
@@ -361,7 +361,7 @@ jobs:
       - name: Run Tests
         continue-on-error: true
         run: |
-          mvn test -DsuiteXmlFile=src/test/resources/parallel-quick/testng-site-quick.xml \
+          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel-quick/testng-site-quick.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
@@ -481,7 +481,7 @@ jobs:
       - name: Run Tests
         continue-on-error: true
         run: |
-          mvn test -DsuiteXmlFile=src/test/resources/parallel-quick/testng-phase1-quick.xml             -DDEVICE_NAME="${{ env.DEVICE_NAME }}"             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}"             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}"             -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel-quick/testng-phase1-quick.xml             -DDEVICE_NAME="${{ env.DEVICE_NAME }}"             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}"             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}"             -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
 
       - name: Upload Report
         if: always()
@@ -597,7 +597,7 @@ jobs:
       - name: Run Tests
         continue-on-error: true
         run: |
-          mvn test -DsuiteXmlFile=src/test/resources/parallel-quick/testng-phase2-quick.xml             -DDEVICE_NAME="${{ env.DEVICE_NAME }}"             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}"             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}"             -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel-quick/testng-phase2-quick.xml             -DDEVICE_NAME="${{ env.DEVICE_NAME }}"             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}"             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}"             -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
 
       - name: Upload Report
         if: always()
@@ -675,7 +675,7 @@ jobs:
       - name: Run Tests
         continue-on-error: true
         run: |
-          mvn test -DsuiteXmlFile=src/test/resources/parallel-quick/testng-phase3-quick.xml             -DDEVICE_NAME="${{ env.DEVICE_NAME }}"             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}"             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}"             -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel-quick/testng-phase3-quick.xml             -DDEVICE_NAME="${{ env.DEVICE_NAME }}"             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}"             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}"             -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
       - name: Upload Report
         if: always()
         uses: actions/upload-artifact@v4
@@ -752,7 +752,7 @@ jobs:
       - name: Run Tests
         continue-on-error: true
         run: |
-          mvn test -DsuiteXmlFile=src/test/resources/parallel-quick/testng-phase4-quick.xml             -DDEVICE_NAME="${{ env.DEVICE_NAME }}"             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}"             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}"             -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel-quick/testng-phase4-quick.xml             -DDEVICE_NAME="${{ env.DEVICE_NAME }}"             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}"             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}"             -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
       - name: Upload Report
         if: always()
         uses: actions/upload-artifact@v4
@@ -829,7 +829,7 @@ jobs:
       - name: Run Tests
         continue-on-error: true
         run: |
-          mvn test -DsuiteXmlFile=src/test/resources/parallel-quick/testng-phase5-quick.xml             -DDEVICE_NAME="${{ env.DEVICE_NAME }}"             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}"             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}"             -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel-quick/testng-phase5-quick.xml             -DDEVICE_NAME="${{ env.DEVICE_NAME }}"             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}"             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}"             -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
       - name: Upload Report
         if: always()
         uses: actions/upload-artifact@v4
