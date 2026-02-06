@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="Smoke - Connections" verbose="0">
+    <listeners>
+        <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
+    </listeners>
+    <test name="Smoke - Connections">
+        <classes>
+            <class name="com.egalvanic.tests.Connections_Test">
+                <methods>
+                    <include name="TC_CONN_001_verifyConnectionsTabInBottomNavigation"/>
+                    <include name="TC_CONN_002_verifyConnectionsScreenHeader"/>
+                    <include name="TC_CONN_004_verifyConnectionListDisplaysAllConnections"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+</suite>

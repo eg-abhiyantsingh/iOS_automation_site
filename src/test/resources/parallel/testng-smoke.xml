@@ -2,24 +2,44 @@
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
 <suite name="Smoke Test Suite" verbose="0">
     <!-- 
-    SMOKE TEST SUITE
-    =================
-    Purpose: Quick validation of critical paths and core functionality
-    Execution time target: ~15-20 minutes
+    SMOKE TEST SUITE - 16 Critical Path Tests across 5 Modules
+    ===========================================================
+    Purpose: Quick validation of critical paths (~15-20 min)
     
-    Selection Criteria:
-    1. Critical user flows (app launch, login, site selection)
-    2. Core feature access (asset, location, connections navigation)
-    3. High reliability tests (UI element visibility checks)
-    4. Fast execution (no heavy data operations)
+    Modules:
+      Module 1 - Authentication:    4 tests (Welcome, Input, CompanyCode, LoginUI)
+      Module 2 - Site Selection:    3 tests (UI, Search, Dashboard Navigation)
+      Module 3 - Asset Management:  3 tests (Screen Load, Fields, Validation)
+      Module 4 - Location:          3 tests (Building UI, Save State, Name Input)
+      Module 5 - Connections:       3 tests (Tab, Header, List)
+    
+    CI Usage:
+      In CI (ios-tests-smoke.yml), each module runs separately with a
+      progress dashboard. For local/direct use, this XML runs all modules
+      in a single Maven invocation.
+    
+    Individual module XMLs: src/test/resources/smoke/testng-smoke-*.xml
     -->
     
-    <!-- Custom Listener for Clean Console Output -->
     <listeners>
         <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
     </listeners>
-    
-    <!-- Site Selection Tests - Verify site selection flow -->
+
+    <!-- Module 1: Authentication (4 tests) -->
+    <test name="Smoke - Authentication">
+        <classes>
+            <class name="com.egalvanic.tests.AuthenticationTest">
+                <methods>
+                    <include name="TC01_verifyWelcomeScreenUILoads"/>
+                    <include name="TC04_verifyCompanyCodeFieldAcceptsInput"/>
+                    <include name="TC07_verifyValidCompanyCodeNavigatesToLogin"/>
+                    <include name="TC16_verifyLoginScreenUIElements"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+
+    <!-- Module 2: Site Selection (3 tests) -->
     <test name="Smoke - Site Selection">
         <classes>
             <class name="com.egalvanic.tests.SiteSelectionTest">
@@ -31,5 +51,44 @@
             </class>
         </classes>
     </test>
-    
+
+    <!-- Module 3: Asset Management (3 tests) -->
+    <test name="Smoke - Asset Management">
+        <classes>
+            <class name="com.egalvanic.tests.Asset_Phase1_Test">
+                <methods>
+                    <include name="ATS_ECR_01_verifyNewAssetScreenLoadsSuccessfully"/>
+                    <include name="ATS_ECR_02_verifyAllUIFieldsAreVisible"/>
+                    <include name="ATS_ECR_06_verifyNameMandatoryValidation"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+
+    <!-- Module 4: Location (3 tests) -->
+    <test name="Smoke - Location">
+        <classes>
+            <class name="com.egalvanic.tests.LocationTest">
+                <methods>
+                    <include name="TC_NB_001_verifyNewBuildingScreenUIElements"/>
+                    <include name="TC_NB_003_verifySaveButtonStateChanges"/>
+                    <include name="TC_NB_004_verifyBuildingNameAcceptsValidInput"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+
+    <!-- Module 5: Connections (3 tests) -->
+    <test name="Smoke - Connections">
+        <classes>
+            <class name="com.egalvanic.tests.Connections_Test">
+                <methods>
+                    <include name="TC_CONN_001_verifyConnectionsTabInBottomNavigation"/>
+                    <include name="TC_CONN_002_verifyConnectionsScreenHeader"/>
+                    <include name="TC_CONN_004_verifyConnectionListDisplaysAllConnections"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+
 </suite>

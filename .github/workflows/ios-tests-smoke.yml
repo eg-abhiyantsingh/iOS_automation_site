@@ -3,14 +3,22 @@ name: iOS Tests - Smoke Suite
 # ============================================================
 # SMOKE TEST SUITE - Quick Critical Path Validation
 # ============================================================
-# Tests: 17 tests across 5 modules (~15-20 min execution)
+# Tests: 16 tests across 5 modules (~15-20 min execution)
+#
+# Dashboard: Runs each module individually with a live progress
+# dashboard showing module status, progress bar, and timing.
+# Raw Maven output is collapsed inside ::group:: sections.
 # 
 # Modules Covered:
-#   - Authentication: 4 tests
-#   - Site Selection: 4 tests  
-#   - Asset Management: 3 tests
-#   - Location: 3 tests
-#   - Connections: 3 tests
+#   - Module 1: Authentication     (4 tests)
+#   - Module 2: Site Selection     (3 tests)
+#   - Module 3: Asset Management   (3 tests)
+#   - Module 4: Location           (3 tests)
+#   - Module 5: Connections        (3 tests)
+#
+# Individual module XMLs: src/test/resources/smoke/testng-smoke-*.xml
+# Combined XML:           src/test/resources/parallel/testng-smoke.xml
+# Dashboard script:       .github/scripts/smoke-dashboard.sh
 #
 # API Capture (EXPERIMENTAL):
 #   - Uses mitmproxy to capture HTTP/HTTPS traffic
@@ -19,7 +27,6 @@ name: iOS Tests - Smoke Suite
 #   - If app has certificate pinning, capture will fail
 #   - eGalvanic app tested locally: NO cert pinning detected ✅
 # ============================================================
-
 on:
   push:
     branches: [main, develop]
@@ -369,9 +376,9 @@ jobs:
           done
 
       # ============================================================
-      # Run Tests
+      # Run Tests — Module-by-Module with Dashboard
       # ============================================================
-      - name: Run Smoke Tests
+      - name: Run Smoke Tests with Dashboard
         id: smoke_tests
         continue-on-error: true
         env:
@@ -380,23 +387,7 @@ jobs:
           DEVICE_NAME: ${{ env.DEVICE_NAME }}
           APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
         run: |
-          echo "╔════════════════════════════════════════════════════════════╗"
-          echo "║         🔥 SMOKE TEST SUITE (17 tests)                     ║"
-          echo "║    Quick validation of critical paths (~15-20 min)         ║"
-          echo "╚════════════════════════════════════════════════════════════╝"
-          echo ""
-          echo "📋 Tests included:"
-          echo "   Authentication: TC01, TC04, TC07, TC16"
-          echo "   Site Selection: TC_SS_001, TC_SS_003, TC_SS_007, TC_SS_014"
-          echo "   Asset: ATS_ECR_01, ATS_ECR_02, ATS_ECR_14"
-          echo "   Location: TC_NB_001, TC_NB_003, TC_NB_004"
-          echo "   Connections: TC_CONN_001, TC_CONN_002, TC_CONN_004"
-          echo ""
-          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel/testng-smoke.xml \
-            -DDEVICE_NAME="$DEVICE_NAME" \
-            -DPLATFORM_VERSION="$PLATFORM_VERSION" \
-            -DSIMULATOR_UDID="$SIMULATOR_UDID" \
-            -DAPP_PATH="$APP_PATH"
+          bash .github/scripts/smoke-dashboard.sh
 
       # ============================================================
       # API CAPTURE PHASE 5: Generate Report
@@ -588,12 +579,11 @@ jobs:
         id: smoke_status
         if: always()
         run: |
-          if [ "${{ steps.smoke_tests.outcome }}" == "success" ]; then
+          # Dashboard script sets SMOKE_RESULT env var
+          if [ "${{ env.SMOKE_RESULT }}" = "passed" ] || [ "${{ steps.smoke_tests.outcome }}" = "success" ]; then
             echo "result=passed" >> $GITHUB_OUTPUT
-            echo "✅ SMOKE TESTS PASSED"
           else
             echo "result=failed" >> $GITHUB_OUTPUT
-            echo "❌ SMOKE TESTS FAILED"
           fi
 
       - name: Upload Test Reports
@@ -606,6 +596,7 @@ jobs:
             reports/
             screenshots/
           retention-days: 7
+          if-no-files-found: warn
 
       - name: Upload API Capture Artifacts
         if: always() && github.event.inputs.capture_api == 'true'
@@ -619,35 +610,39 @@ jobs:
       - name: Smoke Test Summary
         if: always()
         run: |
-          echo "╔════════════════════════════════════════════════════════════╗"
-          echo "║         🔥 SMOKE TEST SUITE COMPLETE                       ║"
-          echo "╚════════════════════════════════════════════════════════════╝"
           echo ""
-          echo "📊 Test Result: ${{ steps.smoke_status.outputs.result }}"
-          echo ""
-          echo "📋 Smoke Tests Coverage:"
-          echo "   ┌─────────────────┬───────┬────────────────────────────────┐"
-          echo "   │ Module          │ Tests │ Purpose                        │"
-          echo "   ├─────────────────┼───────┼────────────────────────────────┤"
-          echo "   │ Authentication  │   4   │ Welcome, Company Code, Login   │"
-          echo "   │ Site Selection  │   4   │ UI, Site List, Search, Dashboard│"
-          echo "   │ Asset Management│   3   │ New Asset, Fields, Class       │"
-          echo "   │ Location        │   3   │ Building UI, Save, Name        │"
-          echo "   │ Connections     │   3   │ Tab, Header, List              │"
-          echo "   └─────────────────┴───────┴────────────────────────────────┘"
-          
-          if [ "${{ github.event.inputs.capture_api }}" == "true" ]; then
-            echo ""
-            echo "📡 API Capture: ENABLED"
+          echo "  ┌──────────────────────────────────────────────────────────────────────────"
+          echo "  │  📊  SMOKE TEST FINAL SUMMARY"
+          echo "  ├──────────────────────────────────────────────────────────────────────────"
+          echo "  │"
+          echo "  │  Result:   ${{ env.SMOKE_RESULT || steps.smoke_status.outputs.result }}"
+          echo "  │  Passed:   ${{ env.SMOKE_PASSED || '?' }}/${{ env.SMOKE_TOTAL || '16' }}"
+          echo "  │  Failed:   ${{ env.SMOKE_FAILED || '?' }}"
+          echo "  │  Skipped:  ${{ env.SMOKE_SKIPPED || '?' }}"
+          echo "  │  Duration: ${{ env.SMOKE_DURATION || '?' }}s"
+          echo "  │"
+          echo "  │  📋 Modules:"
+          echo "  │     1. Authentication     (4 tests)"
+          echo "  │     2. Site Selection      (3 tests)"
+          echo "  │     3. Asset Management    (3 tests)"
+          echo "  │     4. Location            (3 tests)"
+          echo "  │     5. Connections         (3 tests)"
+          echo "  │"
+
+          if [ "${{ github.event.inputs.capture_api }}" = "true" ]; then
+            echo "  │  📡 API Capture: ENABLED"
             if [ -f "reports/api_logs/api_report.json" ]; then
-              echo "   Report generated - check artifacts for details"
+              echo "  │     Report generated — check artifacts"
             else
-              echo "   ⚠️ No API traffic captured - see logs for details"
+              echo "  │     ⚠️ No traffic captured — see logs"
             fi
+            echo "  │"
           fi
-          
+
+          echo "  │  🔗 ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          echo "  │"
+          echo "  └──────────────────────────────────────────────────────────────────────────"
           echo ""
-          echo "🔗 Full Details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
   # ========================================
   # TRIGGER FULL SUITE (Optional)

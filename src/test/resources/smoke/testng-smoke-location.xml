@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="Smoke - Location" verbose="0">
+    <listeners>
+        <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
+    </listeners>
+    <test name="Smoke - Location">
+        <classes>
+            <class name="com.egalvanic.tests.LocationTest">
+                <methods>
+                    <include name="TC_NB_001_verifyNewBuildingScreenUIElements"/>
+                    <include name="TC_NB_003_verifySaveButtonStateChanges"/>
+                    <include name="TC_NB_004_verifyBuildingNameAcceptsValidInput"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+</suite>
