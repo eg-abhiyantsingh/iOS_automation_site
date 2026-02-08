@@ -325,7 +325,8 @@ for i in 0 1 2 3 4; do
 
   while kill -0 $MVN_PID 2>/dev/null; do
     # Count completed tests in log (match ConsoleProgressListener output)
-    CURRENT=$(grep -c " PASSED: \| FAILED: \| SKIPPED: " "$LOG_FILE" 2>/dev/null || echo 0)
+    CURRENT=$(grep -cE '(PASSED|FAILED|SKIPPED): [A-Za-z_0-9]+\.[A-Za-z_0-9]+ \([0-9]+s\)' "$LOG_FILE" 2>/dev/null)
+    CURRENT=${CURRENT:-0}
 
     if [ "$CURRENT" -gt "$LAST_COUNT" ]; then
       # Process each new test completion
@@ -333,7 +334,7 @@ for i in 0 1 2 3 4; do
         LAST_COUNT=$((LAST_COUNT + 1))
 
         # Get the Nth result line
-        LINE=$(grep " PASSED: \| FAILED: \| SKIPPED: " "$LOG_FILE" | sed -n "${LAST_COUNT}p")
+        LINE=$(grep -E '(PASSED|FAILED|SKIPPED): [A-Za-z_0-9]+\.[A-Za-z_0-9]+ \([0-9]+s\)' "$LOG_FILE" | sed -n "${LAST_COUNT}p")
 
         # Parse status
         if echo "$LINE" | grep -q " PASSED: "; then
@@ -370,10 +371,11 @@ for i in 0 1 2 3 4; do
   MVN_EXIT=$?
 
   # ── Final check: catch any tests we missed during monitoring ──
-  FINAL_COUNT=$(grep -c " PASSED: \| FAILED: \| SKIPPED: " "$LOG_FILE" 2>/dev/null || echo 0)
+  FINAL_COUNT=$(grep -cE '(PASSED|FAILED|SKIPPED): [A-Za-z_0-9]+\.[A-Za-z_0-9]+ \([0-9]+s\)' "$LOG_FILE" 2>/dev/null)
+  FINAL_COUNT=${FINAL_COUNT:-0}
   while [ "$LAST_COUNT" -lt "$FINAL_COUNT" ]; do
     LAST_COUNT=$((LAST_COUNT + 1))
-    LINE=$(grep " PASSED: \| FAILED: \| SKIPPED: " "$LOG_FILE" | sed -n "${LAST_COUNT}p")
+    LINE=$(grep -E '(PASSED|FAILED|SKIPPED): [A-Za-z_0-9]+\.[A-Za-z_0-9]+ \([0-9]+s\)' "$LOG_FILE" | sed -n "${LAST_COUNT}p")
 
     if echo "$LINE" | grep -q " PASSED: "; then
       ICON="✅"; MOD_PASSED=$((MOD_PASSED + 1)); TOTAL_PASSED=$((TOTAL_PASSED + 1))
