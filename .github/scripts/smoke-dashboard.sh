@@ -1,12 +1,18 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════════════════
-# SMOKE TEST DASHBOARD ENGINE
+# SMOKE TEST DASHBOARD v2 — Per-Test Real-Time Progress Tracking
 # ═══════════════════════════════════════════════════════════════════════
-# Professional CI dashboard for module-by-module smoke test execution.
-# Shows live-updating status board + progress bar in GitHub Actions.
+# Runs 5 modules individually with LIVE per-test progress updates.
+# Each test completion prints a new progress bar line, creating a
+# visual "filling up" effect in GitHub Actions logs.
 #
-# Each module runs individually → dashboard redraws after each → gives
-# a visual "task tracker" experience in CI logs.
+# Architecture:
+#   1. Maven runs in background → output to temp log file
+#   2. Foreground monitors log for test completions (1s polling)
+#   3. Per-test: prints test name + global progress bar
+#   4. Per-module: prints module summary
+#   5. After all: prints final dashboard + banner
+#   6. Raw Maven output → collapsed ::group:: blocks
 #
 # Required env vars:
 #   DEVICE_NAME, PLATFORM_VERSION, SIMULATOR_UDID, APP_PATH
@@ -29,6 +35,7 @@ MODULE_XMLS=(
 )
 TOTAL_TESTS=16
 TOTAL_MODULES=5
+BAR_WIDTH=50
 
 # ─────────────────────────────────────────────────────
 # STATE TRACKING
@@ -40,6 +47,7 @@ M_SKIPPED=(0 0 0 0 0)
 M_DURATION=(0 0 0 0 0)
 
 SUITE_START=$(date +%s)
+GLOBAL_COMPLETED=0
 TOTAL_PASSED=0
 TOTAL_FAILED=0
 TOTAL_SKIPPED=0
@@ -47,17 +55,15 @@ HAS_FAILURE=0
 
 # ─────────────────────────────────────────────────────
 # PROGRESS BAR BUILDER
-# Builds a Unicode bar: ████████░░░░░░░░ for given %
-# Args: $1 = percentage (0-100), $2 = width (chars)
+# Args: $1 = percentage (0-100), $2 = width (default 50)
 # ─────────────────────────────────────────────────────
 build_bar() {
   local pct=$1
-  local width=${2:-50}
+  local width=${2:-$BAR_WIDTH}
   local filled=$((pct * width / 100))
   local empty=$((width - filled))
   local bar=""
   local i
-
   for ((i=0; i<filled; i++)); do bar+="█"; done
   for ((i=0; i<empty; i++)); do bar+="░"; done
   echo "$bar"
@@ -65,7 +71,6 @@ build_bar() {
 
 # ─────────────────────────────────────────────────────
 # FORMAT DURATION
-# Converts seconds to human-readable
 # ─────────────────────────────────────────────────────
 fmt_duration() {
   local secs=$1
@@ -77,28 +82,84 @@ fmt_duration() {
 }
 
 # ─────────────────────────────────────────────────────
-# DRAW DASHBOARD
-# Prints the full dashboard to stdout. Called after
-# each module status change for a "live" effect.
+# PRINT PER-TEST PROGRESS LINE
+# Called after each test completes. Shows test result
+# and a global progress bar that fills incrementally.
 # ─────────────────────────────────────────────────────
-draw_dashboard() {
-  local completed=$((TOTAL_PASSED + TOTAL_FAILED + TOTAL_SKIPPED))
-  local pct=0
-  [ $TOTAL_TESTS -gt 0 ] && pct=$((completed * 100 / TOTAL_TESTS))
+print_test_progress() {
+  local status_icon="$1"
+  local test_name="$2"
+  local duration="$3"
+  local pct=$((GLOBAL_COMPLETED * 100 / TOTAL_TESTS))
+  local bar
+  bar=$(build_bar $pct $BAR_WIDTH)
   local elapsed=$(( $(date +%s) - SUITE_START ))
   local elapsed_fmt
   elapsed_fmt=$(fmt_duration $elapsed)
 
-  local bar
-  bar=$(build_bar $pct 50)
+  printf "    %s  %-55s %ss\n" "$status_icon" "$test_name" "$duration"
+  printf "    %s  %3d%%   %d/%d   ⏱️ %s\n\n" "$bar" "$pct" "$GLOBAL_COMPLETED" "$TOTAL_TESTS" "$elapsed_fmt"
+}
 
+# ─────────────────────────────────────────────────────
+# PRINT MODULE HEADER
+# ─────────────────────────────────────────────────────
+print_module_header() {
+  local idx=$1
+  local name="${MODULE_NAMES[$idx]}"
+  local tc="${MODULE_TESTS[$idx]}"
+  local num=$((idx + 1))
+
+  echo ""
+  echo "  ── Module ${num}/${TOTAL_MODULES}: ${name} (${tc} tests) ──────────────────────────────────────"
+  echo ""
+}
+
+# ─────────────────────────────────────────────────────
+# PRINT MODULE COMPLETION LINE
+# ─────────────────────────────────────────────────────
+print_module_complete() {
+  local idx=$1
+  local dur=$2
+  local num=$((idx + 1))
+  local name="${MODULE_NAMES[$idx]}"
+  local p=${M_PASSED[$idx]}
+  local f=${M_FAILED[$idx]}
+  local s=${M_SKIPPED[$idx]}
+  local tc=${MODULE_TESTS[$idx]}
+  local dur_fmt
+  dur_fmt=$(fmt_duration $dur)
+
+  if [ "$f" -gt 0 ]; then
+    echo "  ── ❌ Module ${num}: ${name}  ${p} passed, ${f} failed  (${dur_fmt}) ─────────────────"
+  elif [ "$s" -gt 0 ]; then
+    echo "  ── ⚠️  Module ${num}: ${name}  ${p}/${tc} passed, ${s} skipped  (${dur_fmt}) ─────────────"
+  else
+    echo "  ── ✅ Module ${num}: ${name}  ${p}/${tc} passed  (${dur_fmt}) ──────────────────────"
+  fi
+  echo ""
+}
+
+# ─────────────────────────────────────────────────────
+# DRAW FINAL DASHBOARD
+# Complete summary of all modules after execution
+# ─────────────────────────────────────────────────────
+draw_final_dashboard() {
+  local elapsed=$(( $(date +%s) - SUITE_START ))
+  local elapsed_fmt
+  elapsed_fmt=$(fmt_duration $elapsed)
+  local completed=$((TOTAL_PASSED + TOTAL_FAILED + TOTAL_SKIPPED))
+  local pct=0
+  [ $TOTAL_TESTS -gt 0 ] && pct=$((completed * 100 / TOTAL_TESTS))
+  local bar
+  bar=$(build_bar $pct $BAR_WIDTH)
   local LINE="══════════════════════════════════════════════════════════════════════════════"
 
   echo ""
   echo ""
   echo "  ╔${LINE}"
   echo "  ║"
-  echo "  ║   🔥  S M O K E   T E S T   D A S H B O A R D"
+  echo "  ║   🔥  S M O K E   T E S T   D A S H B O A R D   —   F I N A L"
   echo "  ║"
   echo "  ║   📱  ${DEVICE_NAME} · iOS ${PLATFORM_VERSION}          ${TOTAL_TESTS} tests · ${TOTAL_MODULES} modules"
   echo "  ║"
@@ -106,7 +167,7 @@ draw_dashboard() {
   echo "  ║"
 
   for i in 0 1 2 3 4; do
-    local idx=$((i + 1))
+    local num=$((i + 1))
     local name="${MODULE_NAMES[$i]}"
     local st="${STATUS[$i]}"
     local tc="${MODULE_TESTS[$i]}"
@@ -116,19 +177,15 @@ draw_dashboard() {
     case "$st" in
       passed)
         printf "  ║   ✅  Module %d │ %-20s    %d/%d passed                %s\n" \
-          "$idx" "$name" "${M_PASSED[$i]}" "$tc" "$dur_fmt"
+          "$num" "$name" "${M_PASSED[$i]}" "$tc" "$dur_fmt"
         ;;
       failed)
         printf "  ║   ❌  Module %d │ %-20s    %d passed, %d failed       %s\n" \
-          "$idx" "$name" "${M_PASSED[$i]}" "${M_FAILED[$i]}" "$dur_fmt"
+          "$num" "$name" "${M_PASSED[$i]}" "${M_FAILED[$i]}" "$dur_fmt"
         ;;
-      running)
-        printf "  ║   🔄  Module %d │ %-20s    Running...\n" \
-          "$idx" "$name"
-        ;;
-      pending)
-        printf "  ║   ⏳  Module %d │ %-20s    Pending\n" \
-          "$idx" "$name"
+      *)
+        printf "  ║   ⚠️   Module %d │ %-20s    Did not complete\n" \
+          "$num" "$name"
         ;;
     esac
   done
@@ -136,7 +193,7 @@ draw_dashboard() {
   echo "  ║"
   echo "  ╠${LINE}"
   echo "  ║"
-  printf "  ║   %s   %3d%%    %d/%d tests\n" "$bar" "$pct" "$completed" "$TOTAL_TESTS"
+  printf "  ║   %s  %3d%%    %d/%d tests\n" "$bar" "$pct" "$completed" "$TOTAL_TESTS"
   echo "  ║   ╰────────────┼────────────┼────────────┼────────────╯"
   echo "  ║   0%          25%          50%          75%         100%"
   echo "  ║"
@@ -149,15 +206,12 @@ draw_dashboard() {
 
 # ─────────────────────────────────────────────────────
 # DRAW FINAL BANNER
-# Shows the completion banner after all modules done
 # ─────────────────────────────────────────────────────
 draw_final_banner() {
   local elapsed=$(( $(date +%s) - SUITE_START ))
   local elapsed_fmt
   elapsed_fmt=$(fmt_duration $elapsed)
-
   local LINE="══════════════════════════════════════════════════════════════════════════════"
-  local DASHES="──────────────────────────────────────────────────────────────────────────────"
 
   echo ""
   if [ $HAS_FAILURE -eq 0 ]; then
@@ -168,7 +222,7 @@ draw_final_banner() {
     echo "  ║     ✅  A L L   S M O K E   T E S T S   P A S S E D  !"
     echo "  ║"
     echo "  ║     ${TOTAL_PASSED}/${TOTAL_TESTS} tests passed in ${elapsed_fmt}"
-    echo "  ║     All 5 critical modules verified successfully"
+    echo "  ║     All ${TOTAL_MODULES} critical modules verified successfully"
     echo "  ║"
     echo "  ║   🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉"
     echo "  ║"
@@ -198,11 +252,10 @@ draw_final_banner() {
 }
 
 # ─────────────────────────────────────────────────────
-# PARSE TESTNG RESULTS
-# Reads target/surefire-reports/testng-results.xml
-# Returns: "passed failed skipped"
+# PARSE RESULTS FROM SUREFIRE XML (fallback)
+# Used when real-time monitoring misses tests
 # ─────────────────────────────────────────────────────
-parse_results() {
+parse_results_xml() {
   local xml="target/surefire-reports/testng-results.xml"
   if [ -f "$xml" ]; then
     local p f s
@@ -219,16 +272,19 @@ parse_results() {
 # MAIN EXECUTION
 # ═══════════════════════════════════════════════════════
 
+# ── Print Header ──
 echo ""
 echo "  ┌──────────────────────────────────────────────────────────────────────────"
-echo "  │  🚀  Starting Smoke Test Suite"
+echo "  │  🚀  Smoke Test Dashboard v2"
 echo "  │  📱  ${DEVICE_NAME} · iOS ${PLATFORM_VERSION}"
 echo "  │  📦  ${TOTAL_TESTS} tests across ${TOTAL_MODULES} modules"
 echo "  │  ⏰  $(date '+%Y-%m-%d %H:%M:%S')"
 echo "  └──────────────────────────────────────────────────────────────────────────"
+echo ""
 
-# Show initial dashboard (all pending)
-draw_dashboard
+# Show initial empty progress bar
+INIT_BAR=$(build_bar 0 $BAR_WIDTH)
+printf "    %s    0%%   0/%d\n\n" "$INIT_BAR" "$TOTAL_TESTS"
 
 # ── Run each module ─────────────────────────────────
 for i in 0 1 2 3 4; do
@@ -238,74 +294,163 @@ for i in 0 1 2 3 4; do
   MODULE_XML="${MODULE_XMLS[$i]}"
   TEST_COUNT="${MODULE_TESTS[$i]}"
 
-  # Mark as running and redraw
+  # Mark as running
   STATUS[$i]="running"
-  draw_dashboard
+
+  # Print module header
+  print_module_header $i
 
   # Clean previous reports to get fresh results
   rm -rf target/surefire-reports 2>/dev/null || true
 
   MODULE_START=$(date +%s)
+  LOG_FILE="/tmp/smoke_module_${i}.log"
+  > "$LOG_FILE"
 
-  # ── Run Maven inside a collapsed group ──
-  echo "::group::📋 Module ${MODULE_IDX}: ${MODULE_NAME} — ${TEST_COUNT} tests (click to expand)"
-  echo ""
-  echo "  Running: mvn test -DsuiteXmlFile=${MODULE_XML}"
-  echo "  Tests:   ${TEST_COUNT}"
-  echo "  Time:    $(date '+%H:%M:%S')"
-  echo ""
-
+  # ── Run Maven in background ──
   mvn test -B -q \
     -DsuiteXmlFile="${MODULE_XML}" \
     -DDEVICE_NAME="${DEVICE_NAME}" \
     -DPLATFORM_VERSION="${PLATFORM_VERSION}" \
     -DSIMULATOR_UDID="${SIMULATOR_UDID}" \
     -DAPP_PATH="${APP_PATH}" \
-    2>&1
+    > "$LOG_FILE" 2>&1 &
+  MVN_PID=$!
+
+  # ── Monitor for per-test completions ──
+  LAST_COUNT=0
+  MOD_PASSED=0
+  MOD_FAILED=0
+  MOD_SKIPPED=0
+
+  while kill -0 $MVN_PID 2>/dev/null; do
+    # Count completed tests in log (match ConsoleProgressListener output)
+    CURRENT=$(grep -c " PASSED: \| FAILED: \| SKIPPED: " "$LOG_FILE" 2>/dev/null || echo 0)
+
+    if [ "$CURRENT" -gt "$LAST_COUNT" ]; then
+      # Process each new test completion
+      while [ "$LAST_COUNT" -lt "$CURRENT" ]; do
+        LAST_COUNT=$((LAST_COUNT + 1))
+
+        # Get the Nth result line
+        LINE=$(grep " PASSED: \| FAILED: \| SKIPPED: " "$LOG_FILE" | sed -n "${LAST_COUNT}p")
+
+        # Parse status
+        if echo "$LINE" | grep -q " PASSED: "; then
+          ICON="✅"
+          MOD_PASSED=$((MOD_PASSED + 1))
+          TOTAL_PASSED=$((TOTAL_PASSED + 1))
+        elif echo "$LINE" | grep -q " FAILED: "; then
+          ICON="❌"
+          MOD_FAILED=$((MOD_FAILED + 1))
+          TOTAL_FAILED=$((TOTAL_FAILED + 1))
+        else
+          ICON="⏭️"
+          MOD_SKIPPED=$((MOD_SKIPPED + 1))
+          TOTAL_SKIPPED=$((TOTAL_SKIPPED + 1))
+        fi
+
+        GLOBAL_COMPLETED=$((GLOBAL_COMPLETED + 1))
+
+        # Parse test name: "✅ PASSED: ClassName.MethodName (Xs)"
+        TEST_NAME=$(echo "$LINE" | sed 's/.*: [A-Za-z0-9_]*\.//' | sed 's/ (.*//')
+        DURATION=$(echo "$LINE" | sed 's/.*(\([0-9]*\)s).*/\1/')
+        [ -z "$DURATION" ] || [ "$DURATION" = "$LINE" ] && DURATION="?"
+
+        # Print per-test progress
+        print_test_progress "$ICON" "$TEST_NAME" "$DURATION"
+      done
+    fi
+
+    sleep 1
+  done
+
+  # Wait for Maven to finish and capture exit code
+  wait $MVN_PID
   MVN_EXIT=$?
 
-  echo ""
-  echo "  Exit code: ${MVN_EXIT}"
-  echo "::endgroup::"
+  # ── Final check: catch any tests we missed during monitoring ──
+  FINAL_COUNT=$(grep -c " PASSED: \| FAILED: \| SKIPPED: " "$LOG_FILE" 2>/dev/null || echo 0)
+  while [ "$LAST_COUNT" -lt "$FINAL_COUNT" ]; do
+    LAST_COUNT=$((LAST_COUNT + 1))
+    LINE=$(grep " PASSED: \| FAILED: \| SKIPPED: " "$LOG_FILE" | sed -n "${LAST_COUNT}p")
+
+    if echo "$LINE" | grep -q " PASSED: "; then
+      ICON="✅"; MOD_PASSED=$((MOD_PASSED + 1)); TOTAL_PASSED=$((TOTAL_PASSED + 1))
+    elif echo "$LINE" | grep -q " FAILED: "; then
+      ICON="❌"; MOD_FAILED=$((MOD_FAILED + 1)); TOTAL_FAILED=$((TOTAL_FAILED + 1))
+    else
+      ICON="⏭️"; MOD_SKIPPED=$((MOD_SKIPPED + 1)); TOTAL_SKIPPED=$((TOTAL_SKIPPED + 1))
+    fi
+
+    GLOBAL_COMPLETED=$((GLOBAL_COMPLETED + 1))
+    TEST_NAME=$(echo "$LINE" | sed 's/.*: [A-Za-z0-9_]*\.//' | sed 's/ (.*//')
+    DURATION=$(echo "$LINE" | sed 's/.*(\([0-9]*\)s).*/\1/')
+    [ -z "$DURATION" ] || [ "$DURATION" = "$LINE" ] && DURATION="?"
+
+    print_test_progress "$ICON" "$TEST_NAME" "$DURATION"
+  done
 
   MODULE_END=$(date +%s)
   M_DURATION[$i]=$((MODULE_END - MODULE_START))
 
-  # ── Parse results ──
-  RESULTS=$(parse_results)
-  read -r P F S <<< "$RESULTS"
+  # ── If real-time monitoring caught nothing, fall back to XML parsing ──
+  DETECTED=$((MOD_PASSED + MOD_FAILED + MOD_SKIPPED))
+  if [ "$DETECTED" -eq 0 ]; then
+    RESULTS=$(parse_results_xml)
+    read -r P F S <<< "$RESULTS"
+    MOD_PASSED=$P; MOD_FAILED=$F; MOD_SKIPPED=$S
+    TOTAL_PASSED=$((TOTAL_PASSED + P))
+    TOTAL_FAILED=$((TOTAL_FAILED + F))
+    TOTAL_SKIPPED=$((TOTAL_SKIPPED + S))
+    GLOBAL_COMPLETED=$((GLOBAL_COMPLETED + P + F + S))
 
-  M_PASSED[$i]=$P
-  M_FAILED[$i]=$F
-  M_SKIPPED[$i]=$S
+    # Print a catch-up progress bar for the XML-parsed results
+    if [ "$((P + F + S))" -gt 0 ]; then
+      local_pct=$((GLOBAL_COMPLETED * 100 / TOTAL_TESTS))
+      local_bar=$(build_bar $local_pct $BAR_WIDTH)
+      local_elapsed=$(( $(date +%s) - SUITE_START ))
+      local_elapsed_fmt=$(fmt_duration $local_elapsed)
+      echo "    (parsed from results XML — real-time output was not available)"
+      printf "    %s  %3d%%   %d/%d   ⏱️ %s\n\n" "$local_bar" "$local_pct" "$GLOBAL_COMPLETED" "$TOTAL_TESTS" "$local_elapsed_fmt"
+    fi
+  fi
 
-  TOTAL_PASSED=$((TOTAL_PASSED + P))
-  TOTAL_FAILED=$((TOTAL_FAILED + F))
-  TOTAL_SKIPPED=$((TOTAL_SKIPPED + S))
+  M_PASSED[$i]=$MOD_PASSED
+  M_FAILED[$i]=$MOD_FAILED
+  M_SKIPPED[$i]=$MOD_SKIPPED
 
   # Determine module status
-  if [ "$F" -gt 0 ] || [ $MVN_EXIT -ne 0 ]; then
+  if [ "$MOD_FAILED" -gt 0 ] || [ $MVN_EXIT -ne 0 ]; then
     STATUS[$i]="failed"
     HAS_FAILURE=1
 
-    # If Maven failed but no results, count expected tests as failed
-    if [ "$P" -eq 0 ] && [ "$F" -eq 0 ] && [ "$S" -eq 0 ]; then
+    # If Maven crashed and no tests ran at all
+    if [ "$DETECTED" -eq 0 ] && [ "$MOD_PASSED" -eq 0 ] && [ "$MOD_FAILED" -eq 0 ]; then
       M_FAILED[$i]=$TEST_COUNT
       TOTAL_FAILED=$((TOTAL_FAILED + TEST_COUNT))
+      GLOBAL_COMPLETED=$((GLOBAL_COMPLETED + TEST_COUNT))
     fi
   else
     STATUS[$i]="passed"
   fi
 
-  # ── Save this module's reports before next run overwrites them ──
+  # Print module completion summary
+  print_module_complete $i ${M_DURATION[$i]}
+
+  # ── Collapse raw Maven output ──
+  echo "::group::📋 Module ${MODULE_IDX}: ${MODULE_NAME} — raw output (click to expand)"
+  cat "$LOG_FILE" 2>/dev/null || echo "(no output)"
+  echo "::endgroup::"
+
+  # ── Save module reports before next run overwrites them ──
   mkdir -p "reports/modules/module-${MODULE_IDX}-${MODULE_KEY}"
   cp -r target/surefire-reports/* "reports/modules/module-${MODULE_IDX}-${MODULE_KEY}/" 2>/dev/null || true
 
-  # Redraw dashboard with updated status
-  draw_dashboard
 done
 
 # ── Final Results ──────────────────────────────────
+draw_final_dashboard
 draw_final_banner
 
 # ── Write summary for downstream steps ──
