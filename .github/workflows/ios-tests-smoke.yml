@@ -9,7 +9,7 @@ name: iOS Tests - Smoke Suite
 #   dev/develop       → dev only         (10 S3 tests) → Total 35
 #   qa                → qa only          (10 S3 tests) → Total 35
 #   staging/stage     → staging only     (10 S3 tests) → Total 35
-#   prod              → prod only        (10 S3 tests) → Total 35
+#   prod              → prod + bces-iq   (18 S3 tests) → Total 43
 #   production/main   → prod + bces-iq   (18 S3 tests) → Total 43
 #   bces-iq           → bces-iq only     (10 S3 tests) → Total 35
 #   unknown/manual    → ALL environments (42 S3 tests) → Total 67
@@ -126,7 +126,7 @@ jobs:
               staging|stage)
                 S3_ENV="staging" ;;
               prod)
-                S3_ENV="prod" ;;
+                S3_ENV="production" ;;
               production|main)
                 S3_ENV="production" ;;
               bces-iq)

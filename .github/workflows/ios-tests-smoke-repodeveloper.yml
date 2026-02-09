@@ -1,5 +1,14 @@
 #important message. I have create this file just for claude understanding. 
 # I will directly copy paste this file in my developer repo file
+#
+# S3 Drift Detection (branch-based):
+#   release/dev       → dev S3 only         (10 tests)  → Total 35
+#   release/qa        → qa S3 only          (10 tests)  → Total 35
+#   release/stage     → staging S3 only     (10 tests)  → Total 35
+#   release/prod      → prod + bces-iq      (18 tests)  → Total 43
+#   main              → prod + bces-iq      (18 tests)  → Total 43
+#
+# AWS credentials required: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
 
 name: Run QA Automation Tests
 
@@ -92,6 +101,74 @@ jobs:
           echo "SAFE_BRANCH=$SAFE_BRANCH" >> $GITHUB_ENV
 
           echo "📱 Branch: $BRANCH | Scheme: $SCHEME"
+
+      # ============================================================
+      # STEP 3.5: Detect S3 Drift Environment (branch-based)
+      # ============================================================
+      - name: Detect S3 Drift Environment
+        run: |
+          BRANCH="${{ github.event.inputs.branch }}"
+          
+          echo "Branch: $BRANCH"
+          
+          # ────────────────────────────────────────────────────────
+          # Developer Branch → S3 Environment Mapping
+          # ────────────────────────────────────────────────────────
+          # release/dev       → dev only         (10 S3 tests)
+          # release/qa        → qa only          (10 S3 tests)
+          # release/stage     → staging only     (10 S3 tests)
+          # release/prod      → prod + bces-iq   (18 S3 tests)
+          # main              → prod + bces-iq   (18 S3 tests)
+          # ────────────────────────────────────────────────────────
+          
+          case "$BRANCH" in
+            release/dev)
+              S3_ENV="dev"
+              S3_XML="src/test/resources/smoke/testng-smoke-s3drift-dev.xml"
+              S3_TESTS=10
+              S3_LABEL="DEV only" ;;
+            release/qa)
+              S3_ENV="qa"
+              S3_XML="src/test/resources/smoke/testng-smoke-s3drift-qa.xml"
+              S3_TESTS=10
+              S3_LABEL="QA only" ;;
+            release/stage*)
+              S3_ENV="staging"
+              S3_XML="src/test/resources/smoke/testng-smoke-s3drift-staging.xml"
+              S3_TESTS=10
+              S3_LABEL="STAGING only" ;;
+            release/prod)
+              S3_ENV="production"
+              S3_XML="src/test/resources/smoke/testng-smoke-s3drift-production.xml"
+              S3_TESTS=18
+              S3_LABEL="PRODUCTION (prod + bces-iq)" ;;
+            main)
+              S3_ENV="production"
+              S3_XML="src/test/resources/smoke/testng-smoke-s3drift-production.xml"
+              S3_TESTS=18
+              S3_LABEL="PRODUCTION (prod + bces-iq)" ;;
+            *)
+              S3_ENV="all"
+              S3_XML="src/test/resources/smoke/testng-smoke-s3drift.xml"
+              S3_TESTS=42
+              S3_LABEL="ALL (5 environments)" ;;
+          esac
+          
+          TOTAL_SMOKE_TESTS=$((S3_TESTS + 25))
+          
+          echo "S3_ENV=$S3_ENV" >> $GITHUB_ENV
+          echo "S3_XML=$S3_XML" >> $GITHUB_ENV
+          echo "S3_TESTS=$S3_TESTS" >> $GITHUB_ENV
+          echo "S3_LABEL=$S3_LABEL" >> $GITHUB_ENV
+          echo "TOTAL_SMOKE_TESTS=$TOTAL_SMOKE_TESTS" >> $GITHUB_ENV
+          
+          echo ""
+          echo "╔══════════════════════════════════════════════════════════════╗"
+          echo "║  🌿 Branch:           $BRANCH"
+          echo "║  🪣 S3 Environment:   $S3_LABEL"
+          echo "║  🧪 S3 Tests:         $S3_TESTS"
+          echo "║  📊 Total Smoke:      $TOTAL_SMOKE_TESTS tests"
+          echo "╚══════════════════════════════════════════════════════════════╝"
 
       # ============================================================
       # STEP 4: Setup Build Environment
@@ -359,6 +436,22 @@ jobs:
       # ============================================================
       # STEP 8: Start API Capture & Run Tests
       # ============================================================
+      # ============================================================
+      # STEP 7.5: AWS Credentials for S3 Drift Detection
+      # ============================================================
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+
+      - name: Verify AWS Access
+        run: |
+          echo "Verifying AWS CLI access for S3 drift detection..."
+          aws sts get-caller-identity || echo "⚠️ AWS credentials not configured — S3 drift tests will be skipped"
+          echo "✅ AWS access verified"
+
       - name: Start API Traffic Capture
         if: github.event.inputs.capture_api != 'false'
         run: |
@@ -416,9 +509,15 @@ jobs:
           case "${{ github.event.inputs.test_suite }}" in
             smoke)
               # ── Smoke uses the dashboard engine for module-by-module tracking ──
-              # Dashboard script runs 5 modules individually with live progress
-              # bar, status indicators, and timing. Requires APP_PATH exported.
+              # Dashboard runs 10 modules with live progress. S3 drift env is
+              # auto-detected from branch (set in "Detect S3 Drift Environment" step).
+              # S3_ENV, S3_XML, S3_TESTS, S3_LABEL are read by the dashboard script.
               export APP_PATH
+              export S3_ENV="${{ env.S3_ENV }}"
+              export S3_XML="${{ env.S3_XML }}"
+              export S3_TESTS="${{ env.S3_TESTS }}"
+              export S3_LABEL="${{ env.S3_LABEL }}"
+              export TOTAL_SMOKE_TESTS="${{ env.TOTAL_SMOKE_TESTS }}"
               bash .github/scripts/smoke-dashboard.sh
               ;;
             full)
@@ -489,6 +588,7 @@ jobs:
           echo "║  Branch:  ${{ github.event.inputs.branch }}"
           echo "║  Scheme:  ${{ env.BUILD_SCHEME }}"
           echo "║  Suite:   ${{ github.event.inputs.test_suite }}"
+          echo "║  S3 Env:  ${{ env.S3_LABEL }} (${{ env.S3_TESTS }} tests)"
           echo "║  Device:  ${{ env.DEVICE_NAME }} | iOS ${{ env.PLATFORM_VERSION }}"
           echo "║  Result:  ${{ steps.run_tests.outcome }}"
           echo "╚══════════════════════════════════════════════════════════════╝"
