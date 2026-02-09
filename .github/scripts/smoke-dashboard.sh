@@ -336,8 +336,11 @@ for i in 0 1 2 3 4; do
         # Extract error reason for failed tests (ConsoleProgressListener prints "└─ Error: <msg>")
         ERROR_REASON=""
         if [ "$ICON" = "❌" ]; then
-          ERROR_REASON=$(grep -A1 "$LINE" "$LOG_FILE" 2>/dev/null | grep "Error:" | sed 's/.*Error: //' | head -1)
-          [ -z "$ERROR_REASON" ] && ERROR_REASON="Test failed"
+          NEARBY=$(grep -F -A5 "$LINE" "$LOG_FILE" 2>/dev/null | tail -n +2)
+          ERROR_REASON=$(echo "$NEARBY" | grep -i "Error:" | sed 's/.*Error: //' | head -1)
+          [ -z "$ERROR_REASON" ] && ERROR_REASON=$(echo "$NEARBY" | grep -i "assert\|exception\|timeout\|not found\|not visible\|NoSuchElement\|could not be located" | sed 's/^[[:space:]]*//' | head -1)
+          [ -z "$ERROR_REASON" ] && ERROR_REASON="Test failed (check raw output for details)"
+          ERROR_REASON=$(echo "$ERROR_REASON" | cut -c1-120)
         fi
 
         # Print per-test progress
@@ -375,8 +378,11 @@ for i in 0 1 2 3 4; do
     # Extract error reason for failed tests
     ERROR_REASON=""
     if [ "$ICON" = "❌" ]; then
-      ERROR_REASON=$(grep -A1 "$LINE" "$LOG_FILE" 2>/dev/null | grep "Error:" | sed 's/.*Error: //' | head -1)
-      [ -z "$ERROR_REASON" ] && ERROR_REASON="Test failed"
+      NEARBY=$(grep -F -A5 "$LINE" "$LOG_FILE" 2>/dev/null | tail -n +2)
+      ERROR_REASON=$(echo "$NEARBY" | grep -i "Error:" | sed 's/.*Error: //' | head -1)
+      [ -z "$ERROR_REASON" ] && ERROR_REASON=$(echo "$NEARBY" | grep -i "assert\|exception\|timeout\|not found\|not visible\|NoSuchElement\|could not be located" | sed 's/^[[:space:]]*//' | head -1)
+      [ -z "$ERROR_REASON" ] && ERROR_REASON="Test failed (check raw output for details)"
+      ERROR_REASON=$(echo "$ERROR_REASON" | cut -c1-120)
     fi
 
     print_test_progress "$ICON" "$TEST_NAME" "$DURATION" "$ERROR_REASON"
