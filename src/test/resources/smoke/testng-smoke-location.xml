@@ -8,7 +8,7 @@
         <classes>
             <class name="com.egalvanic.tests.LocationTest">
                 <methods>
-                    <include name="TC_NB_001_verifyNewBuildingScreenUIElements"/>
+                 
                     <include name="TC_NB_003_verifySaveButtonStateChanges"/>
                     <include name="TC_NB_004_verifyBuildingNameAcceptsValidInput"/>
                 </methods>

@@ -46,7 +46,7 @@
                 <methods>
                     <include name="TC_SS_001_verifySelectSiteScreenUIElements"/>
                     <include name="TC_SS_007_verifySearchBarPlaceholderText"/>
-                    <include name="TC_SS_048_verifySiteWithLongNameDisplaysCorrectly"/>
+                    <include name="TC_SS_018_verifySitesButtonOpensSelectSite"/>
                 </methods>
             </class>
         </classes>

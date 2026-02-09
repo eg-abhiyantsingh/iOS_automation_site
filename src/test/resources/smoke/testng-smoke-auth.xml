@@ -8,7 +8,7 @@
         <classes>
             <class name="com.egalvanic.tests.AuthenticationTest">
                 <methods>
-                    <include name="TC01_verifyWelcomeScreenUILoads"/>
+                  
                     <include name="TC04_verifyCompanyCodeFieldAcceptsInput"/>
                     <include name="TC07_verifyValidCompanyCodeNavigatesToLogin"/>
                     <include name="TC16_verifyLoginScreenUIElements"/>

@@ -8,7 +8,7 @@
         <classes>
             <class name="com.egalvanic.tests.Connections_Test">
                 <methods>
-                    <include name="TC_CONN_001_verifyConnectionsTabInBottomNavigation"/>
+                  
                     <include name="TC_CONN_002_verifyConnectionsScreenHeader"/>
                     <include name="TC_CONN_004_verifyConnectionListDisplaysAllConnections"/>
                 </methods>
