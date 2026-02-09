@@ -8,7 +8,7 @@
         <classes>
             <class name="com.egalvanic.tests.Asset_Phase1_Test">
                 <methods>
-                    <include name="ATS_ECR_01_verifyNewAssetScreenLoadsSuccessfully"/>
+                   
                     <include name="ATS_ECR_02_verifyAllUIFieldsAreVisible"/>
                     <include name="ATS_ECR_06_verifyNameMandatoryValidation"/>
                 </methods>

@@ -10,7 +10,7 @@
                 <methods>
                     <include name="TC_SS_001_verifySelectSiteScreenUIElements"/>
                     <include name="TC_SS_007_verifySearchBarPlaceholderText"/>
-                    <include name="TC_SS_014_verifySuccessfulSiteLoadNavigatesToDashboard"/>
+                    <include name="TC_SS_048_verifySiteWithLongNameDisplaysCorrectly"/>
                 </methods>
             </class>
         </classes>
