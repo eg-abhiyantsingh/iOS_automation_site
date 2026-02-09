@@ -2,18 +2,57 @@
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
 <suite name="Smoke Test Suite" verbose="0">
     <!-- 
-    SMOKE TEST SUITE (PARALLEL COPY) - 67 Tests across 10 Modules
+    SMOKE TEST SUITE - Dynamic Tests across 10 Modules
     ===========================================================
-    Mirror of root testng-smoke.xml for CI/CD pipeline usage.
+    Purpose: Infrastructure health check + critical path validation + CRUD operations
     
-    Phase 1 (UI Checks):   Modules 0-5 = 55 tests
-    Phase 2 (CRUD):        Modules 6-9 = 12 tests
-    Total:                 67 tests
+    NOTE: This root XML runs ALL 42 S3 tests (all 5 environments).
+    In CI/CD, the dashboard script runs per-env S3 XMLs based on branch:
+    
+    Branch → S3 Environment Mapping:
+      dev/develop       → dev only         (10 S3 tests) → Total 35
+      qa                → qa only          (10 S3 tests) → Total 35
+      staging/stage     → staging only     (10 S3 tests) → Total 35
+      prod              → prod only        (10 S3 tests) → Total 35
+      production/main   → prod + bces-iq   (18 S3 tests) → Total 43
+      bces-iq           → bces-iq only     (10 S3 tests) → Total 35
+      unknown           → ALL environments (42 S3 tests) → Total 67
+    
+    Execution Order (Phase 1 - UI Checks, no login needed):
+      Module 0 - S3 Drift Detection:  DYNAMIC (see branch mapping above, NO Appium)
+      Module 1 - Authentication UI:    4 tests (Welcome, Input, CompanyCode, LoginUI)
+      Module 2 - Site Selection UI:    3 tests (UI, Search, Dashboard Navigation)
+      Module 3 - Asset UI:             2 tests (Fields, Validation)
+      Module 4 - Location UI:          2 tests (Save State, Name Input)
+      Module 5 - Connections UI:       2 tests (Header, List)
+    
+    Execution Order (Phase 2 - CRUD Operations, requires login):
+      Module 6 - Login Flow:           1 test  (Full login → Dashboard)
+      Module 7 - Asset CRUD:           4 tests (Create, Read, Update, Delete)
+      Module 8 - Location CRUD:        4 tests (Create Building, Read List, Edit, Delete)
+      Module 9 - Connection CRUD:      3 tests (Create, Verify in List, Delete)
+    
+    USAGE:
+      Full smoke (all S3):   mvn test -DsuiteXmlFile=testng-smoke.xml
+      S3 drift only (all):   mvn test -DsuiteXmlFile=src/test/resources/smoke/testng-smoke-s3drift.xml
+      S3 drift (qa only):    mvn test -DsuiteXmlFile=src/test/resources/smoke/testng-smoke-s3drift-qa.xml
+      S3 drift (prod+bces):  mvn test -DsuiteXmlFile=src/test/resources/smoke/testng-smoke-s3drift-production.xml
+      Login only:            mvn test -DsuiteXmlFile=src/test/resources/smoke/testng-smoke-login.xml
+      Asset CRUD only:       mvn test -DsuiteXmlFile=src/test/resources/smoke/testng-smoke-asset-crud.xml
+      Location CRUD only:    mvn test -DsuiteXmlFile=src/test/resources/smoke/testng-smoke-location-crud.xml
+      Connection CRUD only:  mvn test -DsuiteXmlFile=src/test/resources/smoke/testng-smoke-connection-crud.xml
+    
+    Individual module XMLs: src/test/resources/smoke/testng-smoke-*.xml
+    Jira: ZP-774 (S3 Drift Detection)
     -->
     
     <listeners>
         <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
     </listeners>
+
+    <!-- ============================================================ -->
+    <!-- PHASE 1: UI CHECKS (no login needed) - 55 tests             -->
+    <!-- ============================================================ -->
 
     <!-- Module 0: S3 Drift Detection (42 tests, NO Appium) -->
     <test name="Smoke - S3 Drift Detection">
@@ -85,7 +124,11 @@
         </classes>
     </test>
 
-    <!-- Module 6: Login Flow (1 test) -->
+    <!-- ============================================================ -->
+    <!-- PHASE 2: CRUD OPERATIONS (requires login) - 12 tests        -->
+    <!-- ============================================================ -->
+
+    <!-- Module 6: Login Flow (1 test) - Establishes logged-in session for CRUD tests -->
     <test name="Smoke - Login Flow">
         <classes>
             <class name="com.egalvanic.tests.AuthenticationTest">
@@ -96,7 +139,7 @@
         </classes>
     </test>
 
-    <!-- Module 7: Asset CRUD (4 tests) -->
+    <!-- Module 7: Asset CRUD (4 tests) - Create, Read, Update, Delete -->
     <test name="Smoke - Asset CRUD">
         <classes>
             <class name="com.egalvanic.tests.Asset_Phase1_Test">
@@ -114,7 +157,7 @@
         </classes>
     </test>
 
-    <!-- Module 8: Location CRUD (4 tests) -->
+    <!-- Module 8: Location CRUD (4 tests) - Create, Read, Update, Delete Building -->
     <test name="Smoke - Location CRUD">
         <classes>
             <class name="com.egalvanic.tests.LocationTest">
@@ -128,7 +171,7 @@
         </classes>
     </test>
 
-    <!-- Module 9: Connection CRUD (3 tests) -->
+    <!-- Module 9: Connection CRUD (3 tests) - Create, Verify, Delete -->
     <test name="Smoke - Connection CRUD">
         <classes>
             <class name="com.egalvanic.tests.Connections_Test">

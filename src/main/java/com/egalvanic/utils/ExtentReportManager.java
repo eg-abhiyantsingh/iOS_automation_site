@@ -49,6 +49,11 @@ public class ExtentReportManager {
      * Initialize both reports
      */
     public static void initReports() {
+        // Guard: prevent double initialization (safe to call from both BaseTest and standalone tests)
+        if (detailedReport != null) {
+            System.out.println("📊 Extent Reports already initialized - skipping");
+            return;
+        }
         timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         
         // Create report directories

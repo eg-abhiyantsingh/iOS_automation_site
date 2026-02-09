@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="Smoke - Asset CRUD" verbose="0">
+    <listeners>
+        <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
+    </listeners>
+    <test name="Smoke - Asset CRUD">
+        <classes>
+            <class name="com.egalvanic.tests.Asset_Phase1_Test">
+                <methods>
+                    <include name="ATS_ECR_31_verifySaveAssetWithValidData"/>
+                    <include name="ATS_ECR_37_verifyAssetAppearsInAssetList"/>
+                    <include name="ATS_EAD_01_openEditAssetDetailsScreen"/>
+                </methods>
+            </class>
+            <class name="com.egalvanic.tests.Asset_Phase5_Test">
+                <methods>
+                    <include name="BUG_DELETE_01_deleteRequiresConfirmation"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+</suite>

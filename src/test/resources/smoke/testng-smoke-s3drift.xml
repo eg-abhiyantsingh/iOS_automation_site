@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="Smoke - S3 Drift Detection" verbose="0">
+    <!--
+    MODULE 0: S3 Bucket Policy Drift Detection
+    =============================================
+    42 tests across 5 environments (DEV, QA, STAGING, PROD, BCES-IQ)
+    
+    NO Appium/Simulator required.
+    REQUIRES: AWS CLI, profile eg-pz-readonly (local) or AWS env vars (CI)
+    
+    Jira: ZP-774
+    -->
+    <test name="Smoke - S3 Drift Detection">
+        <groups>
+            <run>
+                <include name="smoke"/>
+            </run>
+        </groups>
+        <classes>
+            <class name="com.egalvanic.tests.S3BucketPolicyDriftTest"/>
+        </classes>
+    </test>
+</suite>

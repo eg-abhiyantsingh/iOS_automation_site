@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="Smoke - Location CRUD" verbose="0">
+    <listeners>
+        <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
+    </listeners>
+    <test name="Smoke - Location CRUD">
+        <classes>
+            <class name="com.egalvanic.tests.LocationTest">
+                <methods>
+                    <include name="TC_NB_010_verifySuccessfulBuildingCreation"/>
+                    <include name="TC_BL_001_verifyBuildingListDisplaysBuildings"/>
+                    <include name="TC_EB_002_verifyBuildingNameCanBeUpdated"/>
+                    <include name="TC_DB_001_verifyBuildingDeletedImmediatelyOnTap"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+</suite>

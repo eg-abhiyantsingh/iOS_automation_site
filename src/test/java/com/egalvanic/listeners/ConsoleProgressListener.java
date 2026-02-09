@@ -11,22 +11,39 @@ import org.testng.ITestResult;
  * - Test start/pass/fail/skip status with emojis
  * - Progress percentage [completed/total - %]
  * - Duration in seconds
- * - Clean summary at end
+ * - Clean summary at end of each <test> block
  * 
- * Hides:
- * - Maven download logs (use mvn -q)
- * - Verbose stack traces (only shows in reports)
+ * IMPORTANT: Counters reset on each onStart() call because TestNG creates
+ * one listener instance shared across ALL <test> blocks in a suite XML.
+ * Without reset, counters accumulate (e.g., 42 S3 drift + 4 Auth = 46),
+ * causing progress bar overflow and "count is negative" crash from
+ * String.repeat() with negative values.
+ * 
+ * Bug fix: ZP-774 — "count is negative: -200" when S3 drift + mobile
+ * smoke tests run in same suite XML.
  */
 public class ConsoleProgressListener implements ITestListener {
     
+    // Per-<test>-block counters — reset in onStart()
     private int passed = 0;
     private int failed = 0;
     private int skipped = 0;
     private int total = 0;
     private long suiteStartTime;
     
+    // Suite-wide cumulative counters (for final summary if needed)
+    private int cumulativePassed = 0;
+    private int cumulativeFailed = 0;
+    private int cumulativeSkipped = 0;
+    
     @Override
     public void onStart(ITestContext context) {
+        // CRITICAL: Reset per-block counters for each <test> block
+        // Without this, counters from previous <test> blocks accumulate
+        // and cause String.repeat() to crash with negative values
+        passed = 0;
+        failed = 0;
+        skipped = 0;
         total = context.getAllTestMethods().length;
         suiteStartTime = System.currentTimeMillis();
         
@@ -48,12 +65,14 @@ public class ConsoleProgressListener implements ITestListener {
     @Override
     public void onTestSuccess(ITestResult result) {
         passed++;
+        cumulativePassed++;
         printProgress("✅ PASSED", result);
     }
     
     @Override
     public void onTestFailure(ITestResult result) {
         failed++;
+        cumulativeFailed++;
         printProgress("❌ FAILED", result);
         
         // Print brief error message (not full stack trace)
@@ -66,21 +85,23 @@ public class ConsoleProgressListener implements ITestListener {
     @Override
     public void onTestSkipped(ITestResult result) {
         skipped++;
+        cumulativeSkipped++;
         printProgress("⏭️  SKIPPED", result);
     }
     
     private void printProgress(String status, ITestResult result) {
         int completed = passed + failed + skipped;
-        int percent = total > 0 ? (completed * 100) / total : 0;
+        int percent = total > 0 ? Math.min((completed * 100) / total, 100) : 0;
         long duration = (result.getEndMillis() - result.getStartMillis()) / 1000;
         
         String testName = result.getMethod().getMethodName();
         String className = result.getTestClass().getRealClass().getSimpleName();
         
-        // Create progress bar
+        // Create progress bar (clamped to prevent negative repeat)
         int barLength = 20;
-        int filledLength = (percent * barLength) / 100;
-        String progressBar = "█".repeat(filledLength) + "░".repeat(barLength - filledLength);
+        int filledLength = Math.min((percent * barLength) / 100, barLength);
+        int emptyLength = Math.max(barLength - filledLength, 0);
+        String progressBar = "█".repeat(filledLength) + "░".repeat(emptyLength);
         
         System.out.println(String.format("%s: %s.%s (%ds)",
             status,

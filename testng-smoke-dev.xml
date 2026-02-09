@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<!-- S3 Drift Detection - DEV Only | Usage: mvn test -DsuiteXmlFile=testng-smoke-dev.xml | Jira: ZP-774 -->
+<suite name="eGalvanic - S3 Drift Detection (DEV)" verbose="2">
+    <test name="S3 Policy Check - DEV">
+        <groups><run><include name="dev"/></run></groups>
+        <classes><class name="com.egalvanic.tests.S3BucketPolicyDriftTest"/></classes>
+    </test>
+</suite>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<!-- S3 Drift Detection - STAGING Only (10 tests: 2 pre-checks + 8 buckets) -->
+<!-- Usage: mvn test -DsuiteXmlFile=src/test/resources/smoke/testng-smoke-s3drift-staging.xml -->
+<!-- Jira: ZP-774 | Branch-based selection: runs only STAGING environment buckets -->
+<suite name="Smoke - S3 Drift Detection (STAGING)" verbose="0">
+    <listeners>
+        <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
+    </listeners>
+    <test name="Smoke - S3 Drift STAGING">
+        <groups>
+            <run><include name="staging"/></run>
+        </groups>
+        <classes>
+            <class name="com.egalvanic.tests.S3BucketPolicyDriftTest"/>
+        </classes>
+    </test>
+</suite>

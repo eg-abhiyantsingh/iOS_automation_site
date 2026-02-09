@@ -119,6 +119,9 @@ public final class Connections_Test extends BaseTest {
 
     /**
      * Ensure we are on Connections screen
+     * Uses retry with progressive waits to handle tab bar loading after app restart.
+     * Fix: TC_CONN_004 was failing because tab bar wasn't interactive immediately
+     * after app restart (all 4 tap strategies failed with 0ms wait).
      */
     private boolean ensureOnConnectionsScreen() {
         // TURBO: Check if already on Connections screen
@@ -129,28 +132,43 @@ public final class Connections_Test extends BaseTest {
         
         System.out.println("⚡ TURBO: Fast navigation to Connections...");
         
-        // Try direct navigation first
-        try {
-            boolean result = connectionsPage.navigateToConnectionsScreen();
-            if (result) {
-                System.out.println("✓ TURBO: Direct navigation successful");
-                return true;
+        // Retry up to 3 times with progressive waits
+        // After app restart, the tab bar needs time to become interactive
+        for (int attempt = 1; attempt <= 3; attempt++) {
+            System.out.println("   Navigation attempt " + attempt + "/3");
+            
+            // Wait for UI to stabilize (longer on each retry)
+            sleep(500 * attempt);
+            
+            // Try direct navigation
+            try {
+                boolean result = connectionsPage.navigateToConnectionsScreen();
+                if (result) {
+                    System.out.println("✓ TURBO: Direct navigation successful (attempt " + attempt + ")");
+                    return true;
+                }
+            } catch (Exception e) {
+                System.out.println("   Direct navigation failed on attempt " + attempt);
             }
-        } catch (Exception e) {
-            System.out.println("   Direct navigation failed, trying from Dashboard...");
+            
+            // On retries, ensure we're on Dashboard first
+            if (attempt >= 2) {
+                if (!ensureOnDashboard()) {
+                    System.out.println("⚠️ Could not reach Dashboard");
+                    continue;
+                }
+                sleep(1000); // Extra wait after Dashboard confirmation
+                
+                boolean navigated = connectionsPage.navigateToConnectionsScreen();
+                if (navigated && connectionsPage.isConnectionsScreenDisplayed()) {
+                    System.out.println("✓ Navigation successful via Dashboard (attempt " + attempt + ")");
+                    return true;
+                }
+            }
         }
         
-        // Ensure on Dashboard first
-        if (!ensureOnDashboard()) {
-            System.out.println("⚠️ Could not reach Dashboard");
-            return false;
-        }
-        
-        // Navigate to Connections
-        boolean navigated = connectionsPage.navigateToConnectionsScreen();
-        shortWait();
-        
-        return navigated && connectionsPage.isConnectionsScreenDisplayed();
+        System.out.println("❌ Could not navigate to Connections screen after 3 attempts");
+        return false;
     }
 
     // ============================================================

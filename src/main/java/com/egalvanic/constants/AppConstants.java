@@ -76,6 +76,7 @@ public class AppConstants {
     public static final String MODULE_ISSUES = "Issues";
     public static final String MODULE_JOBS = "Jobs/Site Visits";
     public static final String MODULE_OFFLINE = "Offline Mode";
+    public static final String MODULE_SMOKE_TEST = "Smoke Test";
 
     // ============================================
     // FEATURE NAMES - AUTHENTICATION
@@ -83,6 +84,12 @@ public class AppConstants {
     public static final String FEATURE_COMPANY_CODE = "Company Code Validation";
     public static final String FEATURE_LOGIN = "Login";
     public static final String FEATURE_SESSION = "Session Management";
+
+    // ============================================
+    // FEATURE NAMES - SMOKE TEST (S3 Drift Detection)
+    // Jira Ticket: ZP-774
+    // ============================================
+    public static final String FEATURE_S3_DRIFT_DETECTION = "S3 Bucket Policy Drift Detection";
 
     // ============================================
     // FEATURE NAMES - SITE SELECTION

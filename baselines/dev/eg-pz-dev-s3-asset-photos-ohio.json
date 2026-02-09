@@ -1,0 +1,17 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowAuthenticatedUploads",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::165183897698:user/cicd-devops"
+      },
+      "Action": [
+        "s3:PutObject",
+        "s3:PutObjectAcl"
+      ],
+      "Resource": "arn:aws:s3:::eg-pz-dev-s3-asset-photos-ohio/*"
+    }
+  ]
+}

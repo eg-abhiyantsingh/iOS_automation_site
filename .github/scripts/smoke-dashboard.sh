@@ -1,10 +1,10 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════════════════
-# SMOKE TEST DASHBOARD v2 — Per-Test Real-Time Progress Tracking
+# SMOKE TEST DASHBOARD v4 — S3 Drift + UI Checks + CRUD Operations
 # ═══════════════════════════════════════════════════════════════════════
-# Runs 5 modules individually with LIVE per-test progress updates.
-# Each test completion prints a new progress counter line, creating a
-# visual "filling up" effect in GitHub Actions logs.
+# Runs 10 modules individually with LIVE per-test progress updates.
+# Module 0 (S3 Drift Detection) runs FIRST without Appium.
+# Modules 1-5: UI smoke tests. Modules 6-9: CRUD operations (login + asset/location/connection).
 #
 # Architecture:
 #   1. Maven runs in background → output to temp log file
@@ -16,34 +16,67 @@
 #
 # Required env vars:
 #   DEVICE_NAME, PLATFORM_VERSION, SIMULATOR_UDID, APP_PATH
+#   (AWS credentials for S3 drift: either AWS profile or env vars)
 # ═══════════════════════════════════════════════════════════════════════
 
 set +e  # Don't exit on error — we handle failures ourselves
 
 # ─────────────────────────────────────────────────────
-# MODULE DEFINITIONS
+# MODULE DEFINITIONS (S3 drift is DYNAMIC based on branch)
 # ─────────────────────────────────────────────────────
-MODULES=("auth" "site" "asset" "location" "connections")
-MODULE_NAMES=("Authentication" "Site Selection" "Asset Management" "Location" "Connections")
-MODULE_TESTS=(4 3 3 3 3)
+# S3 environment is detected by the workflow and passed via env vars:
+#   S3_ENV   = dev|qa|staging|prod|production|bces-iq|all
+#   S3_XML   = path to per-env XML file
+#   S3_TESTS = number of S3 tests (10 per single env, 18 for production, 42 for all)
+#   S3_LABEL = display label (e.g. "QA only", "PRODUCTION (prod + bces-iq)")
+#
+# Branch mapping:
+#   dev/develop       → dev (10 tests)
+#   qa                → qa (10 tests)
+#   staging/stage     → staging (10 tests)
+#   prod              → prod (10 tests)
+#   production/main   → prod + bces-iq (18 tests)
+#   bces-iq           → bces-iq (10 tests)
+#   unknown           → all (42 tests)
+# ─────────────────────────────────────────────────────
+
+# Dynamic S3 config from workflow env vars (defaults to "all" for local runs)
+S3_ENV_ACTUAL="${S3_ENV:-all}"
+S3_XML_ACTUAL="${S3_XML:-src/test/resources/smoke/testng-smoke-s3drift.xml}"
+S3_TESTS_ACTUAL="${S3_TESTS:-42}"
+S3_LABEL_ACTUAL="${S3_LABEL:-ALL (5 environments)}"
+
+# Build S3 module name dynamically
+S3_MODULE_NAME="S3 Drift [${S3_LABEL_ACTUAL}]"
+
+MODULES=("s3drift" "auth" "site" "asset" "location" "connections" "login" "asset-crud" "location-crud" "connection-crud")
+MODULE_NAMES=("${S3_MODULE_NAME}" "Authentication UI" "Site Selection UI" "Asset UI" "Location UI" "Connections UI" "Login Flow" "Asset CRUD" "Location CRUD" "Connection CRUD")
+MODULE_TESTS=(${S3_TESTS_ACTUAL} 4 3 2 2 2 1 4 4 3)
 MODULE_XMLS=(
+  "${S3_XML_ACTUAL}"
   "src/test/resources/smoke/testng-smoke-auth.xml"
   "src/test/resources/smoke/testng-smoke-site.xml"
   "src/test/resources/smoke/testng-smoke-asset.xml"
   "src/test/resources/smoke/testng-smoke-location.xml"
   "src/test/resources/smoke/testng-smoke-connections.xml"
+  "src/test/resources/smoke/testng-smoke-login.xml"
+  "src/test/resources/smoke/testng-smoke-asset-crud.xml"
+  "src/test/resources/smoke/testng-smoke-location-crud.xml"
+  "src/test/resources/smoke/testng-smoke-connection-crud.xml"
 )
-TOTAL_TESTS=16
-TOTAL_MODULES=5
+
+# Total = S3 (dynamic) + 25 mobile tests (13 UI + 12 CRUD)
+TOTAL_TESTS=$((S3_TESTS_ACTUAL + 25))
+TOTAL_MODULES=10
 
 # ─────────────────────────────────────────────────────
 # STATE TRACKING
 # ─────────────────────────────────────────────────────
-STATUS=("pending" "pending" "pending" "pending" "pending")
-M_PASSED=(0 0 0 0 0)
-M_FAILED=(0 0 0 0 0)
-M_SKIPPED=(0 0 0 0 0)
-M_DURATION=(0 0 0 0 0)
+STATUS=("pending" "pending" "pending" "pending" "pending" "pending" "pending" "pending" "pending" "pending")
+M_PASSED=(0 0 0 0 0 0 0 0 0 0)
+M_FAILED=(0 0 0 0 0 0 0 0 0 0)
+M_SKIPPED=(0 0 0 0 0 0 0 0 0 0)
+M_DURATION=(0 0 0 0 0 0 0 0 0 0)
 
 SUITE_START=$(date +%s)
 GLOBAL_COMPLETED=0
@@ -51,8 +84,6 @@ TOTAL_PASSED=0
 TOTAL_FAILED=0
 TOTAL_SKIPPED=0
 HAS_FAILURE=0
-
-# ─────────────────────────────────────────────────────
 
 # ─────────────────────────────────────────────────────
 # FORMAT DURATION
@@ -68,8 +99,6 @@ fmt_duration() {
 
 # ─────────────────────────────────────────────────────
 # PRINT PER-TEST PROGRESS LINE
-# Called after each test completes. Shows test result
-# and a simple counter showing global progress.
 # ─────────────────────────────────────────────────────
 print_test_progress() {
   local status_icon="$1"
@@ -95,11 +124,19 @@ print_module_header() {
   local idx=$1
   local name="${MODULE_NAMES[$idx]}"
   local tc="${MODULE_TESTS[$idx]}"
-  local num=$((idx + 1))
+  local num=$idx
 
-  echo ""
-  echo "  ── Module ${num}/${TOTAL_MODULES}: ${name} (${tc} tests) ──────────────────────────────────────"
-  echo ""
+  # Module 0 is S3 Drift, then 1-5 are mobile tests
+  if [ $idx -eq 0 ]; then
+    echo ""
+    echo "  ── Module 0/${TOTAL_MODULES}: ${name} (${tc} tests) [NO APPIUM] ──────────────────────"
+    echo "  ── Infrastructure health check — runs before mobile tests"
+    echo ""
+  else
+    echo ""
+    echo "  ── Module ${num}/${TOTAL_MODULES}: ${name} (${tc} tests) ──────────────────────────────────────"
+    echo ""
+  fi
 }
 
 # ─────────────────────────────────────────────────────
@@ -108,7 +145,7 @@ print_module_header() {
 print_module_complete() {
   local idx=$1
   local dur=$2
-  local num=$((idx + 1))
+  local num=$idx
   local name="${MODULE_NAMES[$idx]}"
   local p=${M_PASSED[$idx]}
   local f=${M_FAILED[$idx]}
@@ -129,7 +166,6 @@ print_module_complete() {
 
 # ─────────────────────────────────────────────────────
 # DRAW FINAL DASHBOARD
-# Complete summary of all modules after execution
 # ─────────────────────────────────────────────────────
 draw_final_dashboard() {
   local elapsed=$(( $(date +%s) - SUITE_START ))
@@ -149,26 +185,30 @@ draw_final_dashboard() {
   echo "  ╠${LINE}"
   echo "  ║"
 
-  for i in 0 1 2 3 4; do
-    local num=$((i + 1))
+  for i in 0 1 2 3 4 5 6 7 8 9; do
+    local num=$i
     local name="${MODULE_NAMES[$i]}"
     local st="${STATUS[$i]}"
     local tc="${MODULE_TESTS[$i]}"
     local dur_fmt
     dur_fmt=$(fmt_duration "${M_DURATION[$i]}")
 
+    # Special label for Module 0
+    local label=""
+    [ $i -eq 0 ] && label=" [Infra]"
+
     case "$st" in
       passed)
-        printf "  ║   ✅  Module %d │ %-20s    %d/%d passed                %s\n" \
-          "$num" "$name" "${M_PASSED[$i]}" "$tc" "$dur_fmt"
+        printf "  ║   ✅  Module %d │ %-20s    %d/%d passed%s              %s\n" \
+          "$num" "$name" "${M_PASSED[$i]}" "$tc" "$label" "$dur_fmt"
         ;;
       failed)
-        printf "  ║   ❌  Module %d │ %-20s    %d passed, %d failed       %s\n" \
-          "$num" "$name" "${M_PASSED[$i]}" "${M_FAILED[$i]}" "$dur_fmt"
+        printf "  ║   ❌  Module %d │ %-20s    %d passed, %d failed%s     %s\n" \
+          "$num" "$name" "${M_PASSED[$i]}" "${M_FAILED[$i]}" "$label" "$dur_fmt"
         ;;
       *)
-        printf "  ║   ⚠️   Module %d │ %-20s    Did not complete\n" \
-          "$num" "$name"
+        printf "  ║   ⚠️   Module %d │ %-20s    Did not complete%s\n" \
+          "$num" "$name" "$label"
         ;;
     esac
   done
@@ -203,7 +243,8 @@ draw_final_banner() {
     echo "  ║     ✅  A L L   S M O K E   T E S T S   P A S S E D  !"
     echo "  ║"
     echo "  ║     ${TOTAL_PASSED}/${TOTAL_TESTS} tests passed in ${elapsed_fmt}"
-    echo "  ║     All ${TOTAL_MODULES} critical modules verified successfully"
+    echo "  ║     All ${TOTAL_MODULES} modules verified successfully"
+    echo "  ║     (Infrastructure ✅ + Mobile ✅)"
     echo "  ║"
     echo "  ║   🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉"
     echo "  ║"
@@ -218,9 +259,9 @@ draw_final_banner() {
       "$TOTAL_PASSED" "$TOTAL_TESTS" "$TOTAL_FAILED" "$TOTAL_SKIPPED" "$elapsed_fmt"
     echo "  ║"
     echo "  ║     Failed modules:"
-    for i in 0 1 2 3 4; do
+    for i in 0 1 2 3 4 5 6 7 8 9; do
       if [ "${STATUS[$i]}" = "failed" ]; then
-        echo "  ║       ❌ Module $((i+1)): ${MODULE_NAMES[$i]} (${M_FAILED[$i]} failed)"
+        echo "  ║       ❌ Module ${i}: ${MODULE_NAMES[$i]} (${M_FAILED[$i]} failed)"
       fi
     done
     echo "  ║"
@@ -231,7 +272,6 @@ draw_final_banner() {
 
 # ─────────────────────────────────────────────────────
 # PARSE RESULTS FROM SUREFIRE XML (fallback)
-# Used when real-time monitoring misses tests
 # ─────────────────────────────────────────────────────
 parse_results_xml() {
   local xml="target/surefire-reports/testng-results.xml"
@@ -253,17 +293,19 @@ parse_results_xml() {
 # ── Print Header ──
 echo ""
 echo "  ┌──────────────────────────────────────────────────────────────────────────"
-echo "  │  🚀  Smoke Test Dashboard v2"
+echo "  │  🚀  Smoke Test Dashboard v3"
 echo "  │  📱  ${DEVICE_NAME} · iOS ${PLATFORM_VERSION}"
 echo "  │  📦  ${TOTAL_TESTS} tests across ${TOTAL_MODULES} modules"
+echo "  │  🪣  S3 Drift: ${S3_LABEL_ACTUAL} (${S3_TESTS_ACTUAL} tests)"
+echo "  │  📲  Modules 1-5: Mobile Smoke Tests (13 tests, Appium required)"
 echo "  │  ⏰  $(date '+%Y-%m-%d %H:%M:%S')"
 echo "  └──────────────────────────────────────────────────────────────────────────"
 echo ""
 
 
 # ── Run each module ─────────────────────────────────
-for i in 0 1 2 3 4; do
-  MODULE_IDX=$((i + 1))
+for i in 0 1 2 3 4 5 6 7 8 9; do
+  MODULE_IDX=$i
   MODULE_KEY="${MODULES[$i]}"
   MODULE_NAME="${MODULE_NAMES[$i]}"
   MODULE_XML="${MODULE_XMLS[$i]}"
@@ -282,15 +324,23 @@ for i in 0 1 2 3 4; do
   LOG_FILE="/tmp/smoke_module_${i}.log"
   > "$LOG_FILE"
 
-  # ── Run Maven in background ──
-  mvn test -B -q \
-    -DsuiteXmlFile="${MODULE_XML}" \
-    -DDEVICE_NAME="${DEVICE_NAME}" \
-    -DPLATFORM_VERSION="${PLATFORM_VERSION}" \
-    -DSIMULATOR_UDID="${SIMULATOR_UDID}" \
-    -DAPP_PATH="${APP_PATH}" \
-    > "$LOG_FILE" 2>&1 &
-  MVN_PID=$!
+  # ── Build Maven command ──
+  # Module 0 (S3 Drift) does NOT need Appium env vars
+  if [ $i -eq 0 ]; then
+    mvn test -B -q \
+      -DsuiteXmlFile="${MODULE_XML}" \
+      > "$LOG_FILE" 2>&1 &
+    MVN_PID=$!
+  else
+    mvn test -B -q \
+      -DsuiteXmlFile="${MODULE_XML}" \
+      -DDEVICE_NAME="${DEVICE_NAME}" \
+      -DPLATFORM_VERSION="${PLATFORM_VERSION}" \
+      -DSIMULATOR_UDID="${SIMULATOR_UDID}" \
+      -DAPP_PATH="${APP_PATH}" \
+      > "$LOG_FILE" 2>&1 &
+    MVN_PID=$!
+  fi
 
   # ── Monitor for per-test completions ──
   LAST_COUNT=0
@@ -299,51 +349,47 @@ for i in 0 1 2 3 4; do
   MOD_SKIPPED=0
 
   while kill -0 $MVN_PID 2>/dev/null; do
-    # Count completed tests in log (match ConsoleProgressListener output)
-    CURRENT=$(grep -cE '(PASSED|FAILED|SKIPPED): [A-Za-z_0-9]+\.[A-Za-z_0-9]+ \([0-9]+s\)' "$LOG_FILE" 2>/dev/null)
+    # Count completed tests in log
+    # S3 drift tests use [SMOKE] prefix, mobile tests use ConsoleProgressListener
+    CURRENT=$(grep -cE '(PASSED|FAILED|SKIPPED)' "$LOG_FILE" 2>/dev/null | head -1)
+    
+    # More precise: match either ConsoleProgressListener format OR TestNG format
+    CURRENT=$(grep -cE '(PASSED|FAILED|SKIPPED): [A-Za-z_0-9]+\.[A-Za-z_0-9]+ \([0-9]+s\)|Tests run: [0-9]+' "$LOG_FILE" 2>/dev/null)
     CURRENT=${CURRENT:-0}
 
     if [ "$CURRENT" -gt "$LAST_COUNT" ]; then
-      # Process each new test completion
       while [ "$LAST_COUNT" -lt "$CURRENT" ]; do
         LAST_COUNT=$((LAST_COUNT + 1))
 
-        # Get the Nth result line
         LINE=$(grep -E '(PASSED|FAILED|SKIPPED): [A-Za-z_0-9]+\.[A-Za-z_0-9]+ \([0-9]+s\)' "$LOG_FILE" | sed -n "${LAST_COUNT}p")
 
-        # Parse status
+        if [ -z "$LINE" ]; then
+          continue
+        fi
+
         if echo "$LINE" | grep -q " PASSED: "; then
-          ICON="✅"
-          MOD_PASSED=$((MOD_PASSED + 1))
-          TOTAL_PASSED=$((TOTAL_PASSED + 1))
+          ICON="✅"; MOD_PASSED=$((MOD_PASSED + 1)); TOTAL_PASSED=$((TOTAL_PASSED + 1))
         elif echo "$LINE" | grep -q " FAILED: "; then
-          ICON="❌"
-          MOD_FAILED=$((MOD_FAILED + 1))
-          TOTAL_FAILED=$((TOTAL_FAILED + 1))
+          ICON="❌"; MOD_FAILED=$((MOD_FAILED + 1)); TOTAL_FAILED=$((TOTAL_FAILED + 1))
         else
-          ICON="⏭️"
-          MOD_SKIPPED=$((MOD_SKIPPED + 1))
-          TOTAL_SKIPPED=$((TOTAL_SKIPPED + 1))
+          ICON="⏭️"; MOD_SKIPPED=$((MOD_SKIPPED + 1)); TOTAL_SKIPPED=$((TOTAL_SKIPPED + 1))
         fi
 
         GLOBAL_COMPLETED=$((GLOBAL_COMPLETED + 1))
 
-        # Parse test name: "✅ PASSED: ClassName.MethodName (Xs)"
         TEST_NAME=$(echo "$LINE" | sed 's/.*: [A-Za-z0-9_]*\.//' | sed 's/ (.*//')
         DURATION=$(echo "$LINE" | sed 's/.*(\([0-9]*\)s).*/\1/')
         [ -z "$DURATION" ] || [ "$DURATION" = "$LINE" ] && DURATION="?"
 
-        # Extract error reason for failed tests (ConsoleProgressListener prints "└─ Error: <msg>")
         ERROR_REASON=""
         if [ "$ICON" = "❌" ]; then
           NEARBY=$(grep -F -A5 "$LINE" "$LOG_FILE" 2>/dev/null | tail -n +2)
           ERROR_REASON=$(echo "$NEARBY" | grep -i "Error:" | sed 's/.*Error: //' | head -1)
-          [ -z "$ERROR_REASON" ] && ERROR_REASON=$(echo "$NEARBY" | grep -i "assert\|exception\|timeout\|not found\|not visible\|NoSuchElement\|could not be located" | sed 's/^[[:space:]]*//' | head -1)
+          [ -z "$ERROR_REASON" ] && ERROR_REASON=$(echo "$NEARBY" | grep -i "assert\|exception\|timeout\|not found\|not visible\|NoSuchElement\|could not be located\|drift" | sed 's/^[[:space:]]*//' | head -1)
           [ -z "$ERROR_REASON" ] && ERROR_REASON="Test failed (check raw output for details)"
           ERROR_REASON=$(echo "$ERROR_REASON" | cut -c1-120)
         fi
 
-        # Print per-test progress
         print_test_progress "$ICON" "$TEST_NAME" "$DURATION" "$ERROR_REASON"
       done
     fi
@@ -351,11 +397,11 @@ for i in 0 1 2 3 4; do
     sleep 1
   done
 
-  # Wait for Maven to finish and capture exit code
+  # Wait for Maven to finish
   wait $MVN_PID
   MVN_EXIT=$?
 
-  # ── Final check: catch any tests we missed during monitoring ──
+  # ── Final check: catch any tests we missed ──
   FINAL_COUNT=$(grep -cE '(PASSED|FAILED|SKIPPED): [A-Za-z_0-9]+\.[A-Za-z_0-9]+ \([0-9]+s\)' "$LOG_FILE" 2>/dev/null)
   FINAL_COUNT=${FINAL_COUNT:-0}
   while [ "$LAST_COUNT" -lt "$FINAL_COUNT" ]; do
@@ -375,12 +421,11 @@ for i in 0 1 2 3 4; do
     DURATION=$(echo "$LINE" | sed 's/.*(\([0-9]*\)s).*/\1/')
     [ -z "$DURATION" ] || [ "$DURATION" = "$LINE" ] && DURATION="?"
 
-    # Extract error reason for failed tests
     ERROR_REASON=""
     if [ "$ICON" = "❌" ]; then
       NEARBY=$(grep -F -A5 "$LINE" "$LOG_FILE" 2>/dev/null | tail -n +2)
       ERROR_REASON=$(echo "$NEARBY" | grep -i "Error:" | sed 's/.*Error: //' | head -1)
-      [ -z "$ERROR_REASON" ] && ERROR_REASON=$(echo "$NEARBY" | grep -i "assert\|exception\|timeout\|not found\|not visible\|NoSuchElement\|could not be located" | sed 's/^[[:space:]]*//' | head -1)
+      [ -z "$ERROR_REASON" ] && ERROR_REASON=$(echo "$NEARBY" | grep -i "assert\|exception\|timeout\|not found\|not visible\|NoSuchElement\|could not be located\|drift" | sed 's/^[[:space:]]*//' | head -1)
       [ -z "$ERROR_REASON" ] && ERROR_REASON="Test failed (check raw output for details)"
       ERROR_REASON=$(echo "$ERROR_REASON" | cut -c1-120)
     fi
@@ -402,7 +447,6 @@ for i in 0 1 2 3 4; do
     TOTAL_SKIPPED=$((TOTAL_SKIPPED + S))
     GLOBAL_COMPLETED=$((GLOBAL_COMPLETED + P + F + S))
 
-    # Print a catch-up counter for the XML-parsed results
     if [ "$((P + F + S))" -gt 0 ]; then
       local_elapsed=$(( $(date +%s) - SUITE_START ))
       local_elapsed_fmt=$(fmt_duration $local_elapsed)
@@ -420,7 +464,6 @@ for i in 0 1 2 3 4; do
     STATUS[$i]="failed"
     HAS_FAILURE=1
 
-    # If Maven crashed and no tests ran at all
     if [ "$DETECTED" -eq 0 ] && [ "$MOD_PASSED" -eq 0 ] && [ "$MOD_FAILED" -eq 0 ]; then
       M_FAILED[$i]=$TEST_COUNT
       TOTAL_FAILED=$((TOTAL_FAILED + TEST_COUNT))
@@ -438,7 +481,7 @@ for i in 0 1 2 3 4; do
   cat "$LOG_FILE" 2>/dev/null || echo "(no output)"
   echo "::endgroup::"
 
-  # ── Save module reports before next run overwrites them ──
+  # ── Save module reports ──
   mkdir -p "reports/modules/module-${MODULE_IDX}-${MODULE_KEY}"
   cp -r target/surefire-reports/* "reports/modules/module-${MODULE_IDX}-${MODULE_KEY}/" 2>/dev/null || true
 

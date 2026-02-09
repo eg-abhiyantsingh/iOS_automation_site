@@ -3,21 +3,32 @@ name: iOS Tests - Smoke Suite
 # ============================================================
 # SMOKE TEST SUITE - Quick Critical Path Validation
 # ============================================================
-# Tests: 16 tests across 5 modules (~15-20 min execution)
+# Tests: 35-67 tests across 10 modules (dynamic based on branch)
 #
-# Dashboard: Runs each module individually with a live progress
-# dashboard showing module status, progress bar, and timing.
-# Raw Maven output is collapsed inside ::group:: sections.
-# 
+# S3 Drift Detection runs BRANCH-SPECIFIC tests:
+#   dev/develop       → dev only         (10 S3 tests) → Total 35
+#   qa                → qa only          (10 S3 tests) → Total 35
+#   staging/stage     → staging only     (10 S3 tests) → Total 35
+#   prod              → prod only        (10 S3 tests) → Total 35
+#   production/main   → prod + bces-iq   (18 S3 tests) → Total 43
+#   bces-iq           → bces-iq only     (10 S3 tests) → Total 35
+#   unknown/manual    → ALL environments (42 S3 tests) → Total 67
+#
 # Modules Covered:
-#   - Module 1: Authentication     (4 tests)
-#   - Module 2: Site Selection     (3 tests)
-#   - Module 3: Asset Management   (3 tests)
-#   - Module 4: Location           (3 tests)
-#   - Module 5: Connections        (3 tests)
+#   Phase 1 (UI Checks):
+#   - Module 0: S3 Drift Detection (branch-based: 10-42 tests, NO Appium)
+#   - Module 1: Authentication UI  (4 tests)
+#   - Module 2: Site Selection UI  (3 tests)
+#   - Module 3: Asset UI           (2 tests)
+#   - Module 4: Location UI        (2 tests)
+#   - Module 5: Connections UI     (2 tests)
+#   Phase 2 (CRUD Operations):
+#   - Module 6: Login Flow         (1 test)
+#   - Module 7: Asset CRUD         (4 tests)
+#   - Module 8: Location CRUD      (4 tests)
+#   - Module 9: Connection CRUD    (3 tests)
 #
 # Individual module XMLs: src/test/resources/smoke/testng-smoke-*.xml
-# Combined XML:           src/test/resources/parallel/testng-smoke.xml
 # Dashboard script:       .github/scripts/smoke-dashboard.sh
 #
 # API Capture (EXPERIMENTAL):
@@ -29,11 +40,25 @@ name: iOS Tests - Smoke Suite
 # ============================================================
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, dev, qa, staging, stage, prod, production, bces-iq]
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, dev, qa, staging, stage, prod, production, bces-iq]
   workflow_dispatch:
     inputs:
+      target_environment:
+        description: 'S3 Drift environment (auto = detect from branch)'
+        required: false
+        default: 'auto'
+        type: choice
+        options:
+          - 'auto'
+          - 'all'
+          - 'dev'
+          - 'qa'
+          - 'staging'
+          - 'prod'
+          - 'production'
+          - 'bces-iq'
       run_full_suite_after:
         description: 'Run full test suite after smoke tests pass'
         required: false
@@ -61,6 +86,91 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      # ============================================================
+      # Branch-Based S3 Environment Detection
+      # Maps git branch → S3 drift environment (dev/qa/staging/prod/bces-iq)
+      # Manual override via workflow_dispatch target_environment input
+      # ============================================================
+      - name: Detect S3 Drift Environment
+        id: s3_env
+        run: |
+          MANUAL_ENV="${{ github.event.inputs.target_environment }}"
+          BRANCH_NAME="${{ github.head_ref || github.ref_name }}"
+          
+          echo "Branch: $BRANCH_NAME"
+          echo "Manual override: ${MANUAL_ENV:-none}"
+          
+          # ────────────────────────────────────────────────────────
+          # Branch → S3 Environment Mapping
+          # ────────────────────────────────────────────────────────
+          # dev/develop       → dev S3 only        (10 tests: 2 pre + 8 buckets)
+          # qa                → qa S3 only         (10 tests: 2 pre + 8 buckets)
+          # staging/stage     → staging S3 only    (10 tests: 2 pre + 8 buckets)
+          # prod              → prod S3 only       (10 tests: 2 pre + 8 buckets)
+          # production/main   → prod + bces-iq     (18 tests: 2 pre + 8 prod + 8 bces-iq)
+          # bces-iq           → bces-iq S3 only    (10 tests: 2 pre + 8 buckets)
+          # unknown/other     → ALL environments   (42 tests: all 5 envs)
+          # ────────────────────────────────────────────────────────
+          
+          # Priority: manual workflow_dispatch input > branch auto-detection
+          if [ -n "$MANUAL_ENV" ] && [ "$MANUAL_ENV" != "auto" ]; then
+            S3_ENV="$MANUAL_ENV"
+            echo "Using manual override: $S3_ENV"
+          else
+            case "$BRANCH_NAME" in
+              dev|develop)
+                S3_ENV="dev" ;;
+              qa)
+                S3_ENV="qa" ;;
+              staging|stage)
+                S3_ENV="staging" ;;
+              prod)
+                S3_ENV="prod" ;;
+              production|main)
+                S3_ENV="production" ;;
+              bces-iq)
+                S3_ENV="bces-iq" ;;
+              *)
+                S3_ENV="all"
+                echo "⚠️ Unknown branch '$BRANCH_NAME' — running ALL S3 environments" ;;
+            esac
+            echo "Auto-detected from branch '$BRANCH_NAME': $S3_ENV"
+          fi
+          
+          # Set XML path and test count based on environment
+          case "$S3_ENV" in
+            all)
+              S3_XML="src/test/resources/smoke/testng-smoke-s3drift.xml"
+              S3_TESTS=42
+              S3_LABEL="ALL (5 environments)" ;;
+            production)
+              S3_XML="src/test/resources/smoke/testng-smoke-s3drift-production.xml"
+              S3_TESTS=18
+              S3_LABEL="PRODUCTION (prod + bces-iq)" ;;
+            *)
+              S3_XML="src/test/resources/smoke/testng-smoke-s3drift-${S3_ENV}.xml"
+              S3_TESTS=10
+              S3_LABEL="${S3_ENV^^} only" ;;
+          esac
+          
+          # Total: S3 tests + 25 mobile tests (13 UI + 12 CRUD)
+          TOTAL_TESTS=$((S3_TESTS + 25))
+          
+          echo "S3_ENV=$S3_ENV" >> $GITHUB_ENV
+          echo "S3_XML=$S3_XML" >> $GITHUB_ENV
+          echo "S3_TESTS=$S3_TESTS" >> $GITHUB_ENV
+          echo "S3_LABEL=$S3_LABEL" >> $GITHUB_ENV
+          echo "TOTAL_SMOKE_TESTS=$TOTAL_TESTS" >> $GITHUB_ENV
+          
+          echo ""
+          echo "╔══════════════════════════════════════════════════════════════╗"
+          echo "║  🌿 Branch:           $(printf '%-40s' "$BRANCH_NAME")║"
+          echo "║  🪣 S3 Environment:   $(printf '%-40s' "$S3_LABEL")║"
+          echo "║  🧪 S3 Tests:         $(printf '%-40s' "$S3_TESTS")║"
+          echo "║  📄 S3 XML:           $(printf '%-40s' "$(basename $S3_XML)")║"
+          echo "║  📊 Total Smoke:      $(printf '%-40s' "$TOTAL_TESTS tests")║"
+          echo "╚══════════════════════════════════════════════════════════════╝"
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -376,6 +486,22 @@ jobs:
           done
 
       # ============================================================
+      # AWS Credentials for S3 Drift Detection (Module 0)
+      # ============================================================
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+
+      - name: Verify AWS Access
+        run: |
+          echo "Verifying AWS CLI access for S3 drift detection..."
+          aws sts get-caller-identity || { echo "❌ AWS credentials not configured. Add secrets: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY"; exit 1; }
+          echo "✅ AWS access verified"
+
+      # ============================================================
       # Run Tests — Module-by-Module with Dashboard
       # ============================================================
       - name: Run Smoke Tests with Dashboard
@@ -386,6 +512,11 @@ jobs:
           PLATFORM_VERSION: ${{ env.PLATFORM_VERSION }}
           DEVICE_NAME: ${{ env.DEVICE_NAME }}
           APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
+          S3_ENV: ${{ env.S3_ENV }}
+          S3_XML: ${{ env.S3_XML }}
+          S3_TESTS: ${{ env.S3_TESTS }}
+          S3_LABEL: ${{ env.S3_LABEL }}
+          TOTAL_SMOKE_TESTS: ${{ env.TOTAL_SMOKE_TESTS }}
         run: |
           bash .github/scripts/smoke-dashboard.sh
 
@@ -616,17 +747,18 @@ jobs:
           echo "  ├──────────────────────────────────────────────────────────────────────────"
           echo "  │"
           echo "  │  Result:   ${{ env.SMOKE_RESULT || steps.smoke_status.outputs.result }}"
-          echo "  │  Passed:   ${{ env.SMOKE_PASSED || '?' }}/${{ env.SMOKE_TOTAL || '16' }}"
+          echo "  │  Passed:   ${{ env.SMOKE_PASSED || '?' }}/${{ env.TOTAL_SMOKE_TESTS || '?' }}"
           echo "  │  Failed:   ${{ env.SMOKE_FAILED || '?' }}"
           echo "  │  Skipped:  ${{ env.SMOKE_SKIPPED || '?' }}"
           echo "  │  Duration: ${{ env.SMOKE_DURATION || '?' }}s"
           echo "  │"
           echo "  │  📋 Modules:"
-          echo "  │     1. Authentication     (4 tests)"
-          echo "  │     2. Site Selection      (3 tests)"
-          echo "  │     3. Asset Management    (3 tests)"
-          echo "  │     4. Location            (3 tests)"
-          echo "  │     5. Connections         (3 tests)"
+          echo "  │     0. S3 Drift [${{ env.S3_LABEL }}]  (${{ env.S3_TESTS }} tests, no Appium)"
+          echo "  │     1-5. UI Checks: Auth(4) + Site(3) + Asset(2) + Location(2) + Conn(2)"
+          echo "  │     6. Login Flow           (1 test)"
+          echo "  │     7. Asset CRUD           (4 tests)"
+          echo "  │     8. Location CRUD        (4 tests)"
+          echo "  │     9. Connection CRUD      (3 tests)"
           echo "  │"
 
           if [ "${{ github.event.inputs.capture_api }}" = "true" ]; then

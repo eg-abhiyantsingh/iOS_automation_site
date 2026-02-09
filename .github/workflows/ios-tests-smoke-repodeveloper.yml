@@ -1,0 +1,553 @@
+#important message. I have create this file just for claude understanding. 
+# I will directly copy paste this file in my developer repo file
+
+name: Run QA Automation Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to build and test'
+        required: true
+        default: 'release/qa'
+        type: choice
+        options:
+          - main
+          - release/dev
+          - release/qa
+          - release/stage
+          - release/prod
+      test_suite:
+        description: 'Which tests to run?'
+        required: true
+        default: 'smoke'
+        type: choice
+        options:
+          - smoke
+          - full
+          - auth
+          - site
+          - location
+          - connections
+          - asset-phase1
+          - asset-phase2
+          - asset-phase3
+          - asset-phase4
+          - asset-phase5
+          - asset-all
+      capture_api:
+        description: 'Capture API traffic for debugging'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+jobs:
+  build-and-test:
+    runs-on: macos-15
+    timeout-minutes: 480
+
+    steps:
+      # ============================================================
+      # STEP 1: Checkout iOS App Code (Selected Branch)
+      # ============================================================
+      - name: Checkout iOS App Repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+          path: ios-app
+
+      # ============================================================
+      # STEP 2: Checkout QA Automation Code
+      # ============================================================
+      - name: Checkout QA Automation Repository
+        uses: actions/checkout@v4
+        with:
+          repository: eg-abhiyantsingh/iOS_automation_site
+          token: ${{ secrets.QA_REPO_TOKEN }}
+          path: qa-automation
+
+      # ============================================================
+      # STEP 3: Set Build Configuration
+      # ============================================================
+      - name: Set Build Configuration
+        run: |
+          BRANCH="${{ github.event.inputs.branch }}"
+
+          case "$BRANCH" in
+            release/dev)     SCHEME="Egalvanic PZ-Dev" ;;
+            release/qa)      SCHEME="Egalvanic PZ-QA" ;;
+            release/stage*)  SCHEME="Egalvanic PZ-Staging" ;;
+            release/prod|main) SCHEME="Egalvanic PZ" ;;
+            *)               SCHEME="Egalvanic PZ-QA" ;;
+          esac
+
+          XCODEPROJ=$(find ios-app -name "*.xcodeproj" -type d | head -1)
+          SAFE_BRANCH=$(echo "$BRANCH" | tr '/' '-')
+
+          echo "BUILD_SCHEME=$SCHEME" >> $GITHUB_ENV
+          echo "XCODEPROJ_PATH=$XCODEPROJ" >> $GITHUB_ENV
+          echo "SAFE_BRANCH=$SAFE_BRANCH" >> $GITHUB_ENV
+
+          echo "📱 Branch: $BRANCH | Scheme: $SCHEME"
+
+      # ============================================================
+      # STEP 4: Setup Build Environment
+      # ============================================================
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Appium
+        run: |
+          npm install -g appium@next 2>&1 | tail -1
+          appium driver install xcuitest 2>&1 | tail -1
+          echo "✅ Appium $(appium --version)"
+
+      - name: Setup API Capture
+        if: github.event.inputs.capture_api != 'false'
+        run: |
+          brew install mitmproxy 2>&1 | tail -3
+          mkdir -p qa-automation/reports/api_logs qa-automation/scripts
+
+          cat > qa-automation/scripts/parse_api.py << 'PYSCRIPT'
+          import json, sys, os
+          def main(flow_file):
+              failed, total = [], 0
+              try:
+                  from mitmproxy import io as mitmio
+                  with open(flow_file, "rb") as f:
+                      for flow in mitmio.FlowReader(f).stream():
+                          if hasattr(flow, 'response') and flow.response:
+                              total += 1
+                              if flow.response.status_code >= 400:
+                                  failed.append({
+                                      "status": flow.response.status_code,
+                                      "method": flow.request.method,
+                                      "url": flow.request.pretty_url,
+                                      "response": (flow.response.get_text() or "")[:500]
+                                  })
+              except Exception as e:
+                  print(f"Error: {e}")
+                  return
+              print(f"\n{'='*60}\nAPI REPORT: {total} calls, {len(failed)} failed\n{'='*60}")
+              if failed:
+                  print("❌ FAILED APIs:")
+                  for api in failed:
+                      print(f"  [{api['status']}] {api['method']} {api['url']}")
+              else:
+                  print("✅ All APIs successful!")
+              os.makedirs("qa-automation/reports/api_logs", exist_ok=True)
+              with open("qa-automation/reports/api_logs/failed_apis.json", "w") as f:
+                  json.dump({"total": total, "failed": len(failed), "details": failed}, f, indent=2)
+          if __name__ == "__main__":
+              main(sys.argv[1] if len(sys.argv) > 1 else "api_traffic.flow")
+          PYSCRIPT
+          echo "✅ API capture ready"
+
+      # ============================================================
+      # STEP 5: Boot Simulator
+      # ============================================================
+      - name: Boot Simulator
+        run: |
+          # Find best available iPhone simulator
+          UDID=""
+          for VERSION in 18.5 18.4 18.3 18.2 18.1 18.0; do
+            for MODEL in "iPhone 16 Pro" "iPhone 15 Pro" "iPhone"; do
+              UDID=$(xcrun simctl list devices available | grep -A 100 "iOS $VERSION" | grep "$MODEL" | head -1 | awk -F '[()]' '{print $2}')
+              [ -n "$UDID" ] && break 2
+            done
+          done
+
+          if [ -z "$UDID" ]; then
+            echo "❌ No iPhone simulator found!"
+            xcrun simctl list devices available
+            exit 1
+          fi
+
+          DEVICE_NAME=$(xcrun simctl list devices available | grep "$UDID" | sed 's/(.*//' | xargs)
+          PLATFORM_VERSION=$(xcrun simctl list devices available | grep -B 20 "$UDID" | grep "iOS" | tail -1 | sed 's/-- iOS //' | sed 's/ --.*//')
+          [ -z "$PLATFORM_VERSION" ] && PLATFORM_VERSION="18.5"
+
+          echo "DEVICE_NAME=$DEVICE_NAME" >> $GITHUB_ENV
+          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+          echo "PLATFORM_VERSION=$PLATFORM_VERSION" >> $GITHUB_ENV
+          echo "📱 $DEVICE_NAME | iOS $PLATFORM_VERSION | $UDID"
+
+          # Boot with proper (Booted) check
+          xcrun simctl shutdown "$UDID" 2>/dev/null || true
+          sleep 3
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+
+          TIMEOUT=120
+          ELAPSED=0
+          while [ $ELAPSED -lt $TIMEOUT ]; do
+            if xcrun simctl list devices | grep "$UDID" | grep -q "(Booted)"; then
+              echo "✅ Booted after ${ELAPSED}s"
+              break
+            fi
+            sleep 5
+            ELAPSED=$((ELAPSED + 5))
+          done
+
+          [ $ELAPSED -ge $TIMEOUT ] && echo "❌ Boot timeout" && exit 1
+
+          # Post-boot stabilization (matches ios-tests.yml)
+          sleep 45
+          echo "✅ Simulator ready"
+
+      # ============================================================
+      # STEP 6: Build iOS App from Source
+      # ============================================================
+      - name: Resolve Swift Package Dependencies
+        run: |
+          cd ios-app
+          PROJECT_FILE=$(basename "$XCODEPROJ_PATH")
+          xcodebuild -resolvePackageDependencies \
+            -project "$PROJECT_FILE" \
+            -scheme "${{ env.BUILD_SCHEME }}" \
+            -clonedSourcePackagesDirPath ../spm-cache \
+            -quiet 2>&1 | tail -3
+          echo "✅ Dependencies resolved"
+
+      - name: Build iOS App for Simulator
+        run: |
+          cd ios-app
+          PROJECT_FILE=$(basename "$XCODEPROJ_PATH")
+
+          echo "🔨 Building: ${{ env.BUILD_SCHEME }} from ${{ github.event.inputs.branch }}"
+
+          # ═══════════════════════════════════════════════════════════
+          # FIX: Removed CODE_SIGNING_ALLOWED=NO
+          #
+          # CODE_SIGNING_ALLOWED=NO prevents ALL code signing, which
+          # causes iOS Keychain to silently reject token saves.
+          # Result: Login API succeeds → token save fails → app shows
+          # "Not authenticated" on next API call.
+          #
+          # CODE_SIGN_IDENTITY="-" gives ad-hoc signing — enough for
+          # simulator Keychain operations to work correctly.
+          #
+          # Also removed "-configuration Debug" flag — the scheme
+          # "Egalvanic PZ-QA" has buildConfiguration = "Debug-QA".
+          # Passing "-configuration Debug" overrides the scheme and
+          # uses the wrong config (which builds PROD app).
+          # ═══════════════════════════════════════════════════════════
+
+          xcodebuild build \
+            -project "$PROJECT_FILE" \
+            -scheme "${{ env.BUILD_SCHEME }}" \
+            -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" \
+            -derivedDataPath build \
+            -clonedSourcePackagesDirPath ../spm-cache \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            -quiet 2>&1 | tail -5
+
+          APP_PATH=$(find build -name "*.app" -type d | head -1)
+
+          if [ -z "$APP_PATH" ]; then
+            echo "❌ Build failed! No .app found"
+            find build -type d | head -20
+            exit 1
+          fi
+
+          echo "APP_PATH=$APP_PATH" >> $GITHUB_ENV
+          echo "✅ Built: $(basename "$APP_PATH")"
+
+          mkdir -p ../qa-automation/apps
+          cp -R "$APP_PATH" "../qa-automation/apps/"
+
+      # ============================================================
+      # STEP 6.5: Verify Built App Configuration
+      # ============================================================
+      - name: Verify App Configuration
+        run: |
+          APP_FILE=$(ls qa-automation/apps/ | grep ".app" | head -1)
+          APP="qa-automation/apps/$APP_FILE"
+
+          if [ -f "$APP/Info.plist" ]; then
+            echo "─── Built App Config ───"
+            echo "  Bundle ID:    $(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist" 2>/dev/null)"
+            echo "  API URL:      $(/usr/libexec/PlistBuddy -c 'Print :API_BASE_URL' "$APP/Info.plist" 2>/dev/null)"
+            echo "  Environment:  $(/usr/libexec/PlistBuddy -c 'Print :ENVIRONMENT_NAME' "$APP/Info.plist" 2>/dev/null)"
+            echo "  Version:      $(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Info.plist" 2>/dev/null)"
+          fi
+
+      # ============================================================
+      # STEP 7: Setup Appium & WDA
+      # ============================================================
+      - name: Pre-build WebDriverAgent
+        run: |
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+
+          if [ -n "$WDA_PATH" ]; then
+            cd "$WDA_PATH"
+            xcodebuild build-for-testing \
+              -project WebDriverAgent.xcodeproj \
+              -scheme WebDriverAgentRunner \
+              -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" \
+              -derivedDataPath /tmp/wda-build \
+              -quiet 2>&1 | tail -3
+            echo "✅ WDA pre-built"
+          fi
+
+      - name: Start Appium Server
+        run: |
+          appium --relaxed-security --log-level error > appium.log 2>&1 &
+
+          for i in {1..60}; do
+            if curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:4723/status 2>/dev/null | grep -q "200"; then
+              echo "✅ Appium ready"
+              break
+            fi
+            sleep 2
+          done
+          sleep 10
+
+      - name: Warm-up WDA Session
+        run: |
+          APP_FILE=$(ls qa-automation/apps/ | grep ".app" | head -1)
+          FULL_APP_PATH="${{ github.workspace }}/qa-automation/apps/$APP_FILE"
+          echo "FULL_APP_PATH=$FULL_APP_PATH" >> $GITHUB_ENV
+
+          for attempt in 1 2 3; do
+            echo "WDA warm-up attempt $attempt/3..."
+
+            SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
+              -H "Content-Type: application/json" \
+              -d '{
+                "capabilities": {
+                  "alwaysMatch": {
+                    "platformName": "iOS",
+                    "appium:automationName": "XCUITest",
+                    "appium:deviceName": "'"${{ env.DEVICE_NAME }}"'",
+                    "appium:udid": "'"${{ env.SIMULATOR_UDID }}"'",
+                    "appium:platformVersion": "'"${{ env.PLATFORM_VERSION }}"'",
+                    "appium:app": "'"$FULL_APP_PATH"'",
+                    "appium:wdaLaunchTimeout": 600000,
+                    "appium:wdaConnectionTimeout": 300000,
+                    "appium:useNewWDA": false,
+                    "appium:noReset": false
+                  }
+                }
+              }' --max-time 600 2>&1) || true
+
+            SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
+
+            if [ -n "$SESSION_ID" ]; then
+              echo "✅ WDA session OK"
+              sleep 10
+              curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true
+              sleep 5
+              echo "✅ WDA warm-up complete"
+              break
+            else
+              [ $attempt -lt 3 ] && sleep 30
+            fi
+          done
+
+      # ============================================================
+      # STEP 8: Start API Capture & Run Tests
+      # ============================================================
+      - name: Start API Traffic Capture
+        if: github.event.inputs.capture_api != 'false'
+        run: |
+          timeout 5 mitmdump --set confdir=~/.mitmproxy 2>/dev/null || true
+          xcrun simctl keychain "${{ env.SIMULATOR_UDID }}" add-root-cert ~/.mitmproxy/mitmproxy-ca-cert.pem 2>/dev/null || true
+          mitmdump -w api_traffic.flow -p 8888 --set flow_detail=2 --quiet > mitmproxy.log 2>&1 &
+          echo "MITM_PID=$!" >> $GITHUB_ENV
+          sleep 3
+          networksetup -setwebproxy "Wi-Fi" 127.0.0.1 8888 2>/dev/null || true
+          networksetup -setsecurewebproxy "Wi-Fi" 127.0.0.1 8888 2>/dev/null || true
+          echo "✅ API capture started"
+
+      - name: Run Tests
+        id: run_tests
+        continue-on-error: true
+        run: |
+          cd qa-automation
+
+          APP_FILE=$(ls apps/ | grep ".app" | head -1)
+          APP_PATH="${{ github.workspace }}/qa-automation/apps/$APP_FILE"
+
+          echo ""
+          echo "╔══════════════════════════════════════════════════════════════╗"
+          echo "║  🧪 ${{ github.event.inputs.test_suite }} tests"
+          echo "║  📱 ${{ env.DEVICE_NAME }} | iOS ${{ env.PLATFORM_VERSION }}"
+          echo "║  🌿 ${{ github.event.inputs.branch }} → ${{ env.BUILD_SCHEME }}"
+          echo "╚══════════════════════════════════════════════════════════════╝"
+          echo ""
+
+          # ═══════════════════════════════════════════════════════════
+          # Maven flags:
+          #   -B  = Batch mode (no download progress, no color codes)
+          #   -q  = Quiet (suppress INFO logs, only WARN/ERROR)
+          #
+          # Combined with ConsoleProgressListener in testng XMLs,
+          # CI output shows ONLY test progress + results
+          # ═══════════════════════════════════════════════════════════
+
+          # ─────────────────────────────────────────────────────────
+          # Shell function to run Maven with proper quoting.
+          # DEVICE_NAME contains spaces (e.g. "iPhone 16 Pro") which
+          # causes word-splitting if passed via a variable.
+          # Using a function with quoted args avoids this entirely.
+          # ─────────────────────────────────────────────────────────
+          run_mvn() {
+            local SUITE_XML="$1"
+            mvn test -B -q \
+              -DsuiteXmlFile="$SUITE_XML" \
+              -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
+              -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
+              -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
+              -DAPP_PATH="$APP_PATH"
+          }
+
+          case "${{ github.event.inputs.test_suite }}" in
+            smoke)
+              # ── Smoke uses the dashboard engine for module-by-module tracking ──
+              # Dashboard script runs 5 modules individually with live progress
+              # bar, status indicators, and timing. Requires APP_PATH exported.
+              export APP_PATH
+              bash .github/scripts/smoke-dashboard.sh
+              ;;
+            full)
+              run_mvn testng.xml
+              ;;
+            auth)
+              run_mvn src/test/resources/parallel/testng-auth.xml
+              ;;
+            site)
+              run_mvn src/test/resources/parallel/testng-site.xml
+              ;;
+            location)
+              run_mvn src/test/resources/parallel/testng-location.xml
+              ;;
+            connections)
+              run_mvn src/test/resources/parallel/testng-connections.xml
+              ;;
+            asset-phase1)
+              run_mvn src/test/resources/parallel/testng-phase1.xml
+              ;;
+            asset-phase2)
+              run_mvn src/test/resources/parallel/testng-phase2.xml
+              ;;
+            asset-phase3)
+              run_mvn src/test/resources/parallel/testng-phase3.xml
+              ;;
+            asset-phase4)
+              run_mvn src/test/resources/parallel/testng-phase4.xml
+              ;;
+            asset-phase5)
+              run_mvn src/test/resources/parallel/testng-phase5.xml
+              ;;
+            asset-all)
+              echo "Running all 5 Asset phases sequentially..."
+              for PHASE in 1 2 3 4 5; do
+                echo ""
+                echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                echo "  📦 ASSET PHASE $PHASE / 5"
+                echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                run_mvn "src/test/resources/parallel/testng-phase${PHASE}.xml" || true
+              done
+              ;;
+          esac
+
+      # ============================================================
+      # STEP 9: Reports & Summary
+      # ============================================================
+      - name: Stop API Capture
+        if: always() && github.event.inputs.capture_api != 'false'
+        run: |
+          kill ${{ env.MITM_PID }} 2>/dev/null || true
+          sleep 2
+          networksetup -setwebproxystate "Wi-Fi" off 2>/dev/null || true
+          networksetup -setsecurewebproxystate "Wi-Fi" off 2>/dev/null || true
+
+          if [ -f "api_traffic.flow" ]; then
+            pip install mitmproxy --quiet 2>/dev/null || true
+            python qa-automation/scripts/parse_api.py api_traffic.flow || true
+          fi
+
+      - name: Test Results Summary
+        if: always()
+        run: |
+          echo ""
+          echo "╔══════════════════════════════════════════════════════════════╗"
+          echo "║  📊 TEST RESULTS                                             ║"
+          echo "╠══════════════════════════════════════════════════════════════╣"
+          echo "║  Branch:  ${{ github.event.inputs.branch }}"
+          echo "║  Scheme:  ${{ env.BUILD_SCHEME }}"
+          echo "║  Suite:   ${{ github.event.inputs.test_suite }}"
+          echo "║  Device:  ${{ env.DEVICE_NAME }} | iOS ${{ env.PLATFORM_VERSION }}"
+          echo "║  Result:  ${{ steps.run_tests.outcome }}"
+          echo "╚══════════════════════════════════════════════════════════════╝"
+
+          # For smoke suite, dashboard script sets SMOKE_* env vars with
+          # aggregated counts across all 5 modules. For other suites,
+          # parse the single TestNG results XML.
+          if [ -n "${{ env.SMOKE_PASSED }}" ]; then
+            echo ""
+            echo "  ✅ Passed:  ${{ env.SMOKE_PASSED }}"
+            echo "  ❌ Failed:  ${{ env.SMOKE_FAILED }}"
+            echo "  ⏭️  Skipped: ${{ env.SMOKE_SKIPPED }}"
+            echo "  ⏱️  Duration: ${{ env.SMOKE_DURATION }}s"
+          else
+            RESULTS_XML="qa-automation/target/surefire-reports/testng-results.xml"
+            if [ -f "$RESULTS_XML" ]; then
+              # Use sed instead of grep -oP (BSD grep on macOS doesn't support -P)
+              PASSED=$(sed -n 's/.*passed="\([^"]*\)".*/\1/p' "$RESULTS_XML" | head -1)
+              FAILED=$(sed -n 's/.*failed="\([^"]*\)".*/\1/p' "$RESULTS_XML" | head -1)
+              SKIPPED=$(sed -n 's/.*skipped="\([^"]*\)".*/\1/p' "$RESULTS_XML" | head -1)
+              echo ""
+              echo "  ✅ Passed:  ${PASSED:-0}"
+              echo "  ❌ Failed:  ${FAILED:-0}"
+              echo "  ⏭️  Skipped: ${SKIPPED:-0}"
+            fi
+          fi
+
+          # Show Extent Report locations
+          echo ""
+          DETAILED=$(ls qa-automation/reports/detailed/*.html 2>/dev/null | tail -1)
+          CLIENT=$(ls qa-automation/reports/client/*.html 2>/dev/null | tail -1)
+          [ -n "$DETAILED" ] && echo "  📋 Detailed Report: $DETAILED"
+          [ -n "$CLIENT" ] && echo "  📋 Client Report:   $CLIENT"
+
+      # Artifact includes run number to avoid name conflicts
+      - name: Upload Test Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-reports-${{ env.SAFE_BRANCH }}-${{ github.event.inputs.test_suite }}-${{ github.run_number }}
+          path: |
+            qa-automation/reports/
+            qa-automation/target/surefire-reports/
+            qa-automation/screenshots/
+          retention-days: 30
+
+      # Only upload Appium log on failure (saves artifact space)
+      - name: Upload Appium Log (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: appium-log-${{ github.run_number }}
+          path: appium.log
+          retention-days: 7
+
+      # ============================================================
+      # STEP 10: Cleanup
+      # ============================================================
+      - name: Shutdown Simulator
+        if: always()
+        run: |
+          xcrun simctl shutdown "${{ env.SIMULATOR_UDID }}" 2>/dev/null || true
