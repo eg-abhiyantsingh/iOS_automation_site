@@ -3,13 +3,13 @@
 # SMOKE TEST DASHBOARD v2 — Per-Test Real-Time Progress Tracking
 # ═══════════════════════════════════════════════════════════════════════
 # Runs 5 modules individually with LIVE per-test progress updates.
-# Each test completion prints a new progress bar line, creating a
+# Each test completion prints a new progress counter line, creating a
 # visual "filling up" effect in GitHub Actions logs.
 #
 # Architecture:
 #   1. Maven runs in background → output to temp log file
 #   2. Foreground monitors log for test completions (1s polling)
-#   3. Per-test: prints test name + global progress bar
+#   3. Per-test: prints test name + global progress counter
 #   4. Per-module: prints module summary
 #   5. After all: prints final dashboard + banner
 #   6. Raw Maven output → collapsed ::group:: blocks
@@ -35,7 +35,6 @@ MODULE_XMLS=(
 )
 TOTAL_TESTS=16
 TOTAL_MODULES=5
-BAR_WIDTH=50
 
 # ─────────────────────────────────────────────────────
 # STATE TRACKING
@@ -54,20 +53,6 @@ TOTAL_SKIPPED=0
 HAS_FAILURE=0
 
 # ─────────────────────────────────────────────────────
-# PROGRESS BAR BUILDER
-# Args: $1 = percentage (0-100), $2 = width (default 50)
-# ─────────────────────────────────────────────────────
-build_bar() {
-  local pct=$1
-  local width=${2:-$BAR_WIDTH}
-  local filled=$((pct * width / 100))
-  local empty=$((width - filled))
-  local bar=""
-  local i
-  for ((i=0; i<filled; i++)); do bar+="█"; done
-  for ((i=0; i<empty; i++)); do bar+="░"; done
-  echo "$bar"
-}
 
 # ─────────────────────────────────────────────────────
 # FORMAT DURATION
@@ -84,21 +69,18 @@ fmt_duration() {
 # ─────────────────────────────────────────────────────
 # PRINT PER-TEST PROGRESS LINE
 # Called after each test completes. Shows test result
-# and a global progress bar that fills incrementally.
+# and a simple counter showing global progress.
 # ─────────────────────────────────────────────────────
 print_test_progress() {
   local status_icon="$1"
   local test_name="$2"
   local duration="$3"
-  local pct=$((GLOBAL_COMPLETED * 100 / TOTAL_TESTS))
-  local bar
-  bar=$(build_bar $pct $BAR_WIDTH)
   local elapsed=$(( $(date +%s) - SUITE_START ))
   local elapsed_fmt
   elapsed_fmt=$(fmt_duration $elapsed)
 
   printf "    %s  %-55s %ss\n" "$status_icon" "$test_name" "$duration"
-  printf "    %s  %3d%%   %d/%d   ⏱️ %s\n\n" "$bar" "$pct" "$GLOBAL_COMPLETED" "$TOTAL_TESTS" "$elapsed_fmt"
+  printf "    📊  %d/%d completed   ⏱️ %s\n\n" "$GLOBAL_COMPLETED" "$TOTAL_TESTS" "$elapsed_fmt"
 }
 
 # ─────────────────────────────────────────────────────
@@ -149,10 +131,6 @@ draw_final_dashboard() {
   local elapsed_fmt
   elapsed_fmt=$(fmt_duration $elapsed)
   local completed=$((TOTAL_PASSED + TOTAL_FAILED + TOTAL_SKIPPED))
-  local pct=0
-  [ $TOTAL_TESTS -gt 0 ] && pct=$((completed * 100 / TOTAL_TESTS))
-  local bar
-  bar=$(build_bar $pct $BAR_WIDTH)
   local LINE="══════════════════════════════════════════════════════════════════════════════"
 
   echo ""
@@ -193,9 +171,7 @@ draw_final_dashboard() {
   echo "  ║"
   echo "  ╠${LINE}"
   echo "  ║"
-  printf "  ║   %s  %3d%%    %d/%d tests\n" "$bar" "$pct" "$completed" "$TOTAL_TESTS"
-  echo "  ║   ╰────────────┼────────────┼────────────┼────────────╯"
-  echo "  ║   0%          25%          50%          75%         100%"
+  printf "  ║   📊  %d/%d tests completed\n" "$completed" "$TOTAL_TESTS"
   echo "  ║"
   printf "  ║   ✅ %d passed   ❌ %d failed   ⏭️  %d skipped    ⏱️  %s elapsed\n" \
     "$TOTAL_PASSED" "$TOTAL_FAILED" "$TOTAL_SKIPPED" "$elapsed_fmt"
@@ -282,9 +258,6 @@ echo "  │  ⏰  $(date '+%Y-%m-%d %H:%M:%S')"
 echo "  └──────────────────────────────────────────────────────────────────────────"
 echo ""
 
-# Show initial empty progress bar
-INIT_BAR=$(build_bar 0 $BAR_WIDTH)
-printf "    %s    0%%   0/%d\n\n" "$INIT_BAR" "$TOTAL_TESTS"
 
 # ── Run each module ─────────────────────────────────
 for i in 0 1 2 3 4; do
@@ -407,14 +380,12 @@ for i in 0 1 2 3 4; do
     TOTAL_SKIPPED=$((TOTAL_SKIPPED + S))
     GLOBAL_COMPLETED=$((GLOBAL_COMPLETED + P + F + S))
 
-    # Print a catch-up progress bar for the XML-parsed results
+    # Print a catch-up counter for the XML-parsed results
     if [ "$((P + F + S))" -gt 0 ]; then
-      local_pct=$((GLOBAL_COMPLETED * 100 / TOTAL_TESTS))
-      local_bar=$(build_bar $local_pct $BAR_WIDTH)
       local_elapsed=$(( $(date +%s) - SUITE_START ))
       local_elapsed_fmt=$(fmt_duration $local_elapsed)
       echo "    (parsed from results XML — real-time output was not available)"
-      printf "    %s  %3d%%   %d/%d   ⏱️ %s\n\n" "$local_bar" "$local_pct" "$GLOBAL_COMPLETED" "$TOTAL_TESTS" "$local_elapsed_fmt"
+      printf "    📊  %d/%d completed   ⏱️ %s\n\n" "$GLOBAL_COMPLETED" "$TOTAL_TESTS" "$local_elapsed_fmt"
     fi
   fi
 
@@ -441,7 +412,7 @@ for i in 0 1 2 3 4; do
   print_module_complete $i ${M_DURATION[$i]}
 
   # ── Collapse raw Maven output ──
-  echo "::group::📋 Module ${MODULE_IDX}: ${MODULE_NAME} — raw output (click to expand)"
+  echo "::group::${MODULE_NAME} — output (click to expand)"
   cat "$LOG_FILE" 2>/dev/null || echo "(no output)"
   echo "::endgroup::"
 
