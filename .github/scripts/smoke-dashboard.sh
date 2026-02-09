@@ -75,12 +75,17 @@ print_test_progress() {
   local status_icon="$1"
   local test_name="$2"
   local duration="$3"
+  local error_reason="$4"
   local elapsed=$(( $(date +%s) - SUITE_START ))
   local elapsed_fmt
   elapsed_fmt=$(fmt_duration $elapsed)
 
-  printf "    %s  %-55s %ss\n" "$status_icon" "$test_name" "$duration"
-  printf "    📊  %d/%d completed   ⏱️ %s\n\n" "$GLOBAL_COMPLETED" "$TOTAL_TESTS" "$elapsed_fmt"
+  if [ -n "$error_reason" ]; then
+    printf "    %s  %s  - %s\n" "$status_icon" "$test_name" "$error_reason"
+  else
+    printf "    %s  %-55s %ss\n" "$status_icon" "$test_name" "$duration"
+  fi
+  printf "    %d/%d completed   ⏱️ %s\n\n" "$GLOBAL_COMPLETED" "$TOTAL_TESTS" "$elapsed_fmt"
 }
 
 # ─────────────────────────────────────────────────────
@@ -171,7 +176,7 @@ draw_final_dashboard() {
   echo "  ║"
   echo "  ╠${LINE}"
   echo "  ║"
-  printf "  ║   📊  %d/%d tests completed\n" "$completed" "$TOTAL_TESTS"
+  printf "  ║   %d/%d tests completed\n" "$completed" "$TOTAL_TESTS"
   echo "  ║"
   printf "  ║   ✅ %d passed   ❌ %d failed   ⏭️  %d skipped    ⏱️  %s elapsed\n" \
     "$TOTAL_PASSED" "$TOTAL_FAILED" "$TOTAL_SKIPPED" "$elapsed_fmt"
@@ -206,7 +211,6 @@ draw_final_banner() {
   else
     echo "  ╔${LINE}"
     echo "  ║"
-    echo "  ║   ⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️"
     echo "  ║"
     echo "  ║     ❌  S O M E   T E S T S   F A I L E D"
     echo "  ║"
@@ -219,8 +223,6 @@ draw_final_banner() {
         echo "  ║       ❌ Module $((i+1)): ${MODULE_NAMES[$i]} (${M_FAILED[$i]} failed)"
       fi
     done
-    echo "  ║"
-    echo "  ║   ⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️"
     echo "  ║"
     echo "  ╚${LINE}"
   fi
@@ -331,8 +333,15 @@ for i in 0 1 2 3 4; do
         DURATION=$(echo "$LINE" | sed 's/.*(\([0-9]*\)s).*/\1/')
         [ -z "$DURATION" ] || [ "$DURATION" = "$LINE" ] && DURATION="?"
 
+        # Extract error reason for failed tests (ConsoleProgressListener prints "└─ Error: <msg>")
+        ERROR_REASON=""
+        if [ "$ICON" = "❌" ]; then
+          ERROR_REASON=$(grep -A1 "$LINE" "$LOG_FILE" 2>/dev/null | grep "Error:" | sed 's/.*Error: //' | head -1)
+          [ -z "$ERROR_REASON" ] && ERROR_REASON="Test failed"
+        fi
+
         # Print per-test progress
-        print_test_progress "$ICON" "$TEST_NAME" "$DURATION"
+        print_test_progress "$ICON" "$TEST_NAME" "$DURATION" "$ERROR_REASON"
       done
     fi
 
@@ -363,7 +372,14 @@ for i in 0 1 2 3 4; do
     DURATION=$(echo "$LINE" | sed 's/.*(\([0-9]*\)s).*/\1/')
     [ -z "$DURATION" ] || [ "$DURATION" = "$LINE" ] && DURATION="?"
 
-    print_test_progress "$ICON" "$TEST_NAME" "$DURATION"
+    # Extract error reason for failed tests
+    ERROR_REASON=""
+    if [ "$ICON" = "❌" ]; then
+      ERROR_REASON=$(grep -A1 "$LINE" "$LOG_FILE" 2>/dev/null | grep "Error:" | sed 's/.*Error: //' | head -1)
+      [ -z "$ERROR_REASON" ] && ERROR_REASON="Test failed"
+    fi
+
+    print_test_progress "$ICON" "$TEST_NAME" "$DURATION" "$ERROR_REASON"
   done
 
   MODULE_END=$(date +%s)
@@ -385,7 +401,7 @@ for i in 0 1 2 3 4; do
       local_elapsed=$(( $(date +%s) - SUITE_START ))
       local_elapsed_fmt=$(fmt_duration $local_elapsed)
       echo "    (parsed from results XML — real-time output was not available)"
-      printf "    📊  %d/%d completed   ⏱️ %s\n\n" "$GLOBAL_COMPLETED" "$TOTAL_TESTS" "$local_elapsed_fmt"
+      printf "    %d/%d completed   ⏱️ %s\n\n" "$GLOBAL_COMPLETED" "$TOTAL_TESTS" "$local_elapsed_fmt"
     fi
   fi
 
