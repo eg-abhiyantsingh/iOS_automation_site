@@ -7,7 +7,7 @@
   Triggered by: production/main branch push
   Jira: ZP-774
 -->
-<suite name="Smoke - S3 Drift Detection (PRODUCTION)" verbose="0">
+<suite name="Smoke - S3 Drift Detection (PRODUCTION)" verbose="0" time-out="60000">
     <listeners>
         <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
     </listeners>
