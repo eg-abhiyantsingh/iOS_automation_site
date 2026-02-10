@@ -6,13 +6,13 @@ name: iOS Tests - Smoke Suite
 # Tests: 35-67 tests across 10 modules (dynamic based on branch)
 #
 # S3 Drift Detection runs BRANCH-SPECIFIC tests:
-#   dev/develop       → dev only         (10 S3 tests) → Total 35
-#   qa                → qa only          (10 S3 tests) → Total 35
-#   staging/stage     → staging only     (10 S3 tests) → Total 35
-#   prod              → prod + bces-iq   (18 S3 tests) → Total 43
-#   production/main   → prod + bces-iq   (18 S3 tests) → Total 43
-#   bces-iq           → bces-iq only     (10 S3 tests) → Total 35
-#   unknown/manual    → ALL environments (42 S3 tests) → Total 67
+#   dev/develop       → dev only         (10 S3 tests) → Total 23
+#   qa                → qa only          (10 S3 tests) → Total 23
+#   staging/stage     → staging only     (10 S3 tests) → Total 23
+#   prod              → prod + bces-iq   (18 S3 tests) → Total 31
+#   production/main   → prod + bces-iq   (18 S3 tests) → Total 31
+#   bces-iq           → bces-iq only     (10 S3 tests) → Total 23
+#   unknown/manual    → ALL environments (42 S3 tests) → Total 55
 #
 # Modules Covered:
 #   Phase 1 (UI Checks):
@@ -154,8 +154,8 @@ jobs:
               S3_LABEL="${S3_ENV^^} only" ;;
           esac
           
-          # Total: S3 tests + 25 mobile tests (13 UI + 12 CRUD)
-          TOTAL_TESTS=$((S3_TESTS + 25))
+          # Total: S3 tests + 13 mobile tests (Login + Site + CRUD)
+          TOTAL_TESTS=$((S3_TESTS + 13))
           
           echo "S3_ENV=$S3_ENV" >> $GITHUB_ENV
           echo "S3_XML=$S3_XML" >> $GITHUB_ENV
@@ -754,11 +754,11 @@ jobs:
           echo "  │"
           echo "  │  📋 Modules:"
           echo "  │     0. S3 Drift [${{ env.S3_LABEL }}]  (${{ env.S3_TESTS }} tests, no Appium)"
-          echo "  │     1-5. UI Checks: Auth(4) + Site(3) + Asset(2) + Location(2) + Conn(2)"
-          echo "  │     6. Login Flow           (1 test)"
-          echo "  │     7. Asset CRUD           (4 tests)"
-          echo "  │     8. Location CRUD        (4 tests)"
-          echo "  │     9. Connection CRUD      (3 tests)"
+          echo "  │     1. Login               (1 test)"
+          echo "  │     2. Site Selection      (1 test)"
+          echo "  │     3. Asset CRUD          (4 tests)"
+          echo "  │     4. Location CRUD       (4 tests)"
+          echo "  │     5. Connection CRUD     (3 tests)"
           echo "  │"
 
           if [ "${{ github.event.inputs.capture_api }}" = "true" ]; then

@@ -2,11 +2,11 @@
 # I will directly copy paste this file in my developer repo file
 #
 # S3 Drift Detection (branch-based):
-#   release/dev       → dev S3 only         (10 tests)  → Total 35
-#   release/qa        → qa S3 only          (10 tests)  → Total 35
-#   release/stage     → staging S3 only     (10 tests)  → Total 35
-#   release/prod      → prod + bces-iq      (18 tests)  → Total 43
-#   main              → prod + bces-iq      (18 tests)  → Total 43
+#   release/dev       → dev S3 only         (10 tests)  → Total 23
+#   release/qa        → qa S3 only          (10 tests)  → Total 23
+#   release/stage     → staging S3 only     (10 tests)  → Total 23
+#   release/prod      → prod + bces-iq      (18 tests)  → Total 31
+#   main              → prod + bces-iq      (18 tests)  → Total 31
 #
 # AWS credentials required: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
 
@@ -154,7 +154,7 @@ jobs:
               S3_LABEL="ALL (5 environments)" ;;
           esac
           
-          TOTAL_SMOKE_TESTS=$((S3_TESTS + 25))
+          TOTAL_SMOKE_TESTS=$((S3_TESTS + 13))
           
           echo "S3_ENV=$S3_ENV" >> $GITHUB_ENV
           echo "S3_XML=$S3_XML" >> $GITHUB_ENV

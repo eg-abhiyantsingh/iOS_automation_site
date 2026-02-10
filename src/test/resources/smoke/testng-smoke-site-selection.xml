@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<!-- 
+  Smoke - Site Selection Flow
+  Test: TC_SS_044 (login + select site + verify dashboard badges)
+  Covers: Full site selection flow including login → site list → select → dashboard
+-->
+<suite name="Smoke - Site Selection" verbose="0">
+    <listeners>
+        <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
+    </listeners>
+    <test name="Smoke - Site Selection">
+        <classes>
+            <class name="com.egalvanic.tests.SiteSelectionTest">
+                <methods>
+                    <include name="TC_SS_044_verifyIssuesBadgeCount"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+</suite>

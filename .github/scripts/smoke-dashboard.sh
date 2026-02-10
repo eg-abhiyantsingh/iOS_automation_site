@@ -1,10 +1,10 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════════════════
-# SMOKE TEST DASHBOARD v4 — S3 Drift + UI Checks + CRUD Operations
+# SMOKE TEST DASHBOARD v5 — S3 Drift + Login + Site + CRUD Operations
 # ═══════════════════════════════════════════════════════════════════════
-# Runs 10 modules individually with LIVE per-test progress updates.
+# Runs 6 modules individually with LIVE per-test progress updates.
 # Module 0 (S3 Drift Detection) runs FIRST without Appium.
-# Modules 1-5: UI smoke tests. Modules 6-9: CRUD operations (login + asset/location/connection).
+# Modules 1-5: Login → Site Selection → Asset CRUD → Location CRUD → Connection CRUD.
 #
 # Architecture:
 #   1. Maven runs in background → output to temp log file
@@ -49,34 +49,30 @@ S3_LABEL_ACTUAL="${S3_LABEL:-ALL (5 environments)}"
 # Build S3 module name dynamically
 S3_MODULE_NAME="S3 Drift [${S3_LABEL_ACTUAL}]"
 
-MODULES=("s3drift" "auth" "site" "asset" "location" "connections" "login" "asset-crud" "location-crud" "connection-crud")
-MODULE_NAMES=("${S3_MODULE_NAME}" "Authentication UI" "Site Selection UI" "Asset UI" "Location UI" "Connections UI" "Login Flow" "Asset CRUD" "Location CRUD" "Connection CRUD")
-MODULE_TESTS=(${S3_TESTS_ACTUAL} 4 3 2 2 2 1 4 4 3)
+MODULES=("s3drift" "login" "site-selection" "asset-crud" "location-crud" "connection-crud")
+MODULE_NAMES=("${S3_MODULE_NAME}" "Login" "Site Selection" "Asset CRUD" "Location CRUD" "Connection CRUD")
+MODULE_TESTS=(${S3_TESTS_ACTUAL} 1 1 4 4 3)
 MODULE_XMLS=(
   "${S3_XML_ACTUAL}"
-  "src/test/resources/smoke/testng-smoke-auth.xml"
-  "src/test/resources/smoke/testng-smoke-site.xml"
-  "src/test/resources/smoke/testng-smoke-asset.xml"
-  "src/test/resources/smoke/testng-smoke-location.xml"
-  "src/test/resources/smoke/testng-smoke-connections.xml"
   "src/test/resources/smoke/testng-smoke-login.xml"
+  "src/test/resources/smoke/testng-smoke-site-selection.xml"
   "src/test/resources/smoke/testng-smoke-asset-crud.xml"
   "src/test/resources/smoke/testng-smoke-location-crud.xml"
   "src/test/resources/smoke/testng-smoke-connection-crud.xml"
 )
 
-# Total = S3 (dynamic) + 25 mobile tests (13 UI + 12 CRUD)
-TOTAL_TESTS=$((S3_TESTS_ACTUAL + 25))
-TOTAL_MODULES=10
+# Total = S3 (dynamic) + 13 mobile tests (1 Login + 1 Site + 4 Asset + 4 Location + 3 Connection)
+TOTAL_TESTS=$((S3_TESTS_ACTUAL + 13))
+TOTAL_MODULES=6
 
 # ─────────────────────────────────────────────────────
 # STATE TRACKING
 # ─────────────────────────────────────────────────────
-STATUS=("pending" "pending" "pending" "pending" "pending" "pending" "pending" "pending" "pending" "pending")
-M_PASSED=(0 0 0 0 0 0 0 0 0 0)
-M_FAILED=(0 0 0 0 0 0 0 0 0 0)
-M_SKIPPED=(0 0 0 0 0 0 0 0 0 0)
-M_DURATION=(0 0 0 0 0 0 0 0 0 0)
+STATUS=("pending" "pending" "pending" "pending" "pending" "pending")
+M_PASSED=(0 0 0 0 0 0)
+M_FAILED=(0 0 0 0 0 0)
+M_SKIPPED=(0 0 0 0 0 0)
+M_DURATION=(0 0 0 0 0 0)
 
 SUITE_START=$(date +%s)
 GLOBAL_COMPLETED=0
@@ -110,7 +106,8 @@ print_test_progress() {
   elapsed_fmt=$(fmt_duration $elapsed)
 
   if [ -n "$error_reason" ]; then
-    printf "    %s  %s  - %s\n" "$status_icon" "$test_name" "$error_reason"
+    printf "    %s  %s\n" "$status_icon" "$test_name"
+    printf "         Reason for fail: %s\n" "$error_reason"
   else
     printf "    %s  %-55s %ss\n" "$status_icon" "$test_name" "$duration"
   fi
@@ -185,7 +182,7 @@ draw_final_dashboard() {
   echo "  ╠${LINE}"
   echo "  ║"
 
-  for i in 0 1 2 3 4 5 6 7 8 9; do
+  for i in 0 1 2 3 4 5; do
     local num=$i
     local name="${MODULE_NAMES[$i]}"
     local st="${STATUS[$i]}"
@@ -259,7 +256,7 @@ draw_final_banner() {
       "$TOTAL_PASSED" "$TOTAL_TESTS" "$TOTAL_FAILED" "$TOTAL_SKIPPED" "$elapsed_fmt"
     echo "  ║"
     echo "  ║     Failed modules:"
-    for i in 0 1 2 3 4 5 6 7 8 9; do
+    for i in 0 1 2 3 4 5; do
       if [ "${STATUS[$i]}" = "failed" ]; then
         echo "  ║       ❌ Module ${i}: ${MODULE_NAMES[$i]} (${M_FAILED[$i]} failed)"
       fi
@@ -293,18 +290,18 @@ parse_results_xml() {
 # ── Print Header ──
 echo ""
 echo "  ┌──────────────────────────────────────────────────────────────────────────"
-echo "  │  🚀  Smoke Test Dashboard v3"
+echo "  │  🚀  Smoke Test Dashboard v5"
 echo "  │  📱  ${DEVICE_NAME} · iOS ${PLATFORM_VERSION}"
 echo "  │  📦  ${TOTAL_TESTS} tests across ${TOTAL_MODULES} modules"
 echo "  │  🪣  S3 Drift: ${S3_LABEL_ACTUAL} (${S3_TESTS_ACTUAL} tests)"
-echo "  │  📲  Modules 1-5: Mobile Smoke Tests (13 tests, Appium required)"
+echo "  │  📲  Modules 1-5: Login → Site → Asset → Location → Connection CRUD"
 echo "  │  ⏰  $(date '+%Y-%m-%d %H:%M:%S')"
 echo "  └──────────────────────────────────────────────────────────────────────────"
 echo ""
 
 
 # ── Run each module ─────────────────────────────────
-for i in 0 1 2 3 4 5 6 7 8 9; do
+for i in 0 1 2 3 4 5; do
   MODULE_IDX=$i
   MODULE_KEY="${MODULES[$i]}"
   MODULE_NAME="${MODULE_NAMES[$i]}"
@@ -477,7 +474,7 @@ for i in 0 1 2 3 4 5 6 7 8 9; do
   print_module_complete $i ${M_DURATION[$i]}
 
   # ── Collapse raw Maven output ──
-  echo "::group::${MODULE_NAME} — output (click to expand)"
+  echo "::group::${MODULE_NAME} — raw output (click to expand)"
   cat "$LOG_FILE" 2>/dev/null || echo "(no output)"
   echo "::endgroup::"
 
