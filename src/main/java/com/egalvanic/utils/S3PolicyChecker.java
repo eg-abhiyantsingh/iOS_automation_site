@@ -8,6 +8,12 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
 /**
  * S3 Bucket Policy Checker Utility
  * ================================
@@ -472,27 +478,101 @@ public class S3PolicyChecker {
     // PRIVATE HELPER METHODS
     // ============================================
 
+    /**
+     * Normalize JSON using Gson (pure Java - no jq dependency).
+     * 
+     * Parses JSON into a tree, sorts all object keys recursively,
+     * and outputs a canonical minified string. This ensures identical
+     * output regardless of input formatting (pretty-printed vs minified)
+     * or key ordering differences between baseline files and AWS API responses.
+     * 
+     * Works identically on all platforms (macOS, Linux, CI/CD runners).
+     */
     private static String normalizeJson(String json) {
-        try {
-            ProcessBuilder pb = new ProcessBuilder("jq", "-S", ".");
-            pb.redirectErrorStream(false);
-            Process process = pb.start();
-
-            process.getOutputStream().write(json.getBytes());
-            process.getOutputStream().close();
-
-            String normalized = new BufferedReader(new InputStreamReader(process.getInputStream()))
-                    .lines().collect(Collectors.joining("\n")).trim();
-
-            int exitCode = process.waitFor();
-            if (exitCode == 0 && !normalized.isEmpty()) {
-                return normalized;
-            }
-        } catch (Exception e) {
-            // jq not available, fallback below
+        if (json == null || json.trim().isEmpty()) {
+            return "";
         }
+        
+        try {
+            JsonElement element = JsonParser.parseString(json.trim());
+            JsonElement sorted = sortJsonElement(element);
+            // Minified output — no pretty printing
+            return new Gson().toJson(sorted);
+        } catch (Exception e) {
+            // If Gson parsing fails, use pure Java whitespace stripping as fallback
+            System.out.println("  ⚠️ Gson parse failed, using whitespace-strip fallback: " + e.getMessage());
+            return stripJsonWhitespace(json);
+        }
+    }
 
-        return json.replaceAll("\\s+", " ").trim();
+    /**
+     * Recursively sort all JSON object keys alphabetically.
+     * Arrays preserve their element order (order matters in JSON arrays).
+     * Primitives and nulls pass through unchanged.
+     */
+    private static JsonElement sortJsonElement(JsonElement element) {
+        if (element == null || element.isJsonNull()) {
+            return element;
+        }
+        
+        if (element.isJsonObject()) {
+            JsonObject original = element.getAsJsonObject();
+            JsonObject sorted = new JsonObject();
+            
+            // TreeMap sorts keys alphabetically
+            TreeMap<String, JsonElement> sortedMap = new TreeMap<>();
+            for (Map.Entry<String, JsonElement> entry : original.entrySet()) {
+                sortedMap.put(entry.getKey(), sortJsonElement(entry.getValue()));
+            }
+            for (Map.Entry<String, JsonElement> entry : sortedMap.entrySet()) {
+                sorted.add(entry.getKey(), entry.getValue());
+            }
+            return sorted;
+        }
+        
+        if (element.isJsonArray()) {
+            JsonArray original = element.getAsJsonArray();
+            JsonArray sorted = new JsonArray();
+            for (JsonElement item : original) {
+                sorted.add(sortJsonElement(item));
+            }
+            return sorted;
+        }
+        
+        // JsonPrimitive or JsonNull — return as-is
+        return element;
+    }
+
+    /**
+     * Pure Java fallback: strip all whitespace outside of JSON string values.
+     * Handles escaped quotes within strings correctly.
+     * Used only if Gson parsing fails (should never happen with valid JSON).
+     */
+    private static String stripJsonWhitespace(String json) {
+        StringBuilder sb = new StringBuilder();
+        boolean inString = false;
+        boolean escaped = false;
+        
+        for (char c : json.toCharArray()) {
+            if (escaped) {
+                sb.append(c);
+                escaped = false;
+                continue;
+            }
+            if (c == '\\' && inString) {
+                sb.append(c);
+                escaped = true;
+                continue;
+            }
+            if (c == '"') {
+                inString = !inString;
+            }
+            if (!inString && Character.isWhitespace(c)) {
+                continue; // skip whitespace outside strings
+            }
+            sb.append(c);
+        }
+        return sb.toString().trim();
     }
 
     private static String generateStructuredDiff(String expected, String actual) {
