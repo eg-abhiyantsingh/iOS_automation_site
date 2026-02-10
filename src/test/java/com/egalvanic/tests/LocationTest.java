@@ -69,7 +69,15 @@ public class LocationTest extends BaseTest {
     public void methodSetup() {
         // Always reinitialize BuildingPage with current driver
         // This is necessary because driver is recreated after each test
-        buildingPage = new BuildingPage();
+        try {
+            System.out.println("📋 LocationTest.methodSetup() - initializing BuildingPage...");
+            buildingPage = new BuildingPage();
+            System.out.println("📋 LocationTest.methodSetup() - BuildingPage initialized OK");
+        } catch (Exception e) {
+            System.out.println("❌ LocationTest.methodSetup() FAILED: " + e.getMessage());
+            e.printStackTrace(System.out);
+            throw e;
+        }
     }
 
     // ============================================================

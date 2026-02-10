@@ -3872,75 +3872,141 @@ public class AssetPage extends BasePage {
                 return false;
             }
             
-            // STEP 2: SELECT OR CREATE FLOOR
+            // STEP 2: SELECT EXISTING FLOOR OR ROOM
+            // After clicking a building, the picker shows its children.
+            // Some buildings have floors+rooms mixed at the same level.
+            // Strategy: First look for a room directly (skip floor step).
+            // If no room, find a floor, navigate into it, then find a room.
+            // Only create as an absolute last resort.
+            sleep(600); // Wait for floor/room list to render (important with many items)
+
+            // First, try to find a ROOM directly at the building level
+            // (rooms can exist alongside floors in some hierarchies)
             try {
-                WebElement floor = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND (name CONTAINS ' room' OR name BEGINSWITH 'Floor_') AND NOT name CONTAINS ' floor'"));
-                String fName = floor.getAttribute("name");
-                floor.click();
-                System.out.println("✅ Floor: " + fName);
+                WebElement directRoom = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND visible == true AND " +
+                    "(name BEGINSWITH 'Room_' OR name BEGINSWITH 'Room ') AND " +
+                    "NOT name CONTAINS ' floor'"));
+                String rName = directRoom.getAttribute("name");
+                directRoom.click();
+                System.out.println("✅ Room (direct): " + rName);
                 floorSelected = true;
+                roomSelected = true;
                 sleep(400);
             } catch (Exception e) {
-                System.out.println("   No existing floor, creating...");
-                if (clickPlusButtonForLocation()) {
-                    sleep(400);
-                    if (enterLocationTextAndSave("Floor Name", floorName)) {
-                        sleep(200);
-                        try {
-                            driver.findElement(AppiumBy.iOSNsPredicateString(
-                                "type == 'XCUIElementTypeButton' AND name CONTAINS '" + floorName + "'")).click();
-                            System.out.println("✅ Created Floor: " + floorName);
-                            floorSelected = true;
-                            sleep(400);
-                        } catch (Exception e2) {
-                            System.out.println("⚠️ Could not click created floor");
+                // No direct room found, proceed with floor selection
+            }
+
+            if (!floorSelected) {
+                // Strategy 1: Standard floor pattern (button with room count or Floor_ prefix)
+                try {
+                    WebElement floor = driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND visible == true AND " +
+                        "(name CONTAINS ' room' OR name BEGINSWITH 'Floor_' OR name BEGINSWITH 'Floor ') AND " +
+                        "NOT name CONTAINS ' floor'"));
+                    String fName = floor.getAttribute("name");
+                    floor.click();
+                    System.out.println("✅ Floor: " + fName);
+                    floorSelected = true;
+                    sleep(600);
+                } catch (Exception e) {}
+
+                // Strategy 2: Any non-system button at this level (exclude buildings, system buttons)
+                if (!floorSelected) {
+                    try {
+                        List<WebElement> allButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeButton' AND visible == true"));
+                        for (WebElement btn : allButtons) {
+                            String name = btn.getAttribute("name");
+                            if (name != null && !isSystemButton(name)
+                                && !name.contains(" floor") && !name.contains(" floors")) {
+                                btn.click();
+                                System.out.println("✅ Floor (fallback): " + name);
+                                floorSelected = true;
+                                sleep(600);
+                                break;
+                            }
+                        }
+                    } catch (Exception e2) {}
+                }
+
+                // Strategy 3: Create floor only as absolute last resort
+                if (!floorSelected) {
+                    System.out.println("   No existing floor found, creating as last resort...");
+                    if (clickPlusButtonForLocation()) {
+                        sleep(400);
+                        if (enterLocationTextAndSave("Floor Name", floorName)) {
+                            sleep(200);
+                            try {
+                                driver.findElement(AppiumBy.iOSNsPredicateString(
+                                    "type == 'XCUIElementTypeButton' AND name CONTAINS '" + floorName + "'")).click();
+                                System.out.println("✅ Created Floor: " + floorName);
+                                floorSelected = true;
+                                sleep(400);
+                            } catch (Exception e2) {
+                                System.out.println("⚠️ Could not click created floor");
+                            }
                         }
                     }
                 }
             }
-            
+
             if (!floorSelected) {
                 System.out.println("⚠️ Floor selection failed");
                 dismissLocationPickerSafe();
                 return false;
             }
-            
-            // STEP 3: SELECT OR CREATE ROOM (should auto-close picker)
-            try {
-                WebElement room = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND (name CONTAINS '>' OR name BEGINSWITH 'Room_') AND NOT name CONTAINS ' floor' AND NOT name CONTAINS ' room'"));
-                String rName = room.getAttribute("name");
-                room.click();
-                System.out.println("✅ Room: " + rName);
-                roomSelected = true;
-                sleep(400);
-            } catch (Exception e) {
-                System.out.println("   No existing room, creating...");
-                if (clickPlusButtonForLocation()) {
+
+            // STEP 3: SELECT EXISTING ROOM (only if not already selected in step 2)
+            if (!roomSelected) {
+                // Strategy 1: Standard room pattern
+                try {
+                    WebElement room = driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND visible == true AND " +
+                        "(name CONTAINS ' node' OR name BEGINSWITH 'Room_' OR name BEGINSWITH 'Room ') AND " +
+                        "NOT name CONTAINS ' floor' AND NOT name CONTAINS ' room'"));
+                    String rName = room.getAttribute("name");
+                    room.click();
+                    System.out.println("✅ Room: " + rName);
+                    roomSelected = true;
                     sleep(400);
-                    if (enterLocationTextAndSave("Room Name", roomName)) {
-                        sleep(200);
-                        try {
-                            driver.findElement(AppiumBy.iOSNsPredicateString(
-                                "type == 'XCUIElementTypeButton' AND name CONTAINS '" + roomName + "'")).click();
-                            System.out.println("✅ Created Room: " + roomName);
-                            roomSelected = true;
-                            sleep(400);
-                        } catch (Exception e2) {
-                            // Try any visible button that looks like a leaf
+                } catch (Exception e) {}
+
+                // Strategy 2: Any non-system button (we're inside a floor, so all items should be rooms)
+                if (!roomSelected) {
+                    try {
+                        List<WebElement> allButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeButton' AND visible == true"));
+                        for (WebElement btn : allButtons) {
+                            String name = btn.getAttribute("name");
+                            if (name != null && !isSystemButton(name)
+                                && !name.contains(" floor") && !name.contains(" room")) {
+                                btn.click();
+                                System.out.println("✅ Room (fallback): " + name);
+                                roomSelected = true;
+                                sleep(400);
+                                break;
+                            }
+                        }
+                    } catch (Exception e2) {}
+                }
+
+                // Strategy 3: Create room only as absolute last resort
+                if (!roomSelected) {
+                    System.out.println("   No existing room found, creating as last resort...");
+                    if (clickPlusButtonForLocation()) {
+                        sleep(400);
+                        if (enterLocationTextAndSave("Room Name", roomName)) {
+                            sleep(200);
                             try {
-                                List<WebElement> btns = driver.findElements(AppiumBy.iOSNsPredicateString(
-                                    "type == 'XCUIElementTypeButton' AND visible == true"));
-                                for (WebElement btn : btns) {
-                                    String name = btn.getAttribute("name");
-                                    if (name != null && name.contains(roomName.substring(0, 5))) {
-                                        btn.click();
-                                        roomSelected = true;
-                                        break;
-                                    }
-                                }
-                            } catch (Exception e3) {}
+                                driver.findElement(AppiumBy.iOSNsPredicateString(
+                                    "type == 'XCUIElementTypeButton' AND name CONTAINS '" + roomName + "'")).click();
+                                System.out.println("✅ Created Room: " + roomName);
+                                roomSelected = true;
+                                sleep(400);
+                            } catch (Exception e2) {
+                                System.out.println("⚠️ Could not click created room");
+                            }
                         }
                     }
                 }

@@ -211,9 +211,14 @@ public class BaseTest {
                 System.out.println("📸 Screenshot saved: " + screenshotPath);
 
             } else if (result.getStatus() == ITestResult.SKIP) {
-                ExtentReportManager.logSkip("Test skipped: " +
-                        (result.getThrowable() != null ? result.getThrowable().getMessage() : "Unknown reason"));
+                String skipReason = (result.getThrowable() != null)
+                        ? result.getThrowable().getMessage() : "Unknown reason";
+                ExtentReportManager.logSkip("Test skipped: " + skipReason);
                 System.out.println("⏭️ Test SKIPPED: " + testName);
+                System.out.println("   Skip reason: " + skipReason);
+                if (result.getThrowable() != null) {
+                    result.getThrowable().printStackTrace(System.out);
+                }
 
             } else if (result.getStatus() == ITestResult.SUCCESS) {
                 ExtentReportManager.logPass("Test passed successfully");

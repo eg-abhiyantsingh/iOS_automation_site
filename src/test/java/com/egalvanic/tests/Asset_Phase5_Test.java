@@ -2444,6 +2444,9 @@ public final class Asset_Phase5_Test extends BaseTest {
             navigateToNewAssetScreen();
             assetPage.enterAssetName(testAssetName);
             assetPage.dismissKeyboard();
+            // Scroll up to ensure Asset Class dropdown is visible after keyboard dismissal
+            assetPage.scrollFormUp();
+            shortWait();
             assetPage.selectATSClass();
             assetPage.selectLocation();
             assetPage.dismissKeyboard();
