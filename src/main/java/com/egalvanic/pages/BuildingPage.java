@@ -872,28 +872,57 @@ public class BuildingPage extends BasePage {
             // Check if truly off-screen (Y > screenHeight means element is below visible area)
             if (centerY < 0 || centerY > screenHeight) {
                 System.out.println("   ⚠️ Element is completely off-screen (Y=" + centerY + "), scrolling...");
-                
-                // Scroll to bring element into view
-                for (int attempt = 0; attempt < 10; attempt++) {
-                    if (centerY > screenHeight) {
-                        scrollDown(); // Element is below - scroll to bring it up
-                    } else if (centerY < 0) {
-                        scrollUp(); // Element is above - scroll to bring it down
-                    }
-                    sleep(300);
-                    
-                    // Re-find and check
+                String scrollDirection = centerY > screenHeight ? "down" : "up";
+
+                // Strategy 1: iOS native scroll with predicate (handles any distance in one call)
+                boolean nativeScrollWorked = false;
+                try {
+                    String predicate = "type == 'XCUIElementTypeButton' AND label CONTAINS '" + buildingName + "'";
+                    java.util.Map<String, Object> scrollParams = new java.util.HashMap<>();
+                    scrollParams.put("direction", scrollDirection);
+                    scrollParams.put("predicateString", predicate);
+                    driver.executeScript("mobile: scroll", scrollParams);
+                    sleep(500);
+
                     building = findBuildingByName(buildingName);
-                    if (building == null) continue;
-                    
-                    centerX = building.getLocation().getX() + building.getSize().getWidth() / 2;
-                    centerY = building.getLocation().getY() + building.getSize().getHeight() / 2;
-                    System.out.println("   After scroll #" + (attempt+1) + ": Y=" + centerY);
-                    
-                    // Check if now in tappable range
-                    if (centerY > safeMinY && centerY < safeMaxY) {
-                        System.out.println("   ✓ Element is now in tappable range");
-                        break;
+                    if (building != null) {
+                        centerX = building.getLocation().getX() + building.getSize().getWidth() / 2;
+                        centerY = building.getLocation().getY() + building.getSize().getHeight() / 2;
+                        System.out.println("   After native scroll: Y=" + centerY);
+                        if (centerY > safeMinY && centerY < safeMaxY) {
+                            nativeScrollWorked = true;
+                            System.out.println("   ✓ Native scroll brought element into view");
+                        }
+                    }
+                } catch (Exception e) {
+                    System.out.println("   Native scroll failed: " + e.getMessage());
+                }
+
+                // Strategy 2: Aggressive manual scrolling (up to 50 fast scrolls)
+                if (!nativeScrollWorked) {
+                    System.out.println("   Falling back to aggressive manual scrolling...");
+                    for (int attempt = 0; attempt < 50; attempt++) {
+                        if (centerY > screenHeight) {
+                            scrollDownFast();
+                        } else if (centerY < 0) {
+                            scrollUp();
+                        } else {
+                            break;
+                        }
+                        sleep(150);
+
+                        if (attempt % 5 == 4) {
+                            building = findBuildingByName(buildingName);
+                            if (building == null) continue;
+                            centerX = building.getLocation().getX() + building.getSize().getWidth() / 2;
+                            centerY = building.getLocation().getY() + building.getSize().getHeight() / 2;
+                            System.out.println("   After scroll #" + (attempt + 1) + ": Y=" + centerY);
+
+                            if (centerY > safeMinY && centerY < safeMaxY) {
+                                System.out.println("   ✓ Element is now in tappable range");
+                                break;
+                            }
+                        }
                     }
                 }
             } else if (centerY < safeMinY || centerY > safeMaxY) {
@@ -1177,20 +1206,7 @@ public class BuildingPage extends BasePage {
     public boolean clickDeleteBuildingOption() {
         try {
             System.out.println("🗑️ Clicking Delete Building option...");
-            
-            // First, log all visible menu options for debugging
-            try {
-                List<WebElement> allMenuItems = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText'"));
-                System.out.println("   Visible menu items:");
-                for (WebElement item : allMenuItems) {
-                    String label = item.getAttribute("label");
-                    if (label != null && (label.contains("Delete") || label.contains("Edit"))) {
-                        System.out.println("      - " + label);
-                    }
-                }
-            } catch (Exception ignored) {}
-            
+
             WebElement deleteOption = null;
             
             // Strategy 1: Exact "Delete Building" label (most reliable)
@@ -2308,15 +2324,35 @@ public class BuildingPage extends BasePage {
             int screenHeight = driver.manage().window().getSize().height;
             
             if (buildingY < 0 || buildingY > screenHeight) {
-                System.out.println("   Building is off-screen, scrolling...");
-                for (int i = 0; i < 3; i++) {
-                    if (buildingY > screenHeight) scrollDown();
-                    else scrollUp();
-                    sleep(300);
+                System.out.println("   Building is off-screen (Y=" + buildingY + "), using native scroll...");
+
+                // Strategy 1: iOS native scroll with predicate (handles any distance)
+                try {
+                    String predicate = "type == 'XCUIElementTypeButton' AND label CONTAINS '" + buildingName + "'";
+                    java.util.Map<String, Object> scrollParams = new java.util.HashMap<>();
+                    scrollParams.put("direction", buildingY > screenHeight ? "down" : "up");
+                    scrollParams.put("predicateString", predicate);
+                    driver.executeScript("mobile: scroll", scrollParams);
+                    sleep(500);
                     building = findBuildingByName(buildingName);
-                    if (building == null) continue;
-                    buildingY = building.getLocation().getY();
-                    if (buildingY > 50 && buildingY < screenHeight - 50) break;
+                    if (building != null) buildingY = building.getLocation().getY();
+                } catch (Exception e) {
+                    System.out.println("   Native scroll failed, using manual scroll...");
+                }
+
+                // Strategy 2: Aggressive manual scrolling fallback
+                if (building == null || buildingY < 50 || buildingY > screenHeight - 50) {
+                    for (int i = 0; i < 50; i++) {
+                        if (buildingY > screenHeight) scrollDownFast();
+                        else scrollUp();
+                        sleep(150);
+                        if (i % 5 == 4) {
+                            building = findBuildingByName(buildingName);
+                            if (building == null) continue;
+                            buildingY = building.getLocation().getY();
+                            if (buildingY > 50 && buildingY < screenHeight - 50) break;
+                        }
+                    }
                 }
             }
             
@@ -2539,17 +2575,38 @@ public class BuildingPage extends BasePage {
             // Scroll into view if needed
             int screenHeight = driver.manage().window().getSize().height;
             if (centerY < 0 || centerY > screenHeight) {
-                System.out.println("   Floor is off-screen, scrolling...");
-                for (int i = 0; i < 3; i++) {
-                    if (centerY > screenHeight) scrollDown();
-                    else scrollUp();
-                    sleep(300);
+                System.out.println("   Floor is off-screen (Y=" + centerY + "), using native scroll...");
+
+                // Strategy 1: iOS native scroll with predicate (handles any distance)
+                try {
+                    String predicate = "type == 'XCUIElementTypeButton' AND label CONTAINS '" + floorName + "'";
+                    java.util.Map<String, Object> scrollParams = new java.util.HashMap<>();
+                    scrollParams.put("direction", centerY > screenHeight ? "down" : "up");
+                    scrollParams.put("predicateString", predicate);
+                    driver.executeScript("mobile: scroll", scrollParams);
+                    sleep(500);
                     floor = findFloorByName(floorName);
-                    if (floor == null) continue;
-                    centerY = floor.getLocation().getY() + floor.getSize().getHeight() / 2;
-                    if (centerY > 50 && centerY < screenHeight - 50) {
+                    if (floor != null) {
                         centerX = floor.getLocation().getX() + floor.getSize().getWidth() / 2;
-                        break;
+                        centerY = floor.getLocation().getY() + floor.getSize().getHeight() / 2;
+                    }
+                } catch (Exception e) {
+                    System.out.println("   Native scroll failed, using manual scroll...");
+                }
+
+                // Strategy 2: Aggressive manual scrolling fallback
+                if (floor == null || centerY < 50 || centerY > screenHeight - 50) {
+                    for (int i = 0; i < 50; i++) {
+                        if (centerY > screenHeight) scrollDownFast();
+                        else scrollUp();
+                        sleep(150);
+                        if (i % 5 == 4) {
+                            floor = findFloorByName(floorName);
+                            if (floor == null) continue;
+                            centerX = floor.getLocation().getX() + floor.getSize().getWidth() / 2;
+                            centerY = floor.getLocation().getY() + floor.getSize().getHeight() / 2;
+                            if (centerY > 50 && centerY < screenHeight - 50) break;
+                        }
                     }
                 }
             }
@@ -3520,15 +3577,35 @@ public class BuildingPage extends BasePage {
             int screenHeight = driver.manage().window().getSize().height;
             
             if (floorY < 0 || floorY > screenHeight) {
-                System.out.println("   Floor is off-screen, scrolling...");
-                for (int i = 0; i < 3; i++) {
-                    if (floorY > screenHeight) scrollDown();
-                    else scrollUp();
-                    sleep(300);
+                System.out.println("   Floor is off-screen (Y=" + floorY + "), using native scroll...");
+
+                // Strategy 1: iOS native scroll with predicate (handles any distance)
+                try {
+                    String predicate = "type == 'XCUIElementTypeButton' AND label CONTAINS '" + floorName + "'";
+                    java.util.Map<String, Object> scrollParams = new java.util.HashMap<>();
+                    scrollParams.put("direction", floorY > screenHeight ? "down" : "up");
+                    scrollParams.put("predicateString", predicate);
+                    driver.executeScript("mobile: scroll", scrollParams);
+                    sleep(500);
                     floor = findFloorByName(floorName);
-                    if (floor == null) continue;
-                    floorY = floor.getLocation().getY();
-                    if (floorY > 50 && floorY < screenHeight - 50) break;
+                    if (floor != null) floorY = floor.getLocation().getY();
+                } catch (Exception e) {
+                    System.out.println("   Native scroll failed, using manual scroll...");
+                }
+
+                // Strategy 2: Aggressive manual scrolling fallback
+                if (floor == null || floorY < 50 || floorY > screenHeight - 50) {
+                    for (int i = 0; i < 50; i++) {
+                        if (floorY > screenHeight) scrollDownFast();
+                        else scrollUp();
+                        sleep(150);
+                        if (i % 5 == 4) {
+                            floor = findFloorByName(floorName);
+                            if (floor == null) continue;
+                            floorY = floor.getLocation().getY();
+                            if (floorY > 50 && floorY < screenHeight - 50) break;
+                        }
+                    }
                 }
             }
             
@@ -3572,15 +3649,35 @@ public class BuildingPage extends BasePage {
             int screenHeight = driver.manage().window().getSize().height;
             
             if (roomY < 0 || roomY > screenHeight) {
-                System.out.println("   Room is off-screen, scrolling...");
-                for (int i = 0; i < 3; i++) {
-                    if (roomY > screenHeight) scrollDown();
-                    else scrollUp();
-                    sleep(300);
+                System.out.println("   Room is off-screen (Y=" + roomY + "), using native scroll...");
+
+                // Strategy 1: iOS native scroll with predicate (handles any distance)
+                try {
+                    String predicate = "type == 'XCUIElementTypeButton' AND label CONTAINS '" + roomName + "'";
+                    java.util.Map<String, Object> scrollParams = new java.util.HashMap<>();
+                    scrollParams.put("direction", roomY > screenHeight ? "down" : "up");
+                    scrollParams.put("predicateString", predicate);
+                    driver.executeScript("mobile: scroll", scrollParams);
+                    sleep(500);
                     room = findRoomByName(roomName);
-                    if (room == null) continue;
-                    roomY = room.getLocation().getY();
-                    if (roomY > 50 && roomY < screenHeight - 50) break;
+                    if (room != null) roomY = room.getLocation().getY();
+                } catch (Exception e) {
+                    System.out.println("   Native scroll failed, using manual scroll...");
+                }
+
+                // Strategy 2: Aggressive manual scrolling fallback
+                if (room == null || roomY < 50 || roomY > screenHeight - 50) {
+                    for (int i = 0; i < 50; i++) {
+                        if (roomY > screenHeight) scrollDownFast();
+                        else scrollUp();
+                        sleep(150);
+                        if (i % 5 == 4) {
+                            room = findRoomByName(roomName);
+                            if (room == null) continue;
+                            roomY = room.getLocation().getY();
+                            if (roomY > 50 && roomY < screenHeight - 50) break;
+                        }
+                    }
                 }
             }
             

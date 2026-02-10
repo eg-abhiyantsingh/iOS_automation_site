@@ -1469,14 +1469,14 @@ public class LocationTest extends BaseTest {
 
         // SETUP: Create a test building to delete - FAST
         logStep("SETUP: Creating a test building for deletion");
-        String testBuildingName = buildingPage.createTestBuilding("TestDelete");
-        
+        String testBuildingName = buildingPage.createTestBuilding("1_Del");
+
         if (testBuildingName == null) {
             // Fast fallback: Create directly
             logWarning("Creating test building directly...");
             buildingPage.navigateToNewBuilding();
             shortWait();
-            testBuildingName = "TestDel_" + System.currentTimeMillis() % 10000;
+            testBuildingName = "1_Del_" + System.currentTimeMillis() % 10000;
             buildingPage.enterBuildingName(testBuildingName);
             boolean saved = buildingPage.clickSave();
             if (!saved) {
