@@ -142,6 +142,11 @@
                     <suiteXmlFiles>
                         <suiteXmlFile>${suiteXmlFile}</suiteXmlFile>
                     </suiteXmlFiles>
+                    <!-- Kill forked JVM if it hangs for 20 minutes (safety net).
+                         Replaces suite-level time-out which was removed because it
+                         causes TestNG to run @BeforeMethod in a thread pool, breaking
+                         driver visibility across setup methods. -->
+                    <forkedProcessExitTimeoutInSeconds>1200</forkedProcessExitTimeoutInSeconds>
                 </configuration>
             </plugin>
         </plugins>

@@ -3,7 +3,7 @@
 <!-- S3 Drift Detection - PROD Only (10 tests: 2 pre-checks + 8 buckets) -->
 <!-- Usage: mvn test -DsuiteXmlFile=src/test/resources/smoke/testng-smoke-s3drift-prod.xml -->
 <!-- Jira: ZP-774 | Branch-based selection: runs only PROD environment buckets -->
-<suite name="Smoke - S3 Drift Detection (PROD)" verbose="0" time-out="60000">
+<suite name="Smoke - S3 Drift Detection (PROD)" verbose="0">
     <listeners>
         <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
     </listeners>

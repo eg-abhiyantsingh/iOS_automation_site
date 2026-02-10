@@ -24,7 +24,7 @@
     Terminal 1: appium -p 4723
     Terminal 2: appium -p 4724
 -->
-<suite name="eGalvanic iOS Automation - Local Parallel" parallel="tests" thread-count="2" verbose="2" time-out="300000">
+<suite name="eGalvanic iOS Automation - Local Parallel" parallel="tests" thread-count="2" verbose="2">
 
     <!-- 
         DEVICE 1: Authentication Tests

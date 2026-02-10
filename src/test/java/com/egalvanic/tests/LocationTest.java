@@ -67,16 +67,20 @@ public class LocationTest extends BaseTest {
 
     @BeforeMethod
     public void methodSetup() {
-        // Always reinitialize BuildingPage with current driver
-        // This is necessary because driver is recreated after each test
+        // Reinitialize BuildingPage with current driver.
+        // If driver is somehow not ready (e.g., timing between @BeforeMethod calls),
+        // retry once after a brief wait.
         try {
             System.out.println("📋 LocationTest.methodSetup() - initializing BuildingPage...");
             buildingPage = new BuildingPage();
             System.out.println("📋 LocationTest.methodSetup() - BuildingPage initialized OK");
-        } catch (Exception e) {
-            System.out.println("❌ LocationTest.methodSetup() FAILED: " + e.getMessage());
-            e.printStackTrace(System.out);
-            throw e;
+        } catch (IllegalStateException e) {
+            // Driver not ready — retry once after ensuring driver exists
+            System.out.println("⚠️ LocationTest.methodSetup() - driver not ready, retrying...");
+            try { Thread.sleep(1000); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+            DriverManager.initDriver();
+            buildingPage = new BuildingPage();
+            System.out.println("📋 LocationTest.methodSetup() - BuildingPage initialized after retry");
         }
     }
 
