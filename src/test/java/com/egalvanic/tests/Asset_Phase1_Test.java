@@ -39,14 +39,14 @@ public final class Asset_Phase1_Test extends BaseTest {
     // TEST CLASS SETUP
     // ============================================================
 
-    @BeforeClass
+    @BeforeClass(alwaysRun = true)
     public void classSetup() {
         System.out.println("\n📋 Asset Test Suite - Starting");
         // All Asset tests use noReset=true (skip app reinstall)
         DriverManager.setNoReset(true);
     }
-    
-    @AfterClass
+
+    @AfterClass(alwaysRun = true)
     public void classTeardown() {
         DriverManager.resetNoResetOverride();
         System.out.println("📋 Asset Test Suite - Complete");

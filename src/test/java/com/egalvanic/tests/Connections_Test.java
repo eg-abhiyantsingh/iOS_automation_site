@@ -38,7 +38,7 @@ public final class Connections_Test extends BaseTest {
     // TEST CLASS SETUP
     // ============================================================
 
-    @BeforeClass
+    @BeforeClass(alwaysRun = true)
     public void classSetup() {
         System.out.println("\n╔══════════════════════════════════════════════════════════════╗");
         System.out.println("║     Connections Test Suite - Starting                        ║");

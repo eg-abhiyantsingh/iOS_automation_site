@@ -33,7 +33,7 @@ public final class SiteSelectionTest extends BaseTest {
     // TEST CLASS SETUP
     // ============================================================
 
-    @BeforeClass
+    @BeforeClass(alwaysRun = true)
     public void classSetup() {
         System.out.println("\n📋 Site Selection Test Suite - Starting");
     }

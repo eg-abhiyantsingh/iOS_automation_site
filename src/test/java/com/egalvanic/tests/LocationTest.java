@@ -51,14 +51,14 @@ public class LocationTest extends BaseTest {
     // TEST CLASS SETUP
     // ============================================================
 
-    @BeforeClass
+    @BeforeClass(alwaysRun = true)
     public void classSetup() {
         System.out.println("\n📋 Location Test Suite - Building Management - Starting");
         // Prevent app reinstallation - just close and reopen the app
         DriverManager.setNoReset(true);
     }
 
-    @AfterClass
+    @AfterClass(alwaysRun = true)
     public void classTeardown() {
         // Reset the noReset override for other test classes
         DriverManager.resetNoResetOverride();

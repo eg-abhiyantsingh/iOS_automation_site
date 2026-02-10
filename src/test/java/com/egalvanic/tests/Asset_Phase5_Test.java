@@ -68,13 +68,13 @@ import java.time.Duration;
  */
 public final class Asset_Phase5_Test extends BaseTest {
 
-    @BeforeClass
+    @BeforeClass(alwaysRun = true)
     public void classSetup() {
         System.out.println("\n📋 Asset Phase 5 Test Suite - Bug Tests Starting");
         DriverManager.setNoReset(true);
     }
-    
-    @AfterClass
+
+    @AfterClass(alwaysRun = true)
     public void classTeardown() {
         DriverManager.resetNoResetOverride();
         System.out.println("📋 Asset Phase 5 Test Suite - Bug Tests Complete");
