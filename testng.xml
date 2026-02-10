@@ -12,7 +12,7 @@
     
     Jira: ZP-774 (Smoke Test)
 -->
-<suite name="eGalvanic iOS Automation Suite" verbose="2">
+<suite name="eGalvanic iOS Automation Suite" verbose="2" time-out="300000">
 
     <!-- SMOKE TEST: S3 Bucket Policy Drift Detection (No Appium) -->
     <test name="Smoke Test - S3 Bucket Policy Drift Detection">
