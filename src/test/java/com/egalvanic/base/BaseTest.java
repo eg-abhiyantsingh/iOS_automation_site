@@ -235,6 +235,18 @@ public class BaseTest {
                 skipNextTeardown = false;
                 skipNextSetup = true;
             } else {
+                // On FAILURE: force terminate app so next test starts fresh
+                // Without this, noReset=true leaves the app on the failed screen
+                if (result.getStatus() == ITestResult.FAILURE) {
+                    try {
+                        if (DriverManager.isDriverActive()) {
+                            DriverManager.getDriver().terminateApp(AppConstants.APP_BUNDLE_ID);
+                            System.out.println("🔄 App force terminated after failure (clean slate for next test)");
+                        }
+                    } catch (Exception e) {
+                        System.out.println("⚠️ Could not terminate app: " + e.getMessage());
+                    }
+                }
                 DriverManager.quitDriver();
                 System.out.println("🧹 Test cleanup complete\n");
             }

@@ -2,6 +2,7 @@ package com.egalvanic.tests;
 
 import com.egalvanic.base.BaseTest;
 import com.egalvanic.utils.DriverManager;
+import io.appium.java_client.ios.IOSDriver;
 import com.egalvanic.constants.AppConstants;
 import com.egalvanic.utils.ExtentReportManager;
 import org.testng.annotations.AfterClass;
@@ -2428,96 +2429,259 @@ public final class Asset_Phase5_Test extends BaseTest {
 
     /**
      * BUG_DELETE_01 - Verify delete requires confirmation
-     * Expected: Deleting an asset should show confirmation dialog
-     * Bug: If delete happens without confirmation - data loss risk
-     * Priority: CRITICAL - Data safety
+     * 
+     * Flow (swipe-to-delete on Asset list):
+     *   1. Login + select site → navigate to Assets list
+     *   2. Swipe LEFT on first asset cell → red trash icon appears
+     *   3. Tap red trash icon → "Delete Asset" confirmation dialog appears
+     *   4. Verify dialog text: "Are you sure you want to delete...This action cannot be undone."
+     *   5. Verify "Cancel" and "Delete" buttons present
+     *   6. Tap "Delete" → confirm deletion
+     *   7. Verify asset is removed from the list
+     *
+     * Priority: CRITICAL - Data safety (no accidental deletes)
      */
     @Test(priority = 44)
-    public void BUG_DELETE_01_deleteRequiresConfirmation() {
+    public void BUG_DELETE_01_deleteAssetVerification() {
         ExtentReportManager.createTest(AppConstants.MODULE_ASSET, AppConstants.FEATURE_EDIT_ASSET,
             "BUG_DELETE_01 - CRITICAL: Delete should require confirmation");
+
+        logStep("Step 1: Login and navigate to Assets list");
+
+        assetPage.navigateToAssetList();
+        shortWait();
+
+        logStep("Step 2: Find first asset cell and swipe LEFT to reveal delete");
+        IOSDriver driver = DriverManager.getDriver();
+
+        // Find the first asset cell in the list
+        WebElement firstCell = null;
         try {
-            long timestamp = System.currentTimeMillis();
-            String testAssetName = "DeleteConfirmTest_" + timestamp;
-            
-            logStep("Step 1: Creating test asset: " + testAssetName);
-            navigateToNewAssetScreen();
-            assetPage.enterAssetName(testAssetName);
-            assetPage.dismissKeyboard();
-            // Scroll up to ensure Asset Class dropdown is visible after keyboard dismissal
-            assetPage.scrollFormUp();
-            shortWait();
-            assetPage.selectATSClass();
-            assetPage.selectLocation();
-            assetPage.dismissKeyboard();
-            assetPage.scrollFormUp();
-            assetPage.scrollFormUp();
-            assetPage.clickCreateAsset();
-            shortWait();
-            
-            logStep("Step 2: Finding and selecting the asset");
-            assetPage.navigateToAssetList();
-            shortWait();
-            assetPage.searchAsset(testAssetName);
-            shortWait();
-            assetPage.selectAssetByName(testAssetName);
-            shortWait();
-            
-            logStep("Step 3: Attempting to delete the asset");
-            // Note: This assumes there's a delete functionality
-            // If delete is not available, the test should be adjusted
-            
-            try {
-                assetPage.clickEdit();
-                shortWait();
-                
-                // Look for delete option (scroll down if needed)
-                assetPage.scrollFormDown();
-                assetPage.scrollFormDown();
-                
-                // Check if there's a delete button
-                boolean deleteFound = false;
-                try {
-                    WebElement deleteBtn = DriverManager.getDriver().findElement(AppiumBy.accessibilityId("Delete"));
-                    deleteFound = true;
-                    deleteBtn.click();
-                    shortWait();
-                    
-                    // Check if confirmation dialog appeared
-                    boolean confirmationShown = false;
-                    try {
-                        WebElement confirmDialog = DriverManager.getDriver().findElement(
-                            AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeAlert'")
-                        );
-                        confirmationShown = true;
-                        logStep("✅ Confirmation dialog shown before delete");
-                        
-                        // Cancel the delete
-                        WebElement cancelBtn = DriverManager.getDriver().findElement(AppiumBy.accessibilityId("Cancel"));
-                        cancelBtn.click();
-                        
-                    } catch (Exception e) {
-                        logWarning("❌ CRITICAL BUG: No confirmation dialog for delete!");
-                        confirmationShown = false;
-                    }
-                    
-                    // confirmationShown;
-                    
-                } catch (Exception e) {
-                    logStep("ℹ️ Delete button not found on edit screen");
-                    // testPassed removed // If no delete, can't test
-                }
-                
-            } catch (Exception e) {
-                logStep("Could not test delete: " + e.getMessage());
-                // testPassed removed // Cannot test, so pass
+            // Try to find a cell/button in the asset list area
+            java.util.List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"));
+            if (!cells.isEmpty()) {
+                firstCell = cells.get(0);
+                logStep("Found " + cells.size() + " cells, using first cell");
             }
-            
-            logStepWithScreenshot("Delete confirmation test completed");
         } catch (Exception e) {
-            logStep("Exception occurred: " + e.getMessage());
-            throw e;
+            logStep("No cells found, trying buttons...");
         }
+
+        // Fallback: find asset row by button type
+        if (firstCell == null) {
+            try {
+                java.util.List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND visible == true AND label CONTAINS ','"));
+                for (WebElement btn : buttons) {
+                    int y = btn.getLocation().getY();
+                    if (y > 200 && y < 800) { // Asset list area
+                        firstCell = btn;
+                        logStep("Using asset button: '" + btn.getAttribute("label") + "'");
+                        break;
+                    }
+                }
+            } catch (Exception e) {
+                logStep("Fallback also failed: " + e.getMessage());
+            }
+        }
+
+        assertNotNull(firstCell, "Should find at least one asset in the list to swipe");
+
+        // Capture the first asset's name/label before deleting (to verify it's gone later)
+        String firstAssetLabel = "";
+        try {
+            firstAssetLabel = firstCell.getAttribute("label");
+            if (firstAssetLabel == null) firstAssetLabel = firstCell.getAttribute("name");
+            logStep("First asset label: '" + firstAssetLabel + "'");
+        } catch (Exception e) {
+            logStep("Could not capture asset label: " + e.getMessage());
+        }
+
+        // Swipe LEFT on the cell to reveal delete trash icon
+        int cellX = firstCell.getLocation().getX();
+        int cellY = firstCell.getLocation().getY();
+        int cellW = firstCell.getSize().getWidth();
+        int cellH = firstCell.getSize().getHeight();
+        int centerY = cellY + (cellH / 2);
+        int startX = cellX + cellW - 20;  // Right edge of cell
+        int endX = cellX + 50;            // Left side of cell
+
+        logStep("Swiping left on cell: startX=" + startX + " endX=" + endX + " Y=" + centerY);
+
+        // Use W3C Actions for precise swipe
+        org.openqa.selenium.interactions.PointerInput finger = 
+            new org.openqa.selenium.interactions.PointerInput(
+                org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
+        org.openqa.selenium.interactions.Sequence swipe = 
+            new org.openqa.selenium.interactions.Sequence(finger, 1);
+        swipe.addAction(finger.createPointerMove(java.time.Duration.ZERO, 
+            org.openqa.selenium.interactions.PointerInput.Origin.viewport(), startX, centerY));
+        swipe.addAction(finger.createPointerDown(org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+        swipe.addAction(finger.createPointerMove(java.time.Duration.ofMillis(300), 
+            org.openqa.selenium.interactions.PointerInput.Origin.viewport(), endX, centerY));
+        swipe.addAction(finger.createPointerUp(org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+        driver.perform(java.util.Arrays.asList(swipe));
+        sleep(500);
+
+        logStepWithScreenshot("Swiped left — trash icon should be visible");
+
+        logStep("Step 3: Tap red trash/delete icon");
+        boolean trashTapped = false;
+
+        // Strategy 1: Find Delete button that appeared after swipe
+        try {
+            WebElement trashBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "(label == 'Delete' OR label == 'trash' OR label == 'Trash') AND type == 'XCUIElementTypeButton' AND visible == true"));
+            trashBtn.click();
+            trashTapped = true;
+            logStep("Tapped Delete/Trash button");
+        } catch (Exception e1) {
+            logStep("Delete button not found by label, trying icon...");
+        }
+
+        // Strategy 2: Find the red trailing swipe action button
+        if (!trashTapped) {
+            try {
+                WebElement swipeAction = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND visible == true AND label CONTAINS 'Delete'"));
+                swipeAction.click();
+                trashTapped = true;
+                logStep("Tapped swipe action Delete button");
+            } catch (Exception e2) {
+                logStep("Swipe action not found, trying by image/accessibility...");
+            }
+        }
+
+        // Strategy 3: Tap the red area directly (right side of swiped cell)
+        if (!trashTapped) {
+            try {
+                // The red trash area appears at the right edge after swipe
+                int trashX = cellX + cellW - 40;
+                int trashY = centerY;
+                logStep("Tapping red trash area at coordinates: (" + trashX + ", " + trashY + ")");
+                new org.openqa.selenium.interactions.Sequence(finger, 1);
+                org.openqa.selenium.interactions.Sequence tap = 
+                    new org.openqa.selenium.interactions.Sequence(finger, 1);
+                tap.addAction(finger.createPointerMove(java.time.Duration.ZERO,
+                    org.openqa.selenium.interactions.PointerInput.Origin.viewport(), trashX, trashY));
+                tap.addAction(finger.createPointerDown(org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+                tap.addAction(finger.createPointerUp(org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+                driver.perform(java.util.Arrays.asList(tap));
+                trashTapped = true;
+                logStep("Tapped trash area by coordinates");
+            } catch (Exception e3) {
+                logStep("Coordinate tap failed: " + e3.getMessage());
+            }
+        }
+
+        assertTrue(trashTapped, "Should be able to tap the delete/trash icon after swipe");
+        sleep(500);
+
+        logStep("Step 4: Verify 'Delete Asset' confirmation dialog appears");
+        logStepWithScreenshot("Checking for confirmation dialog");
+
+        // Check for the alert/dialog
+        boolean dialogFound = false;
+        WebElement alertDialog = null;
+
+        // Strategy 1: Find by XCUIElementTypeAlert
+        try {
+            alertDialog = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeAlert' AND visible == true"));
+            dialogFound = true;
+            logStep("✅ Confirmation dialog found (XCUIElementTypeAlert)");
+        } catch (Exception e1) {}
+
+        // Strategy 2: Find by "Delete Asset" text
+        if (!dialogFound) {
+            try {
+                WebElement deleteTitle = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "label == 'Delete Asset' AND type == 'XCUIElementTypeStaticText' AND visible == true"));
+                dialogFound = true;
+                logStep("✅ Confirmation dialog found ('Delete Asset' title)");
+            } catch (Exception e2) {}
+        }
+
+        assertTrue(dialogFound, "Delete Asset confirmation dialog should appear after tapping trash icon");
+
+        logStep("Step 5: Verify dialog has Cancel and Delete buttons");
+
+        // Check Cancel button
+        boolean cancelFound = false;
+        try {
+            WebElement cancelBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "label == 'Cancel' AND type == 'XCUIElementTypeButton' AND visible == true"));
+            cancelFound = true;
+            logStep("✅ Cancel button found");
+        } catch (Exception e) {}
+        assertTrue(cancelFound, "Confirmation dialog should have a Cancel button");
+
+        // Check Delete button
+        boolean deleteFound = false;
+        try {
+            WebElement deleteBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "label == 'Delete' AND type == 'XCUIElementTypeButton' AND visible == true"));
+            deleteFound = true;
+            logStep("✅ Delete button found");
+        } catch (Exception e) {}
+        assertTrue(deleteFound, "Confirmation dialog should have a Delete button");
+
+        logStep("Step 6: Tap Delete — confirm deletion");
+        try {
+            WebElement deleteBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "label == 'Delete' AND type == 'XCUIElementTypeButton' AND visible == true"));
+            deleteBtn.click();
+            sleep(1000);
+            logStep("✅ Tapped Delete — asset deletion confirmed");
+        } catch (Exception e) {
+            logWarning("Could not tap Delete: " + e.getMessage());
+            throw new AssertionError("Failed to tap Delete button: " + e.getMessage());
+        }
+
+        logStepWithScreenshot("After tapping Delete");
+
+        logStep("Step 7: Verify asset is removed from the list");
+        // Check that the deleted asset is no longer visible
+        boolean assetStillPresent = false;
+        if (firstAssetLabel != null && !firstAssetLabel.isEmpty()) {
+            try {
+                // Small wait for list to refresh
+                sleep(500);
+                java.util.List<WebElement> remainingCells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeCell' AND visible == true AND label == \'" + 
+                    firstAssetLabel.replace("'", "\\'") + "\'")); 
+                if (remainingCells.isEmpty()) {
+                    logStep("✅ Asset '" + firstAssetLabel + "' is no longer in the list");
+                } else {
+                    assetStillPresent = true;
+                    logWarning("❌ Asset '" + firstAssetLabel + "' still appears in the list!");
+                }
+            } catch (Exception e) {
+                // Element not found = asset is gone = good
+                logStep("✅ Asset no longer found in list (confirmed deleted)");
+            }
+        } else {
+            logStep("No asset label captured — skipping name-based verification");
+        }
+
+        // Also verify by checking the total count decreased or first cell changed
+        try {
+            java.util.List<WebElement> currentCells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"));
+            logStep("Remaining cells in list: " + currentCells.size());
+            if (!currentCells.isEmpty()) {
+                String newFirstLabel = currentCells.get(0).getAttribute("label");
+                if (newFirstLabel != null && !newFirstLabel.equals(firstAssetLabel)) {
+                    logStep("✅ First cell changed from '" + firstAssetLabel + "' to '" + newFirstLabel + "' — deletion confirmed");
+                }
+            }
+        } catch (Exception e) {
+            logStep("Could not verify remaining cells: " + e.getMessage());
+        }
+
+        assertFalse(assetStillPresent, "Deleted asset should NOT appear in the list anymore");
+        logStepWithScreenshot("BUG_DELETE_01: Delete asset and verification — PASSED");
     }
 
     // ================================================================================
