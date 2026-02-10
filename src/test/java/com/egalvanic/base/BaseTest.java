@@ -90,12 +90,12 @@ public class BaseTest {
 
         System.out.println("\n🚀 Setting up test...");
 
-        // Clean up any stale driver from a previous failed test/module
-        // This prevents dead driver references from blocking new driver creation
-        cleanupStaleDriver();
-
         // Initialize driver with retry logic for CI resilience
-        // If first attempt fails (e.g., WDA/simulator in bad state), cleanup and retry once
+        // Note: Do NOT call cleanupStaleDriver() here — test classes with @BeforeClass
+        // (e.g., Connections_Test) create their driver before @BeforeMethod runs,
+        // and page objects cache that driver reference. Killing it would leave page
+        // objects pointing at a dead driver, causing 5-minute hangs.
+        // Stale/dead sessions are handled inside DriverManager.initDriver() instead.
         try {
             DriverManager.initDriver(deviceName, udid, appiumPort, wdaLocalPort);
         } catch (Exception e) {
