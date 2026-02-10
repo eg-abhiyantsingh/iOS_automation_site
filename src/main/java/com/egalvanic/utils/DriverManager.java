@@ -9,18 +9,23 @@ import java.net.URL;
 import java.time.Duration;
 
 /**
- * Driver Manager - Thread-safe driver management
+ * Driver Manager - Singleton driver management
  * Handles driver initialization and cleanup
  * Optimized for CI/CD environments (GitHub Actions)
+ *
+ * Uses static volatile field instead of ThreadLocal because TestNG's
+ * suite-level time-out runs @BeforeMethod in a thread pool — ThreadLocal
+ * causes "Driver not initialized" when subclass @BeforeMethod runs on
+ * a different pool thread than the one that created the driver.
  */
 public class DriverManager {
 
-    private static ThreadLocal<IOSDriver> driverThreadLocal = new ThreadLocal<>();
-    
+    private static volatile IOSDriver driver;
+
     // Override for noReset - allows test classes to skip app reinstall
     private static boolean noResetOverride = false;
     private static boolean useNoResetOverride = false;
-    
+
     /**
      * Set noReset override for Edit Asset tests (skip app reinstall)
      * Call this BEFORE driver initialization in @BeforeClass
@@ -30,7 +35,7 @@ public class DriverManager {
         useNoResetOverride = true;
         System.out.println("📱 noReset override set to: " + noReset);
     }
-    
+
     /**
      * Reset noReset override to default
      */
@@ -52,28 +57,28 @@ public class DriverManager {
 
     /**
      * Initialize iOS Driver with custom parameters for parallel testing
-     * 
+     *
      * @param deviceName   Optional device name (uses default if null)
      * @param udid         Optional device UDID (uses default if null)
      * @param appiumPort   Optional Appium server port (uses default if null)
      * @param wdaLocalPort Optional WDA local port (uses default if null)
      */
     public static void initDriver(String deviceName, String udid, String appiumPort, String wdaLocalPort) {
-        // Check for stale driver: exists in ThreadLocal but session is dead
-        IOSDriver existingDriver = driverThreadLocal.get();
+        // Check for stale driver: exists but session is dead
+        IOSDriver existingDriver = driver;
         if (existingDriver != null) {
             try {
                 if (existingDriver.getSessionId() == null) {
-                    System.out.println("⚠️ Found dead driver session in ThreadLocal, removing...");
-                    driverThreadLocal.remove();
+                    System.out.println("⚠️ Found dead driver session, removing...");
+                    driver = null;
                 }
             } catch (Exception e) {
                 System.out.println("⚠️ Stale driver detected, removing: " + e.getMessage());
-                driverThreadLocal.remove();
+                driver = null;
             }
         }
 
-        if (driverThreadLocal.get() == null) {
+        if (driver == null) {
             try {
                 // Use parameters if provided, otherwise fall back to config defaults
                 String server = (appiumPort != null)
@@ -139,7 +144,7 @@ public class DriverManager {
                 boolean noReset = useNoResetOverride ? noResetOverride : AppConstants.NO_RESET;
                 options.setFullReset(AppConstants.FULL_RESET);
                 options.setNoReset(noReset);
-                
+
                 System.out.println("📱 Reset Mode: fullReset=" + AppConstants.FULL_RESET + ", noReset=" + noReset);
 
                 System.out.println("📱 Initializing iOS Driver...");
@@ -152,10 +157,10 @@ public class DriverManager {
                     System.out.println("📱 WDA Local Port: " + wdaLocalPort);
                 }
 
-                IOSDriver driver = new IOSDriver(appiumServer, options);
-                driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
+                IOSDriver newDriver = new IOSDriver(appiumServer, options);
+                newDriver.manage().timeouts().implicitlyWait(Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
 
-                driverThreadLocal.set(driver);
+                driver = newDriver;
                 System.out.println("✅ iOS Driver initialized successfully");
 
             } catch (Exception e) {
@@ -170,63 +175,60 @@ public class DriverManager {
      * Get driver instance
      */
     public static IOSDriver getDriver() {
-        IOSDriver driver = driverThreadLocal.get();
-        if (driver == null) {
+        IOSDriver d = driver;
+        if (d == null) {
             throw new IllegalStateException("Driver not initialized. Call initDriver() first.");
         }
-        return driver;
+        return d;
     }
 
-    /**
-     * Quit driver and cleanup
-     */
     /**
      * Terminate/close the app without quitting driver
      * Use this to reset app state between tests
      */
     public static void terminateApp() {
-        IOSDriver driver = driverThreadLocal.get();
-        if (driver != null) {
+        IOSDriver d = driver;
+        if (d != null) {
             try {
-                String bundleId = AppConstants.APP_BUNDLE_ID; // App bundle ID
-                driver.terminateApp(bundleId);
+                String bundleId = AppConstants.APP_BUNDLE_ID;
+                d.terminateApp(bundleId);
                 System.out.println("✅ App terminated");
             } catch (Exception e) {
                 System.err.println("⚠️ Error terminating app: " + e.getMessage());
             }
         }
     }
-    
+
     /**
      * Close app and quit driver completely
      * Ensures clean state for next test
-     * 
+     *
      * Flow:
      * 1. Terminate app using bundle ID
      * 2. Verify termination
      * 3. Quit WebDriver session
      */
     public static void quitDriver() {
-        IOSDriver driver = driverThreadLocal.get();
-        if (driver != null) {
+        IOSDriver d = driver;
+        if (d != null) {
             String bundleId = AppConstants.APP_BUNDLE_ID;
-            
+
             try {
                 // Step 1: Terminate the app
                 try {
-                    ApplicationState state = driver.queryAppState(bundleId);
+                    ApplicationState state = d.queryAppState(bundleId);
                     if (state != ApplicationState.NOT_RUNNING) {
-                        driver.terminateApp(bundleId);
+                        d.terminateApp(bundleId);
                         Thread.sleep(500);  // Wait for app to terminate
-                        
+
                         // Verify termination
-                        ApplicationState newState = driver.queryAppState(bundleId);
+                        ApplicationState newState = d.queryAppState(bundleId);
                         if (newState == ApplicationState.NOT_RUNNING) {
                             System.out.println("✅ App terminated successfully");
                         } else {
                             System.out.println("⚠️ App may still be running (state: " + newState + ")");
                             // Try force terminate
-                            driver.terminateApp(bundleId);
+                            d.terminateApp(bundleId);
                         }
                     } else {
                         System.out.println("✅ App was not running");
@@ -234,21 +236,21 @@ public class DriverManager {
                 } catch (Exception e) {
                     System.out.println("⚠️ Could not terminate app: " + e.getMessage());
                 }
-                
+
                 // Step 2: Quit driver
-                driver.quit();
+                d.quit();
                 System.out.println("✅ Driver closed successfully");
-                
+
             } catch (Exception e) {
                 System.err.println("⚠️ Error closing driver: " + e.getMessage());
                 // Try to force quit even on error
                 try {
-                    driver.quit();
+                    d.quit();
                 } catch (Exception e2) {
                     // Ignore
                 }
             } finally {
-                driverThreadLocal.remove();
+                driver = null;
             }
         }
     }
@@ -258,8 +260,8 @@ public class DriverManager {
      */
     public static boolean isDriverActive() {
         try {
-            IOSDriver driver = driverThreadLocal.get();
-            return driver != null && driver.getSessionId() != null;
+            IOSDriver d = driver;
+            return d != null && d.getSessionId() != null;
         } catch (Exception e) {
             return false;
         }

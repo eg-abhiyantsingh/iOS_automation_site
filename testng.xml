@@ -1,36 +1,60 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<!--
-    eGalvanic iOS Automation - Full Suite
-    =======================================
-    Execution Order:
-      1. S3 Drift Detection Smoke Test (42 tests, NO Appium)
-      2. Authentication Tests (requires Appium + Simulator)
-    
-    The Smoke Test runs FIRST to verify infrastructure health.
-    It does NOT start Appium or require an iOS Simulator.
-    
-    Jira: ZP-774 (Smoke Test)
--->
 <suite name="eGalvanic iOS Automation Suite" verbose="2" time-out="300000">
 
-    <!-- SMOKE TEST: S3 Bucket Policy Drift Detection (No Appium) -->
-    <test name="Smoke Test - S3 Bucket Policy Drift Detection">
-        <groups>
-            <run>
-                <include name="smoke"/>
-            </run>
-        </groups>
-        <classes>
-            <class name="com.egalvanic.tests.S3BucketPolicyDriftTest"/>
-        </classes>
-    </test>
 
-    <!-- MOBILE TESTS: Authentication (Requires Appium + Simulator) -->
+    <!-- MOBILE TESTS -->
     <test name="Authentication Tests">
         <classes>
             <class name="com.egalvanic.tests.AuthenticationTest"/>
         </classes>
     </test>
 
+    <test name="Site Selection Tests">
+        <classes>
+            <class name="com.egalvanic.tests.SiteSelectionTest"/>
+        </classes>
+    </test>
+
+    <test name="Location Tests">
+        <classes>
+            <class name="com.egalvanic.tests.LocationTest"/>
+        </classes>
+    </test>
+
+    <test name="Asset Phase 1 Tests">
+        <classes>
+            <class name="com.egalvanic.tests.Asset_Phase1_Test"/>
+        </classes>
+    </test>
+
+    <test name="Asset Phase 2 Tests">
+        <classes>
+            <class name="com.egalvanic.tests.Asset_Phase2_Test"/>
+        </classes>
+    </test>
+
+    <test name="Asset Phase 3 Tests">
+        <classes>
+            <class name="com.egalvanic.tests.Asset_Phase3_Test"/>
+        </classes>
+    </test>
+
+    <test name="Asset Phase 4 Tests">
+        <classes>
+            <class name="com.egalvanic.tests.Asset_Phase4_Test"/>
+        </classes>
+    </test>
+
+    <test name="Asset Phase 5 Tests">
+        <classes>
+            <class name="com.egalvanic.tests.Asset_Phase5_Test"/>
+        </classes>
+    </test>
+
+    <test name="Connections Tests">
+        <classes>
+            <class name="com.egalvanic.tests.Connections_Test"/>
+        </classes>
+    </test>
 </suite>
