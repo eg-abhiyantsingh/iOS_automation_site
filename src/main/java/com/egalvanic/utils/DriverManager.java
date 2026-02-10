@@ -59,6 +59,20 @@ public class DriverManager {
      * @param wdaLocalPort Optional WDA local port (uses default if null)
      */
     public static void initDriver(String deviceName, String udid, String appiumPort, String wdaLocalPort) {
+        // Check for stale driver: exists in ThreadLocal but session is dead
+        IOSDriver existingDriver = driverThreadLocal.get();
+        if (existingDriver != null) {
+            try {
+                if (existingDriver.getSessionId() == null) {
+                    System.out.println("⚠️ Found dead driver session in ThreadLocal, removing...");
+                    driverThreadLocal.remove();
+                }
+            } catch (Exception e) {
+                System.out.println("⚠️ Stale driver detected, removing: " + e.getMessage());
+                driverThreadLocal.remove();
+            }
+        }
+
         if (driverThreadLocal.get() == null) {
             try {
                 // Use parameters if provided, otherwise fall back to config defaults

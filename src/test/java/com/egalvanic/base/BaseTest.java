@@ -70,21 +70,41 @@ public class BaseTest {
             @Optional String wdaLocalPort) {
         // Skip setup for chained tests
         if (skipNextSetup) {
-            System.out.println("\n🔗 Continuing from previous test (skipping setup)...");
-            skipNextSetup = false;
-            // Re-initialize page objects with existing driver
-            welcomePage = new WelcomePage();
-            loginPage = new LoginPage();
-            siteSelectionPage = new SiteSelectionPage();
-            assetPage = new AssetPage();
-            return;
+            // Verify the driver is still alive before reusing it
+            if (!DriverManager.isDriverActive()) {
+                System.out.println("\n⚠️ Chained driver is dead, resetting to fresh setup...");
+                skipNextSetup = false;
+                skipNextTeardown = false;
+                // Fall through to normal setup below
+            } else {
+                System.out.println("\n🔗 Continuing from previous test (skipping setup)...");
+                skipNextSetup = false;
+                // Re-initialize page objects with existing driver
+                welcomePage = new WelcomePage();
+                loginPage = new LoginPage();
+                siteSelectionPage = new SiteSelectionPage();
+                assetPage = new AssetPage();
+                return;
+            }
         }
 
         System.out.println("\n🚀 Setting up test...");
 
-        // Initialize driver with parameters if provided (for parallel testing)
-        // Falls back to default config values when parameters are null (normal mode/CI)
-        DriverManager.initDriver(deviceName, udid, appiumPort, wdaLocalPort);
+        // Clean up any stale driver from a previous failed test/module
+        // This prevents dead driver references from blocking new driver creation
+        cleanupStaleDriver();
+
+        // Initialize driver with retry logic for CI resilience
+        // If first attempt fails (e.g., WDA/simulator in bad state), cleanup and retry once
+        try {
+            DriverManager.initDriver(deviceName, udid, appiumPort, wdaLocalPort);
+        } catch (Exception e) {
+            System.out.println("⚠️ Driver init failed: " + e.getMessage());
+            System.out.println("🔄 Retrying driver initialization after cleanup...");
+            forceDriverCleanup();
+            try { Thread.sleep(3000); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+            DriverManager.initDriver(deviceName, udid, appiumPort, wdaLocalPort);
+        }
 
         // Initialize Page Objects
         welcomePage = new WelcomePage();
@@ -145,6 +165,34 @@ public class BaseTest {
             });
         } catch (Exception e) {
             System.out.println("⚠️ Fast app check timeout, continuing...");
+        }
+    }
+
+    /**
+     * Clean up any stale driver left over from a previous failed test or module.
+     * Prevents dead driver references in ThreadLocal from blocking new driver creation.
+     */
+    private void cleanupStaleDriver() {
+        try {
+            if (DriverManager.isDriverActive()) {
+                System.out.println("⚠️ Found existing driver session, cleaning up...");
+                DriverManager.quitDriver();
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Error cleaning stale driver: " + e.getMessage());
+            forceDriverCleanup();
+        }
+    }
+
+    /**
+     * Force cleanup of driver resources when normal quit fails.
+     * Kills the ThreadLocal reference so a fresh driver can be created.
+     */
+    private void forceDriverCleanup() {
+        try {
+            DriverManager.quitDriver();
+        } catch (Exception e) {
+            System.out.println("⚠️ Force cleanup error (ignored): " + e.getMessage());
         }
     }
 
