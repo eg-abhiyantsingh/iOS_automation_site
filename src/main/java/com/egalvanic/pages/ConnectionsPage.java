@@ -1929,19 +1929,25 @@ public class ConnectionsPage {
 
     /**
      * Select asset from dropdown by index (0 = first, 1 = second, etc.)
-     * This is the core method that handles asset selection
+     * This is the core method that handles asset selection.
+     *
+     * Each asset in the dropdown is rendered as TWO text elements:
+     *   - Asset name (e.g., "A1") with a ~27px gap to its type
+     *   - Asset type (e.g., "electricalPanel") with a ~37px gap to the next asset
+     * This method groups elements by Y-coordinate proximity to identify
+     * real asset boundaries, then selects the Nth real asset's name element.
      */
     public boolean selectAssetByIndex(int targetIndex) {
         try {
             System.out.println("👆 Selecting asset at index " + targetIndex + " from dropdown...");
             sleep(800);  // Wait for dropdown to fully open
-            
+
             // Get ALL visible StaticText elements
             List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND visible == true"));
-            
+
             System.out.println("   Found " + allTexts.size() + " text elements");
-            
+
             // Known headers/labels to skip (these are NOT clickable assets)
             String[] headersToSkip = {
                 "New Connection", "Connection Details", "Source Node", "Target Node",
@@ -1949,19 +1955,18 @@ public class ConnectionsPage {
                 "Please select", "Search", "Cancel", "Create", "Source Terminal", "Target Terminal",
                 "Bottom", "Top"
             };
-            
-            // Collect only ASSET NAMES (not location paths)
-            // Asset structure: Name on one line, Location (with ">") on next line
-            // We want to skip location lines that contain ">"
-            List<WebElement> assetNames = new java.util.ArrayList<>();
-            
+
+            // Collect all text elements in the dropdown area (both names and types)
+            // We filter out headers and location paths, keeping name+type elements
+            List<WebElement> dropdownElements = new java.util.ArrayList<>();
+
             for (WebElement el : allTexts) {
                 String label = el.getAttribute("label");
                 if (label == null || label.isEmpty()) continue;
-                
+
                 int y = el.getLocation().getY();
                 int x = el.getLocation().getX();
-                
+
                 // Skip headers
                 boolean isHeader = false;
                 for (String header : headersToSkip) {
@@ -1971,26 +1976,58 @@ public class ConnectionsPage {
                     }
                 }
                 if (isHeader) continue;
-                
+
                 // Skip LOCATION lines (they contain ">")
-                // Asset names don't typically contain ">"
                 if (label.contains(">")) {
                     System.out.println("   Skipping location: " + label);
                     continue;
                 }
-                
-                // Assets are at X=44 and in dropdown area (Y 280-800)
+
+                // Elements in dropdown area
                 if (x >= 40 && x <= 90 && y >= 280 && y <= 800) {
-                    assetNames.add(el);
-                    System.out.println("   Asset " + (assetNames.size() - 1) + ": '" + label + "' at Y=" + y);
+                    dropdownElements.add(el);
+                    System.out.println("   Element " + (dropdownElements.size() - 1) + ": '" + label + "' at Y=" + y);
                 }
             }
-            
-            System.out.println("   Total ASSET NAMES found: " + assetNames.size());
-            
+
+            System.out.println("   Total dropdown elements found: " + dropdownElements.size());
+
+            // Group elements into REAL assets using Y-coordinate gap analysis.
+            // Within one asset, the name→type gap is ~27px.
+            // Between different assets, the type→name gap is ~37px.
+            // A threshold of 32px cleanly separates same-asset elements from different assets.
+            // Each group's FIRST element is the asset name (the clickable element).
+            int Y_GAP_THRESHOLD = 32;
+            List<WebElement> realAssetNames = new java.util.ArrayList<>();
+
+            if (!dropdownElements.isEmpty()) {
+                // First element is always the start of the first asset
+                realAssetNames.add(dropdownElements.get(0));
+                String firstName = dropdownElements.get(0).getAttribute("label");
+                System.out.println("   Asset 0: '" + firstName + "' at Y=" + dropdownElements.get(0).getLocation().getY());
+
+                for (int i = 1; i < dropdownElements.size(); i++) {
+                    int prevY = dropdownElements.get(i - 1).getLocation().getY();
+                    int currY = dropdownElements.get(i).getLocation().getY();
+                    int gap = currY - prevY;
+
+                    String currLabel = dropdownElements.get(i).getAttribute("label");
+
+                    if (gap > Y_GAP_THRESHOLD) {
+                        // Large gap = start of a new asset
+                        realAssetNames.add(dropdownElements.get(i));
+                        System.out.println("   Asset " + (realAssetNames.size() - 1) + ": '" + currLabel + "' at Y=" + currY + " (gap=" + gap + "px → new asset)");
+                    } else {
+                        System.out.println("   (type): '" + currLabel + "' at Y=" + currY + " (gap=" + gap + "px → same asset)");
+                    }
+                }
+            }
+
+            System.out.println("   Total REAL ASSETS found: " + realAssetNames.size());
+
             // Select the asset at target index
-            if (targetIndex < assetNames.size()) {
-                WebElement asset = assetNames.get(targetIndex);
+            if (targetIndex < realAssetNames.size()) {
+                WebElement asset = realAssetNames.get(targetIndex);
                 String label = asset.getAttribute("label");
                 System.out.println("   ✓ Clicking asset NAME at index " + targetIndex + ": '" + label + "'");
                 asset.click();
@@ -1998,10 +2035,10 @@ public class ConnectionsPage {
                 System.out.println("✓ Selected: " + label);
                 return true;
             } else {
-                System.out.println("⚠️ Not enough assets! Requested index " + targetIndex + " but only " + assetNames.size() + " available");
+                System.out.println("⚠️ Not enough assets! Requested index " + targetIndex + " but only " + realAssetNames.size() + " available");
                 // Fallback: select first available
-                if (!assetNames.isEmpty()) {
-                    WebElement asset = assetNames.get(0);
+                if (!realAssetNames.isEmpty()) {
+                    WebElement asset = realAssetNames.get(0);
                     String label = asset.getAttribute("label");
                     System.out.println("   ⚠️ Falling back to first asset: '" + label + "'");
                     asset.click();
@@ -2009,10 +2046,10 @@ public class ConnectionsPage {
                     return true;
                 }
             }
-            
+
             System.out.println("⚠️ No selectable assets found!");
             return false;
-            
+
         } catch (Exception e) {
             System.out.println("⚠️ Error: " + e.getMessage());
             return false;
@@ -2027,62 +2064,91 @@ public class ConnectionsPage {
         try {
             System.out.println("🔍 Getting selected Source Node text...");
             
-            // Strategy 1: Find Source Node section and get the selected value text
-            // After selection, the dropdown button shows the asset name
-            try {
-                // Find all visible text elements
-                List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND visible == true"));
+            // Retry up to 3 times (dropdown close animation may need time)
+            for (int attempt = 1; attempt <= 3; attempt++) {
+                if (attempt > 1) {
+                    System.out.println("   Retry " + attempt + "/3...");
+                    sleep(500);
+                }
                 
-                // Look for text after "Source Node" label but before "Target Node"
-                boolean inSourceSection = false;
-                for (WebElement el : allTexts) {
-                    String label = el.getAttribute("label");
-                    if (label == null) continue;
+                // Strategy 1 (PRIMARY): Find Button with selected value near "Source Node" label
+                // After selection, iOS shows a Button with label "AssetName, assetType" (e.g. "A1, electricalPanel")
+                try {
+                    // First find the "Source Node" label Y position as anchor
+                    int sourceNodeLabelY = -1;
+                    try {
+                        WebElement sourceLabel = driver.findElement(AppiumBy.iOSNsPredicateString(
+                            "label == 'Source Node' AND type == 'XCUIElementTypeStaticText' AND visible == true"));
+                        sourceNodeLabelY = sourceLabel.getLocation().getY();
+                        System.out.println("   Source Node label at Y=" + sourceNodeLabelY);
+                    } catch (Exception ignored) {}
                     
-                    if (label.equals("Source Node")) {
-                        inSourceSection = true;
-                        continue;
-                    }
-                    if (label.equals("Source Terminal") || label.equals("Target Node")) {
-                        break;  // Moved past source section
-                    }
+                    // Find buttons in the source node area
+                    List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND visible == true"));
                     
-                    // Skip known non-values
-                    if (inSourceSection && !label.contains("Select") && 
-                        !label.equals("Source Node") && label.length() > 1) {
-                        int y = el.getLocation().getY();
-                        // Source section is typically Y 180-350
-                        if (y > 180 && y < 400) {
-                            System.out.println("   Found Source value: '" + label + "' at Y=" + y);
-                            return label;
+                    for (WebElement btn : buttons) {
+                        int y = btn.getLocation().getY();
+                        // Source value button is typically 15-50px below the "Source Node" label
+                        boolean inRange;
+                        if (sourceNodeLabelY > 0) {
+                            inRange = (y > sourceNodeLabelY && y < sourceNodeLabelY + 80);
+                        } else {
+                            inRange = (y > 140 && y < 300);
+                        }
+                        
+                        if (inRange) {
+                            String label = btn.getAttribute("label");
+                            if (label != null && !label.toLowerCase().contains("select") &&
+                                !label.equals("Cancel") && !label.equals("Create") && label.length() > 1) {
+                                // Button label format: "AssetName, assetType" → extract asset name
+                                String assetName = label.contains(",") ? label.split(",")[0].trim() : label;
+                                System.out.println("   ✓ Found Source button: '" + label + "' → asset: '" + assetName + "' at Y=" + y);
+                                return assetName;
+                            }
                         }
                     }
+                } catch (Exception e1) {
+                    System.out.println("   Strategy 1 (Button) failed: " + e1.getMessage());
                 }
-            } catch (Exception e1) {
-                System.out.println("   Strategy 1 failed: " + e1.getMessage());
+                
+                // Strategy 2: Scan StaticText elements between "Source Node" and "Source Terminal"/"Target Node"
+                try {
+                    List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND visible == true"));
+                    
+                    boolean inSourceSection = false;
+                    for (WebElement el : allTexts) {
+                        String label = el.getAttribute("label");
+                        if (label == null) continue;
+                        
+                        if (label.equals("Source Node")) {
+                            inSourceSection = true;
+                            continue;
+                        }
+                        if (inSourceSection && (label.equals("Source Terminal") || label.equals("Target Node"))) {
+                            break;
+                        }
+                        
+                        if (inSourceSection && !label.toLowerCase().contains("select") &&
+                            !label.equals("Source Node") && !label.contains(">") &&
+                            label.length() > 1) {
+                            int y = el.getLocation().getY();
+                            if (y > 140 && y < 500) {
+                                System.out.println("   ✓ Found Source text: '" + label + "' at Y=" + y);
+                                return label;
+                            }
+                        }
+                    }
+                } catch (Exception e2) {
+                    System.out.println("   Strategy 2 (Text scan) failed: " + e2.getMessage());
+                }
             }
             
-            // Strategy 2: Look for button with asset name in source area
-            try {
-                List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND visible == true"));
-                for (WebElement btn : buttons) {
-                    int y = btn.getLocation().getY();
-                    if (y > 200 && y < 350) {
-                        String label = btn.getAttribute("label");
-                        if (label != null && !label.contains("Select") && 
-                            !label.equals("Cancel") && !label.equals("Create")) {
-                            System.out.println("   Found Source button: '" + label + "'");
-                            return label;
-                        }
-                    }
-                }
-            } catch (Exception e2) {}
-            
-            System.out.println("   ⚠️ Could not find selected Source Node");
+            System.out.println("   ⚠️ Could not find selected Source Node after 3 attempts");
             return null;
         } catch (Exception e) {
+            System.out.println("   ⚠️ Error in getSelectedSourceNodeText: " + e.getMessage());
             return null;
         }
     }
@@ -2457,60 +2523,91 @@ public class ConnectionsPage {
         try {
             System.out.println("🔍 Getting selected Target Node text...");
             
-            // Strategy 1: Find Target Node section and get the selected value text
-            try {
-                List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND visible == true"));
+            // Retry up to 3 times (dropdown close animation may need time)
+            for (int attempt = 1; attempt <= 3; attempt++) {
+                if (attempt > 1) {
+                    System.out.println("   Retry " + attempt + "/3...");
+                    sleep(500);
+                }
                 
-                // Look for text after "Target Node" label but before "Target Terminal" or "Connection Type"
-                boolean inTargetSection = false;
-                for (WebElement el : allTexts) {
-                    String label = el.getAttribute("label");
-                    if (label == null) continue;
+                // Strategy 1 (PRIMARY): Find Button with selected value near "Target Node" label
+                // After selection, iOS shows a Button with label "AssetName, assetType" (e.g. "Disconnect Switch 1, switch")
+                try {
+                    // First find the "Target Node" label Y position as anchor
+                    int targetNodeLabelY = -1;
+                    try {
+                        WebElement targetLabel = driver.findElement(AppiumBy.iOSNsPredicateString(
+                            "label == 'Target Node' AND type == 'XCUIElementTypeStaticText' AND visible == true"));
+                        targetNodeLabelY = targetLabel.getLocation().getY();
+                        System.out.println("   Target Node label at Y=" + targetNodeLabelY);
+                    } catch (Exception ignored) {}
                     
-                    if (label.equals("Target Node")) {
-                        inTargetSection = true;
-                        continue;
-                    }
-                    if (label.equals("Target Terminal") || label.equals("Connection Type")) {
-                        break;  // Moved past target section
-                    }
+                    // Find buttons in the target node area
+                    List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND visible == true"));
                     
-                    // Skip known non-values
-                    if (inTargetSection && !label.contains("Select") && 
-                        !label.equals("Target Node") && label.length() > 1) {
-                        int y = el.getLocation().getY();
-                        // Target section is typically Y 400-600
-                        if (y > 400 && y < 700) {
-                            System.out.println("   Found Target value: '" + label + "' at Y=" + y);
-                            return label;
+                    for (WebElement btn : buttons) {
+                        int y = btn.getLocation().getY();
+                        // Target value button is typically 15-50px below the "Target Node" label
+                        boolean inRange;
+                        if (targetNodeLabelY > 0) {
+                            inRange = (y > targetNodeLabelY && y < targetNodeLabelY + 80);
+                        } else {
+                            inRange = (y > 400 && y < 700);
+                        }
+                        
+                        if (inRange) {
+                            String label = btn.getAttribute("label");
+                            if (label != null && !label.toLowerCase().contains("select") &&
+                                !label.equals("Cancel") && !label.equals("Create") && label.length() > 1) {
+                                // Button label format: "AssetName, assetType" → extract asset name
+                                String assetName = label.contains(",") ? label.split(",")[0].trim() : label;
+                                System.out.println("   ✓ Found Target button: '" + label + "' → asset: '" + assetName + "' at Y=" + y);
+                                return assetName;
+                            }
                         }
                     }
+                } catch (Exception e1) {
+                    System.out.println("   Strategy 1 (Button) failed: " + e1.getMessage());
                 }
-            } catch (Exception e1) {
-                System.out.println("   Strategy 1 failed: " + e1.getMessage());
+                
+                // Strategy 2: Scan StaticText elements between "Target Node" and "Target Terminal"/"Connection Type"
+                try {
+                    List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND visible == true"));
+                    
+                    boolean inTargetSection = false;
+                    for (WebElement el : allTexts) {
+                        String label = el.getAttribute("label");
+                        if (label == null) continue;
+                        
+                        if (label.equals("Target Node")) {
+                            inTargetSection = true;
+                            continue;
+                        }
+                        if (inTargetSection && (label.equals("Target Terminal") || label.equals("Connection Type"))) {
+                            break;
+                        }
+                        
+                        if (inTargetSection && !label.toLowerCase().contains("select") &&
+                            !label.equals("Target Node") && !label.contains(">") &&
+                            label.length() > 1) {
+                            int y = el.getLocation().getY();
+                            if (y > 400 && y < 800) {
+                                System.out.println("   ✓ Found Target text: '" + label + "' at Y=" + y);
+                                return label;
+                            }
+                        }
+                    }
+                } catch (Exception e2) {
+                    System.out.println("   Strategy 2 (Text scan) failed: " + e2.getMessage());
+                }
             }
             
-            // Strategy 2: Look for button with asset name in target area
-            try {
-                List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND visible == true"));
-                for (WebElement btn : buttons) {
-                    int y = btn.getLocation().getY();
-                    if (y > 450 && y < 650) {
-                        String label = btn.getAttribute("label");
-                        if (label != null && !label.contains("Select") && 
-                            !label.equals("Cancel") && !label.equals("Create")) {
-                            System.out.println("   Found Target button: '" + label + "'");
-                            return label;
-                        }
-                    }
-                }
-            } catch (Exception e2) {}
-            
-            System.out.println("   ⚠️ Could not find selected Target Node");
+            System.out.println("   ⚠️ Could not find selected Target Node after 3 attempts");
             return null;
         } catch (Exception e) {
+            System.out.println("   ⚠️ Error in getSelectedTargetNodeText: " + e.getMessage());
             return null;
         }
     }
@@ -3032,8 +3129,10 @@ public class ConnectionsPage {
     public boolean selectConnectionType(String typeName) {
         try {
             System.out.println("👆 Selecting Connection Type: " + typeName);
+            // Wait for the native menu/picker to fully render after dropdown tap
+            sleep(600);
 
-            // Strategy 1: Exact label match
+            // Strategy 1: Exact label match (StaticText, Button, or any element)
             try {
                 WebElement typeOption = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "label == '" + typeName + "' AND visible == true"));
@@ -3041,7 +3140,9 @@ public class ConnectionsPage {
                 sleep(300);
                 System.out.println("✓ Selected Connection Type: " + typeName);
                 return true;
-            } catch (Exception e1) {}
+            } catch (Exception e1) {
+                System.out.println("   Strategy 1 (exact label): not found");
+            }
 
             // Strategy 2: Partial label match
             try {
@@ -3051,9 +3152,35 @@ public class ConnectionsPage {
                 sleep(300);
                 System.out.println("✓ Selected Connection Type (partial match): " + typeName);
                 return true;
-            } catch (Exception e2) {}
+            } catch (Exception e2) {
+                System.out.println("   Strategy 2 (partial label): not found");
+            }
 
-            // Strategy 3: Search through cells
+            // Strategy 3: Native iOS PickerWheel — "Select type ⌃" may be a Picker
+            // Set the value directly on the picker wheel
+            try {
+                List<WebElement> pickerWheels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypePickerWheel' AND visible == true"));
+                if (!pickerWheels.isEmpty()) {
+                    System.out.println("   Found " + pickerWheels.size() + " PickerWheel(s)");
+                    for (WebElement wheel : pickerWheels) {
+                        String currentValue = wheel.getAttribute("value");
+                        System.out.println("   PickerWheel current value: '" + currentValue + "'");
+                        wheel.sendKeys(typeName);
+                        sleep(500);
+                        String newValue = wheel.getAttribute("value");
+                        System.out.println("   PickerWheel new value: '" + newValue + "'");
+                        if (newValue != null && newValue.toLowerCase().contains(typeName.toLowerCase())) {
+                            System.out.println("✓ Selected Connection Type via PickerWheel: " + typeName);
+                            return true;
+                        }
+                    }
+                }
+            } catch (Exception e3) {
+                System.out.println("   Strategy 3 (PickerWheel): failed - " + e3.getMessage());
+            }
+
+            // Strategy 4: Search through cells
             try {
                 List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeCell' AND visible == true"));
@@ -3066,9 +3193,11 @@ public class ConnectionsPage {
                         return true;
                     }
                 }
-            } catch (Exception e3) {}
+            } catch (Exception e4) {
+                System.out.println("   Strategy 4 (cells): failed");
+            }
 
-            // Strategy 4: Search through buttons
+            // Strategy 5: Search through buttons
             try {
                 List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeButton' AND visible == true"));
@@ -3081,11 +3210,50 @@ public class ConnectionsPage {
                         return true;
                     }
                 }
-            } catch (Exception e4) {}
+            } catch (Exception e5) {
+                System.out.println("   Strategy 5 (buttons): failed");
+            }
 
+            // Strategy 6: Search through ALL visible elements (last resort)
+            try {
+                List<WebElement> allVisible = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "visible == true AND (label CONTAINS[cd] '" + typeName + "' OR value CONTAINS[cd] '" + typeName + "')"));
+                if (!allVisible.isEmpty()) {
+                    for (WebElement el : allVisible) {
+                        String elType = el.getAttribute("type");
+                        String elLabel = el.getAttribute("label");
+                        System.out.println("   Found matching element: type=" + elType + ", label='" + elLabel + "'");
+                        el.click();
+                        sleep(300);
+                        System.out.println("✓ Selected Connection Type (broad search): " + typeName);
+                        return true;
+                    }
+                }
+            } catch (Exception e6) {
+                System.out.println("   Strategy 6 (broad search): failed");
+            }
+
+            // Debug: dump all visible interactive elements to help diagnose
             System.out.println("⚠️ Could not select Connection Type: " + typeName);
+            System.out.println("   DEBUG: Dumping visible elements for diagnosis...");
+            try {
+                List<WebElement> debugElements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "visible == true AND (type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' " +
+                    "OR type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypePickerWheel' " +
+                    "OR type == 'XCUIElementTypeMenuItem')"));
+                for (WebElement el : debugElements) {
+                    String elType = el.getAttribute("type");
+                    String elLabel = el.getAttribute("label");
+                    String elValue = el.getAttribute("value");
+                    int elY = el.getLocation().getY();
+                    System.out.println("   [" + elType + "] label='" + elLabel + "' value='" + elValue + "' Y=" + elY);
+                }
+            } catch (Exception debugEx) {
+                System.out.println("   DEBUG dump failed: " + debugEx.getMessage());
+            }
             return false;
         } catch (Exception e) {
+            System.out.println("⚠️ selectConnectionType error: " + e.getMessage());
             return false;
         }
     }
@@ -3715,28 +3883,51 @@ public class ConnectionsPage {
     public boolean tapOnConnectionTypeDropdown() {
         try {
             System.out.println("🔽 Tapping on Connection Type dropdown...");
-            
-            // Strategy 1: Look for "Select type" or Connection Type field
+
+            // Strategy 1: Target the BUTTON element specifically.
+            // The screen has a StaticText "Connection Type" label AND a Button
+            // "Connection Type, Select type". We must tap the Button, not the label.
             try {
-                WebElement typeField = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label CONTAINS 'Select type' OR label CONTAINS 'Connection Type' OR label == 'Type') AND visible == true"));
-                typeField.click();
-                sleep(300);
-                System.out.println("✓ Tapped on Connection Type dropdown");
+                WebElement typeButton = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND label BEGINSWITH 'Connection Type' AND visible == true"));
+                System.out.println("   Found Connection Type button: '" + typeButton.getAttribute("label") + "'");
+                typeButton.click();
+                sleep(600);  // Wait for native menu animation to complete
+                System.out.println("✓ Tapped on Connection Type button");
                 return true;
-            } catch (Exception e1) {}
-            
-            // Strategy 2: Look by name attribute
+            } catch (Exception e1) {
+                System.out.println("   Strategy 1 (button with 'Connection Type'): not found");
+            }
+
+            // Strategy 2: Look for button containing "Select type"
+            try {
+                WebElement typeButton = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND label CONTAINS 'Select type' AND visible == true"));
+                System.out.println("   Found Select type button: '" + typeButton.getAttribute("label") + "'");
+                typeButton.click();
+                sleep(600);
+                System.out.println("✓ Tapped on Select type button");
+                return true;
+            } catch (Exception e2) {
+                System.out.println("   Strategy 2 (button with 'Select type'): not found");
+            }
+
+            // Strategy 3: Look by name attribute (button only)
             try {
                 WebElement typeField = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(name CONTAINS 'type' OR name CONTAINS 'Type') AND type == 'XCUIElementTypeButton' AND visible == true"));
                 typeField.click();
-                sleep(300);
+                sleep(600);
+                System.out.println("✓ Tapped on Connection Type button (by name)");
                 return true;
-            } catch (Exception e2) {}
-            
+            } catch (Exception e3) {
+                System.out.println("   Strategy 3 (button by name): not found");
+            }
+
+            System.out.println("⚠️ Could not find Connection Type dropdown button");
             return false;
         } catch (Exception e) {
+            System.out.println("⚠️ tapOnConnectionTypeDropdown error: " + e.getMessage());
             return false;
         }
     }

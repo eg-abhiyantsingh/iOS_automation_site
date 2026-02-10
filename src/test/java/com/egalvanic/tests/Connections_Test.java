@@ -3267,12 +3267,13 @@ public final class Connections_Test extends BaseTest {
         // Note: Some apps may have Create button always enabled - we just check state
 
         // ===== SELECT SOURCE NODE =====
+        // Use sibling assets (index 1 + index 2) to avoid parent-child validation error.
         logStep("Step 4: Select Source Node");
         boolean sourceDropdownOpened = connectionsPage.tapOnSourceNodeDropdown();
         assertTrue(sourceDropdownOpened, "Should be able to open Source Node dropdown");
         shortWait();
 
-        boolean sourceSelected = connectionsPage.selectFirstAssetFromDropdown();
+        boolean sourceSelected = connectionsPage.selectAssetByIndex(1);
         assertTrue(sourceSelected, "Should be able to select Source Node");
         shortWait();
 
@@ -3280,7 +3281,7 @@ public final class Connections_Test extends BaseTest {
         String selectedSource = connectionsPage.getSelectedSourceNodeText();
         logStep("Selected Source: " + selectedSource);
         assertNotNull(selectedSource, "Source Node should be selected");
-        assertFalse(selectedSource.toLowerCase().contains("select"), 
+        assertFalse(selectedSource.toLowerCase().contains("select"),
             "Source should not show placeholder - actual: " + selectedSource);
 
         // ===== SELECT TARGET NODE (DIFFERENT FROM SOURCE) =====
@@ -3289,7 +3290,7 @@ public final class Connections_Test extends BaseTest {
         assertTrue(targetDropdownOpened, "Should be able to open Target Node dropdown");
         shortWait();
 
-        boolean targetSelected = connectionsPage.selectSecondAssetFromDropdown();
+        boolean targetSelected = connectionsPage.selectAssetByIndex(2);
         assertTrue(targetSelected, "Should be able to select Target Node");
         shortWait();
 
@@ -3364,13 +3365,17 @@ public final class Connections_Test extends BaseTest {
         logStepWithScreenshot("New Connection screen opened");
 
         // ===== SELECT SOURCE NODE =====
+        // Use sibling assets (index 1 + index 2) instead of parent-child (index 0 + index 1).
+        // A1 (index 0) is the parent of Disconnect Switch 1/2, so selecting A1 with
+        // either child triggers "Parent cannot connect to its child node" validation error.
+        // Disconnect Switch 1 (index 1) and Disconnect Switch 2 (index 2) are siblings.
         logStep("Step 3: Select Source Node");
         boolean sourceDropdownOpened = connectionsPage.tapOnSourceNodeDropdown();
         assertTrue(sourceDropdownOpened, "Should be able to open Source Node dropdown");
         shortWait();
 
-        // Select first asset for Source
-        boolean sourceSelected = connectionsPage.selectFirstAssetFromDropdown();
+        // Select Disconnect Switch 1 (index 1) for Source
+        boolean sourceSelected = connectionsPage.selectAssetByIndex(1);
         assertTrue(sourceSelected, "Should be able to select Source Node asset");
         shortWait();
 
@@ -3378,7 +3383,7 @@ public final class Connections_Test extends BaseTest {
         String selectedSource = connectionsPage.getSelectedSourceNodeText();
         logStep("Selected Source Node: " + selectedSource);
         assertNotNull(selectedSource, "Source Node should be selected (not null)");
-        assertFalse(selectedSource.toLowerCase().contains("select"), 
+        assertFalse(selectedSource.toLowerCase().contains("select"),
             "Source Node should not show 'Select' placeholder - actual: " + selectedSource);
         logStepWithScreenshot("Source Node selected: " + selectedSource);
 
@@ -3388,8 +3393,8 @@ public final class Connections_Test extends BaseTest {
         assertTrue(targetDropdownOpened, "Should be able to open Target Node dropdown");
         shortWait();
 
-        // Select SECOND asset for Target (to be different from Source)
-        boolean targetSelected = connectionsPage.selectSecondAssetFromDropdown();
+        // Select Disconnect Switch 2 (index 2) for Target — sibling of Source
+        boolean targetSelected = connectionsPage.selectAssetByIndex(2);
         assertTrue(targetSelected, "Should be able to select Target Node asset");
         shortWait();
 
@@ -3609,19 +3614,19 @@ public final class Connections_Test extends BaseTest {
         boolean fieldsFilled = connectionsPage.fillAllConnectionFields();
 
         if (!fieldsFilled) {
-            // Manual fill
+            // Manual fill — use sibling assets (index 1 + 2) to avoid parent-child error
             logStep("Using manual field fill approach");
             connectionsPage.tapOnSourceNodeDropdown();
             shortWait();
-            connectionsPage.selectFirstAssetFromDropdown();
+            connectionsPage.selectAssetByIndex(1);
             shortWait();
 
-            connectionsPage.tapOnTargetNodeField();
+            connectionsPage.tapOnTargetNodeDropdown();
             shortWait();
-            connectionsPage.selectFirstTargetAsset();
+            connectionsPage.selectAssetByIndex(2);
             shortWait();
 
-            connectionsPage.tapOnConnectionTypeField();
+            connectionsPage.tapOnConnectionTypeDropdown();
             shortWait();
             connectionsPage.selectConnectionType("Cable");
             shortWait();
@@ -3895,12 +3900,12 @@ public final class Connections_Test extends BaseTest {
 
         assertTrue(connectionsPage.isNewConnectionScreenDisplayed(), "Should be on New Connection screen");
 
-        // Select Source Node
+        // Select Source Node — use sibling assets to avoid parent-child error
         logStep("Selecting Source Node");
         boolean sourceTapped = connectionsPage.tapOnSourceNodeDropdown();
         if (sourceTapped) {
             shortWait();
-            connectionsPage.selectFirstAssetFromDropdown();
+            connectionsPage.selectAssetByIndex(1);
             shortWait();
         }
 
@@ -3909,7 +3914,7 @@ public final class Connections_Test extends BaseTest {
         boolean targetTapped = connectionsPage.tapOnTargetNodeDropdown();
         if (targetTapped) {
             shortWait();
-            connectionsPage.selectSecondAssetFromDropdown();  // Use second asset for Target
+            connectionsPage.selectAssetByIndex(2);
             shortWait();
         }
 
@@ -4890,17 +4895,17 @@ public final class Connections_Test extends BaseTest {
         }
 
         if (!hasSpecialCharAsset) {
-            logStep("No asset with special characters found - using first available");
+            logStep("No asset with special characters found - using sibling asset");
             logStep("Note: Special character assets may not exist in test environment");
-            connectionsPage.selectFirstAssetFromDropdown();
+            connectionsPage.selectAssetByIndex(1);
             shortWait();
         }
 
-        // Select Target Node
+        // Select Target Node — use sibling asset to avoid parent-child error
         logStep("Selecting Target Node");
         connectionsPage.tapOnTargetNodeDropdown();
-            shortWait();
-            connectionsPage.selectSecondAssetFromDropdown();  // Use second asset for Target
+        shortWait();
+        connectionsPage.selectAssetByIndex(2);
         shortWait();
 
         // Create connection
@@ -4978,23 +4983,23 @@ public final class Connections_Test extends BaseTest {
         if (connectionCount == 0) {
             logStep("No connections exist - creating one for testing");
             
-            // Create a connection
+            // Create a connection — use sibling assets to avoid parent-child error
             connectionsPage.tapOnAddButton();
             shortWait();
-            
+
             connectionsPage.tapOnSourceNodeDropdown();
             shortWait();
-            connectionsPage.selectFirstAssetFromDropdown();
+            connectionsPage.selectAssetByIndex(1);
             shortWait();
-            
+
             connectionsPage.tapOnTargetNodeDropdown();
             shortWait();
-            connectionsPage.selectSecondAssetFromDropdown();  // Use second asset for Target
+            connectionsPage.selectAssetByIndex(2);
             shortWait();
-            
+
             connectionsPage.tapOnCreateButton();
             mediumWait();
-            
+
             // Re-navigate to connections
             ensureOnConnectionsScreen();
             int newCount = connectionsPage.getConnectionCount();
@@ -5064,24 +5069,24 @@ public final class Connections_Test extends BaseTest {
         logStep("Initial connection count: " + initialCount);
         logStepWithScreenshot("Before rapid creation");
 
-        // Step 1: Create first connection
+        // Step 1: Create first connection — use sibling assets to avoid parent-child error
         logStep("Step 1: Creating first connection");
         connectionsPage.tapOnAddButton();
         shortWait();
-        
+
         connectionsPage.tapOnSourceNodeDropdown();
         shortWait();
-        connectionsPage.selectFirstAssetFromDropdown();
+        connectionsPage.selectAssetByIndex(1);
         shortWait();
-        
+
         connectionsPage.tapOnTargetNodeDropdown();
-            shortWait();
-            connectionsPage.selectSecondAssetFromDropdown();  // Use second asset for Target
         shortWait();
-        
+        connectionsPage.selectAssetByIndex(2);
+        shortWait();
+
         connectionsPage.tapOnCreateButton();
         shortWait();
-        
+
         boolean firstCreated = !connectionsPage.isNewConnectionScreenDisplayed();
         logStep("First connection created: " + firstCreated);
 
@@ -5096,21 +5101,20 @@ public final class Connections_Test extends BaseTest {
         logStep("Step 2: Creating second connection immediately");
         connectionsPage.tapOnAddButton();
         shortWait();
-        
-        // Quick selection
+
         connectionsPage.tapOnSourceNodeDropdown();
         shortWait();
-        connectionsPage.selectFirstAssetFromDropdown();
+        connectionsPage.selectAssetByIndex(1);
         shortWait();
-        
+
         connectionsPage.tapOnTargetNodeDropdown();
-            shortWait();
-            connectionsPage.selectSecondAssetFromDropdown();  // Use second asset for Target
         shortWait();
-        
+        connectionsPage.selectAssetByIndex(2);
+        shortWait();
+
         connectionsPage.tapOnCreateButton();
         shortWait();
-        
+
         boolean secondCreated = !connectionsPage.isNewConnectionScreenDisplayed();
         logStep("Second connection created: " + secondCreated);
 
@@ -5125,20 +5129,20 @@ public final class Connections_Test extends BaseTest {
         logStep("Step 3: Creating third connection");
         connectionsPage.tapOnAddButton();
         shortWait();
-        
+
         connectionsPage.tapOnSourceNodeDropdown();
         shortWait();
-        connectionsPage.selectFirstAssetFromDropdown();
+        connectionsPage.selectAssetByIndex(1);
         shortWait();
-        
+
         connectionsPage.tapOnTargetNodeDropdown();
-            shortWait();
-            connectionsPage.selectSecondAssetFromDropdown();  // Use second asset for Target
         shortWait();
-        
+        connectionsPage.selectAssetByIndex(2);
+        shortWait();
+
         connectionsPage.tapOnCreateButton();
         shortWait();
-        
+
         boolean thirdCreated = !connectionsPage.isNewConnectionScreenDisplayed();
         logStep("Third connection created: " + thirdCreated);
 
@@ -5239,12 +5243,12 @@ public final class Connections_Test extends BaseTest {
 
         connectionsPage.tapOnSourceNodeDropdown();
         shortWait();
-        connectionsPage.selectFirstAssetFromDropdown();
+        connectionsPage.selectAssetByIndex(1);
         shortWait();
 
         connectionsPage.tapOnTargetNodeDropdown();
-            shortWait();
-            connectionsPage.selectSecondAssetFromDropdown();  // Use second asset for Target
+        shortWait();
+        connectionsPage.selectAssetByIndex(2);
         shortWait();
 
         connectionsPage.tapOnCreateButton();
