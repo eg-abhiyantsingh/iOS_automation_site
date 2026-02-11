@@ -22,8 +22,19 @@ public class ConnectionsPage {
 
     private IOSDriver driver;
 
+    // Tracks the name of the last asset selected by selectRandomSiblingAsset
+    private String lastSelectedAssetName;
+
     public ConnectionsPage() {
         this.driver = DriverManager.getDriver();
+    }
+
+    /**
+     * Get the name of the last asset selected by selectRandomSiblingAsset().
+     * Use this to pass as excludeNames when selecting the target node.
+     */
+    public String getLastSelectedAssetName() {
+        return lastSelectedAssetName;
     }
 
     // ============================================
@@ -2060,20 +2071,30 @@ public class ConnectionsPage {
 
 
     /**
-     * Select a random sibling asset from the dropdown, excluding specified indices.
-     * Index 0 (A1/parent) is always excluded to avoid parent-child validation errors.
-     *
-     * @param excludeIndices set of additional indices to exclude (e.g., already-selected source)
-     * @return the selected index, or -1 if no valid asset could be selected
+     * Select a random sibling asset, excluding by index only.
      */
     public int selectRandomSiblingAsset(Set<Integer> excludeIndices) {
+        return selectRandomSiblingAsset(excludeIndices, null);
+    }
+
+    /**
+     * Select a random sibling asset from the dropdown, excluding by index AND by name.
+     * Index 0 (A1/parent) is always excluded to avoid parent-child validation errors.
+     *
+     * @param excludeIndices set of indices to exclude (e.g., source index)
+     * @param excludeNames   set of asset names to exclude (e.g., source name) — prevents
+     *                       same asset being picked even if indices differ between dropdowns
+     * @return the selected index, or -1 if no valid asset could be selected
+     */
+    public int selectRandomSiblingAsset(Set<Integer> excludeIndices, Set<String> excludeNames) {
         try {
-            System.out.println("🎲 Selecting random sibling asset (excluding indices: " + excludeIndices + ")...");
+            System.out.println("🎲 Selecting random sibling asset (excluding indices: " + excludeIndices
+                + ", names: " + excludeNames + ")...");
             sleep(800);  // Wait for dropdown to fully open
 
-            // Get ALL visible StaticText elements
+            // Find ALL StaticText elements (no visible filter — includes off-screen assets)
             List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true"));
+                "type == 'XCUIElementTypeStaticText'"));
 
             System.out.println("   Found " + allTexts.size() + " text elements");
 
@@ -2085,7 +2106,7 @@ public class ConnectionsPage {
                 "Bottom", "Top"
             };
 
-            // Collect all text elements in the dropdown area
+            // Collect all text elements in the dropdown area (no Y upper bound)
             List<WebElement> dropdownElements = new java.util.ArrayList<>();
 
             for (WebElement el : allTexts) {
@@ -2106,9 +2127,10 @@ public class ConnectionsPage {
 
                 if (label.contains(">")) continue;
 
-                if (x >= 40 && x <= 90 && y >= 280 && y <= 800) {
+                // No Y upper bound — include off-screen assets below the dropdown
+                if (x >= 40 && x <= 90 && y >= 280) {
                     dropdownElements.add(el);
-                    System.out.println("   Element " + (dropdownElements.size() - 1) + ": '" + label + "' at Y=" + y);
+                    System.out.println("   Element " + (dropdownElements.size() - 1) + ": '" + label.trim() + "' at Y=" + y);
                 }
             }
 
@@ -2130,11 +2152,21 @@ public class ConnectionsPage {
 
             System.out.println("   Total REAL ASSETS found: " + realAssetNames.size());
 
-            // Build list of valid indices (exclude index 0/parent + any provided exclusions)
+            // Build list of valid indices — exclude by index AND by name
             List<Integer> validIndices = new java.util.ArrayList<>();
             for (int i = 0; i < realAssetNames.size(); i++) {
                 if (i == 0) continue;  // Always skip parent (index 0 = A1)
                 if (excludeIndices != null && excludeIndices.contains(i)) continue;
+
+                // Name-based exclusion: prevent same asset even if index differs
+                if (excludeNames != null && !excludeNames.isEmpty()) {
+                    String assetLabel = realAssetNames.get(i).getAttribute("label");
+                    if (assetLabel != null && excludeNames.contains(assetLabel.trim())) {
+                        System.out.println("   Skipping index " + i + " ('" + assetLabel.trim() + "') — name excluded");
+                        continue;
+                    }
+                }
+
                 validIndices.add(i);
             }
 
@@ -2151,10 +2183,24 @@ public class ConnectionsPage {
             WebElement asset = realAssetNames.get(randomPick);
             String label = asset.getAttribute("label");
 
-            System.out.println("   🎲 Randomly picked index " + randomPick + ": '" + label + "'");
-            asset.click();
+            System.out.println("   🎲 Randomly picked index " + randomPick + ": '" + label.trim() + "'");
+
+            // Click — if off-screen, scroll to it first
+            try {
+                asset.click();
+            } catch (Exception clickEx) {
+                System.out.println("   Asset is off-screen, scrolling to it...");
+                java.util.Map<String, Object> scrollParams = new java.util.HashMap<>();
+                scrollParams.put("direction", "down");
+                scrollParams.put("predicateString", "label CONTAINS '" + label.trim() + "'");
+                driver.executeScript("mobile: scroll", scrollParams);
+                sleep(300);
+                asset.click();
+            }
+
             sleep(500);
-            System.out.println("✓ Randomly selected: " + label + " (index " + randomPick + ")");
+            lastSelectedAssetName = label.trim();
+            System.out.println("✓ Randomly selected: " + lastSelectedAssetName + " (index " + randomPick + ")");
             return randomPick;
 
         } catch (Exception e) {
@@ -3783,16 +3829,19 @@ public class ConnectionsPage {
             sleep(300);
             int sourceIndex = selectRandomSiblingAsset(new java.util.HashSet<>());
             boolean sourceSelected = sourceIndex > 0;
-            System.out.println("  Source Node selected: " + sourceSelected + " (index " + sourceIndex + ")");
+            String sourceName = lastSelectedAssetName;
+            System.out.println("  Source Node selected: " + sourceSelected + " (index " + sourceIndex + ", name: " + sourceName + ")");
             sleep(300);
 
-            // Select Target Node (random sibling, skips parent + source index)
+            // Select Target Node (random sibling, skips parent + source index + source name)
             boolean targetOpened = tapOnTargetNodeDropdown();
             if (!targetOpened) targetOpened = tapOnTargetNodeField();
             sleep(300);
             java.util.Set<Integer> excludeForTarget = new java.util.HashSet<>();
             excludeForTarget.add(sourceIndex);
-            int targetIndex = selectRandomSiblingAsset(excludeForTarget);
+            java.util.Set<String> excludeNamesForTarget = new java.util.HashSet<>();
+            if (sourceName != null) excludeNamesForTarget.add(sourceName);
+            int targetIndex = selectRandomSiblingAsset(excludeForTarget, excludeNamesForTarget);
             boolean targetSelected = targetIndex > 0;
             System.out.println("  Target Node selected: " + targetSelected + " (index " + targetIndex + ")");
             sleep(300);
