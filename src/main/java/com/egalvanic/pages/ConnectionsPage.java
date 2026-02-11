@@ -2159,17 +2159,30 @@ public class ConnectionsPage {
 
             System.out.println("   Total REAL ASSETS found: " + realAssetNames.size());
 
-            // Build list of valid indices — exclude by index AND by name
+            // Known invalid/placeholder asset names that should never be selected
+            Set<String> INVALID_ASSET_NAMES = new java.util.HashSet<>(java.util.Arrays.asList(
+                "Missing Node"
+            ));
+
+            // Build list of valid indices — exclude by index, name, and invalid assets
             List<Integer> validIndices = new java.util.ArrayList<>();
             for (int i = 0; i < realAssetNames.size(); i++) {
                 if (i == 0) continue;  // Always skip parent (index 0 = A1)
                 if (excludeIndices != null && excludeIndices.contains(i)) continue;
 
+                String assetLabel = realAssetNames.get(i).getAttribute("label");
+                String trimmedLabel = (assetLabel != null) ? assetLabel.trim() : "";
+
+                // Skip invalid/placeholder assets (e.g., "Missing Node")
+                if (INVALID_ASSET_NAMES.contains(trimmedLabel)) {
+                    System.out.println("   Skipping index " + i + " ('" + trimmedLabel + "') — invalid/placeholder asset");
+                    continue;
+                }
+
                 // Name-based exclusion: prevent same asset even if index differs
                 if (excludeNames != null && !excludeNames.isEmpty()) {
-                    String assetLabel = realAssetNames.get(i).getAttribute("label");
-                    if (assetLabel != null && excludeNames.contains(assetLabel.trim())) {
-                        System.out.println("   Skipping index " + i + " ('" + assetLabel.trim() + "') — name excluded");
+                    if (excludeNames.contains(trimmedLabel)) {
+                        System.out.println("   Skipping index " + i + " ('" + trimmedLabel + "') — name excluded");
                         continue;
                     }
                 }
