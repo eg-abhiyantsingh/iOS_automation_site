@@ -620,28 +620,12 @@ public class BuildingPage extends BasePage {
      */
     public boolean areBuildingEntriesDisplayed() {
         try {
-            // Buildings typically show name and floor count (e.g., "2 floors")
-            List<WebElement> buildingEntries = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND (label CONTAINS 'floor' OR label CONTAINS 'Floor')"));
-            
-            if (!buildingEntries.isEmpty()) {
-                System.out.println("✅ Found " + buildingEntries.size() + " building entries");
-                return true;
-            }
-            
-            // Alternative: Check for any button with building-like names
-            List<WebElement> allButtons = driver.findElements(AppiumBy.className("XCUIElementTypeButton"));
-            for (WebElement btn : allButtons) {
-                String label = btn.getAttribute("label");
-                if (label != null && (label.contains("floor") || label.matches(".*\\d+ floor.*"))) {
-                    System.out.println("✅ Found building entry: " + label);
-                    return true;
-                }
-            }
-            
-            return false;
+            // Just check if at least one building exists (don't fetch all 300+)
+            WebElement firstBuilding = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label CONTAINS 'floor'"));
+            System.out.println("✅ Building entries displayed");
+            return true;
         } catch (Exception e) {
-            System.out.println("⚠️ Error checking building entries: " + e.getMessage());
             return false;
         }
     }

@@ -5,6 +5,8 @@ import io.appium.java_client.AppiumBy;
 import io.appium.java_client.ios.IOSDriver;
 import org.openqa.selenium.WebElement;
 import java.util.List;
+import java.util.Random;
+import java.util.Set;
 
 /**
  * ConnectionsPage - Page Object for Connections module
@@ -2058,6 +2060,110 @@ public class ConnectionsPage {
 
 
     /**
+     * Select a random sibling asset from the dropdown, excluding specified indices.
+     * Index 0 (A1/parent) is always excluded to avoid parent-child validation errors.
+     *
+     * @param excludeIndices set of additional indices to exclude (e.g., already-selected source)
+     * @return the selected index, or -1 if no valid asset could be selected
+     */
+    public int selectRandomSiblingAsset(Set<Integer> excludeIndices) {
+        try {
+            System.out.println("🎲 Selecting random sibling asset (excluding indices: " + excludeIndices + ")...");
+            sleep(800);  // Wait for dropdown to fully open
+
+            // Get ALL visible StaticText elements
+            List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true"));
+
+            System.out.println("   Found " + allTexts.size() + " text elements");
+
+            // Known headers/labels to skip (these are NOT clickable assets)
+            String[] headersToSkip = {
+                "New Connection", "Connection Details", "Source Node", "Target Node",
+                "Connection Type", "Select source node", "Select target node", "Select type",
+                "Please select", "Search", "Cancel", "Create", "Source Terminal", "Target Terminal",
+                "Bottom", "Top"
+            };
+
+            // Collect all text elements in the dropdown area
+            List<WebElement> dropdownElements = new java.util.ArrayList<>();
+
+            for (WebElement el : allTexts) {
+                String label = el.getAttribute("label");
+                if (label == null || label.isEmpty()) continue;
+
+                int y = el.getLocation().getY();
+                int x = el.getLocation().getX();
+
+                boolean isHeader = false;
+                for (String header : headersToSkip) {
+                    if (label.equalsIgnoreCase(header) || label.startsWith(header)) {
+                        isHeader = true;
+                        break;
+                    }
+                }
+                if (isHeader) continue;
+
+                if (label.contains(">")) continue;
+
+                if (x >= 40 && x <= 90 && y >= 280 && y <= 800) {
+                    dropdownElements.add(el);
+                    System.out.println("   Element " + (dropdownElements.size() - 1) + ": '" + label + "' at Y=" + y);
+                }
+            }
+
+            // Group elements into real assets using Y-coordinate gap analysis
+            int Y_GAP_THRESHOLD = 32;
+            List<WebElement> realAssetNames = new java.util.ArrayList<>();
+
+            if (!dropdownElements.isEmpty()) {
+                realAssetNames.add(dropdownElements.get(0));
+                for (int i = 1; i < dropdownElements.size(); i++) {
+                    int prevY = dropdownElements.get(i - 1).getLocation().getY();
+                    int currY = dropdownElements.get(i).getLocation().getY();
+                    int gap = currY - prevY;
+                    if (gap > Y_GAP_THRESHOLD) {
+                        realAssetNames.add(dropdownElements.get(i));
+                    }
+                }
+            }
+
+            System.out.println("   Total REAL ASSETS found: " + realAssetNames.size());
+
+            // Build list of valid indices (exclude index 0/parent + any provided exclusions)
+            List<Integer> validIndices = new java.util.ArrayList<>();
+            for (int i = 0; i < realAssetNames.size(); i++) {
+                if (i == 0) continue;  // Always skip parent (index 0 = A1)
+                if (excludeIndices != null && excludeIndices.contains(i)) continue;
+                validIndices.add(i);
+            }
+
+            System.out.println("   Valid indices for random selection: " + validIndices);
+
+            if (validIndices.isEmpty()) {
+                System.out.println("⚠️ No valid sibling assets available for random selection!");
+                return -1;
+            }
+
+            // Pick a random valid index
+            Random random = new Random();
+            int randomPick = validIndices.get(random.nextInt(validIndices.size()));
+            WebElement asset = realAssetNames.get(randomPick);
+            String label = asset.getAttribute("label");
+
+            System.out.println("   🎲 Randomly picked index " + randomPick + ": '" + label + "'");
+            asset.click();
+            sleep(500);
+            System.out.println("✓ Randomly selected: " + label + " (index " + randomPick + ")");
+            return randomPick;
+
+        } catch (Exception e) {
+            System.out.println("⚠️ Error in selectRandomSiblingAsset: " + e.getMessage());
+            return -1;
+        }
+    }
+
+    /**
      * Get selected Source Node text
      */
     public String getSelectedSourceNodeText() {
@@ -3669,16 +3775,26 @@ public class ConnectionsPage {
      */
     public boolean fillAllConnectionFields() {
         try {
-            System.out.println("📝 Filling all connection fields with first available options...");
+            System.out.println("📝 Filling all connection fields with random sibling assets...");
 
-            // Select Source Node
-            boolean sourceSelected = selectFirstSourceNode();
-            System.out.println("  Source Node selected: " + sourceSelected);
+            // Select Source Node (random sibling, always skips parent at index 0)
+            boolean sourceOpened = tapOnSourceNodeDropdown();
+            if (!sourceOpened) sourceOpened = tapOnSourceNodeField();
+            sleep(300);
+            int sourceIndex = selectRandomSiblingAsset(new java.util.HashSet<>());
+            boolean sourceSelected = sourceIndex > 0;
+            System.out.println("  Source Node selected: " + sourceSelected + " (index " + sourceIndex + ")");
             sleep(300);
 
-            // Select Target Node
-            boolean targetSelected = selectFirstTargetNode();
-            System.out.println("  Target Node selected: " + targetSelected);
+            // Select Target Node (random sibling, skips parent + source index)
+            boolean targetOpened = tapOnTargetNodeDropdown();
+            if (!targetOpened) targetOpened = tapOnTargetNodeField();
+            sleep(300);
+            java.util.Set<Integer> excludeForTarget = new java.util.HashSet<>();
+            excludeForTarget.add(sourceIndex);
+            int targetIndex = selectRandomSiblingAsset(excludeForTarget);
+            boolean targetSelected = targetIndex > 0;
+            System.out.println("  Target Node selected: " + targetSelected + " (index " + targetIndex + ")");
             sleep(300);
 
             // Select Connection Type

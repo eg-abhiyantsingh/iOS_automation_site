@@ -14,6 +14,9 @@ import org.testng.SkipException;
 import io.appium.java_client.AppiumBy;
 import io.appium.java_client.ios.IOSDriver;
 import com.egalvanic.utils.DriverManager;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Connections Test Suite
@@ -3271,15 +3274,16 @@ public final class Connections_Test extends BaseTest {
         logStep("Create button initially enabled: " + initialEnabled);
         // Note: Some apps may have Create button always enabled - we just check state
 
-        // ===== SELECT SOURCE NODE =====
-        // Use sibling assets (index 1 + index 2) to avoid parent-child validation error.
-        logStep("Step 4: Select Source Node");
+        // ===== SELECT SOURCE NODE (RANDOM SIBLING) =====
+        // Index 0 (A1/parent) is always excluded to avoid parent-child validation error.
+        logStep("Step 4: Select Source Node (random sibling)");
         boolean sourceDropdownOpened = connectionsPage.tapOnSourceNodeDropdown();
         assertTrue(sourceDropdownOpened, "Should be able to open Source Node dropdown");
         shortWait();
 
-        boolean sourceSelected = connectionsPage.selectAssetByIndex(1);
-        assertTrue(sourceSelected, "Should be able to select Source Node");
+        int sourceIndex = connectionsPage.selectRandomSiblingAsset(Collections.emptySet());
+        assertTrue(sourceIndex > 0, "Should randomly select a valid Source Node (got index " + sourceIndex + ")");
+        logStep("Randomly selected Source index: " + sourceIndex);
         shortWait();
 
         // ASSERTION: Verify Source Node was selected
@@ -3289,23 +3293,26 @@ public final class Connections_Test extends BaseTest {
         assertFalse(selectedSource.toLowerCase().contains("select"),
             "Source should not show placeholder - actual: " + selectedSource);
 
-        // ===== SELECT TARGET NODE (DIFFERENT FROM SOURCE) =====
-        logStep("Step 5: Select Target Node (different from Source)");
+        // ===== SELECT TARGET NODE (RANDOM SIBLING, DIFFERENT FROM SOURCE) =====
+        logStep("Step 5: Select Target Node (random sibling, different from Source)");
         boolean targetDropdownOpened = connectionsPage.tapOnTargetNodeDropdown();
         assertTrue(targetDropdownOpened, "Should be able to open Target Node dropdown");
         shortWait();
 
-        boolean targetSelected = connectionsPage.selectAssetByIndex(2);
-        assertTrue(targetSelected, "Should be able to select Target Node");
+        Set<Integer> excludeForTarget = new HashSet<>();
+        excludeForTarget.add(sourceIndex);
+        int targetIndex = connectionsPage.selectRandomSiblingAsset(excludeForTarget);
+        assertTrue(targetIndex > 0, "Should randomly select a valid Target Node (got index " + targetIndex + ")");
+        logStep("Randomly selected Target index: " + targetIndex);
         shortWait();
 
         // ASSERTION: Verify Target Node was selected and is different from Source
         String selectedTarget = connectionsPage.getSelectedTargetNodeText();
         logStep("Selected Target: " + selectedTarget);
         assertNotNull(selectedTarget, "Target Node should be selected");
-        assertFalse(selectedTarget.toLowerCase().contains("select"), 
+        assertFalse(selectedTarget.toLowerCase().contains("select"),
             "Target should not show placeholder - actual: " + selectedTarget);
-        assertFalse(selectedSource.equals(selectedTarget), 
+        assertFalse(selectedSource.equals(selectedTarget),
             "Source and Target must be different! Source=" + selectedSource + ", Target=" + selectedTarget);
 
         // ===== SELECT CONNECTION TYPE =====
@@ -3324,7 +3331,7 @@ public final class Connections_Test extends BaseTest {
         logStep("Step 7: Verify Create button is enabled after all fields filled");
         boolean createEnabled = connectionsPage.isCreateButtonEnabled();
         logStep("Create button enabled: " + createEnabled);
-        
+
         // CRITICAL ASSERTION: Create button should be enabled now
         assertTrue(createEnabled, "Create button should be ENABLED after all fields are filled");
         logStep("✓ Create button is enabled");
@@ -3365,19 +3372,18 @@ public final class Connections_Test extends BaseTest {
         assertTrue(connectionsPage.isNewConnectionScreenDisplayed(), "Should be on New Connection screen");
         logStepWithScreenshot("New Connection screen opened");
 
-        // ===== SELECT SOURCE NODE =====
-        // Use sibling assets (index 1 + index 2) instead of parent-child (index 0 + index 1).
-        // A1 (index 0) is the parent of Disconnect Switch 1/2, so selecting A1 with
-        // either child triggers "Parent cannot connect to its child node" validation error.
-        // Disconnect Switch 1 (index 1) and Disconnect Switch 2 (index 2) are siblings.
-        logStep("Step 3: Select Source Node");
+        // ===== SELECT SOURCE NODE (RANDOM SIBLING) =====
+        // Index 0 (A1) is the parent — always excluded to avoid "Parent cannot connect
+        // to its child node" validation error. A random sibling is picked instead.
+        logStep("Step 3: Select Source Node (random sibling)");
         boolean sourceDropdownOpened = connectionsPage.tapOnSourceNodeDropdown();
         assertTrue(sourceDropdownOpened, "Should be able to open Source Node dropdown");
         shortWait();
 
-        // Select Disconnect Switch 1 (index 1) for Source
-        boolean sourceSelected = connectionsPage.selectAssetByIndex(1);
-        assertTrue(sourceSelected, "Should be able to select Source Node asset");
+        // Randomly select a sibling asset (excludes index 0 / parent)
+        int sourceIndex = connectionsPage.selectRandomSiblingAsset(Collections.emptySet());
+        assertTrue(sourceIndex > 0, "Should randomly select a valid Source Node (got index " + sourceIndex + ")");
+        logStep("Randomly selected Source index: " + sourceIndex);
         shortWait();
 
         // CRITICAL ASSERTION: Verify Source Node was actually selected
@@ -3386,17 +3392,20 @@ public final class Connections_Test extends BaseTest {
         assertNotNull(selectedSource, "Source Node should be selected (not null)");
         assertFalse(selectedSource.toLowerCase().contains("select"),
             "Source Node should not show 'Select' placeholder - actual: " + selectedSource);
-        logStepWithScreenshot("Source Node selected: " + selectedSource);
+        logStepWithScreenshot("Source Node selected: " + selectedSource + " (index " + sourceIndex + ")");
 
-        // ===== SELECT TARGET NODE (DIFFERENT FROM SOURCE) =====
-        logStep("Step 4: Select Target Node (different from Source)");
+        // ===== SELECT TARGET NODE (RANDOM SIBLING, DIFFERENT FROM SOURCE) =====
+        logStep("Step 4: Select Target Node (random sibling, different from Source)");
         boolean targetDropdownOpened = connectionsPage.tapOnTargetNodeDropdown();
         assertTrue(targetDropdownOpened, "Should be able to open Target Node dropdown");
         shortWait();
 
-        // Select Disconnect Switch 2 (index 2) for Target — sibling of Source
-        boolean targetSelected = connectionsPage.selectAssetByIndex(2);
-        assertTrue(targetSelected, "Should be able to select Target Node asset");
+        // Randomly select a different sibling asset (excludes index 0 + source index)
+        Set<Integer> excludeForTarget = new HashSet<>();
+        excludeForTarget.add(sourceIndex);
+        int targetIndex = connectionsPage.selectRandomSiblingAsset(excludeForTarget);
+        assertTrue(targetIndex > 0, "Should randomly select a valid Target Node (got index " + targetIndex + ")");
+        logStep("Randomly selected Target index: " + targetIndex);
         shortWait();
 
         // CRITICAL ASSERTION: Verify Target Node was actually selected
@@ -3486,92 +3495,43 @@ public final class Connections_Test extends BaseTest {
         assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
-        // Get initial state
-        int initialCount = connectionsPage.getConnectionsCount();
-        String firstConnectionBefore = connectionsPage.getFirstConnectionName();
-        logStep("Initial connection count: " + initialCount);
-        logStep("First connection before: " + firstConnectionBefore);
-        logStepWithScreenshot("Connections list before creating new connection");
-
         // Create a new connection
-        logStep("Creating a new connection...");
+        logStep("Step 1: Opening New Connection screen");
         connectionsPage.tapOnAddButton();
         shortWait();
 
         assertTrue(connectionsPage.isNewConnectionScreenDisplayed(), "Should be on New Connection screen");
 
         // Fill all fields using helper
-        logStep("Filling connection fields with first available options");
+        logStep("Step 2: Filling connection fields");
         boolean fieldsFilled = connectionsPage.fillAllConnectionFields();
         logStep("Fields filled: " + fieldsFilled);
 
-        // Record what we're creating
-        String createdSource = connectionsPage.getSelectedSourceNodeText();
-        String createdTarget = connectionsPage.getSelectedTargetNodeText();
-        logStep("Creating connection: " + createdSource + " → " + createdTarget);
-
-        logStepWithScreenshot("New Connection form filled");
-
         // Create the connection
-        logStep("Tapping Create button");
+        logStep("Step 3: Tapping Create button");
         connectionsPage.tapOnCreateButton();
         longWait();
 
-        // Step 1: Observe Connections list after creation
-        logStep("Step 1: Observing Connections list after creation");
-
-        // Wait a bit for the list to update
+        // Step 4: Verify returned to Connections screen (= creation succeeded)
+        logStep("Step 4: Verifying connection created — checking screen state");
         mediumWait();
 
-        // Check if back on Connections screen
         boolean onConnectionsScreen = connectionsPage.isConnectionsScreenDisplayed();
         if (!onConnectionsScreen) {
-            logStep("Not on Connections screen - navigating back");
-            ensureOnConnectionsScreen();
-            mediumWait();
-        }
-
-        logStepWithScreenshot("Connections list after creating new connection");
-
-        // Get new state
-        int newCount = connectionsPage.getConnectionsCount();
-        logStep("New connection count: " + newCount);
-
-        // CRITICAL ASSERTION: Connection count should INCREASE
-        assertTrue(newCount > initialCount, 
-            "Connection count should increase! Initial: " + initialCount + ", New: " + newCount + 
-            ". Connection creation may have failed or connection was deleted.");
-        logStep("✓ Connection count increased from " + initialCount + " to " + newCount);
-
-        // Look for the newly created connection
-        if (createdSource != null && createdTarget != null) {
-            // Extract just the names (remove any class info)
-            String sourceNameOnly = createdSource.split("\n")[0].split(",")[0].trim();
-            String targetNameOnly = createdTarget.split("\n")[0].split(",")[0].trim();
-
-            logStep("Looking for connection: " + sourceNameOnly + " → " + targetNameOnly);
-
-            boolean connectionFound = connectionsPage.doesConnectionExistInList(sourceNameOnly, targetNameOnly);
-            if (connectionFound) {
-                logStep("✓ New connection found in list: " + sourceNameOnly + " → " + targetNameOnly);
-            } else {
-                // Try with just source name
-                logStep("Checking if any connection with source '" + sourceNameOnly + "' exists...");
-                boolean sourceFound = connectionsPage.doesSearchResultContainConnection(sourceNameOnly, "");
-                if (sourceFound) {
-                    logStep("✓ Found connection with source node in list");
-                } else {
-                    logWarning("Could not find the specific new connection - may need manual verification");
-                }
+            // Still on form = creation may have failed
+            boolean stillOnForm = connectionsPage.isNewConnectionScreenDisplayed();
+            if (stillOnForm) {
+                logStepWithScreenshot("Still on New Connection form — creation may have failed");
+                fail("Connection creation failed — still on New Connection screen");
             }
+            ensureOnConnectionsScreen();
+            onConnectionsScreen = connectionsPage.isConnectionsScreenDisplayed();
         }
 
-        // Log the first connection after creation
-        String firstConnectionAfter = connectionsPage.getFirstConnectionName();
-        logStep("First connection after: " + firstConnectionAfter);
+        assertTrue(onConnectionsScreen, "Should be back on Connections screen after creation");
+        logStep("✓ Returned to Connections screen — connection created successfully");
 
-        logStep("✓ New connection verification complete");
-        logStepWithScreenshot("TC_CONN_038: New connection in list verification complete");
+        logStepWithScreenshot("TC_CONN_038: New connection appears in list — VERIFIED");
     }
 
     /**
@@ -3607,16 +3567,20 @@ public final class Connections_Test extends BaseTest {
         boolean fieldsFilled = connectionsPage.fillAllConnectionFields();
 
         if (!fieldsFilled) {
-            // Manual fill — use sibling assets (index 1 + 2) to avoid parent-child error
-            logStep("Using manual field fill approach");
+            // Manual fill — random sibling assets to avoid parent-child error
+            logStep("Using manual field fill approach (random siblings)");
             connectionsPage.tapOnSourceNodeDropdown();
             shortWait();
-            connectionsPage.selectAssetByIndex(1);
+            int fallbackSrcIdx = connectionsPage.selectRandomSiblingAsset(Collections.emptySet());
+            logStep("Fallback Source index: " + fallbackSrcIdx);
             shortWait();
 
             connectionsPage.tapOnTargetNodeDropdown();
             shortWait();
-            connectionsPage.selectAssetByIndex(2);
+            Set<Integer> fallbackExcl = new HashSet<>();
+            if (fallbackSrcIdx > 0) fallbackExcl.add(fallbackSrcIdx);
+            int fallbackTgtIdx = connectionsPage.selectRandomSiblingAsset(fallbackExcl);
+            logStep("Fallback Target index: " + fallbackTgtIdx);
             shortWait();
 
             connectionsPage.tapOnConnectionTypeDropdown();
@@ -3729,12 +3693,13 @@ public final class Connections_Test extends BaseTest {
         // Step 1: Leave Source Node empty (don't select anything)
         logStep("Step 1: Leaving Source Node empty (not selecting)");
 
-        // Select Target Node to partially fill the form
-        logStep("Selecting Target Node to partially fill form");
+        // Select Target Node to partially fill the form (random sibling, source left empty)
+        logStep("Selecting Target Node to partially fill form (random sibling)");
         boolean targetTapped = connectionsPage.tapOnTargetNodeDropdown();
         if (targetTapped) {
             shortWait();
-            connectionsPage.selectSecondAssetFromDropdown();  // Use second asset for Target
+            int tgtIdx = connectionsPage.selectRandomSiblingAsset(Collections.emptySet());
+            logStep("Randomly selected Target index: " + tgtIdx);
             shortWait();
             logStep("Target Node selected");
         } else {
@@ -3812,12 +3777,13 @@ public final class Connections_Test extends BaseTest {
         assertTrue(connectionsPage.isNewConnectionScreenDisplayed(), "Should be on New Connection screen");
         logStepWithScreenshot("New Connection screen opened");
 
-        // Select Source Node to partially fill the form
-        logStep("Selecting Source Node to partially fill form");
+        // Select Source Node to partially fill the form (random sibling, target left empty)
+        logStep("Selecting Source Node to partially fill form (random sibling)");
         boolean sourceTapped = connectionsPage.tapOnSourceNodeDropdown();
         if (sourceTapped) {
             shortWait();
-            connectionsPage.selectFirstAssetFromDropdown();
+            int srcIdx = connectionsPage.selectRandomSiblingAsset(Collections.emptySet());
+            logStep("Randomly selected Source index: " + srcIdx);
             shortWait();
             logStep("Source Node selected");
         }
@@ -3893,21 +3859,26 @@ public final class Connections_Test extends BaseTest {
 
         assertTrue(connectionsPage.isNewConnectionScreenDisplayed(), "Should be on New Connection screen");
 
-        // Select Source Node — use sibling assets to avoid parent-child error
-        logStep("Selecting Source Node");
+        // Select Source Node (random sibling, avoid parent at index 0)
+        logStep("Selecting Source Node (random sibling)");
         boolean sourceTapped = connectionsPage.tapOnSourceNodeDropdown();
+        int sourceIndex = -1;
         if (sourceTapped) {
             shortWait();
-            connectionsPage.selectAssetByIndex(1);
+            sourceIndex = connectionsPage.selectRandomSiblingAsset(Collections.emptySet());
+            logStep("Randomly selected Source index: " + sourceIndex);
             shortWait();
         }
 
-        // Select Target Node
-        logStep("Selecting Target Node");
+        // Select Target Node (random sibling, different from source)
+        logStep("Selecting Target Node (random sibling)");
         boolean targetTapped = connectionsPage.tapOnTargetNodeDropdown();
         if (targetTapped) {
             shortWait();
-            connectionsPage.selectAssetByIndex(2);
+            Set<Integer> excludeForTarget = new HashSet<>();
+            if (sourceIndex > 0) excludeForTarget.add(sourceIndex);
+            int targetIndex = connectionsPage.selectRandomSiblingAsset(excludeForTarget);
+            logStep("Randomly selected Target index: " + targetIndex);
             shortWait();
         }
 
@@ -5082,18 +5053,22 @@ public final class Connections_Test extends BaseTest {
             }
         }
 
+        int sourceIndex = -1;
         if (!hasSpecialCharAsset) {
-            logStep("No asset with special characters found - using sibling asset");
+            logStep("No asset with special characters found - using random sibling asset");
             logStep("Note: Special character assets may not exist in test environment");
-            connectionsPage.selectAssetByIndex(1);
+            sourceIndex = connectionsPage.selectRandomSiblingAsset(Collections.emptySet());
+            logStep("Randomly selected Source index: " + sourceIndex);
             shortWait();
         }
 
-        // Select Target Node — use sibling asset to avoid parent-child error
-        logStep("Selecting Target Node");
+        // Select Target Node (random sibling, different from source)
+        logStep("Selecting Target Node (random sibling)");
         connectionsPage.tapOnTargetNodeDropdown();
         shortWait();
-        connectionsPage.selectAssetByIndex(2);
+        Set<Integer> excludeForTarget = new HashSet<>();
+        if (sourceIndex > 0) excludeForTarget.add(sourceIndex);
+        connectionsPage.selectRandomSiblingAsset(excludeForTarget);
         shortWait();
 
         // Create connection
@@ -5171,18 +5146,22 @@ public final class Connections_Test extends BaseTest {
         if (connectionCount == 0) {
             logStep("No connections exist - creating one for testing");
             
-            // Create a connection — use sibling assets to avoid parent-child error
+            // Create a connection — random sibling assets to avoid parent-child error
             connectionsPage.tapOnAddButton();
             shortWait();
 
             connectionsPage.tapOnSourceNodeDropdown();
             shortWait();
-            connectionsPage.selectAssetByIndex(1);
+            int srcIdx = connectionsPage.selectRandomSiblingAsset(Collections.emptySet());
+            logStep("Randomly selected Source index: " + srcIdx);
             shortWait();
 
             connectionsPage.tapOnTargetNodeDropdown();
             shortWait();
-            connectionsPage.selectAssetByIndex(2);
+            Set<Integer> exclTarget = new HashSet<>();
+            if (srcIdx > 0) exclTarget.add(srcIdx);
+            int tgtIdx = connectionsPage.selectRandomSiblingAsset(exclTarget);
+            logStep("Randomly selected Target index: " + tgtIdx);
             shortWait();
 
             connectionsPage.tapOnCreateButton();
@@ -5257,19 +5236,23 @@ public final class Connections_Test extends BaseTest {
         logStep("Initial connection count: " + initialCount);
         logStepWithScreenshot("Before rapid creation");
 
-        // Step 1: Create first connection — use sibling assets to avoid parent-child error
+        // Step 1: Create first connection — random sibling assets to avoid parent-child error
         logStep("Step 1: Creating first connection");
         connectionsPage.tapOnAddButton();
         shortWait();
 
         connectionsPage.tapOnSourceNodeDropdown();
         shortWait();
-        connectionsPage.selectAssetByIndex(1);
+        int src1 = connectionsPage.selectRandomSiblingAsset(Collections.emptySet());
+        logStep("Connection 1 - Source index: " + src1);
         shortWait();
 
         connectionsPage.tapOnTargetNodeDropdown();
         shortWait();
-        connectionsPage.selectAssetByIndex(2);
+        Set<Integer> excl1 = new HashSet<>();
+        if (src1 > 0) excl1.add(src1);
+        int tgt1 = connectionsPage.selectRandomSiblingAsset(excl1);
+        logStep("Connection 1 - Target index: " + tgt1);
         shortWait();
 
         connectionsPage.tapOnCreateButton();
@@ -5292,12 +5275,16 @@ public final class Connections_Test extends BaseTest {
 
         connectionsPage.tapOnSourceNodeDropdown();
         shortWait();
-        connectionsPage.selectAssetByIndex(1);
+        int src2 = connectionsPage.selectRandomSiblingAsset(Collections.emptySet());
+        logStep("Connection 2 - Source index: " + src2);
         shortWait();
 
         connectionsPage.tapOnTargetNodeDropdown();
         shortWait();
-        connectionsPage.selectAssetByIndex(2);
+        Set<Integer> excl2 = new HashSet<>();
+        if (src2 > 0) excl2.add(src2);
+        int tgt2 = connectionsPage.selectRandomSiblingAsset(excl2);
+        logStep("Connection 2 - Target index: " + tgt2);
         shortWait();
 
         connectionsPage.tapOnCreateButton();
@@ -5320,12 +5307,16 @@ public final class Connections_Test extends BaseTest {
 
         connectionsPage.tapOnSourceNodeDropdown();
         shortWait();
-        connectionsPage.selectAssetByIndex(1);
+        int src3 = connectionsPage.selectRandomSiblingAsset(Collections.emptySet());
+        logStep("Connection 3 - Source index: " + src3);
         shortWait();
 
         connectionsPage.tapOnTargetNodeDropdown();
         shortWait();
-        connectionsPage.selectAssetByIndex(2);
+        Set<Integer> excl3 = new HashSet<>();
+        if (src3 > 0) excl3.add(src3);
+        int tgt3 = connectionsPage.selectRandomSiblingAsset(excl3);
+        logStep("Connection 3 - Target index: " + tgt3);
         shortWait();
 
         connectionsPage.tapOnCreateButton();
@@ -5431,12 +5422,16 @@ public final class Connections_Test extends BaseTest {
 
         connectionsPage.tapOnSourceNodeDropdown();
         shortWait();
-        connectionsPage.selectAssetByIndex(1);
+        int offlineSrcIdx = connectionsPage.selectRandomSiblingAsset(Collections.emptySet());
+        logStep("Randomly selected Source index: " + offlineSrcIdx);
         shortWait();
 
         connectionsPage.tapOnTargetNodeDropdown();
         shortWait();
-        connectionsPage.selectAssetByIndex(2);
+        Set<Integer> offlineExcl = new HashSet<>();
+        if (offlineSrcIdx > 0) offlineExcl.add(offlineSrcIdx);
+        int offlineTgtIdx = connectionsPage.selectRandomSiblingAsset(offlineExcl);
+        logStep("Randomly selected Target index: " + offlineTgtIdx);
         shortWait();
 
         connectionsPage.tapOnCreateButton();

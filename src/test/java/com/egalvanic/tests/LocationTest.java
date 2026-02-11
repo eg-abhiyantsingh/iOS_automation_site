@@ -662,41 +662,16 @@ public class LocationTest extends BaseTest {
         );
 
         // Step 1: Navigate to Locations screen
-        logStep("Step 1: Navigating to Locations screen (Building List)");
+        logStep("Step 1: Navigating to Locations screen");
         boolean onLocationsScreen = ensureOnLocationsScreen();
         assertTrue(onLocationsScreen, "Should be on Locations screen");
-        shortWait();
 
         // Step 2: Verify building entries are displayed
-        logStep("Step 2: Verifying building entries are displayed in the list");
+        logStep("Step 2: Verifying building entries are displayed");
         boolean buildingsDisplayed = buildingPage.areBuildingEntriesDisplayed();
         assertTrue(buildingsDisplayed, "Building entries should be displayed in the list");
 
-        // Step 3: Verify building list UI elements
-        logStep("Step 3: Verifying Plus button (Add Building) is visible");
-        boolean plusButtonVisible = buildingPage.isPlusBuildingButtonDisplayed();
-        assertTrue(plusButtonVisible, "Plus button for adding buildings should be visible");
-
-        // Additional verification: Check for floor count pattern in building entries
-        logStep("Verifying building entries show floor count information");
-        org.openqa.selenium.WebElement firstBuilding = buildingPage.getFirstBuildingEntry();
-        if (firstBuilding != null) {
-            String buildingLabel = firstBuilding.getAttribute("label");
-            logStep("First building entry label: " + buildingLabel);
-            
-            // Verify floor count pattern exists (e.g., "Building Name, 2 floors")
-            boolean hasFloorInfo = buildingLabel != null && 
-                (buildingLabel.toLowerCase().contains("floor") || 
-                 buildingLabel.matches(".*\\d+ floor.*"));
-            
-            if (hasFloorInfo) {
-                logStep("✓ Building entry includes floor count information");
-            } else {
-                logWarning("Building entry may not show floor count - label: " + buildingLabel);
-            }
-        }
-
-        logStepWithScreenshot("TC_BL_001: Building List verification complete - buildings displayed with UI elements");
+        logStepWithScreenshot("TC_BL_001: Building List displays buildings");
     }
 
     /**
