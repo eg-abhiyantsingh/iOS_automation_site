@@ -54,11 +54,14 @@ public final class Connections_Test extends BaseTest {
 
         // Skip app reinstall - just reopen the app
         com.egalvanic.utils.DriverManager.setNoReset(true);
+    }
 
-        // Initialize driver (required before creating page objects)
-        com.egalvanic.utils.DriverManager.initDriver();
-
-        // Initialize page objects
+    @org.testng.annotations.BeforeMethod(alwaysRun = true)
+    public void refreshPageObjects() {
+        // Re-create page objects with the current driver.
+        // After each test, @AfterMethod quits the driver and @BeforeMethod (BaseTest)
+        // creates a new one. Page objects cache the driver at construction time,
+        // so they must be re-created to use the fresh driver.
         connectionsPage = new ConnectionsPage();
         buildingPage = new BuildingPage();
     }

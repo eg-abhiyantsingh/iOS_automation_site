@@ -112,39 +112,46 @@ public class ConnectionsPage {
     public boolean tapOnConnectionsTab() {
         try {
             System.out.println("🔗 Tapping on Connections tab...");
-            
-            // Strategy 1: Direct tap on Connections button
+
+            // Wait for tab bar to load (after fresh driver start, DOM needs time)
             try {
-                WebElement connectionsTab = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND (label CONTAINS 'Connections' OR label CONTAINS 'connections')"));
-                connectionsTab.click();
+                org.openqa.selenium.support.ui.WebDriverWait wait =
+                    new org.openqa.selenium.support.ui.WebDriverWait(driver, java.time.Duration.ofSeconds(5));
+                WebElement tab = wait.until(org.openqa.selenium.support.ui.ExpectedConditions.presenceOfElementLocated(
+                    AppiumBy.iOSNsPredicateString(
+                        "label CONTAINS 'Connections' AND (type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText')")));
+                tab.click();
                 sleep(300);
-                System.out.println("✓ Tapped Connections tab via Button");
+                System.out.println("✓ Tapped Connections tab (waited for DOM)");
                 return true;
-            } catch (Exception e1) {}
-            
-            // Strategy 2: Tap on StaticText Connections
-            try {
-                WebElement connectionsText = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND label == 'Connections' AND visible == true"));
-                connectionsText.click();
-                sleep(300);
-                System.out.println("✓ Tapped Connections tab via StaticText");
-                return true;
-            } catch (Exception e2) {}
-            
-            // Strategy 3: Use accessibilityId
+            } catch (Exception waitEx) {
+                System.out.println("   Wait for Connections tab timed out, trying fallbacks...");
+            }
+
+            // Fallback 1: accessibilityId
             try {
                 driver.findElement(AppiumBy.accessibilityId("Connections")).click();
                 sleep(300);
                 System.out.println("✓ Tapped Connections tab via accessibilityId");
                 return true;
-            } catch (Exception e3) {}
-            
-            // Strategy 4: Find any element with Connections label
+            } catch (Exception e1) {}
+
+            // Fallback 2: Tap the Connections tile on Dashboard (shows count like "19")
+            try {
+                WebElement connectionsTile = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "label CONTAINS 'Connections' AND label CONTAINS[c] 'connection'"));
+                connectionsTile.click();
+                sleep(500);
+                if (isConnectionsScreenDisplayed()) {
+                    System.out.println("✓ Tapped Connections tile on Dashboard");
+                    return true;
+                }
+            } catch (Exception e2) {}
+
+            // Fallback 3: Any visible element with Connections label
             try {
                 List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "label CONTAINS 'Connections' AND visible == true"));
+                    "label CONTAINS 'Connections'"));
                 for (WebElement el : elements) {
                     try {
                         el.click();
@@ -155,8 +162,8 @@ public class ConnectionsPage {
                         }
                     } catch (Exception ignored) {}
                 }
-            } catch (Exception e4) {}
-            
+            } catch (Exception e3) {}
+
             System.out.println("⚠️ Could not tap Connections tab");
             return false;
         } catch (Exception e) {

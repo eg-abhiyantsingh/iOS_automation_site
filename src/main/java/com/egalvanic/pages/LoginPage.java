@@ -102,7 +102,7 @@ public class LoginPage extends BasePage {
         
         // Try fresh lookup with explicit wait
         try {
-            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(7));
             WebElement freshEmailField = wait.until(ExpectedConditions.presenceOfElementLocated(
                 io.appium.java_client.AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' AND visible == 1")
             ));

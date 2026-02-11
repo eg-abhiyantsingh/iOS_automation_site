@@ -977,8 +977,8 @@ public class LocationTest extends BaseTest {
         boolean saveDisabledWhenEmpty = !buildingPage.isSaveButtonEnabled();
         assertTrue(saveDisabledWhenEmpty, "Save button should be disabled when Building Name is empty");
 
-        // Step 2: Enter updated building name (with timestamp to ensure uniqueness)
-        String updatedName = originalName + "_Updated_" + System.currentTimeMillis() % 10000;
+        // Step 2: Enter updated building name (short name with random suffix)
+        String updatedName = "Bldg_" + System.currentTimeMillis() % 10000;
         logStep("Step 2: Entering updated Building Name: " + updatedName);
         buildingPage.enterBuildingName(updatedName);
         shortWait();
