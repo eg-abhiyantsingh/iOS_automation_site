@@ -286,64 +286,130 @@ public class S3PolicyChecker {
     // PUBLIC METHODS - AWS OPERATIONS
     // ============================================
 
+    /** Maximum retry attempts for transient AWS errors (network timeouts, DNS failures) */
+    private static final int MAX_AWS_RETRIES = 3;
+    /** Delay between retry attempts in milliseconds */
+    private static final long RETRY_DELAY_MS = 5000;
+
     /**
-     * Fetch the current bucket policy from AWS using aws CLI
+     * Fetch the current bucket policy from AWS using aws CLI.
+     * Includes retry logic for transient network errors (DNS failures,
+     * connection timeouts, endpoint unreachable). Non-retryable errors
+     * like AccessDenied or NoSuchBucket fail immediately.
      */
     public static String fetchCurrentPolicy(String bucketName) {
-        try {
-            String[] command;
-            // If AWS_ACCESS_KEY_ID is set (GitHub Actions), don't use --profile
-            // configure-aws-credentials action sets env vars directly
-            if (System.getenv("AWS_ACCESS_KEY_ID") != null) {
-                command = new String[]{
-                    "aws", "s3api", "get-bucket-policy",
-                    "--bucket", bucketName,
-                    "--query", "Policy",
-                    "--output", "text",
-                    "--region", AWS_REGION
-                };
-            } else {
-                // Local execution: use --profile
-                command = new String[]{
-                    "aws", "s3api", "get-bucket-policy",
-                    "--bucket", bucketName,
-                    "--query", "Policy",
-                    "--output", "text",
-                    "--profile", AWS_PROFILE,
-                    "--region", AWS_REGION
-                };
-            }
-
-            ProcessBuilder pb = new ProcessBuilder(command);
-            pb.redirectErrorStream(false);
-            Process process = pb.start();
-
-            String stdout = new BufferedReader(new InputStreamReader(process.getInputStream()))
-                    .lines().collect(Collectors.joining("\n")).trim();
-
-            String stderr = new BufferedReader(new InputStreamReader(process.getErrorStream()))
-                    .lines().collect(Collectors.joining("\n")).trim();
-
-            int exitCode = process.waitFor();
-
-            if (exitCode == 0 && !stdout.isEmpty()) {
-                return normalizeJson(stdout);
-            } else if (stderr.contains("NoSuchBucketPolicy")) {
-                return "NO_POLICY";
-            } else if (stderr.contains("NoSuchBucket")) {
-                throw new RuntimeException("Bucket does not exist: " + bucketName);
-            } else if (stderr.contains("AccessDenied")) {
-                throw new RuntimeException("Access denied for bucket: " + bucketName 
-                    + ". Check AWS profile '" + AWS_PROFILE + "' permissions.");
-            } else {
-                throw new RuntimeException("AWS CLI error (exit " + exitCode + "): " + stderr);
-            }
-
-        } catch (RuntimeException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to fetch bucket policy for " + bucketName + ": " + e.getMessage(), e);
+        String[] command;
+        if (System.getenv("AWS_ACCESS_KEY_ID") != null) {
+            command = new String[]{
+                "aws", "s3api", "get-bucket-policy",
+                "--bucket", bucketName,
+                "--query", "Policy",
+                "--output", "text",
+                "--region", AWS_REGION
+            };
+        } else {
+            command = new String[]{
+                "aws", "s3api", "get-bucket-policy",
+                "--bucket", bucketName,
+                "--query", "Policy",
+                "--output", "text",
+                "--profile", AWS_PROFILE,
+                "--region", AWS_REGION
+            };
         }
+
+        RuntimeException lastError = null;
+
+        for (int attempt = 1; attempt <= MAX_AWS_RETRIES; attempt++) {
+            try {
+                ProcessBuilder pb = new ProcessBuilder(command);
+                pb.redirectErrorStream(false);
+                Process process = pb.start();
+
+                String stdout = new BufferedReader(new InputStreamReader(process.getInputStream()))
+                        .lines().collect(Collectors.joining("\n")).trim();
+
+                String stderr = new BufferedReader(new InputStreamReader(process.getErrorStream()))
+                        .lines().collect(Collectors.joining("\n")).trim();
+
+                int exitCode = process.waitFor();
+
+                if (exitCode == 0 && !stdout.isEmpty()) {
+                    if (attempt > 1) {
+                        System.out.println("  \u2705 AWS retry succeeded for " + bucketName + " on attempt " + attempt);
+                    }
+                    return normalizeJson(stdout);
+                } else if (stderr.contains("NoSuchBucketPolicy")) {
+                    return "NO_POLICY";
+                } else if (stderr.contains("NoSuchBucket")) {
+                    throw new RuntimeException("Bucket does not exist: " + bucketName);
+                } else if (stderr.contains("AccessDenied")) {
+                    throw new RuntimeException("Access denied for bucket: " + bucketName 
+                        + ". Check AWS profile '" + AWS_PROFILE + "' permissions.");
+                } else if (isTransientError(stderr)) {
+                    lastError = new RuntimeException(
+                        "AWS connectivity error (attempt " + attempt + "/" + MAX_AWS_RETRIES 
+                        + ", exit " + exitCode + "): " + stderr);
+                    System.out.println("  \u26a0\ufe0f AWS transient error for " + bucketName 
+                        + " (attempt " + attempt + "/" + MAX_AWS_RETRIES + "): " 
+                        + truncate(stderr, 120));
+                    if (attempt < MAX_AWS_RETRIES) {
+                        Thread.sleep(RETRY_DELAY_MS);
+                    }
+                } else {
+                    throw new RuntimeException("AWS CLI error (exit " + exitCode + "): " + stderr);
+                }
+
+            } catch (RuntimeException e) {
+                if (e == lastError) continue;
+                throw e;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("AWS retry interrupted for " + bucketName, e);
+            } catch (Exception e) {
+                lastError = new RuntimeException(
+                    "AWS connectivity error for " + bucketName 
+                    + " (attempt " + attempt + "/" + MAX_AWS_RETRIES + "): " + e.getMessage(), e);
+                System.out.println("  \u26a0\ufe0f AWS error for " + bucketName 
+                    + " (attempt " + attempt + "/" + MAX_AWS_RETRIES + "): " + e.getMessage());
+                if (attempt < MAX_AWS_RETRIES) {
+                    try { Thread.sleep(RETRY_DELAY_MS); } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw new RuntimeException("AWS retry interrupted", ie);
+                    }
+                }
+            }
+        }
+
+        throw lastError != null ? lastError 
+            : new RuntimeException("Failed to fetch policy for " + bucketName + " after " + MAX_AWS_RETRIES + " attempts");
+    }
+
+    /**
+     * Determine if an AWS CLI error is transient (network-related) and worth retrying.
+     */
+    private static boolean isTransientError(String errorMessage) {
+        if (errorMessage == null) return false;
+        String lower = errorMessage.toLowerCase();
+        return lower.contains("could not connect to the endpoint url")
+            || lower.contains("connection refused")
+            || lower.contains("connection reset")
+            || lower.contains("connection timed out")
+            || lower.contains("name or service not known")
+            || lower.contains("temporary failure in name resolution")
+            || lower.contains("network is unreachable")
+            || lower.contains("timed out")
+            || lower.contains("throttling")
+            || lower.contains("requesttimeout")
+            || lower.contains("serviceunavailable")
+            || lower.contains("internalerror")
+            || lower.contains("ssl: handshake");
+    }
+
+    /** Truncate a string to maxLength, adding "..." if truncated */
+    private static String truncate(String s, int maxLength) {
+        if (s == null || s.length() <= maxLength) return s;
+        return s.substring(0, maxLength) + "...";
     }
 
     /**

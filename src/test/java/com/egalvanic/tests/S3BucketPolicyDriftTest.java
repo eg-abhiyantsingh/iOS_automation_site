@@ -436,15 +436,46 @@ public class S3BucketPolicyDriftTest {
             logStep("Policy matches baseline - No drift detected");
             ExtentReportManager.logPass("Policy verified: " + bucketName);
         } else {
+            // ── Determine failure type for clear error messages ──
+            // 3 possible failure types:
+            //   1. AWS Error     → Network/connectivity issue (retry exhausted)
+            //   2. Baseline Error → Missing or invalid baseline file
+            //   3. Actual Drift  → Policy changed on AWS vs baseline
+            String errorMsg = result.getErrorMessage();
+            boolean isAwsError = errorMsg != null && errorMsg.startsWith("AWS");
+            boolean isBaselineError = errorMsg != null && errorMsg.startsWith("BASELINE");
+
+            String failureTitle;
+            String fixAdvice;
+            String reportLabel;
+
+            if (isAwsError) {
+                failureTitle = "S3 Policy Check Failed — AWS Connectivity Error";
+                fixAdvice = "FIX: This is NOT a policy drift. AWS could not be reached after 3 retries.\n"
+                    + "Possible causes: network timeout, DNS failure, AWS outage, or throttling.\n"
+                    + "ACTION: Re-run the test. If persistent, check AWS credentials and network.";
+                reportLabel = "AWS ERROR";
+            } else if (isBaselineError) {
+                failureTitle = "S3 Policy Check Failed — Baseline File Error";
+                fixAdvice = "FIX: The baseline file is missing or invalid.\n"
+                    + "ACTION: Create/fix the baseline file at the path shown above and commit to git.";
+                reportLabel = "BASELINE ERROR";
+            } else {
+                failureTitle = "S3 Bucket Policy Drift Detected!";
+                fixAdvice = "FIX: If this change was intentional (by Pradip/Terraform), update the baseline file and commit to git.\n"
+                    + "If NOT intentional, investigate who changed the S3 bucket policy.";
+                reportLabel = "DRIFT DETECTED";
+            }
+
             StringBuilder failureMessage = new StringBuilder();
-            failureMessage.append("S3 Bucket Policy Drift Detected!\n");
+            failureMessage.append(failureTitle).append("\n");
             failureMessage.append("Bucket:      ").append(bucketName).append("\n");
             failureMessage.append("Environment: ").append(environment.toUpperCase()).append("\n");
             failureMessage.append("Baseline:    ").append(result.getBaselineFilePath()).append("\n");
 
-            if (result.getErrorMessage() != null) {
-                failureMessage.append("Error:       ").append(result.getErrorMessage()).append("\n");
-                logStep("Error: " + result.getErrorMessage());
+            if (errorMsg != null) {
+                failureMessage.append("Error:       ").append(errorMsg).append("\n");
+                logStep("Error: " + errorMsg);
             }
             if (result.getDiffDetails() != null && !result.getDiffDetails().isEmpty()) {
                 failureMessage.append("Diff:\n").append(result.getDiffDetails()).append("\n");
@@ -457,10 +488,10 @@ public class S3BucketPolicyDriftTest {
                 logStep("Actual (from AWS):\n" + result.getActualPolicy());
             }
 
-            failureMessage.append("FIX: If intentional, update the baseline file and commit to git.");
+            failureMessage.append(fixAdvice);
 
-            ExtentReportManager.logFail("DRIFT DETECTED: " + bucketName
-                + " | " + (result.getErrorMessage() != null ? result.getErrorMessage() : "Policy mismatch"));
+            ExtentReportManager.logFail(reportLabel + ": " + bucketName
+                + " | " + (errorMsg != null ? errorMsg : "Policy mismatch"));
 
             Assert.fail(failureMessage.toString());
         }
