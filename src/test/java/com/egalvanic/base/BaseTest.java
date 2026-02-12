@@ -106,6 +106,18 @@ public class BaseTest {
             DriverManager.initDriver(deviceName, udid, appiumPort, wdaLocalPort);
         }
 
+        // Soft restart: kill app process and relaunch to clear navigation/tab state
+        // With noReset=true, login data persists but stale screen state is cleared
+        try {
+            DriverManager.getDriver().terminateApp(AppConstants.APP_BUNDLE_ID);
+            Thread.sleep(500);
+            DriverManager.getDriver().activateApp(AppConstants.APP_BUNDLE_ID);
+            Thread.sleep(500);
+            System.out.println("🔄 App soft-restarted (clean navigation state)");
+        } catch (Exception e) {
+            System.out.println("⚠️ Soft restart skipped: " + e.getMessage());
+        }
+
         // Initialize Page Objects
         welcomePage = new WelcomePage();
         loginPage = new LoginPage();
