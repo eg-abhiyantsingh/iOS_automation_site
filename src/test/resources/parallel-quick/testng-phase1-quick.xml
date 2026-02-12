@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<suite name="QUICK - Phase 1 Test (1 test)" parallel="false" verbose="0">
+<suite time-out="420000" name="QUICK - Phase 1 Test (1 test)" parallel="false" verbose="0">
     <!--
     ============================================================
     QUICK VERIFICATION - ASSET PHASE 1 (1 TEST + SETUP)

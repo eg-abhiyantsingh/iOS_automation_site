@@ -3400,11 +3400,10 @@ public final class Connections_Test extends BaseTest {
                 logStepWithScreenshot("Connection creation FAILED - still on form");
                 fail("Connection creation failed — still on New Connection screen");
             }
-            ensureOnConnectionsScreen();
-            onConnectionsScreen = connectionsPage.isConnectionsScreenDisplayed();
+            logStepWithScreenshot("Unexpected screen state after Create");
+            fail("Not on Connections screen or New Connection screen — unexpected state");
         }
 
-        assertTrue(onConnectionsScreen, "Should be back on Connections screen after creation");
         logStep("✓ Returned to Connections screen — connection created successfully");
 
         logStepWithScreenshot("TC_CONN_037: Connection created successfully - VERIFIED");
@@ -3441,6 +3440,7 @@ public final class Connections_Test extends BaseTest {
         // Fill all fields using helper
         logStep("Step 2: Filling connection fields");
         boolean fieldsFilled = connectionsPage.fillAllConnectionFields();
+        assertTrue(fieldsFilled, "All connection fields should be filled successfully");
         logStep("Fields filled: " + fieldsFilled);
 
         // Create the connection
@@ -3454,14 +3454,14 @@ public final class Connections_Test extends BaseTest {
 
         boolean onConnectionsScreen = connectionsPage.isConnectionsScreenDisplayed();
         if (!onConnectionsScreen) {
-            // Still on form = creation may have failed
             boolean stillOnForm = connectionsPage.isNewConnectionScreenDisplayed();
             if (stillOnForm) {
                 logStepWithScreenshot("Still on New Connection form — creation may have failed");
                 fail("Connection creation failed — still on New Connection screen");
             }
-            ensureOnConnectionsScreen();
-            onConnectionsScreen = connectionsPage.isConnectionsScreenDisplayed();
+            // Unknown screen state — fail instead of silently recovering
+            logStepWithScreenshot("Unexpected screen state after Create");
+            fail("Not on Connections screen or New Connection screen — unexpected state");
         }
 
         assertTrue(onConnectionsScreen, "Should be back on Connections screen after creation");
@@ -4694,46 +4694,27 @@ public final class Connections_Test extends BaseTest {
         logStepWithScreenshot("After tapping Delete");
 
         logStep("Step 7: Verify connection is removed from the list");
+        sleep(500);
 
-        // Check that deleted connection is gone
-        boolean connectionStillPresent = false;
+        // Verify the Connections screen is displayed (deletion didn't break navigation)
+        boolean backOnList = connectionsPage.isConnectionsScreenDisplayed();
+        assertTrue(backOnList, "Should still be on Connections screen after deletion");
+        logStep("\u2705 Still on Connections screen after deletion");
+
+        // If we captured the label, verify it's gone from the list
         if (firstConnectionLabel != null && !firstConnectionLabel.isEmpty()) {
             try {
-                sleep(500);
                 java.util.List<WebElement> remainingCells = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeCell' AND visible == true AND label == '" +
                     firstConnectionLabel.replace("'", "\\'") + "'"));
-                if (remainingCells.isEmpty()) {
-                    logStep("\u2705 Connection '" + firstConnectionLabel + "' is no longer in the list");
-                } else {
-                    connectionStillPresent = true;
-                    logWarning("\u274c Connection '" + firstConnectionLabel + "' still appears in the list!");
-                }
+                assertTrue(remainingCells.isEmpty(),
+                    "Deleted connection '" + firstConnectionLabel + "' should NOT appear in the list anymore");
+                logStep("\u2705 Connection '" + firstConnectionLabel + "' is no longer in the list");
             } catch (Exception e) {
                 logStep("\u2705 Connection no longer found (confirmed deleted)");
             }
         }
 
-        // Verify count decreased
-        try {
-            java.util.List<WebElement> currentCells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"));
-            int newCount = currentCells.size();
-            logStep("New connection count: " + newCount + " (was " + initialCount + ")");
-            if (newCount < initialCount) {
-                logStep("\u2705 Connection count decreased: " + initialCount + " → " + newCount);
-            }
-            if (!currentCells.isEmpty()) {
-                String newFirstLabel = currentCells.get(0).getAttribute("label");
-                if (newFirstLabel != null && !newFirstLabel.equals(firstConnectionLabel)) {
-                    logStep("\u2705 First connection changed from '" + firstConnectionLabel + "' to '" + newFirstLabel + "'");
-                }
-            }
-        } catch (Exception e) {
-            logStep("Could not verify remaining connections: " + e.getMessage());
-        }
-
-        assertFalse(connectionStillPresent, "Deleted connection should NOT appear in the list anymore");
         logStepWithScreenshot("TC_CONN_051: Connection deleted and verified — PASSED");
     }
 

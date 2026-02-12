@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<suite name="Asset Phase 1 Test Suite" verbose="0">
+<suite time-out="420000" name="Asset Phase 1 Test Suite" verbose="0">
 
     <!-- Custom Listener for Clean Console Output -->
     <listeners>

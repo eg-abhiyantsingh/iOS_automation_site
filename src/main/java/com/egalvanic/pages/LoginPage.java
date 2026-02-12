@@ -422,7 +422,8 @@ public void clickShowPassword() {
     public void loginTurbo(String email, String password) {
         long start = System.currentTimeMillis();
         
-        // Enter credentials
+        // Enter credentials (small delay ensures email field is ready for input)
+        try { Thread.sleep(500); } catch (InterruptedException e) {}
         enterEmail(email);
         enterPassword(password);
         

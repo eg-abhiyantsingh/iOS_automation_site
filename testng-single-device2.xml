@@ -15,7 +15,7 @@
     TO START APPIUM:
     appium -p 4724
 -->
-<suite name="eGalvanic iOS - Single Device (Pro Max)" verbose="2">
+<suite time-out="420000" name="eGalvanic iOS - Single Device (Pro Max)" verbose="2">
 
     <test name="Site Selection Tests - iPhone 17 Pro Max">
         <parameter name="deviceName" value="iPhone 17 Pro Max"/>

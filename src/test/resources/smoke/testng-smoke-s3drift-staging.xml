@@ -3,7 +3,7 @@
 <!-- S3 Drift Detection - STAGING Only (10 tests: 2 pre-checks + 8 buckets) -->
 <!-- Usage: mvn test -DsuiteXmlFile=src/test/resources/smoke/testng-smoke-s3drift-staging.xml -->
 <!-- Jira: ZP-774 | Branch-based selection: runs only STAGING environment buckets -->
-<suite name="Smoke - S3 Drift Detection (STAGING)" verbose="0">
+<suite time-out="420000" name="Smoke - S3 Drift Detection (STAGING)" verbose="0">
     <listeners>
         <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
     </listeners>
