@@ -301,7 +301,7 @@ jobs:
             sleep 5
             ELAPSED=$((ELAPSED + 5))
           done
-          [ $ELAPSED -ge $BOOT_TIMEOUT ] && exit 1
+          if [ $ELAPSED -ge $BOOT_TIMEOUT ]; then echo "❌ Boot timeout"; exit 1; fi
           
           DEVICE=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
           VERSION=$(xcrun simctl list devices available | grep -B 50 "$UDID" | grep "-- iOS" | tail -1 | sed 's/.*iOS \([0-9.]*\).*/\1/')
@@ -430,7 +430,7 @@ jobs:
             sleep 5
             ELAPSED=$((ELAPSED + 5))
           done
-          [ $ELAPSED -ge $BOOT_TIMEOUT ] && exit 1
+          if [ $ELAPSED -ge $BOOT_TIMEOUT ]; then echo "❌ Boot timeout"; exit 1; fi
           
           DEVICE=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
           VERSION=$(xcrun simctl list devices available | grep -B 50 "$UDID" | grep "-- iOS" | tail -1 | sed 's/.*iOS \([0-9.]*\).*/\1/')
@@ -546,7 +546,7 @@ jobs:
             sleep 5
             ELAPSED=$((ELAPSED + 5))
           done
-          [ $ELAPSED -ge $BOOT_TIMEOUT ] && exit 1
+          if [ $ELAPSED -ge $BOOT_TIMEOUT ]; then echo "❌ Boot timeout"; exit 1; fi
           
           DEVICE=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
           VERSION=$(xcrun simctl list devices available | grep -B 50 "$UDID" | grep "-- iOS" | tail -1 | sed 's/.*iOS \([0-9.]*\).*/\1/')
