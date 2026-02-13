@@ -1535,4 +1535,501 @@ public class IssuePage extends BasePage {
         sleep(300);
         return getPriorityValue();
     }
+
+    // ================================================================
+    // ASSET SELECTION SCREEN (TC_ISS_041 - TC_ISS_047)
+    //
+    // From screenshot: Cancel | "Select Asset" title | [+ QR]
+    // Search bar + scrollable asset list with "ATS 1\nB1 > F1 > R1"
+    // ================================================================
+
+    /**
+     * Check if Select Asset screen is displayed.
+     * Looks for "Select Asset" nav title on the picker screen.
+     */
+    public boolean isSelectAssetScreenDisplayed() {
+        try {
+            WebElement title = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeNavigationBar') AND " +
+                "(label == 'Select Asset' OR name == 'Select Asset')"));
+            return title.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Get the count of visible assets in the asset picker list
+     */
+    public int getAssetListCount() {
+        try {
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell'"));
+            System.out.println("   Visible assets in picker: " + cells.size());
+            return cells.size();
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Search for an asset in the asset picker search bar
+     */
+    public void searchAssetsInPicker(String query) {
+        System.out.println("🔍 Searching for asset: " + query);
+        try {
+            WebElement searchBar = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeSearchField'"));
+            searchBar.click();
+            sleep(300);
+            searchBar.sendKeys(query);
+            sleep(500);
+            System.out.println("✅ Entered asset search: " + query);
+        } catch (Exception e) {
+            System.out.println("⚠️ Asset search failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Select an asset in the picker by tapping on it.
+     * Returns true if tap was successful.
+     */
+    public boolean selectAssetInPicker(String assetName) {
+        System.out.println("📋 Selecting asset in picker: " + assetName);
+        try {
+            WebElement asset = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "label CONTAINS '" + assetName + "'"));
+            asset.click();
+            sleep(500);
+            System.out.println("✅ Selected asset: " + assetName);
+            return true;
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not select asset: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Check if + (Add) button is displayed on the asset picker screen.
+     * This allows creating a new asset from within the picker.
+     */
+    public boolean isAddAssetButtonOnPickerDisplayed() {
+        try {
+            WebElement addBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(name == 'Add' OR name == 'plus' OR name CONTAINS 'plus' OR label == 'Add')"));
+            return addBtn.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Check if QR scan button is displayed on the asset picker screen
+     */
+    public boolean isQRScanButtonDisplayed() {
+        try {
+            WebElement qrBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(name CONTAINS 'qr' OR name CONTAINS 'QR' OR name CONTAINS 'scan' OR " +
+                "name CONTAINS 'barcode' OR label CONTAINS 'QR' OR label CONTAINS 'Scan' OR " +
+                "name CONTAINS 'viewfinder')"));
+            return qrBtn.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Get the selected asset name shown on the New Issue form after selection.
+     * After picking an asset, the Asset field shows the asset name instead of "Select Asset".
+     */
+    public String getSelectedAssetName() {
+        try {
+            // Look for the asset field area — it will show the asset name
+            // Strategy 1: look for text near the ASSIGNMENT section
+            WebElement assignmentSection = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "(label == 'ASSIGNMENT' OR label == 'Assignment')"));
+            int sectionY = assignmentSection.getLocation().getY();
+
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText'"));
+            for (WebElement text : texts) {
+                int y = text.getLocation().getY();
+                if (y > sectionY && y < sectionY + 100) {
+                    String label = text.getAttribute("label");
+                    if (label != null && !label.isEmpty() &&
+                        !label.equals("ASSIGNMENT") && !label.equals("Assignment") &&
+                        !label.equals("Asset is required") && !label.equals("Select Asset")) {
+                        System.out.println("   Selected asset name: " + label);
+                        return label;
+                    }
+                }
+            }
+            // Strategy 2: check the button/cell that used to say "Select Asset"
+            try {
+                WebElement assetField = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeCell') AND " +
+                    "NOT label BEGINSWITH 'Select Asset'"));
+                String label = assetField.getAttribute("label");
+                if (label != null && !label.isEmpty()) {
+                    return label;
+                }
+            } catch (Exception ignored) {}
+            return "";
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /**
+     * Cancel/go back from asset picker screen
+     */
+    public void tapCancelAssetPicker() {
+        System.out.println("❌ Cancelling asset picker...");
+        try {
+            WebElement cancel = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "label == 'Cancel' AND type == 'XCUIElementTypeButton'"));
+            cancel.click();
+            sleep(300);
+            System.out.println("✅ Cancelled asset picker");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not cancel asset picker: " + e.getMessage());
+        }
+    }
+
+    // ================================================================
+    // ISSUE LIST VERIFICATION (TC_ISS_050 - TC_ISS_051)
+    // ================================================================
+
+    /**
+     * Check if an issue with the given title exists in the issue list.
+     * Searches for a StaticText or Cell with matching label.
+     */
+    public boolean isIssueInList(String title) {
+        try {
+            WebElement issue = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeCell') AND " +
+                "label CONTAINS '" + title + "'"));
+            System.out.println("   Issue '" + title + "' found in list");
+            return issue.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Tap on an issue in the list by its title to open Issue Details
+     */
+    public void tapOnIssue(String title) {
+        System.out.println("📋 Tapping on issue: " + title);
+        try {
+            // Strategy 1: tap cell containing the title
+            WebElement issue = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND label CONTAINS '" + title + "'"));
+            issue.click();
+            sleep(500);
+            System.out.println("✅ Tapped on issue: " + title);
+        } catch (Exception e) {
+            // Strategy 2: tap the static text and hope its parent cell responds
+            try {
+                WebElement issueText = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND label CONTAINS '" + title + "'"));
+                issueText.click();
+                sleep(500);
+                System.out.println("✅ Tapped on issue text: " + title);
+            } catch (Exception e2) {
+                System.out.println("⚠️ Could not tap on issue: " + title + " - " + e2.getMessage());
+            }
+        }
+    }
+
+    // ================================================================
+    // ISSUE DETAILS SCREEN (TC_ISS_052 - TC_ISS_059)
+    //
+    // From screenshot: Close button | "Issue Details" title
+    // Warning icon + Title + Status badge + Asset name
+    // Status dropdown (Open, In Progress, Resolved, Closed)
+    // Priority field (editable)
+    // Issue Class field (editable)
+    // ================================================================
+
+    /**
+     * Check if Issue Details screen is displayed
+     */
+    public boolean isIssueDetailsScreenDisplayed() {
+        try {
+            WebElement title = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeNavigationBar') AND " +
+                "(label == 'Issue Details' OR name == 'Issue Details')"));
+            return title.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Get the issue title shown on Issue Details screen
+     */
+    public String getIssueDetailTitle() {
+        try {
+            // The title appears as a prominent text below the nav bar
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText'"));
+            for (WebElement text : texts) {
+                String label = text.getAttribute("label");
+                int y = text.getLocation().getY();
+                // Skip known labels, look for the issue title in the header area
+                if (label != null && y > 80 && y < 300 &&
+                    !label.equals("Issue Details") && !label.equals("Close") &&
+                    !label.equals("Open") && !label.equals("In Progress") &&
+                    !label.equals("Resolved") && !label.equals("Closed") &&
+                    !label.contains("Status") && label.length() > 1) {
+                    System.out.println("   Issue detail title: " + label);
+                    return label;
+                }
+            }
+            return "";
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /**
+     * Get the status badge text on Issue Details screen (e.g., "Open", "In Progress")
+     */
+    public String getIssueDetailStatus() {
+        try {
+            // Look for status badge text — known statuses
+            String[] statuses = {"Open", "In Progress", "Resolved", "Closed"};
+            for (String status : statuses) {
+                try {
+                    WebElement badge = driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND label == '" + status + "'"));
+                    int y = badge.getLocation().getY();
+                    // Status badge is in the header area (not filter tabs which are higher)
+                    if (y > 150 && y < 400) {
+                        System.out.println("   Issue status: " + status);
+                        return status;
+                    }
+                } catch (Exception ignored) {}
+            }
+            // Fallback: check button with status label
+            for (String status : statuses) {
+                try {
+                    driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND label CONTAINS '" + status + "'"));
+                    return status;
+                } catch (Exception ignored) {}
+            }
+            return "";
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /**
+     * Get the asset name shown on Issue Details screen
+     */
+    public String getIssueDetailAssetName() {
+        try {
+            // Asset name often appears with a grid/location icon
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText'"));
+            for (WebElement text : texts) {
+                String label = text.getAttribute("label");
+                int y = text.getLocation().getY();
+                // Asset name is in the header section, usually after title and status
+                if (label != null && y > 200 && y < 400 &&
+                    !label.equals("Issue Details") && !label.equals("Open") &&
+                    !label.equals("In Progress") && !label.equals("Resolved") &&
+                    !label.equals("Closed") && !label.equals("Close") &&
+                    !label.contains("Status") && !label.contains("Priority") &&
+                    !label.contains("Class") && label.length() > 1 && label.length() < 50) {
+                    // Heuristic: asset names often contain spaces or specific patterns
+                    System.out.println("   Issue detail asset candidate: " + label);
+                    return label;
+                }
+            }
+            return "";
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /**
+     * Close Issue Details screen by tapping Close/Back button
+     */
+    public void tapCloseIssueDetails() {
+        System.out.println("❌ Closing Issue Details...");
+        try {
+            WebElement closeBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(label == 'Close' OR name == 'Close' OR label == 'Back' OR name == 'Back')"));
+            closeBtn.click();
+            sleep(300);
+            System.out.println("✅ Closed Issue Details");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not close Issue Details: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Open Status dropdown on Issue Details screen.
+     * The status picker button shows current status.
+     */
+    public boolean openStatusDropdown() {
+        try {
+            // Strategy 1: Button with current status value
+            WebElement picker = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(name CONTAINS 'Status' OR label CONTAINS 'Status')"));
+            picker.click();
+            sleep(500);
+            System.out.println("✅ Opened Status dropdown");
+            return true;
+        } catch (Exception e) {
+            // Strategy 2: Look for button with known status labels
+            String[] statuses = {"Open", "In Progress", "Resolved", "Closed"};
+            for (String status : statuses) {
+                try {
+                    List<WebElement> btns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND label == '" + status + "'"));
+                    for (WebElement btn : btns) {
+                        int y = btn.getLocation().getY();
+                        if (y > 200 && y < 500) {
+                            btn.click();
+                            sleep(500);
+                            System.out.println("✅ Opened Status dropdown via '" + status + "' button");
+                            return true;
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
+            System.out.println("⚠️ Could not open Status dropdown");
+            return false;
+        }
+    }
+
+    /**
+     * Check if a status option is displayed in the open dropdown
+     */
+    public boolean isStatusOptionDisplayed(String status) {
+        return isDropdownOptionDisplayed(status);
+    }
+
+    /**
+     * Select a status from the dropdown on Issue Details screen
+     */
+    public void selectStatus(String status) {
+        System.out.println("📋 Selecting status: " + status);
+        try {
+            WebElement option = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == '" + status + "'"));
+            option.click();
+            sleep(400);
+            System.out.println("✅ Selected status: " + status);
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not select status: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Check if Priority field is displayed on Issue Details screen
+     */
+    public boolean isPriorityDisplayedOnDetails() {
+        try {
+            WebElement priority = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "(label == 'Priority' OR label CONTAINS 'Priority')"));
+            return priority.isDisplayed();
+        } catch (Exception e) {
+            // Fallback: check for priority button
+            try {
+                WebElement btn = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND name CONTAINS 'Priority'"));
+                return btn.isDisplayed();
+            } catch (Exception e2) {
+                return false;
+            }
+        }
+    }
+
+    /**
+     * Get Priority value on Issue Details screen.
+     * Looks for priority text (High, Medium, Low) or the picker button value.
+     */
+    public String getPriorityOnDetails() {
+        try {
+            // Try reading from the picker button
+            WebElement picker = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name CONTAINS 'Priority'"));
+            String label = picker.getAttribute("label");
+            String value = picker.getAttribute("value");
+            System.out.println("   Priority on details — label: '" + label + "', value: '" + value + "'");
+
+            if (value != null && !value.isEmpty() && !value.equals("0") && !value.equals("1")) {
+                return value;
+            }
+            if (label != null && label.contains(", ")) {
+                return label.substring(label.indexOf(", ") + 2).trim();
+            }
+            return label != null ? label : "";
+        } catch (Exception e) {
+            // Fallback: look for known priority text
+            String[] priorities = {"High", "Medium", "Low"};
+            for (String p : priorities) {
+                try {
+                    driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND label == '" + p + "'"));
+                    return p;
+                } catch (Exception ignored) {}
+            }
+            return "";
+        }
+    }
+
+    /**
+     * Check if Issue Class field is displayed on Issue Details screen
+     */
+    public boolean isIssueClassDisplayedOnDetails() {
+        try {
+            WebElement issueClass = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "(label == 'Issue Class' OR label CONTAINS 'Issue Class')"));
+            return issueClass.isDisplayed();
+        } catch (Exception e) {
+            try {
+                WebElement btn = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND name CONTAINS 'Issue Class'"));
+                return btn.isDisplayed();
+            } catch (Exception e2) {
+                return false;
+            }
+        }
+    }
+
+    /**
+     * Get Issue Class value on Issue Details screen
+     */
+    public String getIssueClassOnDetails() {
+        try {
+            WebElement picker = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name CONTAINS 'Issue Class'"));
+            String label = picker.getAttribute("label");
+            String value = picker.getAttribute("value");
+            System.out.println("   Issue Class on details — label: '" + label + "', value: '" + value + "'");
+
+            if (value != null && !value.isEmpty() && !value.equals("0") && !value.equals("1")) {
+                return value;
+            }
+            if (label != null && label.contains(", ")) {
+                return label.substring(label.indexOf(", ") + 2).trim();
+            }
+            return label != null ? label : "";
+        } catch (Exception e) {
+            return "";
+        }
+    }
 }

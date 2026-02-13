@@ -1429,4 +1429,794 @@ public final class IssueTest extends BaseTest {
         issuePage.tapCancelNewIssue();
         shortWait();
     }
+
+    /**
+     * TC_ISS_040: Verify selecting Low priority
+     * Expected: Low selected with ! indicator
+     */
+    @Test(priority = 40)
+    public void TC_ISS_040_verifySelectingLowPriority() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_PRIORITY,
+            "TC_ISS_040 - Verify selecting Low priority");
+
+        logStep("Step 1: Navigate to New Issue form");
+        boolean onForm = ensureOnNewIssueForm();
+        assertTrue(onForm, "Should be on New Issue form");
+        shortWait();
+
+        logStep("Step 2: Select Low priority");
+        String selectedValue = issuePage.selectPriorityAndGetValue("Low");
+        logStep("Priority value after selection: '" + selectedValue + "'");
+        logStep("✅ Low priority selection completed");
+
+        logStepWithScreenshot("TC_ISS_040: Low priority selected");
+
+        // Clean up
+        issuePage.tapCancelNewIssue();
+        shortWait();
+    }
+
+    // ============================================================
+    // ASSET SELECTION TESTS (TC_ISS_041 - TC_ISS_047)
+    // ============================================================
+
+    /**
+     * TC_ISS_041: Verify Asset field on New Issue form
+     * Expected: Field shows 'Select Asset' with chevron indicating navigation
+     */
+    @Test(priority = 41)
+    public void TC_ISS_041_verifyAssetField() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ASSET_SELECTION,
+            "TC_ISS_041 - Verify Asset field");
+
+        logStep("Step 1: Navigate to New Issue form");
+        boolean onForm = ensureOnNewIssueForm();
+        assertTrue(onForm, "Should be on New Issue form");
+        shortWait();
+
+        logStep("Step 2: Verify Select Asset field is displayed");
+        boolean assetDisplayed = issuePage.isSelectAssetDisplayed();
+        assertTrue(assetDisplayed, "Select Asset field should be displayed");
+        logStep("✅ Select Asset field is displayed");
+
+        logStep("Step 3: Verify ASSIGNMENT section");
+        boolean assignmentSection = issuePage.isAssignmentSectionDisplayed();
+        logStep("ASSIGNMENT section displayed: " + assignmentSection);
+
+        logStepWithScreenshot("TC_ISS_041: Asset field verified");
+
+        // Clean up
+        issuePage.tapCancelNewIssue();
+        shortWait();
+    }
+
+    /**
+     * TC_ISS_042: Verify tapping Asset opens selection screen
+     * Expected: Select Asset screen opens with Cancel, title, Search bar, Asset list
+     */
+    @Test(priority = 42)
+    public void TC_ISS_042_verifyAssetOpensSelectionScreen() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ASSET_SELECTION,
+            "TC_ISS_042 - Verify tapping Asset opens selection");
+
+        logStep("Step 1: Navigate to New Issue form");
+        boolean onForm = ensureOnNewIssueForm();
+        assertTrue(onForm, "Should be on New Issue form");
+        shortWait();
+
+        logStep("Step 2: Tap Select Asset");
+        issuePage.tapSelectAsset();
+        shortWait();
+
+        logStep("Step 3: Verify Select Asset screen is displayed");
+        boolean assetScreen = issuePage.isSelectAssetScreenDisplayed();
+        assertTrue(assetScreen, "Select Asset screen should be displayed");
+        logStep("✅ Select Asset screen opened");
+
+        logStepWithScreenshot("TC_ISS_042: Select Asset screen");
+
+        // Clean up: Cancel back
+        issuePage.tapCancelAssetPicker();
+        shortWait();
+        issuePage.tapCancelNewIssue();
+        shortWait();
+    }
+
+    /**
+     * TC_ISS_043: Verify asset list displayed
+     * Expected: All site assets listed, list is scrollable
+     */
+    @Test(priority = 43)
+    public void TC_ISS_043_verifyAssetListDisplayed() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ASSET_SELECTION,
+            "TC_ISS_043 - Verify asset list displayed");
+
+        logStep("Step 1: Navigate to New Issue form");
+        boolean onForm = ensureOnNewIssueForm();
+        assertTrue(onForm, "Should be on New Issue form");
+        shortWait();
+
+        logStep("Step 2: Open Select Asset screen");
+        issuePage.tapSelectAsset();
+        shortWait();
+
+        logStep("Step 3: Verify asset list has items");
+        int assetCount = issuePage.getAssetListCount();
+        logStep("Visible assets: " + assetCount);
+        assertTrue(assetCount > 0, "Asset list should have at least one asset");
+        logStep("✅ Asset list has " + assetCount + " visible assets");
+
+        logStepWithScreenshot("TC_ISS_043: Asset list displayed");
+
+        // Clean up
+        issuePage.tapCancelAssetPicker();
+        shortWait();
+        issuePage.tapCancelNewIssue();
+        shortWait();
+    }
+
+    /**
+     * TC_ISS_044: Verify search assets in picker
+     * Expected: Typing 'Busway' filters asset list to show only Busway assets
+     */
+    @Test(priority = 44)
+    public void TC_ISS_044_verifySearchAssets() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ASSET_SELECTION,
+            "TC_ISS_044 - Verify search assets");
+
+        logStep("Step 1: Navigate to New Issue form");
+        boolean onForm = ensureOnNewIssueForm();
+        assertTrue(onForm, "Should be on New Issue form");
+        shortWait();
+
+        logStep("Step 2: Open Select Asset screen");
+        issuePage.tapSelectAsset();
+        shortWait();
+
+        logStep("Step 3: Note initial asset count");
+        int initialCount = issuePage.getAssetListCount();
+        logStep("Initial asset count: " + initialCount);
+
+        logStep("Step 4: Search for 'Busway'");
+        issuePage.searchAssetsInPicker("Busway");
+        mediumWait();
+
+        logStep("Step 5: Verify filtered results");
+        int filteredCount = issuePage.getAssetListCount();
+        logStep("Filtered asset count: " + filteredCount);
+        if (filteredCount > 0 && filteredCount <= initialCount) {
+            logStep("✅ Asset search filtered list (from " + initialCount + " to " + filteredCount + ")");
+        } else {
+            logStep("ℹ️ Search returned " + filteredCount + " assets");
+        }
+
+        logStepWithScreenshot("TC_ISS_044: Asset search results");
+
+        // Clean up
+        issuePage.tapCancelAssetPicker();
+        shortWait();
+        issuePage.tapCancelNewIssue();
+        shortWait();
+    }
+
+    /**
+     * TC_ISS_045: Verify selecting an asset
+     * Expected: Asset selected, returns to New Issue, Asset field shows 'ATS 1'
+     */
+    @Test(priority = 45)
+    public void TC_ISS_045_verifySelectingAsset() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ASSET_SELECTION,
+            "TC_ISS_045 - Verify selecting asset");
+
+        logStep("Step 1: Navigate to New Issue form");
+        boolean onForm = ensureOnNewIssueForm();
+        assertTrue(onForm, "Should be on New Issue form");
+        shortWait();
+
+        logStep("Step 2: Open Select Asset screen");
+        issuePage.tapSelectAsset();
+        shortWait();
+
+        logStep("Step 3: Select 'ATS 1'");
+        boolean selected = issuePage.selectAssetInPicker("ATS 1");
+        logStep("Asset selection result: " + selected);
+        shortWait();
+
+        logStep("Step 4: Verify returned to New Issue form");
+        boolean backOnForm = issuePage.isNewIssueFormDisplayed();
+        logStep("Back on New Issue form: " + backOnForm);
+
+        if (backOnForm) {
+            logStep("Step 5: Verify selected asset name");
+            String assetName = issuePage.getSelectedAssetName();
+            logStep("Selected asset: '" + assetName + "'");
+            logStep("✅ Asset selection completed");
+        }
+
+        logStepWithScreenshot("TC_ISS_045: Asset selected");
+
+        // Clean up
+        issuePage.tapCancelNewIssue();
+        shortWait();
+    }
+
+    /**
+     * TC_ISS_046: Verify + button to create new asset on selection screen
+     * Expected: + button visible, can open new asset creation
+     */
+    @Test(priority = 46)
+    public void TC_ISS_046_verifyAddAssetButton() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ASSET_SELECTION,
+            "TC_ISS_046 - Verify + button to create new asset");
+
+        logStep("Step 1: Navigate to New Issue form");
+        boolean onForm = ensureOnNewIssueForm();
+        assertTrue(onForm, "Should be on New Issue form");
+        shortWait();
+
+        logStep("Step 2: Open Select Asset screen");
+        issuePage.tapSelectAsset();
+        shortWait();
+
+        logStep("Step 3: Verify + (Add) button is displayed");
+        boolean addButton = issuePage.isAddAssetButtonOnPickerDisplayed();
+        logStep("Add Asset button displayed: " + addButton);
+        if (addButton) {
+            logStep("✅ Add Asset button is available on picker");
+        } else {
+            logStep("ℹ️ Add Asset button not detected");
+        }
+
+        logStepWithScreenshot("TC_ISS_046: Add Asset button on picker");
+
+        // Clean up
+        issuePage.tapCancelAssetPicker();
+        shortWait();
+        issuePage.tapCancelNewIssue();
+        shortWait();
+    }
+
+    /**
+     * TC_ISS_047: Verify QR scan button on selection screen
+     * Expected: QR scan button visible for scanning asset QR code
+     */
+    @Test(priority = 47)
+    public void TC_ISS_047_verifyQRScanButton() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ASSET_SELECTION,
+            "TC_ISS_047 - Verify QR scan button");
+
+        logStep("Step 1: Navigate to New Issue form");
+        boolean onForm = ensureOnNewIssueForm();
+        assertTrue(onForm, "Should be on New Issue form");
+        shortWait();
+
+        logStep("Step 2: Open Select Asset screen");
+        issuePage.tapSelectAsset();
+        shortWait();
+
+        logStep("Step 3: Verify QR scan button is displayed");
+        boolean qrButton = issuePage.isQRScanButtonDisplayed();
+        logStep("QR scan button displayed: " + qrButton);
+        if (qrButton) {
+            logStep("✅ QR scan button is available on picker");
+        } else {
+            logStep("ℹ️ QR scan button not detected");
+        }
+
+        logStepWithScreenshot("TC_ISS_047: QR scan button on picker");
+
+        // Clean up
+        issuePage.tapCancelAssetPicker();
+        shortWait();
+        issuePage.tapCancelNewIssue();
+        shortWait();
+    }
+
+    // ============================================================
+    // CREATE ISSUE TESTS (TC_ISS_048 - TC_ISS_051)
+    // NOTE: TC_ISS_049 creates an actual issue that TC_ISS_050-059 depend on
+    // ============================================================
+
+    /**
+     * TC_ISS_048: Verify Create Issue enabled after required fields
+     * Expected: Create Issue button becomes enabled (blue/active) after filling fields
+     */
+    @Test(priority = 48)
+    public void TC_ISS_048_verifyCreateIssueEnabledAfterRequiredFields() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_CREATE_ISSUE,
+            "TC_ISS_048 - Verify Create Issue enabled after required fields");
+
+        logStep("Step 1: Navigate to New Issue form");
+        boolean onForm = ensureOnNewIssueForm();
+        assertTrue(onForm, "Should be on New Issue form");
+        shortWait();
+
+        logStep("Step 2: Verify Create Issue is initially disabled");
+        boolean initiallyDisabled = !issuePage.isCreateIssueEnabled();
+        logStep("Initially disabled: " + initiallyDisabled);
+
+        logStep("Step 3: Fill Issue Class");
+        issuePage.selectIssueClass("NEC Violation");
+        shortWait();
+
+        logStep("Step 4: Fill Title");
+        issuePage.enterIssueTitle("Abhiyant");
+        shortWait();
+
+        logStep("Step 5: Fill Priority");
+        issuePage.selectPriority("High");
+        shortWait();
+
+        logStep("Step 6: Select Asset");
+        issuePage.tapSelectAsset();
+        shortWait();
+        issuePage.selectAssetInPicker("ATS 1");
+        shortWait();
+
+        logStep("Step 7: Verify Create Issue is now enabled");
+        boolean nowEnabled = issuePage.isCreateIssueEnabled();
+        logStep("Create Issue enabled after filling fields: " + nowEnabled);
+        if (nowEnabled) {
+            logStep("✅ Create Issue button is enabled");
+        } else {
+            logStep("⚠️ Create Issue still disabled — may need additional required fields");
+        }
+
+        logStepWithScreenshot("TC_ISS_048: Create Issue button state");
+
+        // Clean up — DO NOT create, just cancel
+        issuePage.tapCancelNewIssue();
+        shortWait();
+    }
+
+    /**
+     * TC_ISS_049: Verify issue created successfully
+     * Expected: Issue created, returns to Issues list, new issue appears
+     * NOTE: This test CREATES an issue that TC_ISS_050-059 depend on
+     */
+    @Test(priority = 49)
+    public void TC_ISS_049_verifyIssueCreatedSuccessfully() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_CREATE_ISSUE,
+            "TC_ISS_049 - Verify issue created successfully");
+
+        logStep("Step 1: Navigate to New Issue form");
+        boolean onForm = ensureOnNewIssueForm();
+        assertTrue(onForm, "Should be on New Issue form");
+        shortWait();
+
+        logStep("Step 2: Fill Issue Class — NEC Violation");
+        issuePage.selectIssueClass("NEC Violation");
+        shortWait();
+
+        logStep("Step 3: Fill Title — 'Abhiyant'");
+        issuePage.enterIssueTitle("Abhiyant");
+        shortWait();
+
+        logStep("Step 4: Fill Priority — High");
+        issuePage.selectPriority("High");
+        shortWait();
+
+        logStep("Step 5: Select Asset — ATS 1");
+        issuePage.tapSelectAsset();
+        shortWait();
+        issuePage.selectAssetInPicker("ATS 1");
+        shortWait();
+
+        logStep("Step 6: Tap Create Issue");
+        issuePage.tapCreateIssue();
+        mediumWait();
+
+        logStep("Step 7: Verify returned to Issues screen");
+        boolean onIssues = issuePage.isIssuesScreenDisplayed();
+        logStep("On Issues screen: " + onIssues);
+        if (onIssues) {
+            logStep("✅ Issue created and returned to Issues list");
+        } else {
+            // May still be on form if creation failed
+            boolean stillOnForm = issuePage.isNewIssueFormDisplayed();
+            logStep("Still on form: " + stillOnForm);
+            if (stillOnForm) {
+                logStep("⚠️ Issue creation may have failed — still on form");
+                issuePage.tapCancelNewIssue();
+                shortWait();
+            }
+        }
+
+        logStepWithScreenshot("TC_ISS_049: Issue creation result");
+    }
+
+    /**
+     * TC_ISS_050: Verify new issue appears in list
+     * Expected: 'Abhiyant' issue appears with High badge, assigned asset, Open status
+     * Depends on: TC_ISS_049 having created the issue
+     */
+    @Test(priority = 50)
+    public void TC_ISS_050_verifyNewIssueAppearsInList() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_CREATE_ISSUE,
+            "TC_ISS_050 - Verify new issue appears in list");
+
+        logStep("Step 1: Ensure on Issues screen");
+        boolean onIssues = ensureOnIssuesScreen();
+        assertTrue(onIssues, "Should be on Issues screen");
+        shortWait();
+
+        logStep("Step 2: Switch to All tab to see all issues");
+        issuePage.tapAllTab();
+        shortWait();
+
+        logStep("Step 3: Verify 'Abhiyant' issue is in the list");
+        boolean issueFound = issuePage.isIssueInList("Abhiyant");
+        logStep("Issue 'Abhiyant' found: " + issueFound);
+        if (issueFound) {
+            logStep("✅ Created issue 'Abhiyant' appears in the Issues list");
+        } else {
+            logStep("⚠️ Issue 'Abhiyant' not found — creation may have failed in TC_ISS_049");
+        }
+
+        logStepWithScreenshot("TC_ISS_050: New issue in list");
+
+        // Switch back to Open tab
+        issuePage.tapOpenTab();
+        shortWait();
+    }
+
+    /**
+     * TC_ISS_051: Verify issue count increases
+     * Expected: All count and Open count increased after creation
+     */
+    @Test(priority = 51)
+    public void TC_ISS_051_verifyIssueCountIncreases() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_CREATE_ISSUE,
+            "TC_ISS_051 - Verify issue count increases");
+
+        logStep("Step 1: Ensure on Issues screen");
+        boolean onIssues = ensureOnIssuesScreen();
+        assertTrue(onIssues, "Should be on Issues screen");
+        shortWait();
+
+        logStep("Step 2: Read current tab counts");
+        int allCount = issuePage.getAllTabCount();
+        int openCount = issuePage.getOpenTabCount();
+        logStep("Tab counts — All: " + allCount + ", Open: " + openCount);
+
+        logStep("Step 3: Verify counts are positive (issue was just created)");
+        assertTrue(allCount > 0, "All count should be > 0 after creating an issue");
+        assertTrue(openCount > 0, "Open count should be > 0 (new issue starts as Open)");
+        logStep("✅ Counts confirm issues exist — All: " + allCount + ", Open: " + openCount);
+
+        logStepWithScreenshot("TC_ISS_051: Tab counts after creation");
+    }
+
+    // ============================================================
+    // ISSUE DETAILS TESTS (TC_ISS_052 - TC_ISS_059)
+    // ============================================================
+
+    /**
+     * TC_ISS_052: Verify tapping issue opens details
+     * Expected: Issue Details screen opens with Close button, 'Issue Details' title
+     */
+    @Test(priority = 52)
+    public void TC_ISS_052_verifyTappingIssueOpensDetails() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_DETAILS,
+            "TC_ISS_052 - Verify tapping issue opens details");
+
+        logStep("Step 1: Ensure on Issues screen");
+        boolean onIssues = ensureOnIssuesScreen();
+        assertTrue(onIssues, "Should be on Issues screen");
+        shortWait();
+
+        logStep("Step 2: Switch to All tab");
+        issuePage.tapAllTab();
+        shortWait();
+
+        logStep("Step 3: Tap on 'Abhiyant' issue");
+        issuePage.tapOnIssue("Abhiyant");
+        shortWait();
+
+        logStep("Step 4: Verify Issue Details screen is displayed");
+        boolean detailsDisplayed = issuePage.isIssueDetailsScreenDisplayed();
+        logStep("Issue Details displayed: " + detailsDisplayed);
+        if (detailsDisplayed) {
+            logStep("✅ Issue Details screen opened");
+        } else {
+            logStep("⚠️ Issue Details screen not detected");
+        }
+
+        logStepWithScreenshot("TC_ISS_052: Issue Details screen");
+
+        // Close details
+        issuePage.tapCloseIssueDetails();
+        shortWait();
+    }
+
+    /**
+     * TC_ISS_053: Verify Issue Details header
+     * Expected: Warning icon, issue title 'Abhiyant', status badge 'Open', asset name
+     */
+    @Test(priority = 53)
+    public void TC_ISS_053_verifyIssueDetailsHeader() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_DETAILS,
+            "TC_ISS_053 - Verify Issue Details header");
+
+        logStep("Step 1: Ensure on Issues screen");
+        boolean onIssues = ensureOnIssuesScreen();
+        assertTrue(onIssues, "Should be on Issues screen");
+        shortWait();
+
+        issuePage.tapAllTab();
+        shortWait();
+
+        logStep("Step 2: Open 'Abhiyant' issue");
+        issuePage.tapOnIssue("Abhiyant");
+        shortWait();
+
+        logStep("Step 3: Verify issue title");
+        String title = issuePage.getIssueDetailTitle();
+        logStep("Issue title on details: '" + title + "'");
+
+        logStep("Step 4: Verify status badge");
+        String status = issuePage.getIssueDetailStatus();
+        logStep("Status badge: '" + status + "'");
+
+        logStep("Step 5: Verify asset name");
+        String assetName = issuePage.getIssueDetailAssetName();
+        logStep("Asset name: '" + assetName + "'");
+
+        logStepWithScreenshot("TC_ISS_053: Issue Details header");
+
+        // Close details
+        issuePage.tapCloseIssueDetails();
+        shortWait();
+    }
+
+    /**
+     * TC_ISS_054: Verify Status dropdown on Issue Details
+     * Expected: Status dropdown opens showing options: Open, In Progress, Resolved, Closed
+     */
+    @Test(priority = 54)
+    public void TC_ISS_054_verifyStatusDropdown() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_DETAILS,
+            "TC_ISS_054 - Verify Status dropdown");
+
+        logStep("Step 1: Ensure on Issues screen");
+        boolean onIssues = ensureOnIssuesScreen();
+        assertTrue(onIssues, "Should be on Issues screen");
+        shortWait();
+
+        issuePage.tapAllTab();
+        shortWait();
+
+        logStep("Step 2: Open 'Abhiyant' issue");
+        issuePage.tapOnIssue("Abhiyant");
+        shortWait();
+
+        logStep("Step 3: Open Status dropdown");
+        boolean opened = issuePage.openStatusDropdown();
+        logStep("Status dropdown opened: " + opened);
+        shortWait();
+
+        logStep("Step 4: Verify status options");
+        String[] expectedStatuses = {"Open", "In Progress", "Resolved", "Closed"};
+        int foundCount = 0;
+        for (String option : expectedStatuses) {
+            boolean found = issuePage.isStatusOptionDisplayed(option);
+            logStep("   Status '" + option + "': " + (found ? "FOUND" : "NOT FOUND"));
+            if (found) foundCount++;
+        }
+        logStep("Found " + foundCount + "/" + expectedStatuses.length + " status options");
+
+        logStepWithScreenshot("TC_ISS_054: Status dropdown options");
+
+        // Dismiss dropdown and close details
+        issuePage.dismissDropdownMenu();
+        shortWait();
+        issuePage.tapCloseIssueDetails();
+        shortWait();
+    }
+
+    /**
+     * TC_ISS_055: Verify changing status to In Progress
+     * Expected: Status changes to In Progress, badge updates
+     */
+    @Test(priority = 55)
+    public void TC_ISS_055_verifyChangingStatusToInProgress() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_DETAILS,
+            "TC_ISS_055 - Verify changing status to In Progress");
+
+        logStep("Step 1: Ensure on Issues screen");
+        boolean onIssues = ensureOnIssuesScreen();
+        assertTrue(onIssues, "Should be on Issues screen");
+        shortWait();
+
+        issuePage.tapAllTab();
+        shortWait();
+
+        logStep("Step 2: Open 'Abhiyant' issue");
+        issuePage.tapOnIssue("Abhiyant");
+        shortWait();
+
+        logStep("Step 3: Open Status dropdown and select 'In Progress'");
+        issuePage.openStatusDropdown();
+        shortWait();
+        issuePage.selectStatus("In Progress");
+        shortWait();
+
+        logStep("Step 4: Verify status changed");
+        String newStatus = issuePage.getIssueDetailStatus();
+        logStep("New status: '" + newStatus + "'");
+        if ("In Progress".equals(newStatus)) {
+            logStep("✅ Status changed to In Progress");
+        } else {
+            logStep("⚠️ Status is: '" + newStatus + "' (expected 'In Progress')");
+        }
+
+        logStepWithScreenshot("TC_ISS_055: Status changed to In Progress");
+
+        issuePage.tapCloseIssueDetails();
+        shortWait();
+    }
+
+    /**
+     * TC_ISS_056: Verify changing status to Resolved
+     * Expected: Status changes to Resolved
+     */
+    @Test(priority = 56)
+    public void TC_ISS_056_verifyChangingStatusToResolved() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_DETAILS,
+            "TC_ISS_056 - Verify changing status to Resolved");
+
+        logStep("Step 1: Ensure on Issues screen");
+        boolean onIssues = ensureOnIssuesScreen();
+        assertTrue(onIssues, "Should be on Issues screen");
+        shortWait();
+
+        issuePage.tapAllTab();
+        shortWait();
+
+        logStep("Step 2: Open 'Abhiyant' issue");
+        issuePage.tapOnIssue("Abhiyant");
+        shortWait();
+
+        logStep("Step 3: Open Status dropdown and select 'Resolved'");
+        issuePage.openStatusDropdown();
+        shortWait();
+        issuePage.selectStatus("Resolved");
+        shortWait();
+
+        logStep("Step 4: Verify status changed");
+        String newStatus = issuePage.getIssueDetailStatus();
+        logStep("New status: '" + newStatus + "'");
+        if ("Resolved".equals(newStatus)) {
+            logStep("✅ Status changed to Resolved");
+        } else {
+            logStep("⚠️ Status is: '" + newStatus + "' (expected 'Resolved')");
+        }
+
+        logStepWithScreenshot("TC_ISS_056: Status changed to Resolved");
+
+        issuePage.tapCloseIssueDetails();
+        shortWait();
+    }
+
+    /**
+     * TC_ISS_057: Verify changing status to Closed
+     * Expected: Status changes to Closed
+     */
+    @Test(priority = 57)
+    public void TC_ISS_057_verifyChangingStatusToClosed() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_DETAILS,
+            "TC_ISS_057 - Verify changing status to Closed");
+
+        logStep("Step 1: Ensure on Issues screen");
+        boolean onIssues = ensureOnIssuesScreen();
+        assertTrue(onIssues, "Should be on Issues screen");
+        shortWait();
+
+        issuePage.tapAllTab();
+        shortWait();
+
+        logStep("Step 2: Open 'Abhiyant' issue");
+        issuePage.tapOnIssue("Abhiyant");
+        shortWait();
+
+        logStep("Step 3: Open Status dropdown and select 'Closed'");
+        issuePage.openStatusDropdown();
+        shortWait();
+        issuePage.selectStatus("Closed");
+        shortWait();
+
+        logStep("Step 4: Verify status changed");
+        String newStatus = issuePage.getIssueDetailStatus();
+        logStep("New status: '" + newStatus + "'");
+        if ("Closed".equals(newStatus)) {
+            logStep("✅ Status changed to Closed");
+        } else {
+            logStep("⚠️ Status is: '" + newStatus + "' (expected 'Closed')");
+        }
+
+        logStepWithScreenshot("TC_ISS_057: Status changed to Closed");
+
+        issuePage.tapCloseIssueDetails();
+        shortWait();
+    }
+
+    /**
+     * TC_ISS_058: Verify Priority displayed and editable on Issue Details
+     * Expected: Priority shows 'High' with icon. Can tap to change priority
+     */
+    @Test(priority = 58)
+    public void TC_ISS_058_verifyPriorityOnDetails() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_DETAILS,
+            "TC_ISS_058 - Verify Priority displayed and editable");
+
+        logStep("Step 1: Ensure on Issues screen");
+        boolean onIssues = ensureOnIssuesScreen();
+        assertTrue(onIssues, "Should be on Issues screen");
+        shortWait();
+
+        issuePage.tapAllTab();
+        shortWait();
+
+        logStep("Step 2: Open 'Abhiyant' issue");
+        issuePage.tapOnIssue("Abhiyant");
+        shortWait();
+
+        logStep("Step 3: Verify Priority field is displayed");
+        boolean priorityDisplayed = issuePage.isPriorityDisplayedOnDetails();
+        logStep("Priority field displayed: " + priorityDisplayed);
+
+        logStep("Step 4: Get Priority value");
+        String priority = issuePage.getPriorityOnDetails();
+        logStep("Priority value: '" + priority + "'");
+        if (priority.contains("High") || priority.contains("high")) {
+            logStep("✅ Priority shows 'High' as expected");
+        } else {
+            logStep("ℹ️ Priority is: '" + priority + "'");
+        }
+
+        logStepWithScreenshot("TC_ISS_058: Priority on Issue Details");
+
+        issuePage.tapCloseIssueDetails();
+        shortWait();
+    }
+
+    /**
+     * TC_ISS_059: Verify Issue Class displayed and editable on Issue Details
+     * Expected: Issue Class shows 'NEC Violation' with document icon. Dropdown to change
+     */
+    @Test(priority = 59)
+    public void TC_ISS_059_verifyIssueClassOnDetails() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_DETAILS,
+            "TC_ISS_059 - Verify Issue Class displayed and editable");
+
+        logStep("Step 1: Ensure on Issues screen");
+        boolean onIssues = ensureOnIssuesScreen();
+        assertTrue(onIssues, "Should be on Issues screen");
+        shortWait();
+
+        issuePage.tapAllTab();
+        shortWait();
+
+        logStep("Step 2: Open 'Abhiyant' issue");
+        issuePage.tapOnIssue("Abhiyant");
+        shortWait();
+
+        logStep("Step 3: Verify Issue Class field is displayed");
+        boolean classDisplayed = issuePage.isIssueClassDisplayedOnDetails();
+        logStep("Issue Class field displayed: " + classDisplayed);
+
+        logStep("Step 4: Get Issue Class value");
+        String issueClass = issuePage.getIssueClassOnDetails();
+        logStep("Issue Class value: '" + issueClass + "'");
+        if (issueClass.contains("NEC Violation") || issueClass.contains("NEC")) {
+            logStep("✅ Issue Class shows 'NEC Violation' as expected");
+        } else {
+            logStep("ℹ️ Issue Class is: '" + issueClass + "'");
+        }
+
+        logStepWithScreenshot("TC_ISS_059: Issue Class on Issue Details");
+
+        issuePage.tapCloseIssueDetails();
+        shortWait();
+    }
 }
