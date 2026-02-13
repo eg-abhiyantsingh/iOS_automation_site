@@ -140,7 +140,7 @@ public final class IssueTest extends BaseTest {
 
     /**
      * TC_ISS_003: Verify filter tabs displayed
-     * Expected: All, Open, In Progress tabs with counts
+     * Expected: All, Open, Resolved, Closed tabs with counts
      */
     @Test(priority = 3)
     public void TC_ISS_003_verifyFilterTabsDisplayed() {
@@ -162,10 +162,15 @@ public final class IssueTest extends BaseTest {
         assertTrue(openTab, "Open tab should be displayed");
         logStep("✅ Open tab is displayed");
 
-        logStep("Step 4: Verify In Progress tab is displayed");
-        boolean inProgressTab = issuePage.isInProgressTabDisplayed();
-        assertTrue(inProgressTab, "In Progress tab should be displayed");
-        logStep("✅ In Progress tab is displayed");
+        logStep("Step 4: Verify Resolved tab is displayed");
+        boolean resolvedTab = issuePage.isResolvedTabDisplayed();
+        assertTrue(resolvedTab, "Resolved tab should be displayed");
+        logStep("✅ Resolved tab is displayed");
+
+        logStep("Step 5: Verify Closed tab is displayed");
+        boolean closedTab = issuePage.isClosedTabDisplayed();
+        assertTrue(closedTab, "Closed tab should be displayed");
+        logStep("✅ Closed tab is displayed");
 
         logStepWithScreenshot("TC_ISS_003: All filter tabs verified");
     }
@@ -233,36 +238,52 @@ public final class IssueTest extends BaseTest {
     }
 
     /**
-     * TC_ISS_006: Verify In Progress tab filters correctly
-     * Expected: Only issues with 'In Progress' status displayed
+     * TC_ISS_006: Verify Resolved and Closed tabs filter correctly
+     * Expected: Resolved tab shows resolved issues, Closed tab shows closed issues
      */
     @Test(priority = 6)
-    public void TC_ISS_006_verifyInProgressTabFilters() {
+    public void TC_ISS_006_verifyResolvedAndClosedTabFilters() {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUES_LIST,
-            "TC_ISS_006 - Verify In Progress tab filters correctly");
+            "TC_ISS_006 - Verify Resolved and Closed tabs filter correctly");
 
         logStep("Step 1: Navigate to Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
         shortWait();
 
-        logStep("Step 2: Tap In Progress tab");
-        issuePage.tapInProgressTab();
+        logStep("Step 2: Tap Resolved tab");
+        issuePage.tapResolvedTab();
         shortWait();
 
-        logStep("Step 3: Verify In Progress tab is selected");
-        boolean selected = issuePage.isInProgressTabSelected();
-        logStep("In Progress tab selected: " + selected);
+        logStep("Step 3: Verify Resolved tab is selected");
+        boolean resolvedSelected = issuePage.isResolvedTabSelected();
+        logStep("Resolved tab selected: " + resolvedSelected);
 
-        logStep("Step 4: Check visible issue count");
-        int inProgressCount = issuePage.getVisibleIssueCount();
-        logStep("Issues under In Progress tab: " + inProgressCount);
+        logStep("Step 4: Check visible issue count under Resolved");
+        int resolvedCount = issuePage.getVisibleIssueCount();
+        logStep("Issues under Resolved tab: " + resolvedCount);
+        if (resolvedCount == 0) {
+            boolean noIssues = issuePage.isNoIssuesFoundDisplayed();
+            logStep("No Issues Found displayed: " + noIssues);
+        }
+
+        logStep("Step 5: Tap Closed tab");
+        issuePage.tapClosedTab();
+        shortWait();
+
+        logStep("Step 6: Check visible issue count under Closed");
+        int closedCount = issuePage.getVisibleIssueCount();
+        logStep("Issues under Closed tab: " + closedCount);
+        if (closedCount == 0) {
+            boolean noIssues = issuePage.isNoIssuesFoundDisplayed();
+            logStep("No Issues Found displayed: " + noIssues);
+        }
 
         // Switch back to Open tab for subsequent tests
         issuePage.tapOpenTab();
         shortWait();
 
-        logStepWithScreenshot("TC_ISS_006: In Progress tab filter verified");
+        logStepWithScreenshot("TC_ISS_006: Resolved and Closed tab filters verified");
     }
 
     /**
@@ -282,23 +303,26 @@ public final class IssueTest extends BaseTest {
         logStep("Step 2: Read counts from all tabs");
         int allCount = issuePage.getAllTabCount();
         int openCount = issuePage.getOpenTabCount();
-        int inProgressCount = issuePage.getInProgressTabCount();
+        int resolvedCount = issuePage.getResolvedTabCount();
+        int closedCount = issuePage.getClosedTabCount();
 
         logStep("Tab counts — All: " + allCount + ", Open: " + openCount +
-            ", In Progress: " + inProgressCount);
+            ", Resolved: " + resolvedCount + ", Closed: " + closedCount);
 
         logStep("Step 3: Verify counts are non-negative");
         assertTrue(allCount >= 0, "All count should be >= 0");
         assertTrue(openCount >= 0, "Open count should be >= 0");
-        assertTrue(inProgressCount >= 0, "In Progress count should be >= 0");
+        assertTrue(resolvedCount >= 0, "Resolved count should be >= 0");
+        assertTrue(closedCount >= 0, "Closed count should be >= 0");
 
-        logStep("Step 4: Verify All >= Open + In Progress");
-        if (allCount >= 0 && openCount >= 0 && inProgressCount >= 0) {
-            assertTrue(allCount >= openCount + inProgressCount,
+        logStep("Step 4: Verify All >= Open + Resolved + Closed");
+        if (allCount >= 0 && openCount >= 0 && resolvedCount >= 0 && closedCount >= 0) {
+            int sumOfParts = openCount + resolvedCount + closedCount;
+            assertTrue(allCount >= sumOfParts,
                 "All (" + allCount + ") should be >= Open (" + openCount +
-                ") + InProgress (" + inProgressCount + ")");
+                ") + Resolved (" + resolvedCount + ") + Closed (" + closedCount + ")");
             logStep("✅ All (" + allCount + ") >= Open (" + openCount +
-                ") + InProgress (" + inProgressCount + ")");
+                ") + Resolved (" + resolvedCount + ") + Closed (" + closedCount + ")");
         }
 
         logStepWithScreenshot("TC_ISS_007: Tab counts verified");
@@ -660,7 +684,7 @@ public final class IssueTest extends BaseTest {
         int count = issuePage.getVisibleIssueCount();
         logStep("Issue count for nonexistent query: " + count);
 
-        boolean noResults = issuePage.isNoResultsDisplayed();
+        boolean noResults = issuePage.isNoIssuesFoundDisplayed();
         logStep("No results state: " + noResults);
 
         assertTrue(count == 0 || noResults,

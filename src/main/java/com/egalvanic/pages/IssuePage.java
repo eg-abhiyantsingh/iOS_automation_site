@@ -11,13 +11,40 @@ import java.time.Duration;
 import java.util.List;
 
 /**
- * Page Object for Issues screen
- * Covers: Issues list, filter tabs, search, sort, issue entries
+ * Page Object for Issues screen.
+ *
+ * Actual UI layout (from screenshots):
+ *
+ * HEADER:
+ *   [Done]                [↕ Sort]  [+]
+ *   Issues   (large bold title)
+ *   [🔍 Search issues]
+ *   [All N] [Open] [✓ Resolved N] [⊗ Closed N]
+ *
+ * FILTER TABS: All, Open, Resolved, Closed
+ *   - Tab label format: "All 1", "Open", "Resolved 1", "Closed 0"
+ *   - Count is space-separated (NOT parenthesized)
+ *   - Open tab is selected (blue) by default
+ *
+ * EMPTY STATE: ⚠ "No Issues Found" + "Create a new issue to track problems or concerns"
+ *
+ * NEW ISSUE FORM (via + button):
+ *   Cancel  |  New Issue  |  Create Issue (disabled until valid)
+ *   CLASSIFICATION: Issue Class (None ⌃) — dropdown options:
+ *     None, Canadian Codes Rough Draft, NEC Violation, NFPA 70B Violation,
+ *     OSHA Violation, Other, Repair Needed, Replacement Needed,
+ *     Thermal Anomaly, Ultrasonic Anomaly
+ *   ISSUE DETAILS:
+ *     Title: "Enter issue title" placeholder
+ *     Priority: None ⌃ → None, High (!!!), Medium (!!), Low (!)
+ *   ASSIGNMENT:
+ *     Asset: "Select Asset >" → asset picker with search
+ *     "Asset is required" validation
  */
 public class IssuePage extends BasePage {
 
     // ================================================================
-    // ISSUES SCREEN HEADER ELEMENTS
+    // PAGE ELEMENTS
     // ================================================================
 
     @iOSXCUITFindBy(accessibility = "Done")
@@ -124,7 +151,9 @@ public class IssuePage extends BasePage {
     // ================================================================
 
     /**
-     * Check if Issues screen is displayed
+     * Check if Issues screen is displayed.
+     * Looks for "Issues" nav bar/title OR the unique combination of
+     * search bar + filter tabs (All/Open/Resolved).
      */
     public boolean isIssuesScreenDisplayed() {
         try {
@@ -138,27 +167,29 @@ public class IssuePage extends BasePage {
                 }
             } catch (Exception e1) {}
 
-            // Strategy 2: StaticText 'Issues' as title (near top of screen)
+            // Strategy 2: Large "Issues" title text near top
             try {
                 List<WebElement> titles = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeStaticText' AND label == 'Issues'"));
                 for (WebElement title : titles) {
                     int y = title.getLocation().getY();
-                    if (y < 150) {
+                    if (y < 200) {
                         System.out.println("✓ Issues screen detected (title text at y=" + y + ")");
                         return true;
                     }
                 }
             } catch (Exception e2) {}
 
-            // Strategy 3: Check for filter tabs (unique to Issues screen)
+            // Strategy 3: Search bar + filter tabs unique to Issues
             try {
-                WebElement openTab = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND label CONTAINS 'Open'"));
                 WebElement searchBar = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeSearchField'"));
-                if (openTab.isDisplayed() && searchBar.isDisplayed()) {
-                    System.out.println("✓ Issues screen detected (filter tabs + search)");
+                // Check for at least one filter tab
+                WebElement tab = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND " +
+                    "(label BEGINSWITH 'All' OR label BEGINSWITH 'Open' OR label CONTAINS 'Resolved')"));
+                if (searchBar.isDisplayed() && tab.isDisplayed()) {
+                    System.out.println("✓ Issues screen detected (search + filter tabs)");
                     return true;
                 }
             } catch (Exception e3) {}
@@ -187,18 +218,35 @@ public class IssuePage extends BasePage {
     }
 
     /**
-     * Check if Sort icon is displayed in header
+     * Check if Sort icon (↕) is displayed in header.
+     * From screenshot: two-arrow sort icon in top-right area.
      */
     public boolean isSortIconDisplayed() {
         try {
-            // Sort icon could be arrow.up.arrow.down or similar SF Symbol
             WebElement sort = driver.findElement(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND " +
                 "(name CONTAINS 'sort' OR name CONTAINS 'arrow.up.arrow.down' OR " +
-                "label CONTAINS 'Sort' OR label CONTAINS '↕' OR " +
-                "name CONTAINS 'line.3.horizontal.decrease')"));
+                "name CONTAINS 'line.3.horizontal.decrease' OR " +
+                "label CONTAINS 'Sort' OR label CONTAINS '↕')"));
             return sort.isDisplayed();
         } catch (Exception e) {
+            // Fallback: look for any button in the top-right area that isn't Done or Add
+            try {
+                List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton'"));
+                for (WebElement btn : buttons) {
+                    int x = btn.getLocation().getX();
+                    int y = btn.getLocation().getY();
+                    String name = btn.getAttribute("name");
+                    // Sort icon is in top-right, between Done(left) and +(right)
+                    if (y < 150 && x > 200 && name != null &&
+                        !name.equals("Done") && !name.equals("Add") &&
+                        !name.contains("plus")) {
+                        System.out.println("   Sort icon candidate: " + name + " at (" + x + "," + y + ")");
+                        return true;
+                    }
+                }
+            } catch (Exception e2) {}
             return false;
         }
     }
@@ -251,7 +299,8 @@ public class IssuePage extends BasePage {
     // ================================================================
 
     /**
-     * Check if search bar is displayed
+     * Check if search bar is displayed.
+     * From screenshot: "Search issues" placeholder in a search field.
      */
     public boolean isSearchBarDisplayed() {
         try {
@@ -259,7 +308,7 @@ public class IssuePage extends BasePage {
                 "type == 'XCUIElementTypeSearchField'"));
             return searchBar.isDisplayed();
         } catch (Exception e) {
-            // Fallback: check for placeholder text
+            // Fallback: text field with search placeholder
             try {
                 WebElement searchBar = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeTextField' AND " +
@@ -317,7 +366,7 @@ public class IssuePage extends BasePage {
             searchBar.clear();
             sleep(300);
 
-            // Also try tapping the clear (x) button if it exists
+            // Try tapping the clear (x) button if it exists
             try {
                 WebElement clearBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeButton' AND name == 'Clear text'"));
@@ -341,6 +390,10 @@ public class IssuePage extends BasePage {
 
     // ================================================================
     // FILTER TABS (TC_ISS_003 - TC_ISS_007)
+    //
+    // Actual tabs from screenshot: All, Open, Resolved, Closed
+    // Label format: "All 1", "Open", "Resolved 1", "Closed 0"
+    // Count is space-separated (NOT in parentheses).
     // ================================================================
 
     /**
@@ -370,12 +423,26 @@ public class IssuePage extends BasePage {
     }
 
     /**
-     * Check if In Progress tab is displayed
+     * Check if Resolved tab is displayed
      */
-    public boolean isInProgressTabDisplayed() {
+    public boolean isResolvedTabDisplayed() {
         try {
             WebElement tab = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label CONTAINS 'In Progress'"));
+                "type == 'XCUIElementTypeButton' AND label CONTAINS 'Resolved'"));
+            return tab.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Check if Closed tab is displayed.
+     * This is the 4th tab (partially visible in screenshot, circled-X icon).
+     */
+    public boolean isClosedTabDisplayed() {
+        try {
+            WebElement tab = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label CONTAINS 'Closed'"));
             return tab.isDisplayed();
         } catch (Exception e) {
             return false;
@@ -415,38 +482,51 @@ public class IssuePage extends BasePage {
     }
 
     /**
-     * Tap In Progress filter tab
+     * Tap Resolved filter tab
      */
-    public void tapInProgressTab() {
-        System.out.println("📋 Tapping In Progress tab...");
+    public void tapResolvedTab() {
+        System.out.println("📋 Tapping Resolved tab...");
         try {
             WebElement tab = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label CONTAINS 'In Progress'"));
+                "type == 'XCUIElementTypeButton' AND label CONTAINS 'Resolved'"));
             tab.click();
             sleep(400);
-            System.out.println("✅ Tapped In Progress tab");
+            System.out.println("✅ Tapped Resolved tab");
         } catch (Exception e) {
-            System.out.println("⚠️ Could not tap In Progress tab: " + e.getMessage());
+            System.out.println("⚠️ Could not tap Resolved tab: " + e.getMessage());
         }
     }
 
     /**
-     * Check if Open tab is currently selected (active)
-     * Selected tab typically has a different value/trait
+     * Tap Closed filter tab
+     */
+    public void tapClosedTab() {
+        System.out.println("📋 Tapping Closed tab...");
+        try {
+            WebElement tab = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label CONTAINS 'Closed'"));
+            tab.click();
+            sleep(400);
+            System.out.println("✅ Tapped Closed tab");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not tap Closed tab: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Check if Open tab is currently selected (active).
+     * From screenshot: selected tab has blue background.
      */
     public boolean isOpenTabSelected() {
         try {
             WebElement tab = driver.findElement(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND label BEGINSWITH 'Open'"));
+            // Check selected attribute
             String selected = tab.getAttribute("selected");
             if ("true".equals(selected)) return true;
-
-            // Fallback: check if the value attribute indicates selection
+            // Fallback: check value attribute
             String value = tab.getAttribute("value");
-            if (value != null && value.contains("1")) return true;
-
-            // Fallback: check trait (selected buttons may have different traits)
-            // In iOS, the selected tab might be identifiable by its trait
+            if ("1".equals(value)) return true;
             return false;
         } catch (Exception e) {
             return false;
@@ -461,41 +541,53 @@ public class IssuePage extends BasePage {
             WebElement tab = driver.findElement(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND label BEGINSWITH 'All'"));
             String selected = tab.getAttribute("selected");
-            return "true".equals(selected);
+            if ("true".equals(selected)) return true;
+            String value = tab.getAttribute("value");
+            return "1".equals(value);
         } catch (Exception e) {
             return false;
         }
     }
 
     /**
-     * Check if In Progress tab is currently selected
+     * Check if Resolved tab is currently selected
      */
-    public boolean isInProgressTabSelected() {
+    public boolean isResolvedTabSelected() {
         try {
             WebElement tab = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label CONTAINS 'In Progress'"));
+                "type == 'XCUIElementTypeButton' AND label CONTAINS 'Resolved'"));
             String selected = tab.getAttribute("selected");
-            return "true".equals(selected);
+            if ("true".equals(selected)) return true;
+            String value = tab.getAttribute("value");
+            return "1".equals(value);
         } catch (Exception e) {
             return false;
         }
     }
 
     /**
-     * Get the count number from a filter tab label
-     * Tab label format: "All (17)" or "Open (12)" or "In Progress (1)"
+     * Extract count from a filter tab label.
+     *
+     * ACTUAL FORMAT (from screenshot): "All 1", "Resolved 1", "Open", "Closed 0"
+     * The count is the trailing number after the last space.
+     * Tabs with 0 issues may omit the count entirely (e.g., just "Open").
      */
     private int extractCountFromTabLabel(String tabLabel) {
+        if (tabLabel == null || tabLabel.isEmpty()) return -1;
         try {
-            // Find the number in parentheses: "Open (12)" → 12
-            int openParen = tabLabel.lastIndexOf('(');
-            int closeParen = tabLabel.lastIndexOf(')');
-            if (openParen >= 0 && closeParen > openParen) {
-                String numStr = tabLabel.substring(openParen + 1, closeParen).trim();
+            // Format: "All 1" or "Resolved 1" — count is trailing number
+            String trimmed = tabLabel.trim();
+            int lastSpace = trimmed.lastIndexOf(' ');
+            if (lastSpace >= 0 && lastSpace < trimmed.length() - 1) {
+                String numStr = trimmed.substring(lastSpace + 1);
                 return Integer.parseInt(numStr);
             }
-        } catch (Exception e) {}
-        return -1;
+            // No space with trailing number — might be "Open" with 0 count
+            return 0;
+        } catch (NumberFormatException e) {
+            // Trailing part isn't a number — tab has no count shown
+            return 0;
+        }
     }
 
     /**
@@ -506,7 +598,7 @@ public class IssuePage extends BasePage {
             WebElement tab = driver.findElement(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND label BEGINSWITH 'All'"));
             String label = tab.getAttribute("label");
-            System.out.println("   All tab label: " + label);
+            System.out.println("   All tab label: '" + label + "'");
             return extractCountFromTabLabel(label);
         } catch (Exception e) {
             return -1;
@@ -521,7 +613,7 @@ public class IssuePage extends BasePage {
             WebElement tab = driver.findElement(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND label BEGINSWITH 'Open'"));
             String label = tab.getAttribute("label");
-            System.out.println("   Open tab label: " + label);
+            System.out.println("   Open tab label: '" + label + "'");
             return extractCountFromTabLabel(label);
         } catch (Exception e) {
             return -1;
@@ -529,14 +621,29 @@ public class IssuePage extends BasePage {
     }
 
     /**
-     * Get count from In Progress tab
+     * Get count from Resolved tab
      */
-    public int getInProgressTabCount() {
+    public int getResolvedTabCount() {
         try {
             WebElement tab = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label CONTAINS 'In Progress'"));
+                "type == 'XCUIElementTypeButton' AND label CONTAINS 'Resolved'"));
             String label = tab.getAttribute("label");
-            System.out.println("   In Progress tab label: " + label);
+            System.out.println("   Resolved tab label: '" + label + "'");
+            return extractCountFromTabLabel(label);
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    /**
+     * Get count from Closed tab
+     */
+    public int getClosedTabCount() {
+        try {
+            WebElement tab = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label CONTAINS 'Closed'"));
+            String label = tab.getAttribute("label");
+            System.out.println("   Closed tab label: '" + label + "'");
             return extractCountFromTabLabel(label);
         } catch (Exception e) {
             return -1;
@@ -582,7 +689,6 @@ public class IssuePage extends BasePage {
         try {
             WebElement cell = getFirstIssueEntry();
             if (cell != null) {
-                // The cell label usually contains issue info
                 String label = cell.getAttribute("label");
                 if (label != null && !label.isEmpty()) {
                     return label;
@@ -590,10 +696,9 @@ public class IssuePage extends BasePage {
                 // Try finding a static text within the cell area
                 List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeStaticText'"));
-                // Return first meaningful text near the cell
+                int cellY = cell.getLocation().getY();
                 for (WebElement text : texts) {
                     int textY = text.getLocation().getY();
-                    int cellY = cell.getLocation().getY();
                     if (Math.abs(textY - cellY) < 60) {
                         String tLabel = text.getAttribute("label");
                         if (tLabel != null && tLabel.length() > 3) {
@@ -607,15 +712,13 @@ public class IssuePage extends BasePage {
     }
 
     /**
-     * Check if issue type icon is displayed on any issue entry
+     * Check if issue type icon is displayed on any issue entry.
      * Icons: ❗ for violations, 🔧 for Repair, 🌡️ for Thermal
      */
     public boolean isIssueTypeIconDisplayed() {
         try {
-            // Issue type icons are typically XCUIElementTypeImage elements
             List<WebElement> images = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeImage'"));
-            // Filter for images near issue cells
             WebElement cell = getFirstIssueEntry();
             if (cell != null && !images.isEmpty()) {
                 int cellY = cell.getLocation().getY();
@@ -627,7 +730,7 @@ public class IssuePage extends BasePage {
                     }
                 }
             }
-            // Fallback: any image element in the list area (below header ~200px)
+            // Fallback: any image element in the list area
             for (WebElement img : images) {
                 int y = img.getLocation().getY();
                 if (y > 200 && y < 800) {
@@ -648,7 +751,6 @@ public class IssuePage extends BasePage {
                 "type == 'XCUIElementTypeStaticText' AND label == '" + priority + "'"));
             return badge.isDisplayed();
         } catch (Exception e) {
-            // Try button type (badge might be a button)
             try {
                 WebElement badge = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeButton' AND label == '" + priority + "'"));
@@ -673,8 +775,6 @@ public class IssuePage extends BasePage {
      */
     public boolean isAssetNameDisplayedOnIssue() {
         try {
-            // Asset names appear as text in issue entries, often with a grid icon
-            // Look for common asset name patterns
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText'"));
             WebElement cell = getFirstIssueEntry();
@@ -683,14 +783,15 @@ public class IssuePage extends BasePage {
                 int cellH = cell.getSize().getHeight();
                 for (WebElement text : texts) {
                     int textY = text.getLocation().getY();
-                    // Text must be within the cell area
                     if (textY >= cellY && textY <= cellY + cellH) {
                         String label = text.getAttribute("label");
-                        // Asset names are typically short identifiers
+                        // Exclude known non-asset labels
                         if (label != null && label.length() > 1 && label.length() < 50 &&
                             !label.equals("Issues") && !label.contains("Open") &&
-                            !label.contains("In Progress") && !label.equals("All") &&
-                            !label.equals("High") && !label.equals("Medium") && !label.equals("Low")) {
+                            !label.contains("Resolved") && !label.contains("Closed") &&
+                            !label.equals("All") &&
+                            !label.equals("High") && !label.equals("Medium") && !label.equals("Low") &&
+                            !label.contains("No Issues")) {
                             System.out.println("   Asset name candidate: " + label);
                             return true;
                         }
@@ -704,18 +805,17 @@ public class IssuePage extends BasePage {
     }
 
     /**
-     * Check if a status badge is displayed
-     * @param status "Open", "In Progress", "Resolved", "Closed"
+     * Check if a status badge is displayed on issue entries (not filter tabs).
+     * @param status "Open", "Resolved", "Closed"
      */
     public boolean isStatusBadgeDisplayed(String status) {
         try {
             List<WebElement> badges = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND label == '" + status + "'"));
-            // Filter for badges that are in the list area (not the filter tabs)
             for (WebElement badge : badges) {
                 int y = badge.getLocation().getY();
-                // Status badges on entries are below the filter tabs (y > ~250)
-                if (y > 250) {
+                // Status badges on entries are below the filter tabs (y > ~300)
+                if (y > 300) {
                     return true;
                 }
             }
@@ -737,7 +837,6 @@ public class IssuePage extends BasePage {
                     return true;
                 }
             }
-            // Fallback: check label attribute contains "..."
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeCell'"));
             for (WebElement cell : cells) {
@@ -752,8 +851,7 @@ public class IssuePage extends BasePage {
     }
 
     /**
-     * Check if any issue entry has elements that look like an issue
-     * (title text + icon + badge — verifies complete entry structure)
+     * Check if any issue entry has required elements (title text at minimum)
      */
     public boolean isIssueEntryComplete() {
         try {
@@ -763,9 +861,7 @@ public class IssuePage extends BasePage {
             int cellY = cell.getLocation().getY();
             int cellH = cell.getSize().getHeight();
             boolean hasText = false;
-            boolean hasImage = false;
 
-            // Check for text elements within the cell
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText'"));
             for (WebElement text : texts) {
@@ -776,19 +872,8 @@ public class IssuePage extends BasePage {
                 }
             }
 
-            // Check for image elements within the cell
-            List<WebElement> images = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeImage'"));
-            for (WebElement img : images) {
-                int y = img.getLocation().getY();
-                if (y >= cellY && y <= cellY + cellH) {
-                    hasImage = true;
-                    break;
-                }
-            }
-
-            System.out.println("   Issue entry: hasText=" + hasText + ", hasImage=" + hasImage);
-            return hasText; // At minimum, an entry should have text
+            System.out.println("   Issue entry complete: hasText=" + hasText);
+            return hasText;
         } catch (Exception e) {
             return false;
         }
@@ -807,8 +892,8 @@ public class IssuePage extends BasePage {
             WebElement sort = driver.findElement(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND " +
                 "(name CONTAINS 'sort' OR name CONTAINS 'arrow.up.arrow.down' OR " +
-                "label CONTAINS 'Sort' OR label CONTAINS '↕' OR " +
-                "name CONTAINS 'line.3.horizontal.decrease')"));
+                "name CONTAINS 'line.3.horizontal.decrease' OR " +
+                "label CONTAINS 'Sort' OR label CONTAINS '↕')"));
             sort.click();
             sleep(300);
             System.out.println("✅ Tapped Sort icon");
@@ -825,18 +910,216 @@ public class IssuePage extends BasePage {
     }
 
     /**
-     * Check if empty state / no results message is displayed
+     * Check if empty state / "No Issues Found" message is displayed.
+     * From screenshot: "No Issues Found" + "Create a new issue to track problems or concerns"
      */
-    public boolean isNoResultsDisplayed() {
+    public boolean isNoIssuesFoundDisplayed() {
         try {
-            WebElement noResults = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND " +
-                "(label CONTAINS 'No issues' OR label CONTAINS 'no issues' OR " +
-                "label CONTAINS 'No results' OR label CONTAINS 'no results')"));
-            return noResults.isDisplayed();
+            WebElement noIssues = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label == 'No Issues Found'"));
+            return noIssues.isDisplayed();
         } catch (Exception e) {
-            // If no issues and no "no results" message, check if cell count is 0
-            return getVisibleIssueCount() == 0;
+            // Fallback: partial match
+            try {
+                WebElement noIssues = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND " +
+                    "(label CONTAINS 'No Issues' OR label CONTAINS 'No issues' OR " +
+                    "label CONTAINS 'No results')"));
+                return noIssues.isDisplayed();
+            } catch (Exception e2) {
+                return getVisibleIssueCount() == 0;
+            }
+        }
+    }
+
+    // ================================================================
+    // NEW ISSUE FORM (from + button screenshots)
+    // ================================================================
+
+    /**
+     * Tap Add (+) button to open New Issue form
+     */
+    public void tapAddButton() {
+        System.out.println("➕ Tapping Add button...");
+        try {
+            WebElement addBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(name == 'Add' OR name == 'plus' OR name CONTAINS 'plus' OR label == 'Add')"));
+            addBtn.click();
+            sleep(500);
+            System.out.println("✅ Tapped Add button");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not tap Add: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Check if New Issue form is displayed
+     */
+    public boolean isNewIssueFormDisplayed() {
+        try {
+            WebElement navBar = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label == 'New Issue'"));
+            return navBar.isDisplayed();
+        } catch (Exception e) {
+            try {
+                WebElement navBar = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeNavigationBar' AND name == 'New Issue'"));
+                return navBar.isDisplayed();
+            } catch (Exception e2) {
+                return false;
+            }
+        }
+    }
+
+    /**
+     * Select Issue Class from dropdown.
+     * Options: Canadian Codes Rough Draft, NEC Violation, NFPA 70B Violation,
+     *          OSHA Violation, Other, Repair Needed, Replacement Needed,
+     *          Thermal Anomaly, Ultrasonic Anomaly
+     */
+    public void selectIssueClass(String className) {
+        System.out.println("📋 Selecting Issue Class: " + className);
+        try {
+            // Tap the Issue Class picker button (shows "None ⌃")
+            WebElement picker = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name CONTAINS 'Issue Class'"));
+            picker.click();
+            sleep(400);
+
+            // Select the option from the dropdown
+            WebElement option = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == '" + className + "'"));
+            option.click();
+            sleep(300);
+            System.out.println("✅ Selected Issue Class: " + className);
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not select Issue Class: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Enter issue title
+     */
+    public void enterIssueTitle(String title) {
+        System.out.println("📝 Entering issue title: " + title);
+        try {
+            WebElement titleField = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeTextField' AND " +
+                "(placeholderValue == 'Enter issue title' OR value == 'Enter issue title')"));
+            titleField.click();
+            sleep(200);
+            titleField.sendKeys(title);
+            sleep(300);
+            System.out.println("✅ Entered issue title");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not enter title: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Select Priority from dropdown.
+     * Options: None, High, Medium, Low
+     */
+    public void selectPriority(String priority) {
+        System.out.println("📋 Selecting Priority: " + priority);
+        try {
+            WebElement picker = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name CONTAINS 'Priority'"));
+            picker.click();
+            sleep(400);
+
+            WebElement option = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == '" + priority + "'"));
+            option.click();
+            sleep(300);
+            System.out.println("✅ Selected Priority: " + priority);
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not select Priority: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Tap Select Asset to open asset picker
+     */
+    public void tapSelectAsset() {
+        System.out.println("📋 Tapping Select Asset...");
+        try {
+            WebElement selectAsset = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "(label == 'Select Asset' OR label CONTAINS 'Select Asset') AND " +
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeCell')"));
+            selectAsset.click();
+            sleep(500);
+            System.out.println("✅ Opened Select Asset picker");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not tap Select Asset: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Select an asset by name in the asset picker.
+     * From screenshot: assets listed as "ATS 1\nB1 > F1 > R1"
+     */
+    public void selectAssetByName(String assetName) {
+        System.out.println("📋 Selecting asset: " + assetName);
+        try {
+            WebElement asset = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "label CONTAINS '" + assetName + "'"));
+            asset.click();
+            sleep(500);
+            System.out.println("✅ Selected asset: " + assetName);
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not select asset: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Tap Create Issue button
+     */
+    public void tapCreateIssue() {
+        System.out.println("🆕 Tapping Create Issue...");
+        try {
+            WebElement btn = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "(label == 'Create Issue' OR name == 'Create Issue') AND type == 'XCUIElementTypeButton'"));
+            String enabled = btn.getAttribute("enabled");
+            if ("true".equals(enabled)) {
+                btn.click();
+                sleep(500);
+                System.out.println("✅ Tapped Create Issue");
+            } else {
+                System.out.println("⚠️ Create Issue button is disabled");
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not tap Create Issue: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Tap Cancel on New Issue form
+     */
+    public void tapCancelNewIssue() {
+        System.out.println("❌ Tapping Cancel...");
+        try {
+            WebElement cancel = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "label == 'Cancel' AND type == 'XCUIElementTypeButton'"));
+            cancel.click();
+            sleep(300);
+            System.out.println("✅ Cancelled New Issue");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not cancel: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Check if Create Issue button is enabled
+     */
+    public boolean isCreateIssueEnabled() {
+        try {
+            WebElement btn = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "(label == 'Create Issue' OR name == 'Create Issue') AND type == 'XCUIElementTypeButton'"));
+            return "true".equals(btn.getAttribute("enabled"));
+        } catch (Exception e) {
+            return false;
         }
     }
 }
