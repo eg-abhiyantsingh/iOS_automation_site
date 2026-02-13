@@ -4771,16 +4771,25 @@ public class ConnectionsPage {
     public boolean confirmDeletion() {
         try {
             System.out.println("✅ Confirming deletion...");
-            
+
+            // Strategy 1: Find button without visible constraint (alert buttons may not report visible)
             try {
                 WebElement confirmBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label == 'Delete' OR label == 'Confirm' OR label == 'Yes' OR label == 'OK') AND type == 'XCUIElementTypeButton' AND visible == true"));
+                    "(label == 'Delete' OR label == 'Confirm' OR label == 'Yes' OR label == 'OK') AND type == 'XCUIElementTypeButton'"));
                 confirmBtn.click();
                 sleep(300);
                 System.out.println("✓ Deletion confirmed");
                 return true;
             } catch (Exception e1) {}
-            
+
+            // Strategy 2: Accept via native alert API
+            try {
+                driver.switchTo().alert().accept();
+                sleep(300);
+                System.out.println("✓ Deletion confirmed via native alert accept");
+                return true;
+            } catch (Exception e2) {}
+
             return false;
         } catch (Exception e) {
             return false;
@@ -6680,16 +6689,25 @@ public class ConnectionsPage {
     public boolean confirmDeleteConnection() {
         try {
             System.out.println("✅ Confirming connection deletion...");
-            
+
+            // Strategy 1: Find button without visible constraint (alert buttons may not report visible)
             try {
                 WebElement deleteBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label == 'Delete' OR label == 'Remove' OR label == 'OK' OR label == 'Yes') AND type == 'XCUIElementTypeButton' AND visible == true"));
+                    "(label == 'Delete' OR label == 'Remove' OR label == 'OK' OR label == 'Yes') AND type == 'XCUIElementTypeButton'"));
                 deleteBtn.click();
                 sleep(300);
                 System.out.println("✓ Deletion confirmed");
                 return true;
             } catch (Exception e1) {}
-            
+
+            // Strategy 2: Accept via native alert API
+            try {
+                driver.switchTo().alert().accept();
+                sleep(300);
+                System.out.println("✓ Deletion confirmed via native alert accept");
+                return true;
+            } catch (Exception e2) {}
+
             return false;
         } catch (Exception e) {
             return false;

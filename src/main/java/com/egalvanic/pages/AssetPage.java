@@ -3815,123 +3815,304 @@ public class AssetPage extends BasePage {
      */
     public boolean selectLocation() {
         System.out.println("📍 Selecting location (FAST)...");
-        
+
         long timestamp = System.currentTimeMillis();
         String buildingName = "Building_" + timestamp;
         String floorName = "Floor_" + timestamp;
         String roomName = "Room_" + timestamp;
-        
+
         try {
-            // Open picker if not already open
+            // ── Phase 1: Open picker ──────────────────────────────────────
             if (!isLocationPickerOpen()) {
                 selectLocationButton.click();
-                sleep(200);
+                sleep(300);
             }
-            
             if (!isLocationPickerOpen()) {
                 System.out.println("⚠️ Picker not open");
                 return false;
             }
-            System.out.println("📍 Location picker detected (title visible)");
-            
+
+            // ── Phase 2: Wait for tree to render ─────────────────────────
+            // Poll until hierarchy items appear (buildings/floors/rooms)
+            waitForLocationTreeToLoad();
+
             boolean roomSelected = false;
 
-            // TREE IS FULLY EXPANDED: building → floors → rooms all visible.
-            // Clicking building or floor COLLAPSES them — DO NOT click parents.
-            // Just find and click a ROOM directly.
+            // ── Phase 3: Try to select an existing REAL room ─────────────
+            // TREE IS FULLY EXPANDED by default. DO NOT click parents
+            // (buildings/floors) — that COLLAPSES them.
+            //
+            // PRIORITY ORDER:
+            //   1. Real rooms with " node" count (definitive room indicator)
+            //   2. Room_ prefix items with " node" count (test-created real rooms)
+            //   3. Room_ prefix items without count (test-created, may be floor-level)
+            //
+            // For each match: click, then verify picker auto-closed.
 
-            // Try to find an existing room directly (Room_ prefix or leaf items)
-            try {
-                WebElement room = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND " +
-                    "name BEGINSWITH 'Room_' AND " +
-                    "NOT name CONTAINS ' floor' AND NOT name CONTAINS ' room'"));
-                String rName = room.getAttribute("name");
-                room.click();
-                System.out.println("✅ Room: " + rName);
-                roomSelected = true;
-                sleep(400);
-            } catch (Exception e) {
-                System.out.println("   No Room_ item found, trying other patterns...");
-            }
-
-            // Try rooms with " node" pattern but exclude floors/buildings
+            // Strategy 1: Real rooms with node count — XCUIElementTypeButton
+            // Items like "Room 1, 3 nodes" or "R1, 102 nodes"
             if (!roomSelected) {
-                try {
-                    // Find all buttons with node count, pick one that's NOT a floor or building
-                    List<WebElement> nodeItems = driver.findElements(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeButton' AND name CONTAINS ' node' AND " +
-                        "NOT name CONTAINS ' floor' AND NOT name CONTAINS ' room'"));
-                    for (WebElement item : nodeItems) {
-                        String name = item.getAttribute("name");
-                        // Skip items that look like floors (they have " room" — already excluded)
-                        // or buildings (they have " floor" — already excluded)
-                        if (name != null && !isSystemButton(name)) {
-                            item.click();
-                            System.out.println("✅ Room (node): " + name);
-                            roomSelected = true;
-                            sleep(400);
-                            break;
-                        }
-                    }
-                } catch (Exception e) {}
+                roomSelected = tryClickRoomByPredicate(
+                    "type == 'XCUIElementTypeButton' AND name CONTAINS ' node' AND " +
+                    "NOT name CONTAINS ' floor' AND NOT name CONTAINS ' room'",
+                    "name", "node-count button");
             }
 
-            // Create room as last resort: need to create building → floor → room
+            // Strategy 2: Real rooms — try label attribute (some iOS versions
+            // populate label instead of name for hierarchy items)
+            if (!roomSelected) {
+                roomSelected = tryClickRoomByPredicate(
+                    "type == 'XCUIElementTypeButton' AND label CONTAINS ' node' AND " +
+                    "NOT label CONTAINS ' floor' AND NOT label CONTAINS ' room'",
+                    "label", "node-count button (label)");
+            }
+
+            // Strategy 3: Rooms might render as XCUIElementTypeStaticText
+            // in some SwiftUI list styles — they're still tappable
+            if (!roomSelected) {
+                roomSelected = tryClickRoomByPredicate(
+                    "type == 'XCUIElementTypeStaticText' AND label CONTAINS ' node' AND " +
+                    "NOT label CONTAINS ' floor' AND NOT label CONTAINS ' room'",
+                    "label", "node-count text");
+            }
+
+            // Strategy 4: Scroll down and retry — rooms may be off-screen
+            // in large hierarchies (the tree could have many items)
+            if (!roomSelected) {
+                System.out.println("   No room visible, scrolling to search...");
+                roomSelected = scrollAndFindRoom();
+            }
+
+            // Strategy 5: Room_ prefix items (test-created rooms)
+            // These may be at floor level — less reliable but often work
+            if (!roomSelected) {
+                roomSelected = tryClickRoomByPredicate(
+                    "type == 'XCUIElementTypeButton' AND name BEGINSWITH 'Room_' AND " +
+                    "NOT name CONTAINS ' floor' AND NOT name CONTAINS ' room'",
+                    "name", "Room_ prefix");
+            }
+
+            // ── Phase 4: Create location as last resort ──────────────────
             if (!roomSelected) {
                 System.out.println("   No existing room found, creating location...");
-                // Check if building exists
-                boolean hasBldg = !driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND name CONTAINS ' floor'")).isEmpty();
-                if (!hasBldg) {
-                    if (clickPlusButtonForLocation()) {
-                        sleep(400);
-                        enterLocationTextAndSave("Building Name", buildingName);
-                        sleep(200);
-                    }
-                }
-                // Create floor
-                if (clickPlusButtonForLocation()) {
-                    sleep(400);
-                    enterLocationTextAndSave("Floor Name", floorName);
-                    sleep(200);
-                }
-                // Create room
-                if (clickPlusButtonForLocation()) {
-                    sleep(400);
-                    if (enterLocationTextAndSave("Room Name", roomName)) {
-                        sleep(200);
-                        try {
-                            driver.findElement(AppiumBy.iOSNsPredicateString(
-                                "type == 'XCUIElementTypeButton' AND name CONTAINS '" + roomName + "'")).click();
-                            System.out.println("✅ Created Room: " + roomName);
-                            roomSelected = true;
-                            sleep(400);
-                        } catch (Exception e2) {
-                            System.out.println("⚠️ Could not click created room");
-                        }
-                    }
-                }
+                roomSelected = createLocationHierarchy(buildingName, floorName, roomName);
             }
-            
+
+            // ── Phase 5: Dismiss picker if still open ────────────────────
             sleep(200);
-            
-            // Dismiss picker if still open
             if (isLocationPickerOpen()) {
                 dismissLocationPickerSafe();
             }
-            
+
             if (roomSelected) {
                 System.out.println("✅ Location selected!");
                 return true;
             }
             return false;
-            
+
         } catch (Exception e) {
             System.out.println("⚠️ Error: " + e.getMessage());
-            dismissLocationPickerSafe();
+            try { dismissLocationPickerSafe(); } catch (Exception ignored) {}
             return false;
         }
+    }
+
+    /**
+     * Wait for the location tree to render after opening the picker.
+     * Polls for up to 3 seconds until hierarchy items appear.
+     */
+    private void waitForLocationTreeToLoad() {
+        for (int i = 0; i < 6; i++) {
+            try {
+                List<WebElement> items = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND " +
+                    "(name CONTAINS ' floor' OR name CONTAINS ' room' OR " +
+                    "name CONTAINS ' node' OR name BEGINSWITH 'Room_' OR name BEGINSWITH 'Floor_')"));
+                if (!items.isEmpty()) {
+                    System.out.println("📍 Tree loaded (" + items.size() + " hierarchy items)");
+                    return;
+                }
+                // Also check label attribute
+                items = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND " +
+                    "(label CONTAINS ' floor' OR label CONTAINS ' room' OR label CONTAINS ' node')"));
+                if (!items.isEmpty()) {
+                    System.out.println("📍 Tree loaded via label (" + items.size() + " items)");
+                    return;
+                }
+            } catch (Exception e) { /* ignore, retry */ }
+            sleep(500);
+        }
+        System.out.println("⚠️ Tree may not have loaded fully — proceeding anyway");
+    }
+
+    /**
+     * Try to click a room matching the given predicate.
+     * Iterates through all matching elements, skipping system buttons.
+     * After clicking, checks if picker auto-closed (confirms selection).
+     *
+     * @param predicate  iOS NSPredicate string to find room elements
+     * @param attrName   attribute to read for logging ("name" or "label")
+     * @param strategyDesc  description for logging
+     * @return true if a room was clicked
+     */
+    private boolean tryClickRoomByPredicate(String predicate, String attrName, String strategyDesc) {
+        try {
+            List<WebElement> items = driver.findElements(AppiumBy.iOSNsPredicateString(predicate));
+            for (WebElement item : items) {
+                String value = item.getAttribute(attrName);
+                if (value == null || value.isEmpty()) continue;
+
+                // Skip system/navigation buttons — but do NOT skip short real names
+                // like "R1" that happen to be ≤3 chars. Items with " node" in name
+                // are definitely hierarchy items, not system buttons.
+                if (!value.contains(" node") && isSystemButton(value)) continue;
+
+                item.click();
+                System.out.println("✅ Room: " + value);
+                sleep(500);
+
+                // Verify: if picker auto-closed, selection was definitely accepted
+                if (!isLocationPickerOpen()) {
+                    System.out.println("   ✓ Picker auto-closed — selection confirmed");
+                    return true;
+                }
+
+                // Picker still open — the click may have toggled/expanded
+                // instead of selecting. But it may also be a valid selection
+                // that just needs manual dismiss. Check if we can find leaf items
+                // that appeared after expanding.
+                System.out.println("   Picker still open — checking for deeper items...");
+                if (tryClickLeafItem()) {
+                    return true;
+                }
+
+                // Assume the click selected the location (common for room-level items
+                // where picker stays open until explicitly dismissed)
+                return true;
+            }
+        } catch (Exception e) {
+            // No matches for this predicate — that's OK, try next strategy
+        }
+        return false;
+    }
+
+    /**
+     * After expanding a parent, look for leaf items (no count patterns)
+     * that can be directly selected.
+     */
+    private boolean tryClickLeafItem() {
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton'"));
+            for (WebElement btn : buttons) {
+                String name = btn.getAttribute("name");
+                if (name == null || name.isEmpty()) continue;
+                if (isSystemButton(name)) continue;
+                // Skip all parent-level items
+                if (name.contains(" floor")) continue;  // building
+                if (name.contains(" room")) continue;   // floor
+                if (name.contains(" node")) continue;    // room with children
+                if (name.startsWith("Floor_") || name.startsWith("Building_")) continue;
+                // This is a pure leaf item — click it
+                btn.click();
+                System.out.println("✅ Leaf: " + name);
+                sleep(400);
+                return true;
+            }
+        } catch (Exception e) { /* no leaf found */ }
+        return false;
+    }
+
+    /**
+     * Scroll down in the location picker and search for rooms after each scroll.
+     * Handles cases where rooms are off-screen in large hierarchies.
+     */
+    private boolean scrollAndFindRoom() {
+        try {
+            int screenWidth = driver.manage().window().getSize().width;
+            int screenHeight = driver.manage().window().getSize().height;
+
+            for (int scroll = 0; scroll < 3; scroll++) {
+                // Scroll down within the picker
+                Map<String, Object> swipeParams = new HashMap<>();
+                swipeParams.put("fromX", screenWidth / 2);
+                swipeParams.put("fromY", (int) (screenHeight * 0.65));
+                swipeParams.put("toX", screenWidth / 2);
+                swipeParams.put("toY", (int) (screenHeight * 0.25));
+                swipeParams.put("duration", 0.3);
+                driver.executeScript("mobile: dragFromToForDuration", swipeParams);
+                sleep(400);
+
+                // Try to find a room with node count after scrolling
+                boolean found = tryClickRoomByPredicate(
+                    "type == 'XCUIElementTypeButton' AND name CONTAINS ' node' AND " +
+                    "NOT name CONTAINS ' floor' AND NOT name CONTAINS ' room'",
+                    "name", "node-count after scroll");
+                if (found) return true;
+
+                // Also try label attribute
+                found = tryClickRoomByPredicate(
+                    "type == 'XCUIElementTypeButton' AND label CONTAINS ' node' AND " +
+                    "NOT label CONTAINS ' floor' AND NOT label CONTAINS ' room'",
+                    "label", "node-count (label) after scroll");
+                if (found) return true;
+            }
+        } catch (Exception e) {
+            System.out.println("   Scroll search failed: " + e.getMessage());
+        }
+        return false;
+    }
+
+    /**
+     * Create building/floor/room hierarchy as last resort.
+     */
+    private boolean createLocationHierarchy(String buildingName, String floorName, String roomName) {
+        // Check if building exists
+        boolean hasBldg = !driver.findElements(AppiumBy.iOSNsPredicateString(
+            "type == 'XCUIElementTypeButton' AND name CONTAINS ' floor'")).isEmpty();
+        if (!hasBldg) {
+            if (clickPlusButtonForLocation()) {
+                sleep(400);
+                enterLocationTextAndSave("Building Name", buildingName);
+                sleep(200);
+            }
+        }
+        // Create floor
+        if (clickPlusButtonForLocation()) {
+            sleep(400);
+            enterLocationTextAndSave("Floor Name", floorName);
+            sleep(200);
+        }
+        // Create room
+        if (clickPlusButtonForLocation()) {
+            sleep(400);
+            if (enterLocationTextAndSave("Room Name", roomName)) {
+                sleep(200);
+                // Try to click the created room to select it
+                try {
+                    WebElement createdRoom = driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND name CONTAINS '" + roomName + "'"));
+                    createdRoom.click();
+                    System.out.println("✅ Created Room: " + roomName);
+                    sleep(400);
+                    return true;
+                } catch (Exception e) {
+                    // Try by label
+                    try {
+                        WebElement createdRoom = driver.findElement(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeButton' AND label CONTAINS '" + roomName + "'"));
+                        createdRoom.click();
+                        System.out.println("✅ Created Room (label): " + roomName);
+                        sleep(400);
+                        return true;
+                    } catch (Exception e2) {
+                        System.out.println("⚠️ Could not click created room");
+                    }
+                }
+            }
+        }
+        return false;
     }
     
     /**

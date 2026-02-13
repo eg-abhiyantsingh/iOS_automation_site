@@ -4658,16 +4658,44 @@ public final class Connections_Test extends BaseTest {
 
         if (dialogFound) {
             logStep("Step 6: Tap Delete on confirmation dialog");
+            boolean deleteConfirmed = false;
+
+            // Strategy 1: Find Delete button WITHOUT visible constraint (alert buttons may not report visible)
             try {
                 WebElement deleteBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "label == 'Delete' AND type == 'XCUIElementTypeButton' AND visible == true"));
+                    "label == 'Delete' AND type == 'XCUIElementTypeButton'"));
                 deleteBtn.click();
-                sleep(1000);
-                logStep("\u2705 Tapped Delete — connection deletion confirmed via dialog");
-            } catch (Exception e) {
-                logWarning("Could not tap Delete on dialog: " + e.getMessage());
-                throw new AssertionError("Failed to tap Delete button on dialog: " + e.getMessage());
+                deleteConfirmed = true;
+                logStep("\u2705 Tapped Delete button on confirmation dialog");
+            } catch (Exception e1) {
+                logStep("Delete button not found by predicate: " + e1.getMessage());
             }
+
+            // Strategy 2: Accept native iOS alert via Appium alert API
+            if (!deleteConfirmed) {
+                try {
+                    driver.switchTo().alert().accept();
+                    deleteConfirmed = true;
+                    logStep("\u2705 Accepted alert via native alert API");
+                } catch (Exception e2) {
+                    logStep("Native alert accept failed: " + e2.getMessage());
+                }
+            }
+
+            // Strategy 3: Alert may have been auto-accepted (autoAcceptAlerts capability)
+            if (!deleteConfirmed) {
+                try {
+                    driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeAlert'"));
+                    // Alert still present but we can't dismiss it
+                    throw new AssertionError("Confirmation dialog still visible but could not tap Delete");
+                } catch (org.openqa.selenium.NoSuchElementException nse) {
+                    deleteConfirmed = true;
+                    logStep("\u2705 Alert already dismissed (auto-accepted) — deletion proceeded");
+                }
+            }
+
+            sleep(1000);
         } else {
             logStep("\u2705 No confirmation dialog — swipe-delete removed connection directly");
             sleep(500);

@@ -838,6 +838,7 @@ public final class Asset_Phase1_Test extends BaseTest {
 
         logStep("Filling all fields with valid data");
         assetPage.enterAssetName(assetName);
+        sleep(500);
         assetPage.dismissKeyboard();
         assetPage.selectAssetClass("ATS");
         assetPage.selectLocation();
