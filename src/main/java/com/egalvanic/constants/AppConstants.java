@@ -207,6 +207,10 @@ public class AppConstants {
     public static final String FEATURE_ISSUE_ENTRY = "Issue Entry";
     public static final String FEATURE_SEARCH_ISSUES = "Search Issues";
     public static final String FEATURE_SORT_ISSUES = "Sort Issues";
+    public static final String FEATURE_NEW_ISSUE = "New Issue";
+    public static final String FEATURE_ISSUE_CLASS = "Issue Class";
+    public static final String FEATURE_ISSUE_TITLE = "Issue Title";
+    public static final String FEATURE_ISSUE_PRIORITY = "Issue Priority";
 
     // HELPER METHOD
     // ============================================

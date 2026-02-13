@@ -8,7 +8,9 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Page Object for Issues screen.
@@ -1121,5 +1123,416 @@ public class IssuePage extends BasePage {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    // ================================================================
+    // SORT OPTIONS (TC_ISS_020)
+    // ================================================================
+
+    /**
+     * Check if sort options are displayed after tapping sort icon.
+     * Looks for any sort-related buttons/options that appeared.
+     */
+    public boolean isSortOptionsDisplayed() {
+        try {
+            // Strategy 1: Look for sort option buttons (Priority, Date, Title, etc.)
+            List<WebElement> options = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(label CONTAINS 'Priority' OR label CONTAINS 'Date' OR " +
+                "label CONTAINS 'Title' OR label CONTAINS 'Created' OR " +
+                "label CONTAINS 'Name' OR label CONTAINS 'Newest' OR " +
+                "label CONTAINS 'Oldest' OR label CONTAINS 'Ascending' OR " +
+                "label CONTAINS 'Descending')"));
+            if (!options.isEmpty()) {
+                for (WebElement opt : options) {
+                    System.out.println("   Sort option found: " + opt.getAttribute("label"));
+                }
+                return true;
+            }
+            // Strategy 2: Check for action sheet or popover
+            List<WebElement> sheets = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeSheet' OR type == 'XCUIElementTypeActionSheet'"));
+            if (!sheets.isEmpty()) {
+                System.out.println("   Sort action sheet found");
+                return true;
+            }
+            // Strategy 3: Any new menu/popover containing sort-like options
+            List<WebElement> menus = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeOther' AND label CONTAINS 'Sort'"));
+            return !menus.isEmpty();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Dismiss sort options by tapping outside the popup
+     */
+    public void dismissSortOptions() {
+        try {
+            // Tap at a neutral coordinate to dismiss the sort popup
+            Map<String, Object> tapParams = new HashMap<>();
+            tapParams.put("x", 200);
+            tapParams.put("y", 300);
+            driver.executeScript("mobile: tap", tapParams);
+            sleep(300);
+            System.out.println("✅ Dismissed sort options");
+        } catch (Exception e) {
+            // Fallback: tap the sort icon again to toggle
+            try {
+                tapSortIcon();
+            } catch (Exception e2) {
+                System.out.println("⚠️ Could not dismiss sort options");
+            }
+        }
+    }
+
+    // ================================================================
+    // NEW ISSUE FORM SECTIONS (TC_ISS_022, TC_ISS_024)
+    // ================================================================
+
+    /**
+     * Check if CLASSIFICATION section is displayed on New Issue form
+     */
+    public boolean isClassificationSectionDisplayed() {
+        try {
+            WebElement section = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "(label == 'CLASSIFICATION' OR label == 'Classification')"));
+            return section.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Check if ISSUE DETAILS section is displayed on New Issue form
+     */
+    public boolean isIssueDetailsSectionDisplayed() {
+        try {
+            WebElement section = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "(label == 'ISSUE DETAILS' OR label == 'Issue Details')"));
+            return section.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Check if ASSIGNMENT section is displayed on New Issue form
+     */
+    public boolean isAssignmentSectionDisplayed() {
+        try {
+            WebElement section = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "(label == 'ASSIGNMENT' OR label == 'Assignment')"));
+            return section.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Check if "Asset is required" validation message is displayed
+     */
+    public boolean isAssetRequiredMessageDisplayed() {
+        try {
+            WebElement msg = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "(label == 'Asset is required' OR label CONTAINS 'Asset is required')"));
+            return msg.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Check if Select Asset field is displayed on New Issue form
+     */
+    public boolean isSelectAssetDisplayed() {
+        try {
+            WebElement asset = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "(label CONTAINS 'Select Asset' OR label CONTAINS 'Asset') AND " +
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeCell' OR " +
+                "type == 'XCUIElementTypeStaticText')"));
+            return asset.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    // ================================================================
+    // ISSUE CLASS DROPDOWN (TC_ISS_026 - TC_ISS_033)
+    //
+    // SwiftUI Picker with .menu style:
+    //   Static label: XCUIElementTypeStaticText, label="Issue Class" (NOT clickable)
+    //   Picker button: XCUIElementTypeButton, name CONTAINS "Issue Class" (clickable)
+    //   Button label format: "Issue Class, None" → "Issue Class, NEC Violation"
+    // ================================================================
+
+    /**
+     * Check if Issue Class dropdown is displayed on New Issue form
+     */
+    public boolean isIssueClassDropdownDisplayed() {
+        try {
+            WebElement picker = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name CONTAINS 'Issue Class'"));
+            return picker.isDisplayed();
+        } catch (Exception e) {
+            // Fallback: check for static text label at least
+            try {
+                WebElement label = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND label == 'Issue Class'"));
+                return label.isDisplayed();
+            } catch (Exception e2) {
+                return false;
+            }
+        }
+    }
+
+    /**
+     * Get the current value of Issue Class picker.
+     * Reads the picker button label and extracts the value part.
+     * Format: "Issue Class, NEC Violation" → returns "NEC Violation"
+     * Or the button may have a separate value attribute.
+     */
+    public String getIssueClassValue() {
+        try {
+            WebElement picker = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name CONTAINS 'Issue Class'"));
+            String label = picker.getAttribute("label");
+            String name = picker.getAttribute("name");
+            String value = picker.getAttribute("value");
+            System.out.println("   Issue Class picker — label: '" + label +
+                "', name: '" + name + "', value: '" + value + "'");
+
+            // Try value attribute first
+            if (value != null && !value.isEmpty() && !value.equals("0") && !value.equals("1")) {
+                return value;
+            }
+            // Extract from label: "Issue Class, VALUE"
+            if (label != null && label.contains(", ")) {
+                return label.substring(label.indexOf(", ") + 2).trim();
+            }
+            // Extract from name: "Issue Class, VALUE"
+            if (name != null && name.contains(", ")) {
+                return name.substring(name.indexOf(", ") + 2).trim();
+            }
+            return label != null ? label : "";
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not get Issue Class value: " + e.getMessage());
+            return "";
+        }
+    }
+
+    /**
+     * Open Issue Class dropdown without selecting an option.
+     * Returns true if dropdown opened successfully.
+     */
+    public boolean openIssueClassDropdown() {
+        try {
+            WebElement picker = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name CONTAINS 'Issue Class'"));
+            picker.click();
+            sleep(500);
+            System.out.println("✅ Opened Issue Class dropdown");
+            return true;
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not open Issue Class dropdown: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Check if a specific option is displayed in an open dropdown menu.
+     * @param option The option text to look for (e.g., "NEC Violation")
+     */
+    public boolean isDropdownOptionDisplayed(String option) {
+        try {
+            WebElement optBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == '" + option + "'"));
+            return optBtn.isDisplayed();
+        } catch (Exception e) {
+            // Fallback: check static text (some menus render options as text)
+            try {
+                WebElement optText = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND label == '" + option + "'"));
+                return optText.isDisplayed();
+            } catch (Exception e2) {
+                return false;
+            }
+        }
+    }
+
+    /**
+     * Select an Issue Class option and return the newly selected value.
+     * Opens the dropdown, selects, and reads back the picker value.
+     */
+    public String selectIssueClassAndGetValue(String className) {
+        selectIssueClass(className);
+        sleep(300);
+        return getIssueClassValue();
+    }
+
+    /**
+     * Dismiss an open dropdown menu by tapping at a neutral coordinate.
+     * Used when verifying dropdown options without selecting one.
+     */
+    public void dismissDropdownMenu() {
+        try {
+            Map<String, Object> tapParams = new HashMap<>();
+            tapParams.put("x", 200);
+            tapParams.put("y", 100);
+            driver.executeScript("mobile: tap", tapParams);
+            sleep(300);
+            System.out.println("✅ Dismissed dropdown menu");
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not dismiss dropdown menu: " + e.getMessage());
+        }
+    }
+
+    // ================================================================
+    // TITLE FIELD (TC_ISS_034, TC_ISS_035)
+    // ================================================================
+
+    /**
+     * Check if Title text field is displayed on New Issue form.
+     * From screenshot: pencil icon + "Enter issue title" placeholder.
+     */
+    public boolean isTitleFieldDisplayed() {
+        try {
+            WebElement field = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeTextField' AND " +
+                "(placeholderValue CONTAINS 'issue title' OR placeholderValue CONTAINS 'Issue title' OR " +
+                "placeholderValue == 'Enter issue title' OR value == 'Enter issue title')"));
+            return field.isDisplayed();
+        } catch (Exception e) {
+            // Fallback: any text field in the form area
+            try {
+                WebElement field = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeTextField'"));
+                return field.isDisplayed();
+            } catch (Exception e2) {
+                return false;
+            }
+        }
+    }
+
+    /**
+     * Get the placeholder text of the Title field
+     */
+    public String getTitleFieldPlaceholder() {
+        try {
+            WebElement field = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeTextField'"));
+            String placeholder = field.getAttribute("placeholderValue");
+            if (placeholder == null || placeholder.isEmpty()) {
+                placeholder = field.getAttribute("value");
+            }
+            System.out.println("   Title field placeholder: '" + placeholder + "'");
+            return placeholder != null ? placeholder : "";
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /**
+     * Get the current value of the Title field
+     */
+    public String getTitleFieldValue() {
+        try {
+            WebElement field = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeTextField'"));
+            String val = field.getAttribute("value");
+            System.out.println("   Title field value: '" + val + "'");
+            return val != null ? val : "";
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    // ================================================================
+    // PRIORITY DROPDOWN (TC_ISS_036 - TC_ISS_039)
+    //
+    // SwiftUI Picker with .menu style:
+    //   Static label: XCUIElementTypeStaticText, label="Priority" (NOT clickable)
+    //   Picker button: XCUIElementTypeButton, name CONTAINS "Priority" (clickable)
+    //   Options: None, High (!!!), Medium (!!), Low (!)
+    // ================================================================
+
+    /**
+     * Check if Priority dropdown is displayed on New Issue form
+     */
+    public boolean isPriorityDropdownDisplayed() {
+        try {
+            WebElement picker = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name CONTAINS 'Priority'"));
+            return picker.isDisplayed();
+        } catch (Exception e) {
+            try {
+                WebElement label = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND label == 'Priority'"));
+                return label.isDisplayed();
+            } catch (Exception e2) {
+                return false;
+            }
+        }
+    }
+
+    /**
+     * Get the current value of Priority picker.
+     * Format: "Priority, None" → returns "None"
+     */
+    public String getPriorityValue() {
+        try {
+            WebElement picker = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name CONTAINS 'Priority'"));
+            String label = picker.getAttribute("label");
+            String name = picker.getAttribute("name");
+            String value = picker.getAttribute("value");
+            System.out.println("   Priority picker — label: '" + label +
+                "', name: '" + name + "', value: '" + value + "'");
+
+            if (value != null && !value.isEmpty() && !value.equals("0") && !value.equals("1")) {
+                return value;
+            }
+            if (label != null && label.contains(", ")) {
+                return label.substring(label.indexOf(", ") + 2).trim();
+            }
+            if (name != null && name.contains(", ")) {
+                return name.substring(name.indexOf(", ") + 2).trim();
+            }
+            return label != null ? label : "";
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /**
+     * Open Priority dropdown without selecting an option.
+     * Returns true if dropdown opened successfully.
+     */
+    public boolean openPriorityDropdown() {
+        try {
+            WebElement picker = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name CONTAINS 'Priority'"));
+            picker.click();
+            sleep(500);
+            System.out.println("✅ Opened Priority dropdown");
+            return true;
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not open Priority dropdown: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Select a Priority option and return the newly selected value.
+     */
+    public String selectPriorityAndGetValue(String priority) {
+        selectPriority(priority);
+        sleep(300);
+        return getPriorityValue();
     }
 }
