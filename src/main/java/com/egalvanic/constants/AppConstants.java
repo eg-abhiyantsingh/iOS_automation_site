@@ -200,6 +200,14 @@ public class AppConstants {
     public static final String FEATURE_SELECT_MULTIPLE = "Select Multiple";
     public static final String FEATURE_DELETE_MULTIPLE = "Delete Multiple";
 
+    // ============================================
+    // FEATURE NAMES - ISSUES
+    // ============================================
+    public static final String FEATURE_ISSUES_LIST = "Issues List";
+    public static final String FEATURE_ISSUE_ENTRY = "Issue Entry";
+    public static final String FEATURE_SEARCH_ISSUES = "Search Issues";
+    public static final String FEATURE_SORT_ISSUES = "Sort Issues";
+
     // HELPER METHOD
     // ============================================
     private static String getEnv(String key, String defaultValue) {
