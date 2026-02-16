@@ -200,6 +200,33 @@ public class AppConstants {
     public static final String FEATURE_SELECT_MULTIPLE = "Select Multiple";
     public static final String FEATURE_DELETE_MULTIPLE = "Delete Multiple";
 
+    // ============================================
+    // FEATURE NAMES - ISSUES
+    // ============================================
+    public static final String FEATURE_ISSUES_LIST = "Issues List";
+    public static final String FEATURE_ISSUE_ENTRY = "Issue Entry";
+    public static final String FEATURE_SEARCH_ISSUES = "Search Issues";
+    public static final String FEATURE_SORT_ISSUES = "Sort Issues";
+    public static final String FEATURE_NEW_ISSUE = "New Issue";
+    public static final String FEATURE_ISSUE_CLASS = "Issue Class";
+    public static final String FEATURE_ISSUE_TITLE = "Issue Title";
+    public static final String FEATURE_ISSUE_PRIORITY = "Issue Priority";
+    public static final String FEATURE_ASSET_SELECTION = "Asset Selection";
+    public static final String FEATURE_CREATE_ISSUE = "Create Issue";
+    public static final String FEATURE_ISSUE_DETAILS = "Issue Details";
+    public static final String FEATURE_SUBCATEGORY = "Subcategory";
+    public static final String FEATURE_DESCRIPTION = "Description";
+    public static final String FEATURE_PROPOSED_RESOLUTION = "Proposed Resolution";
+    public static final String FEATURE_ISSUE_PHOTOS = "Issue Photos";
+    public static final String FEATURE_DELETE_ISSUE = "Delete Issue";
+    public static final String FEATURE_SAVE_CHANGES = "Save Changes";
+    public static final String FEATURE_DONE_BUTTON = "Done Button";
+    public static final String FEATURE_CLOSE_BUTTON = "Close Button";
+    public static final String FEATURE_ISSUE_CLASS_SUBCATEGORIES = "Issue Class Subcategories";
+    public static final String FEATURE_OFFLINE_MODE = "Offline Mode";
+    public static final String FEATURE_NFPA70B_SUBCATEGORY = "NFPA 70B Subcategory";
+    public static final String FEATURE_ISSUE_COMPLETION = "Issue Completion";
+
     // HELPER METHOD
     // ============================================
     private static String getEnv(String key, String defaultValue) {
@@ -217,3 +244,4 @@ public class AppConstants {
         return defaultValue;
     }
 }
+
