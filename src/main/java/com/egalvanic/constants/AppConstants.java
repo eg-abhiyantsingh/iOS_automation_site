@@ -226,6 +226,9 @@ public class AppConstants {
     public static final String FEATURE_OFFLINE_MODE = "Offline Mode";
     public static final String FEATURE_NFPA70B_SUBCATEGORY = "NFPA 70B Subcategory";
     public static final String FEATURE_ISSUE_COMPLETION = "Issue Completion";
+    public static final String FEATURE_CHANGE_ISSUE_CLASS = "Change Issue Class";
+    public static final String FEATURE_CLEAR_SUBCATEGORY = "Clear Subcategory";
+    public static final String FEATURE_OSHA_SUBCATEGORY = "OSHA Subcategory";
 
     // HELPER METHOD
     // ============================================

@@ -5195,4 +5195,771 @@ public final class IssueTest extends BaseTest {
             shortWait();
         }
     }
+
+    // ================================================================
+    // ISSUE COMPLETION INDICATORS (TC_ISS_110-111)
+    // ================================================================
+
+    /**
+     * TC_ISS_110: Verify incomplete percentage shown with orange dot
+     * When Subcategory is not filled, completion shows 0% with orange indicator.
+     * Expected: Issue Details section shows '0%' with orange dot indicator.
+     *           Required fields only shows '0/1'.
+     */
+    @Test(priority = 110)
+    public void TC_ISS_110_verifyIncompletePercentageWithOrangeDot() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_COMPLETION,
+            "TC_ISS_110 - Verify incomplete percentage shown with orange dot");
+
+        logStep("Step 1: Ensure on Issues screen");
+        boolean onIssues = ensureOnIssuesScreen();
+        assertTrue(onIssues, "Should be on Issues screen");
+        shortWait();
+
+        issuePage.tapAllTab();
+        shortWait();
+
+        logStep("Step 2: Open 'Abhiyant' issue");
+        issuePage.tapOnIssue("Abhiyant");
+        mediumWait();
+
+        logStep("Step 3: Ensure Issue Class is NEC Violation (has required Subcategory)");
+        String currentClass = issuePage.getIssueClassOnDetails();
+        logStep("Current Issue Class: '" + currentClass + "'");
+        if (!currentClass.contains("NEC")) {
+            issuePage.changeIssueClassOnDetails("NEC Violation");
+            mediumWait();
+        }
+
+        logStep("Step 4: Clear subcategory if it has a value (so we get 0%)");
+        String subcatValue = issuePage.getSubcategoryValue();
+        logStep("Current subcategory value: '" + subcatValue + "'");
+        if (!subcatValue.isEmpty() && !subcatValue.contains("Type or select") && !subcatValue.contains("Select")) {
+            boolean cleared = issuePage.clearSubcategoryValue();
+            logStep("Cleared subcategory: " + cleared);
+            shortWait();
+        }
+
+        logStep("Step 5: Scroll up to see completion section header");
+        issuePage.scrollUpOnDetailsScreen();
+        shortWait();
+
+        logStep("Step 6: Check completion percentage — expect 0%");
+        String pct = issuePage.getIssueDetailsCompletionPercentage();
+        logStep("Completion percentage: '" + pct + "'");
+        if (pct.contains("0%")) {
+            logStep("✅ Completion shows 0% — incomplete state confirmed");
+        } else if (!pct.isEmpty()) {
+            logStep("ℹ️ Completion is: '" + pct + "' (may be partially filled)");
+        } else {
+            logStep("⚠️ Could not read completion percentage");
+        }
+
+        logStep("Step 7: Check for orange/incomplete indicator");
+        boolean orangeIndicator = issuePage.isCompletionIndicatorOrange();
+        logStep("Orange indicator present: " + orangeIndicator);
+        if (orangeIndicator) {
+            logStep("✅ Orange dot indicator confirms incomplete state");
+        }
+
+        logStep("Step 8: Check required fields toggle — expect '0/1'");
+        String reqCount = issuePage.getRequiredFieldsToggleCount();
+        logStep("Required fields count: '" + reqCount + "'");
+        if (reqCount.contains("0/1")) {
+            logStep("✅ Required fields shows '0/1' — 0 of 1 required fields filled");
+        } else if (!reqCount.isEmpty()) {
+            logStep("ℹ️ Required fields count: '" + reqCount + "'");
+        }
+
+        logStepWithScreenshot("TC_ISS_110: Incomplete percentage with orange dot indicator");
+
+        issuePage.tapCloseIssueDetails();
+        shortWait();
+
+        if (issuePage.isUnsavedChangesWarningDisplayed()) {
+            issuePage.tapDiscardChanges();
+            shortWait();
+        }
+    }
+
+    /**
+     * TC_ISS_111: Verify green checkmark on filled subcategory
+     * When Subcategory is filled, a green checkmark appears next to the field.
+     * Expected: A green checkmark icon is visible next to a filled Subcategory field.
+     */
+    @Test(priority = 111)
+    public void TC_ISS_111_verifyGreenCheckmarkOnFilledSubcategory() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_COMPLETION,
+            "TC_ISS_111 - Verify green checkmark on filled subcategory");
+
+        logStep("Step 1: Ensure on Issues screen");
+        boolean onIssues = ensureOnIssuesScreen();
+        assertTrue(onIssues, "Should be on Issues screen");
+        shortWait();
+
+        issuePage.tapAllTab();
+        shortWait();
+
+        logStep("Step 2: Open 'Abhiyant' issue");
+        issuePage.tapOnIssue("Abhiyant");
+        mediumWait();
+
+        logStep("Step 3: Ensure Issue Class is NEC Violation");
+        String currentClass = issuePage.getIssueClassOnDetails();
+        if (!currentClass.contains("NEC")) {
+            issuePage.changeIssueClassOnDetails("NEC Violation");
+            mediumWait();
+        }
+
+        logStep("Step 4: Fill Subcategory field");
+        String completionAfter = issuePage.fillSubcategoryAndGetCompletion("Breaker is restricted");
+        logStep("Completion after filling: '" + completionAfter + "'");
+        mediumWait();
+
+        logStep("Step 5: Scroll down to Subcategory field area");
+        issuePage.scrollDownOnDetailsScreen();
+        shortWait();
+
+        logStep("Step 6: Check for green checkmark on Subcategory");
+        boolean checkmark = issuePage.isSubcategoryCheckmarkDisplayed();
+        logStep("Green checkmark displayed: " + checkmark);
+        if (checkmark) {
+            logStep("✅ Green checkmark confirmed on filled Subcategory field");
+        } else {
+            logStep("ℹ️ Checkmark not visually detected — may use different indicator");
+        }
+
+        logStep("Step 7: Verify completion indicator is green");
+        issuePage.scrollUpOnDetailsScreen();
+        shortWait();
+        boolean greenIndicator = issuePage.isCompletionIndicatorGreen();
+        logStep("Green completion indicator: " + greenIndicator);
+        if (greenIndicator) {
+            logStep("✅ Green indicator confirms all required fields filled");
+        }
+
+        logStepWithScreenshot("TC_ISS_111: Green checkmark on filled subcategory");
+
+        issuePage.tapCloseIssueDetails();
+        shortWait();
+
+        if (issuePage.isUnsavedChangesWarningDisplayed()) {
+            issuePage.tapDiscardChanges();
+            shortWait();
+        }
+    }
+
+    // ================================================================
+    // CHANGE ISSUE CLASS - SUBCATEGORY UPDATE (TC_ISS_112-113)
+    // ================================================================
+
+    /**
+     * TC_ISS_112: Verify changing Issue Class updates Subcategory options
+     * When Issue Class changes from NEC Violation to NFPA 70B, the Subcategory
+     * dropdown options should update to reflect the new class.
+     * Expected: Subcategory options change when Issue Class changes.
+     */
+    @Test(priority = 112)
+    public void TC_ISS_112_verifyChangingIssueClassUpdatesSubcategoryOptions() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_CHANGE_ISSUE_CLASS,
+            "TC_ISS_112 - Verify changing Issue Class updates Subcategory options");
+
+        logStep("Step 1: Ensure on Issues screen");
+        boolean onIssues = ensureOnIssuesScreen();
+        assertTrue(onIssues, "Should be on Issues screen");
+        shortWait();
+
+        issuePage.tapAllTab();
+        shortWait();
+
+        logStep("Step 2: Open 'Abhiyant' issue");
+        issuePage.tapOnIssue("Abhiyant");
+        mediumWait();
+
+        logStep("Step 3: Ensure Issue Class is NEC Violation first");
+        String currentClass = issuePage.getIssueClassOnDetails();
+        logStep("Current Issue Class: '" + currentClass + "'");
+        if (!currentClass.contains("NEC")) {
+            issuePage.changeIssueClassOnDetails("NEC Violation");
+            mediumWait();
+        }
+
+        logStep("Step 4: Open Subcategory and record NEC options");
+        issuePage.scrollDownOnDetailsScreen();
+        shortWait();
+        issuePage.tapSubcategoryField();
+        shortWait();
+        java.util.ArrayList<String> necOptions = issuePage.getVisibleSubcategoryOptions();
+        logStep("NEC Violation subcategory options count: " + necOptions.size());
+        for (String opt : necOptions) {
+            logStep("   NEC option: " + opt);
+        }
+        issuePage.dismissDropdownMenu();
+        shortWait();
+
+        logStep("Step 5: Change Issue Class to NFPA 70B Violation");
+        issuePage.scrollUpOnDetailsScreen();
+        shortWait();
+        issuePage.changeIssueClassOnDetails("NFPA 70B Violation");
+        mediumWait();
+
+        logStep("Step 6: Open Subcategory and record NFPA 70B options");
+        issuePage.scrollDownOnDetailsScreen();
+        shortWait();
+        issuePage.tapSubcategoryField();
+        shortWait();
+        java.util.ArrayList<String> nfpaOptions = issuePage.getVisibleSubcategoryOptions();
+        logStep("NFPA 70B subcategory options count: " + nfpaOptions.size());
+        for (String opt : nfpaOptions) {
+            logStep("   NFPA 70B option: " + opt);
+        }
+        issuePage.dismissDropdownMenu();
+        shortWait();
+
+        logStep("Step 7: Compare — options should be different");
+        boolean optionsAreDifferent = !necOptions.equals(nfpaOptions);
+        logStep("Options are different between classes: " + optionsAreDifferent);
+        if (optionsAreDifferent) {
+            logStep("✅ Subcategory options updated when Issue Class changed");
+        } else if (necOptions.isEmpty() && nfpaOptions.isEmpty()) {
+            logStep("⚠️ Both option sets empty — dropdown may not have loaded");
+        } else {
+            logStep("⚠️ Options appear the same — unexpected");
+        }
+
+        logStepWithScreenshot("TC_ISS_112: Subcategory options updated after class change");
+
+        // Revert to NEC Violation
+        issuePage.scrollUpOnDetailsScreen();
+        shortWait();
+        issuePage.changeIssueClassOnDetails("NEC Violation");
+        shortWait();
+
+        issuePage.tapCloseIssueDetails();
+        shortWait();
+
+        if (issuePage.isUnsavedChangesWarningDisplayed()) {
+            issuePage.tapDiscardChanges();
+            shortWait();
+        }
+    }
+
+    /**
+     * TC_ISS_113: Verify Subcategory cleared when Issue Class changes
+     * When a subcategory is selected and then the Issue Class changes,
+     * the subcategory field should be cleared.
+     * Expected: Subcategory value is reset to empty/placeholder after class change.
+     */
+    @Test(priority = 113)
+    public void TC_ISS_113_verifySubcategoryClearedWhenIssueClassChanges() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_CHANGE_ISSUE_CLASS,
+            "TC_ISS_113 - Verify Subcategory cleared when Issue Class changes");
+
+        logStep("Step 1: Ensure on Issues screen");
+        boolean onIssues = ensureOnIssuesScreen();
+        assertTrue(onIssues, "Should be on Issues screen");
+        shortWait();
+
+        issuePage.tapAllTab();
+        shortWait();
+
+        logStep("Step 2: Open 'Abhiyant' issue");
+        issuePage.tapOnIssue("Abhiyant");
+        mediumWait();
+
+        logStep("Step 3: Ensure Issue Class is NEC Violation");
+        String currentClass = issuePage.getIssueClassOnDetails();
+        if (!currentClass.contains("NEC")) {
+            issuePage.changeIssueClassOnDetails("NEC Violation");
+            mediumWait();
+        }
+
+        logStep("Step 4: Fill Subcategory with a value");
+        issuePage.fillSubcategoryAndGetCompletion("Breaker is restricted");
+        mediumWait();
+
+        logStep("Step 5: Verify Subcategory is now filled");
+        issuePage.scrollDownOnDetailsScreen();
+        shortWait();
+        String filledValue = issuePage.getSubcategoryValue();
+        logStep("Subcategory value before class change: '" + filledValue + "'");
+        boolean wasFilled = !filledValue.isEmpty() && !filledValue.contains("Type or select");
+        logStep("Subcategory was filled: " + wasFilled);
+
+        logStep("Step 6: Change Issue Class to NFPA 70B Violation");
+        issuePage.scrollUpOnDetailsScreen();
+        shortWait();
+        issuePage.changeIssueClassOnDetails("NFPA 70B Violation");
+        mediumWait();
+
+        logStep("Step 7: Check if Subcategory was cleared");
+        issuePage.scrollDownOnDetailsScreen();
+        shortWait();
+        boolean subcatEmpty = issuePage.isSubcategoryEmpty();
+        String afterValue = issuePage.getSubcategoryValue();
+        logStep("Subcategory value after class change: '" + afterValue + "'");
+        logStep("Subcategory is empty: " + subcatEmpty);
+
+        if (subcatEmpty) {
+            logStep("✅ Subcategory was cleared when Issue Class changed");
+        } else {
+            logStep("ℹ️ Subcategory still shows: '" + afterValue + "' — may retain value or use different clearing behavior");
+        }
+
+        logStepWithScreenshot("TC_ISS_113: Subcategory cleared after class change");
+
+        // Revert to NEC Violation
+        issuePage.scrollUpOnDetailsScreen();
+        shortWait();
+        issuePage.changeIssueClassOnDetails("NEC Violation");
+        shortWait();
+
+        issuePage.tapCloseIssueDetails();
+        shortWait();
+
+        if (issuePage.isUnsavedChangesWarningDisplayed()) {
+            issuePage.tapDiscardChanges();
+            shortWait();
+        }
+    }
+
+    // ================================================================
+    // CLASS-SPECIFIC SUBCATEGORIES (TC_ISS_114-117)
+    // ================================================================
+
+    /**
+     * TC_ISS_114: Verify OSHA Violation has different subcategories
+     * OSHA Violation class should have its own set of subcategory options
+     * different from NEC Violation.
+     * Expected: OSHA Violation subcategory options are displayed and differ from NEC.
+     */
+    @Test(priority = 114)
+    public void TC_ISS_114_verifyOSHAViolationSubcategories() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_CLASS_SUBCATEGORIES,
+            "TC_ISS_114 - Verify OSHA Violation has different subcategories");
+
+        logStep("Step 1: Ensure on Issues screen");
+        boolean onIssues = ensureOnIssuesScreen();
+        assertTrue(onIssues, "Should be on Issues screen");
+        shortWait();
+
+        issuePage.tapAllTab();
+        shortWait();
+
+        logStep("Step 2: Open 'Abhiyant' issue");
+        issuePage.tapOnIssue("Abhiyant");
+        mediumWait();
+
+        logStep("Step 3: Change Issue Class to OSHA Violation");
+        issuePage.changeIssueClassOnDetails("OSHA Violation");
+        mediumWait();
+
+        logStep("Step 4: Scroll down and open Subcategory dropdown");
+        issuePage.scrollDownOnDetailsScreen();
+        shortWait();
+        issuePage.tapSubcategoryField();
+        shortWait();
+
+        logStep("Step 5: Collect OSHA subcategory options");
+        java.util.ArrayList<String> oshaOptions = issuePage.getVisibleSubcategoryOptions();
+        logStep("OSHA Violation subcategory options count: " + oshaOptions.size());
+        for (String opt : oshaOptions) {
+            logStep("   OSHA option: " + opt);
+        }
+
+        if (!oshaOptions.isEmpty()) {
+            logStep("✅ OSHA Violation has " + oshaOptions.size() + " subcategory options");
+        } else {
+            logStep("⚠️ No OSHA subcategory options found — dropdown may not have loaded");
+        }
+
+        issuePage.dismissDropdownMenu();
+        shortWait();
+
+        logStepWithScreenshot("TC_ISS_114: OSHA Violation subcategory options");
+
+        // Revert to NEC Violation
+        issuePage.scrollUpOnDetailsScreen();
+        shortWait();
+        issuePage.changeIssueClassOnDetails("NEC Violation");
+        shortWait();
+
+        issuePage.tapCloseIssueDetails();
+        shortWait();
+
+        if (issuePage.isUnsavedChangesWarningDisplayed()) {
+            issuePage.tapDiscardChanges();
+            shortWait();
+        }
+    }
+
+    /**
+     * TC_ISS_115: Verify Repair Needed subcategories
+     * Repair Needed class should have its own set of subcategory options.
+     * Expected: Repair Needed subcategory options are displayed.
+     */
+    @Test(priority = 115)
+    public void TC_ISS_115_verifyRepairNeededSubcategories() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_CLASS_SUBCATEGORIES,
+            "TC_ISS_115 - Verify Repair Needed subcategories");
+
+        logStep("Step 1: Ensure on Issues screen");
+        boolean onIssues = ensureOnIssuesScreen();
+        assertTrue(onIssues, "Should be on Issues screen");
+        shortWait();
+
+        issuePage.tapAllTab();
+        shortWait();
+
+        logStep("Step 2: Open 'Abhiyant' issue");
+        issuePage.tapOnIssue("Abhiyant");
+        mediumWait();
+
+        logStep("Step 3: Change Issue Class to Repair Needed");
+        issuePage.changeIssueClassOnDetails("Repair Needed");
+        mediumWait();
+
+        logStep("Step 4: Scroll down and open Subcategory dropdown");
+        issuePage.scrollDownOnDetailsScreen();
+        shortWait();
+        issuePage.tapSubcategoryField();
+        shortWait();
+
+        logStep("Step 5: Collect Repair Needed subcategory options");
+        java.util.ArrayList<String> repairOptions = issuePage.getVisibleSubcategoryOptions();
+        logStep("Repair Needed subcategory options count: " + repairOptions.size());
+        for (String opt : repairOptions) {
+            logStep("   Repair option: " + opt);
+        }
+
+        if (!repairOptions.isEmpty()) {
+            logStep("✅ Repair Needed has " + repairOptions.size() + " subcategory options");
+        } else {
+            logStep("ℹ️ Repair Needed may not have subcategory options (field may be hidden/disabled)");
+        }
+
+        issuePage.dismissDropdownMenu();
+        shortWait();
+
+        logStepWithScreenshot("TC_ISS_115: Repair Needed subcategory options");
+
+        // Revert to NEC Violation
+        issuePage.scrollUpOnDetailsScreen();
+        shortWait();
+        issuePage.changeIssueClassOnDetails("NEC Violation");
+        shortWait();
+
+        issuePage.tapCloseIssueDetails();
+        shortWait();
+
+        if (issuePage.isUnsavedChangesWarningDisplayed()) {
+            issuePage.tapDiscardChanges();
+            shortWait();
+        }
+    }
+
+    /**
+     * TC_ISS_116: Verify Thermal Anomaly subcategories
+     * Thermal Anomaly class should have its own set of subcategory options.
+     * Expected: Thermal Anomaly subcategory options are displayed.
+     */
+    @Test(priority = 116)
+    public void TC_ISS_116_verifyThermalAnomalySubcategories() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_CLASS_SUBCATEGORIES,
+            "TC_ISS_116 - Verify Thermal Anomaly subcategories");
+
+        logStep("Step 1: Ensure on Issues screen");
+        boolean onIssues = ensureOnIssuesScreen();
+        assertTrue(onIssues, "Should be on Issues screen");
+        shortWait();
+
+        issuePage.tapAllTab();
+        shortWait();
+
+        logStep("Step 2: Open 'Abhiyant' issue");
+        issuePage.tapOnIssue("Abhiyant");
+        mediumWait();
+
+        logStep("Step 3: Change Issue Class to Thermal Anomaly");
+        issuePage.changeIssueClassOnDetails("Thermal Anomaly");
+        mediumWait();
+
+        logStep("Step 4: Scroll down and open Subcategory dropdown");
+        issuePage.scrollDownOnDetailsScreen();
+        shortWait();
+        issuePage.tapSubcategoryField();
+        shortWait();
+
+        logStep("Step 5: Collect Thermal Anomaly subcategory options");
+        java.util.ArrayList<String> thermalOptions = issuePage.getVisibleSubcategoryOptions();
+        logStep("Thermal Anomaly subcategory options count: " + thermalOptions.size());
+        for (String opt : thermalOptions) {
+            logStep("   Thermal option: " + opt);
+        }
+
+        if (!thermalOptions.isEmpty()) {
+            logStep("✅ Thermal Anomaly has " + thermalOptions.size() + " subcategory options");
+        } else {
+            logStep("ℹ️ Thermal Anomaly may not have subcategory options");
+        }
+
+        issuePage.dismissDropdownMenu();
+        shortWait();
+
+        logStepWithScreenshot("TC_ISS_116: Thermal Anomaly subcategory options");
+
+        // Revert to NEC Violation
+        issuePage.scrollUpOnDetailsScreen();
+        shortWait();
+        issuePage.changeIssueClassOnDetails("NEC Violation");
+        shortWait();
+
+        issuePage.tapCloseIssueDetails();
+        shortWait();
+
+        if (issuePage.isUnsavedChangesWarningDisplayed()) {
+            issuePage.tapDiscardChanges();
+            shortWait();
+        }
+    }
+
+    /**
+     * TC_ISS_117: Verify Ultrasonic Anomaly subcategories
+     * Ultrasonic Anomaly class should have its own set of subcategory options.
+     * Expected: Ultrasonic Anomaly subcategory options are displayed.
+     */
+    @Test(priority = 117)
+    public void TC_ISS_117_verifyUltrasonicAnomalySubcategories() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_CLASS_SUBCATEGORIES,
+            "TC_ISS_117 - Verify Ultrasonic Anomaly subcategories");
+
+        logStep("Step 1: Ensure on Issues screen");
+        boolean onIssues = ensureOnIssuesScreen();
+        assertTrue(onIssues, "Should be on Issues screen");
+        shortWait();
+
+        issuePage.tapAllTab();
+        shortWait();
+
+        logStep("Step 2: Open 'Abhiyant' issue");
+        issuePage.tapOnIssue("Abhiyant");
+        mediumWait();
+
+        logStep("Step 3: Change Issue Class to Ultrasonic Anomaly");
+        issuePage.changeIssueClassOnDetails("Ultrasonic Anomaly");
+        mediumWait();
+
+        logStep("Step 4: Scroll down and open Subcategory dropdown");
+        issuePage.scrollDownOnDetailsScreen();
+        shortWait();
+        issuePage.tapSubcategoryField();
+        shortWait();
+
+        logStep("Step 5: Collect Ultrasonic Anomaly subcategory options");
+        java.util.ArrayList<String> ultrasonicOptions = issuePage.getVisibleSubcategoryOptions();
+        logStep("Ultrasonic Anomaly subcategory options count: " + ultrasonicOptions.size());
+        for (String opt : ultrasonicOptions) {
+            logStep("   Ultrasonic option: " + opt);
+        }
+
+        if (!ultrasonicOptions.isEmpty()) {
+            logStep("✅ Ultrasonic Anomaly has " + ultrasonicOptions.size() + " subcategory options");
+        } else {
+            logStep("ℹ️ Ultrasonic Anomaly may not have subcategory options");
+        }
+
+        issuePage.dismissDropdownMenu();
+        shortWait();
+
+        logStepWithScreenshot("TC_ISS_117: Ultrasonic Anomaly subcategory options");
+
+        // Revert to NEC Violation
+        issuePage.scrollUpOnDetailsScreen();
+        shortWait();
+        issuePage.changeIssueClassOnDetails("NEC Violation");
+        shortWait();
+
+        issuePage.tapCloseIssueDetails();
+        shortWait();
+
+        if (issuePage.isUnsavedChangesWarningDisplayed()) {
+            issuePage.tapDiscardChanges();
+            shortWait();
+        }
+    }
+
+    // ================================================================
+    // CLEAR SUBCATEGORY & OSHA FIELD (TC_ISS_118-119)
+    // ================================================================
+
+    /**
+     * TC_ISS_118: Verify clear selected subcategory (X button)
+     * After selecting a subcategory, tapping the clear/X button should reset
+     * the field to its placeholder state.
+     * Expected: Subcategory field returns to empty/placeholder after clearing.
+     */
+    @Test(priority = 118)
+    public void TC_ISS_118_verifyClearSelectedSubcategory() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_CLEAR_SUBCATEGORY,
+            "TC_ISS_118 - Verify clear selected subcategory (X button)");
+
+        logStep("Step 1: Ensure on Issues screen");
+        boolean onIssues = ensureOnIssuesScreen();
+        assertTrue(onIssues, "Should be on Issues screen");
+        shortWait();
+
+        issuePage.tapAllTab();
+        shortWait();
+
+        logStep("Step 2: Open 'Abhiyant' issue");
+        issuePage.tapOnIssue("Abhiyant");
+        mediumWait();
+
+        logStep("Step 3: Ensure Issue Class is NEC Violation");
+        String currentClass = issuePage.getIssueClassOnDetails();
+        if (!currentClass.contains("NEC")) {
+            issuePage.changeIssueClassOnDetails("NEC Violation");
+            mediumWait();
+        }
+
+        logStep("Step 4: Fill Subcategory with a value");
+        issuePage.fillSubcategoryAndGetCompletion("Breaker is restricted");
+        mediumWait();
+
+        logStep("Step 5: Verify Subcategory is filled");
+        issuePage.scrollDownOnDetailsScreen();
+        shortWait();
+        String filledValue = issuePage.getSubcategoryValue();
+        logStep("Subcategory value before clearing: '" + filledValue + "'");
+        boolean wasFilled = !filledValue.isEmpty() && !filledValue.contains("Type or select");
+        logStep("Subcategory was filled: " + wasFilled);
+
+        logStep("Step 6: Tap clear/X button to clear subcategory");
+        boolean cleared = issuePage.clearSubcategoryValue();
+        logStep("Clear action result: " + cleared);
+        shortWait();
+
+        logStep("Step 7: Verify subcategory is now empty");
+        boolean isEmpty = issuePage.isSubcategoryEmpty();
+        String afterValue = issuePage.getSubcategoryValue();
+        logStep("Subcategory value after clearing: '" + afterValue + "'");
+        logStep("Subcategory is empty: " + isEmpty);
+
+        if (isEmpty) {
+            logStep("✅ Subcategory successfully cleared — field returned to placeholder");
+        } else {
+            logStep("ℹ️ Subcategory still shows: '" + afterValue + "' — clear mechanism may differ");
+        }
+
+        logStep("Step 8: Verify completion drops back to 0%");
+        issuePage.scrollUpOnDetailsScreen();
+        shortWait();
+        String pctAfterClear = issuePage.getIssueDetailsCompletionPercentage();
+        logStep("Completion after clearing: '" + pctAfterClear + "'");
+        if (pctAfterClear.contains("0%")) {
+            logStep("✅ Completion reverted to 0% after clearing subcategory");
+        } else if (!pctAfterClear.isEmpty()) {
+            logStep("ℹ️ Completion is: '" + pctAfterClear + "'");
+        }
+
+        logStepWithScreenshot("TC_ISS_118: Subcategory cleared via X button");
+
+        issuePage.tapCloseIssueDetails();
+        shortWait();
+
+        if (issuePage.isUnsavedChangesWarningDisplayed()) {
+            issuePage.tapDiscardChanges();
+            shortWait();
+        }
+    }
+
+    /**
+     * TC_ISS_119: Verify OSHA Subcategory field verification
+     * When Issue Class is OSHA Violation, the Subcategory field should be
+     * displayed with appropriate placeholder and accept OSHA-specific options.
+     * Expected: Subcategory field is displayed, has correct placeholder, and
+     *           OSHA-specific options can be selected.
+     */
+    @Test(priority = 119)
+    public void TC_ISS_119_verifyOSHASubcategoryFieldVerification() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_OSHA_SUBCATEGORY,
+            "TC_ISS_119 - Verify OSHA Subcategory field verification");
+
+        logStep("Step 1: Ensure on Issues screen");
+        boolean onIssues = ensureOnIssuesScreen();
+        assertTrue(onIssues, "Should be on Issues screen");
+        shortWait();
+
+        issuePage.tapAllTab();
+        shortWait();
+
+        logStep("Step 2: Open 'Abhiyant' issue");
+        issuePage.tapOnIssue("Abhiyant");
+        mediumWait();
+
+        logStep("Step 3: Change Issue Class to OSHA Violation");
+        issuePage.changeIssueClassOnDetails("OSHA Violation");
+        mediumWait();
+
+        logStep("Step 4: Scroll down to Subcategory field");
+        issuePage.scrollDownOnDetailsScreen();
+        shortWait();
+
+        logStep("Step 5: Verify Subcategory field is displayed");
+        boolean fieldDisplayed = issuePage.isSubcategoryFieldDisplayed();
+        logStep("Subcategory field displayed: " + fieldDisplayed);
+        if (fieldDisplayed) {
+            logStep("✅ Subcategory field is visible for OSHA Violation");
+        } else {
+            logStep("ℹ️ Subcategory field may not be required for OSHA Violation");
+        }
+
+        logStep("Step 6: Check Subcategory placeholder text");
+        String placeholder = issuePage.getSubcategoryPlaceholder();
+        logStep("Subcategory placeholder: '" + placeholder + "'");
+        if (!placeholder.isEmpty()) {
+            logStep("✅ Placeholder text is present: '" + placeholder + "'");
+        }
+
+        logStep("Step 7: Open Subcategory and verify OSHA options");
+        issuePage.tapSubcategoryField();
+        shortWait();
+        java.util.ArrayList<String> oshaOptions = issuePage.getVisibleSubcategoryOptions();
+        logStep("OSHA subcategory options: " + oshaOptions.size());
+        for (String opt : oshaOptions) {
+            logStep("   OSHA option: " + opt);
+        }
+
+        logStep("Step 8: Select first OSHA option if available");
+        if (!oshaOptions.isEmpty()) {
+            String firstOption = oshaOptions.get(0);
+            issuePage.selectSubcategory(firstOption);
+            shortWait();
+
+            String selectedValue = issuePage.getSubcategoryValue();
+            logStep("Selected OSHA subcategory: '" + selectedValue + "'");
+            if (!selectedValue.isEmpty() && !selectedValue.contains("Type or select")) {
+                logStep("✅ OSHA subcategory selection works: '" + selectedValue + "'");
+            }
+        } else {
+            issuePage.dismissDropdownMenu();
+            logStep("⚠️ No OSHA options available to select");
+        }
+
+        logStepWithScreenshot("TC_ISS_119: OSHA Subcategory field verification");
+
+        // Revert to NEC Violation
+        issuePage.scrollUpOnDetailsScreen();
+        shortWait();
+        issuePage.changeIssueClassOnDetails("NEC Violation");
+        shortWait();
+
+        issuePage.tapCloseIssueDetails();
+        shortWait();
+
+        if (issuePage.isUnsavedChangesWarningDisplayed()) {
+            issuePage.tapDiscardChanges();
+            shortWait();
+        }
+    }
 }

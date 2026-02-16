@@ -4430,11 +4430,282 @@ public class IssuePage extends BasePage {
         }
     }
 
+    // ================================================================
+    // COMPLETION INDICATOR HELPERS (TC_ISS_110-111)
+    // ================================================================
+
+    /**
+     * Check if the completion percentage indicator is orange (incomplete state).
+     * Looks for orange dot/circle near the Issue Details section header.
+     * Returns true if an orange or incomplete indicator is found.
+     */
+    public boolean isCompletionIndicatorOrange() {
+        try {
+            // Strategy 1: Look for orange/yellow colored indicator image
+            try {
+                WebElement indicator = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeImage' OR type == 'XCUIElementTypeOther') AND " +
+                    "(name CONTAINS 'orange' OR name CONTAINS 'circle' OR " +
+                    "name CONTAINS 'exclamation' OR name CONTAINS 'warning' OR " +
+                    "name CONTAINS 'incomplete')"));
+                System.out.println("   Orange indicator found: " + indicator.getAttribute("name"));
+                return true;
+            } catch (Exception ignored) {}
+
+            // Strategy 2: Look for non-green indicator near "Issue Details" header
+            List<WebElement> headers = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label CONTAINS 'Issue Details'"));
+            if (!headers.isEmpty()) {
+                int headerY = headers.get(0).getLocation().getY();
+                List<WebElement> icons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeImage'"));
+                for (WebElement icon : icons) {
+                    int y = icon.getLocation().getY();
+                    if (Math.abs(y - headerY) < 40) {
+                        String name = icon.getAttribute("name");
+                        System.out.println("   Icon near Issue Details: " + name);
+                        // If it's NOT green/checkmark, it's likely orange/incomplete
+                        if (name != null && !name.contains("checkmark") && !name.contains("green")) {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            // Strategy 3: Check percentage — 0% implies orange indicator
+            String pct = getIssueDetailsCompletionPercentage();
+            if (pct.contains("0%")) {
+                System.out.println("   0% completion implies orange/incomplete indicator");
+                return true;
+            }
+
+            return false;
+        } catch (Exception e) {
+            System.out.println("⚠️ Error checking orange indicator: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Check if the completion percentage indicator is green (complete state).
+     * Looks for green dot/checkmark near the Issue Details section header.
+     * Returns true if a green/complete indicator is found.
+     */
+    public boolean isCompletionIndicatorGreen() {
+        try {
+            // Strategy 1: Look for green colored indicator image
+            try {
+                WebElement indicator = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeImage' OR type == 'XCUIElementTypeOther') AND " +
+                    "(name CONTAINS 'green' OR name CONTAINS 'checkmark.circle.fill' OR " +
+                    "name CONTAINS 'complete' OR name CONTAINS 'checkmark.circle')"));
+                System.out.println("   Green indicator found: " + indicator.getAttribute("name"));
+                return true;
+            } catch (Exception ignored) {}
+
+            // Strategy 2: Look for green indicator near "Issue Details" header
+            List<WebElement> headers = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label CONTAINS 'Issue Details'"));
+            if (!headers.isEmpty()) {
+                int headerY = headers.get(0).getLocation().getY();
+                List<WebElement> icons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeImage'"));
+                for (WebElement icon : icons) {
+                    int y = icon.getLocation().getY();
+                    if (Math.abs(y - headerY) < 40) {
+                        String name = icon.getAttribute("name");
+                        if (name != null && (name.contains("checkmark") || name.contains("green") ||
+                            name.contains("circle.fill"))) {
+                            System.out.println("   Green indicator near header: " + name);
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            // Strategy 3: Check percentage — 100% implies green indicator
+            String pct = getIssueDetailsCompletionPercentage();
+            if (pct.contains("100%")) {
+                System.out.println("   100% completion implies green/complete indicator");
+                return true;
+            }
+
+            return false;
+        } catch (Exception e) {
+            System.out.println("⚠️ Error checking green indicator: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // ================================================================
+    // CLEAR SUBCATEGORY (TC_ISS_118)
+    // ================================================================
+
+    /**
+     * Clear the currently selected subcategory value by tapping the clear/X button.
+     * Returns true if the subcategory was successfully cleared.
+     */
+    public boolean clearSubcategoryValue() {
+        System.out.println("🗑️ Clearing subcategory value...");
+        try {
+            // Strategy 1: Look for clear/X button near Subcategory field
+            try {
+                WebElement clearBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeButton') AND " +
+                    "(name CONTAINS 'clear' OR name CONTAINS 'Clear' OR " +
+                    "name CONTAINS 'xmark' OR name CONTAINS 'close' OR " +
+                    "label CONTAINS 'clear' OR label CONTAINS 'Clear' OR " +
+                    "label CONTAINS '✕' OR label CONTAINS '✖' OR label CONTAINS '×')"));
+                clearBtn.click();
+                sleep(400);
+                System.out.println("✅ Cleared subcategory via clear button");
+                return true;
+            } catch (Exception ignored) {}
+
+            // Strategy 2: Find X button near the Subcategory label by Y proximity
+            List<WebElement> subcatLabels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label == 'Subcategory'"));
+            if (!subcatLabels.isEmpty()) {
+                int subcatY = subcatLabels.get(0).getLocation().getY();
+                List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton'"));
+                for (WebElement btn : buttons) {
+                    int y = btn.getLocation().getY();
+                    if (Math.abs(y - subcatY) < 40) {
+                        String name = btn.getAttribute("name");
+                        String label = btn.getAttribute("label");
+                        if ((name != null && (name.contains("clear") || name.contains("xmark") ||
+                            name.contains("close") || name.contains("remove"))) ||
+                            (label != null && (label.contains("clear") || label.contains("Clear") ||
+                            label.contains("×") || label.contains("✕")))) {
+                            btn.click();
+                            sleep(400);
+                            System.out.println("✅ Cleared subcategory via nearby button: " + name);
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            // Strategy 3: Tap subcategory field and look for clear option inside
+            tapSubcategoryField();
+            sleep(300);
+            try {
+                WebElement clearOption = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND " +
+                    "(label == 'Clear' OR label == 'None' OR label == 'Reset')"));
+                clearOption.click();
+                sleep(400);
+                System.out.println("✅ Cleared subcategory via dropdown clear option");
+                return true;
+            } catch (Exception e) {
+                // Dismiss the dropdown
+                dismissDropdownMenu();
+                System.out.println("⚠️ No clear option found in dropdown");
+            }
+
+            return false;
+        } catch (Exception e) {
+            System.out.println("⚠️ Error clearing subcategory: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Check if the subcategory field is empty (showing placeholder text).
+     * Returns true if the field shows "Type or select" or is empty.
+     */
+    public boolean isSubcategoryEmpty() {
+        try {
+            String value = getSubcategoryValue();
+            String placeholder = getSubcategoryPlaceholder();
+            boolean isEmpty = value.isEmpty() || value.contains("Type or select") ||
+                value.contains("Select") || value.equals(placeholder);
+            System.out.println("   Subcategory empty check: value='" + value + "', isEmpty=" + isEmpty);
+            return isEmpty;
+        } catch (Exception e) {
+            System.out.println("⚠️ Error checking if subcategory empty: " + e.getMessage());
+            return true; // Assume empty on error
+        }
+    }
+
+    // ================================================================
+    // CLASS-SPECIFIC SUBCATEGORY HELPERS (TC_ISS_114-117)
+    // ================================================================
+
+    /**
+     * Get subcategory options for a specific Issue Class.
+     * Changes to the given class, opens subcategory, collects options, then returns them.
+     * Does NOT revert the class change — caller must handle that.
+     */
+    public java.util.ArrayList<String> getSubcategoryOptionsForClass(String issueClassName) {
+        System.out.println("📋 Getting subcategory options for class: " + issueClassName);
+        changeIssueClassOnDetails(issueClassName);
+        sleep(500);
+
+        // Scroll down to reach Subcategory field
+        scrollDownOnDetailsScreen();
+        sleep(300);
+
+        tapSubcategoryField();
+        sleep(500);
+
+        java.util.ArrayList<String> options = getVisibleSubcategoryOptions();
+        System.out.println("   Found " + options.size() + " subcategory options for " + issueClassName);
+
+        // Dismiss the dropdown
+        dismissDropdownMenu();
+        sleep(300);
+
+        return options;
+    }
+
+    /**
+     * Verify that a specific class has expected subcategory keywords present.
+     * Changes class, opens subcategory dropdown, checks for keywords, dismisses.
+     * Returns number of matched keywords.
+     */
+    public int verifyClassSubcategoryKeywords(String issueClassName, String[] expectedKeywords) {
+        System.out.println("🔍 Verifying subcategory keywords for: " + issueClassName);
+        changeIssueClassOnDetails(issueClassName);
+        sleep(500);
+
+        scrollDownOnDetailsScreen();
+        sleep(300);
+
+        tapSubcategoryField();
+        sleep(500);
+
+        java.util.ArrayList<String> options = getVisibleSubcategoryOptions();
+        int matched = 0;
+        for (String keyword : expectedKeywords) {
+            boolean found = false;
+            for (String opt : options) {
+                if (opt.toLowerCase().contains(keyword.toLowerCase())) {
+                    found = true;
+                    break;
+                }
+            }
+            if (found) {
+                matched++;
+                System.out.println("   ✅ Found keyword: " + keyword);
+            } else {
+                System.out.println("   ❌ Missing keyword: " + keyword);
+            }
+        }
+
+        // Dismiss dropdown
+        dismissDropdownMenu();
+        sleep(300);
+
+        return matched;
+    }
+
     /**
      * Helper: scroll down on the Issue Details screen to reveal more fields.
      * Uses a swipe gesture from center-bottom to center-top.
      */
-    private void scrollDownOnDetailsScreen() {
+    public void scrollDownOnDetailsScreen() {
         try {
             Map<String, Object> params = new HashMap<>();
             params.put("direction", "down");
