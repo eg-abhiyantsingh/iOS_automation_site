@@ -7,19 +7,29 @@ name: Automation Test
 # test module on a single macOS runner.
 #
 # Architecture:
-#   all                  → Smoke Dashboard (all modules, ~1 hr)
-#   authentication-only  → Authentication (38 tests)
-#   site-selection-only  → Site Selection (52 tests)
-#   assets-p1-*          → P1: Creation + Edit + Busway + Capacitor + Bug Tests (112 tests)
-#   assets-p2-*          → P1: CB + DS + Fuse + P2: Generator + Junction Box (108 tests)
-#   assets-p3-*          → P2: Load Center + MCC + MCC Bucket + Motor + Other (109 tests)
-#   assets-p4-*          → P2: OCP + P3: Panelboard + PDU + Relay + SWB + Transformer (97 tests)
-#   assets-p5-*          → P3: UPS + Utility + VFD + Subtypes + P4: DS/Fuse Subtypes (112 tests)
-#   assets-p6-*          → P4: Subtypes + Tasks + Issues + Connections + Asset Screen (114 tests)
-#   issues-p1-*          → Issues Phase 1: List + Filter + Search + Creation + Class Change (119 tests)
-#   issues-p2-*          → Issues Phase 2: OSHA + Thermal + Severity + Temperature + Ultrasonic (118 tests)
-#   location-only        → Locations (82 tests)
-#   connections-only     → Connections (94 tests)
+#
+#   ── Smoke (individual CRUD modules) ──
+#   all                       → Full Smoke Dashboard — all 7 modules with live progress (~1 hr)
+#   smoke-login               → Login flow (1 test)
+#   smoke-site-selection      → Site selection flow (1 test)
+#   smoke-asset-crud          → Asset Create + Read + Edit + Delete (4 tests)
+#   smoke-location-crud       → Location Create + Read + Edit + Delete (4 tests)
+#   smoke-connection-crud     → Connection Create + Read + Delete (3 tests)
+#   smoke-issue-crud          → Issue Create + Read + Details + Delete (4 tests)
+#
+#   ── Full Test Suites ──
+#   authentication-only       → Authentication (38 tests)
+#   site-selection-only       → Site Selection (52 tests)
+#   assets-p1-*               → P1: Creation + Edit + Busway + Capacitor + Bug Tests (112 tests)
+#   assets-p2-*               → P1: CB + DS + Fuse + P2: Generator + Junction Box (108 tests)
+#   assets-p3-*               → P2: Load Center + MCC + MCC Bucket + Motor + Other (109 tests)
+#   assets-p4-*               → P2: OCP + P3: Panelboard + PDU + Relay + SWB + Transformer (97 tests)
+#   assets-p5-*               → P3: UPS + Utility + VFD + Subtypes + P4: DS/Fuse Subtypes (112 tests)
+#   assets-p6-*               → P4: Subtypes + Tasks + Issues + Connections + Asset Screen (114 tests)
+#   issues-p1-*               → Issues Phase 1: List + Filter + Search + Creation + Class Change (119 tests)
+#   issues-p2-*               → Issues Phase 2: OSHA + Thermal + Severity + Temperature + Ultrasonic (118 tests)
+#   location-only             → Locations (82 tests)
+#   connections-only          → Connections (94 tests)
 #
 # S3 Drift Detection (branch-based):
 #   release/dev       → dev S3 only         (10 tests)  → Total 27
@@ -53,6 +63,12 @@ on:
         type: choice
         options:
           - 'all'
+          - 'smoke-login'
+          - 'smoke-site-selection'
+          - 'smoke-asset-crud'
+          - 'smoke-location-crud'
+          - 'smoke-connection-crud'
+          - 'smoke-issue-crud'
           - 'authentication-only'
           - 'site-selection-only'
           - 'assets-p1-creation-edit-busway-capacitor-bug'
@@ -532,7 +548,7 @@ jobs:
           case "${{ github.event.inputs.test_suite }}" in
             all)
               # ── Smoke uses the dashboard engine for module-by-module tracking ──
-              # Dashboard runs 10 modules with live progress. S3 drift env is
+              # Dashboard runs 7 modules with live progress. S3 drift env is
               # auto-detected from branch (set in "Detect S3 Drift Environment" step).
               # S3_ENV, S3_XML, S3_TESTS, S3_LABEL are read by the dashboard script.
               export APP_PATH
@@ -543,6 +559,26 @@ jobs:
               export TOTAL_SMOKE_TESTS="${{ env.TOTAL_SMOKE_TESTS }}"
               bash .github/scripts/smoke-dashboard.sh
               ;;
+            # ── Individual Smoke CRUD Modules ──
+            smoke-login)
+              run_mvn src/test/resources/smoke/testng-smoke-login.xml
+              ;;
+            smoke-site-selection)
+              run_mvn src/test/resources/smoke/testng-smoke-site-selection.xml
+              ;;
+            smoke-asset-crud)
+              run_mvn src/test/resources/smoke/testng-smoke-asset-crud.xml
+              ;;
+            smoke-location-crud)
+              run_mvn src/test/resources/smoke/testng-smoke-location-crud.xml
+              ;;
+            smoke-connection-crud)
+              run_mvn src/test/resources/smoke/testng-smoke-connection-crud.xml
+              ;;
+            smoke-issue-crud)
+              run_mvn src/test/resources/smoke/testng-smoke-issue-crud.xml
+              ;;
+            # ── Full Test Suites ──
             authentication-only)
               run_mvn src/test/resources/parallel/testng-auth.xml
               ;;
