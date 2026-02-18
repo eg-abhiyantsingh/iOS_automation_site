@@ -155,8 +155,9 @@ jobs:
               S3_LABEL="${S3_ENV^^} only" ;;
           esac
           
-          # Total: S3 tests + 13 mobile tests (Login + Site + CRUD)
-          TOTAL_TESTS=$((S3_TESTS + 13))
+          # S3 (dynamic) + 17 mobile tests:
+          # 1 Login + 1 Site + 4 Asset + 4 Location + 3 Connection + 4 Issue CRUD = 17
+          TOTAL_TESTS=$((S3_TESTS + 17))
           
           echo "S3_ENV=$S3_ENV" >> $GITHUB_ENV
           echo "S3_XML=$S3_XML" >> $GITHUB_ENV

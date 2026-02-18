@@ -183,7 +183,7 @@ draw_final_dashboard() {
   echo "  ╠${LINE}"
   echo "  ║"
 
-  for i in 0 1 2 3 4 5; do
+  for i in 0 1 2 3 4 5 6; do
     local num=$i
     local name="${MODULE_NAMES[$i]}"
     local st="${STATUS[$i]}"
@@ -257,7 +257,7 @@ draw_final_banner() {
       "$TOTAL_PASSED" "$TOTAL_TESTS" "$TOTAL_FAILED" "$TOTAL_SKIPPED" "$elapsed_fmt"
     echo "  ║"
     echo "  ║     Failed modules:"
-    for i in 0 1 2 3 4 5; do
+    for i in 0 1 2 3 4 5 6; do
       if [ "${STATUS[$i]}" = "failed" ]; then
         echo "  ║       ❌ Module ${i}: ${MODULE_NAMES[$i]} (${M_FAILED[$i]} failed)"
       fi
@@ -295,14 +295,14 @@ echo "  │  🚀  Smoke Test Dashboard v5"
 echo "  │  📱  ${DEVICE_NAME} · iOS ${PLATFORM_VERSION}"
 echo "  │  📦  ${TOTAL_TESTS} tests across ${TOTAL_MODULES} modules"
 echo "  │  🪣  S3 Drift: ${S3_LABEL_ACTUAL} (${S3_TESTS_ACTUAL} tests)"
-echo "  │  📲  Modules 1-5: Login → Site → Asset → Location → Connection CRUD"
+echo "  │  📲  Modules 1-6: Login → Site → Asset → Location → Connection → Issue CRUD"
 echo "  │  ⏰  $(date '+%Y-%m-%d %H:%M:%S')"
 echo "  └──────────────────────────────────────────────────────────────────────────"
 echo ""
 
 
 # ── Run each module ─────────────────────────────────
-for i in 0 1 2 3 4 5; do
+for i in 0 1 2 3 4 5 6; do
   MODULE_IDX=$i
   MODULE_KEY="${MODULES[$i]}"
   MODULE_NAME="${MODULE_NAMES[$i]}"
