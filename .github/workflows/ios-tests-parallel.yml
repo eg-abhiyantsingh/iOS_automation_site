@@ -73,6 +73,7 @@ jobs:
   # JOB 0: Smoke Tests (17 tests, ~15 min)
   # ========================================
   smoke-tests:
+    name: "Smoke - CRUD Tests (17 tests)"
     if: github.event.inputs.job_selection == 'smoke'
     runs-on: macos-15
     timeout-minutes: 120
@@ -257,6 +258,7 @@ jobs:
   # JOB 1: Auth Tests (38 tests, ~45 min)
   # ========================================
   auth-tests:
+    name: "Authentication (38 tests)"
     if: github.event_name == 'workflow_run' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'authentication-only'
     runs-on: macos-15
     timeout-minutes: 420
@@ -468,6 +470,7 @@ jobs:
   # JOB 2: Site Tests (52 tests, ~1.5 hr)
   # ========================================
   site-tests:
+    name: "Site Selection (52 tests)"
     if: github.event_name == 'workflow_run' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'site-selection-only'
     runs-on: macos-15
     timeout-minutes: 420
@@ -575,6 +578,7 @@ jobs:
   # P5: Bug Regression Tests (44)
   # ========================================
   assets-part1:
+    name: "Assets P1 - Creation + Edit + Busway + Capacitor + Bug (112 tests)"
     if: github.event_name == 'workflow_run' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p1-creation-edit-busway-capacitor-bug'
     runs-on: macos-15
     timeout-minutes: 420
@@ -682,6 +686,7 @@ jobs:
   # P2: Generator (20) + Junction Box (17)
   # ========================================
   assets-part2:
+    name: "Assets P2 - CB + DS + Fuse + Generator + JunctionBox (108 tests)"
     if: github.event_name == 'workflow_run' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p2-cb-ds-fuse-generator-junctionbox'
     runs-on: macos-15
     timeout-minutes: 420
@@ -788,6 +793,7 @@ jobs:
   # P2: Load Center (28) + MCC (26) + MCC Bucket (12) + Motor (30) + Other (13)
   # ========================================
   assets-part3:
+    name: "Assets P3 - LoadCenter + MCC + MCC Bucket + Motor + Other (109 tests)"
     if: github.event_name == 'workflow_run' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p3-loadcenter-mcc-mccbucket-motor-other'
     runs-on: macos-15
     timeout-minutes: 420
@@ -895,6 +901,7 @@ jobs:
   # P3: Panelboard (14) + PDU (15) + Relay (14) + Switchboard (18) + Transformer (23)
   # ========================================
   assets-part4:
+    name: "Assets P4 - OCP + Panelboard + PDU + Relay + SWB + Transformer (97 tests)"
     if: github.event_name == 'workflow_run' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p4-ocp-panelboard-pdu-relay-swb-transformer'
     runs-on: macos-15
     timeout-minutes: 420
@@ -1003,6 +1010,7 @@ jobs:
   # P4: Disconnect Switch Subtypes (16) + Fuse Subtypes (11)
   # ========================================
   assets-part5:
+    name: "Assets P5 - UPS + Utility + VFD + Subtypes (112 tests)"
     if: github.event_name == 'workflow_run' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p5-ups-utility-vfd-subtypes'
     runs-on: macos-15
     timeout-minutes: 420
@@ -1114,6 +1122,7 @@ jobs:
   #     + LC Connections (9) + MCC OCP (19) + Asset Screen (11)
   # ========================================
   assets-part6:
+    name: "Assets P6 - Subtypes + Tasks + Issues + Connections + Search (114 tests)"
     if: github.event_name == 'workflow_run' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p6-subtypes-tasks-issues-connections-search'
     runs-on: macos-15
     timeout-minutes: 420
@@ -1219,6 +1228,7 @@ jobs:
   # JOB 9: Issues Phase 1 (119 tests — List, Filter, Search, Creation, Class Change)
   # ========================================
   issues-phase1:
+    name: "Issues P1 - List + Filter + Search + Creation + ClassChange (119 tests)"
     if: github.event_name == 'workflow_run' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'issues-p1-list-filter-search-creation-classchange'
     runs-on: macos-15
     timeout-minutes: 420
@@ -1324,6 +1334,7 @@ jobs:
   # JOB 10: Issues Phase 2 (118 tests — OSHA, Thermal, Severity, Temperature, Ultrasonic)
   # ========================================
   issues-phase2:
+    name: "Issues P2 - OSHA + Thermal + Severity + Temperature + Ultrasonic (118 tests)"
     if: github.event_name == 'workflow_run' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'issues-p2-osha-thermal-severity-temperature-ultrasonic'
     runs-on: macos-15
     timeout-minutes: 420
@@ -1429,6 +1440,7 @@ jobs:
   # JOB 11: Location Tests (84 tests, ~2 hr)
   # ========================================
   location-tests:
+    name: "Location (82 tests)"
     if: github.event_name == 'workflow_run' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'location-only'
     runs-on: macos-15
     timeout-minutes: 420
@@ -1535,6 +1547,7 @@ jobs:
   # JOB 10: Connections Tests (94 tests, ~2 hr)
   # ========================================
   connections-tests:
+    name: "Connections (94 tests)"
     if: github.event_name == 'workflow_run' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'connections-only'
     runs-on: macos-15
     timeout-minutes: 420
@@ -1640,6 +1653,7 @@ jobs:
   # FINAL JOB: Merge Reports & Send Email
   # ========================================
   send-email:
+    name: "Summary & Email"
     needs: [smoke-tests, auth-tests, site-tests, assets-part1, assets-part2, assets-part3, assets-part4, assets-part5, assets-part6, issues-phase1, issues-phase2, location-tests, connections-tests]
     if: always()
     runs-on: ubuntu-latest
