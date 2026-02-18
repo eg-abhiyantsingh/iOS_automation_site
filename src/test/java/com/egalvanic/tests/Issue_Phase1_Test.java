@@ -87,17 +87,21 @@ public final class Issue_Phase1_Test extends BaseTest {
             return false;
         }
 
-        // Tap + to open New Issue form
-        issuePage.tapAddButton();
-        shortWait();
+        // Tap + to open New Issue form (with retry — form may take time to render)
+        for (int attempt = 1; attempt <= 2; attempt++) {
+            issuePage.tapAddButton();
+            mediumWait(); // 400ms — give the form time to render
 
-        boolean displayed = issuePage.isNewIssueFormDisplayed();
-        if (displayed) {
-            System.out.println("✓ New Issue form is displayed");
-        } else {
-            System.out.println("❌ New Issue form not displayed after tapping +");
+            if (issuePage.isNewIssueFormDisplayed()) {
+                System.out.println("✓ New Issue form is displayed (attempt " + attempt + ")");
+                return true;
+            }
+            System.out.println("   New Issue form not detected on attempt " + attempt + ", retrying...");
+            sleep(500);
         }
-        return displayed;
+
+        System.out.println("❌ New Issue form not displayed after tapping +");
+        return false;
     }
 
     // ============================================================
@@ -113,6 +117,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUES_LIST,
             "TC_ISS_001 - Verify Issues screen header elements");
 
+        loginAndSelectSite();
+        // Ensure on Dashboard
         logStep("Step 1: Navigate to Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
@@ -1482,9 +1488,10 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to New Issue form");
         boolean onForm = ensureOnNewIssueForm();
         assertTrue(onForm, "Should be on New Issue form");
-        shortWait();
+        mediumWait();
 
         logStep("Step 2: Verify Select Asset field is displayed");
+        // isSelectAssetDisplayed() has 3s wait + scroll fallback built in
         boolean assetDisplayed = issuePage.isSelectAssetDisplayed();
         assertTrue(assetDisplayed, "Select Asset field should be displayed");
         logStep("✅ Select Asset field is displayed");
@@ -5156,7 +5163,17 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
+        // tapFirstIssue() now waits up to 3s for Issue Details screen
+
+        // Verify we're on Issue Details screen before proceeding
+        boolean onDetails = issuePage.isIssueDetailsScreenDisplayed();
+        if (!onDetails) {
+            logStep("   Issue Details not detected, retrying tap...");
+            issuePage.tapFirstIssue();
+            onDetails = issuePage.isIssueDetailsScreenDisplayed();
+        }
+        assertTrue(onDetails, "Should be on Issue Details screen after tapping issue");
+        logStep("✅ Issue Details screen is displayed");
 
         logStep("Step 3: Check initial completion percentage");
         String initialPct = issuePage.getIssueDetailsCompletionPercentage();

@@ -80,7 +80,7 @@ public class Asset_Phase4_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "OCP_EAD_01 - Open Edit Asset Details screen for Other (OCP)"
         );
-
+        loginAndSelectSite();
         logStep("Navigating to Other (OCP) Edit Asset Details screen");
         navigateToOtherOCPEditScreen();
 

@@ -101,6 +101,7 @@ public class Asset_Phase6_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "GEN-01 - Verify core attributes are visible for Generator asset"
         );
+        loginAndSelectSite();
         try {
             logStep("Step 1: Navigating to Assets and selecting a Generator asset");
             navigateToGeneratorEditScreen();

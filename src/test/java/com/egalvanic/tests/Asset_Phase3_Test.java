@@ -183,7 +183,7 @@ public class Asset_Phase3_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "LC_EAD_01 - Open Edit Asset Details screen for Loadcenter"
         );
-
+        loginAndSelectSite();
         logStep("Navigating to Loadcenter Edit Asset Details screen");
         navigateToLoadcenterEditScreen();
 

@@ -88,7 +88,8 @@ public final class Issue_Phase2_Test extends BaseTest {
     public void TC_ISS_120_verifyOSHASubcategoryDropdownOptions() {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_OSHA_SUBCATEGORY,
             "TC_ISS_120 - Verify OSHA subcategory dropdown options");
-
+        loginAndSelectSite();
+        // Ensure on Dashboard
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");

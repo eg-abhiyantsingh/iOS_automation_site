@@ -1,5 +1,25 @@
-#important message. I have create this file just for claude understanding. 
-# I will directly copy paste this file in my developer repo file
+name: Automation Test
+
+# ============================================================
+# DEVELOPER REPO - SINGLE RUNNER TEST SUITE
+# ============================================================
+# Builds iOS app from selected branch, then runs the chosen
+# test module on a single macOS runner.
+#
+# Architecture:
+#   all                  → Smoke Dashboard (all modules, ~1 hr)
+#   authentication-only  → Authentication (38 tests)
+#   site-selection-only  → Site Selection (52 tests)
+#   assets-p1-*          → P1: Creation + Edit + Busway + Capacitor + Bug Tests (112 tests)
+#   assets-p2-*          → P1: CB + DS + Fuse + P2: Generator + Junction Box (108 tests)
+#   assets-p3-*          → P2: Load Center + MCC + MCC Bucket + Motor + Other (109 tests)
+#   assets-p4-*          → P2: OCP + P3: Panelboard + PDU + Relay + SWB + Transformer (97 tests)
+#   assets-p5-*          → P3: UPS + Utility + VFD + Subtypes + P4: DS/Fuse Subtypes (112 tests)
+#   assets-p6-*          → P4: Subtypes + Tasks + Issues + Connections + Asset Screen (114 tests)
+#   issues-p1-*          → Issues Phase 1: List + Filter + Search + Creation + Class Change (119 tests)
+#   issues-p2-*          → Issues Phase 2: OSHA + Thermal + Severity + Temperature + Ultrasonic (118 tests)
+#   location-only        → Locations (82 tests)
+#   connections-only     → Connections (94 tests)
 #
 # S3 Drift Detection (branch-based):
 #   release/dev       → dev S3 only         (10 tests)  → Total 27
@@ -8,9 +28,9 @@
 #   release/prod      → prod + bces-iq      (18 tests)  → Total 35
 #   main              → prod + bces-iq      (18 tests)  → Total 35
 #
-# AWS credentials required: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
-
-name: Run QA Automation Tests
+# Requirements:
+#   Secrets: QA_REPO_TOKEN, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+# ============================================================
 
 on:
   workflow_dispatch:
@@ -29,24 +49,22 @@ on:
       test_suite:
         description: 'Which tests to run?'
         required: true
-        default: 'smoke'
+        default: 'all'
         type: choice
         options:
-          - smoke
-          - full
-          - auth
-          - site
-          - location
-          - connections
-          - asset-phase1
-          - asset-phase2
-          - asset-phase3
-          - asset-phase4
-          - asset-phase5
-          - asset-phase6
-          - asset-all
-          - issues-phase1
-          - issues-phase2
+          - 'all'
+          - 'authentication-only'
+          - 'site-selection-only'
+          - 'assets-p1-creation-edit-busway-capacitor-bug'
+          - 'assets-p2-cb-ds-fuse-generator-junctionbox'
+          - 'assets-p3-loadcenter-mcc-mccbucket-motor-other'
+          - 'assets-p4-ocp-panelboard-pdu-relay-swb-transformer'
+          - 'assets-p5-ups-utility-vfd-subtypes'
+          - 'assets-p6-subtypes-tasks-issues-connections-search'
+          - 'issues-p1-list-filter-search-creation-classchange'
+          - 'issues-p2-osha-thermal-severity-temperature-ultrasonic'
+          - 'location-only'
+          - 'connections-only'
       capture_api:
         description: 'Capture API traffic for debugging'
         required: false
@@ -510,7 +528,7 @@ jobs:
           }
 
           case "${{ github.event.inputs.test_suite }}" in
-            smoke)
+            all)
               # ── Smoke uses the dashboard engine for module-by-module tracking ──
               # Dashboard runs 10 modules with live progress. S3 drift env is
               # auto-detected from branch (set in "Detect S3 Drift Environment" step).
@@ -523,54 +541,41 @@ jobs:
               export TOTAL_SMOKE_TESTS="${{ env.TOTAL_SMOKE_TESTS }}"
               bash .github/scripts/smoke-dashboard.sh
               ;;
-            full)
-              run_mvn testng.xml
-              ;;
-            auth)
+            authentication-only)
               run_mvn src/test/resources/parallel/testng-auth.xml
               ;;
-            site)
+            site-selection-only)
               run_mvn src/test/resources/parallel/testng-site.xml
               ;;
-            location)
-              run_mvn src/test/resources/parallel/testng-location.xml
-              ;;
-            connections)
-              run_mvn src/test/resources/parallel/testng-connections.xml
-              ;;
-            asset-phase1)
+            assets-p1-*)
               run_mvn src/test/resources/parallel/testng-assets-part1.xml
               ;;
-            asset-phase2)
+            assets-p2-*)
               run_mvn src/test/resources/parallel/testng-assets-part2.xml
               ;;
-            asset-phase3)
+            assets-p3-*)
               run_mvn src/test/resources/parallel/testng-assets-part3.xml
               ;;
-            asset-phase4)
+            assets-p4-*)
               run_mvn src/test/resources/parallel/testng-assets-part4.xml
               ;;
-            asset-phase5)
+            assets-p5-*)
               run_mvn src/test/resources/parallel/testng-assets-part5.xml
               ;;
-            asset-phase6)
+            assets-p6-*)
               run_mvn src/test/resources/parallel/testng-assets-part6.xml
               ;;
-            asset-all)
-              echo "Running all 6 Asset phases sequentially..."
-              for PHASE in 1 2 3 4 5 6; do
-                echo ""
-                echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                echo "  📦 ASSET PHASE $PHASE / 6"
-                echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                run_mvn "src/test/resources/parallel/testng-assets-part${PHASE}.xml" || true
-              done
-              ;;
-            issues-phase1)
+            issues-p1-*)
               run_mvn src/test/resources/parallel/testng-issues-phase1.xml
               ;;
-            issues-phase2)
+            issues-p2-*)
               run_mvn src/test/resources/parallel/testng-issues-phase2.xml
+              ;;
+            location-only)
+              run_mvn src/test/resources/parallel/testng-location.xml
+              ;;
+            connections-only)
+              run_mvn src/test/resources/parallel/testng-connections.xml
               ;;
           esac
 

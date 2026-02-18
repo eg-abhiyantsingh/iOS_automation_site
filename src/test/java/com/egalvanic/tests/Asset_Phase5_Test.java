@@ -110,6 +110,7 @@ public class Asset_Phase5_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "TC-UPS-01 - Verify Core Attributes section loads for UPS"
         );
+        loginAndSelectSite();
         try {
             logStep("Navigating to UPS Edit Asset Details screen");
             navigateToUPSEditScreen();

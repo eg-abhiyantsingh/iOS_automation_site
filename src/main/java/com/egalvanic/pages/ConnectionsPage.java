@@ -6678,22 +6678,21 @@ public class ConnectionsPage {
      * Confirm delete in dialog
      */
     public boolean confirmDeleteConnection() {
-        try {
-            System.out.println("✅ Confirming connection deletion...");
-            
+        System.out.println("✅ Confirming connection deletion...");
+        // CI runners are slower — alerts can re-render between find and click.
+        for (int attempt = 0; attempt < 3; attempt++) {
             try {
+                if (attempt > 0) sleep(500);
                 WebElement deleteBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label == 'Delete' OR label == 'Remove' OR label == 'OK' OR label == 'Yes') AND type == 'XCUIElementTypeButton' AND visible == true"));
                 deleteBtn.click();
                 sleep(300);
                 System.out.println("✓ Deletion confirmed");
                 return true;
-            } catch (Exception e1) {}
-            
-            return false;
-        } catch (Exception e) {
-            return false;
+            } catch (Exception ignored) {}
         }
+        System.out.println("⚠️ Could not confirm deletion after 3 attempts");
+        return false;
     }
 
     /**
@@ -8319,34 +8318,38 @@ public class ConnectionsPage {
      * TC_CONN_088: Verify Delete confirms deletion
      */
     public boolean tapDeleteOnConfirmation() {
-        try {
-            System.out.println("👆 Tapping Delete on confirmation...");
-
+        System.out.println("👆 Tapping Delete on confirmation...");
+        // CI runners are slower — alerts can re-render between find and click,
+        // causing stale element references. Retry up to 3 times.
+        for (int attempt = 0; attempt < 3; attempt++) {
             try {
-                WebElement alert = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeAlert' AND visible == true"));
+                if (attempt > 0) sleep(500);
 
-                WebElement deleteBtn = alert.findElement(AppiumBy.iOSNsPredicateString(
-                    "label == 'Delete' AND visible == true"));
-                deleteBtn.click();
-                sleep(300);
-                System.out.println("✓ Tapped Delete in alert");
-                return true;
-            } catch (Exception e1) {}
+                // Strategy 1: Find Delete button inside the alert
+                try {
+                    WebElement alert = driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeAlert' AND visible == true"));
+                    WebElement deleteBtn = alert.findElement(AppiumBy.iOSNsPredicateString(
+                        "label == 'Delete' AND visible == true"));
+                    deleteBtn.click();
+                    sleep(300);
+                    System.out.println("✓ Tapped Delete in alert");
+                    return true;
+                } catch (Exception e1) {}
 
-            try {
-                WebElement deleteBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "label == 'Delete' AND type == 'XCUIElementTypeButton' AND visible == true"));
-                deleteBtn.click();
-                sleep(300);
-                System.out.println("✓ Tapped Delete button");
-                return true;
-            } catch (Exception e2) {}
-
-            return false;
-        } catch (Exception e) {
-            return false;
+                // Strategy 2: Find Delete button globally
+                try {
+                    WebElement deleteBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "label == 'Delete' AND type == 'XCUIElementTypeButton' AND visible == true"));
+                    deleteBtn.click();
+                    sleep(300);
+                    System.out.println("✓ Tapped Delete button");
+                    return true;
+                } catch (Exception e2) {}
+            } catch (Exception ignored) {}
         }
+        System.out.println("⚠️ Could not tap Delete on confirmation after 3 attempts");
+        return false;
     }
 
     /**

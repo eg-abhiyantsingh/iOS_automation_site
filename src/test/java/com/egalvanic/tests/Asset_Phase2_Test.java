@@ -2220,7 +2220,7 @@ public class Asset_Phase2_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "FUSE_EAD_21 - Verify green check indicators for completed fields"
         );
-
+        loginAndSelectSite();
         logStep("Navigating to Edit Asset screen and changing to Fuse");
         navigateToEditAssetScreenAndChangeToFuse();
 

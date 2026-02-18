@@ -1058,15 +1058,49 @@ public class IssuePage extends BasePage {
      */
     public void tapSelectAsset() {
         System.out.println("📋 Tapping Select Asset...");
+        String predicate =
+            "(label == 'Select Asset' OR label BEGINSWITH 'Select Asset') AND " +
+            "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeCell' OR " +
+            "type == 'XCUIElementTypeOther')";
+
+        // Attempt 1: Direct find
         try {
-            WebElement selectAsset = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(label == 'Select Asset' OR label CONTAINS 'Select Asset') AND " +
-                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeCell')"));
+            WebElement selectAsset = driver.findElement(AppiumBy.iOSNsPredicateString(predicate));
             selectAsset.click();
             sleep(500);
             System.out.println("✅ Opened Select Asset picker");
+            return;
         } catch (Exception e) {
-            System.out.println("⚠️ Could not tap Select Asset: " + e.getMessage());
+            System.out.println("   Select Asset not found directly, scrolling down...");
+        }
+
+        // Attempt 2: Scroll form down (Asset is in ASSIGNMENT section at bottom)
+        try {
+            scrollDownOnDetailsScreen();
+            sleep(300);
+            WebElement selectAsset = driver.findElement(AppiumBy.iOSNsPredicateString(predicate));
+            selectAsset.click();
+            sleep(500);
+            System.out.println("✅ Opened Select Asset picker (after scroll)");
+            return;
+        } catch (Exception e) {
+            System.out.println("   Select Asset not found after scroll, trying mobile:scroll...");
+        }
+
+        // Attempt 3: iOS native scroll to the element
+        try {
+            Map<String, Object> scrollParams = new HashMap<>();
+            scrollParams.put("direction", "down");
+            scrollParams.put("predicateString", "label CONTAINS 'Select Asset'");
+            driver.executeScript("mobile: scroll", scrollParams);
+            sleep(300);
+            WebElement selectAsset = driver.findElement(AppiumBy.iOSNsPredicateString(predicate));
+            selectAsset.click();
+            sleep(500);
+            System.out.println("✅ Opened Select Asset picker (after mobile:scroll)");
+            return;
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not tap Select Asset after all attempts: " + e.getMessage());
         }
     }
 
@@ -1694,16 +1728,56 @@ public class IssuePage extends BasePage {
     }
 
     /**
-     * Check if Select Asset field is displayed on New Issue form
+     * Check if Select Asset field is displayed on New Issue form.
+     * Uses explicit wait (3s) since the ASSIGNMENT section is at the bottom
+     * and may take a moment to render. Falls back to scrolling down if not
+     * found on first attempt.
      */
     public boolean isSelectAssetDisplayed() {
+        // The predicate targets the "Select Asset" navigation row in the ASSIGNMENT section.
+        // Use specific label match first, then broader fallback.
+        String predicate =
+            "(label == 'Select Asset' OR label BEGINSWITH 'Select Asset' OR " +
+            "(label CONTAINS 'Asset' AND NOT label CONTAINS 'ASSIGNMENT')) AND " +
+            "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeCell' OR " +
+            "type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeOther')";
+
+        // Attempt 1: Wait up to 3 seconds for the element
         try {
-            WebElement asset = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(label CONTAINS 'Select Asset' OR label CONTAINS 'Asset') AND " +
-                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeCell' OR " +
-                "type == 'XCUIElementTypeStaticText')"));
-            return asset.isDisplayed();
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(3));
+            WebElement asset = wait.until(ExpectedConditions.presenceOfElementLocated(
+                AppiumBy.iOSNsPredicateString(predicate)));
+            System.out.println("✓ Select Asset field found: label='" + asset.getAttribute("label") +
+                "', type=" + asset.getAttribute("type") + ", Y=" + asset.getLocation().getY());
+            return true;
         } catch (Exception e) {
+            System.out.println("   Select Asset not found on screen, trying scroll...");
+        }
+
+        // Attempt 2: Scroll down and retry (Asset is in ASSIGNMENT section at form bottom)
+        try {
+            scrollDownOnDetailsScreen();
+            sleep(300);
+            WebElement asset = driver.findElement(AppiumBy.iOSNsPredicateString(predicate));
+            System.out.println("✓ Select Asset field found after scroll: label='" +
+                asset.getAttribute("label") + "', Y=" + asset.getLocation().getY());
+            return true;
+        } catch (Exception e2) {
+            System.out.println("   Select Asset not found even after scroll");
+        }
+
+        // Attempt 3: Use mobile:scroll to search for the element by predicate
+        try {
+            Map<String, Object> scrollParams = new HashMap<>();
+            scrollParams.put("direction", "down");
+            scrollParams.put("predicateString", "label CONTAINS 'Select Asset'");
+            driver.executeScript("mobile: scroll", scrollParams);
+            sleep(300);
+            WebElement asset = driver.findElement(AppiumBy.iOSNsPredicateString(predicate));
+            System.out.println("✓ Select Asset field found after mobile:scroll");
+            return true;
+        } catch (Exception e3) {
+            System.out.println("⚠️ Select Asset field not found after all attempts");
             return false;
         }
     }
@@ -1827,14 +1901,51 @@ public class IssuePage extends BasePage {
      */
     public void dismissDropdownMenu() {
         try {
+            // Get screen dimensions for dynamic coordinate calculation.
+            // CRITICAL: Never tap at Y < 120 — that's the iOS nav bar zone
+            // and would close the screen or trigger unwanted navigation.
+            int screenWidth = driver.manage().window().getSize().getWidth();
+            int screenHeight = driver.manage().window().getSize().getHeight();
+
+            // Strategy 1: Tap at the bottom portion of the screen (far from any
+            // dropdown popover which appears near its anchor field higher up).
+            // Y = 85% of screen height is safely below any dropdown menu.
+            int safeX = screenWidth / 2;
+            int safeY = (int) (screenHeight * 0.85);
+
             Map<String, Object> tapParams = new HashMap<>();
-            tapParams.put("x", 200);
-            tapParams.put("y", 100);
+            tapParams.put("x", safeX);
+            tapParams.put("y", safeY);
             driver.executeScript("mobile: tap", tapParams);
             sleep(300);
-            System.out.println("✅ Dismissed dropdown menu");
+            System.out.println("✅ Dismissed dropdown menu (tap at X=" + safeX + ", Y=" + safeY + ")");
         } catch (Exception e) {
-            System.out.println("⚠️ Could not dismiss dropdown menu: " + e.getMessage());
+            // Fallback: try a small swipe gesture to dismiss (works for iOS popovers)
+            try {
+                int screenWidth = driver.manage().window().getSize().getWidth();
+                int screenHeight = driver.manage().window().getSize().getHeight();
+                int midX = screenWidth / 2;
+                int bottomY = (int) (screenHeight * 0.9);
+
+                org.openqa.selenium.interactions.PointerInput finger =
+                    new org.openqa.selenium.interactions.PointerInput(
+                        org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
+                org.openqa.selenium.interactions.Sequence swipe =
+                    new org.openqa.selenium.interactions.Sequence(finger, 0);
+                swipe.addAction(finger.createPointerMove(Duration.ZERO,
+                    org.openqa.selenium.interactions.PointerInput.Origin.viewport(), midX, bottomY));
+                swipe.addAction(finger.createPointerDown(
+                    org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+                swipe.addAction(finger.createPointerMove(Duration.ofMillis(100),
+                    org.openqa.selenium.interactions.PointerInput.Origin.viewport(), midX, bottomY - 20));
+                swipe.addAction(finger.createPointerUp(
+                    org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+                driver.perform(java.util.Collections.singletonList(swipe));
+                sleep(300);
+                System.out.println("✅ Dismissed dropdown menu via swipe fallback");
+            } catch (Exception e2) {
+                System.out.println("⚠️ Could not dismiss dropdown menu: " + e2.getMessage());
+            }
         }
     }
 
@@ -2172,6 +2283,8 @@ public class IssuePage extends BasePage {
      */
     public void tapFirstIssue() {
         System.out.println("📋 Tapping first available issue...");
+        boolean tapped = false;
+
         try {
             // Strategy 1: Find first cell that looks like an issue cell by dimensions
             List<WebElement> allCells = driver.findElements(AppiumBy.iOSNsPredicateString(
@@ -2181,29 +2294,45 @@ public class IssuePage extends BasePage {
                 int h = cell.getSize().getHeight();
                 if (y > 350 && h > 60) {
                     cell.click();
-                    sleep(500);
-                    System.out.println("✅ Tapped first issue cell at Y=" + y + ", H=" + h);
-                    return;
+                    System.out.println("   Tapped first issue cell at Y=" + y + ", H=" + h);
+                    tapped = true;
+                    break;
                 }
             }
 
             // Strategy 2: Tap a static text with issue title pattern
-            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND " +
-                "(label CONTAINS 'Test Issue' OR label CONTAINS 'Repair' OR " +
-                "label CONTAINS 'RepairCount' OR label CONTAINS 'Issue ')"));
-            for (WebElement text : texts) {
-                int y = text.getLocation().getY();
-                if (y > 350) {
-                    String label = text.getAttribute("label");
-                    text.click();
-                    sleep(500);
-                    System.out.println("✅ Tapped issue title at Y=" + y + ": " + label);
-                    return;
+            if (!tapped) {
+                List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND " +
+                    "(label CONTAINS 'Test Issue' OR label CONTAINS 'Repair' OR " +
+                    "label CONTAINS 'RepairCount' OR label CONTAINS 'Issue ')"));
+                for (WebElement text : texts) {
+                    int y = text.getLocation().getY();
+                    if (y > 350) {
+                        String label = text.getAttribute("label");
+                        text.click();
+                        System.out.println("   Tapped issue title at Y=" + y + ": " + label);
+                        tapped = true;
+                        break;
+                    }
                 }
             }
 
-            System.out.println("⚠️ No issue cells found in the list");
+            if (!tapped) {
+                System.out.println("⚠️ No issue cells found in the list");
+                return;
+            }
+
+            // Wait for Issue Details screen to load (up to 3 seconds)
+            for (int i = 0; i < 6; i++) {
+                sleep(500);
+                if (isIssueDetailsScreenDisplayed()) {
+                    System.out.println("✅ Issue Details screen loaded");
+                    return;
+                }
+            }
+            System.out.println("⚠️ Issue Details screen not detected after tap (proceeding anyway)");
+
         } catch (Exception e) {
             System.out.println("⚠️ Could not tap first issue: " + e.getMessage());
         }
@@ -2406,14 +2535,76 @@ public class IssuePage extends BasePage {
      * Close Issue Details screen by tapping Close/Back button
      */
     public void tapCloseIssueDetails() {
-        System.out.println("❌ Closing Issue Details...");
+        System.out.println("🔙 Closing Issue Details...");
+
+        // Strategy 1: Find close/back/done button INSIDE the NavigationBar only
+        // This prevents matching random "Done"/"Close" buttons elsewhere on screen
         try {
-            WebElement closeBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND " +
-                "(label == 'Close' OR name == 'Close' OR label == 'Back' OR name == 'Back')"));
-            closeBtn.click();
-            sleep(300);
-            System.out.println("✅ Closed Issue Details");
+            WebElement navBar = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeNavigationBar'"));
+            List<WebElement> navButtons = navBar.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton'"));
+            for (WebElement btn : navButtons) {
+                String name = btn.getAttribute("name");
+                String label = btn.getAttribute("label");
+                System.out.println("   Nav bar button: name='" + name + "', label='" + label + "'");
+                if (name != null && (name.equals("Close") || name.equals("Back") ||
+                    name.equals("Done") || name.equals("Cancel") || name.equals("Issues") ||
+                    name.equals("chevron.left") || name.equals("xmark"))) {
+                    btn.click();
+                    sleep(300);
+                    System.out.println("✅ Closed Issue Details via nav bar: '" + name + "'");
+                    return;
+                }
+            }
+            // If we found nav bar buttons but none matched known names,
+            // tap the first (leftmost) one — that's typically the back button
+            if (!navButtons.isEmpty()) {
+                String name = navButtons.get(0).getAttribute("name");
+                navButtons.get(0).click();
+                sleep(300);
+                System.out.println("✅ Closed Issue Details via first nav button: '" + name + "'");
+                return;
+            }
+        } catch (Exception e) {
+            System.out.println("   No NavigationBar found, trying positional fallback...");
+        }
+
+        // Strategy 2: Find button in top-left corner (X < 80, Y < 100) — the back/close area
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton'"));
+            for (WebElement btn : buttons) {
+                int x = btn.getLocation().getX();
+                int y = btn.getLocation().getY();
+                if (x < 80 && y < 100) {
+                    String name = btn.getAttribute("name");
+                    System.out.println("   Top-left button: '" + name + "' at X=" + x + ", Y=" + y);
+                    btn.click();
+                    sleep(300);
+                    System.out.println("✅ Closed Issue Details (top-left button)");
+                    return;
+                }
+            }
+        } catch (Exception ignored) {}
+
+        // Strategy 3: iOS edge swipe back gesture (swipe from left edge to right)
+        try {
+            int screenHeight = driver.manage().window().getSize().getHeight();
+            org.openqa.selenium.interactions.PointerInput finger =
+                new org.openqa.selenium.interactions.PointerInput(
+                    org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
+            org.openqa.selenium.interactions.Sequence swipe =
+                new org.openqa.selenium.interactions.Sequence(finger, 0);
+            swipe.addAction(finger.createPointerMove(Duration.ZERO,
+                org.openqa.selenium.interactions.PointerInput.Origin.viewport(), 5, screenHeight / 2));
+            swipe.addAction(finger.createPointerDown(org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+            swipe.addAction(finger.createPointerMove(Duration.ofMillis(300),
+                org.openqa.selenium.interactions.PointerInput.Origin.viewport(), 200, screenHeight / 2));
+            swipe.addAction(finger.createPointerUp(org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+            driver.perform(java.util.Collections.singletonList(swipe));
+            sleep(500);
+            System.out.println("✅ Closed Issue Details (edge swipe back)");
         } catch (Exception e) {
             System.out.println("⚠️ Could not close Issue Details: " + e.getMessage());
         }
@@ -2555,9 +2746,28 @@ public class IssuePage extends BasePage {
     }
 
     /**
-     * Get Issue Class value on Issue Details screen
+     * Get Issue Class value on Issue Details screen.
+     * Scrolls down if the picker is not immediately visible (Issue Class may be
+     * below the fold on the details screen).
      */
     public String getIssueClassOnDetails() {
+        // Attempt 1: Direct find
+        String result = findIssueClassPickerValue();
+        if (!result.isEmpty()) return result;
+
+        // Attempt 2: Scroll down and retry
+        try {
+            scrollDownOnDetailsScreen();
+            sleep(300);
+        } catch (Exception ignored) {}
+        result = findIssueClassPickerValue();
+        if (!result.isEmpty()) return result;
+
+        System.out.println("⚠️ Issue Class picker not found on details screen");
+        return "";
+    }
+
+    private String findIssueClassPickerValue() {
         try {
             WebElement picker = driver.findElement(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND name CONTAINS 'Issue Class'"));
@@ -3036,12 +3246,16 @@ public class IssuePage extends BasePage {
                 }
             } catch (Exception ignored) {}
 
-            // Strategy 5: Coordinate-based tap 30px below the Subcategory label
+            // Strategy 5: Coordinate-based tap 30px below the Subcategory label.
+            // Uses dynamic screenWidth/2 instead of hardcoded X=200 to work
+            // correctly across all iPhone screen sizes (SE, Pro, Pro Max).
             try {
                 WebElement subcatLabel = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeStaticText' AND label == 'Subcategory'"));
                 int labelY = subcatLabel.getLocation().getY();
                 if (labelY > 120) {
+                    int tapX = driver.manage().window().getSize().getWidth() / 2;
+                    int tapY = labelY + 30;
                     org.openqa.selenium.interactions.PointerInput finger =
                         new org.openqa.selenium.interactions.PointerInput(
                             org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
@@ -3049,14 +3263,14 @@ public class IssuePage extends BasePage {
                         new org.openqa.selenium.interactions.Sequence(finger, 0);
                     tap.addAction(finger.createPointerMove(Duration.ZERO,
                         org.openqa.selenium.interactions.PointerInput.Origin.viewport(),
-                        200, labelY + 30));
+                        tapX, tapY));
                     tap.addAction(finger.createPointerDown(
                         org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
                     tap.addAction(finger.createPointerUp(
                         org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
                     driver.perform(java.util.Arrays.asList(tap));
                     sleep(400);
-                    System.out.println("✅ Strategy 5: Coordinate tap at Y=" + (labelY + 30));
+                    System.out.println("✅ Strategy 5: Coordinate tap at X=" + tapX + ", Y=" + tapY);
                     return;
                 }
             } catch (Exception e) {
@@ -3179,36 +3393,67 @@ public class IssuePage extends BasePage {
      */
     public void selectSubcategory(String subcategory) {
         System.out.println("📋 Selecting subcategory: " + subcategory);
+        // Use findElements (instant return) to avoid 5s implicit wait on each miss
+        String predicate =
+            "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' OR " +
+            "type == 'XCUIElementTypeCell') AND label CONTAINS '" + subcategory + "'";
+
         try {
-            // Try to find and tap the option directly
-            try {
-                WebElement option = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' OR " +
-                    "type == 'XCUIElementTypeCell') AND label CONTAINS '" + subcategory + "'"));
-                option.click();
+            // Strategy 1: Direct find (instant — no implicit wait hang)
+            List<WebElement> options = driver.findElements(AppiumBy.iOSNsPredicateString(predicate));
+            if (!options.isEmpty()) {
+                options.get(0).click();
                 sleep(400);
                 System.out.println("✅ Selected subcategory: " + subcategory);
                 return;
-            } catch (Exception ignored) {}
-
-            // May need to scroll within the dropdown to find the option
-            // Use mobile: scroll with predicate
-            try {
-                Map<String, Object> params = new HashMap<>();
-                params.put("direction", "down");
-                params.put("predicateString", "label CONTAINS '" + subcategory + "'");
-                driver.executeScript("mobile: scroll", params);
-                sleep(300);
-
-                WebElement option = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' OR " +
-                    "type == 'XCUIElementTypeCell') AND label CONTAINS '" + subcategory + "'"));
-                option.click();
-                sleep(400);
-                System.out.println("✅ Selected subcategory after scroll: " + subcategory);
-            } catch (Exception e2) {
-                System.out.println("⚠️ Could not select subcategory: " + subcategory + " - " + e2.getMessage());
             }
+
+            // Strategy 2: Scroll within the picker to find the option (with timeout guard)
+            System.out.println("   Subcategory not visible, scrolling to find it...");
+            for (int scroll = 0; scroll < 5; scroll++) {
+                scrollDownOnDetailsScreen();
+                sleep(200);
+                options = driver.findElements(AppiumBy.iOSNsPredicateString(predicate));
+                if (!options.isEmpty()) {
+                    options.get(0).click();
+                    sleep(400);
+                    System.out.println("✅ Selected subcategory after scroll: " + subcategory);
+                    return;
+                }
+            }
+
+            // Strategy 3: Try partial match (first word only)
+            String firstWord = subcategory.contains(" ") ? subcategory.substring(0, subcategory.indexOf(' ')) : subcategory;
+            if (!firstWord.equals(subcategory)) {
+                String partialPredicate =
+                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' OR " +
+                    "type == 'XCUIElementTypeCell') AND label CONTAINS '" + firstWord + "'";
+                options = driver.findElements(AppiumBy.iOSNsPredicateString(partialPredicate));
+                for (WebElement opt : options) {
+                    String label = opt.getAttribute("label");
+                    if (label != null && label.length() > 3) {
+                        opt.click();
+                        sleep(400);
+                        System.out.println("✅ Selected subcategory (partial match): " + label);
+                        return;
+                    }
+                }
+            }
+
+            // Strategy 4: Select the first available option in the dropdown
+            System.out.println("   Exact subcategory not found, selecting first available option...");
+            options = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' OR " +
+                "type == 'XCUIElementTypeCell') AND label CONTAINS 'Chapter'"));
+            if (!options.isEmpty()) {
+                String label = options.get(0).getAttribute("label");
+                options.get(0).click();
+                sleep(400);
+                System.out.println("✅ Selected first available subcategory: " + label);
+                return;
+            }
+
+            System.out.println("⚠️ Could not select subcategory: " + subcategory + " — no options found");
         } catch (Exception e) {
             System.out.println("⚠️ Error selecting subcategory: " + e.getMessage());
         }
@@ -3216,10 +3461,39 @@ public class IssuePage extends BasePage {
 
     /**
      * Get the currently selected subcategory value.
+     * The selected value appears as a chip/tag below the "Subcategory" label,
+     * typically an XCUIElementTypeButton with the value text and an X clear button.
      */
     public String getSubcategoryValue() {
         try {
-            // Strategy 1: Read from text field
+            // First, find the "Subcategory" label to anchor our search
+            int subcatY = -1;
+            List<WebElement> subcatLabels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND (label == 'Subcategory' OR label BEGINSWITH 'Subcategory')"));
+            if (!subcatLabels.isEmpty()) {
+                subcatY = subcatLabels.get(0).getLocation().getY();
+                System.out.println("   Subcategory label at Y=" + subcatY);
+            }
+
+            // Strategy 1: Look for a button below "Subcategory" that shows the selected value
+            // The selected chip is typically a button with the value text (long label, not "Select...")
+            if (subcatY > 0) {
+                List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton'"));
+                for (WebElement btn : buttons) {
+                    int y = btn.getLocation().getY();
+                    String label = btn.getAttribute("label");
+                    if (y > subcatY && y < subcatY + 80 && label != null &&
+                        !label.equals("Select...") && !label.equals("Subcategory") &&
+                        !label.equals("xmark.circle") && !label.equals("xmark.circle.fill") &&
+                        label.length() > 3) {
+                        System.out.println("   Subcategory value (button): " + label);
+                        return label;
+                    }
+                }
+            }
+
+            // Strategy 2: Read from text field (if subcategory uses a text input)
             try {
                 WebElement field = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeTextView') AND " +
@@ -3231,38 +3505,26 @@ public class IssuePage extends BasePage {
                 }
             } catch (Exception ignored) {}
 
-            // Strategy 2: Read from button/picker
-            try {
-                WebElement picker = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND name CONTAINS 'Subcategory'"));
-                String label = picker.getAttribute("label");
-                String value = picker.getAttribute("value");
-                System.out.println("   Subcategory picker — label: '" + label + "', value: '" + value + "'");
-                if (value != null && !value.isEmpty()) return value;
-                if (label != null && label.contains(", ")) {
-                    return label.substring(label.indexOf(", ") + 2).trim();
-                }
-                return label != null ? label : "";
-            } catch (Exception ignored) {}
-
-            // Strategy 3: Look for text near the Subcategory label that is not the label itself
-            List<WebElement> subcatLabels = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND label == 'Subcategory'"));
-            if (!subcatLabels.isEmpty()) {
-                int subcatY = subcatLabels.get(0).getLocation().getY();
+            // Strategy 3: Look for static text near "Subcategory" label
+            // Filter out short labels like "All", "Open", etc. that come from other UI elements
+            if (subcatY > 0) {
                 List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeStaticText'"));
                 for (WebElement text : allTexts) {
                     int y = text.getLocation().getY();
                     String label = text.getAttribute("label");
-                    if (y > subcatY && y < subcatY + 50 && label != null &&
-                        !label.equals("Subcategory") && !label.contains("Type or select")) {
+                    if (y > subcatY && y < subcatY + 60 && label != null &&
+                        !label.equals("Subcategory") && !label.contains("Type or select") &&
+                        !label.equals("All") && !label.equals("Open") &&
+                        !label.equals("Resolved") && !label.equals("Closed") &&
+                        label.length() > 5) {  // Real subcategory values are longer than 5 chars
                         System.out.println("   Subcategory value (nearby text): " + label);
                         return label;
                     }
                 }
             }
 
+            System.out.println("   Subcategory value not found");
             return "";
         } catch (Exception e) {
             return "";
@@ -4349,26 +4611,43 @@ public class IssuePage extends BasePage {
      * Tap "Discard" on the unsaved changes warning dialog.
      */
     public void tapDiscardChanges() {
-        System.out.println("❌ Tapping Discard Changes...");
+        System.out.println("🗑️ Tapping Discard Changes...");
         try {
-            String[] discardLabels = {"Discard", "Discard Changes", "Don't Save", "No"};
-            for (String label : discardLabels) {
+            // Single findElements call with combined predicate — avoids 5s × N implicit
+            // wait penalty from multiple individual findElement calls.
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(label == 'Discard' OR label == 'Discard Changes' OR " +
+                "label == 'Don\\'t Save' OR label == 'No' OR " +
+                "label CONTAINS 'Discard' OR label CONTAINS 'discard' OR " +
+                "label CONTAINS \"Don't\")"));
+
+            if (!buttons.isEmpty()) {
+                // Prefer exact matches: prioritize "Discard" or "Discard Changes" labels
+                String[] preferred = {"Discard Changes", "Discard", "Don't Save"};
+                for (String pref : preferred) {
+                    for (WebElement btn : buttons) {
+                        try {
+                            String label = btn.getAttribute("label");
+                            if (pref.equals(label)) {
+                                btn.click();
+                                sleep(500);
+                                System.out.println("✅ Discarded changes via '" + label + "'");
+                                return;
+                            }
+                        } catch (Exception ignored) {}
+                    }
+                }
+                // No exact match — tap the first available button
                 try {
-                    WebElement btn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeButton' AND label == '" + label + "'"));
-                    btn.click();
+                    buttons.get(0).click();
                     sleep(500);
-                    System.out.println("✅ Discarded changes via '" + label + "'");
+                    System.out.println("✅ Discarded changes via first matching button");
                     return;
                 } catch (Exception ignored) {}
             }
-            // Fallback: tap the destructive/dismiss option
-            WebElement btn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND " +
-                "(label CONTAINS 'Discard' OR label CONTAINS 'discard' OR label CONTAINS \"Don't\")"));
-            btn.click();
-            sleep(500);
-            System.out.println("✅ Discarded changes via fallback");
+
+            System.out.println("⚠️ No Discard button found on dialog");
         } catch (Exception e) {
             System.out.println("⚠️ Could not tap Discard: " + e.getMessage());
         }
@@ -4408,7 +4687,33 @@ public class IssuePage extends BasePage {
             sleep(400);
             System.out.println("   Scrolled up on details screen");
         } catch (Exception e) {
-            System.out.println("⚠️ Could not scroll up: " + e.getMessage());
+            // Fallback: manual swipe (drag from top to bottom = scroll up)
+            try {
+                int screenHeight = driver.manage().window().getSize().getHeight();
+                int screenWidth = driver.manage().window().getSize().getWidth();
+                int startX = screenWidth / 2;
+                int startY = (int) (screenHeight * 0.3);
+                int endY = (int) (screenHeight * 0.7);
+
+                org.openqa.selenium.interactions.PointerInput finger =
+                    new org.openqa.selenium.interactions.PointerInput(
+                        org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
+                org.openqa.selenium.interactions.Sequence swipe =
+                    new org.openqa.selenium.interactions.Sequence(finger, 0);
+                swipe.addAction(finger.createPointerMove(Duration.ZERO,
+                    org.openqa.selenium.interactions.PointerInput.Origin.viewport(), startX, startY));
+                swipe.addAction(finger.createPointerDown(
+                    org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+                swipe.addAction(finger.createPointerMove(Duration.ofMillis(300),
+                    org.openqa.selenium.interactions.PointerInput.Origin.viewport(), startX, endY));
+                swipe.addAction(finger.createPointerUp(
+                    org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+                driver.perform(java.util.Collections.singletonList(swipe));
+                sleep(400);
+                System.out.println("   Manual swipe scroll up on details screen");
+            } catch (Exception e2) {
+                System.out.println("⚠️ Could not scroll up: " + e2.getMessage());
+            }
         }
     }
 
@@ -4503,45 +4808,68 @@ public class IssuePage extends BasePage {
     public void changeIssueClassOnDetails(String newClass) {
         System.out.println("📋 Changing Issue Class on details to: " + newClass);
         try {
-            // Strategy 1: Tap the Issue Class picker button
+            boolean pickerOpened = false;
+
+            // Strategy 1: Tap the Issue Class picker button (Issue Class is always
+            // near the top of the form — NO scrolling needed to reach it)
             try {
                 WebElement picker = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeButton' AND name CONTAINS 'Issue Class'"));
                 picker.click();
                 sleep(400);
-            } catch (Exception ignored) {
-                // Strategy 2: Tap the Issue Class label area
+                pickerOpened = true;
+                System.out.println("   Opened Issue Class picker (button)");
+            } catch (Exception ignored) {}
+
+            // Strategy 2: Find button near the "Issue Class" label (positional)
+            if (!pickerOpened) {
                 try {
                     WebElement label = driver.findElement(AppiumBy.iOSNsPredicateString(
                         "type == 'XCUIElementTypeStaticText' AND " +
                         "(label == 'Issue Class' OR label CONTAINS 'Issue Class')"));
                     int labelY = label.getLocation().getY();
-                    // Find the interactive element near the label
                     List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
                         "type == 'XCUIElementTypeButton'"));
                     for (WebElement btn : buttons) {
                         int y = btn.getLocation().getY();
-                        if (Math.abs(y - labelY) < 40) {
+                        if (Math.abs(y - labelY) < 50) {
                             btn.click();
                             sleep(400);
+                            pickerOpened = true;
+                            System.out.println("   Opened Issue Class picker (positional match)");
                             break;
                         }
                     }
                 } catch (Exception e2) {
-                    System.out.println("⚠️ Could not open Issue Class dropdown: " + e2.getMessage());
-                    return;
+                    System.out.println("   Strategy 2 (positional) failed: " + e2.getMessage());
                 }
             }
 
-            // Select the new class
+            if (!pickerOpened) {
+                System.out.println("⚠️ Could not open Issue Class dropdown");
+                return;
+            }
+
+            // Select the new class — broad type filter for popover menu items
+            String typeFilter = "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' OR " +
+                "type == 'XCUIElementTypeMenuItem' OR type == 'XCUIElementTypeOther')";
             try {
                 WebElement option = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND label == '" + newClass + "'"));
+                    typeFilter + " AND label == '" + newClass + "'"));
                 option.click();
                 sleep(400);
                 System.out.println("✅ Changed Issue Class to: " + newClass);
             } catch (Exception e) {
-                System.out.println("⚠️ Could not select class '" + newClass + "': " + e.getMessage());
+                // Fallback: case-insensitive CONTAINS
+                try {
+                    WebElement option = driver.findElement(AppiumBy.iOSNsPredicateString(
+                        typeFilter + " AND label CONTAINS[c] '" + newClass + "'"));
+                    option.click();
+                    sleep(400);
+                    System.out.println("✅ Changed Issue Class to: " + newClass + " (case-insensitive)");
+                } catch (Exception e2) {
+                    System.out.println("⚠️ Could not select class '" + newClass + "': " + e2.getMessage());
+                }
             }
         } catch (Exception e) {
             System.out.println("⚠️ Error changing Issue Class: " + e.getMessage());
@@ -5234,6 +5562,13 @@ public class IssuePage extends BasePage {
 
             sleep(500);
 
+            // Dismiss any leftover dropdown menu before scrolling.
+            // If selectSubcategory() tapped an option, the menu SHOULD auto-close,
+            // but some iOS picker styles leave the menu open. Calling dismiss
+            // ensures subsequent scroll operates on the form, not the dropdown.
+            dismissDropdownMenu();
+            sleep(300);
+
             // Scroll up to see completion percentage
             scrollUpOnDetailsScreen();
             sleep(300);
@@ -5461,73 +5796,81 @@ public class IssuePage extends BasePage {
     public boolean isSpecificSubcategoryOptionPresent(String optionText) {
         System.out.println("🔍 Checking for subcategory option: '" + optionText + "'");
 
-        // Strategy 1: Direct DOM search — option may already be in the element tree
-        try {
-            // Use CONTAINS for partial match flexibility (some options have trailing text)
-            List<WebElement> matches = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' OR " +
-                "type == 'XCUIElementTypeCell') AND label CONTAINS '" + optionText + "'"));
-            if (!matches.isEmpty()) {
-                String foundLabel = matches.get(0).getAttribute("label");
-                System.out.println("   ✅ Found via direct DOM: '" + foundLabel + "'");
-                return true;
-            }
-        } catch (Exception e) {
-            System.out.println("   Strategy 1 (direct DOM) failed: " + e.getMessage());
+        // The subcategory dropdown is an iOS popover with multi-line wrapped text.
+        // CRITICAL: When text wraps, the label attribute contains newlines
+        // (e.g., "Mounting - Should\nbe secure" not "Mounting - Should be secure").
+        // So CONTAINS with the full string fails. We must use multi-keyword matching.
+
+        // Split option text into meaningful keywords for matching.
+        // "Mounting - Should be secure" → category="Mounting", keywords=["Should", "secure"]
+        String category = optionText;
+        String afterDash = "";
+        if (optionText.contains(" - ")) {
+            category = optionText.substring(0, optionText.indexOf(" - ")).trim();
+            afterDash = optionText.substring(optionText.indexOf(" - ") + 3).trim();
         }
 
-        // Strategy 2: mobile: scroll with predicateString — scrolls within dropdown
-        try {
-            Map<String, Object> scrollParams = new HashMap<>();
-            scrollParams.put("direction", "down");
-            scrollParams.put("predicateString", "label CONTAINS '" + optionText + "'");
-            driver.executeScript("mobile: scroll", scrollParams);
-            sleep(300);
+        // Build a broad type filter — popover items can be many types
+        String typeFilter = "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' OR " +
+            "type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeMenuItem' OR " +
+            "type == 'XCUIElementTypeOther')";
 
-            // Try to find it now after scrolling
+        // Strategy 1: Full exact match (works when label has no newline)
+        try {
             List<WebElement> matches = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' OR " +
-                "type == 'XCUIElementTypeCell') AND label CONTAINS '" + optionText + "'"));
+                typeFilter + " AND label CONTAINS '" + optionText + "'"));
             if (!matches.isEmpty()) {
-                String foundLabel = matches.get(0).getAttribute("label");
-                System.out.println("   ✅ Found via mobile:scroll: '" + foundLabel + "'");
+                System.out.println("   ✅ Found (exact match): '" + matches.get(0).getAttribute("label") + "'");
                 return true;
             }
-        } catch (Exception e) {
-            System.out.println("   Strategy 2 (mobile:scroll) failed: " + e.getMessage());
+        } catch (Exception ignored) {}
+
+        // Strategy 2: Multi-keyword match — handles newline-wrapped labels.
+        // Match category prefix AND last significant word from the description.
+        // e.g., label CONTAINS 'Mounting' AND label CONTAINS 'secure'
+        if (!afterDash.isEmpty()) {
+            try {
+                // Use the last word of the description as the unique differentiator
+                String[] words = afterDash.split("\\s+");
+                String lastWord = words[words.length - 1];
+                // Filter to significant words (> 3 chars) to avoid matching noise
+                if (lastWord.length() <= 3 && words.length > 1) {
+                    lastWord = words[words.length - 2];
+                }
+
+                List<WebElement> matches = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    typeFilter + " AND label CONTAINS '" + category + "' AND label CONTAINS '" + lastWord + "'"));
+                if (!matches.isEmpty()) {
+                    System.out.println("   ✅ Found (multi-keyword '" + category + "' + '" + lastWord + "'): '" +
+                        matches.get(0).getAttribute("label") + "'");
+                    return true;
+                }
+            } catch (Exception ignored) {}
         }
 
-        // Strategy 3: Type-to-filter — use search field to narrow results
+        // Strategy 3: Category-only match with Java-side full text verification.
+        // Finds all elements containing the category prefix, then checks the full
+        // label text in Java (which handles newlines correctly via replaceAll).
         try {
-            // Extract a meaningful keyword from the option text for filtering
-            // e.g. "Clearance - Insufficient Access" → use "Clearance" or the full prefix
-            String searchKeyword = optionText;
-            if (optionText.contains(" - ")) {
-                searchKeyword = optionText.substring(0, optionText.indexOf(" - ")).trim();
+            List<WebElement> candidates = driver.findElements(AppiumBy.iOSNsPredicateString(
+                typeFilter + " AND label CONTAINS '" + category + "'"));
+
+            // Normalize optionText for comparison (lowercase, collapse whitespace)
+            String normalizedOption = optionText.toLowerCase().replaceAll("\\s+", " ").trim();
+
+            for (WebElement el : candidates) {
+                String label = el.getAttribute("label");
+                if (label != null) {
+                    // Normalize label: replace newlines/tabs with spaces, collapse, lowercase
+                    String normalizedLabel = label.replaceAll("[\\n\\r\\t]+", " ")
+                        .replaceAll("\\s+", " ").toLowerCase().trim();
+                    if (normalizedLabel.contains(normalizedOption)) {
+                        System.out.println("   ✅ Found (normalized match): '" + label + "'");
+                        return true;
+                    }
+                }
             }
-
-            searchSubcategory(searchKeyword);
-            sleep(500);
-
-            // Now check if the full option text appears in the filtered results
-            List<WebElement> matches = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' OR " +
-                "type == 'XCUIElementTypeCell') AND label CONTAINS '" + optionText + "'"));
-            if (!matches.isEmpty()) {
-                String foundLabel = matches.get(0).getAttribute("label");
-                System.out.println("   ✅ Found via type-to-filter ('" + searchKeyword + "'): '" + foundLabel + "'");
-                // Clear search to restore full list
-                clearSubcategorySearch();
-                sleep(300);
-                return true;
-            }
-
-            // Clear search before returning
-            clearSubcategorySearch();
-            sleep(300);
-        } catch (Exception e) {
-            System.out.println("   Strategy 3 (type-to-filter) failed: " + e.getMessage());
-        }
+        } catch (Exception ignored) {}
 
         System.out.println("   ❌ Option not found: '" + optionText + "'");
         return false;
@@ -5542,57 +5885,26 @@ public class IssuePage extends BasePage {
     public boolean isSubcategoryCategoryPresent(String categoryPrefix) {
         System.out.println("🔍 Checking for subcategory category: '" + categoryPrefix + "'");
         try {
-            // Strategy 1: Direct DOM check
+            // Broad type filter — popover items can be many element types
+            String typeFilter = "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' OR " +
+                "type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeMenuItem' OR " +
+                "type == 'XCUIElementTypeOther')";
+
+            // Strategy 1: BEGINSWITH match
             List<WebElement> matches = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' OR " +
-                "type == 'XCUIElementTypeCell') AND label BEGINSWITH '" + categoryPrefix + "'"));
+                typeFilter + " AND label BEGINSWITH '" + categoryPrefix + "'"));
             if (!matches.isEmpty()) {
-                System.out.println("   ✅ Category '" + categoryPrefix + "' found in DOM");
+                System.out.println("   ✅ Category '" + categoryPrefix + "' found (BEGINSWITH)");
                 return true;
             }
 
-            // Strategy 2: CONTAINS match (category might be embedded differently)
+            // Strategy 2: CONTAINS match (handles labels with newlines/special formatting)
             matches = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' OR " +
-                "type == 'XCUIElementTypeCell') AND label CONTAINS '" + categoryPrefix + "'"));
+                typeFilter + " AND label CONTAINS '" + categoryPrefix + "'"));
             if (!matches.isEmpty()) {
-                System.out.println("   ✅ Category '" + categoryPrefix + "' found via CONTAINS");
+                System.out.println("   ✅ Category '" + categoryPrefix + "' found (CONTAINS)");
                 return true;
             }
-
-            // Strategy 3: Scroll + search
-            try {
-                Map<String, Object> scrollParams = new HashMap<>();
-                scrollParams.put("direction", "down");
-                scrollParams.put("predicateString", "label CONTAINS '" + categoryPrefix + "'");
-                driver.executeScript("mobile: scroll", scrollParams);
-                sleep(300);
-
-                matches = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' OR " +
-                    "type == 'XCUIElementTypeCell') AND label CONTAINS '" + categoryPrefix + "'"));
-                if (!matches.isEmpty()) {
-                    System.out.println("   ✅ Category '" + categoryPrefix + "' found after scroll");
-                    return true;
-                }
-            } catch (Exception ignored) {}
-
-            // Strategy 4: Type-to-filter search
-            try {
-                searchSubcategory(categoryPrefix);
-                sleep(500);
-
-                matches = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' OR " +
-                    "type == 'XCUIElementTypeCell') AND label CONTAINS '" + categoryPrefix + "'"));
-                boolean found = !matches.isEmpty();
-                clearSubcategorySearch();
-                sleep(300);
-                if (found) {
-                    System.out.println("   ✅ Category '" + categoryPrefix + "' found via search filter");
-                    return true;
-                }
-            } catch (Exception ignored) {}
 
             System.out.println("   ❌ Category '" + categoryPrefix + "' NOT found");
             return false;

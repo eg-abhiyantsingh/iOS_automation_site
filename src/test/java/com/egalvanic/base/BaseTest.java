@@ -108,14 +108,31 @@ public class BaseTest {
 
         // Soft restart: kill app process and relaunch to clear navigation/tab state
         // With noReset=true, login data persists but stale screen state is cleared
+        // IMPORTANT: terminateApp and activateApp in separate try-catches so a failed
+        // terminate doesn't skip the activate (which would leave the app not running)
+        boolean terminated = false;
         try {
             DriverManager.getDriver().terminateApp(AppConstants.APP_BUNDLE_ID);
             Thread.sleep(500);
+            terminated = true;
+        } catch (Exception e) {
+            System.out.println("⚠️ terminateApp failed (app may not be running yet): " + e.getMessage());
+        }
+        try {
             DriverManager.getDriver().activateApp(AppConstants.APP_BUNDLE_ID);
             Thread.sleep(500);
             System.out.println("🔄 App soft-restarted (clean navigation state)");
         } catch (Exception e) {
-            System.out.println("⚠️ Soft restart skipped: " + e.getMessage());
+            System.out.println("⚠️ activateApp failed: " + e.getMessage());
+            if (!terminated) {
+                // Both failed — session may be dead, try reinitializing driver
+                System.out.println("🔄 Session appears dead, reinitializing driver...");
+                try {
+                    DriverManager.quitDriver();
+                } catch (Exception ignored) {}
+                try { Thread.sleep(2000); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+                DriverManager.initDriver(deviceName, udid, appiumPort, wdaLocalPort);
+            }
         }
 
         // Initialize Page Objects

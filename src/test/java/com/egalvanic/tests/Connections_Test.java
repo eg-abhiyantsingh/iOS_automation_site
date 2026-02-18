@@ -4658,15 +4658,25 @@ public final class Connections_Test extends BaseTest {
 
         if (dialogFound) {
             logStep("Step 6: Tap Delete on confirmation dialog");
-            try {
-                WebElement deleteBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "label == 'Delete' AND type == 'XCUIElementTypeButton' AND visible == true"));
-                deleteBtn.click();
-                sleep(1000);
-                logStep("\u2705 Tapped Delete — connection deletion confirmed via dialog");
-            } catch (Exception e) {
-                logWarning("Could not tap Delete on dialog: " + e.getMessage());
-                throw new AssertionError("Failed to tap Delete button on dialog: " + e.getMessage());
+            // CI runners are slower — the alert can re-render between find and click,
+            // causing a stale element reference. Use a retry loop to handle this.
+            boolean deleted = false;
+            for (int attempt = 0; attempt < 3 && !deleted; attempt++) {
+                try {
+                    if (attempt > 0) sleep(500);
+                    WebElement deleteBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "label == 'Delete' AND type == 'XCUIElementTypeButton' AND visible == true"));
+                    deleteBtn.click();
+                    sleep(1000);
+                    deleted = true;
+                    logStep("\u2705 Tapped Delete — connection deletion confirmed via dialog");
+                } catch (Exception e) {
+                    if (attempt == 2) {
+                        logWarning("Could not tap Delete on dialog: " + e.getMessage());
+                        throw new AssertionError("Failed to tap Delete button on dialog: " + e.getMessage());
+                    }
+                    logStep("   Retry " + (attempt + 1) + " — re-finding Delete button...");
+                }
             }
         } else {
             logStep("\u2705 No confirmation dialog — swipe-delete removed connection directly");

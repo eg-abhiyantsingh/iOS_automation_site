@@ -5769,10 +5769,14 @@ public class AssetPage extends BasePage {
             scrollFormDown();
             sleep(200);
             
-            // Retry Strategy 1 after scroll
-            WebElement subtypeBtn = driver.findElement(AppiumBy.accessibilityId("Select asset subtype"));
+            // Retry Strategy 1 after scroll — use type-filtered predicate (not bare accessibilityId)
+            WebElement subtypeBtn = driver.findElement(
+                AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND (name CONTAINS 'asset subtype' OR name CONTAINS 'Asset Subtype' OR name == 'Select asset subtype')"
+                )
+            );
             subtypeBtn.click();
-            System.out.println("✅ Clicked after scroll");
+            System.out.println("✅ Clicked subtype button after scroll");
             return;
         } catch (Exception e) {
             System.out.println("   Scroll + retry failed");
@@ -6646,9 +6650,11 @@ public class AssetPage extends BasePage {
      */
     public boolean isSubtypeSelected() {
         try {
-            // Check if "Select asset subtype" placeholder is still visible
+            // Check if "Select asset subtype" placeholder is still visible on the BUTTON
             List<WebElement> placeholder = driver.findElements(
-                AppiumBy.accessibilityId("Select asset subtype")
+                AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND (name == 'Select asset subtype' OR name CONTAINS 'asset subtype')"
+                )
             );
             
             if (placeholder.isEmpty()) {
