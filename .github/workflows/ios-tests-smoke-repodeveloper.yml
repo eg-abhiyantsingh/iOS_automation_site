@@ -8,8 +8,11 @@ name: Automation Test
 #
 # Architecture:
 #
-#   ── Smoke (individual CRUD modules) ──
-#   all                       → Full Smoke Dashboard — all 7 modules with live progress (~1 hr)
+#   ── Run All ──
+#   all                       → Run ALL test suites sequentially (~1158 tests, single runner)
+#
+#   ── Smoke (CRUD modules) ──
+#   smoke                     → Full Smoke Dashboard — all 7 modules with live progress (~1 hr)
 #   smoke-login               → Login flow (1 test)
 #   smoke-site-selection      → Site selection flow (1 test)
 #   smoke-asset-crud          → Asset Create + Read + Edit + Delete (4 tests)
@@ -17,7 +20,7 @@ name: Automation Test
 #   smoke-connection-crud     → Connection Create + Read + Delete (3 tests)
 #   smoke-issue-crud          → Issue Create + Read + Details + Delete (4 tests)
 #
-#   ── Full Test Suites ──
+#   ── Full Test Suites (individual) ──
 #   authentication-only       → Authentication (38 tests)
 #   site-selection-only       → Site Selection (52 tests)
 #   assets-p1-*               → P1: Creation + Edit + Busway + Capacitor + Bug Tests (112 tests)
@@ -59,10 +62,11 @@ on:
       test_suite:
         description: 'Which tests to run?'
         required: true
-        default: 'all'
+        default: 'smoke'
         type: choice
         options:
           - 'all'
+          - 'smoke'
           - 'smoke-login'
           - 'smoke-site-selection'
           - 'smoke-asset-crud'
@@ -547,10 +551,25 @@ jobs:
 
           case "${{ github.event.inputs.test_suite }}" in
             all)
-              # ── Smoke uses the dashboard engine for module-by-module tracking ──
-              # Dashboard runs 7 modules with live progress. S3 drift env is
-              # auto-detected from branch (set in "Detect S3 Drift Environment" step).
-              # S3_ENV, S3_XML, S3_TESTS, S3_LABEL are read by the dashboard script.
+              # ── Run ALL test suites sequentially on single runner ──
+              # Auth → Site → Assets P1-P6 → Issues P1-P2 → Location → Connections
+              # ~1158 tests total — expect long runtime on single runner
+              run_mvn src/test/resources/parallel/testng-auth.xml
+              run_mvn src/test/resources/parallel/testng-site.xml
+              run_mvn src/test/resources/parallel/testng-assets-part1.xml
+              run_mvn src/test/resources/parallel/testng-assets-part2.xml
+              run_mvn src/test/resources/parallel/testng-assets-part3.xml
+              run_mvn src/test/resources/parallel/testng-assets-part4.xml
+              run_mvn src/test/resources/parallel/testng-assets-part5.xml
+              run_mvn src/test/resources/parallel/testng-assets-part6.xml
+              run_mvn src/test/resources/parallel/testng-issues-phase1.xml
+              run_mvn src/test/resources/parallel/testng-issues-phase2.xml
+              run_mvn src/test/resources/parallel/testng-location.xml
+              run_mvn src/test/resources/parallel/testng-connections.xml
+              ;;
+            smoke)
+              # ── Smoke Dashboard — all 7 CRUD modules with live progress ──
+              # S3 drift env is auto-detected from branch (set in "Detect S3 Drift Environment" step).
               export APP_PATH
               export S3_ENV="${{ env.S3_ENV }}"
               export S3_XML="${{ env.S3_XML }}"
