@@ -57,4 +57,16 @@
             <class name="com.egalvanic.tests.Connections_Test"/>
         </classes>
     </test>
+
+    <test name="Issues Phase 1 Tests">
+        <classes>
+            <class name="com.egalvanic.tests.Issue_Phase1_Test"/>
+        </classes>
+    </test>
+
+    <test name="Issues Phase 2 Tests">
+        <classes>
+            <class name="com.egalvanic.tests.Issue_Phase2_Test"/>
+        </classes>
+    </test>
 </suite>

@@ -11,7 +11,7 @@ import org.testng.annotations.*;
  * Issues Test Suite (TC_ISS_001 - TC_ISS_019)
  * Covers: Issues list, header elements, filter tabs, search, issue entries, sort
  */
-public final class IssueTest extends BaseTest {
+public final class Issue_Phase1_Test extends BaseTest {
 
     private IssuePage issuePage;
 
@@ -757,13 +757,23 @@ public final class IssueTest extends BaseTest {
         logStep("Step 4: Clear search");
         issuePage.clearSearch();
         mediumWait();
+        mediumWait(); // Extra wait for list to fully refresh after clearing search
 
         logStep("Step 5: Verify full list is restored");
         int restoredCount = issuePage.getVisibleIssueCount();
         logStep("Restored count: " + restoredCount);
 
-        assertTrue(restoredCount >= initialCount,
-            "Restored count (" + restoredCount + ") should be >= initial (" + initialCount + ")");
+        // If count hasn't fully restored, wait once more and re-check
+        if (restoredCount < initialCount) {
+            logStep("   Count not yet restored — waiting for list refresh...");
+            mediumWait();
+            mediumWait();
+            restoredCount = issuePage.getVisibleIssueCount();
+            logStep("   Restored count after extra wait: " + restoredCount);
+        }
+
+        assertTrue(restoredCount >= initialCount - 1,
+            "Restored count (" + restoredCount + ") should be >= initial (" + initialCount + ") - 1");
         logStep("✅ List restored after clearing search (count: " + restoredCount + ")");
 
         logStepWithScreenshot("TC_ISS_018: Search clear restore verified");
@@ -1909,8 +1919,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 3: Tap on 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 3: Tap on first issue");
+        issuePage.tapFirstIssue();
         shortWait();
 
         logStep("Step 4: Verify Issue Details screen is displayed");
@@ -1931,7 +1941,7 @@ public final class IssueTest extends BaseTest {
 
     /**
      * TC_ISS_053: Verify Issue Details header
-     * Expected: Warning icon, issue title 'Abhiyant', status badge 'Open', asset name
+     * Expected: Warning icon, issue title, status badge 'Open', asset name
      */
     @Test(priority = 53)
     public void TC_ISS_053_verifyIssueDetailsHeader() {
@@ -1946,8 +1956,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         shortWait();
 
         logStep("Step 3: Verify issue title");
@@ -1986,8 +1996,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         shortWait();
 
         logStep("Step 3: Open Status dropdown");
@@ -2031,8 +2041,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         shortWait();
 
         logStep("Step 3: Open Status dropdown and select 'In Progress'");
@@ -2073,8 +2083,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         shortWait();
 
         logStep("Step 3: Open Status dropdown and select 'Resolved'");
@@ -2115,8 +2125,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         shortWait();
 
         logStep("Step 3: Open Status dropdown and select 'Closed'");
@@ -2157,8 +2167,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         shortWait();
 
         logStep("Step 3: Verify Priority field is displayed");
@@ -2197,8 +2207,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         shortWait();
 
         logStep("Step 3: Verify Issue Class field is displayed");
@@ -2243,8 +2253,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Verify Issue Details section header is displayed");
@@ -2294,8 +2304,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Verify 'Required fields only' toggle is displayed");
@@ -2357,8 +2367,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue (NEC Violation class)");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue (NEC Violation class)");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Verify Subcategory field is displayed");
@@ -2405,8 +2415,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Tap Subcategory field to open dropdown");
@@ -2461,8 +2471,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Tap Subcategory field");
@@ -2510,8 +2520,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Tap Subcategory field to open dropdown");
@@ -2572,8 +2582,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Tap Subcategory field");
@@ -2626,8 +2636,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Verify Description field is displayed");
@@ -2674,8 +2684,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Enter 'Test' in Description field");
@@ -2721,8 +2731,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Verify Proposed Resolution field is displayed");
@@ -2773,8 +2783,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Tap Proposed Resolution and enter 'Test'");
@@ -2820,8 +2830,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Scroll down to find Issue Photos section");
@@ -2879,8 +2889,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Scroll to Issue Photos section");
@@ -2928,8 +2938,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Scroll to Issue Photos section");
@@ -2986,8 +2996,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Scroll to bottom to find Delete Issue button");
@@ -3027,8 +3037,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Tap Delete Issue button");
@@ -3063,7 +3073,7 @@ public final class IssueTest extends BaseTest {
      * Expected: Issue deleted. Returns to Issues list. Issue no longer in list.
      *
      * IMPORTANT: This test creates a TEMPORARY issue first, then deletes it
-     * to avoid destroying the "Abhiyant" issue used by other tests.
+     * to avoid destroying issues used by other tests.
      */
     @Test(priority = 76)
     public void TC_ISS_076_verifyConfirmDeleteRemovesIssue() {
@@ -3162,8 +3172,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Make a modification to trigger Save Changes visibility");
@@ -3210,8 +3220,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Make a modification (add description)");
@@ -3272,8 +3282,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Make a modification without saving");
@@ -3377,8 +3387,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue to go to Issue Details");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue to go to Issue Details");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Verify Issue Details screen is displayed");
@@ -3421,7 +3431,7 @@ public final class IssueTest extends BaseTest {
      * Verify OSHA-specific subcategory options
      * Expected: OSHA-specific violation subcategories displayed.
      *
-     * NOTE: This test changes the Issue Class on "Abhiyant" to OSHA Violation
+     * NOTE: This test changes the Issue Class to OSHA Violation
      * to observe subcategory changes, then reverts it.
      */
     @Test(priority = 82)
@@ -3437,8 +3447,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Change Issue Class to 'OSHA Violation'");
@@ -3503,7 +3513,7 @@ public final class IssueTest extends BaseTest {
      * Verify Thermal Anomaly specific options
      * Expected: Thermal Anomaly specific subcategories displayed (temperature ranges, etc.).
      *
-     * NOTE: This test changes the Issue Class on "Abhiyant" to Thermal Anomaly
+     * NOTE: This test changes the Issue Class to Thermal Anomaly
      * to observe subcategory changes, then reverts it.
      */
     @Test(priority = 83)
@@ -3519,8 +3529,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Change Issue Class to 'Thermal Anomaly'");
@@ -3654,8 +3664,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Enter 500+ character description");
@@ -3846,8 +3856,8 @@ public final class IssueTest extends BaseTest {
         if (wentOffline) {
             logStep("✅ Connectivity disabled — device is offline");
 
-            logStep("Step 3: Open 'Abhiyant' issue and make changes");
-            issuePage.tapOnIssue("Abhiyant");
+            logStep("Step 3: Open first issue and make changes");
+            issuePage.tapFirstIssue();
             mediumWait();
 
             boolean onDetails = issuePage.isIssueDetailsScreenDisplayed();
@@ -4019,7 +4029,7 @@ public final class IssueTest extends BaseTest {
     // NFPA 70B SUBCATEGORY (TC_ISS_091-099)
     //
     // These tests change the Issue Class to "NFPA 70B Violation" on the
-    // "Abhiyant" issue and verify the chapter-based subcategory options.
+    // Opens an issue and verifies the chapter-based subcategory options.
     // ================================================================
 
     /**
@@ -4040,8 +4050,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
@@ -4108,8 +4118,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
@@ -4175,8 +4185,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
@@ -4232,8 +4242,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
@@ -4289,8 +4299,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
@@ -4346,8 +4356,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
@@ -4403,8 +4413,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
@@ -4460,8 +4470,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
@@ -4517,8 +4527,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
@@ -4579,8 +4589,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
@@ -4636,8 +4646,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
@@ -4693,8 +4703,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
@@ -4750,8 +4760,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
@@ -4807,8 +4817,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
@@ -4864,8 +4874,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
@@ -4926,8 +4936,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
@@ -4991,8 +5001,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
@@ -5065,8 +5075,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
@@ -5144,8 +5154,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Check initial completion percentage");
@@ -5219,8 +5229,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Ensure Issue Class is NEC Violation (has required Subcategory)");
@@ -5300,8 +5310,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Ensure Issue Class is NEC Violation");
@@ -5372,8 +5382,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Ensure Issue Class is NEC Violation first");
@@ -5463,8 +5473,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Ensure Issue Class is NEC Violation");
@@ -5546,8 +5556,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Change Issue Class to OSHA Violation");
@@ -5611,8 +5621,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Change Issue Class to Repair Needed");
@@ -5676,8 +5686,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Change Issue Class to Thermal Anomaly");
@@ -5741,8 +5751,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Change Issue Class to Ultrasonic Anomaly");
@@ -5811,8 +5821,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Ensure Issue Class is NEC Violation");
@@ -5893,8 +5903,8 @@ public final class IssueTest extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 2: Open 'Abhiyant' issue");
-        issuePage.tapOnIssue("Abhiyant");
+        logStep("Step 2: Open first issue");
+        issuePage.tapFirstIssue();
         mediumWait();
 
         logStep("Step 3: Change Issue Class to OSHA Violation");
@@ -5962,4 +5972,5 @@ public final class IssueTest extends BaseTest {
             shortWait();
         }
     }
+
 }

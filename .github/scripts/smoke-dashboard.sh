@@ -2,9 +2,9 @@
 # ═══════════════════════════════════════════════════════════════════════
 # SMOKE TEST DASHBOARD v5 — S3 Drift + Login + Site + CRUD Operations
 # ═══════════════════════════════════════════════════════════════════════
-# Runs 6 modules individually with LIVE per-test progress updates.
+# Runs 7 modules individually with LIVE per-test progress updates.
 # Module 0 (S3 Drift Detection) runs FIRST without Appium.
-# Modules 1-5: Login → Site Selection → Asset CRUD → Location CRUD → Connection CRUD.
+# Modules 1-6: Login → Site Selection → Asset CRUD → Location CRUD → Connection CRUD → Issue CRUD.
 #
 # Architecture:
 #   1. Maven runs in background → output to temp log file
@@ -49,9 +49,9 @@ S3_LABEL_ACTUAL="${S3_LABEL:-ALL (5 environments)}"
 # Build S3 module name dynamically
 S3_MODULE_NAME="S3 Drift [${S3_LABEL_ACTUAL}]"
 
-MODULES=("s3drift" "login" "site-selection" "asset-crud" "location-crud" "connection-crud")
-MODULE_NAMES=("${S3_MODULE_NAME}" "Login" "Site Selection" "Asset CRUD" "Location CRUD" "Connection CRUD")
-MODULE_TESTS=(${S3_TESTS_ACTUAL} 1 1 4 4 3)
+MODULES=("s3drift" "login" "site-selection" "asset-crud" "location-crud" "connection-crud" "issue-crud")
+MODULE_NAMES=("${S3_MODULE_NAME}" "Login" "Site Selection" "Asset CRUD" "Location CRUD" "Connection CRUD" "Issue CRUD")
+MODULE_TESTS=(${S3_TESTS_ACTUAL} 1 1 4 4 3 4)
 MODULE_XMLS=(
   "${S3_XML_ACTUAL}"
   "src/test/resources/smoke/testng-smoke-login.xml"
@@ -59,20 +59,21 @@ MODULE_XMLS=(
   "src/test/resources/smoke/testng-smoke-asset-crud.xml"
   "src/test/resources/smoke/testng-smoke-location-crud.xml"
   "src/test/resources/smoke/testng-smoke-connection-crud.xml"
+  "src/test/resources/smoke/testng-smoke-issue-crud.xml"
 )
 
-# Total = S3 (dynamic) + 13 mobile tests (1 Login + 1 Site + 4 Asset + 4 Location + 3 Connection)
-TOTAL_TESTS=$((S3_TESTS_ACTUAL + 13))
-TOTAL_MODULES=6
+# Total = S3 (dynamic) + 17 mobile tests (1 Login + 1 Site + 4 Asset + 4 Location + 3 Connection + 4 Issue)
+TOTAL_TESTS=$((S3_TESTS_ACTUAL + 17))
+TOTAL_MODULES=7
 
 # ─────────────────────────────────────────────────────
 # STATE TRACKING
 # ─────────────────────────────────────────────────────
-STATUS=("pending" "pending" "pending" "pending" "pending" "pending")
-M_PASSED=(0 0 0 0 0 0)
-M_FAILED=(0 0 0 0 0 0)
-M_SKIPPED=(0 0 0 0 0 0)
-M_DURATION=(0 0 0 0 0 0)
+STATUS=("pending" "pending" "pending" "pending" "pending" "pending" "pending")
+M_PASSED=(0 0 0 0 0 0 0)
+M_FAILED=(0 0 0 0 0 0 0)
+M_SKIPPED=(0 0 0 0 0 0 0)
+M_DURATION=(0 0 0 0 0 0 0)
 
 SUITE_START=$(date +%s)
 GLOBAL_COMPLETED=0

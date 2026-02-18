@@ -3,16 +3,16 @@ name: iOS Tests - Smoke Suite
 # ============================================================
 # SMOKE TEST SUITE - Quick Critical Path Validation
 # ============================================================
-# Tests: 35-67 tests across 10 modules (dynamic based on branch)
+# Tests: 39-71 tests across 11 modules (dynamic based on branch)
 #
 # S3 Drift Detection runs BRANCH-SPECIFIC tests:
-#   dev/develop       → dev only         (10 S3 tests) → Total 23
-#   qa                → qa only          (10 S3 tests) → Total 23
-#   staging/stage     → staging only     (10 S3 tests) → Total 23
-#   prod              → prod + bces-iq   (18 S3 tests) → Total 31
-#   production/main   → prod + bces-iq   (18 S3 tests) → Total 31
-#   bces-iq           → bces-iq only     (10 S3 tests) → Total 23
-#   unknown/manual    → ALL environments (42 S3 tests) → Total 55
+#   dev/develop       → dev only         (10 S3 tests) → Total 27
+#   qa                → qa only          (10 S3 tests) → Total 27
+#   staging/stage     → staging only     (10 S3 tests) → Total 27
+#   prod              → prod + bces-iq   (18 S3 tests) → Total 35
+#   production/main   → prod + bces-iq   (18 S3 tests) → Total 35
+#   bces-iq           → bces-iq only     (10 S3 tests) → Total 27
+#   unknown/manual    → ALL environments (42 S3 tests) → Total 59
 #
 # Modules Covered:
 #   Phase 1 (UI Checks):
@@ -27,6 +27,7 @@ name: iOS Tests - Smoke Suite
 #   - Module 7: Asset CRUD         (4 tests)
 #   - Module 8: Location CRUD      (4 tests)
 #   - Module 9: Connection CRUD    (3 tests)
+#   - Module 10: Issue CRUD        (4 tests)
 #
 # Individual module XMLs: src/test/resources/smoke/testng-smoke-*.xml
 # Dashboard script:       .github/scripts/smoke-dashboard.sh

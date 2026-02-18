@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite time-out="420000" name="Asset Tests - Part 2 of 6 (108 tests)" verbose="0">
+    <!--
+    ============================================================
+    ASSET PART 2 — 108 tests
+    ============================================================
+      - CB_EAD   (24 tests) — Circuit Breaker: required fields, ampere rating,
+                               breaker settings, interrupting rating, mfg, model, voltage
+      - DS_EAD   (23 tests) — Disconnect Switch: required fields, ampere rating,
+                               interrupting rating, voltage, catalog number, mfg
+      - FUSE_EAD (24 tests) — Fuse: required fields, fuse amperage, KA rating,
+                               voltage, refill number, spare fuses
+      - GEN_EAD  (20 tests) — Generator: ampere/KVA/KW rating, configuration,
+                               power factor, serial number, voltage, issues section
+      - JB_EAD   (17 tests) — Junction Box: catalog number, manufacturer, model,
+                               notes, size, field placeholders, issues section
+    ============================================================
+    -->
+
+    <listeners>
+        <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
+    </listeners>
+
+    <test name="Asset Phase 2 - Circuit Breaker, Disconnect Switch, Fuse, Generator, Junction Box">
+        <classes>
+            <class name="com.egalvanic.tests.Asset_Phase2_Test"/>
+        </classes>
+    </test>
+
+</suite>

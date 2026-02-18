@@ -229,6 +229,21 @@ public class AppConstants {
     public static final String FEATURE_CHANGE_ISSUE_CLASS = "Change Issue Class";
     public static final String FEATURE_CLEAR_SUBCATEGORY = "Clear Subcategory";
     public static final String FEATURE_OSHA_SUBCATEGORY = "OSHA Subcategory";
+    public static final String FEATURE_REPAIR_NEEDED = "Repair Needed";
+    public static final String FEATURE_THERMAL_ANOMALY = "Thermal Anomaly";
+    public static final String FEATURE_SEVERITY = "Severity";
+    public static final String FEATURE_REQUIRED_FIELDS_TOGGLE = "Required Fields Toggle";
+    public static final String FEATURE_ULTRASONIC_ANOMALY = "Ultrasonic Anomaly";
+    public static final String FEATURE_STATUS_FILTERS = "Status Filters";
+    public static final String FEATURE_IN_PROGRESS_STATUS = "In Progress Status";
+    public static final String FEATURE_ISSUE_ICONS = "Issue Icons";
+    public static final String FEATURE_PRIORITY_BADGES = "Priority Badges";
+    public static final String FEATURE_STATUS_WORKFLOW = "Status Workflow";
+    public static final String FEATURE_SWIPE_ACTIONS = "Swipe Actions";
+    public static final String FEATURE_FILTER_COUNTS = "Filter Counts";
+    public static final String FEATURE_WITH_PHOTOS_FILTER = "With Photos Filter";
+    public static final String FEATURE_MY_SESSION_FILTER = "My Session Filter";
+    public static final String FEATURE_FILTER_TABS = "Filter Tabs";
 
     // HELPER METHOD
     // ============================================

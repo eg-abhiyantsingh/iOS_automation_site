@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite time-out="420000" name="Smoke - Issue CRUD" verbose="0">
+    <listeners>
+        <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
+    </listeners>
+    <test name="Smoke - Issue CRUD">
+        <classes>
+            <class name="com.egalvanic.tests.Issue_Phase1_Test">
+                <methods>
+                    <include name="TC_ISS_049_verifyIssueCreatedSuccessfully"/>
+                    <include name="TC_ISS_050_verifyNewIssueAppearsInList"/>
+                    <include name="TC_ISS_052_verifyTappingIssueOpensDetails"/>
+                    <include name="TC_ISS_076_verifyConfirmDeleteRemovesIssue"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+</suite>

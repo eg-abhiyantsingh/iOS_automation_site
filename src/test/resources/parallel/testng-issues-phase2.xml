@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite time-out="420000" name="Issues Tests - Phase 2 (118 tests)" verbose="0">
+    <!--
+    ============================================================
+    ISSUES PHASE 2 — 118 tests (TC_ISS_120 - TC_ISS_237)
+    ============================================================
+      - OSHA subcategory options
+      - Repair Needed class fields
+      - Thermal Anomaly: severity, criteria, temperature fields
+      - Current Draw / Voltage Drop tables
+      - Required fields toggle
+      - Ultrasonic Anomaly
+      - Swipe delete, sort options, created date
+    ============================================================
+    -->
+
+    <listeners>
+        <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
+    </listeners>
+
+    <test name="Issues Phase 2 - OSHA, Thermal, Severity, Temperature, Ultrasonic">
+        <classes>
+            <class name="com.egalvanic.tests.Issue_Phase2_Test"/>
+        </classes>
+    </test>
+
+</suite>

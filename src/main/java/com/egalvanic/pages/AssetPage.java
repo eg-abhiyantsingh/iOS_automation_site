@@ -64,7 +64,7 @@ public class AssetPage extends BasePage {
     @iOSXCUITFindBy(accessibility = "Select location")
     private WebElement selectLocationButton;
 
-    @iOSXCUITFindBy(accessibility = "Select asset subtype")
+    @iOSXCUITFindBy(iOSNsPredicate = "type == 'XCUIElementTypeButton' AND name CONTAINS 'asset subtype'")
     private WebElement selectAssetSubtypeButton;
 
     @iOSXCUITFindBy(iOSNsPredicate = "type == 'XCUIElementTypeTextField' AND value == 'Enter or scan QR code'")
@@ -5575,21 +5575,26 @@ public class AssetPage extends BasePage {
      */
     public void clickSelectAssetSubtype() {
         System.out.println("📋 Clicking Select Asset Subtype...");
-        
-        // Strategy 1: Direct click with accessibility ID (for empty/unselected state)
+
+        // Strategy 1: Find the BUTTON element for subtype picker (must be XCUIElementTypeButton)
+        // CRITICAL: Use predicate with type filter to avoid matching StaticText labels
+        // which would dispatch the click to whatever's behind them (often the Save button)
         try {
             WebDriverWait shortWait = new WebDriverWait(driver, Duration.ofSeconds(2));
             WebElement subtypeBtn = shortWait.until(
                 ExpectedConditions.elementToBeClickable(
-                    AppiumBy.accessibilityId("Select asset subtype")
+                    AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND (name CONTAINS 'asset subtype' OR name CONTAINS 'Asset Subtype' OR name == 'Select asset subtype')"
+                    )
                 )
             );
+            String btnName = subtypeBtn.getAttribute("name");
             subtypeBtn.click();
-            System.out.println("✅ Clicked 'Select asset subtype' placeholder");
+            System.out.println("✅ Clicked subtype button: '" + btnName + "'");
             return;
         } catch (Exception e) {
-            System.out.println("   📌 Strategy 1: 'Select asset subtype' placeholder not found");
-            System.out.println("   → Trying to find currently selected subtype button...");
+            System.out.println("   📌 Strategy 1: No Button with 'asset subtype' in name found");
+            System.out.println("   → Trying positional search relative to Asset Subtype label...");
         }
         
         // First scroll down to make subtype field visible (it's often below the fold)

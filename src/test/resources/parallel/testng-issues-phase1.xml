@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite time-out="420000" name="Issues Tests - Phase 1 (119 tests)" verbose="0">
+    <!--
+    ============================================================
+    ISSUES PHASE 1 — 119 tests (TC_ISS_001 - TC_ISS_119)
+    ============================================================
+      - Issues list, header elements, filter tabs (Open/Closed/All)
+      - Search bar, issue entries, sort options
+      - Create new issue: UI elements, required fields, asset selection
+      - Issue details: edit fields, save changes, delete
+      - Class change: subcategory options, completion indicators
+      - Offline creation, performance, NFPA70B subcategories
+    ============================================================
+    -->
+
+    <listeners>
+        <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
+    </listeners>
+
+    <test name="Issues Phase 1 - List, Filter, Search, Creation, Class Change">
+        <classes>
+            <class name="com.egalvanic.tests.Issue_Phase1_Test"/>
+        </classes>
+    </test>
+
+</suite>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite time-out="420000" name="Asset Tests - Part 3 of 6 (109 tests)" verbose="0">
+    <!--
+    ============================================================
+    ASSET PART 3 — 109 tests
+    ============================================================
+      - LC_EAD    (28 tests) — Load Center: required fields, ampere rating, columns,
+                                configuration, fault withstand, mains type, mfg, voltage
+      - MCC_EAD   (26 tests) — Motor Control Center: required fields, ampere rating,
+                                configuration, fault withstand, mfg, serial, size, voltage
+      - MCCB_EAD  (12 tests) — MCC Bucket: no core attributes, save without them,
+                                no validation indicators, issues section
+      - MOTOR_EAD (30 tests) — Motor: required fields, mains type, duty cycle, frame,
+                                full load amps, horsepower, motor class, RPM, service factor
+      - OTHER_EAD_CA (13 tests) — Other Asset Class: no required fields indicator,
+                                  model, notes, NP volts, serial number, placeholder text
+    ============================================================
+    -->
+
+    <listeners>
+        <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
+    </listeners>
+
+    <test name="Asset Phase 3 - Load Center, MCC, MCC Bucket, Motor, Other">
+        <classes>
+            <class name="com.egalvanic.tests.Asset_Phase3_Test"/>
+        </classes>
+    </test>
+
+</suite>

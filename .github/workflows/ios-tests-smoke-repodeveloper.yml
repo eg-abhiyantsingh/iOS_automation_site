@@ -2,11 +2,11 @@
 # I will directly copy paste this file in my developer repo file
 #
 # S3 Drift Detection (branch-based):
-#   release/dev       → dev S3 only         (10 tests)  → Total 23
-#   release/qa        → qa S3 only          (10 tests)  → Total 23
-#   release/stage     → staging S3 only     (10 tests)  → Total 23
-#   release/prod      → prod + bces-iq      (18 tests)  → Total 31
-#   main              → prod + bces-iq      (18 tests)  → Total 31
+#   release/dev       → dev S3 only         (10 tests)  → Total 27
+#   release/qa        → qa S3 only          (10 tests)  → Total 27
+#   release/stage     → staging S3 only     (10 tests)  → Total 27
+#   release/prod      → prod + bces-iq      (18 tests)  → Total 35
+#   main              → prod + bces-iq      (18 tests)  → Total 35
 #
 # AWS credentials required: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
 
@@ -43,7 +43,10 @@ on:
           - asset-phase3
           - asset-phase4
           - asset-phase5
+          - asset-phase6
           - asset-all
+          - issues-phase1
+          - issues-phase2
       capture_api:
         description: 'Capture API traffic for debugging'
         required: false
@@ -536,29 +539,38 @@ jobs:
               run_mvn src/test/resources/parallel/testng-connections.xml
               ;;
             asset-phase1)
-              run_mvn src/test/resources/parallel/testng-phase1.xml
+              run_mvn src/test/resources/parallel/testng-assets-part1.xml
               ;;
             asset-phase2)
-              run_mvn src/test/resources/parallel/testng-phase2.xml
+              run_mvn src/test/resources/parallel/testng-assets-part2.xml
               ;;
             asset-phase3)
-              run_mvn src/test/resources/parallel/testng-phase3.xml
+              run_mvn src/test/resources/parallel/testng-assets-part3.xml
               ;;
             asset-phase4)
-              run_mvn src/test/resources/parallel/testng-phase4.xml
+              run_mvn src/test/resources/parallel/testng-assets-part4.xml
               ;;
             asset-phase5)
-              run_mvn src/test/resources/parallel/testng-phase5.xml
+              run_mvn src/test/resources/parallel/testng-assets-part5.xml
+              ;;
+            asset-phase6)
+              run_mvn src/test/resources/parallel/testng-assets-part6.xml
               ;;
             asset-all)
-              echo "Running all 5 Asset phases sequentially..."
-              for PHASE in 1 2 3 4 5; do
+              echo "Running all 6 Asset phases sequentially..."
+              for PHASE in 1 2 3 4 5 6; do
                 echo ""
                 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                echo "  📦 ASSET PHASE $PHASE / 5"
+                echo "  📦 ASSET PHASE $PHASE / 6"
                 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                run_mvn "src/test/resources/parallel/testng-phase${PHASE}.xml" || true
+                run_mvn "src/test/resources/parallel/testng-assets-part${PHASE}.xml" || true
               done
+              ;;
+            issues-phase1)
+              run_mvn src/test/resources/parallel/testng-issues-phase1.xml
+              ;;
+            issues-phase2)
+              run_mvn src/test/resources/parallel/testng-issues-phase2.xml
               ;;
           esac
 

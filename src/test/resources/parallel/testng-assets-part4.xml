@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite time-out="420000" name="Asset Tests - Part 4 of 6 (97 tests)" verbose="0">
+    <!--
+    ============================================================
+    ASSET PART 4 — 97 tests
+    ============================================================
+      - OCP_EAD  (13 tests) — Over-Current Protective Device: no core attributes,
+                               save without them, no validation indicators, issues section
+      - PB       (14 tests) — Panelboard: core attributes, required fields toggle,
+                               numeric/dropdown validation, size, voltage, save/cancel
+      - TC_PDU   (15 tests) — Power Distribution Unit: required fields, ampere rating,
+                               catalog number, mfg, serial, size, voltage, cancel
+      - TC_RELAY (14 tests) — Relay: manufacturer, model, relay type, serial, notes,
+                               save/cancel, persistence, scroll behavior
+      - TC_SWB   (18 tests) — Switchboard: required fields, ampere rating, config,
+                               fault withstand, mains type, mfg, serial, size, voltage
+      - TC_TRF   (23 tests) — Transformer: required fields, BIL, class, frequency,
+                               KVA rating, % impedance, primary/secondary amps & voltage,
+                               winding configuration, temperature rise
+    ============================================================
+    -->
+
+    <listeners>
+        <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
+    </listeners>
+
+    <test name="Asset Phase 4 - OCP, Panelboard, PDU, Relay, Switchboard, Transformer">
+        <classes>
+            <class name="com.egalvanic.tests.Asset_Phase4_Test"/>
+        </classes>
+    </test>
+
+</suite>

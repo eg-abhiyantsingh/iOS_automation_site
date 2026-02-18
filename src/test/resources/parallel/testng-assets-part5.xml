@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite time-out="420000" name="Asset Tests - Part 5 of 6 (112 tests)" verbose="0">
+    <!--
+    ============================================================
+    ASSET PART 5 — 112 tests
+    ============================================================
+      - TC_UPS     (15 tests) — UPS: required fields, ampere rating, catalog, mfg,
+                                 model, notes, size, voltage, cancel, persistence
+      - TC_UTL      (9 tests) — Utility: meter number, starting voltage, save/cancel,
+                                 scroll behavior
+      - TC_VFD      (8 tests) — Variable Frequency Drive: no core attributes,
+                                 required fields toggle, save, cancel, persistence
+      - TC_ATS_ST  (13 tests) — ATS Subtypes: auto transfer switch low/high,
+                                 transfer switch low/high, switching between values
+      - TC_BUS_ST  (11 tests) — Busway Subtypes: busway low/high, change multiple
+                                 times, save/cancel, persistence
+      - TC_CAP_ST   (6 tests) — Capacitor Subtypes: none option, save, persistence
+      - TC_CB_ST   (14 tests) — Circuit Breaker Subtypes: insulated case, molded case
+                                 (<=250A / >250A), power CB, medium voltage, persistence
+      - TC_DEF      (9 tests) — Default Asset Class: default selection, subtype field,
+                                 no core attributes, save, cancel
+      - TC_DS_ST   (16 tests) — Disconnect Switch Subtypes: bolted pressure, bypass
+                                 isolation (<=1000V / >1000V), fused, HPC, load interruptor
+      - TC_FUSE_ST (11 tests) — Fuse Subtypes: fuse <=1000V, fuse >1000V, switching,
+                                 save, persistence, cancel
+    ============================================================
+    -->
+
+    <listeners>
+        <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
+    </listeners>
+
+    <test name="Asset Phase 5 - UPS, Utility, VFD, Subtypes (ATS, Busway, Capacitor, CB, Default, DS, Fuse)">
+        <classes>
+            <class name="com.egalvanic.tests.Asset_Phase5_Test"/>
+        </classes>
+    </test>
+
+</suite>
