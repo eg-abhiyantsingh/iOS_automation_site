@@ -15,6 +15,9 @@ public final class Issue_Phase1_Test extends BaseTest {
 
     private IssuePage issuePage;
 
+    /** Dynamic title used when creating issues — shared between TC_ISS_049 and TC_ISS_050 */
+    private static String createdIssueTitle;
+
     // ================================================================
     // SETUP / TEARDOWN
     // ================================================================
@@ -387,12 +390,7 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         int issueCount = issuePage.getVisibleIssueCount();
         logStep("Visible issues: " + issueCount);
-        if (issueCount == 0) {
-            logStep("⚠️ No issues available — skipping entry verification");
-            logStepWithScreenshot("TC_ISS_008: No issues to verify");
-            issuePage.tapOpenTab();
-            return;
-        }
+        assertTrue(issueCount > 0, "Should have at least one issue in the list");
 
         logStep("Step 3: Verify first issue entry has elements");
         boolean entryComplete = issuePage.isIssueEntryComplete();
@@ -427,12 +425,7 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStep("Step 2: Verify issue type icon is displayed");
         int issueCount = issuePage.getVisibleIssueCount();
-        if (issueCount == 0) {
-            logStep("⚠️ No issues available — skipping icon verification");
-            issuePage.tapOpenTab();
-            logStepWithScreenshot("TC_ISS_009: No issues to verify");
-            return;
-        }
+        assertTrue(issueCount > 0, "Should have at least one issue in the list");
 
         boolean iconDisplayed = issuePage.isIssueTypeIconDisplayed();
         logStep("Issue type icon displayed: " + iconDisplayed);
@@ -482,7 +475,7 @@ public final class Issue_Phase1_Test extends BaseTest {
     public void TC_ISS_011_verifyMediumPriorityBadge() {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_ENTRY,
             "TC_ISS_011 - Verify Medium priority badge");
-
+        loginAndSelectSite();
         logStep("Step 1: Navigate to Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
@@ -524,11 +517,7 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStep("Step 3: Check for Open status badge on entries");
         int issueCount = issuePage.getVisibleIssueCount();
-        if (issueCount == 0) {
-            logStep("⚠️ No open issues available");
-            logStepWithScreenshot("TC_ISS_012: No open issues to verify");
-            return;
-        }
+        assertTrue(issueCount > 0, "Should have at least one open issue");
 
         boolean openBadge = issuePage.isStatusBadgeDisplayed("Open");
         logStep("Open status badge displayed: " + openBadge);
@@ -557,12 +546,7 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStep("Step 2: Verify asset name is displayed on issue entry");
         int issueCount = issuePage.getVisibleIssueCount();
-        if (issueCount == 0) {
-            logStep("⚠️ No issues available — skipping asset name verification");
-            issuePage.tapOpenTab();
-            logStepWithScreenshot("TC_ISS_013: No issues to verify");
-            return;
-        }
+        assertTrue(issueCount > 0, "Should have at least one issue in the list");
 
         boolean assetDisplayed = issuePage.isAssetNameDisplayedOnIssue();
         assertTrue(assetDisplayed, "Asset name should be displayed on issue entry");
@@ -592,12 +576,7 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStep("Step 2: Check for truncated titles");
         int issueCount = issuePage.getVisibleIssueCount();
-        if (issueCount == 0) {
-            logStep("⚠️ No issues available");
-            issuePage.tapOpenTab();
-            logStepWithScreenshot("TC_ISS_014: No issues to verify");
-            return;
-        }
+        assertTrue(issueCount > 0, "Should have at least one issue in the list");
 
         boolean hasTruncated = issuePage.hasAnyTruncatedTitle();
         logStep("Truncated title found: " + hasTruncated);
@@ -1287,7 +1266,7 @@ public final class Issue_Phase1_Test extends BaseTest {
 
     /**
      * TC_ISS_035: Verify entering Title text
-     * Expected: Text 'Abhiyant' appears in Title field, keyboard shown for input
+     * Expected: Text appears in Title field, keyboard shown for input
      */
     @Test(priority = 35)
     public void TC_ISS_035_verifyEnteringTitleText() {
@@ -1299,18 +1278,15 @@ public final class Issue_Phase1_Test extends BaseTest {
         assertTrue(onForm, "Should be on New Issue form");
         shortWait();
 
-        logStep("Step 2: Enter 'Abhiyant' in Title field");
-        issuePage.enterIssueTitle("Abhiyant");
+        logStep("Step 2: Enter test title in Title field");
+        String testTitle = "TestTitleEntry_" + System.currentTimeMillis();
+        issuePage.enterIssueTitle(testTitle);
         shortWait();
 
         logStep("Step 3: Verify text was entered");
         String titleValue = issuePage.getTitleFieldValue();
         logStep("Title field value: '" + titleValue + "'");
-        if (titleValue.contains("Abhiyant")) {
-            logStep("✅ Title text 'Abhiyant' entered successfully");
-        } else {
-            logStep("⚠️ Title value does not contain 'Abhiyant' — got: '" + titleValue + "'");
-        }
+        assertTrue(titleValue != null && !titleValue.isEmpty(), "Title field should contain entered text");
 
         logStepWithScreenshot("TC_ISS_035: Title text entered");
 
@@ -1618,7 +1594,7 @@ public final class Issue_Phase1_Test extends BaseTest {
 
     /**
      * TC_ISS_045: Verify selecting an asset
-     * Expected: Asset selected, returns to New Issue, Asset field shows 'ATS 1'
+     * Expected: Asset selected, returns to New Issue, Asset field shows selected asset
      */
     @Test(priority = 45)
     public void TC_ISS_045_verifySelectingAsset() {
@@ -1634,8 +1610,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         issuePage.tapSelectAsset();
         shortWait();
 
-        logStep("Step 3: Select 'ATS 1'");
-        boolean selected = issuePage.selectAssetInPicker("ATS 1");
+        logStep("Step 3: Select first available asset");
+        boolean selected = issuePage.selectFirstAvailableAsset();
         logStep("Asset selection result: " + selected);
         shortWait();
 
@@ -1647,7 +1623,8 @@ public final class Issue_Phase1_Test extends BaseTest {
             logStep("Step 5: Verify selected asset name");
             String assetName = issuePage.getSelectedAssetName();
             logStep("Selected asset: '" + assetName + "'");
-            logStep("✅ Asset selection completed");
+            assertTrue(assetName != null && !assetName.isEmpty() && !assetName.contains("Select"),
+                "Asset should be selected (not showing placeholder)");
         }
 
         logStepWithScreenshot("TC_ISS_045: Asset selected");
@@ -1757,7 +1734,7 @@ public final class Issue_Phase1_Test extends BaseTest {
         shortWait();
 
         logStep("Step 4: Fill Title");
-        issuePage.enterIssueTitle("Abhiyant");
+        issuePage.enterIssueTitle("TestButtonState_" + System.currentTimeMillis());
         shortWait();
 
         logStep("Step 5: Fill Priority");
@@ -1767,17 +1744,13 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 6: Select Asset");
         issuePage.tapSelectAsset();
         shortWait();
-        issuePage.selectAssetInPicker("ATS 1");
+        issuePage.selectFirstAvailableAsset();
         shortWait();
 
         logStep("Step 7: Verify Create Issue is now enabled");
         boolean nowEnabled = issuePage.isCreateIssueEnabled();
         logStep("Create Issue enabled after filling fields: " + nowEnabled);
-        if (nowEnabled) {
-            logStep("✅ Create Issue button is enabled");
-        } else {
-            logStep("⚠️ Create Issue still disabled — may need additional required fields");
-        }
+        assertTrue(nowEnabled, "Create Issue button should be enabled after filling required fields");
 
         logStepWithScreenshot("TC_ISS_048: Create Issue button state");
 
@@ -1805,47 +1778,47 @@ public final class Issue_Phase1_Test extends BaseTest {
         issuePage.selectIssueClass("NEC Violation");
         shortWait();
 
-        logStep("Step 3: Fill Title — 'Abhiyant'");
-        issuePage.enterIssueTitle("Abhiyant");
+        logStep("Step 3: Fill Title (dynamic)");
+        createdIssueTitle = "TestIssue_" + System.currentTimeMillis();
+        issuePage.enterIssueTitle(createdIssueTitle);
+        logStep("   Title: " + createdIssueTitle);
         shortWait();
 
         logStep("Step 4: Fill Priority — High");
         issuePage.selectPriority("High");
         shortWait();
 
-        logStep("Step 5: Select Asset — ATS 1");
+        logStep("Step 5: Select first available asset");
         issuePage.tapSelectAsset();
         shortWait();
-        issuePage.selectAssetInPicker("ATS 1");
+        boolean assetSelected = issuePage.selectFirstAvailableAsset();
+        assertTrue(assetSelected, "Should select an asset from picker");
         shortWait();
 
         logStep("Step 6: Tap Create Issue");
-        issuePage.tapCreateIssue();
+        boolean created = issuePage.tapCreateIssue();
+        assertTrue(created, "Create Issue button should be tapped successfully");
         mediumWait();
 
         logStep("Step 7: Verify returned to Issues screen");
         boolean onIssues = issuePage.isIssuesScreenDisplayed();
-        logStep("On Issues screen: " + onIssues);
-        if (onIssues) {
-            logStep("✅ Issue created and returned to Issues list");
-        } else {
-            // May still be on form if creation failed
+        if (!onIssues) {
             boolean stillOnForm = issuePage.isNewIssueFormDisplayed();
-            logStep("Still on form: " + stillOnForm);
             if (stillOnForm) {
                 logStep("⚠️ Issue creation may have failed — still on form");
                 issuePage.tapCancelNewIssue();
                 shortWait();
             }
         }
+        assertTrue(onIssues, "Should return to Issues screen after creating issue");
 
         logStepWithScreenshot("TC_ISS_049: Issue creation result");
     }
 
     /**
      * TC_ISS_050: Verify new issue appears in list
-     * Expected: 'Abhiyant' issue appears with High badge, assigned asset, Open status
-     * Depends on: TC_ISS_049 having created the issue
+     * Expected: Created issue appears in the list
+     * Depends on: TC_ISS_049 having created the issue (title stored in createdIssueTitle)
      */
     @Test(priority = 50)
     public void TC_ISS_050_verifyNewIssueAppearsInList() {
@@ -1861,13 +1834,18 @@ public final class Issue_Phase1_Test extends BaseTest {
         issuePage.tapAllTab();
         shortWait();
 
-        logStep("Step 3: Verify 'Abhiyant' issue is in the list");
-        boolean issueFound = issuePage.isIssueInList("Abhiyant");
-        logStep("Issue 'Abhiyant' found: " + issueFound);
-        if (issueFound) {
-            logStep("✅ Created issue 'Abhiyant' appears in the Issues list");
+        logStep("Step 3: Verify issue is in the list");
+        if (createdIssueTitle != null) {
+            // TC_ISS_049 ran — look for the specific issue we created
+            boolean issueFound = issuePage.isIssueInList(createdIssueTitle);
+            logStep("Issue '" + createdIssueTitle + "' found: " + issueFound);
+            assertTrue(issueFound, "Created issue '" + createdIssueTitle + "' should appear in the Issues list");
         } else {
-            logStep("⚠️ Issue 'Abhiyant' not found — creation may have failed in TC_ISS_049");
+            // TC_ISS_049 didn't run — verify at least one issue exists in the list
+            logStep("   TC_ISS_049 did not run — verifying issues exist in list");
+            int issueCount = issuePage.getAllTabCount();
+            logStep("All tab count: " + issueCount);
+            assertTrue(issueCount > 0, "Issues list should have at least one issue");
         }
 
         logStepWithScreenshot("TC_ISS_050: New issue in list");
@@ -3096,14 +3074,10 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStep("Step 2: Create a temporary issue for deletion testing");
         logStep("   Temp issue title: " + tempIssueTitle);
-        boolean created = issuePage.createQuickIssue(tempIssueTitle, "A1");
+        boolean created = issuePage.createQuickIssue(tempIssueTitle, null);
         mediumWait();
 
-        if (!created) {
-            logStep("⚠️ Could not create temporary issue — skipping delete verification");
-            logStepWithScreenshot("TC_ISS_076: Failed to create temp issue");
-            return;
-        }
+        assertTrue(created, "Should have created temporary issue for deletion testing");
 
         logStep("Step 3: Verify temp issue is in the list");
         issuePage.tapAllTab();
@@ -3617,7 +3591,7 @@ public final class Issue_Phase1_Test extends BaseTest {
         shortWait();
 
         logStep("Step 2: Create issue with only asset selected (minimal required field)");
-        boolean created = issuePage.createMinimalIssue("A1");
+        boolean created = issuePage.createMinimalIssue(null);
         mediumWait();
 
         if (created) {
@@ -3635,7 +3609,7 @@ public final class Issue_Phase1_Test extends BaseTest {
             logStep("ℹ️ Could not create issue with only asset — may require additional fields");
 
             logStep("Step 3: Try creating with asset + issue class");
-            boolean createdWithClass = issuePage.createQuickIssue("MinimalTest_" + System.currentTimeMillis(), "A1");
+            boolean createdWithClass = issuePage.createQuickIssue("MinimalTest_" + System.currentTimeMillis(), null);
             mediumWait();
 
             if (createdWithClass) {
@@ -3730,7 +3704,7 @@ public final class Issue_Phase1_Test extends BaseTest {
         shortWait();
 
         logStep("Step 2: Create issue with special characters in title: '" + specialTitle + "'");
-        boolean created = issuePage.createIssueWithTitle(specialTitle, "A1");
+        boolean created = issuePage.createIssueWithTitle(specialTitle, null);
         mediumWait();
 
         if (created) {
@@ -3806,7 +3780,7 @@ public final class Issue_Phase1_Test extends BaseTest {
 
             logStep("Step 3: Create a new issue while offline");
             String offlineTitle = "OfflineTest_" + System.currentTimeMillis();
-            boolean created = issuePage.createQuickIssue(offlineTitle, "A1");
+            boolean created = issuePage.createQuickIssue(offlineTitle, null);
             mediumWait();
 
             if (created) {

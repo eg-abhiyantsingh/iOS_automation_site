@@ -30,7 +30,8 @@ name: Automation Test
 #   assets-p5-*               → P3: UPS + Utility + VFD + Subtypes + P4: DS/Fuse Subtypes (112 tests)
 #   assets-p6-*               → P4: Subtypes + Tasks + Issues + Connections + Asset Screen (114 tests)
 #   issues-p1-*               → Issues Phase 1: List + Filter + Search + Creation + Class Change (119 tests)
-#   issues-p2-*               → Issues Phase 2: OSHA + Thermal + Severity + Temperature + Ultrasonic (118 tests)
+#   issues-p2-*               → Issues Phase 2: OSHA + Thermal + Severity + Temperature + Ultrasonic (60 tests)
+#   issues-p3-*               → Issues Phase 3: Ultrasonic Save + Swipe Delete + Sort + Status + CRUD (58 tests)
 #   location-only             → Locations (82 tests)
 #   connections-only          → Connections (94 tests)
 #
@@ -83,6 +84,7 @@ on:
           - 'assets-p6-subtypes-tasks-issues-connections-search'
           - 'issues-p1-list-filter-search-creation-classchange'
           - 'issues-p2-osha-thermal-severity-temperature-ultrasonic'
+          - 'issues-p3-ultrasonic-save-swipe-delete-sort-status-crud'
           - 'location-only'
           - 'connections-only'
       capture_api:
@@ -552,8 +554,8 @@ jobs:
           case "${{ github.event.inputs.test_suite }}" in
             all)
               # ── Run ALL test suites sequentially on single runner ──
-              # Auth → Site → Assets P1-P6 → Issues P1-P2 → Location → Connections
-              # ~1158 tests total — expect long runtime on single runner
+              # Auth → Site → Assets P1-P6 → Issues P1-P3 → Location → Connections
+              # ~1155 tests total — expect long runtime on single runner
               run_mvn src/test/resources/parallel/testng-auth.xml
               run_mvn src/test/resources/parallel/testng-site.xml
               run_mvn src/test/resources/parallel/testng-assets-part1.xml
@@ -564,6 +566,7 @@ jobs:
               run_mvn src/test/resources/parallel/testng-assets-part6.xml
               run_mvn src/test/resources/parallel/testng-issues-phase1.xml
               run_mvn src/test/resources/parallel/testng-issues-phase2.xml
+              run_mvn src/test/resources/parallel/testng-issues-phase3.xml
               run_mvn src/test/resources/parallel/testng-location.xml
               run_mvn src/test/resources/parallel/testng-connections.xml
               ;;
@@ -627,6 +630,9 @@ jobs:
               ;;
             issues-p2-*)
               run_mvn src/test/resources/parallel/testng-issues-phase2.xml
+              ;;
+            issues-p3-*)
+              run_mvn src/test/resources/parallel/testng-issues-phase3.xml
               ;;
             location-only)
               run_mvn src/test/resources/parallel/testng-location.xml

@@ -1,17 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<suite time-out="420000" name="Issues Tests - Phase 2 (118 tests)" verbose="0">
+<suite time-out="420000" name="Issues Tests - Phase 2 (60 tests)" verbose="0">
     <!--
     ============================================================
-    ISSUES PHASE 2 — 118 tests (TC_ISS_120 - TC_ISS_237)
+    ISSUES PHASE 2 — 60 tests (TC_ISS_120 - TC_ISS_179)
     ============================================================
       - OSHA subcategory options
       - Repair Needed class fields
       - Thermal Anomaly: severity, criteria, temperature fields
       - Current Draw / Voltage Drop tables
       - Required fields toggle
-      - Ultrasonic Anomaly
-      - Swipe delete, sort options, created date
+      - Ultrasonic Anomaly fields
     ============================================================
     -->
 

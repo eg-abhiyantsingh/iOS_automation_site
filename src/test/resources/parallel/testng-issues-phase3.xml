@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite time-out="420000" name="Issues Tests - Phase 3 (58 tests)" verbose="0">
+    <!--
+    ============================================================
+    ISSUES PHASE 3 — 58 tests (TC_ISS_180 - TC_ISS_237)
+    ============================================================
+      - Ultrasonic Anomaly save/create
+      - Class comparison (Ultrasonic vs Thermal vs Repair Needed)
+      - Swipe delete, sort options, created date
+      - Status workflow (Open, Resolved, Closed)
+      - Issue CRUD operations
+      - Filter persistence
+    ============================================================
+    -->
+
+    <listeners>
+        <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
+    </listeners>
+
+    <test name="Issues Phase 3 - Ultrasonic Save, Swipe Delete, Sort, Status, CRUD">
+        <classes>
+            <class name="com.egalvanic.tests.Issue_Phase3_Test"/>
+        </classes>
+    </test>
+
+</suite>

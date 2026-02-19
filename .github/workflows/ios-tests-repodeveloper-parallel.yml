@@ -4,7 +4,7 @@ name: Automation Test - Parallel
 # DEVELOPER REPO - FULL PARALLEL TEST SUITE
 # ============================================================
 # Builds iOS app from selected branch, then runs all test
-# modules in parallel across 12 separate macOS runners.
+# modules in parallel across 13 separate macOS runners.
 #
 # Architecture:
 #   Job 0:  build-app          → Build iOS app from source (1 runner)
@@ -18,14 +18,15 @@ name: Automation Test - Parallel
 #   Job 8:  assets-part5       → P3: UPS + Utility + VFD + Subtypes + P4: DS/Fuse Subtypes (112 tests)
 #   Job 9:  assets-part6       → P4: Subtypes + Tasks + Issues + Connections + Asset Screen (114 tests)
 #   Job 10: issues-phase1      → Issues Phase 1: List + Filter + Search + Creation + Class Change (119 tests)
-#   Job 11: issues-phase2      → Issues Phase 2: OSHA + Thermal + Severity + Temperature + Ultrasonic (118 tests)
-#   Job 12: location-tests     → Locations (82 tests)
-#   Job 13: connections-tests  → Connections (94 tests)
-#   Job 14: summary            → Aggregate results + email
+#   Job 11: issues-phase2      → Issues Phase 2: OSHA + Thermal + Severity + Temperature + Ultrasonic (60 tests)
+#   Job 12: issues-phase3      → Issues Phase 3: Ultrasonic Save + Swipe Delete + Sort + Status + CRUD (58 tests)
+#   Job 13: location-tests     → Locations (82 tests)
+#   Job 14: connections-tests  → Connections (94 tests)
+#   Job 15: summary            → Aggregate results + email
 #
-# Total: ~1158 tests, ~2.5 hr wall clock (parallel)
+# Total: ~1155 tests, ~2.5 hr wall clock (parallel)
 # Asset tests (652) split into 6 balanced parts for even CI/CD load
-# Issues tests (237) split into 2 phases for even CI/CD load
+# Issues tests (237) split into 3 phases for even CI/CD load
 #
 # Requirements:
 #   Secrets: QA_REPO_TOKEN, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,
@@ -64,6 +65,7 @@ on:
           - 'assets-p6-subtypes-tasks-issues-connections-search'
           - 'issues-p1-list-filter-search-creation-classchange'
           - 'issues-p2-osha-thermal-severity-temperature-ultrasonic'
+          - 'issues-p3-ultrasonic-save-swipe-delete-sort-status-crud'
           - 'location-only'
           - 'connections-only'
 
@@ -1941,10 +1943,10 @@ jobs:
         run: xcrun simctl shutdown "${{ env.SIMULATOR_UDID }}" 2>/dev/null || true
 
   # ============================================================
-  # JOB 10: Issues Phase 2 (118 tests — OSHA, Thermal, Severity, Temperature, Ultrasonic)
+  # JOB 10: Issues Phase 2 (60 tests — OSHA, Thermal, Severity, Temperature, Ultrasonic)
   # ============================================================
   issues-phase2:
-    name: "Issues P2 - OSHA + Thermal + Severity + Temperature + Ultrasonic (118 tests)"
+    name: "Issues P2 - OSHA + Thermal + Severity + Temperature + Ultrasonic (60 tests)"
     needs: [build-app]
     if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'issues-p2-osha-thermal-severity-temperature-ultrasonic'
     runs-on: macos-15
@@ -2094,7 +2096,160 @@ jobs:
         run: xcrun simctl shutdown "${{ env.SIMULATOR_UDID }}" 2>/dev/null || true
 
   # ============================================================
-  # JOB 11: Location Tests (82 tests, ~1.5 hr)
+  # JOB 11: Issues Phase 3 (58 tests — Ultrasonic Save, Swipe Delete, Sort, Status, CRUD)
+  # ============================================================
+  issues-phase3:
+    name: "Issues P3 - Ultrasonic Save + Swipe Delete + Sort + Status + CRUD (58 tests)"
+    needs: [build-app]
+    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'issues-p3-ultrasonic-save-swipe-delete-sort-status-crud'
+    runs-on: macos-15
+    timeout-minutes: 420
+
+    steps:
+      - name: Download Built App
+        uses: actions/download-artifact@v4
+        with:
+          name: built-app
+          path: apps/
+
+      - name: Download QA Automation Code
+        uses: actions/download-artifact@v4
+        with:
+          name: qa-code
+          path: qa-automation/
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Appium
+        run: |
+          npm install -g appium@latest 2>&1 | tail -1
+          appium driver install xcuitest 2>&1 | tail -1
+          echo "✅ Appium $(appium --version)"
+
+      - name: Boot Simulator
+        run: |
+          UDID=""
+          for VERSION in 18.5 18.4 18.3 18.2 18.1 18.0; do
+            for MODEL in "iPhone 16 Pro" "iPhone 15 Pro" "iPhone"; do
+              UDID=$(xcrun simctl list devices available | grep -A 100 "iOS $VERSION" | grep "$MODEL" | head -1 | awk -F '[()]' '{print $2}')
+              [ -n "$UDID" ] && break 2
+            done
+          done
+          [ -z "$UDID" ] && echo "❌ No simulator found!" && exit 1
+
+          DEVICE_NAME=$(xcrun simctl list devices available | grep "$UDID" | sed 's/(.*//' | xargs)
+          PLATFORM_VERSION=$(xcrun simctl list devices available | grep -B 20 "$UDID" | grep "iOS" | tail -1 | sed 's/-- iOS //' | sed 's/ --.*//')
+          [ -z "$PLATFORM_VERSION" ] && PLATFORM_VERSION="18.5"
+
+          echo "DEVICE_NAME=$DEVICE_NAME" >> $GITHUB_ENV
+          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+          echo "PLATFORM_VERSION=$PLATFORM_VERSION" >> $GITHUB_ENV
+          echo "📱 $DEVICE_NAME | iOS $PLATFORM_VERSION | $UDID"
+
+          xcrun simctl shutdown "$UDID" 2>/dev/null || true
+          sleep 3; xcrun simctl boot "$UDID" 2>/dev/null || true
+
+          TIMEOUT=120; ELAPSED=0
+          while [ $ELAPSED -lt $TIMEOUT ]; do
+            if xcrun simctl list devices | grep "$UDID" | grep -q "(Booted)"; then
+              echo "✅ Booted after ${ELAPSED}s"; break
+            fi
+            sleep 5; ELAPSED=$((ELAPSED + 5))
+          done
+          if [ $ELAPSED -ge $TIMEOUT ]; then echo "❌ Boot timeout"; exit 1; fi
+          sleep 45; echo "✅ Simulator ready"
+
+      - name: Install App on Simulator
+        run: |
+          APP_FILE=$(ls apps/ | grep ".app" | head -1)
+          xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/$APP_FILE"
+
+      - name: Pre-build WebDriverAgent
+        run: |
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          if [ -n "$WDA_PATH" ]; then
+            cd "$WDA_PATH"
+            xcodebuild build-for-testing -project WebDriverAgent.xcodeproj -scheme WebDriverAgentRunner \
+              -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" \
+              -derivedDataPath /tmp/wda-build -quiet 2>&1 | tail -3
+            echo "✅ WDA pre-built"
+          fi
+
+      - name: Start Appium Server
+        run: |
+          appium --relaxed-security --log-level error > appium.log 2>&1 &
+          for i in {1..60}; do
+            if curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:4723/status 2>/dev/null | grep -q "200"; then
+              echo "✅ Appium ready"; break
+            fi
+            sleep 2
+          done
+          sleep 10
+
+      - name: Warm-up WDA Session
+        run: |
+          APP_FILE=$(ls apps/ | grep ".app" | head -1)
+          FULL_APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
+          for attempt in 1 2 3; do
+            SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
+              -H "Content-Type: application/json" \
+              -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"${{ env.SIMULATOR_UDID }}"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$FULL_APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' \
+              --max-time 600 2>&1) || true
+            SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
+            if [ -n "$SESSION_ID" ]; then
+              echo "✅ WDA warm-up OK"; sleep 10
+              curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true; sleep 5; break
+            else
+              [ $attempt -lt 3 ] && sleep 30
+            fi
+          done
+
+      - name: Run Issues Phase 3 Tests
+        continue-on-error: true
+        run: |
+          cd qa-automation
+          APP_FILE=$(ls ../apps/ | grep ".app" | head -1)
+          mvn test -B -q \
+            -DsuiteXmlFile=src/test/resources/parallel/testng-issues-phase3.xml \
+            -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
+            -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
+            -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
+            -DAPP_PATH="${{ github.workspace }}/apps/$APP_FILE"
+
+      - name: Upload Issues Phase 3 Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issues-phase3-report
+          path: |
+            qa-automation/target/surefire-reports/
+            qa-automation/reports/
+            qa-automation/screenshots/
+          retention-days: 7
+
+      - name: Upload Appium Log (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: appium-log-issues-phase3-${{ github.run_number }}
+          path: appium.log
+          retention-days: 7
+
+      - name: Shutdown Simulator
+        if: always()
+        run: xcrun simctl shutdown "${{ env.SIMULATOR_UDID }}" 2>/dev/null || true
+
+  # ============================================================
+  # JOB 13: Location Tests (82 tests, ~1.5 hr)
   # ============================================================
   location-tests:
     name: "Location (82 tests)"
@@ -2246,7 +2401,7 @@ jobs:
         run: xcrun simctl shutdown "${{ env.SIMULATOR_UDID }}" 2>/dev/null || true
 
   # ============================================================
-  # JOB 10: Connections Tests (94 tests, ~2 hr)
+  # JOB 14: Connections Tests (94 tests, ~2 hr)
   # ============================================================
   connections-tests:
     name: "Connections (94 tests)"
@@ -2398,11 +2553,11 @@ jobs:
         run: xcrun simctl shutdown "${{ env.SIMULATOR_UDID }}" 2>/dev/null || true
 
   # ============================================================
-  # JOB 14: Summary & Email
+  # JOB 15: Summary & Email
   # ============================================================
   summary:
     name: "Summary & Email"
-    needs: [smoke-tests, auth-tests, site-tests, assets-part1, assets-part2, assets-part3, assets-part4, assets-part5, assets-part6, issues-phase1, issues-phase2, location-tests, connections-tests]
+    needs: [smoke-tests, auth-tests, site-tests, assets-part1, assets-part2, assets-part3, assets-part4, assets-part5, assets-part6, issues-phase1, issues-phase2, issues-phase3, location-tests, connections-tests]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -2429,6 +2584,7 @@ jobs:
           AP6="${{ needs.assets-part6.result }}"
           ISS1="${{ needs.issues-phase1.result }}"
           ISS2="${{ needs.issues-phase2.result }}"
+          ISS3="${{ needs.issues-phase3.result }}"
           LOC="${{ needs.location-tests.result }}"
           CONN="${{ needs.connections-tests.result }}"
 
@@ -2474,7 +2630,7 @@ jobs:
             </html>
           EOF
           else
-            # ── Full parallel mode: 12 test jobs ──
+            # ── Full parallel mode: 13 test jobs ──
             SUCCESS=0
             [ "$AUTH" = "success" ] && SUCCESS=$((SUCCESS+1))
             [ "$SITE" = "success" ] && SUCCESS=$((SUCCESS+1))
@@ -2486,18 +2642,19 @@ jobs:
             [ "$AP6" = "success" ] && SUCCESS=$((SUCCESS+1))
             [ "$ISS1" = "success" ] && SUCCESS=$((SUCCESS+1))
             [ "$ISS2" = "success" ] && SUCCESS=$((SUCCESS+1))
+            [ "$ISS3" = "success" ] && SUCCESS=$((SUCCESS+1))
             [ "$LOC" = "success" ] && SUCCESS=$((SUCCESS+1))
             [ "$CONN" = "success" ] && SUCCESS=$((SUCCESS+1))
 
-            FAILED=$((12-SUCCESS))
-            TOTAL=12
+            FAILED=$((13-SUCCESS))
+            TOTAL=13
             echo "SUCCESS=$SUCCESS" >> $GITHUB_OUTPUT
             echo "FAILED=$FAILED" >> $GITHUB_OUTPUT
             echo "TOTAL=$TOTAL" >> $GITHUB_OUTPUT
 
-            if [ $SUCCESS -eq 12 ]; then
+            if [ $SUCCESS -eq 13 ]; then
               STATUS="✅ ALL PASSED"
-            elif [ $SUCCESS -ge 10 ]; then
+            elif [ $SUCCESS -ge 11 ]; then
               STATUS="⚠️ MOSTLY PASSED"
             else
               STATUS="❌ FAILED"
@@ -2515,7 +2672,7 @@ jobs:
               <p><b>Run:</b> <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Full Details</a></p>
               <hr>
 
-              <h2>Results: ${SUCCESS}/12 Jobs Passed — ${STATUS}</h2>
+              <h2>Results: ${SUCCESS}/13 Jobs Passed — ${STATUS}</h2>
 
               <table border="1" cellpadding="10" style="border-collapse: collapse; width: 100%;">
                 <tr style="background-color: #4a90d9; color: white;">
@@ -2530,17 +2687,18 @@ jobs:
                 <tr><td>Asset Part 5</td><td>112</td><td>P3: UPS + Utility + VFD + Subtypes + P4: DS/Fuse Subtypes</td><td>${AP5}</td></tr>
                 <tr><td>Asset Part 6</td><td>114</td><td>P4: Subtypes + Tasks + Issues + Connections + Asset Screen</td><td>${AP6}</td></tr>
                 <tr><td>Issues Phase 1</td><td>119</td><td>List + Filter + Search + Creation + Class Change</td><td>${ISS1}</td></tr>
-                <tr><td>Issues Phase 2</td><td>118</td><td>OSHA + Thermal + Severity + Temperature + Ultrasonic</td><td>${ISS2}</td></tr>
+                <tr><td>Issues Phase 2</td><td>60</td><td>OSHA + Thermal + Severity + Temperature + Ultrasonic</td><td>${ISS2}</td></tr>
+                <tr><td>Issues Phase 3</td><td>58</td><td>Ultrasonic Save + Swipe Delete + Sort + Status + CRUD</td><td>${ISS3}</td></tr>
                 <tr><td>Location</td><td>82</td><td>Location Hierarchy</td><td>${LOC}</td></tr>
                 <tr><td>Connections</td><td>94</td><td>Asset Connections</td><td>${CONN}</td></tr>
               </table>
 
               <hr>
-              <p><b>Total Tests:</b> ~1155 (652 asset + 237 issues + 38 auth + 52 site + 82 location + 94 connections)</p>
+              <p><b>Total Tests:</b> ~1155 (652 asset + 119 issues-p1 + 60 issues-p2 + 58 issues-p3 + 38 auth + 52 site + 82 location + 94 connections)</p>
               <p><b>Jobs Passed:</b> ${SUCCESS} | <b>Failed:</b> ${FAILED}</p>
               <p style="margin-top: 20px; color: #666; font-size: 12px;">
                 Automated report from eGalvanic iOS Automation Suite (Developer Repo).
-                Asset tests (652) split into 6 balanced parts for even CI/CD load distribution.
+                Asset tests (652) split into 6 balanced parts. Issues tests (237) split into 3 phases.
               </p>
             </body>
             </html>
@@ -2590,9 +2748,10 @@ jobs:
             echo "  Part 5 (112): P3 UPS+UTL+VFD+Subtypes + P4 DS/Fuse ST  ${{ needs.assets-part5.result }}"
             echo "  Part 6 (114): P4 Subtypes+Tasks+Issues+Conn+Screen      ${{ needs.assets-part6.result }}"
             echo ""
-            echo "  ─── Issues (237 tests, 2 phases) ───"
+            echo "  ─── Issues (237 tests, 3 phases) ───"
             echo "  Phase 1 (119): List+Filter+Search+Creation+ClassChange   ${{ needs.issues-phase1.result }}"
-            echo "  Phase 2 (118): OSHA+Thermal+Severity+Temp+Ultrasonic    ${{ needs.issues-phase2.result }}"
+            echo "  Phase 2 (60):  OSHA+Thermal+Severity+Temp+Ultrasonic    ${{ needs.issues-phase2.result }}"
+            echo "  Phase 3 (58):  UltraSave+SwipeDel+Sort+Status+CRUD      ${{ needs.issues-phase3.result }}"
             echo ""
             echo "  ─── Other Jobs ───"
             echo "  Location (82):          ${{ needs.location-tests.result }}"

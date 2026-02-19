@@ -86,7 +86,7 @@ public class Asset_Phase2_Test extends BaseTest {
             AppConstants.FEATURE_EDIT_ASSET,
             "CB_EAD_01 - Verify edit screen opens for Circuit Breaker asset class"
         );
-
+        loginAndSelectSite();
         logStep("Navigating to Edit Asset screen and changing to Circuit Breaker");
         navigateToEditAssetScreenAndChangeToCircuitBreaker();
 
