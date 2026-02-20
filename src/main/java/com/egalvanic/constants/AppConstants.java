@@ -24,8 +24,9 @@ public class AppConstants {
     public static final String PLATFORM_VERSION = getEnv("PLATFORM_VERSION", "26.2");
     public static final String UDID = getEnv("SIMULATOR_UDID", "B745C0EF-01AA-4355-8B08-86812A8CBBAA");
     public static final String APP_PATH = getEnv("APP_PATH", "/Users/abhiyantsingh/Downloads/Z Platform-QA.app");
-    //public static final String APP_BUNDLE_ID = "com.egalvanic.zplatform-Dev";
-    public static final String APP_BUNDLE_ID = "com.egalvanic.zplatform-QA";
+    // Bundle ID is auto-detected from the app's Info.plist at APP_PATH.
+    // Can be overridden via -DAPP_BUNDLE_ID or APP_BUNDLE_ID env var.
+    public static final String APP_BUNDLE_ID = detectBundleId();
 
     // ============================================
     // TEST DATA - AUTHENTICATION
@@ -245,8 +246,47 @@ public class AppConstants {
     public static final String FEATURE_MY_SESSION_FILTER = "My Session Filter";
     public static final String FEATURE_FILTER_TABS = "Filter Tabs";
 
-    // HELPER METHOD
+    // HELPER METHODS
     // ============================================
+
+    /**
+     * Auto-detect bundle ID: check env/system property first, then read from app's Info.plist.
+     */
+    private static String detectBundleId() {
+        // 1. Check explicit override via -D flag or env var
+        String explicit = getEnv("APP_BUNDLE_ID", null);
+        if (explicit != null) {
+            System.out.println("📦 Bundle ID (from env/property): " + explicit);
+            return explicit;
+        }
+
+        // 2. Auto-detect from the app's Info.plist
+        try {
+            String appPath = APP_PATH;
+            String plistPath = appPath + "/Info.plist";
+            java.io.File plist = new java.io.File(plistPath);
+            if (plist.exists()) {
+                ProcessBuilder pb = new ProcessBuilder(
+                    "/usr/libexec/PlistBuddy", "-c", "Print :CFBundleIdentifier", plistPath);
+                pb.redirectErrorStream(true);
+                Process p = pb.start();
+                String bundleId = new String(p.getInputStream().readAllBytes()).trim();
+                int exit = p.waitFor();
+                if (exit == 0 && !bundleId.isEmpty()) {
+                    System.out.println("📦 Bundle ID (auto-detected from app): " + bundleId);
+                    return bundleId;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not auto-detect bundle ID: " + e.getMessage());
+        }
+
+        // 3. Fallback
+        String fallback = "com.egalvanic.zplatform-QA";
+        System.out.println("📦 Bundle ID (fallback): " + fallback);
+        return fallback;
+    }
+
     private static String getEnv(String key, String defaultValue) {
         // First check system properties (set via Maven -D flags)
         String value = System.getProperty(key);

@@ -232,10 +232,12 @@ jobs:
           DEVICE_NAME: ${{ env.DEVICE_NAME }}
           APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
         run: |
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
           mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel-quick/testng-auth-quick.xml \
             -DDEVICE_NAME="$DEVICE_NAME" \
             -DPLATFORM_VERSION="$PLATFORM_VERSION" \
             -DSIMULATOR_UDID="$SIMULATOR_UDID" \
+            -DAPP_BUNDLE_ID="$BUNDLE_ID" \
             -DAPP_PATH="$APP_PATH"
 
       - name: Upload Report
@@ -361,11 +363,14 @@ jobs:
       - name: Run Tests
         continue-on-error: true
         run: |
+          APP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
           mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel-quick/testng-site-quick.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
-            -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+            -DAPP_BUNDLE_ID="$BUNDLE_ID" \
+            -DAPP_PATH="$APP_PATH"
 
       - name: Upload Report
         if: always()
@@ -481,7 +486,9 @@ jobs:
       - name: Run Tests
         continue-on-error: true
         run: |
-          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel-quick/testng-phase1-quick.xml             -DDEVICE_NAME="${{ env.DEVICE_NAME }}"             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}"             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}"             -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+          APP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
+          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel-quick/testng-phase1-quick.xml             -DDEVICE_NAME="${{ env.DEVICE_NAME }}"             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}"             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}"             -DAPP_BUNDLE_ID="$BUNDLE_ID"             -DAPP_PATH="$APP_PATH"
 
       - name: Upload Report
         if: always()
@@ -597,7 +604,9 @@ jobs:
       - name: Run Tests
         continue-on-error: true
         run: |
-          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel-quick/testng-phase2-quick.xml             -DDEVICE_NAME="${{ env.DEVICE_NAME }}"             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}"             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}"             -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+          APP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
+          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel-quick/testng-phase2-quick.xml             -DDEVICE_NAME="${{ env.DEVICE_NAME }}"             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}"             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}"             -DAPP_BUNDLE_ID="$BUNDLE_ID"             -DAPP_PATH="$APP_PATH"
 
       - name: Upload Report
         if: always()
@@ -675,7 +684,9 @@ jobs:
       - name: Run Tests
         continue-on-error: true
         run: |
-          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel-quick/testng-phase3-quick.xml             -DDEVICE_NAME="${{ env.DEVICE_NAME }}"             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}"             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}"             -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+          APP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
+          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel-quick/testng-phase3-quick.xml             -DDEVICE_NAME="${{ env.DEVICE_NAME }}"             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}"             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}"             -DAPP_BUNDLE_ID="$BUNDLE_ID"             -DAPP_PATH="$APP_PATH"
       - name: Upload Report
         if: always()
         uses: actions/upload-artifact@v4
@@ -752,7 +763,9 @@ jobs:
       - name: Run Tests
         continue-on-error: true
         run: |
-          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel-quick/testng-phase4-quick.xml             -DDEVICE_NAME="${{ env.DEVICE_NAME }}"             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}"             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}"             -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+          APP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
+          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel-quick/testng-phase4-quick.xml             -DDEVICE_NAME="${{ env.DEVICE_NAME }}"             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}"             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}"             -DAPP_BUNDLE_ID="$BUNDLE_ID"             -DAPP_PATH="$APP_PATH"
       - name: Upload Report
         if: always()
         uses: actions/upload-artifact@v4
@@ -829,7 +842,9 @@ jobs:
       - name: Run Tests
         continue-on-error: true
         run: |
-          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel-quick/testng-phase5-quick.xml             -DDEVICE_NAME="${{ env.DEVICE_NAME }}"             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}"             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}"             -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+          APP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
+          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel-quick/testng-phase5-quick.xml             -DDEVICE_NAME="${{ env.DEVICE_NAME }}"             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}"             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}"             -DAPP_BUNDLE_ID="$BUNDLE_ID"             -DAPP_PATH="$APP_PATH"
       - name: Upload Report
         if: always()
         uses: actions/upload-artifact@v4

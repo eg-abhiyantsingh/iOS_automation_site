@@ -195,11 +195,14 @@ jobs:
           APP="qa-automation/apps/$APP_FILE"
 
           if [ -f "$APP/Info.plist" ]; then
+            BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist" 2>/dev/null || echo 'N/A')
             echo "─── Built App Config ───"
-            echo "  Bundle ID:    $(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist" 2>/dev/null || echo 'N/A')"
+            echo "  Bundle ID:    $BUNDLE_ID"
             echo "  API URL:      $(/usr/libexec/PlistBuddy -c 'Print :API_BASE_URL' "$APP/Info.plist" 2>/dev/null || echo 'N/A')"
             echo "  Environment:  $(/usr/libexec/PlistBuddy -c 'Print :ENVIRONMENT_NAME' "$APP/Info.plist" 2>/dev/null || echo 'N/A')"
             echo "  Version:      $(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Info.plist" 2>/dev/null || echo 'N/A')"
+            # Export bundle ID so tests can use the correct value for terminateApp/activateApp
+            echo "APP_BUNDLE_ID=$BUNDLE_ID" >> $GITHUB_ENV
           fi
 
       - name: Upload Built App
@@ -388,6 +391,10 @@ jobs:
           APP_FILE=$(ls ../apps/ | grep ".app" | head -1)
           APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
 
+          # Extract bundle ID from built app so soft restart uses correct ID
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
+          echo "📱 Bundle ID: $BUNDLE_ID"
+
           echo "🧪 Running Smoke CRUD Tests (17 tests)"
 
           # Login (1 test)
@@ -396,7 +403,8 @@ jobs:
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
-            -DAPP_PATH="$APP_PATH" || true
+            -DAPP_PATH="$APP_PATH" \
+            -DAPP_BUNDLE_ID="$BUNDLE_ID" || true
 
           # Site Selection (1 test)
           mvn test -B -q \
@@ -404,7 +412,8 @@ jobs:
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
-            -DAPP_PATH="$APP_PATH" || true
+            -DAPP_PATH="$APP_PATH" \
+            -DAPP_BUNDLE_ID="$BUNDLE_ID" || true
 
           # Asset CRUD (4 tests)
           mvn test -B -q \
@@ -412,7 +421,8 @@ jobs:
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
-            -DAPP_PATH="$APP_PATH" || true
+            -DAPP_PATH="$APP_PATH" \
+            -DAPP_BUNDLE_ID="$BUNDLE_ID" || true
 
           # Location CRUD (4 tests)
           mvn test -B -q \
@@ -420,7 +430,8 @@ jobs:
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
-            -DAPP_PATH="$APP_PATH" || true
+            -DAPP_PATH="$APP_PATH" \
+            -DAPP_BUNDLE_ID="$BUNDLE_ID" || true
 
           # Connection CRUD (3 tests)
           mvn test -B -q \
@@ -428,7 +439,8 @@ jobs:
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
-            -DAPP_PATH="$APP_PATH" || true
+            -DAPP_PATH="$APP_PATH" \
+            -DAPP_BUNDLE_ID="$BUNDLE_ID" || true
 
           # Issue CRUD (4 tests)
           mvn test -B -q \
@@ -436,7 +448,8 @@ jobs:
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
-            -DAPP_PATH="$APP_PATH" || true
+            -DAPP_PATH="$APP_PATH" \
+            -DAPP_BUNDLE_ID="$BUNDLE_ID" || true
 
           echo "✅ Smoke CRUD Tests Complete"
 
@@ -626,12 +639,16 @@ jobs:
           APP_FILE=$(ls ../apps/ | grep ".app" | head -1)
           APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
 
+          # Extract bundle ID from built app so soft restart uses correct ID
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
+
           mvn test -B -q \
             -DsuiteXmlFile=src/test/resources/parallel/testng-auth.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
-            -DAPP_PATH="$APP_PATH"
+            -DAPP_PATH="$APP_PATH" \
+            -DAPP_BUNDLE_ID="$BUNDLE_ID"
 
       - name: Upload Auth Report
         if: always()
@@ -819,12 +836,16 @@ jobs:
           APP_FILE=$(ls ../apps/ | grep ".app" | head -1)
           APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
 
+          # Extract bundle ID from built app so soft restart uses correct ID
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
+
           mvn test -B -q \
             -DsuiteXmlFile=src/test/resources/parallel/testng-site.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
-            -DAPP_PATH="$APP_PATH"
+            -DAPP_PATH="$APP_PATH" \
+            -DAPP_BUNDLE_ID="$BUNDLE_ID"
 
       - name: Upload Site Report
         if: always()
@@ -980,12 +1001,18 @@ jobs:
         run: |
           cd qa-automation
           APP_FILE=$(ls ../apps/ | grep ".app" | head -1)
+          APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
+
+          # Extract bundle ID from built app so soft restart uses correct ID
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
+
           mvn test -B -q \
             -DsuiteXmlFile=src/test/resources/parallel/testng-assets-part1.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
-            -DAPP_PATH="${{ github.workspace }}/apps/$APP_FILE"
+            -DAPP_PATH="$APP_PATH" \
+            -DAPP_BUNDLE_ID="$BUNDLE_ID"
 
       - name: Upload Asset Part 1 Report
         if: always()
@@ -1137,12 +1164,18 @@ jobs:
         run: |
           cd qa-automation
           APP_FILE=$(ls ../apps/ | grep ".app" | head -1)
+          APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
+
+          # Extract bundle ID from built app so soft restart uses correct ID
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
+
           mvn test -B -q \
             -DsuiteXmlFile=src/test/resources/parallel/testng-assets-part2.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
-            -DAPP_PATH="${{ github.workspace }}/apps/$APP_FILE"
+            -DAPP_PATH="$APP_PATH" \
+            -DAPP_BUNDLE_ID="$BUNDLE_ID"
 
       - name: Upload Asset Part 2 Report
         if: always()
@@ -1290,12 +1323,18 @@ jobs:
         run: |
           cd qa-automation
           APP_FILE=$(ls ../apps/ | grep ".app" | head -1)
+          APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
+
+          # Extract bundle ID from built app so soft restart uses correct ID
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
+
           mvn test -B -q \
             -DsuiteXmlFile=src/test/resources/parallel/testng-assets-part3.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
-            -DAPP_PATH="${{ github.workspace }}/apps/$APP_FILE"
+            -DAPP_PATH="$APP_PATH" \
+            -DAPP_BUNDLE_ID="$BUNDLE_ID"
 
       - name: Upload Asset Part 3 Report
         if: always()
@@ -1445,12 +1484,18 @@ jobs:
         run: |
           cd qa-automation
           APP_FILE=$(ls ../apps/ | grep ".app" | head -1)
+          APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
+
+          # Extract bundle ID from built app so soft restart uses correct ID
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
+
           mvn test -B -q \
             -DsuiteXmlFile=src/test/resources/parallel/testng-assets-part4.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
-            -DAPP_PATH="${{ github.workspace }}/apps/$APP_FILE"
+            -DAPP_PATH="$APP_PATH" \
+            -DAPP_BUNDLE_ID="$BUNDLE_ID"
 
       - name: Upload Asset Part 4 Report
         if: always()
@@ -1600,12 +1645,18 @@ jobs:
         run: |
           cd qa-automation
           APP_FILE=$(ls ../apps/ | grep ".app" | head -1)
+          APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
+
+          # Extract bundle ID from built app so soft restart uses correct ID
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
+
           mvn test -B -q \
             -DsuiteXmlFile=src/test/resources/parallel/testng-assets-part5.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
-            -DAPP_PATH="${{ github.workspace }}/apps/$APP_FILE"
+            -DAPP_PATH="$APP_PATH" \
+            -DAPP_BUNDLE_ID="$BUNDLE_ID"
 
       - name: Upload Asset Part 5 Report
         if: always()
@@ -1759,12 +1810,18 @@ jobs:
         run: |
           cd qa-automation
           APP_FILE=$(ls ../apps/ | grep ".app" | head -1)
+          APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
+
+          # Extract bundle ID from built app so soft restart uses correct ID
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
+
           mvn test -B -q \
             -DsuiteXmlFile=src/test/resources/parallel/testng-assets-part6.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
-            -DAPP_PATH="${{ github.workspace }}/apps/$APP_FILE"
+            -DAPP_PATH="$APP_PATH" \
+            -DAPP_BUNDLE_ID="$BUNDLE_ID"
 
       - name: Upload Asset Part 6 Report
         if: always()
@@ -1912,12 +1969,18 @@ jobs:
         run: |
           cd qa-automation
           APP_FILE=$(ls ../apps/ | grep ".app" | head -1)
+          APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
+
+          # Extract bundle ID from built app so soft restart uses correct ID
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
+
           mvn test -B -q \
             -DsuiteXmlFile=src/test/resources/parallel/testng-issues-phase1.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
-            -DAPP_PATH="${{ github.workspace }}/apps/$APP_FILE"
+            -DAPP_PATH="$APP_PATH" \
+            -DAPP_BUNDLE_ID="$BUNDLE_ID"
 
       - name: Upload Issues Phase 1 Report
         if: always()
@@ -2065,12 +2128,18 @@ jobs:
         run: |
           cd qa-automation
           APP_FILE=$(ls ../apps/ | grep ".app" | head -1)
+          APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
+
+          # Extract bundle ID from built app so soft restart uses correct ID
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
+
           mvn test -B -q \
             -DsuiteXmlFile=src/test/resources/parallel/testng-issues-phase2.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
-            -DAPP_PATH="${{ github.workspace }}/apps/$APP_FILE"
+            -DAPP_PATH="$APP_PATH" \
+            -DAPP_BUNDLE_ID="$BUNDLE_ID"
 
       - name: Upload Issues Phase 2 Report
         if: always()
@@ -2218,12 +2287,18 @@ jobs:
         run: |
           cd qa-automation
           APP_FILE=$(ls ../apps/ | grep ".app" | head -1)
+          APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
+
+          # Extract bundle ID from built app so soft restart uses correct ID
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
+
           mvn test -B -q \
             -DsuiteXmlFile=src/test/resources/parallel/testng-issues-phase3.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
-            -DAPP_PATH="${{ github.workspace }}/apps/$APP_FILE"
+            -DAPP_PATH="$APP_PATH" \
+            -DAPP_BUNDLE_ID="$BUNDLE_ID"
 
       - name: Upload Issues Phase 3 Report
         if: always()
@@ -2370,12 +2445,18 @@ jobs:
         run: |
           cd qa-automation
           APP_FILE=$(ls ../apps/ | grep ".app" | head -1)
+          APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
+
+          # Extract bundle ID from built app so soft restart uses correct ID
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
+
           mvn test -B -q \
             -DsuiteXmlFile=src/test/resources/parallel/testng-location.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
-            -DAPP_PATH="${{ github.workspace }}/apps/$APP_FILE"
+            -DAPP_PATH="$APP_PATH" \
+            -DAPP_BUNDLE_ID="$BUNDLE_ID"
 
       - name: Upload Location Report
         if: always()
@@ -2522,12 +2603,18 @@ jobs:
         run: |
           cd qa-automation
           APP_FILE=$(ls ../apps/ | grep ".app" | head -1)
+          APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
+
+          # Extract bundle ID from built app so soft restart uses correct ID
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
+
           mvn test -B -q \
             -DsuiteXmlFile=src/test/resources/parallel/testng-connections.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
-            -DAPP_PATH="${{ github.workspace }}/apps/$APP_FILE"
+            -DAPP_PATH="$APP_PATH" \
+            -DAPP_BUNDLE_ID="$BUNDLE_ID"
 
       - name: Upload Connections Report
         if: always()

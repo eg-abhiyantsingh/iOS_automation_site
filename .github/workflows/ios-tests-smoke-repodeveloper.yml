@@ -398,11 +398,14 @@ jobs:
           APP="qa-automation/apps/$APP_FILE"
 
           if [ -f "$APP/Info.plist" ]; then
+            BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist" 2>/dev/null)
             echo "─── Built App Config ───"
-            echo "  Bundle ID:    $(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist" 2>/dev/null)"
+            echo "  Bundle ID:    $BUNDLE_ID"
             echo "  API URL:      $(/usr/libexec/PlistBuddy -c 'Print :API_BASE_URL' "$APP/Info.plist" 2>/dev/null)"
             echo "  Environment:  $(/usr/libexec/PlistBuddy -c 'Print :ENVIRONMENT_NAME' "$APP/Info.plist" 2>/dev/null)"
             echo "  Version:      $(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Info.plist" 2>/dev/null)"
+            # Export bundle ID so tests can use the correct value for terminateApp/activateApp
+            echo "APP_BUNDLE_ID=$BUNDLE_ID" >> $GITHUB_ENV
           fi
 
       # ============================================================
@@ -548,7 +551,8 @@ jobs:
               -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
               -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
               -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
-              -DAPP_PATH="$APP_PATH"
+              -DAPP_PATH="$APP_PATH" \
+              -DAPP_BUNDLE_ID="${{ env.APP_BUNDLE_ID }}"
           }
 
           case "${{ github.event.inputs.test_suite }}" in
