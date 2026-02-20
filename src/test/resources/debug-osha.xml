@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="Debug - OSHA Tests" parallel="false" verbose="0">
+    <listeners>
+        <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
+    </listeners>
+    <test name="OSHA (TC_ISS_120,134-136)">
+        <classes>
+            <class name="com.egalvanic.tests.Issue_Phase2_Test">
+                <methods>
+                    <include name="TC_ISS_120_verifyOSHASubcategoryDropdownOptions"/>
+                    <include name="TC_ISS_134_verifyOSHASubcategoriesDifferentFromNEC"/>
+                    <include name="TC_ISS_135_verifyOSHASubcategoriesDifferentFromNFPA"/>
+                    <include name="TC_ISS_136_verifyAllOSHASubcategoryCount"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+</suite>

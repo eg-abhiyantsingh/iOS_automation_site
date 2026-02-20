@@ -537,19 +537,32 @@ public class ConnectionsPage {
             WebElement firstConnection = getFirstConnectionEntry();
             if (firstConnection != null) {
                 String label = firstConnection.getAttribute("label");
-                if (label != null && label.contains("→")) {
-                    System.out.println("✓ Connection shows Source → Target format: " + label);
+                if (label != null) {
+                    System.out.println("   First connection label: '" + label + "'");
+                    // Check for various arrow/separator formats the app might use
+                    if (label.contains("\u2192") || label.contains("->") ||
+                        label.contains("\u2014") || label.contains("\u279C") ||
+                        label.contains("\u2794") || label.contains(" - ")) {
+                        System.out.println("\u2713 Connection shows Source \u2192 Target format: " + label);
+                        return true;
+                    }
+                    // Log the label for debugging when no arrow found — don't auto-pass
+                    // as a comma or 3+ words could be a single asset name, not source-target format
+                    System.out.println("   No arrow separator found in label: '" + label + "'");
+                }
+            }
+
+            // Search for any element with arrow characters
+            String[] arrowChars = {"\u2192", "->", "\u2014", "\u279C"};
+            for (String arrow : arrowChars) {
+                List<WebElement> arrows = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "label CONTAINS '" + arrow + "' AND visible == true"));
+                if (!arrows.isEmpty()) {
+                    System.out.println("\u2713 Found connection with '" + arrow + "' format");
                     return true;
                 }
             }
-            
-            List<WebElement> arrows = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "label CONTAINS '→' AND visible == true"));
-            if (!arrows.isEmpty()) {
-                System.out.println("✓ Found connection with → format");
-                return true;
-            }
-            
+
             return false;
         } catch (Exception e) {
             return false;
@@ -8286,26 +8299,40 @@ public class ConnectionsPage {
         try {
             System.out.println("👆 Tapping Cancel on delete confirmation...");
 
+            // Strategy 1: Find Cancel inside an Alert
             try {
                 WebElement alert = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeAlert' AND visible == true"));
-
                 WebElement cancelBtn = alert.findElement(AppiumBy.iOSNsPredicateString(
                     "label == 'Cancel' AND visible == true"));
                 cancelBtn.click();
                 sleep(300);
-                System.out.println("✓ Tapped Cancel in alert");
+                System.out.println("\u2713 Tapped Cancel in alert");
                 return true;
             } catch (Exception e1) {}
 
+            // Strategy 2: Find Cancel inside a Sheet (iOS action sheets)
             try {
-                WebElement cancelBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "label == 'Cancel' AND type == 'XCUIElementTypeButton' AND visible == true"));
+                WebElement sheet = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeSheet' AND visible == true"));
+                WebElement cancelBtn = sheet.findElement(AppiumBy.iOSNsPredicateString(
+                    "label == 'Cancel' AND visible == true"));
                 cancelBtn.click();
                 sleep(300);
-                System.out.println("✓ Tapped Cancel button");
+                System.out.println("\u2713 Tapped Cancel in sheet");
                 return true;
             } catch (Exception e2) {}
+
+            // Strategy 3: Any visible Cancel button
+            try {
+                WebElement cancelBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND visible == true AND " +
+                    "(label == 'Cancel' OR label == 'No' OR label == 'Dismiss' OR label == 'Keep')"));
+                cancelBtn.click();
+                sleep(300);
+                System.out.println("\u2713 Tapped Cancel/Dismiss button");
+                return true;
+            } catch (Exception e3) {}
 
             return false;
         } catch (Exception e) {

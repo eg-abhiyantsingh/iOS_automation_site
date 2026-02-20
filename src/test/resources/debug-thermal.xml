@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="Debug - Thermal Anomaly Tests" parallel="false" verbose="0">
+    <listeners>
+        <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
+    </listeners>
+    <test name="Thermal Anomaly (TC_ISS_159-171)">
+        <classes>
+            <class name="com.egalvanic.tests.Issue_Phase2_Test">
+                <methods>
+                    <include name="TC_ISS_159_verifyProblemTempFieldIsRequired"/>
+                    <include name="TC_ISS_160_verifyEnteringProblemTempNumber"/>
+                    <include name="TC_ISS_161_verifyProblemTempNumericKeyboard"/>
+                    <include name="TC_ISS_162_verifyReferenceTempFieldIsRequired"/>
+                    <include name="TC_ISS_163_verifyEnteringReferenceTempNumber"/>
+                    <include name="TC_ISS_164_verifyCurrentDrawTableStructure"/>
+                    <include name="TC_ISS_165_verifyEnteringCurrentDrawValues"/>
+                    <include name="TC_ISS_166_verifyCurrentDrawIsOptional"/>
+                    <include name="TC_ISS_167_verifyVoltageDropTableStructure"/>
+                    <include name="TC_ISS_168_verifyEnteringVoltageDropValues"/>
+                    <include name="TC_ISS_169_verifyVoltageDropIsOptional"/>
+                    <include name="TC_ISS_170_verifyRequiredFieldsOnlyToggle"/>
+                    <include name="TC_ISS_171_verifyRequiredFieldsShows3of3WhenComplete"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+</suite>

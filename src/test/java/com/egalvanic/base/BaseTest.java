@@ -229,15 +229,35 @@ public class BaseTest {
     public void testTeardown(ITestResult result) {
         String testName = result.getMethod().getMethodName();
 
+        // Detect if the Appium session is likely dead/unresponsive.
+        // When dead, every Appium HTTP call (screenshot, terminateApp, quit) hangs 7+ min each,
+        // turning a single failure into a 14-21 min teardown. Skip all Appium calls and just
+        // null the driver reference.
+        boolean sessionDead = (result.getStatus() == ITestResult.FAILURE)
+                && isSessionLikelyDead(result.getThrowable());
+
         try {
             // Handle test result
             if (result.getStatus() == ITestResult.FAILURE) {
-                String screenshotPath = ScreenshotUtil.captureScreenshot(testName + "_FAILED");
-                ExtentReportManager.logFailWithScreenshot(
-                        "Test failed: " + result.getThrowable().getMessage(),
-                        result.getThrowable());
-                System.out.println("❌ Test FAILED: " + testName);
-                System.out.println("📸 Screenshot saved: " + screenshotPath);
+                if (sessionDead) {
+                    // Session is dead — logFail without screenshot to avoid 7+ min hang
+                    // from getScreenshotAsBase64() trying to reach the dead Appium server
+                    ExtentReportManager.logFail(
+                            "Test failed (session dead): " + result.getThrowable().getMessage());
+                    System.out.println("❌ Test FAILED: " + testName);
+                    System.out.println("⚠️ Session appears dead — skipping Appium calls in teardown");
+                } else {
+                    try {
+                        String screenshotPath = ScreenshotUtil.captureScreenshot(testName + "_FAILED");
+                        System.out.println("📸 Screenshot saved: " + screenshotPath);
+                    } catch (Exception e) {
+                        System.out.println("⚠️ Screenshot capture failed: " + e.getMessage());
+                    }
+                    ExtentReportManager.logFailWithScreenshot(
+                            "Test failed: " + result.getThrowable().getMessage(),
+                            result.getThrowable());
+                    System.out.println("❌ Test FAILED: " + testName);
+                }
 
             } else if (result.getStatus() == ITestResult.SKIP) {
                 String skipReason = (result.getThrowable() != null)
@@ -263,6 +283,10 @@ public class BaseTest {
                 System.out.println("🔗 Keeping driver alive for next chained test\n");
                 skipNextTeardown = false;
                 skipNextSetup = true;
+            } else if (sessionDead) {
+                // Session is dead — don't send any HTTP commands, just null the reference
+                DriverManager.forceNullDriver();
+                System.out.println("🧹 Test cleanup complete (fast — session was dead)\n");
             } else {
                 // On FAILURE: force terminate app so next test starts fresh
                 // Without this, noReset=true leaves the app on the failed screen
@@ -280,6 +304,39 @@ public class BaseTest {
                 System.out.println("🧹 Test cleanup complete\n");
             }
         }
+    }
+
+    /**
+     * Check if a test failure was likely caused by a dead/unresponsive Appium session.
+     * Walks the exception chain looking for known session-death indicators.
+     * When true, teardown should skip all Appium HTTP calls to avoid 14+ min hangs.
+     */
+    private boolean isSessionLikelyDead(Throwable t) {
+        if (t == null) return false;
+        Throwable current = t;
+        while (current != null) {
+            String className = current.getClass().getName();
+            String message = current.getMessage() != null ? current.getMessage() : "";
+            // Known session-dead exception types
+            if (className.contains("NoSuchSessionException") ||
+                className.contains("SessionNotCreatedException") ||
+                className.contains("UnreachableBrowserException")) {
+                return true;
+            }
+            // Known session-dead message patterns
+            if (message.contains("Connection refused") ||
+                message.contains("Connection reset") ||
+                message.contains("Connection timed out") ||
+                message.contains("NettyResponseFuture") ||
+                message.contains("session is either terminated") ||
+                message.contains("Session not found") ||
+                message.contains("Could not start a new session") ||
+                message.contains("Unable to create session")) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     // ================================================================
@@ -327,67 +384,104 @@ public class BaseTest {
      */
     protected String detectCurrentScreen() {
         System.out.println("🔍 Detecting current screen...");
-        
-        // Check WELCOME PAGE - has "Continue" button (NOT "Sign In")
-        try {
-            if (welcomePage.isContinueButtonDisplayed()) {
-                System.out.println("   → Welcome Page (Company Code)");
-                return "WELCOME_PAGE";
+
+        // PERFORMANCE FIX: Temporarily reduce implicit wait during screen detection.
+        // Each failed findElement waits the full implicit wait (5s). With 7 screen checks
+        // and multiple element lookups per check, the worst case was ~75 seconds.
+        // With 1-second implicit wait, worst case drops to ~15 seconds.
+        io.appium.java_client.AppiumDriver currentDriver = DriverManager.getDriver();
+        if (currentDriver != null) {
+            try {
+                currentDriver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(1));
+            } catch (Exception e) {
+                // Session may be dead — continue with default timeout
             }
-        } catch (Exception e) {}
-        
-        // Check LOGIN PAGE - has "Sign In" button and password field
+        }
+
         try {
-            if (loginPage.isSignInButtonDisplayed()) {
-                System.out.println("   → Login Page (Email/Password)");
-                return "LOGIN_PAGE";
+            // Check DASHBOARD FIRST — most common state with noReset=true
+            try {
+                if (assetPage.isDashboardDisplayed()) {
+                    System.out.println("   → Dashboard (logged in)");
+                    return "DASHBOARD";
+                }
+            } catch (Exception e) {}
+
+            // Check SITE SELECTION — second most common with noReset=true
+            // Use lightweight inline check instead of heavy isSelectSiteScreenDisplayed()
+            // which polls 5 times × 8 element checks = 40+ findElement calls
+            if (currentDriver != null) {
+                try {
+                    java.util.List<org.openqa.selenium.WebElement> siteTitle = currentDriver.findElements(
+                        io.appium.java_client.AppiumBy.accessibilityId("Select Site"));
+                    if (!siteTitle.isEmpty()) {
+                        System.out.println("   → Site Selection");
+                        return "SITE_SELECTION";
+                    }
+                    // Fallback: check for nav bar with "Site" text
+                    java.util.List<org.openqa.selenium.WebElement> siteNav = currentDriver.findElements(
+                        io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeNavigationBar' AND name CONTAINS 'Site'"));
+                    if (!siteNav.isEmpty()) {
+                        System.out.println("   → Site Selection (nav bar)");
+                        return "SITE_SELECTION";
+                    }
+                } catch (Exception e) {}
             }
-        } catch (Exception e) {}
-        
-        // Check if on Edit Asset screen FIRST (has Save Changes or Cancel button in edit mode)
-        try {
-            if (assetPage.isEditAssetScreenDisplayed()) {
-                System.out.println("   → Edit Asset Screen");
-                return "EDIT_ASSET";
+
+            // Check WELCOME PAGE - has "Continue" button (NOT "Sign In")
+            try {
+                if (welcomePage.isContinueButtonDisplayed()) {
+                    System.out.println("   → Welcome Page (Company Code)");
+                    return "WELCOME_PAGE";
+                }
+            } catch (Exception e) {}
+
+            // Check LOGIN PAGE - has "Sign In" button and password field
+            try {
+                if (loginPage.isSignInButtonDisplayed()) {
+                    System.out.println("   → Login Page (Email/Password)");
+                    return "LOGIN_PAGE";
+                }
+            } catch (Exception e) {}
+
+            // Check if on Edit Asset screen (has Save Changes or Cancel button in edit mode)
+            try {
+                if (assetPage.isEditAssetScreenDisplayed()) {
+                    System.out.println("   → Edit Asset Screen");
+                    return "EDIT_ASSET";
+                }
+            } catch (Exception e) {}
+
+            // Check if on Asset Detail (has Edit button, Asset Details nav)
+            try {
+                if (assetPage.isAssetDetailDisplayed()) {
+                    System.out.println("   → Asset Detail");
+                    return "ASSET_DETAIL";
+                }
+            } catch (Exception e) {}
+
+            // Check if on Asset List (has plus button for adding assets)
+            try {
+                if (assetPage.isAssetListDisplayed()) {
+                    System.out.println("   → Asset List");
+                    return "ASSET_LIST";
+                }
+            } catch (Exception e) {}
+
+            System.out.println("   → Unknown screen");
+            return "UNKNOWN";
+        } finally {
+            // ALWAYS restore implicit wait to normal value
+            if (currentDriver != null) {
+                try {
+                    currentDriver.manage().timeouts().implicitlyWait(
+                        java.time.Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
+                } catch (Exception e) {
+                    // Session may be dead — nothing to restore
+                }
             }
-        } catch (Exception e) {}
-        
-        // Check if on Asset Detail (has Edit button, Asset Details nav)
-        try {
-            if (assetPage.isAssetDetailDisplayed()) {
-                System.out.println("   → Asset Detail");
-                return "ASSET_DETAIL";
-            }
-        } catch (Exception e) {}
-        
-        // Check if on Asset List (has plus button for adding assets)
-        try {
-            if (assetPage.isAssetListDisplayed()) {
-                System.out.println("   → Asset List");
-                return "ASSET_LIST";
-            }
-        } catch (Exception e) {}
-        
-        // Check if on Dashboard (has Assets/Locations tabs, building icon)
-        // Dashboard is AFTER site selection - user is already logged in
-        try {
-            if (assetPage.isDashboardDisplayed()) {
-                System.out.println("   → Dashboard (logged in)");
-                return "DASHBOARD";
-            }
-        } catch (Exception e) {}
-        
-        // Check if on Site Selection page (has "Select a Site" title or site list BEFORE login)
-        // This should be checked AFTER dashboard to avoid confusion
-        try {
-            if (siteSelectionPage.isSelectSiteScreenDisplayed()) {
-                System.out.println("   → Site Selection");
-                return "SITE_SELECTION";
-            }
-        } catch (Exception e) {}
-        
-        System.out.println("   → Unknown screen");
-        return "UNKNOWN";
+        }
     }
     
     /**
@@ -480,6 +574,12 @@ public class BaseTest {
      * Checks current state and takes shortest path
      */
     protected void smartNavigateToDashboard() {
+        // FAST PATH: Check Dashboard first (1 second max)
+        if (assetPage != null && assetPage.isDashboardDisplayedFast()) {
+            System.out.println("⚡ Smart navigation — already on Dashboard (fast check)");
+            return;
+        }
+
         String currentScreen = detectCurrentScreen();
         System.out.println("⚡ Smart navigation to Dashboard from: " + currentScreen);
         
@@ -558,7 +658,29 @@ public class BaseTest {
      * ╚══════════════════════════════════════════════════════════════╝
      */
     protected final void loginAndSelectSite() {
-        performLogin();
+        // FAST PATH: Check Dashboard first (1 second max) — skip full detection on happy path
+        if (assetPage != null && assetPage.isDashboardDisplayedFast()) {
+            System.out.println("✅ loginAndSelectSite — already on Dashboard (fast check)");
+            return;
+        }
+
+        // Not on Dashboard — detect current screen to avoid typing into wrong field.
+        // With noReset=true, the app may be on Site Selection, Login, or Welcome.
+        String currentScreen = detectCurrentScreen();
+        System.out.println("🔐 loginAndSelectSite — current screen: " + currentScreen);
+
+        if ("DASHBOARD".equals(currentScreen)) {
+            System.out.println("✅ Already on Dashboard — skipping login and site selection");
+            return;
+        }
+
+        if ("SITE_SELECTION".equals(currentScreen)) {
+            // Already logged in, just need to select a site
+            System.out.println("🔍 Already on Site Selection — skipping login, selecting site...");
+        } else {
+            // On Welcome/Login page or unknown — do full login
+            performLogin();
+        }
 
         // Select first site immediately (combined wait + select)
         System.out.println("🔍 Selecting first available site...");
@@ -592,23 +714,40 @@ public class BaseTest {
      */
     protected final void loginAndSelectSiteTurbo() {
         long start = System.currentTimeMillis();
-        
-        // Fast login
-        System.out.println("⚡ TURBO: Starting login...");
-        welcomePage.submitCompanyCode(AppConstants.VALID_COMPANY_CODE);
-        loginPage.waitForPageReady();
-        loginPage.loginTurbo(AppConstants.VALID_EMAIL, AppConstants.VALID_PASSWORD);
-        
-        // Handle new Schedule screen (added Jan 2026)
-        siteSelectionPage.handleScheduleScreenIfPresent();
-        
+
+        // FAST PATH: Check Dashboard first (1 second max)
+        if (assetPage != null && assetPage.isDashboardDisplayedFast()) {
+            System.out.println("⚡ TURBO: Already on Dashboard (fast check) — skipping");
+            return;
+        }
+
+        // Not on Dashboard — detect current screen to avoid typing into wrong field
+        String currentScreen = detectCurrentScreen();
+        System.out.println("⚡ TURBO: current screen: " + currentScreen);
+
+        if ("DASHBOARD".equals(currentScreen)) {
+            System.out.println("⚡ TURBO: Already on Dashboard — skipping");
+            return;
+        }
+
+        if (!"SITE_SELECTION".equals(currentScreen)) {
+            // On Welcome/Login page — do full login
+            System.out.println("⚡ TURBO: Starting login...");
+            welcomePage.submitCompanyCode(AppConstants.VALID_COMPANY_CODE);
+            loginPage.waitForPageReady();
+            loginPage.loginTurbo(AppConstants.VALID_EMAIL, AppConstants.VALID_PASSWORD);
+
+            // Handle new Schedule screen (added Jan 2026)
+            siteSelectionPage.handleScheduleScreenIfPresent();
+        }
+
         // Turbo site selection
         System.out.println("⚡ TURBO: Selecting site...");
         String site = siteSelectionPage.turboSelectSite();
-        
+
         // Fast dashboard wait
         siteSelectionPage.waitForDashboardFast();
-        
+
         long elapsed = System.currentTimeMillis() - start;
         System.out.println("⚡ TURBO: Complete in " + elapsed + "ms - Site: " + site);
     }

@@ -256,6 +256,16 @@ public class DriverManager {
     }
 
     /**
+     * Force-null the driver reference without sending any HTTP commands to Appium.
+     * Use this when the Appium session is dead/unresponsive to avoid hanging
+     * on quitDriver() which tries terminateApp + quit (both HTTP calls).
+     */
+    public static void forceNullDriver() {
+        driver = null;
+        System.out.println("🔌 Driver reference force-nulled (no Appium HTTP calls)");
+    }
+
+    /**
      * Check if driver is active
      */
     public static boolean isDriverActive() {

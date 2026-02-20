@@ -53,24 +53,50 @@ public final class Issue_Phase1_Test extends BaseTest {
             return true;
         }
 
+        // Try normal navigation FIRST (fast path — works when app is on Dashboard)
         System.out.println("⚡ Navigating to Issues screen...");
+        try {
+            boolean result = issuePage.navigateToIssuesScreen();
+            if (result) {
+                System.out.println("✓ Navigation successful");
+                return true;
+            }
+        } catch (Exception e) {
+            System.out.println("   First navigation attempt failed");
+        }
 
-        for (int attempt = 1; attempt <= 3; attempt++) {
-            System.out.println("   Navigation attempt " + attempt + "/3");
-            sleep(500 * attempt);
+        // Navigation failed — app might be on Welcome/Login/Site Selection.
+        // Detect screen and recover ONLY when needed (avoids slow element checks on happy path).
+        try {
+            String screen = detectCurrentScreen();
+            if ("WELCOME_PAGE".equals(screen) || "LOGIN_PAGE".equals(screen)) {
+                System.out.println("⚠️ App on " + screen + " — performing login recovery...");
+                loginAndSelectSite();
+            } else if ("SITE_SELECTION".equals(screen)) {
+                System.out.println("⚠️ App on Site Selection — selecting site...");
+                siteSelectionPage.selectFirstSiteFast();
+                siteSelectionPage.waitForDashboardReady();
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Login recovery failed: " + e.getMessage());
+        }
 
+        // Retry navigation after recovery
+        for (int attempt = 1; attempt <= 2; attempt++) {
+            System.out.println("   Retry navigation " + attempt + "/2");
+            sleep(500);
             try {
                 boolean result = issuePage.navigateToIssuesScreen();
                 if (result) {
-                    System.out.println("✓ Navigation successful (attempt " + attempt + ")");
+                    System.out.println("✓ Navigation successful after recovery");
                     return true;
                 }
             } catch (Exception e) {
-                System.out.println("   Navigation failed on attempt " + attempt);
+                System.out.println("   Retry " + attempt + " failed");
             }
         }
 
-        System.out.println("❌ Could not navigate to Issues screen after 3 attempts");
+        System.out.println("❌ Could not navigate to Issues screen");
         return false;
     }
 

@@ -965,28 +965,8 @@ public class BuildingPage extends BasePage {
     public boolean isContextMenuDisplayed() {
         try {
             System.out.println("🔍 Checking for context menu...");
-            
-            // Strategy 1: Look for Edit option
-            try {
-                List<WebElement> editElements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "label CONTAINS 'Edit'"));
-                if (!editElements.isEmpty()) {
-                    System.out.println("   Found " + editElements.size() + " elements with 'Edit'");
-                    return true;
-                }
-            } catch (Exception ignored) {}
-            
-            // Strategy 2: Look for Delete option
-            try {
-                List<WebElement> deleteElements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "label CONTAINS 'Delete'"));
-                if (!deleteElements.isEmpty()) {
-                    System.out.println("   Found elements with 'Delete'");
-                    return true;
-                }
-            } catch (Exception ignored) {}
-            
-            // Strategy 3: Look for context menu container (Sheet/Menu/Alert)
+
+            // Strategy 1: Look for context menu container (Sheet/Menu/Alert) — most reliable
             try {
                 List<WebElement> menus = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeMenu' OR type == 'XCUIElementTypeSheet' OR type == 'XCUIElementTypeAlert'"));
@@ -995,8 +975,21 @@ public class BuildingPage extends BasePage {
                     return true;
                 }
             } catch (Exception ignored) {}
-            
-            // Strategy 4: Look for trash/pencil icons (common context menu icons)
+
+            // Strategy 2: Context menus have BOTH Edit AND Delete — check both to avoid
+            // false positives from normal UI elements that happen to contain "Edit"
+            try {
+                boolean hasEdit = !driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeMenuItem') AND label CONTAINS 'Edit'")).isEmpty();
+                boolean hasDelete = !driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeMenuItem') AND label CONTAINS 'Delete'")).isEmpty();
+                if (hasEdit && hasDelete) {
+                    System.out.println("   Found both Edit and Delete buttons (context menu)");
+                    return true;
+                }
+            } catch (Exception ignored) {}
+
+            // Strategy 3: Look for trash/pencil icons (common context menu icons)
             try {
                 WebElement icon = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "name CONTAINS 'trash' OR name CONTAINS 'pencil' OR name CONTAINS 'square.and.pencil'"));
@@ -1005,8 +998,8 @@ public class BuildingPage extends BasePage {
                     return true;
                 }
             } catch (Exception ignored) {}
-            
-            System.out.println("   ⚠️ No context menu detected");
+
+            System.out.println("   No context menu detected");
             return false;
         } catch (Exception e) {
             System.out.println("⚠️ Error checking context menu: " + e.getMessage());
@@ -1279,24 +1272,26 @@ public class BuildingPage extends BasePage {
     public boolean tapOutsideContextMenu() {
         try {
             System.out.println("📍 Tapping outside context menu to dismiss...");
-            
+
             // Get screen dimensions
             org.openqa.selenium.Dimension screenSize = driver.manage().window().getSize();
             int screenWidth = screenSize.getWidth();
             int screenHeight = screenSize.getHeight();
-            
-            // Tap in upper portion of screen (away from context menu which is typically near the element)
+
+            // Strategy 1: Tap at bottom of screen (Y = 85% of height).
+            // Context menus appear near the long-pressed element (typically in the middle/upper area).
+            // Tapping at the bottom hits the dimmed overlay, which dismisses the menu.
+            // NEVER tap at the top (Y < 150) — that's the nav bar zone which can close screens.
             int tapX = screenWidth / 2;
-            int tapY = screenHeight / 6; // Upper portion of screen
-            
-            // Perform tap using W3C Actions
-            org.openqa.selenium.interactions.PointerInput finger = 
+            int tapY = (int)(screenHeight * 0.85);
+
+            org.openqa.selenium.interactions.PointerInput finger =
                 new org.openqa.selenium.interactions.PointerInput(
                     org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
-            
-            org.openqa.selenium.interactions.Sequence tap = 
+
+            org.openqa.selenium.interactions.Sequence tap =
                 new org.openqa.selenium.interactions.Sequence(finger, 0);
-            
+
             tap.addAction(finger.createPointerMove(
                 Duration.ofMillis(0),
                 org.openqa.selenium.interactions.PointerInput.Origin.viewport(),
@@ -1304,15 +1299,68 @@ public class BuildingPage extends BasePage {
             tap.addAction(finger.createPointerDown(
                 org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
             tap.addAction(finger.createPointerMove(
-                Duration.ofMillis(100),
+                Duration.ofMillis(50),
                 org.openqa.selenium.interactions.PointerInput.Origin.viewport(),
                 tapX, tapY));
             tap.addAction(finger.createPointerUp(
                 org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
-            
+
             driver.perform(java.util.Collections.singletonList(tap));
-            sleep(300);
-            
+            sleep(400);
+
+            // Check if menu was dismissed
+            if (!isContextMenuDisplayed()) {
+                System.out.println("✅ Context menu dismissed (tap at bottom)");
+                return true;
+            }
+
+            // Strategy 2: Tap at left edge at mid-height (different region from Strategy 1)
+            System.out.println("   Tap at bottom didn't dismiss — trying left edge");
+            try {
+                int tapX2 = 30;
+                int tapY2 = screenHeight / 2;
+                org.openqa.selenium.interactions.Sequence tap1b =
+                    new org.openqa.selenium.interactions.Sequence(finger, 0);
+                tap1b.addAction(finger.createPointerMove(
+                    Duration.ofMillis(0),
+                    org.openqa.selenium.interactions.PointerInput.Origin.viewport(),
+                    tapX2, tapY2));
+                tap1b.addAction(finger.createPointerDown(
+                    org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+                tap1b.addAction(finger.createPointerMove(
+                    Duration.ofMillis(50),
+                    org.openqa.selenium.interactions.PointerInput.Origin.viewport(),
+                    tapX2, tapY2));
+                tap1b.addAction(finger.createPointerUp(
+                    org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+                driver.perform(java.util.Collections.singletonList(tap1b));
+                sleep(400);
+                if (!isContextMenuDisplayed()) {
+                    System.out.println("✅ Context menu dismissed (tap at left edge)");
+                    return true;
+                }
+            } catch (Exception ignored) {}
+
+            // Strategy 3: Tap at the very bottom edge
+            System.out.println("   Trying tap at very bottom edge");
+            tapY = screenHeight - 30;
+            org.openqa.selenium.interactions.Sequence tap2 =
+                new org.openqa.selenium.interactions.Sequence(finger, 0);
+            tap2.addAction(finger.createPointerMove(
+                Duration.ofMillis(0),
+                org.openqa.selenium.interactions.PointerInput.Origin.viewport(),
+                tapX, tapY));
+            tap2.addAction(finger.createPointerDown(
+                org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+            tap2.addAction(finger.createPointerMove(
+                Duration.ofMillis(50),
+                org.openqa.selenium.interactions.PointerInput.Origin.viewport(),
+                tapX, tapY));
+            tap2.addAction(finger.createPointerUp(
+                org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+            driver.perform(java.util.Collections.singletonList(tap2));
+            sleep(400);
+
             System.out.println("✅ Tapped outside context menu");
             return true;
         } catch (Exception e) {

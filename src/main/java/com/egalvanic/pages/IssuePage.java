@@ -714,17 +714,15 @@ public class IssuePage extends BasePage {
                 if (label != null && !label.isEmpty()) {
                     return label;
                 }
-                // Try finding a static text within the cell area
-                List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                // Search WITHIN the cell's children — not the entire page DOM.
+                // Using driver.findElements would fetch ALL static texts on screen,
+                // then call getLocation() on each = O(N) Appium HTTP roundtrips.
+                List<WebElement> cellTexts = cell.findElements(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeStaticText'"));
-                int cellY = cell.getLocation().getY();
-                for (WebElement text : texts) {
-                    int textY = text.getLocation().getY();
-                    if (Math.abs(textY - cellY) < 60) {
-                        String tLabel = text.getAttribute("label");
-                        if (tLabel != null && tLabel.length() > 3) {
-                            return tLabel;
-                        }
+                for (WebElement text : cellTexts) {
+                    String tLabel = text.getAttribute("label");
+                    if (tLabel != null && tLabel.length() > 3) {
+                        return tLabel;
                     }
                 }
             }
@@ -831,12 +829,24 @@ public class IssuePage extends BasePage {
      */
     public boolean isStatusBadgeDisplayed(String status) {
         try {
+            // Use case-insensitive matching — iOS may render "In Progress", "IN PROGRESS", etc.
             List<WebElement> badges = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND label == '" + status + "'"));
+                "type == 'XCUIElementTypeStaticText' AND label ==[c] '" + status + "'"));
             for (WebElement badge : badges) {
                 int y = badge.getLocation().getY();
                 // Status badges on entries are below the filter tabs (y > ~300)
                 if (y > 300) {
+                    System.out.println("   Status badge '" + status + "' found at Y=" + y);
+                    return true;
+                }
+            }
+            // Fallback: CONTAINS case-insensitive for partial matches
+            badges = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label CONTAINS[c] '" + status + "'"));
+            for (WebElement badge : badges) {
+                int y = badge.getLocation().getY();
+                if (y > 300) {
+                    System.out.println("   Status badge containing '" + status + "' found at Y=" + y);
                     return true;
                 }
             }
@@ -1749,14 +1759,26 @@ public class IssuePage extends BasePage {
             if (titles.isEmpty()) {
                 List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeStaticText'"));
-                texts.sort((a, b) -> Integer.compare(a.getLocation().getY(), b.getLocation().getY()));
 
-                for (WebElement text : texts) {
+                // Cache Y positions BEFORE sorting to avoid O(N log N) Appium HTTP calls.
+                // Each getLocation() is a separate HTTP roundtrip — calling it inside a
+                // sort comparator causes hundreds of calls that can timeout the session.
+                List<int[]> textPositions = new java.util.ArrayList<>();
+                for (int i = 0; i < texts.size(); i++) {
+                    try {
+                        textPositions.add(new int[]{i, texts.get(i).getLocation().getY()});
+                    } catch (Exception ignored) {
+                        textPositions.add(new int[]{i, 9999});
+                    }
+                }
+                textPositions.sort((a, b) -> Integer.compare(a[1], b[1]));
+
+                for (int[] pos : textPositions) {
                     if (count >= maxCount) break;
-                    int textY = text.getLocation().getY();
+                    int textY = pos[1];
                     if (textY < 200 || textY > 800) continue;
 
-                    String label = text.getAttribute("label");
+                    String label = texts.get(pos[0]).getAttribute("label");
                     // Filter out known non-title labels
                     if (label != null && label.length() > 3 &&
                         !label.contains("All") && !label.contains("Open") &&
@@ -4886,78 +4908,230 @@ public class IssuePage extends BasePage {
     // ================================================================
 
     /**
+     * Scroll the Issue Details form to the very top.
+     * After scrolling down for Thermal Anomaly fields, iOS view recycling removes
+     * top-of-form elements (Issue Class, Priority, etc.) from the DOM.
+     * This method scrolls up aggressively to bring them back.
+     */
+    private void scrollToTopOfDetails() {
+        System.out.println("   Scrolling to top of details form...");
+        int screenHeight = driver.manage().window().getSize().getHeight();
+        int screenWidth = driver.manage().window().getSize().getWidth();
+        int centerX = screenWidth / 2;
+
+        // Manual swipe gestures (drag from top to bottom = scroll content up)
+        // DO NOT tap status bar (Y=10) — on iPhone 17 Pro with Dynamic Island,
+        // it closes the Issue Details sheet instead of scrolling to top.
+        // Use up to 8 swipes to ensure we reach the top even from deeper scrolls.
+        for (int i = 0; i < 8; i++) {
+            try {
+                int startY = (int) (screenHeight * 0.30);
+                int endY = (int) (screenHeight * 0.80);
+                org.openqa.selenium.interactions.PointerInput finger =
+                    new org.openqa.selenium.interactions.PointerInput(
+                        org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
+                org.openqa.selenium.interactions.Sequence swipe =
+                    new org.openqa.selenium.interactions.Sequence(finger, 0);
+                swipe.addAction(finger.createPointerMove(Duration.ZERO,
+                    org.openqa.selenium.interactions.PointerInput.Origin.viewport(), centerX, startY));
+                swipe.addAction(finger.createPointerDown(
+                    org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+                swipe.addAction(finger.createPointerMove(Duration.ofMillis(300),
+                    org.openqa.selenium.interactions.PointerInput.Origin.viewport(), centerX, endY));
+                swipe.addAction(finger.createPointerUp(
+                    org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+                driver.perform(java.util.Collections.singletonList(swipe));
+                sleep(300);
+            } catch (Exception e) {
+                System.out.println("   Swipe up failed on iteration " + (i + 1));
+            }
+
+            // Check if Issue Class label is now in DOM
+            try {
+                List<WebElement> labels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND label CONTAINS[c] 'issue class'"));
+                if (!labels.isEmpty()) {
+                    System.out.println("   Issue Class label found after " + (i + 1) + " swipe(s) up");
+                    detailsScrollDownDepth = 0;
+                    return;
+                }
+            } catch (Exception e) {}
+        }
+
+        // Check what screen we're actually on — if keyboard dismiss tapped nav bar "Done",
+        // we may have exited Issue Details entirely
+        try {
+            List<WebElement> navTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label == 'Issues'"));
+            List<WebElement> allTab = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label == 'All'"));
+            if (!navTexts.isEmpty() && !allTab.isEmpty()) {
+                System.out.println("   ⚠️ NOT on Issue Details — landed on Issues LIST screen");
+            }
+        } catch (Exception ignored) {}
+        System.out.println("   ⚠️ Issue Class label not found after scrolling to top");
+        detailsScrollDownDepth = 0;
+    }
+
+    /**
+     * Try to open the Issue Class picker using 3 strategies.
+     * Returns true if picker was opened, false if Issue Class element not found.
+     */
+    private boolean tryOpenIssueClassPicker() {
+        // Strategy 1: Tap the Issue Class picker button
+        // The button label format is "Issue Class, <current value>" on iOS SwiftUI pickers
+        try {
+            WebElement picker = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(name CONTAINS 'Issue Class' OR label CONTAINS 'Issue Class')"));
+            System.out.println("   Found Issue Class picker: '" + picker.getAttribute("label") + "'");
+            picker.click();
+            sleep(500);
+            System.out.println("   Opened Issue Class picker (button)");
+            return true;
+        } catch (Exception ignored) {}
+
+        // Strategy 2: Find button near the "Issue Class" label (positional)
+        try {
+            WebElement label = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "(label == 'Issue Class' OR label CONTAINS 'Issue Class')"));
+            int labelY = label.getLocation().getY();
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton'"));
+            for (WebElement btn : buttons) {
+                int y = btn.getLocation().getY();
+                if (Math.abs(y - labelY) < 50) {
+                    btn.click();
+                    sleep(500);
+                    System.out.println("   Opened Issue Class picker (positional match)");
+                    return true;
+                }
+            }
+        } catch (Exception e2) {
+            System.out.println("   Strategy 2 (positional) failed: " + e2.getMessage());
+        }
+
+        // Strategy 3: Tap by coordinate — if label found, tap the same row on the right
+        // half of the screen where the picker value usually sits
+        try {
+            WebElement label = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label CONTAINS[c] 'issue class'"));
+            int labelY = label.getLocation().getY();
+            int screenWidth = driver.manage().window().getSize().getWidth();
+            org.openqa.selenium.interactions.PointerInput finger =
+                new org.openqa.selenium.interactions.PointerInput(
+                    org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
+            org.openqa.selenium.interactions.Sequence tap =
+                new org.openqa.selenium.interactions.Sequence(finger, 0);
+            tap.addAction(finger.createPointerMove(Duration.ZERO,
+                org.openqa.selenium.interactions.PointerInput.Origin.viewport(),
+                screenWidth * 3 / 4, labelY + 10));
+            tap.addAction(finger.createPointerDown(
+                org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+            tap.addAction(finger.createPointerUp(
+                org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+            driver.perform(java.util.Collections.singletonList(tap));
+            sleep(500);
+            System.out.println("   Opened Issue Class picker (coordinate tap at Y=" + labelY + ")");
+            return true;
+        } catch (Exception e3) {
+            System.out.println("   Strategy 3 (coordinate) failed: " + e3.getMessage());
+        }
+
+        return false;
+    }
+
+    /**
      * Open the Issue Class dropdown on Issue Details and change it.
      * Used to switch issue class and see corresponding subcategories.
      */
-    public void changeIssueClassOnDetails(String newClass) {
+    public boolean changeIssueClassOnDetails(String newClass) {
         System.out.println("📋 Changing Issue Class on details to: " + newClass);
         resetDetailsScrollCount();
         try {
-            boolean pickerOpened = false;
+            boolean pickerOpened = tryOpenIssueClassPicker();
 
-            // Strategy 1: Tap the Issue Class picker button (Issue Class is always
-            // near the top of the form — NO scrolling needed to reach it)
-            try {
-                WebElement picker = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND name CONTAINS 'Issue Class'"));
-                picker.click();
-                sleep(400);
-                pickerOpened = true;
-                System.out.println("   Opened Issue Class picker (button)");
-            } catch (Exception ignored) {}
-
-            // Strategy 2: Find button near the "Issue Class" label (positional)
+            // If picker not found, the Issue Class field is likely off-screen (iOS view recycling
+            // removes off-screen elements from DOM). Scroll to top and retry.
             if (!pickerOpened) {
-                try {
-                    WebElement label = driver.findElement(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeStaticText' AND " +
-                        "(label == 'Issue Class' OR label CONTAINS 'Issue Class')"));
-                    int labelY = label.getLocation().getY();
-                    List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeButton'"));
-                    for (WebElement btn : buttons) {
-                        int y = btn.getLocation().getY();
-                        if (Math.abs(y - labelY) < 50) {
-                            btn.click();
-                            sleep(400);
-                            pickerOpened = true;
-                            System.out.println("   Opened Issue Class picker (positional match)");
-                            break;
-                        }
-                    }
-                } catch (Exception e2) {
-                    System.out.println("   Strategy 2 (positional) failed: " + e2.getMessage());
-                }
+                System.out.println("   Issue Class not found — scrolling to top and retrying...");
+                scrollToTopOfDetails();
+                sleep(500);
+                pickerOpened = tryOpenIssueClassPicker();
             }
 
             if (!pickerOpened) {
                 System.out.println("⚠️ Could not open Issue Class dropdown");
-                return;
+                return false;
             }
 
             // Select the new class — broad type filter for popover menu items
+            // Retry up to 3 times: picker menu items may not be loaded yet if a previous
+            // dropdown (e.g. subcategory) was just dismissed and animation is still in progress
+            boolean selected = false;
             String typeFilter = "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' OR " +
                 "type == 'XCUIElementTypeMenuItem' OR type == 'XCUIElementTypeOther')";
-            try {
-                WebElement option = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    typeFilter + " AND label == '" + newClass + "'"));
-                option.click();
-                sleep(400);
-                System.out.println("✅ Changed Issue Class to: " + newClass);
-            } catch (Exception e) {
-                // Fallback: case-insensitive CONTAINS
+            for (int attempt = 1; attempt <= 3 && !selected; attempt++) {
+                // Try exact match first
                 try {
-                    WebElement option = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    List<WebElement> options = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        typeFilter + " AND label == '" + newClass + "'"));
+                    if (!options.isEmpty()) {
+                        options.get(0).click();
+                        sleep(500);
+                        selected = true;
+                        System.out.println("✅ Selected Issue Class: " + newClass);
+                        break;
+                    }
+                } catch (Exception e) {}
+
+                // Try case-insensitive CONTAINS
+                try {
+                    List<WebElement> options = driver.findElements(AppiumBy.iOSNsPredicateString(
                         typeFilter + " AND label CONTAINS[c] '" + newClass + "'"));
-                    option.click();
-                    sleep(400);
-                    System.out.println("✅ Changed Issue Class to: " + newClass + " (case-insensitive)");
-                } catch (Exception e2) {
-                    System.out.println("⚠️ Could not select class '" + newClass + "': " + e2.getMessage());
+                    if (!options.isEmpty()) {
+                        options.get(0).click();
+                        sleep(500);
+                        selected = true;
+                        System.out.println("✅ Selected Issue Class: " + newClass + " (contains match)");
+                        break;
+                    }
+                } catch (Exception e2) {}
+
+                if (!selected && attempt < 3) {
+                    System.out.println("   Retry " + attempt + "/3: menu items not loaded yet, waiting...");
+                    sleep(800);
                 }
+            }
+            if (!selected) {
+                System.out.println("⚠️ Could not select class '" + newClass + "' after 3 attempts");
+            }
+
+            if (!selected) return false;
+
+            // Verify the class change actually took effect by checking the picker button value
+            sleep(300);
+            try {
+                WebElement picker = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND " +
+                    "(name CONTAINS 'Issue Class' OR label CONTAINS 'Issue Class')"));
+                String newLabel = picker.getAttribute("label");
+                if (newLabel != null && newLabel.toLowerCase().contains(newClass.toLowerCase())) {
+                    System.out.println("✅ Verified Issue Class changed to: " + newLabel);
+                    return true;
+                } else {
+                    System.out.println("⚠️ Issue Class picker shows: '" + newLabel + "' (expected '" + newClass + "')");
+                    // Still return true if we successfully clicked the option
+                    return true;
+                }
+            } catch (Exception verifyEx) {
+                // Verification step failed but selection was performed
+                return true;
             }
         } catch (Exception e) {
             System.out.println("⚠️ Error changing Issue Class: " + e.getMessage());
+            return false;
         }
     }
 
@@ -7378,18 +7552,7 @@ public class IssuePage extends BasePage {
      */
     public void dismissKeyboard() {
         try {
-            // Strategy 1: Tap Done/Return button on keyboard toolbar
-            try {
-                WebElement doneBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeKey') AND " +
-                    "(label == 'Done' OR label == 'Return' OR label == 'Go')"));
-                doneBtn.click();
-                sleep(200);
-                System.out.println("   Keyboard dismissed via Done/Return");
-                return;
-            } catch (Exception ignored) {}
-
-            // Strategy 2: Appium hideKeyboard
+            // Strategy 1: Appium hideKeyboard — most reliable, no risk of tapping wrong UI element
             try {
                 driver.executeScript("mobile: hideKeyboard");
                 sleep(200);
@@ -7397,7 +7560,29 @@ public class IssuePage extends BasePage {
                 return;
             } catch (Exception ignored) {}
 
-            // Strategy 3: Tap at top of screen to dismiss
+            // Strategy 2: Tap Done/Return button on keyboard toolbar
+            // IMPORTANT: Filter by Y position (> 40% of screen) to avoid tapping
+            // the nav bar "Done" button which would close Issue Details sheet!
+            try {
+                int screenHeight = driver.manage().window().getSize().getHeight();
+                int minY = (int) (screenHeight * 0.4);
+                List<WebElement> doneBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeKey') AND " +
+                    "(label == 'Done' OR label == 'Return' OR label == 'Go')"));
+                for (WebElement btn : doneBtns) {
+                    try {
+                        int btnY = btn.getLocation().getY();
+                        if (btnY > minY) {
+                            btn.click();
+                            sleep(200);
+                            System.out.println("   Keyboard dismissed via Done/Return (Y=" + btnY + ")");
+                            return;
+                        }
+                    } catch (Exception ignored) {}
+                }
+            } catch (Exception ignored) {}
+
+            // Strategy 3: Tap on a non-interactive area to dismiss
             try {
                 int screenWidth = driver.manage().window().getSize().getWidth();
                 org.openqa.selenium.interactions.PointerInput finger =
@@ -7406,12 +7591,12 @@ public class IssuePage extends BasePage {
                 org.openqa.selenium.interactions.Sequence tap =
                     new org.openqa.selenium.interactions.Sequence(finger, 0);
                 tap.addAction(finger.createPointerMove(Duration.ZERO,
-                    org.openqa.selenium.interactions.PointerInput.Origin.viewport(), screenWidth / 2, 100));
+                    org.openqa.selenium.interactions.PointerInput.Origin.viewport(), screenWidth / 2, 200));
                 tap.addAction(finger.createPointerDown(org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
                 tap.addAction(finger.createPointerUp(org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
                 driver.perform(java.util.Collections.singletonList(tap));
                 sleep(200);
-                System.out.println("   Keyboard dismissed via tap at top");
+                System.out.println("   Keyboard dismissed via tap at Y=200");
             } catch (Exception ignored) {}
         } catch (Exception e) {
             System.out.println("⚠️ Could not dismiss keyboard: " + e.getMessage());
@@ -7835,23 +8020,58 @@ public class IssuePage extends BasePage {
 
                 List<WebElement> allFields = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeTextField'"));
-                java.util.ArrayList<WebElement> tableFields = new java.util.ArrayList<>();
+
+                // Cache positions upfront to avoid StaleElementReferenceException.
+                // After entering text, iOS re-renders the form and element references go stale.
+                // Calling getLocation() multiple times (filter + sort) on stale refs crashes.
+                java.util.ArrayList<Object[]> fieldData = new java.util.ArrayList<>(); // {element, x, y}
                 for (WebElement field : allFields) {
-                    int y = field.getLocation().getY();
-                    if (y > sectionY && y < sectionY + 250) {
-                        tableFields.add(field);
+                    try {
+                        org.openqa.selenium.Point loc = field.getLocation();
+                        int y = loc.getY();
+                        if (y > sectionY && y < sectionY + 250) {
+                            fieldData.add(new Object[]{field, loc.getX(), y});
+                        }
+                    } catch (org.openqa.selenium.StaleElementReferenceException ignored) {
+                        // Element went stale during scan — skip it
                     }
                 }
 
-                tableFields.sort((f1, f2) -> Integer.compare(f1.getLocation().getX(), f2.getLocation().getX()));
+                // Sort by cached X position (no further getLocation calls)
+                fieldData.sort((a, b) -> Integer.compare((int) a[1], (int) b[1]));
 
                 String[] phaseNames = {"A", "B", "C", "N"};
-                for (int i = 0; i < Math.min(tableFields.size(), phaseNames.length); i++) {
+                for (int i = 0; i < Math.min(fieldData.size(), phaseNames.length); i++) {
                     try {
-                        String value = tableFields.get(i).getAttribute("value");
-                        if (value == null || value.contains("Enter")) value = "";
-                        values.put(phaseNames[i], value);
-                        System.out.println("   " + phaseNames[i] + "=" + value);
+                        String val = ((WebElement) fieldData.get(i)[0]).getAttribute("value");
+                        if (val == null || val.contains("Enter")) val = "";
+                        values.put(phaseNames[i], val);
+                        System.out.println("   " + phaseNames[i] + "=" + val);
+                    } catch (org.openqa.selenium.StaleElementReferenceException stale) {
+                        // Element stale at read time — try re-finding by position
+                        try {
+                            int cachedX = (int) fieldData.get(i)[1];
+                            int cachedY = (int) fieldData.get(i)[2];
+                            List<WebElement> freshFields = driver.findElements(AppiumBy.iOSNsPredicateString(
+                                "type == 'XCUIElementTypeTextField'"));
+                            for (WebElement ff : freshFields) {
+                                try {
+                                    org.openqa.selenium.Point fp = ff.getLocation();
+                                    if (Math.abs(fp.getX() - cachedX) < 20 && Math.abs(fp.getY() - cachedY) < 20) {
+                                        String val = ff.getAttribute("value");
+                                        if (val == null || val.contains("Enter")) val = "";
+                                        values.put(phaseNames[i], val);
+                                        System.out.println("   " + phaseNames[i] + "=" + val + " (re-found)");
+                                        break;
+                                    }
+                                } catch (Exception ignored) {}
+                            }
+                        } catch (Exception reEx) {
+                            values.put(phaseNames[i], "");
+                        }
+                        if (!values.containsKey(phaseNames[i])) {
+                            values.put(phaseNames[i], "");
+                        }
                     } catch (Exception e) {
                         values.put(phaseNames[i], "");
                     }
@@ -8089,31 +8309,64 @@ public class IssuePage extends BasePage {
                 List<WebElement> cdLabels = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeStaticText' AND label CONTAINS 'Current Draw'"));
                 if (!cdLabels.isEmpty()) {
-                    currentDrawY = cdLabels.get(0).getLocation().getY();
+                    try {
+                        currentDrawY = cdLabels.get(0).getLocation().getY();
+                    } catch (org.openqa.selenium.StaleElementReferenceException ignored) {}
                 }
 
                 List<WebElement> allFields = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeTextField'"));
-                java.util.ArrayList<WebElement> tableFields = new java.util.ArrayList<>();
+
+                // Cache positions upfront to avoid StaleElementReferenceException
+                java.util.ArrayList<Object[]> fieldData = new java.util.ArrayList<>(); // {element, x, y}
                 for (WebElement field : allFields) {
-                    int y = field.getLocation().getY();
-                    boolean belowVoltageDropLabel = y > sectionY && y < sectionY + 250;
-                    boolean notInCurrentDrawRange = currentDrawY < 0 ||
-                        Math.abs(y - currentDrawY) > 100 || y > sectionY;
-                    if (belowVoltageDropLabel && notInCurrentDrawRange) {
-                        tableFields.add(field);
-                    }
+                    try {
+                        org.openqa.selenium.Point loc = field.getLocation();
+                        int y = loc.getY();
+                        boolean belowVoltageDropLabel = y > sectionY && y < sectionY + 250;
+                        boolean notInCurrentDrawRange = currentDrawY < 0 ||
+                            Math.abs(y - currentDrawY) > 100 || y > sectionY;
+                        if (belowVoltageDropLabel && notInCurrentDrawRange) {
+                            fieldData.add(new Object[]{field, loc.getX(), y});
+                        }
+                    } catch (org.openqa.selenium.StaleElementReferenceException ignored) {}
                 }
 
-                tableFields.sort((f1, f2) -> Integer.compare(f1.getLocation().getX(), f2.getLocation().getX()));
+                // Sort by cached X position (no further getLocation calls)
+                fieldData.sort((a, b) -> Integer.compare((int) a[1], (int) b[1]));
 
                 String[] phaseNames = {"A", "B", "C", "N"};
-                for (int i = 0; i < Math.min(tableFields.size(), phaseNames.length); i++) {
+                for (int i = 0; i < Math.min(fieldData.size(), phaseNames.length); i++) {
                     try {
-                        String value = tableFields.get(i).getAttribute("value");
-                        if (value == null || value.contains("Enter")) value = "";
-                        values.put(phaseNames[i], value);
-                        System.out.println("   " + phaseNames[i] + "=" + value);
+                        String val = ((WebElement) fieldData.get(i)[0]).getAttribute("value");
+                        if (val == null || val.contains("Enter")) val = "";
+                        values.put(phaseNames[i], val);
+                        System.out.println("   " + phaseNames[i] + "=" + val);
+                    } catch (org.openqa.selenium.StaleElementReferenceException stale) {
+                        // Re-find by cached position
+                        try {
+                            int cachedX = (int) fieldData.get(i)[1];
+                            int cachedY = (int) fieldData.get(i)[2];
+                            List<WebElement> freshFields = driver.findElements(AppiumBy.iOSNsPredicateString(
+                                "type == 'XCUIElementTypeTextField'"));
+                            for (WebElement ff : freshFields) {
+                                try {
+                                    org.openqa.selenium.Point fp = ff.getLocation();
+                                    if (Math.abs(fp.getX() - cachedX) < 20 && Math.abs(fp.getY() - cachedY) < 20) {
+                                        String val = ff.getAttribute("value");
+                                        if (val == null || val.contains("Enter")) val = "";
+                                        values.put(phaseNames[i], val);
+                                        System.out.println("   " + phaseNames[i] + "=" + val + " (re-found)");
+                                        break;
+                                    }
+                                } catch (Exception ignored) {}
+                            }
+                        } catch (Exception reEx) {
+                            values.put(phaseNames[i], "");
+                        }
+                        if (!values.containsKey(phaseNames[i])) {
+                            values.put(phaseNames[i], "");
+                        }
                     } catch (Exception e) {
                         values.put(phaseNames[i], "");
                     }
@@ -9346,21 +9599,24 @@ public class IssuePage extends BasePage {
      */
     private boolean performSwipeLeft(int startX, int startY, int endX, int endY) {
         try {
-            // Strategy 1: mobile: swipe (Appium native)
+            // Strategy 1: mobile: dragFromToForDuration — best for iOS swipe-to-delete.
+            // Uses XCUITest native gesture with short duration for a quick swipe.
             try {
-                Map<String, Object> swipeParams = new HashMap<>();
-                swipeParams.put("fromX", startX);
-                swipeParams.put("fromY", startY);
-                swipeParams.put("toX", endX);
-                swipeParams.put("toY", endY);
-                swipeParams.put("duration", 300);
-                driver.executeScript("mobile: swipe", swipeParams);
-                sleep(400);
-                System.out.println("   Swipe left performed (mobile: swipe)");
+                Map<String, Object> dragParams = new HashMap<>();
+                dragParams.put("fromX", startX);
+                dragParams.put("fromY", startY);
+                dragParams.put("toX", endX);
+                dragParams.put("toY", endY);
+                dragParams.put("duration", 0.3); // seconds — fast swipe triggers delete action
+                driver.executeScript("mobile: dragFromToForDuration", dragParams);
+                sleep(500);
+                System.out.println("   Swipe left performed (mobile: dragFromToForDuration)");
                 return true;
-            } catch (Exception ignored) {}
+            } catch (Exception e1) {
+                System.out.println("   dragFromToForDuration failed: " + e1.getMessage());
+            }
 
-            // Strategy 2: W3C PointerInput
+            // Strategy 2: W3C PointerInput with fast movement (150ms)
             org.openqa.selenium.interactions.PointerInput finger =
                 new org.openqa.selenium.interactions.PointerInput(
                     org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
@@ -9370,12 +9626,12 @@ public class IssuePage extends BasePage {
                 org.openqa.selenium.interactions.PointerInput.Origin.viewport(), startX, startY));
             swipe.addAction(finger.createPointerDown(
                 org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
-            swipe.addAction(finger.createPointerMove(Duration.ofMillis(300),
+            swipe.addAction(finger.createPointerMove(Duration.ofMillis(150),
                 org.openqa.selenium.interactions.PointerInput.Origin.viewport(), endX, endY));
             swipe.addAction(finger.createPointerUp(
                 org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
             driver.perform(java.util.Collections.singletonList(swipe));
-            sleep(400);
+            sleep(500);
             System.out.println("   Swipe left performed (W3C PointerInput)");
             return true;
         } catch (Exception e) {

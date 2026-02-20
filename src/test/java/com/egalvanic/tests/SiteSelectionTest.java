@@ -321,11 +321,13 @@ public final class SiteSelectionTest extends BaseTest {
         shortWait();
 
         logStep("Selecting a site");
-        siteSelectionPage.selectRandomSite();
+        // Use first site instead of random — random can pick a large site that takes too long to load
+        siteSelectionPage.selectFirstSiteFast();
 
         logStep("Waiting for site to load");
         siteSelectionPage.waitForDashboardReady();
         mediumWait(); // Additional wait for dashboard to fully render
+        mediumWait(); // Extra wait for larger sites to finish rendering
 
         logStepWithScreenshot("Verifying dashboard is displayed");
         // Use robust dashboard detection with multiple indicators
