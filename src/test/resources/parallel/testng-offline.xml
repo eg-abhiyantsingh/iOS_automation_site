@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite time-out="420000" name="Offline Mode Test Suite" verbose="0">
+
+    <!-- Custom Listener for Clean Console Output -->
+    <listeners>
+        <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
+    </listeners>
+
+    <test name="Offline Mode Tests">
+        <classes>
+            <class name="com.egalvanic.tests.OfflineTest"/>
+        </classes>
+    </test>
+</suite>

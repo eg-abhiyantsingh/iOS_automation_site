@@ -40,10 +40,6 @@ name: iOS Tests - Smoke Suite
 #   - eGalvanic app tested locally: NO cert pinning detected ✅
 # ============================================================
 on:
-  push:
-    branches: [main, develop, dev, qa, staging, stage, prod, production, bces-iq]
-  pull_request:
-    branches: [main, develop, dev, qa, staging, stage, prod, production, bces-iq]
   workflow_dispatch:
     inputs:
       target_environment:

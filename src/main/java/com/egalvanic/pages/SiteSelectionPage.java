@@ -152,6 +152,10 @@ public class SiteSelectionPage extends BasePage {
     @iOSXCUITFindBy(accessibility = "Issues")
     private WebElement issuesButton;
 
+    // Quick Count Button
+    @iOSXCUITFindBy(accessibility = "Quick Count")
+    private WebElement quickCountButton;
+
     // No Active Job Card
     @iOSXCUITFindBy(iOSNsPredicate = "label CONTAINS 'No Active Job'")
     private WebElement noActiveJobCard;
@@ -1151,50 +1155,37 @@ public class SiteSelectionPage extends BasePage {
     public void clickWifiButton() {
         try {
             System.out.println("🔍 Attempting to click WiFi button...");
-            
-            // Try online button first
-            if (isElementDisplayed(wifiButtonOnline)) {
-                System.out.println("✅ Found WiFi online button");
-                click(wifiButtonOnline);
-                return;
+
+            // Single findElements query with combined predicate — avoids 5s implicit wait per miss.
+            // Matches all 3 WiFi icon states: "Wi-Fi" (online), "Wi-Fi Off" (offline), digit (sync badge)
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(500));
+            try {
+                java.util.List<WebElement> wifiButtons = driver.findElements(
+                    AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND " +
+                        "(name == 'Wi-Fi' OR name == 'Wi-Fi Off' OR name MATCHES '\\\\d+')"));
+
+                if (!wifiButtons.isEmpty()) {
+                    WebElement btn = wifiButtons.get(0);
+                    String name = btn.getAttribute("name");
+                    System.out.println("✅ Found WiFi button (name: " + name + ")");
+                    btn.click();
+                    return;
+                }
+            } finally {
+                driver.manage().timeouts().implicitlyWait(
+                    java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
             }
-            
-            // Try offline button
-            if (isElementDisplayed(wifiButtonOffline)) {
-                System.out.println("✅ Found WiFi offline button");
-                click(wifiButtonOffline);
-                return;
-            }
-            
-            // Try button with sync count (when there are pending sync records)
-            if (isElementDisplayed(wifiButtonWithSyncCount)) {
-                System.out.println("✅ Found WiFi button with sync count");
-                click(wifiButtonWithSyncCount);
-                return;
-            }
-            
-            // Try alternative locator
-            if (isElementDisplayed(wifiButtonAlt)) {
-                System.out.println("✅ Found WiFi button via alternative locator");
-                click(wifiButtonAlt);
-                return;
-            }
-            
-            System.out.println("⚠️ Could not find any WiFi button, trying by coordinates...");
-            // Fallback: Try to find any button in navigation bar containing wifi
+
+            // Fallback: first button in navigation bar
+            System.out.println("⚠️ WiFi button not found via predicate, trying nav bar fallback...");
             try {
                 WebElement navBar = driver.findElement(AppiumBy.iOSClassChain("**/XCUIElementTypeNavigationBar"));
                 java.util.List<WebElement> buttons = navBar.findElements(AppiumBy.className("XCUIElementTypeButton"));
-                for (WebElement btn : buttons) {
-                    String name = btn.getAttribute("name");
-                    String label = btn.getAttribute("label");
-                    System.out.println("🔍 Found nav button - name: " + name + ", label: " + label);
-                    // Click on the first button (usually WiFi is first in nav bar)
-                    if (buttons.indexOf(btn) == 0) {
-                        btn.click();
-                        System.out.println("✅ Clicked first navigation bar button");
-                        return;
-                    }
+                if (!buttons.isEmpty()) {
+                    buttons.get(0).click();
+                    System.out.println("✅ Clicked first navigation bar button");
+                    return;
                 }
             } catch (Exception ex) {
                 System.out.println("⚠️ Nav bar fallback failed: " + ex.getMessage());
@@ -1546,21 +1537,21 @@ public class SiteSelectionPage extends BasePage {
      */
     public void waitForSyncToComplete() {
         System.out.println("⏳ Waiting for sync to complete...");
-        int maxWaitSeconds = 30;
+        int maxWaitSeconds = 7;
         int elapsed = 0;
-        
+
         while (elapsed < maxWaitSeconds) {
             try {
-                Thread.sleep(1200);
-                elapsed += 2;
+                Thread.sleep(1000);
+                elapsed += 1;
                 System.out.println("⏳ Sync in progress... (" + elapsed + "s/" + maxWaitSeconds + "s)");
-                
+
                 // Check if Sites button is enabled (indicates sync complete)
                 if (isSitesButtonEnabled()) {
                     System.out.println("✅ Sync completed - Sites button is enabled");
                     return;
                 }
-                
+
                 // Check if WiFi shows online state without badge
                 if (isWifiOnline()) {
                     System.out.println("✅ Sync completed - WiFi shows online");
@@ -1571,7 +1562,7 @@ public class SiteSelectionPage extends BasePage {
                 break;
             }
         }
-        
+
         System.out.println("✅ Sync wait completed (timeout reached but sync may have finished)");
     }
 
@@ -1728,10 +1719,138 @@ public class SiteSelectionPage extends BasePage {
     }
 
     /**
+     * Check if My Tasks button is enabled
+     */
+    public boolean isMyTasksButtonEnabled() {
+        try {
+            String enabled = myTasksButton.getAttribute("enabled");
+            return "true".equalsIgnoreCase(enabled);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Click My Tasks button
+     */
+    public void clickMyTasksButton() {
+        System.out.println("📍 Attempting to click My Tasks button...");
+        try {
+            // Single findElements with short implicit wait — avoids 5s timeout per miss
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(500));
+            try {
+                java.util.List<WebElement> btns = driver.findElements(
+                    AppiumBy.iOSNsPredicateString(
+                        "(label == 'My Tasks' OR name == 'My Tasks') AND " +
+                        "type == 'XCUIElementTypeButton'"));
+                if (!btns.isEmpty()) {
+                    btns.get(0).click();
+                    System.out.println("✅ Clicked My Tasks button");
+                    return;
+                }
+            } finally {
+                driver.manage().timeouts().implicitlyWait(
+                    java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
+            }
+            // Fallback: use PageFactory element
+            System.out.println("⚠️ My Tasks not found via predicate, using PageFactory fallback");
+            click(myTasksButton);
+        } catch (Exception e) {
+            System.out.println("⚠️ clickMyTasksButton error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Check if Locations button is displayed on dashboard
+     */
+    public boolean isLocationsButtonDisplayed() {
+        return isElementDisplayed(locationsButton) || isElementDisplayed(locationsButtonAlt);
+    }
+
+    /**
+     * Check if Locations button is enabled
+     */
+    public boolean isLocationsButtonEnabled() {
+        try {
+            if (isElementDisplayed(locationsButton)) {
+                String enabled = locationsButton.getAttribute("enabled");
+                return "true".equalsIgnoreCase(enabled);
+            }
+            if (isElementDisplayed(locationsButtonAlt)) {
+                String enabled = locationsButtonAlt.getAttribute("enabled");
+                return "true".equalsIgnoreCase(enabled);
+            }
+            return false;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
      * Check if Issues button is displayed
      */
     public boolean isIssuesDisplayed() {
         return isElementDisplayed(issuesButton);
+    }
+
+    /**
+     * Check if Quick Count button is displayed on dashboard
+     */
+    public boolean isQuickCountDisplayed() {
+        if (isElementDisplayed(quickCountButton)) {
+            return true;
+        }
+        // Fallback: search by label
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "visible == true AND (label CONTAINS 'Quick Count' OR name CONTAINS 'Quick Count')"));
+            return !elements.isEmpty();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Check if Quick Count button is enabled
+     */
+    public boolean isQuickCountEnabled() {
+        try {
+            if (isElementDisplayed(quickCountButton)) {
+                String enabled = quickCountButton.getAttribute("enabled");
+                return "true".equalsIgnoreCase(enabled);
+            }
+            // Fallback: search by label
+            WebElement btn = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "visible == true AND (label CONTAINS 'Quick Count' OR name CONTAINS 'Quick Count')"));
+            String enabled = btn.getAttribute("enabled");
+            return "true".equalsIgnoreCase(enabled);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Click Quick Count button
+     */
+    public void clickQuickCountButton() {
+        System.out.println("📍 Attempting to click Quick Count button...");
+        try {
+            if (isElementDisplayed(quickCountButton)) {
+                click(quickCountButton);
+                return;
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Primary Quick Count click failed: " + e.getMessage());
+        }
+        // Fallback: search by label
+        try {
+            WebElement btn = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "visible == true AND (label CONTAINS 'Quick Count' OR name CONTAINS 'Quick Count')"));
+            btn.click();
+        } catch (Exception e) {
+            System.out.println("⚠️ Fallback Quick Count click failed: " + e.getMessage());
+            click(quickCountButton);
+        }
     }
 
     /**

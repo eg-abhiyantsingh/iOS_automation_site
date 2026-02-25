@@ -33,7 +33,7 @@ public class AppConstants {
     // ============================================
     public static final String VALID_COMPANY_CODE = "acme.egalvanic";
     public static final String INVALID_COMPANY_CODE = "xyz123invalid";
-    public static final String VALID_EMAIL = "rahul+acme@egalvanic.com";
+    public static final String VALID_EMAIL = "abhiyant.singh+acme@egalvanic.com";
     public static final String VALID_PASSWORD = "RP@egalvanic123";
     public static final String INVALID_EMAIL = "invalidemail@test.com";
     public static final String INVALID_PASSWORD = "wrongpassword123";
@@ -162,10 +162,11 @@ public class AppConstants {
     public static final String EMAIL_FROM = getEnv("EMAIL_FROM", "abhiyant.singh@egalvanic.com");
    //public static final String EMAIL_PASSWORD = getEnv("EMAIL_PASSWORD", "ccddnnqsjigrhzcz");
     public static final String EMAIL_PASSWORD = getEnv("EMAIL_PASSWORD", "onmzhjxnacinjfun");
-    
-    //public static final String EMAIL_TO = "dharmesh.avaiya@egalvanic.com, abhiyantsinghsuas18@gmail.com";
-    public static final String EMAIL_TO = "abhiyant.singh@egalvanic.com";
+
+    //public static final String EMAIL_TO = "dharmesh.avaiya@egalvanic.com, mukul@egalvanic.com, abhiyant.singh@egalvanic.com, ";
+    public static final String EMAIL_TO = "dharmesh.avaiya@egalvanic.com, abhiyant.singh@egalvanic.com, ";
     //public static final String EMAIL_TO = "abhiyant.singh@egalvanic.com";
+
     //email to here i think send proper email and secreat & variable ->action key send repo link by mail.  
     public static final String EMAIL_SUBJECT = "eGalvanic iOS Automation - Test Report";
 
@@ -245,6 +246,18 @@ public class AppConstants {
     public static final String FEATURE_WITH_PHOTOS_FILTER = "With Photos Filter";
     public static final String FEATURE_MY_SESSION_FILTER = "My Session Filter";
     public static final String FEATURE_FILTER_TABS = "Filter Tabs";
+
+    // ============================================
+    // FEATURE NAMES - OFFLINE MODE
+    // ============================================
+    public static final String FEATURE_GO_OFFLINE = "Go Offline";
+    public static final String FEATURE_OFFLINE_RESTRICTIONS = "Offline Restrictions";
+    public static final String FEATURE_OFFLINE_OPERATIONS = "Offline Operations";
+    public static final String FEATURE_OFFLINE_CREATION = "Offline Creation";
+    public static final String FEATURE_SYNC_QUEUE = "Sync Queue";
+    public static final String FEATURE_OFFLINE_SETTINGS = "Offline Settings";
+    public static final String FEATURE_SYNC_QUEUE_ANALYZER = "Sync Queue Analyzer";
+    public static final String FEATURE_GO_ONLINE = "Go Online";
 
     // HELPER METHODS
     // ============================================

@@ -32,20 +32,13 @@ name: iOS Tests - Full Parallel Suite
 #   Job 11: issues-phase3      → Issues Phase 3: Ultrasonic Save + Swipe Delete + Sort + Status + CRUD (58 tests)
 #   Job 12: location-tests     → Locations (82 tests)
 #   Job 13: connections-tests  → Connections (94 tests)
-#   Total: ~1155 tests, ~2.5 hr wall clock (parallel)
+#   Job 14: offline-tests      → Offline Mode (35 tests)
+#   Total: ~1190 tests, ~2.5 hr wall clock (parallel)
 # Asset tests (652) split into 6 balanced parts for even CI/CD load
 # Issues tests (237) split into 3 phases for even CI/CD load
 # ============================================================
 
 on:
-  # TRIGGER: Waits for Smoke Tests to START before running
-  # This ensures smoke tests get runner priority
-  workflow_run:
-    workflows: ["iOS Tests - Smoke Suite"]
-    types: [in_progress]
-    branches: [main, develop]
-  
-  # Manual trigger still available
   workflow_dispatch:
     inputs:
       job_selection:
@@ -69,6 +62,7 @@ on:
           - 'issues-p3-ultrasonic-save-swipe-delete-sort-status-crud'
           - 'location-only'
           - 'connections-only'
+          - 'offline-only'
 
 jobs:
   # ========================================
@@ -265,7 +259,7 @@ jobs:
   # ========================================
   auth-tests:
     name: "Authentication (38 tests)"
-    if: github.event_name == 'workflow_run' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'authentication-only'
+    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'authentication-only'
     runs-on: macos-15
     timeout-minutes: 420
     
@@ -481,7 +475,7 @@ jobs:
   # ========================================
   site-tests:
     name: "Site Selection (52 tests)"
-    if: github.event_name == 'workflow_run' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'site-selection-only'
+    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'site-selection-only'
     runs-on: macos-15
     timeout-minutes: 420
     
@@ -593,7 +587,7 @@ jobs:
   # ========================================
   assets-part1:
     name: "Assets P1 - Creation + Edit + Busway + Capacitor + Bug (112 tests)"
-    if: github.event_name == 'workflow_run' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p1-creation-edit-busway-capacitor-bug'
+    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p1-creation-edit-busway-capacitor-bug'
     runs-on: macos-15
     timeout-minutes: 420
     
@@ -705,7 +699,7 @@ jobs:
   # ========================================
   assets-part2:
     name: "Assets P2 - CB + DS + Fuse + Generator + JunctionBox (108 tests)"
-    if: github.event_name == 'workflow_run' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p2-cb-ds-fuse-generator-junctionbox'
+    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p2-cb-ds-fuse-generator-junctionbox'
     runs-on: macos-15
     timeout-minutes: 420
     
@@ -816,7 +810,7 @@ jobs:
   # ========================================
   assets-part3:
     name: "Assets P3 - LoadCenter + MCC + MCC Bucket + Motor + Other (109 tests)"
-    if: github.event_name == 'workflow_run' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p3-loadcenter-mcc-mccbucket-motor-other'
+    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p3-loadcenter-mcc-mccbucket-motor-other'
     runs-on: macos-15
     timeout-minutes: 420
     
@@ -928,7 +922,7 @@ jobs:
   # ========================================
   assets-part4:
     name: "Assets P4 - OCP + Panelboard + PDU + Relay + SWB + Transformer (97 tests)"
-    if: github.event_name == 'workflow_run' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p4-ocp-panelboard-pdu-relay-swb-transformer'
+    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p4-ocp-panelboard-pdu-relay-swb-transformer'
     runs-on: macos-15
     timeout-minutes: 420
     
@@ -1041,7 +1035,7 @@ jobs:
   # ========================================
   assets-part5:
     name: "Assets P5 - UPS + Utility + VFD + Subtypes (112 tests)"
-    if: github.event_name == 'workflow_run' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p5-ups-utility-vfd-subtypes'
+    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p5-ups-utility-vfd-subtypes'
     runs-on: macos-15
     timeout-minutes: 420
     
@@ -1157,7 +1151,7 @@ jobs:
   # ========================================
   assets-part6:
     name: "Assets P6 - Subtypes + Tasks + Issues + Connections + Search (114 tests)"
-    if: github.event_name == 'workflow_run' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p6-subtypes-tasks-issues-connections-search'
+    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p6-subtypes-tasks-issues-connections-search'
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -1267,7 +1261,7 @@ jobs:
   # ========================================
   issues-phase1:
     name: "Issues P1 - List + Filter + Search + Creation + ClassChange (119 tests)"
-    if: github.event_name == 'workflow_run' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'issues-p1-list-filter-search-creation-classchange'
+    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'issues-p1-list-filter-search-creation-classchange'
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -1377,7 +1371,7 @@ jobs:
   # ========================================
   issues-phase2:
     name: "Issues P2 - OSHA + Thermal + Severity + Temperature + Ultrasonic (60 tests)"
-    if: github.event_name == 'workflow_run' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'issues-p2-osha-thermal-severity-temperature-ultrasonic'
+    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'issues-p2-osha-thermal-severity-temperature-ultrasonic'
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -1487,7 +1481,7 @@ jobs:
   # ========================================
   issues-phase3:
     name: "Issues P3 - Ultrasonic Save + Swipe Delete + Sort + Status + CRUD (58 tests)"
-    if: github.event_name == 'workflow_run' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'issues-p3-ultrasonic-save-swipe-delete-sort-status-crud'
+    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'issues-p3-ultrasonic-save-swipe-delete-sort-status-crud'
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -1597,7 +1591,7 @@ jobs:
   # ========================================
   location-tests:
     name: "Location (82 tests)"
-    if: github.event_name == 'workflow_run' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'location-only'
+    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'location-only'
     runs-on: macos-15
     timeout-minutes: 420
     
@@ -1708,7 +1702,7 @@ jobs:
   # ========================================
   connections-tests:
     name: "Connections (94 tests)"
-    if: github.event_name == 'workflow_run' || github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'connections-only'
+    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'connections-only'
     runs-on: macos-15
     timeout-minutes: 420
     
@@ -1814,11 +1808,147 @@ jobs:
           retention-days: 7
 
   # ========================================
+  # JOB 14: Offline Tests (35 tests, ~1 hr)
+  # ========================================
+  offline-tests:
+    name: "Offline (35 tests)"
+    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'offline-only'
+    runs-on: macos-15
+    timeout-minutes: 420
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install Appium
+        run: |
+          npm install -g appium@next 2>&1 | tail -1
+          appium driver install xcuitest 2>&1 | tail -1
+          echo "Appium $(appium --version) ready"
+      - name: Download App from S3
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-1
+        run: |
+          mkdir -p apps
+          TARGET_ENV="${{ github.event.inputs.target_environment || 'auto' }}"
+          BRANCH="${{ github.ref_name }}"
+          if [ "$TARGET_ENV" = "auto" ] || [ "$TARGET_ENV" = "" ]; then
+            case "$BRANCH" in
+              main|develop|dev) TARGET_ENV="dev" ;;
+              qa) TARGET_ENV="qa" ;;
+              staging|stage) TARGET_ENV="staging" ;;
+              prod|production) TARGET_ENV="prod" ;;
+              bces-iq) TARGET_ENV="bces-iq" ;;
+              *) TARGET_ENV="qa" ;;
+            esac
+          fi
+          S3_BUCKET="egalvanic-ios-builds"
+          S3_KEY="${TARGET_ENV}/Z Platform-QA.app.zip"
+          echo "📥 Downloading from s3://${S3_BUCKET}/${S3_KEY}"
+          aws s3 cp "s3://${S3_BUCKET}/${S3_KEY}" apps/app.zip
+          cd apps && unzip -q app.zip && rm app.zip
+          echo "✅ App downloaded for env: ${TARGET_ENV}"
+      - name: Boot Simulator
+        run: |
+          UDID=""
+          for VERSION in 18.4 18.3 18.2 18.1 18.0; do
+            for MODEL in "iPhone 16 Pro" "iPhone 15 Pro" "iPhone"; do
+              UDID=$(xcrun simctl list devices available | grep -A 100 "iOS $VERSION" | grep "$MODEL" | head -1 | awk -F '[()]' '{print $2}')
+              [ -n "$UDID" ] && break 2
+            done
+          done
+          [ -z "$UDID" ] && echo "No simulator" && exit 1
+
+          DEVICE_NAME=$(xcrun simctl list devices available | grep "$UDID" | sed 's/(.*//' | xargs)
+          PLATFORM_VERSION=$(xcrun simctl list devices available | grep -B 20 "$UDID" | grep "iOS" | tail -1 | sed 's/-- iOS //' | sed 's/ --.*//')
+          [ -z "$PLATFORM_VERSION" ] && PLATFORM_VERSION="18.4"
+          echo "DEVICE_NAME=$DEVICE_NAME" >> $GITHUB_ENV
+          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+          echo "PLATFORM_VERSION=$PLATFORM_VERSION" >> $GITHUB_ENV
+
+          xcrun simctl shutdown "$UDID" 2>/dev/null || true
+          sleep 2
+          xcrun simctl boot "$UDID"
+          TIMEOUT=120; ELAPSED=0
+          while [ $ELAPSED -lt $TIMEOUT ]; do
+            if xcrun simctl list devices | grep "$UDID" | grep -q "(Booted)"; then break; fi
+            sleep 5; ELAPSED=$((ELAPSED + 5))
+          done
+          sleep 45
+          echo "✅ Simulator ready: $DEVICE_NAME (iOS $PLATFORM_VERSION)"
+      - name: Install App
+        run: |
+          APP_FILE=$(ls apps/ | grep ".app" | head -1)
+          xcrun simctl install "$SIMULATOR_UDID" "apps/$APP_FILE"
+      - name: Pre-build WebDriverAgent
+        run: |
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          if [ -n "$WDA_PATH" ]; then
+            cd "$WDA_PATH"
+            xcodebuild build-for-testing -project WebDriverAgent.xcodeproj -scheme WebDriverAgentRunner \
+              -destination "platform=iOS Simulator,id=$SIMULATOR_UDID" \
+              -derivedDataPath /tmp/wda-build -quiet 2>&1 | tail -3
+          fi
+      - name: Start Appium
+        run: |
+          appium --relaxed-security --log-level error &
+          for i in {1..30}; do curl -s http://127.0.0.1:4723/status | grep -q "ready" && break; sleep 2; done
+          sleep 10
+      - name: Warm-up WDA Session
+        env:
+          APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
+        run: |
+          for attempt in 1 2 3; do
+            SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session -H "Content-Type: application/json" -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"$SIMULATOR_UDID"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' --max-time 600 2>&1) || true
+            SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
+            if [ -n "$SESSION_ID" ]; then
+              sleep 10
+              curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true
+              sleep 5
+              break
+            fi
+            [ $attempt -lt 3 ] && sleep 30
+          done
+      - name: Run Offline Tests
+        continue-on-error: true
+        run: |
+          # Extract bundle ID from built app so soft restart uses correct ID
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${{ github.workspace }}/apps/Z Platform-QA.app/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
+
+          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel/testng-offline.xml \
+            -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
+            -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
+            -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
+            -DAPP_BUNDLE_ID="$BUNDLE_ID" \
+            -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+      - name: Upload Offline Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: offline-report
+          path: |
+            target/surefire-reports/
+            reports/
+            screenshots/
+          retention-days: 7
+
+  # ========================================
   # FINAL JOB: Merge Reports & Send Email
   # ========================================
   send-email:
     name: "Summary & Email"
-    needs: [smoke-tests, auth-tests, site-tests, assets-part1, assets-part2, assets-part3, assets-part4, assets-part5, assets-part6, issues-phase1, issues-phase2, issues-phase3, location-tests, connections-tests]
+    needs: [smoke-tests, auth-tests, site-tests, assets-part1, assets-part2, assets-part3, assets-part4, assets-part5, assets-part6, issues-phase1, issues-phase2, issues-phase3, location-tests, connections-tests, offline-tests]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 420
@@ -1848,6 +1978,7 @@ jobs:
           ISS3="${{ needs.issues-phase3.result }}"
           LOC="${{ needs.location-tests.result }}"
           CONN="${{ needs.connections-tests.result }}"
+          OFFL="${{ needs.offline-tests.result }}"
 
           if [ "$SELECTION" = "smoke" ]; then
             # ── Smoke mode ──
@@ -1894,16 +2025,17 @@ jobs:
             [ "$ISS3" = "success" ] && SUCCESS=$((SUCCESS+1))
             [ "$LOC" = "success" ] && SUCCESS=$((SUCCESS+1))
             [ "$CONN" = "success" ] && SUCCESS=$((SUCCESS+1))
+            [ "$OFFL" = "success" ] && SUCCESS=$((SUCCESS+1))
 
-            FAILED=$((13-SUCCESS))
-            TOTAL=13
+            FAILED=$((14-SUCCESS))
+            TOTAL=14
             echo "SUCCESS=$SUCCESS" >> $GITHUB_OUTPUT
             echo "FAILED=$FAILED" >> $GITHUB_OUTPUT
             echo "TOTAL=$TOTAL" >> $GITHUB_OUTPUT
 
-            if [ $SUCCESS -eq 13 ]; then
+            if [ $SUCCESS -eq 14 ]; then
               STATUS="✅ ALL PASSED"
-            elif [ $SUCCESS -ge 11 ]; then
+            elif [ $SUCCESS -ge 12 ]; then
               STATUS="⚠️ MOSTLY PASSED"
             else
               STATUS="❌ FAILED"
@@ -1921,7 +2053,7 @@ jobs:
               <p><b>Run:</b> <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Full Details</a></p>
               <hr>
 
-              <h2>Results: ${SUCCESS}/13 Jobs Passed — ${STATUS}</h2>
+              <h2>Results: ${SUCCESS}/14 Jobs Passed — ${STATUS}</h2>
 
               <table border="1" cellpadding="10" style="border-collapse: collapse; width: 100%;">
                 <tr style="background-color: #4a90d9; color: white;">
@@ -1940,10 +2072,11 @@ jobs:
                 <tr><td>Issues Phase 3</td><td>58</td><td>Ultrasonic Save + Swipe Delete + Sort + Status + CRUD</td><td>${ISS3}</td></tr>
                 <tr><td>Location</td><td>82</td><td>Location Hierarchy</td><td>${LOC}</td></tr>
                 <tr><td>Connections</td><td>94</td><td>Asset Connections</td><td>${CONN}</td></tr>
+                <tr><td>Offline</td><td>35</td><td>Offline Mode</td><td>${OFFL}</td></tr>
               </table>
 
               <hr>
-              <p><b>Total Tests:</b> ~1155 (652 asset + 119 issues-p1 + 60 issues-p2 + 58 issues-p3 + 38 auth + 52 site + 82 location + 94 connections)</p>
+              <p><b>Total Tests:</b> ~1190 (652 asset + 119 issues-p1 + 60 issues-p2 + 58 issues-p3 + 38 auth + 52 site + 82 location + 94 connections + 35 offline)</p>
               <p><b>Jobs Passed:</b> ${SUCCESS} | <b>Failed:</b> ${FAILED}</p>
             </body>
             </html>
@@ -1998,6 +2131,7 @@ jobs:
             echo "  ─── Other Jobs ───"
             echo "  Location (82):          ${{ needs.location-tests.result }}"
             echo "  Connections (94):       ${{ needs.connections-tests.result }}"
+            echo "  Offline (35):           ${{ needs.offline-tests.result }}"
           fi
 
           echo ""

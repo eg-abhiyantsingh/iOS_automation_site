@@ -75,4 +75,10 @@
             <class name="com.egalvanic.tests.Issue_Phase3_Test"/>
         </classes>
     </test>
+
+    <test name="Offline Mode Tests">
+        <classes>
+            <class name="com.egalvanic.tests.OfflineTest"/>
+        </classes>
+    </test>
 </suite>

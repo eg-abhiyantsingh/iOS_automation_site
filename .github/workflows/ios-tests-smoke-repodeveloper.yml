@@ -34,6 +34,7 @@ name: Automation Test
 #   issues-p3-*               → Issues Phase 3: Ultrasonic Save + Swipe Delete + Sort + Status + CRUD (58 tests)
 #   location-only             → Locations (82 tests)
 #   connections-only          → Connections (94 tests)
+#   offline-only              → Offline Mode (35 tests)
 #
 # S3 Drift Detection (branch-based):
 #   release/dev       → dev S3 only         (10 tests)  → Total 27
@@ -87,6 +88,7 @@ on:
           - 'issues-p3-ultrasonic-save-swipe-delete-sort-status-crud'
           - 'location-only'
           - 'connections-only'
+          - 'offline-only'
       capture_api:
         description: 'Capture API traffic for debugging'
         required: false
@@ -643,6 +645,9 @@ jobs:
               ;;
             connections-only)
               run_mvn src/test/resources/parallel/testng-connections.xml
+              ;;
+            offline-only)
+              run_mvn src/test/resources/parallel/testng-offline.xml
               ;;
           esac
 
