@@ -501,7 +501,7 @@ public final class Issue_Phase1_Test extends BaseTest {
     public void TC_ISS_011_verifyMediumPriorityBadge() {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_ENTRY,
             "TC_ISS_011 - Verify Medium priority badge");
-        loginAndSelectSite();
+    
         logStep("Step 1: Navigate to Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");

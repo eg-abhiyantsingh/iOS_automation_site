@@ -164,7 +164,7 @@ Site Selection (Module)
 | Data | Value |
 |------|-------|
 | Company Code | acme.egalvanic |
-| Email | rahul+acme@egalvanic.com |
+| Email | abhiyant.singh+acme@egalvanic.com |
 | Password |  |
 | Search Text | test |
 
