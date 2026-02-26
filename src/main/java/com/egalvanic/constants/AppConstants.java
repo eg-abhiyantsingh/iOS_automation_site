@@ -110,6 +110,18 @@ public class AppConstants {
     public static final String FEATURE_ACCESSIBILITY = "Accessibility";
 
     // ============================================
+    // FEATURE NAMES - JOBS / SITE VISITS
+    // ============================================
+    public static final String FEATURE_WORK_ORDERS_SCREEN = "Work Orders Screen";
+    public static final String FEATURE_WORK_ORDER_ENTRY = "Work Order Entry";
+    public static final String FEATURE_START_WORK_ORDER = "Start Work Order";
+    public static final String FEATURE_WORK_ORDER_DETAILS = "Work Order Details";
+    public static final String FEATURE_ACTIVATE_JOB = "Activate Job";
+    public static final String FEATURE_SESSION_DETAILS = "Session Details";
+    public static final String FEATURE_SESSION_ISSUES = "Session Issues";
+    public static final String FEATURE_LINK_ISSUES = "Link Issues";
+
+    // ============================================
     // FEATURE NAMES - ASSET MANAGEMENT
     // ============================================
     public static final String FEATURE_ASSET_LIST = "Asset List";
