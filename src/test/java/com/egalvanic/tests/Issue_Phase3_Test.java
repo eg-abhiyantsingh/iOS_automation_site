@@ -821,7 +821,7 @@ public final class Issue_Phase3_Test extends BaseTest {
 
     /**
      * TC_ISS_189: Verify In Progress badge on issue entry
-     * Precondition: Issue with In Progress status exists (set in TC_ISS_187)
+     * Self-contained: If no In Progress issue exists, sets first issue to In Progress first.
      * Expected: Issue shows "In Progress" text indicator next to asset name in list
      */
     @Test(priority = 189)
@@ -842,9 +842,51 @@ public final class Issue_Phase3_Test extends BaseTest {
         logStep("Visible issues in All tab: " + visibleCount);
         assertTrue(visibleCount > 0, "Should have at least one issue in All tab");
 
-        logStep("Step 4: Check for In Progress status badge on any issue entry");
+        logStep("Step 4: Check for existing In Progress badge");
         boolean inProgressBadgeExists = issuePage.isStatusBadgeDisplayed("In Progress");
-        logStep("In Progress badge found in list: " + inProgressBadgeExists);
+        logStep("In Progress badge already in list: " + inProgressBadgeExists);
+
+        // Self-contained setup: if no In Progress issue exists, set first issue to In Progress
+        String originalStatus = null;
+        if (!inProgressBadgeExists) {
+            logStep("Step 4b: No In Progress issue found — setting first issue to In Progress");
+            issuePage.tapFirstIssue();
+            mediumWait();
+
+            if (issuePage.isIssueDetailsScreenDisplayed()) {
+                originalStatus = issuePage.getIssueDetailStatus();
+                logStep("Original issue status: '" + originalStatus + "'");
+
+                boolean statusChanged = issuePage.changeIssueStatusOnDetails("In Progress");
+                logStep("Status changed to In Progress: " + statusChanged);
+
+                // Save if needed
+                issuePage.scrollDownOnDetailsScreen();
+                shortWait();
+                if (issuePage.isSaveChangesButtonDisplayed()) {
+                    issuePage.tapSaveChangesButton();
+                    mediumWait();
+                    logStep("Saved status change");
+                }
+
+                // Go back to list
+                issuePage.tapCloseIssueDetails();
+                shortWait();
+                // Handle unsaved changes alert if shown
+                try {
+                    if (issuePage.isUnsavedChangesWarningDisplayed()) {
+                        issuePage.tapDiscardChanges();
+                    }
+                } catch (Exception ignored) {}
+                mediumWait();
+
+                // Re-check for badge
+                issuePage.tapAllTab();
+                mediumWait();
+                inProgressBadgeExists = issuePage.isStatusBadgeDisplayed("In Progress");
+                logStep("In Progress badge after status change: " + inProgressBadgeExists);
+            }
+        }
 
         logStepWithScreenshot("TC_ISS_189: In Progress badge on issue entry");
 
@@ -855,6 +897,17 @@ public final class Issue_Phase3_Test extends BaseTest {
         if (issuePage.isIssueDetailsScreenDisplayed()) {
             String detailStatus = issuePage.getIssueDetailStatus();
             logStep("Issue detail status: '" + detailStatus + "'");
+
+            // Restore original status if we changed it
+            if (originalStatus != null && !originalStatus.equalsIgnoreCase("In Progress")) {
+                logStep("Restoring original status: " + originalStatus);
+                issuePage.changeIssueStatusOnDetails(originalStatus);
+                shortWait();
+                if (issuePage.isSaveChangesButtonDisplayed()) {
+                    issuePage.tapSaveChangesButton();
+                    shortWait();
+                }
+            }
 
             // Close details
             issuePage.tapCloseIssueDetails();

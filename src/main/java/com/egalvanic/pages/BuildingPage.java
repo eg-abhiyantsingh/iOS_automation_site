@@ -1879,25 +1879,55 @@ public class BuildingPage extends BasePage {
                     return isNewFloorScreenDisplayed();
                 }
 
-                // Fallback: tap building first to expand, then find +
-                System.out.println("⚠️ Direct + button not found, trying alternative approach");
-                building.click();
-                sleep(300);
-
-                plusButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "name == 'plus' OR name == 'Add Floor'"));
-                if (!plusButtons.isEmpty()) {
-                    plusButtons.get(0).click();
-                    sleep(300);
-                    return isNewFloorScreenDisplayed();
-                }
-
-                System.out.println("⚠️ Could not find + button after expanding building");
-                return false;
+                // Fallback: use long-press context menu instead of clicking building
+                // (clicking a building with many floors causes WDA to hang loading the floor list)
+                System.out.println("⚠️ Direct + button not found, trying long-press context menu...");
             } finally {
                 driver.manage().timeouts().implicitlyWait(
                     java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
             }
+
+            // Strategy 2: Long-press context menu → "Add Floor" / "New Floor"
+            try {
+                if (longPressOnBuilding(buildingName)) {
+                    sleep(400);
+                    driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(2000));
+                    try {
+                        // Look for Add Floor / New Floor option in context menu
+                        List<WebElement> addFloorOptions = driver.findElements(AppiumBy.iOSNsPredicateString(
+                            "label == 'Add Floor' OR label == 'New Floor' OR label CONTAINS 'Add Floor' OR label CONTAINS 'New Floor'"));
+                        if (!addFloorOptions.isEmpty()) {
+                            addFloorOptions.get(0).click();
+                            sleep(300);
+                            System.out.println("✅ Clicked 'Add Floor' from context menu");
+                            return isNewFloorScreenDisplayed();
+                        }
+
+                        // Also try generic "Add" or "plus" in context menu
+                        List<WebElement> addOptions = driver.findElements(AppiumBy.iOSNsPredicateString(
+                            "(label == 'Add' OR name == 'plus' OR name == 'plus.circle') AND type == 'XCUIElementTypeButton'"));
+                        if (!addOptions.isEmpty()) {
+                            addOptions.get(0).click();
+                            sleep(300);
+                            System.out.println("✅ Clicked 'Add' from context menu");
+                            return isNewFloorScreenDisplayed();
+                        }
+
+                        System.out.println("⚠️ No 'Add Floor' option in context menu");
+                        // Dismiss context menu
+                        tapOutsideContextMenu();
+                    } finally {
+                        driver.manage().timeouts().implicitlyWait(
+                            java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
+                    }
+                }
+            } catch (Exception ctxEx) {
+                System.out.println("⚠️ Context menu approach failed: " +
+                    (ctxEx.getMessage() != null ? ctxEx.getMessage().substring(0, Math.min(80, ctxEx.getMessage().length())) : ""));
+            }
+
+            System.out.println("⚠️ Could not navigate to New Floor screen");
+            return false;
         } catch (Exception e) {
             System.out.println("⚠️ Error navigating to New Floor: " + e.getMessage());
             return false;
