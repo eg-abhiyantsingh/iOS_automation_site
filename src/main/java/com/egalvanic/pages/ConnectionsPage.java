@@ -1970,11 +1970,17 @@ public class ConnectionsPage {
     public boolean selectAssetByIndex(int targetIndex) {
         try {
             System.out.println("👆 Selecting asset at index " + targetIndex + " from dropdown...");
-            sleep(400);  // Wait for dropdown to open
+            sleep(600);  // Wait for dropdown to open (increased from 400ms)
 
-            // Get ALL visible StaticText elements
+            // Get ALL visible StaticText elements — retry if dropdown hasn't rendered
             List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND visible == true"));
+            if (allTexts.size() < 5) {
+                // Dropdown likely hasn't rendered yet — retry
+                sleep(500);
+                allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND visible == true"));
+            }
 
             System.out.println("   Found " + allTexts.size() + " text elements");
 

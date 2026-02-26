@@ -1,6 +1,7 @@
 package com.egalvanic.pages;
 
 import com.egalvanic.base.BasePage;
+import com.egalvanic.constants.AppConstants;
 import io.appium.java_client.AppiumBy;
 import io.appium.java_client.pagefactory.iOSXCUITFindBy;
 import org.openqa.selenium.WebElement;
@@ -5141,6 +5142,8 @@ public class AssetPage extends BasePage {
      * Check if location picker is currently open
      */
     private boolean isLocationPickerOpen() {
+        // Use short timeout to avoid 15s block (3 queries × 5s each)
+        driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
         try {
             // Multiple ways to detect picker is open
             // 1. "Select Location" title visible
@@ -5150,7 +5153,7 @@ public class AssetPage extends BasePage {
                 System.out.println("📍 Location picker detected (title visible)");
                 return true;
             }
-            
+
             // 2. Building buttons visible (contain " floor" or " floors")
             List<WebElement> buildings = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND name CONTAINS ' floor'"));
@@ -5158,7 +5161,7 @@ public class AssetPage extends BasePage {
                 System.out.println("📍 Location picker detected (buildings visible)");
                 return true;
             }
-            
+
             // 3. Check for hierarchy pattern
             List<WebElement> hierarchy = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND (name CONTAINS ' room' OR name CONTAINS '>')"));
@@ -5166,10 +5169,12 @@ public class AssetPage extends BasePage {
                 System.out.println("📍 Location picker detected (hierarchy visible)");
                 return true;
             }
-            
+
             return false;
         } catch (Exception e) {
             return false;
+        } finally {
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
         }
     }
     
@@ -6545,16 +6550,18 @@ public class AssetPage extends BasePage {
     }
 
     public boolean isLocationPickerDisplayed() {
+        // Use NSPredicate server-side filter instead of iterating all buttons client-side
+        driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
         try {
-            List<WebElement> buttons = driver.findElements(AppiumBy.className("XCUIElementTypeButton"));
-            for (WebElement btn : buttons) {
-                String name = btn.getAttribute("name");
-                if (name != null && name.contains(" floor")) {
-                    return true;
-                }
-            }
-        } catch (Exception e) {}
-        return false;
+            List<WebElement> floors = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name CONTAINS ' floor'"
+            ));
+            return !floors.isEmpty();
+        } catch (Exception e) {
+            return false;
+        } finally {
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
+        }
     }
 
     public boolean isSubtypeDropdownDisplayed() {
@@ -7039,11 +7046,34 @@ public class AssetPage extends BasePage {
     }
 
     /**
-     * Find the Required Fields Only toggle using multiple strategies
-     * Returns the toggle WebElement or null if not found
+     * Check if an exception indicates the Appium/WDA driver session has died.
+     * Used to bail out early instead of retrying with a dead driver.
+     */
+    private boolean isDriverSessionDead(Exception e) {
+        String msg = e.getMessage() != null ? e.getMessage() : "";
+        String cause = e.getCause() != null && e.getCause().getMessage() != null
+                ? e.getCause().getMessage() : "";
+        String combined = msg + " " + cause;
+        return combined.contains("Error communicating with the remote browser") ||
+               combined.contains("session is either terminated or not started") ||
+               combined.contains("Session ID is null") ||
+               combined.contains("Connection refused") ||
+               combined.contains("Connection reset") ||
+               combined.contains("Unable to create session") ||
+               combined.contains("It may have died");
+    }
+
+    /**
+     * Find the Required Fields Only toggle using multiple strategies.
+     * Returns the toggle WebElement or null if not found.
+     * Uses short implicit wait (800ms) and detects dead driver sessions early.
      */
     private WebElement findRequiredFieldsToggle() {
         System.out.println("🔍 Finding Required Fields Only toggle...");
+
+        // Use short implicit wait to avoid 5s blocks per failed findElement call
+        driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
+        try {
 
         // FIRST: Scroll down to Core Attributes section where toggle is located
         System.out.println("   📜 Scrolling to Core Attributes section (toggle location)...");
@@ -7061,7 +7091,10 @@ public class AssetPage extends BasePage {
                     break;
                 }
             } catch (Exception e) {
-                // Toggle not visible yet, scroll down
+                if (isDriverSessionDead(e)) {
+                    System.out.println("   ❌ Driver session is dead, aborting toggle search");
+                    return null;
+                }
                 System.out.println("   Scroll attempt " + (scrollAttempt + 1) + " - toggle not visible yet");
                 scrollFormDown();
                 sleep(300);
@@ -7082,6 +7115,10 @@ public class AssetPage extends BasePage {
                 return toggle;
             }
         } catch (Exception e) {
+            if (isDriverSessionDead(e)) {
+                System.out.println("   ❌ Driver session is dead, aborting toggle search");
+                return null;
+            }
             System.out.println("   Strategy 1 (name contains): not found");
         }
 
@@ -7097,7 +7134,12 @@ public class AssetPage extends BasePage {
                     System.out.println("   ✅ Found toggle by accessibility ID: " + accId);
                     return toggle;
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                if (isDriverSessionDead(e)) {
+                    System.out.println("   ❌ Driver session is dead, aborting toggle search");
+                    return null;
+                }
+            }
         }
         System.out.println("   Strategy 2 (accessibility ID): not found");
 
@@ -7133,13 +7175,20 @@ public class AssetPage extends BasePage {
                         break; // Found section but no toggle, don't keep scrolling
                     }
                 } catch (Exception notFound) {
-                    // Core Attributes not visible yet, scroll down
+                    if (isDriverSessionDead(notFound)) {
+                        System.out.println("   ❌ Driver session is dead, aborting toggle search");
+                        return null;
+                    }
                     System.out.println("   Scrolling to find Core Attributes (attempt " + (i+1) + ")...");
                     scrollFormDown();
                     sleep(300);
                 }
             }
         } catch (Exception e) {
+            if (isDriverSessionDead(e)) {
+                System.out.println("   ❌ Driver session is dead, aborting toggle search");
+                return null;
+            }
             System.out.println("   Strategy 3 (Core Attributes section): not found");
         }
 
@@ -7172,10 +7221,19 @@ public class AssetPage extends BasePage {
                             }
                         }
                     }
-                } catch (Exception ignored) {}
+                } catch (Exception e) {
+                    if (isDriverSessionDead(e)) {
+                        System.out.println("   ❌ Driver session is dead, aborting toggle search");
+                        return null;
+                    }
+                }
             }
         } catch (Exception e) {
-            System.out.println("   Strategy 3 (find by nearby label): not found");
+            if (isDriverSessionDead(e)) {
+                System.out.println("   ❌ Driver session is dead, aborting toggle search");
+                return null;
+            }
+            System.out.println("   Strategy 4 (find by nearby label): not found");
         }
 
         // Strategy 5: Look for toggle in a cell/row containing "Required" text
@@ -7197,11 +7255,25 @@ public class AssetPage extends BasePage {
                                 System.out.println("   ✅ Found toggle in cell containing 'Required'");
                                 return toggle;
                             }
-                        } catch (Exception ignored) {}
+                        } catch (Exception e) {
+                            if (isDriverSessionDead(e)) {
+                                System.out.println("   ❌ Driver session is dead, aborting toggle search");
+                                return null;
+                            }
+                        }
                     }
-                } catch (Exception ignored) {}
+                } catch (Exception e) {
+                    if (isDriverSessionDead(e)) {
+                        System.out.println("   ❌ Driver session is dead, aborting toggle search");
+                        return null;
+                    }
+                }
             }
         } catch (Exception e) {
+            if (isDriverSessionDead(e)) {
+                System.out.println("   ❌ Driver session is dead, aborting toggle search");
+                return null;
+            }
             System.out.println("   Strategy 5 (find in cell): error - " + e.getMessage());
         }
 
@@ -7232,6 +7304,10 @@ public class AssetPage extends BasePage {
                 }
             }
         } catch (Exception e) {
+            if (isDriverSessionDead(e)) {
+                System.out.println("   ❌ Driver session is dead, aborting toggle search");
+                return null;
+            }
             System.out.println("   Strategy 6 (find by position): error - " + e.getMessage());
         }
 
@@ -7249,11 +7325,23 @@ public class AssetPage extends BasePage {
                 return firstSwitch;
             }
         } catch (Exception e) {
+            if (isDriverSessionDead(e)) {
+                System.out.println("   ❌ Driver session is dead, aborting toggle search");
+                return null;
+            }
             System.out.println("   Strategy 7 (fallback first switch): not found");
         }
 
         System.out.println("   ❌ Could not find Required Fields toggle after all strategies");
         return null;
+
+        } finally {
+            try {
+                driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
+            } catch (Exception ignored) {
+                // Driver may be dead — can't restore timeout
+            }
+        }
     }
 
     /**
@@ -7293,7 +7381,7 @@ public class AssetPage extends BasePage {
             if (toggle != null) {
                 toggle.click();
                 System.out.println("✅ Toggled Required Fields Only switch");
-                sleep(200);
+                sleep(500); // iOS toggle animation needs ~300ms
             } else {
                 System.out.println("⚠️ Could not find Required Fields toggle to click");
             }
@@ -7303,12 +7391,21 @@ public class AssetPage extends BasePage {
     }
 
     /**
-     * Enable Required Fields Only toggle (turn ON)
+     * Enable Required Fields Only toggle (turn ON).
+     * Polls up to 2s after toggling to confirm state changed.
      */
     public void enableRequiredFieldsOnly() {
         if (!isRequiredFieldsToggleOn()) {
             toggleRequiredFieldsOnly();
-            System.out.println("✅ Required Fields Only enabled");
+            // Poll to confirm toggle is now ON (animation may still be finishing)
+            for (int i = 0; i < 4; i++) {
+                if (isRequiredFieldsToggleOn()) {
+                    System.out.println("✅ Required Fields Only enabled");
+                    return;
+                }
+                sleep(300);
+            }
+            System.out.println("⚠️ Toggle may not have turned ON after toggling");
         }
     }
 
@@ -7318,7 +7415,15 @@ public class AssetPage extends BasePage {
     public void disableRequiredFieldsOnly() {
         if (isRequiredFieldsToggleOn()) {
             toggleRequiredFieldsOnly();
-            System.out.println("✅ Required Fields Only disabled");
+            // Poll to confirm toggle is now OFF
+            for (int i = 0; i < 4; i++) {
+                if (!isRequiredFieldsToggleOn()) {
+                    System.out.println("✅ Required Fields Only disabled");
+                    return;
+                }
+                sleep(300);
+            }
+            System.out.println("⚠️ Toggle may not have turned OFF after toggling");
         }
     }
 
@@ -7529,166 +7634,172 @@ public class AssetPage extends BasePage {
      */
     public void selectDropdownOption(String fieldName, String optionValue) {
         System.out.println("📋 Selecting '" + optionValue + "' for dropdown '" + fieldName + "'...");
-        
+
         boolean dropdownFound = false;
-        
-        // Try up to 3 scroll attempts to find the dropdown
-        for (int scrollAttempt = 0; scrollAttempt < 3 && !dropdownFound; scrollAttempt++) {
+
+        // STRATEGY 1: Use mobile:scroll to scroll the label into view (handles ANY distance)
+        try {
+            String predicate = "type == 'XCUIElementTypeStaticText' AND label CONTAINS[c] '" + fieldName + "'";
+            System.out.println("   🔍 Scrolling to label '" + fieldName + "' via mobile:scroll...");
+            java.util.Map<String, Object> scrollParams = new java.util.HashMap<>();
+            scrollParams.put("direction", "down");
+            scrollParams.put("predicateString", predicate);
+            driver.executeScript("mobile: scroll", scrollParams);
+            sleep(300);
+        } catch (Exception e) {
+            System.out.println("   mobile:scroll failed (label may already be visible): " + (e.getMessage() != null ? e.getMessage().substring(0, Math.min(80, e.getMessage().length())) : ""));
+        }
+
+        // Now find the label and the nearest button below it
+        for (int attempt = 0; attempt < 3 && !dropdownFound; attempt++) {
             try {
-                // STRATEGY 1: Find button containing field name (case-insensitive)
-                List<WebElement> buttons = driver.findElements(AppiumBy.className("XCUIElementTypeButton"));
-                
-                // Debug: Log buttons that might match
-                if (scrollAttempt == 0) {
-                    System.out.println("   🔍 Searching for '" + fieldName + "' in " + buttons.size() + " buttons...");
-                }
-                
-                for (WebElement btn : buttons) {
-                    String name = btn.getAttribute("name");
-                    String label = btn.getAttribute("label");
-                    
-                    // Case-insensitive check
-                    boolean nameMatch = name != null && name.toLowerCase().contains(fieldName.toLowerCase());
-                    boolean labelMatch = label != null && label.toLowerCase().contains(fieldName.toLowerCase());
-                    
-                    if (nameMatch || labelMatch) {
-                        // Check if visible (Y > 100 and Y < 800)
-                        int y = btn.getLocation().getY();
-                        System.out.println("   ✓ Found matching button: name='" + name + "' label='" + label + "' Y=" + y);
-                        if (y > 100 && y < 800) {
-                            btn.click();
-                            dropdownFound = true;
-                            System.out.println("   ✅ Clicked dropdown button");
-                            sleep(300);
-                            break;
-                        } else {
-                            System.out.println("   ⚠️ Button Y=" + y + " outside visible range (100-800)");
+                List<WebElement> labels = driver.findElements(
+                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText' AND " +
+                        "(name CONTAINS[c] '" + fieldName + "' OR label CONTAINS[c] '" + fieldName + "')")
+                );
+
+                if (!labels.isEmpty()) {
+                    WebElement lbl = labels.get(0);
+                    int labelY = lbl.getLocation().getY();
+                    System.out.println("   🔍 Label '" + fieldName + "' at Y=" + labelY);
+
+                    // Find dropdown button near the label within 80px
+                    // IMPORTANT: Filter out location breadcrumb buttons (e.g., "Trim067938, Room_xxx, ATS")
+                    // which contain ", " and are NOT dropdown buttons. Real dropdown buttons are named
+                    // "Select..." (unselected) or a short value like "22 kA" (already selected).
+                    List<WebElement> allBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton'"
+                    ));
+                    WebElement selectBtn = null;    // Priority 1: "Select..." buttons
+                    int selectDist = Integer.MAX_VALUE;
+                    WebElement valueBtn = null;     // Priority 2: short-named non-breadcrumb buttons
+                    int valueDist = Integer.MAX_VALUE;
+
+                    for (WebElement btn : allBtns) {
+                        int btnY = btn.getLocation().getY();
+                        if (btnY < labelY - 10 || btnY >= labelY + 80) continue;
+
+                        String btnName = btn.getAttribute("name");
+                        if (btnName == null) btnName = "";
+                        int dist = Math.abs(btnY - labelY);
+
+                        // Priority 1: "Select..." button (unselected dropdown state)
+                        if (btnName.startsWith("Select")) {
+                            if (dist < selectDist) {
+                                selectDist = dist;
+                                selectBtn = btn;
+                            }
+                            continue;
+                        }
+
+                        // Skip location breadcrumb buttons (contain ", " with path segments)
+                        if (btnName.contains(", ")) continue;
+                        // Skip very long names (breadcrumbs are verbose)
+                        if (btnName.length() > 50) continue;
+                        // Skip known tab bar / nav buttons
+                        if (btnName.equals("house") || btnName.equals("Back") || btnName.equals("Close") ||
+                            btnName.equals("Search") || btnName.equals("plus")) continue;
+
+                        // Priority 2: short-named button (dropdown with value already set)
+                        if (dist < valueDist) {
+                            valueDist = dist;
+                            valueBtn = btn;
                         }
                     }
-                }
-                
-                // STRATEGY 2: Find label then nearby button
-                if (!dropdownFound) {
-                    System.out.println("   🔍 Strategy 2: Finding label '" + fieldName + "'...");
-                    List<WebElement> labels = driver.findElements(
-                        AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText' AND (name CONTAINS[c] '" + fieldName + "' OR label CONTAINS[c] '" + fieldName + "') AND visible == true")
-                    );
-                    System.out.println("   Found " + labels.size() + " labels containing '" + fieldName + "'");
-                    
-                    // DEBUG: If no labels found, show ALL visible labels on screen
-                    if (labels.isEmpty() && scrollAttempt == 0) {
-                        System.out.println("   📋 DEBUG: All visible labels on screen:");
-                        try {
-                            List<WebElement> allLabels = driver.findElements(
-                                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText' AND visible == true")
-                            );
-                            int count = 0;
-                            for (WebElement lbl : allLabels) {
-                                String name = lbl.getAttribute("name");
-                                if (name != null && !name.isEmpty() && name.length() < 50) {
-                                    int y = lbl.getLocation().getY();
-                                    // Only show labels in form area (y > 200 and y < 800)
-                                    if (y > 200 && y < 800) {
-                                        System.out.println("      - '" + name + "' at Y=" + y);
-                                        count++;
-                                        if (count > 15) {
-                                            System.out.println("      ... (showing first 15)");
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                        } catch (Exception debugEx) {}
-                    }
-                    
-                    for (WebElement lbl : labels) {
-                        int labelY = lbl.getLocation().getY();
-                        String lblName = lbl.getAttribute("name");
-                        System.out.println("   Label: '" + lblName + "' at Y=" + labelY);
-                        
-                        if (labelY > 100 && labelY < 800) {
-                            // Found visible label, look for button below it
-                            for (WebElement btn : buttons) {
-                                int btnY = btn.getLocation().getY();
-                                // Button should be slightly below the label (within 100 pixels)
-                                if (btnY > labelY && btnY < labelY + 100) {
-                                    String btnName = btn.getAttribute("name");
-                                    System.out.println("   ✓ Found button below label: '" + btnName + "' at Y=" + btnY);
-                                    btn.click();
-                                    dropdownFound = true;
-                                    System.out.println("   ✅ Clicked dropdown button");
-                                    sleep(300);
-                                    break;
-                                }
-                            }
-                            if (dropdownFound) break;
-                        }
-                    }
-                }
-                
-                if (!dropdownFound && scrollAttempt < 2) {
-                    // Alternate: first try UP, then try DOWN
-                    if (scrollAttempt == 0) {
-                        System.out.println("   Dropdown not visible, scrolling UP... (attempt 1)");
-                        scrollFormUp();
+
+                    WebElement closestBtn = selectBtn != null ? selectBtn : valueBtn;
+                    int closestDist = selectBtn != null ? selectDist : valueDist;
+
+                    if (closestBtn != null) {
+                        String btnName = closestBtn.getAttribute("name");
+                        int btnY = closestBtn.getLocation().getY();
+                        System.out.println("   ✅ Clicking dropdown button: '" + btnName + "' at Y=" + btnY + " (dist=" + closestDist + "px)");
+                        closestBtn.click();
+                        dropdownFound = true;
+                        sleep(400);
                     } else {
-                        System.out.println("   Dropdown not visible, scrolling DOWN... (attempt 2)");
-                        scrollFormDown();
+                        System.out.println("   ⚠️ No dropdown button found within 80px of label Y=" + labelY + " (breadcrumbs filtered out)");
                     }
-                    sleep(200);
+                } else {
+                    System.out.println("   ⚠️ Label '" + fieldName + "' not found in DOM");
                 }
             } catch (Exception e) {
-                System.out.println("   Error finding dropdown: " + e.getMessage());
+                System.out.println("   Error: " + (e.getMessage() != null ? e.getMessage().substring(0, Math.min(80, e.getMessage().length())) : ""));
+            }
+
+            // If not found, try manual scroll and retry
+            if (!dropdownFound && attempt < 2) {
+                System.out.println("   Scrolling down to find dropdown... (attempt " + (attempt + 1) + ")");
+                scrollFormDown();
+                sleep(300);
             }
         }
-        
+
         if (!dropdownFound) {
             System.out.println("⚠️ Dropdown '" + fieldName + "' not found after scrolling");
             return;
         }
-        
-        // Now try to select the option value
-        sleep(300);  // Wait for dropdown to open
-        
+
+        // Dropdown is now open — select the option value
         try {
-            // Try exact match first
+            // Try exact match first (accessibility ID)
             WebElement option = driver.findElement(AppiumBy.accessibilityId(optionValue));
             option.click();
             System.out.println("✅ Selected '" + optionValue + "' for '" + fieldName + "'");
             return;
         } catch (Exception e) {}
-        
-        // Try contains match
+
+        // Try case-insensitive exact match
         try {
-            List<WebElement> options = driver.findElements(
-                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText' AND (name CONTAINS '" + optionValue.replace("V", "").replace("A", "") + "' OR label CONTAINS '" + optionValue.replace("V", "").replace("A", "") + "')")
+            WebElement option = driver.findElement(
+                AppiumBy.iOSNsPredicateString("name ==[c] '" + optionValue + "' OR label ==[c] '" + optionValue + "'")
             );
+            option.click();
+            System.out.println("✅ Selected '" + optionValue + "' (case-insensitive) for '" + fieldName + "'");
+            return;
+        } catch (Exception e) {}
+
+        // Try contains match — strip unit suffixes like "V", "A", "kA"
+        try {
+            String searchVal = optionValue.replaceAll("[VAva]+$", "").trim();
+            List<WebElement> options = driver.findElements(
+                AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton') AND " +
+                    "(name CONTAINS[c] '" + searchVal + "' OR label CONTAINS[c] '" + searchVal + "')")
+            );
+            System.out.println("   🔍 Contains search for '" + searchVal + "': found " + options.size() + " matches");
             for (WebElement opt : options) {
+                String optName = opt.getAttribute("name");
+                // Skip the label itself and navigation elements
+                if (optName != null && optName.contains(fieldName)) continue;
+                if (optName != null && (optName.equals("Close") || optName.equals("Back"))) continue;
+                opt.click();
+                System.out.println("✅ Selected option '" + optName + "' for '" + fieldName + "'");
+                return;
+            }
+        } catch (Exception e) {}
+
+        // Try clicking first non-label option in the dropdown
+        try {
+            System.out.println("   🔍 Trying first available option...");
+            List<WebElement> allOptions = driver.findElements(
+                AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND name != 'Close' AND name != 'Back' AND name != 'Select...'")
+            );
+            for (WebElement opt : allOptions) {
                 int y = opt.getLocation().getY();
                 if (y > 100 && y < 800) {
+                    String optName = opt.getAttribute("name");
                     opt.click();
-                    System.out.println("✅ Selected option containing '" + optionValue + "' for '" + fieldName + "'");
+                    System.out.println("✅ Selected first available option: '" + optName + "' for '" + fieldName + "'");
                     return;
                 }
             }
         } catch (Exception e) {}
-        
-        // Try clicking any visible cell/option
-        try {
-            List<WebElement> cells = driver.findElements(AppiumBy.className("XCUIElementTypeCell"));
-            for (WebElement cell : cells) {
-                String text = cell.getAttribute("label");
-                if (text != null && text.contains(optionValue.replace("V", "").replace("A", ""))) {
-                    cell.click();
-                    System.out.println("✅ Selected cell '" + text + "' for '" + fieldName + "'");
-                    return;
-                }
-            }
-        } catch (Exception e) {}
-        
+
         System.out.println("⚠️ Could not select option '" + optionValue + "' for '" + fieldName + "'");
-        // Tap back to close dropdown
-        clickBack();
+        // Dismiss the dropdown
+        dismissKeyboard();
     }
 
     /**
@@ -7728,56 +7839,56 @@ public class AssetPage extends BasePage {
      */
     public void clickSaveChanges() {
         System.out.println("💾 Looking for Save Changes button...");
-        
-        // Save Changes button appears at the BOTTOM of the screen after making changes
-        // First try to find it without scrolling
-        
-        // Try 1: Direct visibility check
+
+        // Try 1: Find Save button in DOM (no visible == true — may be off-screen)
         try {
-            WebElement saveBtn = driver.findElement(
-                AppiumBy.iOSNsPredicateString("name CONTAINS 'Save' AND type == 'XCUIElementTypeButton' AND visible == true")
+            List<WebElement> saveBtns = driver.findElements(
+                AppiumBy.iOSNsPredicateString("(name CONTAINS 'Save' OR label CONTAINS 'Save') AND type == 'XCUIElementTypeButton'")
             );
-            saveBtn.click();
-            System.out.println("✅ Clicked Save Changes (visible)");
-            sleep(400);
-            return;
+            if (!saveBtns.isEmpty()) {
+                // Use mobile:scroll to bring it into view if needed
+                try {
+                    driver.executeScript("mobile: scroll", java.util.Map.of(
+                        "direction", "down",
+                        "predicateString", "name CONTAINS 'Save' AND type == 'XCUIElementTypeButton'"));
+                } catch (Exception scrollEx) { /* already visible */ }
+                sleep(300);
+                // Re-find after scroll and click
+                saveBtns = driver.findElements(
+                    AppiumBy.iOSNsPredicateString("(name CONTAINS 'Save' OR label CONTAINS 'Save') AND type == 'XCUIElementTypeButton' AND visible == true")
+                );
+                if (!saveBtns.isEmpty()) {
+                    saveBtns.get(0).click();
+                    System.out.println("✅ Clicked Save Changes");
+                    sleep(400);
+                    return;
+                }
+            }
         } catch (Exception e) {}
-        
-        // Try 2: Scroll DOWN to find Save Changes (it's at the bottom)
+
+        // Try 2: Scroll DOWN manually to find Save Changes (it's at the bottom)
         System.out.println("   Scrolling down to find Save Changes...");
-        for (int i = 0; i < 3; i++) {
-            scrollFormDown();
-            sleep(300);
-            
-            try {
-                WebElement saveBtn = driver.findElement(
+        driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
+        try {
+            for (int i = 0; i < 3; i++) {
+                scrollFormDown();
+                sleep(300);
+                List<WebElement> saveBtns = driver.findElements(
                     AppiumBy.iOSNsPredicateString("name CONTAINS 'Save' AND type == 'XCUIElementTypeButton' AND visible == true")
                 );
-                saveBtn.click();
-                System.out.println("✅ Clicked Save Changes (after scroll)");
-                sleep(400);
-                return;
-            } catch (Exception e) {}
+                if (!saveBtns.isEmpty()) {
+                    saveBtns.get(0).click();
+                    System.out.println("✅ Clicked Save Changes (after scroll)");
+                    sleep(400);
+                    return;
+                }
+            }
+        } finally {
+            driver.manage().timeouts().implicitlyWait(
+                java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
         }
-        
-        // Try 3: Scroll back up and look again
-        System.out.println("   Scrolling up to check...");
-        for (int i = 0; i < 3; i++) {
-            scrollFormUp();
-            sleep(300);
-            
-            try {
-                WebElement saveBtn = driver.findElement(
-                    AppiumBy.iOSNsPredicateString("name CONTAINS 'Save' AND type == 'XCUIElementTypeButton' AND visible == true")
-                );
-                saveBtn.click();
-                System.out.println("✅ Clicked Save Changes (after scroll up)");
-                sleep(400);
-                return;
-            } catch (Exception e) {}
-        }
-        
-        // Try 4: AccessibilityId without visible check
+
+        // Try 3: AccessibilityId fallback
         try {
             WebElement saveChangesBtn = driver.findElement(AppiumBy.accessibilityId("Save Changes"));
             saveChangesBtn.click();
@@ -7785,23 +7896,7 @@ public class AssetPage extends BasePage {
             sleep(400);
             return;
         } catch (Exception e) {}
-        
-        // Try 5: Generic Save button search
-        try {
-            List<WebElement> buttons = driver.findElements(
-                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name CONTAINS 'Save'")
-            );
-            for (WebElement btn : buttons) {
-                String name = btn.getAttribute("name");
-                if (name != null && name.contains("Save")) {
-                    btn.click();
-                    System.out.println("✅ Clicked Save button: " + name);
-                    sleep(400);
-                    return;
-                }
-            }
-        } catch (Exception e) {}
-        
+
         System.out.println("⚠️ Could not find Save Changes button - changes may not have been made");
     }
 
@@ -8236,45 +8331,63 @@ public class AssetPage extends BasePage {
      * This checks the asset class field VALUE, not just if any element with that name exists
      */
     private boolean isCurrentAssetClassEqualTo(String targetClass) {
+        // Use short timeout — this is a quick detection check, not a wait-for-element
+        driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
         try {
-            // FAST check: Directly look for a button with the target class name
-            // This is MUCH faster than searching all buttons and checking positions
+            // Strategy 1: Find "Asset Class" label, then check nearby elements
+            // This is reliable regardless of scroll position or screen layout
+            int labelY = -1;
             try {
-                WebElement targetBtn = driver.findElement(
-                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name == '" + targetClass + "' AND visible == true")
+                WebElement assetClassLabel = driver.findElement(
+                    AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND " +
+                        "(name CONTAINS 'Asset Class' OR label CONTAINS 'Asset Class')")
                 );
-                if (targetBtn != null && targetBtn.isDisplayed()) {
-                    // Found button with exact name - check if it's in the form area (not in picker)
-                    int btnY = targetBtn.getLocation().getY();
-                    // Form fields are typically between y=200 and y=600, picker is below 600
-                    if (btnY > 150 && btnY < 600) {
-                        System.out.println("   Current asset class: " + targetClass + " (fast match)");
-                        return true;
-                    }
-                }
-            } catch (Exception notFound) {
-                // Target class button not found - that's OK, means it's not the current class
+                labelY = assetClassLabel.getLocation().getY();
+            } catch (Exception e) {
+                // Label not found — fall through to fallback
             }
-            
-            // FAST check 2: Try case-insensitive/contains match
-            try {
-                List<WebElement> matchingBtns = driver.findElements(
-                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND (name CONTAINS[c] '" + targetClass + "') AND visible == true")
+
+            if (labelY > 0) {
+                // Search for BOTH buttons and static texts with target class name
+                // (dropdown value can render as either type depending on iOS version)
+                List<WebElement> matches = driver.findElements(
+                    AppiumBy.iOSNsPredicateString(
+                        "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND " +
+                        "(name CONTAINS[c] '" + targetClass + "' OR label CONTAINS[c] '" + targetClass + "')")
                 );
-                for (WebElement btn : matchingBtns) {
-                    int btnY = btn.getLocation().getY();
-                    if (btnY > 150 && btnY < 600) {
-                        String name = btn.getAttribute("name");
-                        System.out.println("   Current asset class: " + name + " (contains " + targetClass + ")");
+                for (WebElement el : matches) {
+                    String elName = el.getAttribute("name");
+                    // Skip the "Asset Class" label itself
+                    if (elName != null && elName.contains("Asset Class")) continue;
+                    int elY = el.getLocation().getY();
+                    // Check proximity to the label (within 80px)
+                    if (Math.abs(elY - labelY) < 80) {
+                        System.out.println("   Current asset class: " + elName + " (Y=" + elY + ", near label Y=" + labelY + ")");
                         return true;
                     }
                 }
-            } catch (Exception e) {}
-            
+            }
+
+            // Strategy 2: Direct button search with wide Y range (if label wasn't found)
+            List<WebElement> btns = driver.findElements(
+                AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND name == '" + targetClass + "'")
+            );
+            for (WebElement btn : btns) {
+                int btnY = btn.getLocation().getY();
+                if (btnY > 100 && btnY < 900) {
+                    System.out.println("   Current asset class: " + targetClass + " (direct match, Y=" + btnY + ")");
+                    return true;
+                }
+            }
+
             return false;
         } catch (Exception e) {
             System.out.println("   Error checking current asset class: " + e.getMessage());
             return false;
+        } finally {
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
         }
     }
 
@@ -9399,19 +9512,19 @@ public class AssetPage extends BasePage {
      */
     public boolean isSaveChangesButtonVisible() {
         // FAST check - "Save" and "Save Changes" are the SAME button
-        // Just look for any button containing "Save"
+        // Search full DOM (no visible == true) — button may be off-screen after scrolling up
         try {
             List<WebElement> saveBtns = driver.findElements(
-                AppiumBy.iOSNsPredicateString("(name CONTAINS 'Save' OR label CONTAINS 'Save') AND type == 'XCUIElementTypeButton' AND visible == true")
+                AppiumBy.iOSNsPredicateString("(name CONTAINS 'Save' OR label CONTAINS 'Save') AND type == 'XCUIElementTypeButton'")
             );
             if (!saveBtns.isEmpty()) {
-                System.out.println("   ✅ Save button is visible (still on edit screen)");
+                System.out.println("   ✅ Save button found in DOM (edit screen active)");
                 return true;
             }
         } catch (Exception e) {}
-        
-        // Save button not visible - this is NORMAL after successful save (left edit screen)
-        System.out.println("   ℹ️ Save button not visible (likely left edit screen after save)");
+
+        // Save button not found - this is NORMAL after successful save (left edit screen)
+        System.out.println("   ℹ️ Save button not found (likely left edit screen after save)");
         return false;
     }
     
@@ -9712,7 +9825,9 @@ public class AssetPage extends BasePage {
                         // Fall through to next strategy
                     }
                 }
-            } catch (Exception e) {}
+            } catch (Exception e) {
+                System.out.println("   🔍 Strategy 2 failed: " + (e.getMessage() != null ? e.getMessage().substring(0, Math.min(80, e.getMessage().length())) : "null"));
+            }
             
             // STRATEGY 2B: Try lowercase variant
             try {
@@ -9739,43 +9854,50 @@ public class AssetPage extends BasePage {
                         return true;
                     }
                 }
-            } catch (Exception e) {}
+            } catch (Exception e) {
+                System.out.println("   🔍 Strategy 2B failed: no lowercase match");
+            }
             
             // STRATEGY 3: Find label (case-insensitive), then find CLOSEST TextField/TextView BELOW it
             try {
                 List<WebElement> labels = driver.findElements(
                     AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText' AND (name CONTAINS[c] '" + fieldName + "' OR label CONTAINS[c] '" + fieldName + "')")
                 );
-                
+
+                System.out.println("   🔍 Strategy 3: Found " + labels.size() + " labels matching '" + fieldName + "'");
+
                 if (!labels.isEmpty()) {
                     WebElement label = labels.get(0);
                     int labelY = label.getLocation().getY();
-                    
+                    System.out.println("   🔍 Strategy 3: Label Y=" + labelY);
+
                     // Find TextField OR TextView - must be BELOW or same row (not above!)
                     List<WebElement> inputFields = driver.findElements(
                         AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeTextView'")
                     );
-                    
+
+                    System.out.println("   🔍 Strategy 3: " + inputFields.size() + " input fields on screen");
+
                     // Find the CLOSEST field that is BELOW the label (tfY >= labelY - 20)
                     WebElement closestField = null;
                     int closestDistance = Integer.MAX_VALUE;
-                    
+
                     for (WebElement tf : inputFields) {
                         int tfY = tf.getLocation().getY();
+                        int distance = Math.abs(tfY - labelY);
                         // Field must be BELOW or at same level as label (allow 20px tolerance for same row)
                         // AND within 100px vertically
                         if (tfY >= labelY - 20 && tfY <= labelY + 100) {
-                            int distance = Math.abs(tfY - labelY);
                             if (distance < closestDistance) {
                                 closestDistance = distance;
                                 closestField = tf;
                             }
                         }
                     }
-                    
+
                     if (closestField != null) {
                         int tfY = closestField.getLocation().getY();
-                        System.out.println("   Found '" + fieldName + "' at Y=" + labelY + ", field at Y=" + tfY);
+                        System.out.println("   🔍 Strategy 3: Found closest field at Y=" + tfY + " (dist=" + closestDistance + "px)");
                         closestField.click();
                         sleep(300);
                         closestField.clear();
@@ -9783,9 +9905,13 @@ public class AssetPage extends BasePage {
                         dismissKeyboard();
                         System.out.println("✅ Edited " + fieldName + " = " + value);
                         return true;
+                    } else {
+                        System.out.println("   🔍 Strategy 3: NO field within 100px of label Y=" + labelY);
                     }
                 }
-            } catch (Exception e) {}
+            } catch (Exception e) {
+                System.out.println("   🔍 Strategy 3 error: " + (e.getMessage() != null ? e.getMessage().substring(0, Math.min(80, e.getMessage().length())) : "null"));
+            }
             
             // STRATEGY 4: Find by partial match in label (case-insensitive)
             try {

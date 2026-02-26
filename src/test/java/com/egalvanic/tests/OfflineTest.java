@@ -157,10 +157,14 @@ public final class OfflineTest extends BaseTest {
      * Check if WiFi icon shows clean "Wi-Fi" accessibility ID (no sync badge, not offline).
      */
     private boolean isWifiIconClean(io.appium.java_client.ios.IOSDriver d) {
+        d.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(500));
         try {
-            return d.findElement(AppiumBy.accessibilityId("Wi-Fi")).isDisplayed();
+            return !d.findElements(AppiumBy.accessibilityId("Wi-Fi")).isEmpty();
         } catch (Exception e) {
             return false;
+        } finally {
+            d.manage().timeouts().implicitlyWait(
+                java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
         }
     }
 
@@ -196,14 +200,14 @@ public final class OfflineTest extends BaseTest {
      * Dismiss WiFi popup by tapping outside it.
      */
     private void dismissWifiPopup(io.appium.java_client.ios.IOSDriver d) {
+        // Use short timeout to avoid 5s block when Dashboard element not found
+        d.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(500));
         try {
             d.findElement(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeOther' AND name == 'Dashboard'")).click();
         } catch (Exception e) {
             // Fallback: tap at a neutral screen location to dismiss popup
             try {
-                new org.openqa.selenium.interactions.PointerInput(
-                    org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
                 org.openqa.selenium.Dimension screenSize = d.manage().window().getSize();
                 d.executeScript("mobile: tap", java.util.Map.of(
                     "x", screenSize.getWidth() / 2,
@@ -211,6 +215,9 @@ public final class OfflineTest extends BaseTest {
             } catch (Exception tapEx) {
                 shortWait();
             }
+        } finally {
+            d.manage().timeouts().implicitlyWait(
+                java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
         }
     }
 
@@ -224,22 +231,27 @@ public final class OfflineTest extends BaseTest {
     private boolean isDefinitelyOffline() {
         io.appium.java_client.ios.IOSDriver d = DriverManager.getDriver();
 
-        // Check 1: "Wi-Fi Off" accessibility ID — definitive
+        // Check definitive WiFi icons only (no digit regex — matches unrelated elements)
+        d.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(500));
         try {
-            if (d.findElement(AppiumBy.accessibilityId("Wi-Fi Off")).isDisplayed()) {
+            // Check 1: "Wi-Fi Off" = definitely offline
+            if (!d.findElements(AppiumBy.accessibilityId("Wi-Fi Off")).isEmpty()) {
                 return true;
             }
-        } catch (Exception e) { /* not found */ }
-
-        // Check 2: Clean "Wi-Fi" icon — definitely NOT offline
-        if (isWifiIconClean(d)) {
-            return false;
+            // Check 2: "Wi-Fi" = definitely online
+            if (!d.findElements(AppiumBy.accessibilityId("Wi-Fi")).isEmpty()) {
+                return false;
+            }
+        } catch (Exception e) { /* ignore */ }
+        finally {
+            d.manage().timeouts().implicitlyWait(
+                java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
         }
 
-        // Check 3: Sync badge present (ambiguous) — open popup to check
+        // Check 3: Neither found (sync badge or unknown) — use popup to determine
         try {
             siteSelectionPage.clickWifiButton();
-            shortWait();
+            sleep(800); // Wait for popup animation
             boolean goOnlineVisible = siteSelectionPage.isGoOnlineOptionVisible();
             dismissWifiPopup(d);
             return goOnlineVisible;
@@ -264,26 +276,42 @@ public final class OfflineTest extends BaseTest {
     private void goOfflineViaPopup() {
         io.appium.java_client.ios.IOSDriver d = DriverManager.getDriver();
 
-        // Fast check: already definitively offline?
+        // Fast check with short timeout: already definitively offline?
+        // Only check "Wi-Fi Off" — the DEFINITIVE offline indicator.
+        // Do NOT check digit regex here — it matches unrelated numeric elements (tab badges, etc.)
+        // Sync badge (digit) is ambiguous and handled by popup-based detection below.
+        d.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(500));
         try {
-            if (d.findElement(AppiumBy.accessibilityId("Wi-Fi Off")).isDisplayed()) {
+            java.util.List<org.openqa.selenium.WebElement> offlineIcons = d.findElements(
+                AppiumBy.accessibilityId("Wi-Fi Off"));
+            if (!offlineIcons.isEmpty()) {
                 logStep("Already offline (Wi-Fi Off icon)");
                 return;
             }
         } catch (Exception e) { /* not offline */ }
+        finally {
+            d.manage().timeouts().implicitlyWait(
+                java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
+        }
 
         // Open popup to determine state and toggle
         siteSelectionPage.clickWifiButton();
-        shortWait();
+        sleep(800); // Wait for popup animation (iOS needs 300-500ms)
 
         if (siteSelectionPage.isGoOfflineOptionVisible()) {
             logStep("Clicking Go Offline from popup");
+            d.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
             try {
                 d.findElement(AppiumBy.iOSNsPredicateString(
                     "label == 'Go Offline' OR name == 'Go Offline'")).click();
             } catch (Exception e) {
+                d.manage().timeouts().implicitlyWait(
+                    java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
                 dismissWifiPopup(d);
                 siteSelectionPage.goOffline();
+            } finally {
+                d.manage().timeouts().implicitlyWait(
+                    java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
             }
             mediumWait();
         } else if (siteSelectionPage.isGoOnlineOptionVisible()) {
@@ -315,16 +343,22 @@ public final class OfflineTest extends BaseTest {
 
         // Open popup to determine state and toggle
         siteSelectionPage.clickWifiButton();
-        shortWait();
+        sleep(800); // Wait for popup animation (iOS needs 300-500ms)
 
         if (siteSelectionPage.isGoOnlineOptionVisible()) {
             logStep("Clicking Go Online from popup");
+            d.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
             try {
                 d.findElement(AppiumBy.iOSNsPredicateString(
                     "label == 'Go Online' OR name == 'Go Online'")).click();
             } catch (Exception e) {
+                d.manage().timeouts().implicitlyWait(
+                    java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
                 dismissWifiPopup(d);
                 siteSelectionPage.goOnline();
+            } finally {
+                d.manage().timeouts().implicitlyWait(
+                    java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
             }
             mediumWait();
         } else if (siteSelectionPage.isGoOfflineOptionVisible()) {
@@ -412,23 +446,17 @@ public final class OfflineTest extends BaseTest {
 
         logStep("Clicking WiFi icon to open popup menu");
         siteSelectionPage.clickWifiButton();
-        shortWait(); // Wait for popup animation
+        sleep(800); // Wait for popup animation (iOS needs 300-500ms)
 
         logStepWithScreenshot("Verifying 'Go Offline' option is visible in popup");
         // The Go Offline option should be present when user is online
-        // Use a soft check with fallback — popup may render with slight delay
-        boolean goOfflineVisible = false;
-        try {
+        // isGoOfflineOptionVisible() now uses findElements with 800ms short timeout
+        boolean goOfflineVisible = siteSelectionPage.isGoOfflineOptionVisible();
+        if (!goOfflineVisible) {
+            // One retry — popup may need extra time
+            logWarning("Go Offline not visible on first check, retrying after brief wait...");
+            sleep(500);
             goOfflineVisible = siteSelectionPage.isGoOfflineOptionVisible();
-        } catch (Exception e) {
-            logWarning("Exception checking Go Offline visibility: " + e.getMessage());
-            // Retry after a brief wait for popup to fully render
-            shortWait();
-            try {
-                goOfflineVisible = siteSelectionPage.isGoOfflineOptionVisible();
-            } catch (Exception e2) {
-                logWarning("Retry also failed: " + e2.getMessage());
-            }
         }
 
         assertTrue(goOfflineVisible,

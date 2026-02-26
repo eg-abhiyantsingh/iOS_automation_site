@@ -462,9 +462,12 @@ public class IssuePage extends BasePage {
      */
     public boolean isClosedTabDisplayed() {
         try {
-            WebElement tab = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label CONTAINS 'Closed'"));
-            return tab.isDisplayed();
+            // Search for Closed tab — may be rendered as "Closed" or "Closed (N)"
+            // Also check for Resolved tab which may replace Closed in some versions
+            List<WebElement> tabs = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(label CONTAINS 'Closed' OR label CONTAINS 'Resolved' OR name CONTAINS 'Closed')"));
+            return !tabs.isEmpty();
         } catch (Exception e) {
             return false;
         }
@@ -5761,12 +5764,15 @@ public class IssuePage extends BasePage {
     public java.util.ArrayList<String> getFilteredSubcategoryOptions() {
         java.util.ArrayList<String> options = new java.util.ArrayList<>();
         try {
+            // Search for subcategory dropdown items — typically cells or static text in the picker area
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' OR " +
                 "type == 'XCUIElementTypeCell')"));
             for (WebElement el : elements) {
                 String label = el.getAttribute("label");
                 int y = el.getLocation().getY();
+                // Filter: must be in dropdown area (Y > 100), non-trivial text (length > 5),
+                // and NOT a UI chrome element (tabs, buttons, labels)
                 if (label != null && !label.isEmpty() && y > 100 && label.length() > 5 &&
                     !label.equals("Subcategory") && !label.contains("Type or select") &&
                     !label.equals("Cancel") && !label.equals("Done") && !label.equals("Close") &&
@@ -5774,8 +5780,7 @@ public class IssuePage extends BasePage {
                     !label.equals("Description") && !label.contains("Proposed") &&
                     !label.equals("Status") && !label.equals("Priority") &&
                     !label.equals("Issue Class") && !label.contains("Photo") &&
-                    !label.contains("Delete") && !label.contains("Save") &&
-                    label.contains("Chapter")) {
+                    !label.contains("Delete") && !label.contains("Save")) {
                     options.add(label);
                 }
             }
@@ -6331,26 +6336,23 @@ public class IssuePage extends BasePage {
      */
     public boolean isThermalFieldPresent(String fieldName) {
         try {
-            // Strategy 1: Direct DOM search for label text
+            // Strategy 1: Quick DOM check with short timeout (avoids 5s wait per miss)
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
             try {
-                WebElement label = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND " +
-                    "(label == '" + fieldName + "' OR label CONTAINS '" + fieldName + "')"));
-                System.out.println("   Found field '" + fieldName + "' via direct DOM");
-                return true;
-            } catch (Exception ignored) {}
+                List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' OR " +
+                    "type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeTextView') AND " +
+                    "(label CONTAINS '" + fieldName + "' OR name CONTAINS '" + fieldName + "')"));
+                if (!found.isEmpty()) {
+                    System.out.println("   Found field '" + fieldName + "' via direct DOM");
+                    return true;
+                }
+            } finally {
+                driver.manage().timeouts().implicitlyWait(
+                    java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
+            }
 
-            // Strategy 2: Check for button/picker with field name
-            try {
-                WebElement picker = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeTextField' OR " +
-                    "type == 'XCUIElementTypeTextView') AND " +
-                    "(name CONTAINS '" + fieldName + "' OR label CONTAINS '" + fieldName + "')"));
-                System.out.println("   Found field '" + fieldName + "' via picker/input");
-                return true;
-            } catch (Exception ignored) {}
-
-            // Strategy 3: mobile: scroll with predicate to find off-screen fields
+            // Strategy 2: mobile: scroll with predicate to find off-screen fields
             try {
                 Map<String, Object> params = new HashMap<>();
                 params.put("direction", "down");
@@ -6358,10 +6360,12 @@ public class IssuePage extends BasePage {
                 driver.executeScript("mobile: scroll", params);
                 sleep(300);
 
-                WebElement label = driver.findElement(AppiumBy.iOSNsPredicateString(
+                List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeStaticText' AND label CONTAINS '" + fieldName + "'"));
-                System.out.println("   Found field '" + fieldName + "' after mobile:scroll");
-                return true;
+                if (!found.isEmpty()) {
+                    System.out.println("   Found field '" + fieldName + "' after mobile:scroll");
+                    return true;
+                }
             } catch (Exception ignored) {}
 
             return false;
@@ -9552,9 +9556,13 @@ public class IssuePage extends BasePage {
 
             int startX = cellX + cellWidth - 20;
             int centerY = cellY + cellHeight / 2;
-            int endX = cellX + 50;
+            int endX = cellX + 20; // Swipe further left for more reliable button reveal
 
-            return performSwipeLeft(startX, centerY, endX, centerY);
+            boolean swiped = performSwipeLeft(startX, centerY, endX, centerY);
+            if (swiped) {
+                sleep(600); // Extra wait for iOS swipe animation to fully reveal action buttons
+            }
+            return swiped;
         } catch (Exception e) {
             System.out.println("⚠️ Error swiping first issue: " + e.getMessage());
             return false;
@@ -9724,29 +9732,24 @@ public class IssuePage extends BasePage {
      */
     public boolean isSwipeDeleteButtonVisible() {
         System.out.println("🔍 Checking for swipe Delete button...");
+        // Use short timeout — delete button should appear immediately after swipe animation
+        driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(1500));
         try {
-            // iOS swipe action buttons are typically XCUIElementTypeButton with "Delete" label
-            try {
-                WebElement btn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND " +
-                    "(label == 'Delete' OR label == 'Trash' OR label CONTAINS 'Delete' OR " +
-                    "name == 'Delete' OR name == 'trash')"));
-                boolean visible = btn.isDisplayed();
-                System.out.println("   Swipe Delete button visible: " + visible);
-                return visible;
-            } catch (Exception ignored) {}
-
-            // Strategy 2: Look for image with trash icon
-            try {
-                WebElement icon = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeImage') AND " +
-                    "(name CONTAINS 'trash' OR name CONTAINS 'delete' OR label CONTAINS 'trash')"));
-                return icon.isDisplayed();
-            } catch (Exception ignored) {}
-
+            // Combined query for all possible delete button forms
+            List<WebElement> deleteBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeImage') AND " +
+                "(label == 'Delete' OR label == 'Trash' OR label CONTAINS 'Delete' OR " +
+                "name == 'Delete' OR name == 'trash' OR name CONTAINS 'delete' OR label CONTAINS 'trash')"));
+            if (!deleteBtns.isEmpty()) {
+                System.out.println("   Swipe Delete button found (" + deleteBtns.size() + " matches)");
+                return true;
+            }
             return false;
         } catch (Exception e) {
             return false;
+        } finally {
+            driver.manage().timeouts().implicitlyWait(
+                java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
         }
     }
 

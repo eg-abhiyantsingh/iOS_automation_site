@@ -69,20 +69,32 @@ public class Asset_Phase3_Test extends BaseTest {
         System.out.println("✅ On Loadcenter Edit Asset screen (Total: " + (System.currentTimeMillis() - start) + "ms)");
     }
 
+    // Loadcenter fields that are DROPDOWNS (Select... buttons), not text fields
+    private static final java.util.Set<String> LOADCENTER_DROPDOWN_FIELDS = new java.util.HashSet<>(
+        java.util.Arrays.asList("Ampere Rating", "Columns", "Configuration",
+            "Fault Withstand Rating", "Mains Type", "Manufacturer", "Voltage")
+    );
+
     /**
-     * Fill a Loadcenter field with the given value
+     * Fill a Loadcenter field with the given value.
+     * Automatically routes to selectDropdownOption() for dropdown fields,
+     * or editTextField() for text input fields.
      */
     private void fillLoadcenterField(String fieldName, String value) {
         System.out.println("📝 Filling Loadcenter field: " + fieldName + " = " + value);
-        
-        assetPage.scrollFormDown();
-        shortWait();
-        
-        boolean filled = assetPage.editTextField(fieldName, value);
-        if (!filled) {
-            // Try scrolling and filling again
+
+        if (LOADCENTER_DROPDOWN_FIELDS.contains(fieldName)) {
+            // Dropdown field — selectDropdownOption handles its own scrolling
+            assetPage.selectDropdownOption(fieldName, value);
+        } else {
+            // Text field — scroll to it, then type
             assetPage.scrollFormDown();
-            assetPage.editTextField(fieldName, value);
+            shortWait();
+            boolean filled = assetPage.editTextField(fieldName, value);
+            if (!filled) {
+                assetPage.scrollFormDown();
+                assetPage.editTextField(fieldName, value);
+            }
         }
     }
 
@@ -91,36 +103,34 @@ public class Asset_Phase3_Test extends BaseTest {
      */
     private void clearAllLoadcenterFields() {
         System.out.println("🧹 Clearing all Loadcenter fields...");
-        
+        // Note: Dropdown fields (Ampere Rating, Columns, Configuration,
+        // Fault Withstand Rating, Mains Type, Manufacturer) cannot be "cleared"
+        // to empty — they are pickers with no empty option.
+        // Only clear actual TEXT fields.
+
         // First scroll
         assetPage.scrollFormDown();
         shortWait();
-        
-        // Clear first batch
-        assetPage.clearTextField("Ampere Rating");
-        assetPage.clearTextField("Catalog");
-        assetPage.clearTextField("Columns");
-        assetPage.clearTextField("Configuration");
-        
+
+        // Clear text fields only
+        assetPage.clearTextField("Catalog Number");
+
         // Second scroll for more fields
         assetPage.scrollFormDown();
         shortWait();
-        
-        assetPage.clearTextField("Fault");
-        assetPage.clearTextField("Mains");
-        assetPage.clearTextField("Manufacturer");
+
         assetPage.clearTextField("Notes");
-        
+
         // Third scroll for remaining fields
         assetPage.scrollFormDown();
         shortWait();
-        
-        assetPage.clearTextField("Serial");
+
+        assetPage.clearTextField("Serial Number");
         assetPage.clearTextField("Size");
-        assetPage.clearTextField("Voltage");
-        
+        // Note: Voltage is a DROPDOWN, not a text field — cannot be cleared
+
         assetPage.scrollFormUp();
-        System.out.println("✅ Cleared all Loadcenter fields");
+        System.out.println("✅ Cleared all Loadcenter text fields");
     }
 
     /**
@@ -133,10 +143,10 @@ public class Asset_Phase3_Test extends BaseTest {
         shortWait();
         
         // Required fields: Ampere Rating, Catalog Number, Fault Withstand Rating, Mains Type, Manufacturer, Voltage
-        fillLoadcenterField("Ampere", "200A");
-        fillLoadcenterField("Catalog", "LC-CAT-001");
-        fillLoadcenterField("Fault", "22kA");
-        fillLoadcenterField("Mains", "Main Breaker");
+        fillLoadcenterField("Ampere Rating", "200A");
+        fillLoadcenterField("Catalog Number", "LC-CAT-001");
+        fillLoadcenterField("Fault Withstand Rating", "22 kA");
+        fillLoadcenterField("Mains Type", "Main Breaker");
         fillLoadcenterField("Manufacturer", "Square D");
         fillLoadcenterField("Voltage", "240V");
         
@@ -154,10 +164,10 @@ public class Asset_Phase3_Test extends BaseTest {
         shortWait();
         
         // Required fields
-        fillLoadcenterField("Ampere", "200A");
-        fillLoadcenterField("Catalog", "LC-CAT-FULL-001");
-        fillLoadcenterField("Fault", "22kA");
-        fillLoadcenterField("Mains", "Main Breaker");
+        fillLoadcenterField("Ampere Rating", "200A");
+        fillLoadcenterField("Catalog Number", "LC-CAT-FULL-001");
+        fillLoadcenterField("Fault Withstand Rating", "22 kA");
+        fillLoadcenterField("Mains Type", "Main Breaker");
         fillLoadcenterField("Manufacturer", "Square D");
         fillLoadcenterField("Voltage", "240V");
         
@@ -165,7 +175,7 @@ public class Asset_Phase3_Test extends BaseTest {
         fillLoadcenterField("Columns", "2");
         fillLoadcenterField("Configuration", "Single Phase");
         fillLoadcenterField("Notes", "Loadcenter automated test notes");
-        fillLoadcenterField("Serial", "LC-SN-" + System.currentTimeMillis());
+        fillLoadcenterField("Serial Number", "LC-SN-" + System.currentTimeMillis());
         fillLoadcenterField("Size", "42 Space");
         
         assetPage.scrollFormUp();
@@ -454,7 +464,7 @@ public class Asset_Phase3_Test extends BaseTest {
         logStep("Initial completion percentage: " + percentage);
 
         logStep("Filling one required field to trigger percentage update");
-        fillLoadcenterField("Ampere", "100A");
+        fillLoadcenterField("Ampere Rating", "100A");
         shortWait();
 
         String updatedPercentage = assetPage.getCompletionPercentage();
@@ -490,7 +500,7 @@ public class Asset_Phase3_Test extends BaseTest {
         int randomAmpere = 50 + new java.util.Random().nextInt(200); // 50-249
         String testValue = randomAmpere + "A";
         logStep("Entering RANDOM Ampere Rating: " + testValue);
-        fillLoadcenterField("Ampere", testValue);
+        fillLoadcenterField("Ampere Rating", testValue);
         shortWait();
 
         logStep("Checking for Save Changes button");
@@ -534,7 +544,7 @@ public class Asset_Phase3_Test extends BaseTest {
         // Timestamp ensures unique value
         String testValue = "LC-CAT-" + System.currentTimeMillis();
         logStep("Entering Catalog Number: " + testValue);
-        fillLoadcenterField("Catalog", testValue);
+        fillLoadcenterField("Catalog Number", testValue);
         shortWait();
 
         logStep("Checking for Save Changes button");
@@ -667,11 +677,11 @@ public class Asset_Phase3_Test extends BaseTest {
         logStep("Scrolling to find Fault Withstand Rating field");
         assetPage.scrollFormDown();
 
-        // Random value 10-100 kA
-        int randomFault = 10 + new java.util.Random().nextInt(91);
-        String testValue = randomFault + "kA";
-        logStep("Entering RANDOM Fault Withstand Rating: " + testValue);
-        fillLoadcenterField("Fault", testValue);
+        // Pick from actual dropdown options
+        String[] faultRatings = {"10 kA", "14 kA", "18 kA", "22 kA", "25 kA", "30 kA", "35 kA", "42 kA", "50 kA", "65 kA", "85 kA", "100 kA", "150 kA", "200 kA"};
+        String testValue = faultRatings[new java.util.Random().nextInt(faultRatings.length)];
+        logStep("Selecting RANDOM Fault Withstand Rating: " + testValue);
+        fillLoadcenterField("Fault Withstand Rating", testValue);
         shortWait();
 
         logStep("Checking for Save Changes button");
@@ -716,7 +726,7 @@ public class Asset_Phase3_Test extends BaseTest {
         String[] mainsTypes = {"Main Lug", "Main Breaker", "Convertible"};
         String testValue = mainsTypes[new java.util.Random().nextInt(mainsTypes.length)];
         logStep("Selecting RANDOM Mains Type: " + testValue);
-        fillLoadcenterField("Mains", testValue);
+        fillLoadcenterField("Mains Type", testValue);
         shortWait();
 
         logStep("Checking for Save Changes button");
@@ -844,7 +854,7 @@ public class Asset_Phase3_Test extends BaseTest {
         // Timestamp ensures unique serial number
         String testValue = "LC-SN-" + System.currentTimeMillis();
         logStep("Entering Serial Number: " + testValue);
-        fillLoadcenterField("Serial", testValue);
+        fillLoadcenterField("Serial Number", testValue);
         shortWait();
 
         logStep("Checking for Save Changes button");
@@ -1028,7 +1038,7 @@ public class Asset_Phase3_Test extends BaseTest {
         int volt = volts[new java.util.Random().nextInt(volts.length)];
         
         logStep("Filling only some required fields (partial)");
-        fillLoadcenterField("Ampere", ampere + "A");
+        fillLoadcenterField("Ampere Rating", ampere + "A");
         fillLoadcenterField("Manufacturer", mfg);
         fillLoadcenterField("Voltage", volt + "V");
         shortWait();
@@ -1393,7 +1403,7 @@ public class Asset_Phase3_Test extends BaseTest {
         fillMCCField("Catalog Number", "MCC-CAT-001");
         
         // Fault Withstand Rating - DROPDOWN
-        assetPage.selectDropdownOption("Fault Withstand Rating", "65kA");
+        assetPage.selectDropdownOption("Fault Withstand Rating", "65 kA");
         shortWait();
         
         // Manufacturer - DROPDOWN
@@ -1423,7 +1433,7 @@ public class Asset_Phase3_Test extends BaseTest {
         assetPage.selectDropdownOption("Ampere Rating", "800A");
         shortWait();
         fillMCCField("Catalog Number", "MCC-CAT-FULL-001");
-        assetPage.selectDropdownOption("Fault Withstand Rating", "65kA");
+        assetPage.selectDropdownOption("Fault Withstand Rating", "65 kA");
         shortWait();
         assetPage.selectDropdownOption("Manufacturer", "Allen-Bradley");
         shortWait();

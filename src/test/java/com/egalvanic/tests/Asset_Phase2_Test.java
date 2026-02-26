@@ -2504,7 +2504,7 @@ public class Asset_Phase2_Test extends BaseTest {
         // Clear remaining fields
         assetPage.clearTextField("Manufacturer");
         assetPage.clearTextField("Power Factor");
-        assetPage.clearTextField("Serial");
+        assetPage.clearTextField("Serial Number");
         assetPage.clearTextField("Voltage");
         
         assetPage.scrollFormUp();
@@ -3403,7 +3403,7 @@ public class Asset_Phase2_Test extends BaseTest {
         assetPage.scrollFormDown();
         shortWait();
         
-        assetPage.clearTextField("Catalog");
+        assetPage.clearTextField("Catalog Number");
         assetPage.clearTextField("Manufacturer");
         assetPage.clearTextField("Model");
         assetPage.clearTextField("Notes");

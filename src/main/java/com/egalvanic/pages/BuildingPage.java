@@ -1836,72 +1836,67 @@ public class BuildingPage extends BasePage {
     public boolean navigateToNewFloor(String buildingName) {
         try {
             System.out.println("📍 Navigating to New Floor screen for building: " + buildingName);
-            
-            // Find the building and its + button
-            // The + button is typically next to or within the building row
+
             WebElement building = findBuildingByName(buildingName);
             if (building == null) {
                 System.out.println("⚠️ Building not found: " + buildingName);
                 return false;
             }
-            
-            // Try to find and click the + button for this building
-            // Method 1: Look for plus button within/near the building element
+
+            // Single findElements query with short timeout (avoids redundant 5s waits)
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(1500));
             try {
-                // Try finding plus button by accessibility ID near building
-                WebElement plusButton = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "name == 'plus' OR name == 'plus.circle' OR name == 'plus.circle.fill' OR label == 'Add Floor'"));
-                
-                // Check if there are multiple plus buttons and find the right one
                 List<WebElement> plusButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "name == 'plus' OR name == 'plus.circle' OR name == 'plus.circle.fill'"));
-                
-                if (plusButtons.size() > 1) {
-                    // Find the plus button closest to the building
-                    int buildingY = building.getLocation().getY();
-                    WebElement closestButton = null;
-                    int minDistance = Integer.MAX_VALUE;
-                    
-                    for (WebElement btn : plusButtons) {
-                        int btnY = btn.getLocation().getY();
-                        int distance = Math.abs(btnY - buildingY);
-                        if (distance < minDistance) {
-                            minDistance = distance;
-                            closestButton = btn;
+                    "name == 'plus' OR name == 'plus.circle' OR name == 'plus.circle.fill' OR label == 'Add Floor'"));
+
+                if (!plusButtons.isEmpty()) {
+                    if (plusButtons.size() > 1) {
+                        // Find the plus button closest to the building
+                        int buildingY = building.getLocation().getY();
+                        WebElement closestButton = null;
+                        int minDistance = Integer.MAX_VALUE;
+
+                        for (WebElement btn : plusButtons) {
+                            int btnY = btn.getLocation().getY();
+                            int distance = Math.abs(btnY - buildingY);
+                            if (distance < minDistance) {
+                                minDistance = distance;
+                                closestButton = btn;
+                            }
+                        }
+
+                        if (closestButton != null && minDistance < 100) {
+                            closestButton.click();
+                            sleep(300);
+                            System.out.println("✅ Clicked + button for building (proximity match)");
+                            return isNewFloorScreenDisplayed();
                         }
                     }
-                    
-                    if (closestButton != null && minDistance < 100) { // Within 100 pixels
-                        closestButton.click();
-                        sleep(300);
-                        System.out.println("✅ Clicked + button for building (proximity match)");
-                        return isNewFloorScreenDisplayed();
-                    }
-                }
-                
-                // If only one plus button or proximity match failed, click it
-                plusButton.click();
-                sleep(300);
-                return isNewFloorScreenDisplayed();
-                
-            } catch (Exception e) {
-                // Method 2: Try clicking the building first to expand, then find +
-                System.out.println("⚠️ Direct + button not found, trying alternative approach");
-                
-                // Some UIs require tapping the building row to reveal the + button
-                building.click();
-                sleep(300);
-                
-                try {
-                    WebElement plusButton = driver.findElement(AppiumBy.iOSNsPredicateString(
-                        "name == 'plus' OR name == 'Add Floor'"));
-                    plusButton.click();
+
+                    // Single plus button or proximity match failed — click first one
+                    plusButtons.get(0).click();
                     sleep(300);
                     return isNewFloorScreenDisplayed();
-                } catch (Exception e2) {
-                    System.out.println("⚠️ Could not find + button: " + e2.getMessage());
-                    return false;
                 }
+
+                // Fallback: tap building first to expand, then find +
+                System.out.println("⚠️ Direct + button not found, trying alternative approach");
+                building.click();
+                sleep(300);
+
+                plusButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "name == 'plus' OR name == 'Add Floor'"));
+                if (!plusButtons.isEmpty()) {
+                    plusButtons.get(0).click();
+                    sleep(300);
+                    return isNewFloorScreenDisplayed();
+                }
+
+                System.out.println("⚠️ Could not find + button after expanding building");
+                return false;
+            } finally {
+                driver.manage().timeouts().implicitlyWait(
+                    java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
             }
         } catch (Exception e) {
             System.out.println("⚠️ Error navigating to New Floor: " + e.getMessage());

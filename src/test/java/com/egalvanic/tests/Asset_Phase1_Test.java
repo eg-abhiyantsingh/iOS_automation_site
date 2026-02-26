@@ -1250,7 +1250,7 @@ public class Asset_Phase1_Test extends BaseTest {
         shortWait();
 
         logStep("Clearing the required field");
-        assetPage.clearTextField("Ampere");
+        assetPage.clearTextField("Ampere Rating");
         shortWait();
 
         assertTrue(assetPage.isEditAssetScreenDisplayed(), "Should still be on edit screen");

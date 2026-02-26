@@ -1080,73 +1080,91 @@ public class SiteSelectionPage extends BasePage {
     // ================================================================
 
     /**
-     * Check if WiFi is online with multiple detection strategies
+     * Check if WiFi is online with multiple detection strategies.
+     * Uses short implicit wait to avoid 5s timeout per element check.
      */
     public boolean isWifiOnline() {
-        // Strategy 1: Primary locator (accessibility = "Wi-Fi")
-        if (isElementDisplayed(wifiButtonOnline)) {
-            System.out.println("✅ WiFi online detected via primary locator");
-            return true;
-        }
-
-        // Strategy 2: Check for wifi icon without "Off" or sync count
+        // Use short implicit wait to avoid 5s delay per missed element
+        driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(500));
         try {
-            List<WebElement> wifiButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND visible == true AND (name == 'Wi-Fi' OR name CONTAINS 'wifi')"
-            ));
-            for (WebElement btn : wifiButtons) {
-                String name = btn.getAttribute("name");
-                // If it's just "Wi-Fi" without "Off", it's online
-                if (name != null && name.equals("Wi-Fi")) {
-                    System.out.println("✅ WiFi online detected via button scan");
-                    return true;
-                }
-            }
-        } catch (Exception e) {
-            // Ignore
-        }
-
-        // Strategy 3: Check navigation bar for wifi button that's NOT offline
-        try {
-            WebElement navBar = driver.findElement(AppiumBy.className("XCUIElementTypeNavigationBar"));
-            List<WebElement> navButtons = navBar.findElements(AppiumBy.className("XCUIElementTypeButton"));
-            for (WebElement btn : navButtons) {
-                String name = btn.getAttribute("name");
-                if (name != null && name.contains("Wi-Fi") && !name.contains("Off")) {
-                    System.out.println("✅ WiFi online detected in navigation bar");
-                    return true;
-                }
-            }
-        } catch (Exception e) {
-            // Ignore
-        }
-
-        // Strategy 4: If offline button is NOT displayed, assume online
-        if (!isElementDisplayed(wifiButtonOffline) && !isElementDisplayed(wifiButtonWithSyncCount)) {
-            // Check if we're on dashboard (has other dashboard elements)
-            if (isElementDisplayed(sitesButton) || isElementDisplayed(assetsCard) || isElementDisplayed(locationsButton)) {
-                System.out.println("✅ WiFi assumed online (offline indicators not present, dashboard visible)");
+            // Strategy 1: Check definitive WiFi icons by accessibilityId (no ambiguous regex)
+            if (!driver.findElements(AppiumBy.accessibilityId("Wi-Fi")).isEmpty()) {
+                System.out.println("✅ WiFi online detected");
                 return true;
             }
-        }
+            if (!driver.findElements(AppiumBy.accessibilityId("Wi-Fi Off")).isEmpty()) {
+                System.out.println("ℹ️ WiFi is offline (Wi-Fi Off icon)");
+                return false;
+            }
 
-        System.out.println("⚠️ WiFi online status could not be confirmed");
-        return false;
+            // Strategy 2: Check nav bar for sync badge (digit) — scoped to nav bar only
+            try {
+                WebElement navBar = driver.findElement(AppiumBy.className("XCUIElementTypeNavigationBar"));
+                List<WebElement> navButtons = navBar.findElements(AppiumBy.className("XCUIElementTypeButton"));
+                for (WebElement btn : navButtons) {
+                    String name = btn.getAttribute("name");
+                    if (name != null) {
+                        if (name.equals("Wi-Fi")) {
+                            System.out.println("✅ WiFi online detected in navigation bar");
+                            return true;
+                        }
+                        if (name.equals("Wi-Fi Off") || name.matches("\\d+")) {
+                            System.out.println("ℹ️ WiFi is offline in nav bar (name: " + name + ")");
+                            return false;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                // Ignore — nav bar not found
+            }
+
+            // Strategy 3: If no WiFi indicators found but dashboard visible, assume online
+            List<WebElement> dashElements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(name == 'Sites' OR name == 'Assets' OR name == 'Locations')"
+            ));
+            if (!dashElements.isEmpty()) {
+                System.out.println("✅ WiFi assumed online (no offline indicators, dashboard visible)");
+                return true;
+            }
+
+            System.out.println("⚠️ WiFi online status could not be confirmed");
+            return false;
+        } finally {
+            driver.manage().timeouts().implicitlyWait(
+                java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
+        }
     }
 
     /**
      * Check if WiFi is offline (including when showing pending sync count)
      */
     public boolean isWifiOffline() {
-        // Check standard offline button
-        if (isElementDisplayed(wifiButtonOffline)) {
-            return true;
+        // Check definitive offline icon first, then nav bar for sync badge
+        driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(500));
+        try {
+            // Definitive check: "Wi-Fi Off" accessibility ID
+            if (!driver.findElements(AppiumBy.accessibilityId("Wi-Fi Off")).isEmpty()) {
+                return true;
+            }
+            // Check nav bar for sync badge (digit name) — scoped to avoid false positives
+            try {
+                WebElement navBar = driver.findElement(AppiumBy.className("XCUIElementTypeNavigationBar"));
+                List<WebElement> navButtons = navBar.findElements(AppiumBy.className("XCUIElementTypeButton"));
+                for (WebElement btn : navButtons) {
+                    String name = btn.getAttribute("name");
+                    if (name != null && name.matches("\\d+")) {
+                        return true; // Sync badge = offline with pending
+                    }
+                }
+            } catch (Exception e) { /* nav bar not found */ }
+            return false;
+        } catch (Exception e) {
+            return false;
+        } finally {
+            driver.manage().timeouts().implicitlyWait(
+                java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
         }
-        // Also check for sync count button (indicates offline with pending sync)
-        if (isElementDisplayed(wifiButtonWithSyncCount)) {
-            return true;
-        }
-        return false;
     }
 
     /**
@@ -1156,14 +1174,14 @@ public class SiteSelectionPage extends BasePage {
         try {
             System.out.println("🔍 Attempting to click WiFi button...");
 
-            // Single findElements query with combined predicate — avoids 5s implicit wait per miss.
-            // Matches all 3 WiFi icon states: "Wi-Fi" (online), "Wi-Fi Off" (offline), digit (sync badge)
+            // Search for WiFi button by definitive names first, then nav bar for sync badge
             driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(500));
             try {
+                // Try definitive WiFi button names
                 java.util.List<WebElement> wifiButtons = driver.findElements(
                     AppiumBy.iOSNsPredicateString(
                         "type == 'XCUIElementTypeButton' AND " +
-                        "(name == 'Wi-Fi' OR name == 'Wi-Fi Off' OR name MATCHES '\\\\d+')"));
+                        "(name == 'Wi-Fi' OR name == 'Wi-Fi Off')"));
 
                 if (!wifiButtons.isEmpty()) {
                     WebElement btn = wifiButtons.get(0);
@@ -1172,6 +1190,20 @@ public class SiteSelectionPage extends BasePage {
                     btn.click();
                     return;
                 }
+
+                // Check nav bar for sync badge (digit name) — scoped to avoid false positives
+                try {
+                    WebElement navBar = driver.findElement(AppiumBy.className("XCUIElementTypeNavigationBar"));
+                    java.util.List<WebElement> navButtons = navBar.findElements(AppiumBy.className("XCUIElementTypeButton"));
+                    for (WebElement btn : navButtons) {
+                        String name = btn.getAttribute("name");
+                        if (name != null && name.matches("\\d+")) {
+                            System.out.println("✅ Found WiFi sync badge button (name: " + name + ")");
+                            btn.click();
+                            return;
+                        }
+                    }
+                } catch (Exception navEx) { /* nav bar not found */ }
             } finally {
                 driver.manage().timeouts().implicitlyWait(
                     java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
@@ -1196,64 +1228,37 @@ public class SiteSelectionPage extends BasePage {
     }
 
     /**
-     * Click WiFi popup button (Go Online/Go Offline confirmation) with fallback
+     * Click WiFi popup button (Go Online/Go Offline confirmation) with fallback.
+     * Uses single combined query with short timeout to avoid 5s implicit wait per element.
      */
     public void clickWifiPopupButton() {
         try {
             System.out.println("🔍 Clicking WiFi popup button...");
-            
-            // Try primary locator first
-            if (isElementDisplayed(wifiPopupButton)) {
-                System.out.println("✅ Found WiFi popup button via primary locator");
-                click(wifiPopupButton);
-                return;
+
+            // Single combined query to find any Go Offline/Online option
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
+            try {
+                List<WebElement> popupOptions = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "(label == 'Go Offline' OR name == 'Go Offline' OR " +
+                    "label == 'Go Online' OR name == 'Go Online' OR " +
+                    "(label CONTAINS 'Go' AND (label CONTAINS 'Offline' OR label CONTAINS 'Online')))"
+                ));
+
+                if (!popupOptions.isEmpty()) {
+                    WebElement option = popupOptions.get(0);
+                    System.out.println("✅ Found popup option: " + option.getAttribute("label"));
+                    option.click();
+                    return;
+                }
+            } finally {
+                driver.manage().timeouts().implicitlyWait(
+                    java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
             }
-            
-            // Try finding "Go Offline" text and click it
-            if (isElementDisplayed(goOfflineText)) {
-                System.out.println("✅ Found Go Offline option");
-                click(goOfflineText);
-                return;
-            }
-            
-            // Try finding "Go Offline" button
-            if (isElementDisplayed(goOfflineButton)) {
-                System.out.println("✅ Found Go Offline button");
-                click(goOfflineButton);
-                return;
-            }
-            
-            // Try finding "Go Online" text and click it
-            if (isElementDisplayed(goOnlineText)) {
-                System.out.println("✅ Found Go Online option");
-                click(goOnlineText);
-                return;
-            }
-            
-            // Try finding "Go Online" button
-            if (isElementDisplayed(goOnlineButton)) {
-                System.out.println("✅ Found Go Online button");
-                click(goOnlineButton);
-                return;
-            }
-            
-            // Fallback: Search for any element with "Go" and "line" in label
-            System.out.println("🔍 Searching for popup option via label...");
-            List<WebElement> popupOptions = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "visible == true AND (label CONTAINS 'Go' AND (label CONTAINS 'Offline' OR label CONTAINS 'Online'))"
-            ));
-            
-            if (!popupOptions.isEmpty()) {
-                WebElement option = popupOptions.get(0);
-                System.out.println("✅ Found popup option: " + option.getAttribute("label"));
-                option.click();
-                return;
-            }
-            
-            // Last resort: click primary locator anyway
-            System.out.println("⚠️ Using primary locator as last resort");
+
+            // Fallback: try primary locator (class chain)
+            System.out.println("⚠️ No Go Offline/Online found, trying primary locator");
             click(wifiPopupButton);
-            
+
         } catch (Exception e) {
             System.out.println("⚠️ clickWifiPopupButton error: " + e.getMessage());
             throw e;
@@ -1289,32 +1294,39 @@ public class SiteSelectionPage extends BasePage {
     }
 
     /**
-     * Go Offline (with internal explicit wait and improved reliability)
+     * Go Offline (with internal explicit wait and improved reliability).
+     * Uses findElements with short timeout to avoid 5s implicit wait per element.
      */
     public void goOffline() {
         try {
             System.out.println("🔄 Attempting to go offline...");
-            
+
             if (isWifiOnline()) {
                 clickWifiButton();
-                sleep(600); // Wait for popup animation
-                
-                // Try to click the popup button with multiple strategies
+                sleep(800); // Wait for popup animation (iOS needs 300-500ms)
+
+                // Single query to find Go Offline option with short timeout
+                driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
                 try {
-                    // First try direct "Go Offline" text
-                    if (isElementDisplayed(goOfflineText)) {
-                        click(goOfflineText);
-                    } else if (isElementDisplayed(goOfflineButton)) {
-                        click(goOfflineButton);
+                    List<WebElement> goOfflineEls = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "(label == 'Go Offline' OR name == 'Go Offline') OR " +
+                        "((label CONTAINS 'Offline' OR name CONTAINS 'Offline') AND " +
+                        "type == 'XCUIElementTypeButton')"
+                    ));
+                    if (!goOfflineEls.isEmpty()) {
+                        goOfflineEls.get(0).click();
+                        System.out.println("✅ Clicked Go Offline option");
                     } else {
-                        // Fallback to popup button
+                        System.out.println("⚠️ Go Offline not found in popup, trying clickWifiPopupButton");
+                        driver.manage().timeouts().implicitlyWait(
+                            java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
                         clickWifiPopupButton();
                     }
-                } catch (Exception e) {
-                    System.out.println("⚠️ Popup click failed, trying alternative: " + e.getMessage());
-                    clickWifiPopupButton();
+                } finally {
+                    driver.manage().timeouts().implicitlyWait(
+                        java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
                 }
-                
+
                 // Wait for offline state
                 sleep(1200);
                 if (!isWifiOffline()) {
@@ -1332,32 +1344,39 @@ public class SiteSelectionPage extends BasePage {
     }
 
     /**
-     * Go Online (with internal explicit wait and improved reliability)
+     * Go Online (with internal explicit wait and improved reliability).
+     * Uses findElements with short timeout to avoid 5s implicit wait per element.
      */
     public void goOnline() {
         try {
             System.out.println("🔄 Attempting to go online...");
-            
+
             if (isWifiOffline()) {
                 clickWifiButton();
-                sleep(600); // Wait for popup animation
-                
-                // Try to click the popup button with multiple strategies
+                sleep(800); // Wait for popup animation (iOS needs 300-500ms)
+
+                // Single query to find Go Online option with short timeout
+                driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
                 try {
-                    // First try direct "Go Online" text
-                    if (isElementDisplayed(goOnlineText)) {
-                        click(goOnlineText);
-                    } else if (isElementDisplayed(goOnlineButton)) {
-                        click(goOnlineButton);
+                    List<WebElement> goOnlineEls = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "(label == 'Go Online' OR name == 'Go Online') OR " +
+                        "((label CONTAINS 'Online' OR name CONTAINS 'Online') AND " +
+                        "type == 'XCUIElementTypeButton')"
+                    ));
+                    if (!goOnlineEls.isEmpty()) {
+                        goOnlineEls.get(0).click();
+                        System.out.println("✅ Clicked Go Online option");
                     } else {
-                        // Fallback to popup button
+                        System.out.println("⚠️ Go Online not found in popup, trying clickWifiPopupButton");
+                        driver.manage().timeouts().implicitlyWait(
+                            java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
                         clickWifiPopupButton();
                     }
-                } catch (Exception e) {
-                    System.out.println("⚠️ Popup click failed, trying alternative: " + e.getMessage());
-                    clickWifiPopupButton();
+                } finally {
+                    driver.manage().timeouts().implicitlyWait(
+                        java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
                 }
-                
+
                 // Wait for online state
                 sleep(1200);
                 if (!isWifiOnline()) {
@@ -1375,24 +1394,57 @@ public class SiteSelectionPage extends BasePage {
     }
 
     /**
-     * Check if Go Offline option is visible
+     * Check if Go Offline option is visible.
+     * Uses findElements with short timeout to avoid 5s implicit wait on annotated proxy.
      */
     public boolean isGoOfflineOptionVisible() {
-        return isElementDisplayed(goOfflineText);
+        driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
+        try {
+            List<WebElement> els = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "label == 'Go Offline' OR name == 'Go Offline'"));
+            return !els.isEmpty();
+        } catch (Exception e) {
+            return false;
+        } finally {
+            driver.manage().timeouts().implicitlyWait(
+                java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
+        }
     }
 
     /**
-     * Check if Go Online option is visible
+     * Check if Go Online option is visible.
+     * Uses findElements with short timeout to avoid 5s implicit wait on annotated proxy.
      */
     public boolean isGoOnlineOptionVisible() {
-        return isElementDisplayed(goOnlineText);
+        driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
+        try {
+            List<WebElement> els = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "label == 'Go Online' OR name == 'Go Online'"));
+            return !els.isEmpty();
+        } catch (Exception e) {
+            return false;
+        } finally {
+            driver.manage().timeouts().implicitlyWait(
+                java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
+        }
     }
 
     /**
      * Check if Sync records option is visible
      */
     public boolean isSyncRecordsOptionVisible() {
-        return isElementDisplayed(syncRecordsButton) || isElementDisplayed(syncRecordsText);
+        driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
+        try {
+            List<WebElement> syncEls = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "name == 'arrow.triangle.2.circlepath' OR " +
+                "(label CONTAINS 'Sync' AND label CONTAINS 'record')"));
+            return !syncEls.isEmpty();
+        } catch (Exception e) {
+            return false;
+        } finally {
+            driver.manage().timeouts().implicitlyWait(
+                java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
+        }
     }
 
     /**

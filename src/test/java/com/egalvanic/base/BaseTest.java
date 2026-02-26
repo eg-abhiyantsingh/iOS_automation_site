@@ -27,6 +27,32 @@ public class BaseTest {
     protected static boolean skipNextSetup = false;
     protected static boolean skipNextTeardown = false;
 
+    // Track test start time for duration calculation
+    private long testStartTime;
+
+    // Timestamp formatter: "4:37 PM - 26 Feb"
+    private static final java.time.format.DateTimeFormatter TIMESTAMP_FMT =
+        java.time.format.DateTimeFormatter.ofPattern("h:mm a - dd MMM");
+
+    /**
+     * Get current timestamp in human-readable format
+     */
+    protected String timestamp() {
+        return java.time.LocalDateTime.now().format(TIMESTAMP_FMT);
+    }
+
+    /**
+     * Format milliseconds into human-readable duration
+     */
+    private String formatDuration(long ms) {
+        if (ms < 1000) return ms + "ms";
+        long seconds = ms / 1000;
+        if (seconds < 60) return seconds + "s";
+        long minutes = seconds / 60;
+        long remainingSecs = seconds % 60;
+        return minutes + "m " + remainingSecs + "s";
+    }
+
     // ================================================================
     // SUITE LEVEL SETUP/TEARDOWN
     // ================================================================
@@ -35,6 +61,7 @@ public class BaseTest {
     public void suiteSetup() {
         System.out.println("\n╔══════════════════════════════════════════════════════════════╗");
         System.out.println("║     eGalvanic iOS Automation - Test Suite Starting           ║");
+        System.out.println("║     " + timestamp() + "                                          ║");
         System.out.println("╚══════════════════════════════════════════════════════════════╝\n");
 
         // Initialize both Extent Reports
@@ -51,6 +78,7 @@ public class BaseTest {
 
         System.out.println("\n╔══════════════════════════════════════════════════════════════╗");
         System.out.println("║     eGalvanic iOS Automation - Test Suite Complete           ║");
+        System.out.println("║     " + timestamp() + "                                          ║");
         System.out.println("╚══════════════════════════════════════════════════════════════╝");
         System.out.println("📊 Reports generated:");
         System.out.println("   - Detailed: " + ExtentReportManager.getDetailedReportPath());
@@ -145,7 +173,8 @@ public class BaseTest {
         // Skip waiting for welcome page if already logged in
         waitForAppReadyFast();
 
-        System.out.println("✅ Test setup complete\n");
+        testStartTime = System.currentTimeMillis();
+        System.out.println("✅ Test setup complete  [" + timestamp() + "]\n");
     }
 
     /**
@@ -228,6 +257,8 @@ public class BaseTest {
     @AfterMethod(alwaysRun = true)
     public void testTeardown(ITestResult result) {
         String testName = result.getMethod().getMethodName();
+        long testDuration = System.currentTimeMillis() - testStartTime;
+        String durationStr = formatDuration(testDuration);
 
         // Detect if the Appium session is likely dead/unresponsive.
         // When dead, every Appium HTTP call (screenshot, terminateApp, quit) hangs 7+ min each,
@@ -244,7 +275,7 @@ public class BaseTest {
                     // from getScreenshotAsBase64() trying to reach the dead Appium server
                     ExtentReportManager.logFail(
                             "Test failed (session dead): " + result.getThrowable().getMessage());
-                    System.out.println("❌ Test FAILED: " + testName);
+                    System.out.println("❌ Test FAILED: " + testName + "  [" + timestamp() + "] (" + durationStr + ")");
                     System.out.println("⚠️ Session appears dead — skipping Appium calls in teardown");
                 } else {
                     try {
@@ -256,14 +287,14 @@ public class BaseTest {
                     ExtentReportManager.logFailWithScreenshot(
                             "Test failed: " + result.getThrowable().getMessage(),
                             result.getThrowable());
-                    System.out.println("❌ Test FAILED: " + testName);
+                    System.out.println("❌ Test FAILED: " + testName + "  [" + timestamp() + "] (" + durationStr + ")");
                 }
 
             } else if (result.getStatus() == ITestResult.SKIP) {
                 String skipReason = (result.getThrowable() != null)
                         ? result.getThrowable().getMessage() : "Unknown reason";
                 ExtentReportManager.logSkip("Test skipped: " + skipReason);
-                System.out.println("⏭️ Test SKIPPED: " + testName);
+                System.out.println("⏭️ Test SKIPPED: " + testName + "  [" + timestamp() + "] (" + durationStr + ")");
                 System.out.println("   Skip reason: " + skipReason);
                 if (result.getThrowable() != null) {
                     result.getThrowable().printStackTrace(System.out);
@@ -271,7 +302,7 @@ public class BaseTest {
 
             } else if (result.getStatus() == ITestResult.SUCCESS) {
                 ExtentReportManager.logPass("Test passed successfully");
-                System.out.println("✅ Test PASSED: " + testName);
+                System.out.println("✅ Test PASSED: " + testName + "  [" + timestamp() + "] (" + durationStr + ")");
             }
 
             ExtentReportManager.removeTests();
