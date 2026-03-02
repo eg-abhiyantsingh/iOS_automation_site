@@ -1842,88 +1842,73 @@ public class BuildingPage extends BasePage {
                 System.out.println("⚠️ Building not found: " + buildingName);
                 return false;
             }
+            int buildingY = building.getLocation().getY();
+            int buildingH = building.getSize().getHeight();
+            int screenWidth = driver.manage().window().getSize().width;
+            System.out.println("   Building at Y=" + buildingY + ", H=" + buildingH + ", screenW=" + screenWidth);
 
-            // Single findElements query with short timeout (avoids redundant 5s waits)
-            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(1500));
-            try {
-                List<WebElement> plusButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "name == 'plus' OR name == 'plus.circle' OR name == 'plus.circle.fill' OR label == 'Add Floor'"));
+            // The ⊕ (Add Floor) button is on the SAME ROW as the building, right edge.
+            // DOM scanning is too slow (300+ floors = thousands of elements).
+            // Use direct coordinate tap: X = right edge, Y = center of building row.
 
-                if (!plusButtons.isEmpty()) {
-                    if (plusButtons.size() > 1) {
-                        // Find the plus button closest to the building
-                        int buildingY = building.getLocation().getY();
-                        WebElement closestButton = null;
-                        int minDistance = Integer.MAX_VALUE;
-
-                        for (WebElement btn : plusButtons) {
-                            int btnY = btn.getLocation().getY();
-                            int distance = Math.abs(btnY - buildingY);
-                            if (distance < minDistance) {
-                                minDistance = distance;
-                                closestButton = btn;
-                            }
-                        }
-
-                        if (closestButton != null && minDistance < 100) {
-                            closestButton.click();
-                            sleep(300);
-                            System.out.println("✅ Clicked + button for building (proximity match)");
-                            return isNewFloorScreenDisplayed();
-                        }
-                    }
-
-                    // Single plus button or proximity match failed — click first one
-                    plusButtons.get(0).click();
+            // Try twice: first in current state, then toggle expand/collapse
+            for (int attempt = 0; attempt < 2; attempt++) {
+                if (attempt == 1) {
+                    System.out.println("📂 Toggling building expand/collapse...");
+                    expandBuilding(buildingName);
                     sleep(300);
-                    return isNewFloorScreenDisplayed();
+                    building = findBuildingByName(buildingName);
+                    if (building == null) break;
+                    buildingY = building.getLocation().getY();
+                    buildingH = building.getSize().getHeight();
                 }
 
-                // Fallback: use long-press context menu instead of clicking building
-                // (clicking a building with many floors causes WDA to hang loading the floor list)
-                System.out.println("⚠️ Direct + button not found, trying long-press context menu...");
-            } finally {
-                driver.manage().timeouts().implicitlyWait(
-                    java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
-            }
+                // Direct coordinate tap on the ⊕ button position
+                int tapX = screenWidth - 45;
+                int tapY = buildingY + buildingH / 2;
+                System.out.println("   Tapping ⊕ at (" + tapX + ", " + tapY + ") [attempt " + (attempt + 1) + "]");
 
-            // Strategy 2: Long-press context menu → "Add Floor" / "New Floor"
-            try {
-                if (longPressOnBuilding(buildingName)) {
+                try {
+                    java.util.Map<String, Object> tapParams = new java.util.HashMap<>();
+                    tapParams.put("x", tapX);
+                    tapParams.put("y", tapY);
+                    tapParams.put("duration", 0.1);
+                    driver.executeScript("mobile: tap", tapParams);
                     sleep(400);
-                    driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(2000));
+
+                    if (isNewFloorScreenDisplayed()) {
+                        System.out.println("✅ New Floor screen opened");
+                        return true;
+                    }
+                } catch (Exception tapEx) {
+                    System.out.println("   mobile:tap failed, trying W3C actions...");
+                    // Fallback: W3C pointer action
                     try {
-                        // Look for Add Floor / New Floor option in context menu
-                        List<WebElement> addFloorOptions = driver.findElements(AppiumBy.iOSNsPredicateString(
-                            "label == 'Add Floor' OR label == 'New Floor' OR label CONTAINS 'Add Floor' OR label CONTAINS 'New Floor'"));
-                        if (!addFloorOptions.isEmpty()) {
-                            addFloorOptions.get(0).click();
-                            sleep(300);
-                            System.out.println("✅ Clicked 'Add Floor' from context menu");
-                            return isNewFloorScreenDisplayed();
-                        }
+                        org.openqa.selenium.interactions.PointerInput finger =
+                            new org.openqa.selenium.interactions.PointerInput(
+                                org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
+                        org.openqa.selenium.interactions.Sequence tap =
+                            new org.openqa.selenium.interactions.Sequence(finger, 0);
+                        tap.addAction(finger.createPointerMove(Duration.ofMillis(0),
+                            org.openqa.selenium.interactions.PointerInput.Origin.viewport(), tapX, tapY));
+                        tap.addAction(finger.createPointerDown(
+                            org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+                        tap.addAction(new org.openqa.selenium.interactions.Pause(finger, Duration.ofMillis(50)));
+                        tap.addAction(finger.createPointerUp(
+                            org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+                        driver.perform(java.util.Collections.singletonList(tap));
+                        sleep(400);
 
-                        // Also try generic "Add" or "plus" in context menu
-                        List<WebElement> addOptions = driver.findElements(AppiumBy.iOSNsPredicateString(
-                            "(label == 'Add' OR name == 'plus' OR name == 'plus.circle') AND type == 'XCUIElementTypeButton'"));
-                        if (!addOptions.isEmpty()) {
-                            addOptions.get(0).click();
-                            sleep(300);
-                            System.out.println("✅ Clicked 'Add' from context menu");
-                            return isNewFloorScreenDisplayed();
+                        if (isNewFloorScreenDisplayed()) {
+                            System.out.println("✅ New Floor screen opened (W3C tap)");
+                            return true;
                         }
-
-                        System.out.println("⚠️ No 'Add Floor' option in context menu");
-                        // Dismiss context menu
-                        tapOutsideContextMenu();
-                    } finally {
-                        driver.manage().timeouts().implicitlyWait(
-                            java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
+                    } catch (Exception w3cEx) {
+                        System.out.println("   W3C tap also failed: " + w3cEx.getMessage());
                     }
                 }
-            } catch (Exception ctxEx) {
-                System.out.println("⚠️ Context menu approach failed: " +
-                    (ctxEx.getMessage() != null ? ctxEx.getMessage().substring(0, Math.min(80, ctxEx.getMessage().length())) : ""));
+
+                System.out.println("   ⊕ tap didn't open New Floor screen (attempt " + (attempt + 1) + ")");
             }
 
             System.out.println("⚠️ Could not navigate to New Floor screen");
@@ -2014,26 +1999,47 @@ public class BuildingPage extends BasePage {
      */
     public String getBuildingFieldValue() {
         try {
-            // Try to find the Building field and get its value
-            // It might be a read-only text field or static text
+            System.out.println("🔍 Getting Building field value...");
+
+            // New Floor screen is a MODAL SHEET over the Locations screen.
+            // The Locations screen behind has 300+ floors = thousands of DOM elements.
+            // Use "visible == true" to limit search to the modal sheet only.
+
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(1000));
             try {
-                WebElement buildingField = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeTextField' AND name CONTAINS 'Building'"));
-                return buildingField.getAttribute("value");
-            } catch (Exception e) {
-                // Try static text
-                List<WebElement> staticTexts = driver.findElements(AppiumBy.className("XCUIElementTypeStaticText"));
-                for (WebElement text : staticTexts) {
-                    String label = text.getAttribute("label");
-                    // Look for text that might be the building name (not "Building" label itself)
-                    if (label != null && !label.equals("Building") && !label.equals("New Floor") && 
-                        !label.equals("Floor Name") && !label.equals("Access Notes") &&
-                        !label.equals("Cancel") && !label.equals("Save")) {
-                        // Check if this follows a "Building" label
-                        return label;
+                // Find the "Building" label (visible on the modal sheet)
+                WebElement buildingLabel = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND label == 'Building' AND visible == true"));
+                int labelY = buildingLabel.getLocation().getY();
+                int labelH = buildingLabel.getSize().getHeight();
+                int labelX = buildingLabel.getLocation().getX();
+
+                // Find ONLY visible static texts (modal sheet elements, not background)
+                List<WebElement> visibleTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND visible == true"));
+                System.out.println("   Found " + visibleTexts.size() + " visible static texts");
+
+                for (WebElement text : visibleTexts) {
+                    String lbl = text.getAttribute("label");
+                    int textY = text.getLocation().getY();
+                    int textX = text.getLocation().getX();
+
+                    // Same row as "Building" label AND to the right AND not a known UI label
+                    if (lbl != null && Math.abs(textY - labelY) <= labelH
+                            && textX > labelX
+                            && !lbl.equals("Building") && !lbl.equals("New Floor")
+                            && !lbl.equals("Save") && !lbl.equals("Cancel")) {
+                        System.out.println("   Building field value: " + lbl);
+                        return lbl;
                     }
                 }
+            } catch (Exception e) {
+                System.out.println("   Building label not found: " + e.getMessage());
+            } finally {
+                driver.manage().timeouts().implicitlyWait(
+                    java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
             }
+
             return null;
         } catch (Exception e) {
             System.out.println("⚠️ Error getting Building field value: " + e.getMessage());
@@ -2046,20 +2052,29 @@ public class BuildingPage extends BasePage {
      */
     public boolean isBuildingFieldReadOnly() {
         try {
-            // Try to find the building field
+            System.out.println("🔍 Checking if Building field is read-only...");
+
+            // The Building field on New Floor screen is static text (inherently read-only).
+            // Quick check: if "Building" label exists and the value is static text → read-only.
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(500));
             try {
-                WebElement buildingField = driver.findElement(AppiumBy.iOSNsPredicateString(
+                // Check if there's a TextField with "Building" (unlikely but check fast)
+                List<WebElement> textFields = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeTextField' AND name CONTAINS 'Building'"));
-                String enabled = buildingField.getAttribute("enabled");
-                // If enabled is false, it's read-only
-                return !"true".equalsIgnoreCase(enabled);
-            } catch (Exception e) {
-                // If it's a static text element, it's inherently read-only
-                // Just verify the element exists - if found, it's read-only by nature
-                driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND label != 'Building' AND label != 'New Floor'"));
-                return true; // Static text is always read-only
+                if (!textFields.isEmpty()) {
+                    String enabled = textFields.get(0).getAttribute("enabled");
+                    boolean readOnly = !"true".equalsIgnoreCase(enabled);
+                    System.out.println("   Building field is TextField, enabled=" + enabled);
+                    return readOnly;
+                }
+            } finally {
+                driver.manage().timeouts().implicitlyWait(
+                    java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
             }
+
+            // No TextField found → it's static text → inherently read-only
+            System.out.println("   Building field is static text (read-only)");
+            return true;
         } catch (Exception e) {
             System.out.println("⚠️ Error checking Building field read-only state: " + e.getMessage());
             return false;
@@ -2328,30 +2343,37 @@ public class BuildingPage extends BasePage {
      */
     public boolean attemptToEditBuildingField() {
         try {
-            // Try to find a building field and attempt to interact with it
+            // Try to find a building TextField and attempt to edit it.
+            // On New Floor screen, the Building field is static text (not editable).
+            // Use short timeout since TextField likely doesn't exist.
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(500));
             try {
-                WebElement buildingField = driver.findElement(AppiumBy.iOSNsPredicateString(
+                List<WebElement> fields = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeTextField' AND (name CONTAINS 'Building' OR label CONTAINS 'Building')"));
-                
-                // Try to click and send keys
-                buildingField.click();
-                sleep(200);
-                buildingField.sendKeys("Test Edit");
-                sleep(200);
-                
-                // If we got here without exception, check if value changed
-                String value = buildingField.getAttribute("value");
-                if (value != null && value.contains("Test Edit")) {
-                    System.out.println("⚠️ Building field was editable!");
-                    return true;
+
+                if (!fields.isEmpty()) {
+                    WebElement buildingField = fields.get(0);
+                    buildingField.click();
+                    sleep(200);
+                    buildingField.sendKeys("Test Edit");
+                    sleep(200);
+
+                    String value = buildingField.getAttribute("value");
+                    if (value != null && value.contains("Test Edit")) {
+                        System.out.println("⚠️ Building field was editable!");
+                        return true;
+                    }
                 }
-            } catch (Exception e) {
-                // Element not interactable or not found - good, it's read-only
-                System.out.println("✅ Building field is read-only (not editable)");
+            } finally {
+                driver.manage().timeouts().implicitlyWait(
+                    java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
             }
-            
+
+            // No TextField found or edit failed → field is read-only
+            System.out.println("✅ Building field is read-only (not editable)");
             return false;
         } catch (Exception e) {
+            System.out.println("✅ Building field is read-only (not editable)");
             return false;
         }
     }

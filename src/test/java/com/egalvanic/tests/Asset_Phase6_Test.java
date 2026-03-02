@@ -4680,26 +4680,36 @@ public class Asset_Phase6_Test extends BaseTest {
             // No OCPs - create one first, then it will be available to link
             System.out.println("📝 No OCPs exist - creating one first...");
             assetPage.clickAddOCPButton();
-            shortWait();  // OPTIMIZED: was sleep(500)
+            shortWait();
             assetPage.clickCreateNewChild();
-            shortWait();  // OPTIMIZED: was sleep(1000)
-            
+            shortWait();
+
             // Fill in the child asset form
             String childName = "LinkTest_" + System.currentTimeMillis();
             assetPage.enterChildAssetName(childName);
             assetPage.clickChildAssetClassDropdown();
-            shortWait();  // OPTIMIZED: was sleep(300)
+            shortWait();
             assetPage.selectChildAssetClass("Other (OCP)");
-            shortWait();  // OPTIMIZED: was sleep(300)
+            shortWait();
             assetPage.clickCreateChildAssetButton();
             shortWait();
-            
+
+            // Save changes first — unsaved OCP can't be unlinked via context menu
+            System.out.println("💾 Saving changes after creating OCP...");
+            assetPage.clickSaveButton();
+            shortWait();
+
+            // Re-open asset and scroll to OCP section
+            System.out.println("🔍 Re-opening asset to unlink OCP...");
+            assetPage.selectFirstAsset();
+            shortWait();
+            assetPage.scrollToOCPSection();
+            shortWait();
+
             // Now unlink it so it can be linked back
             System.out.println("🔓 Unlinking the newly created OCP...");
-            assetPage.scrollToOCPSection();
-            shortWait();  // OPTIMIZED: was sleep(500)
             assetPage.unlinkFirstOCPItem();
-            shortWait();  // OPTIMIZED: was sleep(1000)
+            shortWait();
         }
         
         // Now click Add and Link Existing Node

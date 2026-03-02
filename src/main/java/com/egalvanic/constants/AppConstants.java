@@ -120,6 +120,18 @@ public class AppConstants {
     public static final String FEATURE_SESSION_DETAILS = "Session Details";
     public static final String FEATURE_SESSION_ISSUES = "Session Issues";
     public static final String FEATURE_LINK_ISSUES = "Link Issues";
+    public static final String FEATURE_START_NEW_JOB = "Start New Job";
+    public static final String FEATURE_SHOW_ALL = "Show All";
+    public static final String FEATURE_NEW_ISSUE_LINKED = "New Issue Linked";
+    public static final String FEATURE_NEW_JOB_SCREEN = "New Job Screen";
+    public static final String FEATURE_QUICK_QR_ACTION = "Quick QR Action";
+    public static final String FEATURE_SESSION_LOCATIONS = "Session Locations";
+    public static final String FEATURE_ASSETS_IN_ROOM = "Assets in Room";
+    public static final String FEATURE_ADD_ASSETS = "Add Assets";
+    public static final String FEATURE_NEW_ASSET_IR_PHOTOS = "New Asset - IR Photos";
+    public static final String FEATURE_ASSET_CONTEXT_MENU = "Asset Context Menu";
+    public static final String FEATURE_SESSION_BOTTOM_TABS = "Session Bottom Tabs";
+    public static final String FEATURE_QUICK_COUNT = "Quick Count";
 
     // ============================================
     // FEATURE NAMES - ASSET MANAGEMENT
