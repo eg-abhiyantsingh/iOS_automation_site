@@ -8,12 +8,12 @@
     Total: 92 failures across 10 test classes
 
     Breakdown by module:
-      1. Issue_Phase1_Test:    5 failures  (ThreadTimeout - subcategory/OSHA)
-      2. Issue_Phase2_Test:   15 failures  (2 ThreadTimeout + 13 cascade from keyboard)
-      3. Issue_Phase3_Test:    3 failures  (assertion - status/badge/swipe)
-      4. LocationTest:         7 failures  (5 ThreadTimeout + 2 assertion)
-      5. Connections_Test:     8 failures  (2 ThreadTimeout + 6 assertion)
-      6. SiteSelectionTest:   15 failures  (Runtime - goOffline click failures)
+      1. SiteSelectionTest:   15 failures  (Runtime - goOffline click failures)
+      2. Issue_Phase1_Test:    5 failures  (ThreadTimeout - subcategory/OSHA)
+      3. Issue_Phase2_Test:   15 failures  (2 ThreadTimeout + 13 cascade from keyboard)
+      4. Issue_Phase3_Test:    3 failures  (assertion - status/badge/swipe)
+      5. LocationTest:         7 failures  (5 ThreadTimeout + 2 assertion)
+      6. Connections_Test:     8 failures  (2 ThreadTimeout + 6 assertion)
       7. Asset_Phase2_Test:   28 failures  (1 ThreadTimeout + 27 assertion - cascade from login)
       8. Asset_Phase3_Test:    5 failures  (2 ThreadTimeout + 3 assertion)
       9. Asset_Phase5_Test:    5 failures  (ThreadTimeout - subtype persistence)
@@ -25,92 +25,8 @@
         <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
     </listeners>
 
-    <!-- ==================== PART 1: Issue Failures (23 tests) ==================== -->
-    <test name="Part1a - Issue Phase1 Failures (5)">
-        <classes>
-            <class name="com.egalvanic.tests.Issue_Phase1_Test">
-                <methods>
-                    <include name="TC_ISS_092_verifyNFPA70BSubcategoryDropdownOpens"/>
-                    <include name="TC_ISS_112_verifyChangingIssueClassUpdatesSubcategoryOptions"/>
-                    <include name="TC_ISS_113_verifySubcategoryClearedWhenIssueClassChanges"/>
-                    <include name="TC_ISS_118_verifyClearSelectedSubcategory"/>
-                    <include name="TC_ISS_119_verifyOSHASubcategoryFieldVerification"/>
-                </methods>
-            </class>
-        </classes>
-    </test>
-
-    <test name="Part1b - Issue Phase2 Failures (15)">
-        <classes>
-            <class name="com.egalvanic.tests.Issue_Phase2_Test">
-                <methods>
-                    <include name="TC_ISS_134_verifyOSHASubcategoriesDifferentFromNEC"/>
-                    <include name="TC_ISS_135_verifyOSHASubcategoriesDifferentFromNFPA"/>
-                    <include name="TC_ISS_159_verifyProblemTempFieldIsRequired"/>
-                    <include name="TC_ISS_160_verifyEnteringProblemTempNumber"/>
-                    <include name="TC_ISS_161_verifyProblemTempNumericKeyboard"/>
-                    <include name="TC_ISS_162_verifyReferenceTempFieldIsRequired"/>
-                    <include name="TC_ISS_163_verifyEnteringReferenceTempNumber"/>
-                    <include name="TC_ISS_164_verifyCurrentDrawTableStructure"/>
-                    <include name="TC_ISS_165_verifyEnteringCurrentDrawValues"/>
-                    <include name="TC_ISS_166_verifyCurrentDrawIsOptional"/>
-                    <include name="TC_ISS_167_verifyVoltageDropTableStructure"/>
-                    <include name="TC_ISS_168_verifyEnteringVoltageDropValues"/>
-                    <include name="TC_ISS_169_verifyVoltageDropIsOptional"/>
-                    <include name="TC_ISS_170_verifyRequiredFieldsOnlyToggle"/>
-                    <include name="TC_ISS_171_verifyRequiredFieldsShows3of3WhenComplete"/>
-                </methods>
-            </class>
-        </classes>
-    </test>
-
-    <test name="Part1c - Issue Phase3 Failures (3)">
-        <classes>
-            <class name="com.egalvanic.tests.Issue_Phase3_Test">
-                <methods>
-                    <include name="TC_ISS_187_verifyInProgressTabCountUpdates"/>
-                    <include name="TC_ISS_189_verifyInProgressBadgeOnIssueEntry"/>
-                    <include name="TC_ISS_211_verifyDeleteConfirmationFromSwipe"/>
-                </methods>
-            </class>
-        </classes>
-    </test>
-
-    <!-- ==================== PART 2: Location + Connection + Site Failures (30 tests) ==================== -->
-    <test name="Part2a - Location Failures (7)">
-        <classes>
-            <class name="com.egalvanic.tests.LocationTest">
-                <methods>
-                    <include name="TC_DF_001_verifyFloorDeletedImmediatelyOnTap"/>
-                    <include name="TC_DF_002_verifyFloorCountUpdatesAfterDeletion"/>
-                    <include name="TC_EF_003_verifyBuildingFieldNotEditableInEditFloor"/>
-                    <include name="TC_EF_004_verifyCancelDiscardsFloorEditChanges"/>
-                    <include name="TC_FL_002_verifyFloorExpandCollapse"/>
-                    <include name="TC_NF_006_verifyFloorNameWhitespaceOnlyValidation"/>
-                    <include name="TC_NR_001_verifyNewRoomScreenUIElements"/>
-                </methods>
-            </class>
-        </classes>
-    </test>
-
-    <test name="Part2b - Connection Failures (8)">
-        <classes>
-            <class name="com.egalvanic.tests.Connections_Test">
-                <methods>
-                    <include name="TC_CONN_005_verifyConnectionEntryFormat"/>
-                    <include name="TC_CONN_021_verifyAssetListShowsNameAndClass"/>
-                    <include name="TC_CONN_024_verifyChangingSourceNodeSelection"/>
-                    <include name="TC_CONN_059_verifyKeyboardDismissOnSelection"/>
-                    <include name="TC_CONN_060_verifyConnectionWithSpecialCharactersInNames"/>
-                    <include name="TC_CONN_062_verifyRapidMultipleConnectionCreation"/>
-                    <include name="TC_CONN_063_verifyCanCreateConnectionOffline"/>
-                    <include name="TC_CONN_088_verifyDeleteConfirmsDeletion"/>
-                </methods>
-            </class>
-        </classes>
-    </test>
-
-    <test name="Part2c - Site Selection Failures (15)">
+    <!-- ==================== PART 1: Site Selection Failures (15 tests) ==================== -->
+    <test name="Part1 - Site Selection Failures (15)">
         <classes>
             <class name="com.egalvanic.tests.SiteSelectionTest">
                 <methods>
@@ -134,8 +50,93 @@
         </classes>
     </test>
 
-    <!-- ==================== PART 3: Asset Failures (39 tests) ==================== -->
-    <test name="Part3a - Asset Phase2 Failures (28)">
+    <!-- ==================== PART 2: Issue Failures (23 tests) ==================== -->
+    <test name="Part2a - Issue Phase1 Failures (5)">
+        <classes>
+            <class name="com.egalvanic.tests.Issue_Phase1_Test">
+                <methods>
+                    <include name="TC_ISS_092_verifyNFPA70BSubcategoryDropdownOpens"/>
+                    <include name="TC_ISS_112_verifyChangingIssueClassUpdatesSubcategoryOptions"/>
+                    <include name="TC_ISS_113_verifySubcategoryClearedWhenIssueClassChanges"/>
+                    <include name="TC_ISS_118_verifyClearSelectedSubcategory"/>
+                    <include name="TC_ISS_119_verifyOSHASubcategoryFieldVerification"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+
+    <test name="Part2b - Issue Phase2 Failures (15)">
+        <classes>
+            <class name="com.egalvanic.tests.Issue_Phase2_Test">
+                <methods>
+                    <include name="TC_ISS_134_verifyOSHASubcategoriesDifferentFromNEC"/>
+                    <include name="TC_ISS_135_verifyOSHASubcategoriesDifferentFromNFPA"/>
+                    <include name="TC_ISS_159_verifyProblemTempFieldIsRequired"/>
+                    <include name="TC_ISS_160_verifyEnteringProblemTempNumber"/>
+                    <include name="TC_ISS_161_verifyProblemTempNumericKeyboard"/>
+                    <include name="TC_ISS_162_verifyReferenceTempFieldIsRequired"/>
+                    <include name="TC_ISS_163_verifyEnteringReferenceTempNumber"/>
+                    <include name="TC_ISS_164_verifyCurrentDrawTableStructure"/>
+                    <include name="TC_ISS_165_verifyEnteringCurrentDrawValues"/>
+                    <include name="TC_ISS_166_verifyCurrentDrawIsOptional"/>
+                    <include name="TC_ISS_167_verifyVoltageDropTableStructure"/>
+                    <include name="TC_ISS_168_verifyEnteringVoltageDropValues"/>
+                    <include name="TC_ISS_169_verifyVoltageDropIsOptional"/>
+                    <include name="TC_ISS_170_verifyRequiredFieldsOnlyToggle"/>
+                    <include name="TC_ISS_171_verifyRequiredFieldsShows3of3WhenComplete"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+
+    <test name="Part2c - Issue Phase3 Failures (3)">
+        <classes>
+            <class name="com.egalvanic.tests.Issue_Phase3_Test">
+                <methods>
+                    <include name="TC_ISS_187_verifyInProgressTabCountUpdates"/>
+                    <include name="TC_ISS_189_verifyInProgressBadgeOnIssueEntry"/>
+                    <include name="TC_ISS_211_verifyDeleteConfirmationFromSwipe"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+
+    <!-- ==================== PART 3: Location + Connection Failures (15 tests) ==================== -->
+    <test name="Part3a - Location Failures (7)">
+        <classes>
+            <class name="com.egalvanic.tests.LocationTest">
+                <methods>
+                    <include name="TC_DF_001_verifyFloorDeletedImmediatelyOnTap"/>
+                    <include name="TC_DF_002_verifyFloorCountUpdatesAfterDeletion"/>
+                    <include name="TC_EF_003_verifyBuildingFieldNotEditableInEditFloor"/>
+                    <include name="TC_EF_004_verifyCancelDiscardsFloorEditChanges"/>
+                    <include name="TC_FL_002_verifyFloorExpandCollapse"/>
+                    <include name="TC_NF_006_verifyFloorNameWhitespaceOnlyValidation"/>
+                    <include name="TC_NR_001_verifyNewRoomScreenUIElements"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+
+    <test name="Part3b - Connection Failures (8)">
+        <classes>
+            <class name="com.egalvanic.tests.Connections_Test">
+                <methods>
+                    <include name="TC_CONN_005_verifyConnectionEntryFormat"/>
+                    <include name="TC_CONN_021_verifyAssetListShowsNameAndClass"/>
+                    <include name="TC_CONN_024_verifyChangingSourceNodeSelection"/>
+                    <include name="TC_CONN_059_verifyKeyboardDismissOnSelection"/>
+                    <include name="TC_CONN_060_verifyConnectionWithSpecialCharactersInNames"/>
+                    <include name="TC_CONN_062_verifyRapidMultipleConnectionCreation"/>
+                    <include name="TC_CONN_063_verifyCanCreateConnectionOffline"/>
+                    <include name="TC_CONN_088_verifyDeleteConfirmsDeletion"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+
+    <!-- ==================== PART 4: Asset Failures (39 tests) ==================== -->
+    <test name="Part4a - Asset Phase2 Failures (28)">
         <classes>
             <class name="com.egalvanic.tests.Asset_Phase2_Test">
                 <methods>
@@ -172,7 +173,7 @@
         </classes>
     </test>
 
-    <test name="Part3b - Asset Phase3 Failures (5)">
+    <test name="Part4b - Asset Phase3 Failures (5)">
         <classes>
             <class name="com.egalvanic.tests.Asset_Phase3_Test">
                 <methods>
@@ -186,7 +187,7 @@
         </classes>
     </test>
 
-    <test name="Part3c - Asset Phase5 Failures (5)">
+    <test name="Part4c - Asset Phase5 Failures (5)">
         <classes>
             <class name="com.egalvanic.tests.Asset_Phase5_Test">
                 <methods>
@@ -200,7 +201,7 @@
         </classes>
     </test>
 
-    <test name="Part3d - Asset Phase6 Failures (1)">
+    <test name="Part4d - Asset Phase6 Failures (1)">
         <classes>
             <class name="com.egalvanic.tests.Asset_Phase6_Test">
                 <methods>
