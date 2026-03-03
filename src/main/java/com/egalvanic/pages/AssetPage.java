@@ -5707,22 +5707,29 @@ public class AssetPage extends BasePage {
             "Select asset subtype"
         };
         
-        for (String subtype : knownSubtypes) {
-            try {
-                WebElement btn = driver.findElement(
-                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name == '" + subtype + "'")
-                );
-                if (btn.isDisplayed()) {
-                    System.out.println("      ✓ Found known subtype: '" + subtype + "'");
-                    btn.click();
-                    System.out.println("   ✅ Clicked subtype button to open dropdown");
-                    return;
+        // Use reduced implicit wait — 30+ subtypes × 5s default = 150s+ if none match
+        driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(500));
+        try {
+            for (String subtype : knownSubtypes) {
+                try {
+                    WebElement btn = driver.findElement(
+                        AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name == '" + subtype + "'")
+                    );
+                    if (btn.isDisplayed()) {
+                        System.out.println("      ✓ Found known subtype: '" + subtype + "'");
+                        btn.click();
+                        System.out.println("   ✅ Clicked subtype button to open dropdown");
+                        return;
+                    }
+                } catch (Exception e) {
+                    // Subtype not found, continue to next
                 }
-            } catch (Exception e) {
-                // Subtype not found, continue to next
             }
+            System.out.println("      ✗ No known subtype buttons found on screen");
+        } finally {
+            driver.manage().timeouts().implicitlyWait(
+                java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
         }
-        System.out.println("      ✗ No known subtype buttons found on screen");
         
         // Strategy 4: Find any button that looks like a subtype (contains parentheses or voltage)
         System.out.println("   📌 Strategy 4: Looking for subtype-like buttons (with parentheses/voltage)...");
@@ -5787,10 +5794,10 @@ public class AssetPage extends BasePage {
             System.out.println("   Scroll + retry failed");
         }
         
-        // DEBUG: Print all buttons to help identify correct element
-        debugPrintAllElements();
-        
-        throw new RuntimeException("Failed to click Select Asset Subtype - check debug output for available buttons");
+        // Skip debugPrintAllElements() — iterates hundreds of elements (60+ seconds on CI)
+        System.out.println("⚠️ All 5 strategies failed to find Asset Subtype button");
+
+        throw new RuntimeException("Failed to click Select Asset Subtype - all strategies exhausted");
     }
 
     /**

@@ -4555,6 +4555,219 @@ public class WorkOrderPage extends BasePage {
     }
 
     /**
+     * Tap the "Create Photo Walkthrough" option on the New Asset tab.
+     * Modeled after tapCreateQuickCountOption().
+     * @return true if the option was tapped
+     */
+    public boolean tapCreatePhotoWalkthroughOption() {
+        System.out.println("📍 Tapping 'Create Photo Walkthrough' option...");
+
+        // Strategy 1: Tap the title text
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton') "
+                + "AND (label == 'Create Photo Walkthrough' OR label CONTAINS 'Photo Walkthrough')"
+            ));
+            if (!elements.isEmpty()) {
+                elements.get(0).click();
+                System.out.println("✅ Tapped Create Photo Walkthrough option");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Tap the cell containing "Photo Walkthrough"
+        try {
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+            for (WebElement cell : cells) {
+                List<WebElement> children = cell.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND label CONTAINS 'Photo Walkthrough'"
+                ));
+                if (!children.isEmpty()) {
+                    cell.click();
+                    System.out.println("✅ Tapped Photo Walkthrough cell");
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 3: Broad search
+        try {
+            WebElement el = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "label CONTAINS 'Photo Walkthrough' AND visible == true"
+            ));
+            el.click();
+            System.out.println("✅ Tapped Photo Walkthrough (broad)");
+            return true;
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not tap Create Photo Walkthrough option");
+            return false;
+        }
+    }
+
+    /**
+     * Check if the Photo Walkthrough screen is displayed.
+     * Detects "Photo Walkthrough" title in the navigation bar.
+     * @return true if the screen is detected
+     */
+    public boolean isPhotoWalkthroughScreenDisplayed() {
+        System.out.println("📍 Checking for Photo Walkthrough screen...");
+
+        // Strategy 1: Navigation bar title
+        try {
+            List<WebElement> navBars = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeNavigationBar' AND "
+                + "(label CONTAINS 'Photo Walkthrough' OR name CONTAINS 'Photo Walkthrough')"
+            ));
+            if (!navBars.isEmpty()) {
+                System.out.println("✅ Photo Walkthrough screen detected (nav bar)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Static text title
+        try {
+            List<WebElement> titles = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "label == 'Photo Walkthrough'"
+            ));
+            for (WebElement title : titles) {
+                int y = title.getLocation().getY();
+                if (y < 150) {
+                    System.out.println("✅ Photo Walkthrough screen detected (title, Y=" + y + ")");
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 3: Combination — "Take photos" heading + cancel button
+        try {
+            List<WebElement> headings = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "label CONTAINS 'Take photos of the asset'"
+            ));
+            if (!headings.isEmpty()) {
+                System.out.println("✅ Photo Walkthrough screen detected (heading)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Photo Walkthrough screen not detected");
+        return false;
+    }
+
+    /**
+     * Check if the "Take photos of the asset" heading is displayed on Photo Walkthrough.
+     * @return true if the heading is found
+     */
+    public boolean isTakePhotosOfAssetHeadingDisplayed() {
+        System.out.println("📍 Checking for 'Take photos of the asset' heading...");
+        try {
+            List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'Take photos of the asset' OR label CONTAINS 'Take photos of the asset')"
+            ));
+            boolean displayed = !found.isEmpty();
+            System.out.println(displayed
+                ? "✅ 'Take photos of the asset' heading found"
+                : "⚠️ 'Take photos of the asset' heading not found");
+            return displayed;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Check if the "You can take multiple photos" hint text is displayed.
+     * @return true if the hint is found
+     */
+    public boolean isMultiplePhotosHintDisplayed() {
+        System.out.println("📍 Checking for 'You can take multiple photos' hint...");
+        try {
+            List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'multiple photos' OR label CONTAINS 'take multiple')"
+            ));
+            boolean displayed = !found.isEmpty();
+            System.out.println(displayed
+                ? "✅ 'You can take multiple photos' hint found"
+                : "⚠️ Multiple photos hint not found");
+            return displayed;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    // Note: isNoPhotosYetTextDisplayed() already exists in ADD PHOTOS SCREEN section
+
+    /**
+     * Check if the "Done with this asset" button is displayed on Photo Walkthrough.
+     * @return true if the button is found
+     */
+    public boolean isDoneWithThisAssetButtonDisplayed() {
+        System.out.println("📍 Checking for 'Done with this asset' button...");
+        try {
+            List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') "
+                + "AND (label CONTAINS 'Done with this asset' OR label CONTAINS 'Done with this')"
+            ));
+            boolean displayed = !found.isEmpty();
+            System.out.println(displayed
+                ? "✅ 'Done with this asset' button found"
+                : "⚠️ 'Done with this asset' button not found");
+            return displayed;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Check if the "Done with this asset" button is enabled (blue) or disabled (gray).
+     * Initially disabled until photos are added.
+     * @return true if the button is enabled
+     */
+    public boolean isDoneWithThisAssetButtonEnabled() {
+        System.out.println("📍 Checking 'Done with this asset' button enabled state...");
+        try {
+            List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label CONTAINS 'Done with this asset' OR label CONTAINS 'Done with this')"
+            ));
+            if (!found.isEmpty()) {
+                String enabled = found.get(0).getAttribute("enabled");
+                boolean isEnabled = "true".equalsIgnoreCase(enabled);
+                System.out.println("📊 'Done with this asset' button enabled: " + isEnabled);
+                return isEnabled;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ 'Done with this asset' button not found for enabled check");
+        return false;
+    }
+
+    /**
+     * Tap the Cancel button on the Photo Walkthrough screen.
+     * @return true if Cancel was tapped
+     */
+    public boolean tapPhotoWalkthroughCancelButton() {
+        System.out.println("📍 Tapping Cancel on Photo Walkthrough...");
+        try {
+            List<WebElement> cancelBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"
+            ));
+            if (!cancelBtns.isEmpty()) {
+                cancelBtns.get(0).click();
+                System.out.println("✅ Tapped Cancel on Photo Walkthrough");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap Cancel on Photo Walkthrough");
+        return false;
+    }
+
+    /**
      * Get details of a New Asset tab option (icon presence, title, description).
      * @param optionTitle e.g., "Create New Asset", "Create Quick Count", "Create Photo Walkthrough"
      * @return map with "title", "description", "hasIcon" keys, or null if not found.
@@ -6042,6 +6255,1476 @@ public class WorkOrderPage extends BasePage {
     }
 
     // ================================================================
+    // QUICK COUNT — OCPD FLOW (TC_JOB_161-169)
+    // ================================================================
+
+    /**
+     * Check if the "Add OCPDs?" prompt is displayed.
+     * This prompt appears after adding a photoset for an MCC asset type.
+     * It contains three buttons: Add by Photo, Add by Count, No Skip.
+     * @return true if the prompt is detected
+     */
+    public boolean isAddOCPDsPromptDisplayed() {
+        System.out.println("📍 Checking for 'Add OCPDs?' prompt...");
+
+        // Strategy 1: Look for "Add OCPDs" text (title or label)
+        try {
+            List<WebElement> ocpdTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'Add OCPDs' OR label CONTAINS 'Add OCPD' "
+                + "OR label CONTAINS 'OCPD')"
+            ));
+            if (!ocpdTexts.isEmpty()) {
+                System.out.println("✅ 'Add OCPDs?' prompt detected (text: '"
+                    + ocpdTexts.get(0).getAttribute("label") + "')");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Look for the combination of all three OCPD buttons
+        try {
+            boolean hasAddByPhoto = !driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') "
+                + "AND label CONTAINS 'Add by Photo'"
+            )).isEmpty();
+            boolean hasNoSkip = !driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') "
+                + "AND (label == 'No, Skip' OR label CONTAINS 'Skip')"
+            )).isEmpty();
+            if (hasAddByPhoto && hasNoSkip) {
+                System.out.println("✅ 'Add OCPDs?' prompt detected (buttons found)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ 'Add OCPDs?' prompt not detected");
+        return false;
+    }
+
+    /**
+     * Check if the "Add by Photo" button is displayed in the Add OCPDs prompt.
+     * This is typically an orange button.
+     * @return true if the button is found
+     */
+    public boolean isAddByPhotoButtonDisplayed() {
+        System.out.println("📍 Checking for 'Add by Photo' button...");
+        try {
+            List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') "
+                + "AND (label == 'Add by Photo' OR label CONTAINS 'Add by Photo')"
+            ));
+            boolean displayed = !found.isEmpty();
+            System.out.println(displayed
+                ? "✅ 'Add by Photo' button found"
+                : "⚠️ 'Add by Photo' button not found");
+            return displayed;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Check if the "Add by Count" button is displayed in the Add OCPDs prompt.
+     * This is typically a blue button.
+     * @return true if the button is found
+     */
+    public boolean isAddByCountButtonDisplayed() {
+        System.out.println("📍 Checking for 'Add by Count' button...");
+        try {
+            List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') "
+                + "AND (label == 'Add by Count' OR label CONTAINS 'Add by Count')"
+            ));
+            boolean displayed = !found.isEmpty();
+            System.out.println(displayed
+                ? "✅ 'Add by Count' button found"
+                : "⚠️ 'Add by Count' button not found");
+            return displayed;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Check if the "No, Skip" button is displayed in the Add OCPDs prompt.
+     * This is typically a gray button.
+     * @return true if the button is found
+     */
+    public boolean isNoSkipButtonDisplayed() {
+        System.out.println("📍 Checking for 'No, Skip' button...");
+        try {
+            List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') "
+                + "AND (label == 'No, Skip' OR label == 'No, skip' "
+                + "OR label == 'Skip' OR label CONTAINS 'No, Skip')"
+            ));
+            boolean displayed = !found.isEmpty();
+            System.out.println(displayed
+                ? "✅ 'No, Skip' button found"
+                : "⚠️ 'No, Skip' button not found");
+            return displayed;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Tap the "Add by Photo" button in the Add OCPDs prompt.
+     * @return true if the button was tapped
+     */
+    public boolean tapAddByPhotoButton() {
+        System.out.println("📍 Tapping 'Add by Photo' button...");
+
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label == 'Add by Photo' OR label CONTAINS 'Add by Photo')"
+            ));
+            if (!buttons.isEmpty()) {
+                buttons.get(0).click();
+                System.out.println("✅ Tapped 'Add by Photo' button");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Fallback: try static text
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label CONTAINS 'Add by Photo'"
+            ));
+            if (!texts.isEmpty()) {
+                texts.get(0).click();
+                System.out.println("✅ Tapped 'Add by Photo' (text fallback)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap 'Add by Photo' button");
+        return false;
+    }
+
+    /**
+     * Tap the "Add by Count" button in the Add OCPDs prompt.
+     * @return true if the button was tapped
+     */
+    public boolean tapAddByCountButton() {
+        System.out.println("📍 Tapping 'Add by Count' button...");
+
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label == 'Add by Count' OR label CONTAINS 'Add by Count')"
+            ));
+            if (!buttons.isEmpty()) {
+                buttons.get(0).click();
+                System.out.println("✅ Tapped 'Add by Count' button");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Fallback: try static text
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label CONTAINS 'Add by Count'"
+            ));
+            if (!texts.isEmpty()) {
+                texts.get(0).click();
+                System.out.println("✅ Tapped 'Add by Count' (text fallback)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap 'Add by Count' button");
+        return false;
+    }
+
+    /**
+     * Tap the "No, Skip" button in the Add OCPDs prompt.
+     * @return true if the button was tapped
+     */
+    public boolean tapNoSkipButton() {
+        System.out.println("📍 Tapping 'No, Skip' button...");
+
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label == 'No, Skip' OR label == 'No, skip' OR label == 'Skip')"
+            ));
+            if (!buttons.isEmpty()) {
+                buttons.get(0).click();
+                System.out.println("✅ Tapped 'No, Skip' button");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Fallback: try static text
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'No, Skip' OR label == 'No, skip' OR label CONTAINS 'No, Skip')"
+            ));
+            if (!texts.isEmpty()) {
+                texts.get(0).click();
+                System.out.println("✅ Tapped 'No, Skip' (text fallback)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap 'No, Skip' button");
+        return false;
+    }
+
+    /**
+     * Check if the OCPD Photos screen is displayed.
+     * This screen opens after tapping "Add by Photo" in the OCPD prompt.
+     * @return true if the OCPD Photos screen is detected
+     */
+    public boolean isOCPDPhotosScreenDisplayed() {
+        System.out.println("📍 Checking for OCPD Photos screen...");
+
+        // Strategy 1: Screen title containing "OCPD" + "Photo"
+        try {
+            List<WebElement> titles = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'OCPD' AND label CONTAINS 'Photo')"
+            ));
+            if (!titles.isEmpty()) {
+                System.out.println("✅ OCPD Photos screen detected (title: '"
+                    + titles.get(0).getAttribute("label") + "')");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: "OCPD" in nav bar or header combined with photo elements
+        try {
+            List<WebElement> ocpdLabels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label CONTAINS 'OCPD'"
+            ));
+            boolean hasNextBtn = !driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == 'Next'"
+            )).isEmpty();
+            if (!ocpdLabels.isEmpty() && hasNextBtn) {
+                System.out.println("✅ OCPD Photos screen detected (OCPD label + Next button)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 3: Look for "Add OCPD" or photo-related text with OCPD context
+        try {
+            List<WebElement> ocpdScreen = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'OCPD Photos' OR label CONTAINS 'OCPD photos' "
+                + "OR label CONTAINS 'Add OCPD Photo')"
+            ));
+            if (!ocpdScreen.isEmpty()) {
+                System.out.println("✅ OCPD Photos screen detected ('"
+                    + ocpdScreen.get(0).getAttribute("label") + "')");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ OCPD Photos screen not detected");
+        return false;
+    }
+
+    /**
+     * Tap the "Next" button on the OCPD Photos screen.
+     * Navigates to the Classify OCPD screen.
+     * @return true if the Next button was tapped
+     */
+    public boolean tapOCPDPhotosNextButton() {
+        System.out.println("📍 Tapping 'Next' button on OCPD Photos screen...");
+
+        try {
+            List<WebElement> nextBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == 'Next'"
+            ));
+            if (!nextBtns.isEmpty()) {
+                nextBtns.get(0).click();
+                System.out.println("✅ Tapped 'Next' button");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Fallback: any element with "Next" label
+        try {
+            List<WebElement> nextEls = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "label == 'Next' AND visible == true"
+            ));
+            if (!nextEls.isEmpty()) {
+                nextEls.get(0).click();
+                System.out.println("✅ Tapped 'Next' (broad fallback)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap 'Next' button");
+        return false;
+    }
+
+    /**
+     * Check if the "Classify OCPD" screen is displayed.
+     * This screen appears after tapping Next on the OCPD Photos screen.
+     * Contains an OCPD Type dropdown.
+     * @return true if the Classify OCPD screen is detected
+     */
+    public boolean isClassifyOCPDScreenDisplayed() {
+        System.out.println("📍 Checking for 'Classify OCPD' screen...");
+
+        // Strategy 1: Title text "Classify OCPD" or "Classify"
+        try {
+            List<WebElement> titles = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'Classify OCPD' OR label CONTAINS 'Classify OCP')"
+            ));
+            if (!titles.isEmpty()) {
+                System.out.println("✅ 'Classify OCPD' screen detected (title: '"
+                    + titles.get(0).getAttribute("label") + "')");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Nav bar text + OCPD Type dropdown
+        try {
+            List<WebElement> classifyLabels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label CONTAINS 'Classify'"
+            ));
+            boolean hasTypeDropdown = !driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') "
+                + "AND (label CONTAINS 'OCPD Type' OR label CONTAINS 'OCP Type')"
+            )).isEmpty();
+            if (!classifyLabels.isEmpty() && hasTypeDropdown) {
+                System.out.println("✅ 'Classify OCPD' screen detected (Classify + Type dropdown)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 3: OCPD Type label alone (strong indicator)
+        try {
+            List<WebElement> typeLabels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'OCPD Type' OR label == 'OCP Type')"
+            ));
+            if (!typeLabels.isEmpty()) {
+                System.out.println("✅ 'Classify OCPD' screen detected (OCPD Type label)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ 'Classify OCPD' screen not detected");
+        return false;
+    }
+
+    /**
+     * Check if the OCPD Type dropdown is displayed on the Classify OCPD screen.
+     * @return true if the dropdown is found
+     */
+    public boolean isOCPDTypeDropdownDisplayed() {
+        System.out.println("📍 Checking for OCPD Type dropdown...");
+        try {
+            // Look for the label
+            List<WebElement> labels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'OCPD Type' OR label == 'OCP Type' OR label CONTAINS 'OCPD Type')"
+            ));
+            // Also look for the picker button
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label CONTAINS 'OCPD Type' OR label CONTAINS 'OCP Type' "
+                + "OR label CONTAINS 'Select type')"
+            ));
+            boolean displayed = !labels.isEmpty() || !buttons.isEmpty();
+            System.out.println(displayed
+                ? "✅ OCPD Type dropdown found"
+                : "⚠️ OCPD Type dropdown not found");
+            return displayed;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Tap the OCPD Type dropdown to open it.
+     * @return true if the dropdown was tapped
+     */
+    public boolean tapOCPDTypeDropdown() {
+        System.out.println("📍 Tapping OCPD Type dropdown...");
+
+        // Strategy 1: Button with "OCPD Type" or "Select type" in label
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label CONTAINS 'OCPD Type' OR label CONTAINS 'OCP Type' "
+                + "OR label CONTAINS 'Select type')"
+            ));
+            if (!buttons.isEmpty()) {
+                buttons.get(0).click();
+                System.out.println("✅ Tapped OCPD Type dropdown button");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Find "OCPD Type" label and tap nearby button
+        try {
+            List<WebElement> labels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'OCPD Type' OR label == 'OCP Type')"
+            ));
+            if (!labels.isEmpty()) {
+                int labelY = labels.get(0).getLocation().getY();
+                List<WebElement> allBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton'"
+                ));
+                for (WebElement btn : allBtns) {
+                    int btnY = btn.getLocation().getY();
+                    if (Math.abs(btnY - labelY) < 40) {
+                        String btnLabel = btn.getAttribute("label");
+                        if (btnLabel != null && !btnLabel.equals("Back")
+                            && !btnLabel.equals("Cancel")) {
+                            btn.click();
+                            System.out.println("✅ Tapped button near OCPD Type label: '"
+                                + btnLabel + "'");
+                            return true;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap OCPD Type dropdown");
+        return false;
+    }
+
+    /**
+     * Get the list of OCPD Type dropdown options.
+     * Expected options: Disconnect Switch, Fuse, MCC Bucket, Other (OCP), Relay.
+     * Must be called after tapOCPDTypeDropdown() opens the dropdown.
+     * @return list of option names
+     */
+    public java.util.List<String> getOCPDTypeOptions() {
+        System.out.println("📍 Getting OCPD Type dropdown options...");
+        java.util.List<String> options = new java.util.ArrayList<>();
+
+        // Known OCPD type options
+        String[] expectedTypes = {
+            "Disconnect Switch", "Fuse", "MCC Bucket", "Other (OCP)", "Relay"
+        };
+
+        try {
+            // Strategy 1: Look for options in a picker/list/sheet
+            List<WebElement> optionElements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                + "AND (label == 'Disconnect Switch' OR label == 'Fuse' "
+                + "OR label == 'MCC Bucket' OR label CONTAINS 'Other' "
+                + "OR label == 'Relay')"
+            ));
+            for (WebElement el : optionElements) {
+                String label = el.getAttribute("label");
+                if (label != null && !label.isEmpty() && !options.contains(label)) {
+                    options.add(label);
+                }
+            }
+            if (!options.isEmpty()) {
+                System.out.println("✅ Found " + options.size() + " OCPD Type options: " + options);
+                return options;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Broader search for button options in the dropdown
+        try {
+            List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton') "
+                + "AND visible == true"
+            ));
+            for (WebElement el : allTexts) {
+                String label = el.getAttribute("label");
+                if (label == null) continue;
+                for (String expected : expectedTypes) {
+                    if (label.equals(expected) && !options.contains(label)) {
+                        options.add(label);
+                    }
+                }
+            }
+            if (!options.isEmpty()) {
+                System.out.println("✅ Found " + options.size() + " OCPD Type options (broad): " + options);
+                return options;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ No OCPD Type options found");
+        return options;
+    }
+
+    // ================================================================
+    // CLASSIFY OCPD — SUBTYPE + DONE (TC_JOB_170-172)
+    // ================================================================
+
+    /**
+     * Select an OCPD Type from the opened dropdown on the Classify OCPD screen.
+     * Call tapOCPDTypeDropdown() first to open the dropdown.
+     * @param typeName the type to select (e.g., "Fuse", "Disconnect Switch")
+     * @return true if the type was selected
+     */
+    public boolean selectOCPDType(String typeName) {
+        System.out.println("📍 Selecting OCPD Type: " + typeName + "...");
+
+        // Strategy 1: Exact match on static text
+        try {
+            List<WebElement> options = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label == '" + typeName + "'"
+            ));
+            for (WebElement opt : options) {
+                int y = opt.getLocation().getY();
+                if (y > 200) {
+                    opt.click();
+                    System.out.println("✅ Selected OCPD Type: " + typeName);
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Button with matching label
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == '" + typeName + "'"
+            ));
+            if (!buttons.isEmpty()) {
+                buttons.get(0).click();
+                System.out.println("✅ Selected OCPD Type (button): " + typeName);
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 3: CONTAINS match for partial/unicode labels
+        try {
+            List<WebElement> partial = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton') "
+                + "AND label CONTAINS '" + typeName + "'"
+            ));
+            for (WebElement el : partial) {
+                int y = el.getLocation().getY();
+                if (y > 200) {
+                    el.click();
+                    System.out.println("✅ Selected OCPD Type (contains): " + typeName);
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not select OCPD Type: " + typeName);
+        return false;
+    }
+
+    /**
+     * Check if the Subtype dropdown is displayed on the Classify OCPD screen.
+     * This appears after selecting an OCPD Type (e.g., Fuse → shows Subtype field).
+     * @return true if the Subtype dropdown is found
+     */
+    public boolean isOCPDSubtypeDropdownDisplayed() {
+        System.out.println("📍 Checking for OCPD Subtype dropdown on Classify screen...");
+        try {
+            // Look for "Subtype" label
+            List<WebElement> labels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'Subtype' OR label == 'Subtype (Optional)' "
+                + "OR label CONTAINS 'Subtype')"
+            ));
+            // Also look for picker button with Subtype context
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label CONTAINS 'Subtype' OR label CONTAINS 'None' "
+                + "OR label CONTAINS 'Select subtype')"
+            ));
+            boolean displayed = !labels.isEmpty() || !buttons.isEmpty();
+            System.out.println(displayed
+                ? "✅ OCPD Subtype dropdown found"
+                : "⚠️ OCPD Subtype dropdown not found");
+            return displayed;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Tap the Subtype dropdown on the Classify OCPD form.
+     * @return true if the dropdown was tapped
+     */
+    public boolean tapOCPDSubtypeDropdown() {
+        System.out.println("📍 Tapping OCPD Subtype dropdown...");
+
+        // Strategy 1: Button with Subtype in label
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label CONTAINS 'Subtype' OR label CONTAINS 'None' "
+                + "OR label CONTAINS 'Select subtype')"
+            ));
+            if (!buttons.isEmpty()) {
+                buttons.get(0).click();
+                System.out.println("✅ Tapped Subtype dropdown button");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Find "Subtype" label and tap nearby button
+        try {
+            List<WebElement> labels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label CONTAINS 'Subtype'"
+            ));
+            if (!labels.isEmpty()) {
+                int labelY = labels.get(0).getLocation().getY();
+                List<WebElement> allBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton'"
+                ));
+                for (WebElement btn : allBtns) {
+                    int btnY = btn.getLocation().getY();
+                    if (Math.abs(btnY - labelY) < 40) {
+                        String btnLabel = btn.getAttribute("label");
+                        if (btnLabel != null && !btnLabel.equals("Back")
+                            && !btnLabel.equals("Cancel") && !btnLabel.equals("Done")) {
+                            btn.click();
+                            System.out.println("✅ Tapped button near Subtype label: '"
+                                + btnLabel + "'");
+                            return true;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap OCPD Subtype dropdown");
+        return false;
+    }
+
+    /**
+     * Get the list of OCPD Subtype options from the opened picker.
+     * For Fuse type, expected: None, Fuse (<=1000V), Fuse (>1000V).
+     * @return list of subtype option names
+     */
+    public java.util.List<String> getOCPDSubtypeOptions() {
+        System.out.println("📍 Getting OCPD Subtype options...");
+        java.util.List<String> options = new java.util.ArrayList<>();
+
+        try {
+            // Gather all visible static texts in the dropdown/picker area
+            List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true"
+            ));
+
+            // Filter to likely option labels (Y > 200, not UI chrome)
+            java.util.Set<String> excludeLabels = new java.util.HashSet<>(
+                java.util.Arrays.asList("Cancel", "Done", "Back", "Classify",
+                    "OCPD Type", "Subtype", "Subtype (Optional)")
+            );
+            for (WebElement el : allTexts) {
+                String label = el.getAttribute("label");
+                if (label == null || label.isEmpty()) continue;
+                if (excludeLabels.contains(label)) continue;
+                int y = el.getLocation().getY();
+                if (y > 200 && !options.contains(label)) {
+                    options.add(label);
+                }
+            }
+
+            if (!options.isEmpty()) {
+                System.out.println("✅ Found " + options.size()
+                    + " OCPD Subtype options: " + options);
+                return options;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Look for known subtype patterns
+        try {
+            List<WebElement> knownOptions = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'None' OR label CONTAINS '1000V' "
+                + "OR label CONTAINS 'Fuse' OR label CONTAINS 'Switch' "
+                + "OR label CONTAINS 'BPS' OR label CONTAINS 'Bucket')"
+            ));
+            for (WebElement el : knownOptions) {
+                String label = el.getAttribute("label");
+                if (label != null && !label.isEmpty() && !options.contains(label)) {
+                    options.add(label);
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println(options.isEmpty()
+            ? "⚠️ No OCPD Subtype options found"
+            : "✅ Found " + options.size() + " OCPD Subtype options: " + options);
+        return options;
+    }
+
+    /**
+     * Check if the Done button on the Classify OCPD screen is enabled (blue).
+     * When no OCPD Type is selected, Done is disabled (gray).
+     * After selecting a type, Done becomes enabled (blue).
+     * @return true if the Done button is enabled
+     */
+    public boolean isClassifyOCPDDoneButtonEnabled() {
+        System.out.println("📍 Checking if Classify OCPD Done button is enabled...");
+        try {
+            List<WebElement> doneBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == 'Done'"
+            ));
+            if (!doneBtns.isEmpty()) {
+                String enabled = doneBtns.get(0).getAttribute("enabled");
+                boolean isEnabled = "true".equals(enabled);
+                System.out.println(isEnabled
+                    ? "✅ Classify OCPD Done button is ENABLED (blue)"
+                    : "📊 Classify OCPD Done button is DISABLED (gray)");
+                return isEnabled;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Classify OCPD Done button not found");
+        return false;
+    }
+
+    /**
+     * Tap the Done button on the Classify OCPD screen to complete classification.
+     * @return true if the button was tapped
+     */
+    public boolean tapClassifyOCPDDoneButton() {
+        System.out.println("📍 Tapping Done on Classify OCPD screen...");
+        try {
+            List<WebElement> doneBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == 'Done'"
+            ));
+            if (!doneBtns.isEmpty()) {
+                doneBtns.get(0).click();
+                System.out.println("✅ Tapped Classify OCPD Done button");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap Classify OCPD Done button");
+        return false;
+    }
+
+    /**
+     * Tap the Back button on the Classify OCPD screen to return to OCPD Photos.
+     * @return true if Back was tapped
+     */
+    public boolean tapClassifyOCPDBackButton() {
+        System.out.println("📍 Tapping Back on Classify OCPD screen...");
+
+        // Strategy 1: Button labeled "Back"
+        try {
+            List<WebElement> backBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label == 'Back' OR label CONTAINS 'Back')"
+            ));
+            for (WebElement btn : backBtns) {
+                int x = btn.getLocation().getX();
+                int y = btn.getLocation().getY();
+                // Back button is typically in the top-left area
+                if (x < 150 && y < 120) {
+                    btn.click();
+                    System.out.println("✅ Tapped Back button on Classify OCPD (X=" + x + ", Y=" + y + ")");
+                    return true;
+                }
+            }
+            // If no top-left match, tap first Back button found
+            if (!backBtns.isEmpty()) {
+                backBtns.get(0).click();
+                System.out.println("✅ Tapped Back button (first match)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Navigation bar back button (chevron)
+        try {
+            List<WebElement> navBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(name CONTAINS 'chevron.left' OR name CONTAINS 'back' "
+                + "OR label CONTAINS 'OCPD Photos')"
+            ));
+            if (!navBtns.isEmpty()) {
+                navBtns.get(0).click();
+                System.out.println("✅ Tapped nav back button");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap Back on Classify OCPD");
+        return false;
+    }
+
+    // ================================================================
+    // ADD OCPDs BY COUNT SCREEN (TC_JOB_173-179)
+    // ================================================================
+
+    /**
+     * Check if the "Add OCPDs by Count" screen is displayed.
+     * This screen opens after tapping "Add by Count" on the OCPD prompt.
+     * @return true if the screen is detected
+     */
+    public boolean isAddOCPDsByCountScreenDisplayed() {
+        System.out.println("📍 Checking for 'Add OCPDs by Count' screen...");
+
+        // Strategy 1: Title text
+        try {
+            List<WebElement> titles = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'Add OCPDs by Count' OR label CONTAINS 'Add OCPD' "
+                + "OR label CONTAINS 'OCPDs by Count')"
+            ));
+            if (!titles.isEmpty()) {
+                System.out.println("✅ 'Add OCPDs by Count' screen detected (title: '"
+                    + titles.get(0).getAttribute("label") + "')");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Combination check — "No OCPDs added yet" + "Add OCPD Type"
+        try {
+            boolean hasEmptyText = !driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label CONTAINS 'No OCPDs added'"
+            )).isEmpty();
+            boolean hasAddButton = !driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') "
+                + "AND label CONTAINS 'Add OCPD Type'"
+            )).isEmpty();
+            if (hasEmptyText || hasAddButton) {
+                System.out.println("✅ 'Add OCPDs by Count' screen detected (elements)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 3: "Done" button with "OCPD" in label
+        try {
+            boolean hasDoneOCPD = !driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "label CONTAINS 'Done' AND label CONTAINS 'OCPD'"
+            )).isEmpty();
+            if (hasDoneOCPD) {
+                System.out.println("✅ 'Add OCPDs by Count' screen detected (Done OCPD button)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ 'Add OCPDs by Count' screen not detected");
+        return false;
+    }
+
+    /**
+     * Check if the Add OCPDs by Count empty state is displayed.
+     * Looks for: lightning bolt icon + "No OCPDs added yet" + "+ Add OCPD Type" button.
+     * @return true if the empty state is detected (at least 2 of 3 indicators)
+     */
+    public boolean isAddOCPDsByCountEmptyStateDisplayed() {
+        System.out.println("📍 Checking Add OCPDs by Count empty state...");
+        int indicators = 0;
+
+        boolean boltIcon = isLightningBoltIconDisplayed();
+        if (boltIcon) indicators++;
+
+        boolean noOCPDsText = isNoOCPDsAddedYetTextDisplayed();
+        if (noOCPDsText) indicators++;
+
+        boolean addTypeBtn = isAddOCPDTypeButtonDisplayed();
+        if (addTypeBtn) indicators++;
+
+        boolean isEmpty = indicators >= 2;
+        System.out.println(isEmpty
+            ? "✅ Empty state detected (" + indicators + "/3 indicators)"
+            : "⚠️ Empty state not fully detected (" + indicators + "/3 indicators)");
+        return isEmpty;
+    }
+
+    /**
+     * Check if the "No OCPDs added yet" text is displayed.
+     * @return true if the text is found
+     */
+    public boolean isNoOCPDsAddedYetTextDisplayed() {
+        System.out.println("📍 Checking for 'No OCPDs added yet' text...");
+        try {
+            List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'No OCPDs added' OR label == 'No OCPDs added yet')"
+            ));
+            boolean displayed = !found.isEmpty();
+            System.out.println(displayed
+                ? "✅ 'No OCPDs added yet' text found"
+                : "⚠️ 'No OCPDs added yet' text not found");
+            return displayed;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Check if the lightning bolt icon is displayed (empty state indicator).
+     * @return true if the icon is found
+     */
+    public boolean isLightningBoltIconDisplayed() {
+        System.out.println("📍 Checking for lightning bolt icon...");
+        try {
+            List<WebElement> icons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeImage' AND "
+                + "(name CONTAINS 'bolt' OR name == 'bolt.fill' "
+                + "OR label CONTAINS 'bolt' OR name CONTAINS 'lightning')"
+            ));
+            boolean displayed = !icons.isEmpty();
+            System.out.println(displayed
+                ? "✅ Lightning bolt icon found"
+                : "⚠️ Lightning bolt icon not found");
+            return displayed;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Check if the "+ Add OCPD Type" button is displayed.
+     * @return true if the button is found
+     */
+    public boolean isAddOCPDTypeButtonDisplayed() {
+        System.out.println("📍 Checking for '+ Add OCPD Type' button...");
+        try {
+            List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') "
+                + "AND label CONTAINS 'Add OCPD Type'"
+            ));
+            boolean displayed = !found.isEmpty();
+            System.out.println(displayed
+                ? "✅ '+ Add OCPD Type' button found"
+                : "⚠️ '+ Add OCPD Type' button not found");
+            return displayed;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Tap the "+ Add OCPD Type" button on the Add OCPDs by Count screen.
+     * @return true if the button was tapped
+     */
+    public boolean tapAddOCPDTypeButton() {
+        System.out.println("📍 Tapping '+ Add OCPD Type' button...");
+
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label CONTAINS 'Add OCPD Type'"
+            ));
+            if (!buttons.isEmpty()) {
+                buttons.get(0).click();
+                System.out.println("✅ Tapped '+ Add OCPD Type' button");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Fallback: static text
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label CONTAINS 'Add OCPD Type'"
+            ));
+            if (!texts.isEmpty()) {
+                texts.get(0).click();
+                System.out.println("✅ Tapped '+ Add OCPD Type' (text fallback)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap '+ Add OCPD Type' button");
+        return false;
+    }
+
+    /**
+     * Check if the "Select OCPD Type" sheet is displayed.
+     * @return true if the sheet is detected
+     */
+    public boolean isSelectOCPDTypeSheetDisplayed() {
+        System.out.println("📍 Checking for 'Select OCPD Type' sheet...");
+        try {
+            // Check for header
+            List<WebElement> headers = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'Select OCPD Type' OR label CONTAINS 'Select OCPD Type')"
+            ));
+            if (!headers.isEmpty()) {
+                System.out.println("✅ 'Select OCPD Type' sheet detected (header)");
+                return true;
+            }
+
+            // Fallback: check for at least 3 known OCPD types visible
+            int typeCount = 0;
+            String[] knownTypes = {"Disconnect Switch", "Fuse", "MCC Bucket", "Other (OCP)", "Relay"};
+            for (String type : knownTypes) {
+                List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND label == '" + type + "'"
+                ));
+                if (!found.isEmpty()) typeCount++;
+            }
+            if (typeCount >= 3) {
+                System.out.println("✅ 'Select OCPD Type' sheet detected (" + typeCount + " types)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ 'Select OCPD Type' sheet not detected");
+        return false;
+    }
+
+    /**
+     * Get the options from the "Select OCPD Type" sheet.
+     * Expected: Disconnect Switch, Fuse, MCC Bucket, Other (OCP), Relay.
+     * @return list of option names
+     */
+    public java.util.List<String> getSelectOCPDTypeSheetOptions() {
+        System.out.println("📍 Getting 'Select OCPD Type' sheet options...");
+        java.util.List<String> options = new java.util.ArrayList<>();
+
+        String[] expectedTypes = {
+            "Disconnect Switch", "Fuse", "MCC Bucket", "Other (OCP)", "Relay"
+        };
+
+        try {
+            for (String type : expectedTypes) {
+                List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton') "
+                    + "AND label == '" + type + "'"
+                ));
+                if (!found.isEmpty()) {
+                    options.add(type);
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println(options.isEmpty()
+            ? "⚠️ No OCPD Type sheet options found"
+            : "✅ Found " + options.size() + " options: " + options);
+        return options;
+    }
+
+    /**
+     * Select an OCPD Type from the "Select OCPD Type" sheet.
+     * @param typeName the type to select (e.g., "Disconnect Switch")
+     * @return true if the type was selected
+     */
+    public boolean selectOCPDTypeFromSheet(String typeName) {
+        System.out.println("📍 Selecting '" + typeName + "' from OCPD Type sheet...");
+
+        // Strategy 1: Exact match static text
+        try {
+            List<WebElement> options = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label == '" + typeName + "'"
+            ));
+            for (WebElement opt : options) {
+                int y = opt.getLocation().getY();
+                if (y > 150) {
+                    opt.click();
+                    System.out.println("✅ Selected '" + typeName + "' from sheet");
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Button match
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == '" + typeName + "'"
+            ));
+            if (!buttons.isEmpty()) {
+                buttons.get(0).click();
+                System.out.println("✅ Selected '" + typeName + "' from sheet (button)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 3: CONTAINS match
+        try {
+            List<WebElement> partial = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton') "
+                + "AND label CONTAINS '" + typeName + "'"
+            ));
+            for (WebElement el : partial) {
+                int y = el.getLocation().getY();
+                if (y > 150) {
+                    el.click();
+                    System.out.println("✅ Selected '" + typeName + "' (contains match)");
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not select '" + typeName + "' from OCPD Type sheet");
+        return false;
+    }
+
+    /**
+     * Get the text of the Done button on the Add OCPDs by Count screen.
+     * Expected format: "Done (0 OCPDs)", "Done (3 OCPDs)", etc.
+     * @return the button text, or null if not found
+     */
+    public String getAddOCPDsByCountDoneButtonText() {
+        System.out.println("📍 Getting 'Done (N OCPDs)' button text...");
+        try {
+            List<WebElement> doneBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "label CONTAINS 'Done' AND label CONTAINS 'OCPD'"
+            ));
+            if (!doneBtns.isEmpty()) {
+                String text = doneBtns.get(0).getAttribute("label");
+                System.out.println("📊 Done button text: " + text);
+                return text;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Fallback: any Done button at bottom area
+        try {
+            List<WebElement> doneBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label CONTAINS 'Done'"
+            ));
+            for (WebElement btn : doneBtns) {
+                int y = btn.getLocation().getY();
+                if (y > 600) {
+                    String text = btn.getAttribute("label");
+                    System.out.println("📊 Done button text (fallback): " + text);
+                    return text;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Done button text not found");
+        return null;
+    }
+
+    /**
+     * Check if the Done button on Add OCPDs by Count is enabled (blue) vs disabled (gray).
+     * @return true if enabled
+     */
+    public boolean isAddOCPDsByCountDoneButtonEnabled() {
+        System.out.println("📍 Checking if Add OCPDs by Count Done button is enabled...");
+        try {
+            List<WebElement> doneBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label CONTAINS 'Done'"
+            ));
+            for (WebElement btn : doneBtns) {
+                String label = btn.getAttribute("label");
+                if (label != null && (label.contains("OCPD") || btn.getLocation().getY() > 600)) {
+                    String enabled = btn.getAttribute("enabled");
+                    boolean isEnabled = "true".equals(enabled);
+                    System.out.println(isEnabled
+                        ? "✅ Done button is ENABLED (blue)"
+                        : "📊 Done button is DISABLED (gray)");
+                    return isEnabled;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Done button not found");
+        return false;
+    }
+
+    /**
+     * Verify an OCPD card is displayed with both type and subtype text.
+     * @param typeName the OCPD type (e.g., "Disconnect Switch")
+     * @param subtypeName the subtype (e.g., "Bolted-Pressure Switch (BPS)")
+     * @return true if card shows both type and subtype
+     */
+    public boolean isOCPDCardDisplayedWithSubtype(String typeName, String subtypeName) {
+        System.out.println("📍 Checking OCPD card: " + typeName + " / " + subtypeName + "...");
+        try {
+            // Find the type label
+            boolean typeFound = isAssetTypeCardDisplayed(typeName);
+            if (!typeFound) {
+                System.out.println("⚠️ Type card not found: " + typeName);
+                return false;
+            }
+
+            // Check subtype text
+            String actualSubtype = getAssetTypeCardSubtype(typeName);
+            boolean subtypeMatch = actualSubtype != null
+                && (actualSubtype.equals(subtypeName) || actualSubtype.contains(subtypeName));
+            System.out.println(subtypeMatch
+                ? "✅ OCPD card found: " + typeName + " / " + actualSubtype
+                : "⚠️ Subtype mismatch: expected '" + subtypeName
+                    + "', got '" + actualSubtype + "'");
+            return subtypeMatch;
+        } catch (Exception e) {
+            System.out.println("⚠️ Error checking OCPD card: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // ================================================================
+    // ADD OCPDs BY COUNT — DONE + PHOTOSET INTEGRATION (TC_JOB_180-189)
+    // ================================================================
+
+    /**
+     * Tap the "Done (N OCPDs)" button on the Add OCPDs by Count screen.
+     * Completes the bulk OCPD addition and returns to Quick Count.
+     * @return true if the button was tapped
+     */
+    public boolean tapAddOCPDsByCountDoneButton() {
+        System.out.println("📍 Tapping 'Done (N OCPDs)' button...");
+
+        // Strategy 1: Button with "Done" + "OCPD" in label
+        try {
+            List<WebElement> doneBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "label CONTAINS 'Done' AND label CONTAINS 'OCPD'"
+            ));
+            if (!doneBtns.isEmpty()) {
+                doneBtns.get(0).click();
+                System.out.println("✅ Tapped 'Done (N OCPDs)' button");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Any Done button at bottom of screen
+        try {
+            List<WebElement> doneBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label CONTAINS 'Done'"
+            ));
+            for (WebElement btn : doneBtns) {
+                int y = btn.getLocation().getY();
+                if (y > 600) {
+                    btn.click();
+                    System.out.println("✅ Tapped Done button (bottom area, Y=" + y + ")");
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap 'Done (N OCPDs)' button");
+        return false;
+    }
+
+    /**
+     * Count OCPD entries in the MCC photoset section on Quick Count.
+     * OCPD entries show type names like "Fuse", "Disconnect Switch", etc.
+     * below the main photoset entry.
+     * @return the number of OCPD entries found
+     */
+    public int getOCPDEntryCountInPhotoset() {
+        System.out.println("📍 Counting OCPD entries in photoset...");
+        int count = 0;
+
+        String[] ocpdTypes = {
+            "Disconnect Switch", "Fuse", "MCC Bucket", "Other (OCP)", "Relay"
+        };
+
+        try {
+            List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true"
+            ));
+            for (WebElement el : allTexts) {
+                String label = el.getAttribute("label");
+                if (label == null) continue;
+                for (String type : ocpdTypes) {
+                    if (label.contains(type)) {
+                        count++;
+                        break;
+                    }
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("📊 OCPD entries in photoset: " + count);
+        return count;
+    }
+
+    /**
+     * Check if a specific OCPD type entry is displayed in the MCC photoset.
+     * @param typeName the OCPD type (e.g., "Fuse", "Disconnect Switch")
+     * @return true if the type entry is found
+     */
+    public boolean isOCPDEntryDisplayedInPhotoset(String typeName) {
+        System.out.println("📍 Checking for OCPD entry '" + typeName + "' in photoset...");
+        try {
+            List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label CONTAINS '" + typeName + "'"
+            ));
+            for (WebElement el : found) {
+                int y = el.getLocation().getY();
+                if (y > 200) {
+                    System.out.println("✅ OCPD entry '" + typeName + "' found at Y=" + y);
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ OCPD entry '" + typeName + "' not found in photoset");
+        return false;
+    }
+
+    /**
+     * Get the full text of an OCPD entry in the photoset by type name.
+     * Returns text like "Fuse (Fuse (<=1000V)) • 1 photos" or
+     * "Disconnect Switch (BPS) • 10x (no photos)".
+     * @param typeName the OCPD type to find
+     * @return the entry text, or null if not found
+     */
+    public String getOCPDEntryTextInPhotoset(String typeName) {
+        System.out.println("📍 Getting OCPD entry text for '" + typeName + "'...");
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label CONTAINS '" + typeName + "'"
+            ));
+            for (WebElement el : texts) {
+                int y = el.getLocation().getY();
+                if (y > 200) {
+                    String label = el.getAttribute("label");
+                    System.out.println("📊 OCPD entry text: '" + label + "'");
+                    return label;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ OCPD entry text for '" + typeName + "' not found");
+        return null;
+    }
+
+    /**
+     * Check if the "Add by Photo" inline link is displayed in the photoset section.
+     * This is an orange text link within the expanded MCC photoset (NOT the OCPD prompt button).
+     * @return true if the link is found
+     */
+    public boolean isAddByPhotoLinkInPhotosetDisplayed() {
+        System.out.println("📍 Checking for 'Add by Photo' link in photoset...");
+        try {
+            List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton') "
+                + "AND (label == 'Add by Photo' OR label CONTAINS 'Add by Photo')"
+            ));
+            boolean displayed = !found.isEmpty();
+            System.out.println(displayed
+                ? "✅ 'Add by Photo' link found in photoset"
+                : "⚠️ 'Add by Photo' link not found in photoset");
+            return displayed;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Tap the "Add by Photo" inline link in the photoset section.
+     * @return true if the link was tapped
+     */
+    public boolean tapAddByPhotoLinkInPhotoset() {
+        System.out.println("📍 Tapping 'Add by Photo' link in photoset...");
+
+        try {
+            List<WebElement> links = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton') "
+                + "AND (label == 'Add by Photo' OR label CONTAINS 'Add by Photo')"
+            ));
+            if (!links.isEmpty()) {
+                links.get(0).click();
+                System.out.println("✅ Tapped 'Add by Photo' link");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap 'Add by Photo' link");
+        return false;
+    }
+
+    /**
+     * Check if the "# Add by Count" or "Add by Count" inline link
+     * is displayed in the photoset section.
+     * This is a blue text link within the expanded MCC photoset.
+     * @return true if the link is found
+     */
+    public boolean isAddByCountLinkInPhotosetDisplayed() {
+        System.out.println("📍 Checking for 'Add by Count' link in photoset...");
+        try {
+            List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton') "
+                + "AND (label == 'Add by Count' OR label CONTAINS 'Add by Count')"
+            ));
+            boolean displayed = !found.isEmpty();
+            System.out.println(displayed
+                ? "✅ 'Add by Count' link found in photoset"
+                : "⚠️ 'Add by Count' link not found in photoset");
+            return displayed;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Tap the "# Add by Count" or "Add by Count" inline link in the photoset section.
+     * @return true if the link was tapped
+     */
+    public boolean tapAddByCountLinkInPhotoset() {
+        System.out.println("📍 Tapping 'Add by Count' link in photoset...");
+
+        try {
+            List<WebElement> links = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton') "
+                + "AND (label == 'Add by Count' OR label CONTAINS 'Add by Count')"
+            ));
+            if (!links.isEmpty()) {
+                links.get(0).click();
+                System.out.println("✅ Tapped 'Add by Count' link");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap 'Add by Count' link");
+        return false;
+    }
+
+    /**
+     * Tap the X (remove) button on a specific OCPD entry in the photoset.
+     * @param typeName the OCPD type to find and remove (e.g., "Fuse")
+     * @return true if the X button was tapped
+     */
+    public boolean tapOCPDEntryRemoveButton(String typeName) {
+        System.out.println("📍 Tapping X button on OCPD entry: " + typeName + "...");
+
+        try {
+            // Find the OCPD entry element
+            List<WebElement> entries = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label CONTAINS '" + typeName + "'"
+            ));
+            for (WebElement entry : entries) {
+                int entryY = entry.getLocation().getY();
+                if (entryY < 200) continue;
+
+                // Look for X/close button near this entry
+                List<WebElement> xBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeImage') "
+                    + "AND (label == 'X' OR label == 'x' OR label == 'Remove' "
+                    + "OR name CONTAINS 'xmark' OR name CONTAINS 'close' "
+                    + "OR name CONTAINS 'multiply' OR name CONTAINS 'delete')"
+                ));
+                for (WebElement xBtn : xBtns) {
+                    int xY = xBtn.getLocation().getY();
+                    if (Math.abs(xY - entryY) < 40) {
+                        xBtn.click();
+                        System.out.println("✅ Tapped X on OCPD entry '" + typeName + "'");
+                        return true;
+                    }
+                }
+
+                // Fallback: small button on right side near the entry
+                List<WebElement> allBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton'"
+                ));
+                int screenWidth = driver.manage().window().getSize().getWidth();
+                for (WebElement btn : allBtns) {
+                    int btnY = btn.getLocation().getY();
+                    int btnX = btn.getLocation().getX();
+                    int btnW = btn.getSize().getWidth();
+                    if (Math.abs(btnY - entryY) < 40 && btnX > screenWidth * 2 / 3 && btnW < 60) {
+                        btn.click();
+                        System.out.println("✅ Tapped small button near OCPD entry '" + typeName + "'");
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap X on OCPD entry '" + typeName + "'");
+        return false;
+    }
+
+    // ================================================================
     // ADD PHOTOS SCREEN (TC_JOB_147-149)
     // ================================================================
 
@@ -6367,6 +8050,62 @@ public class WorkOrderPage extends BasePage {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    /**
+     * Check if the "All N assets have photosets" indicator is displayed.
+     * This appears as a green checkmark with text when every asset in Quick Count
+     * has at least one photoset.
+     * @return true if the indicator is found
+     */
+    public boolean isAllAssetsHavePhotosetsIndicatorDisplayed() {
+        System.out.println("📍 Checking for 'All assets have photosets' indicator...");
+
+        // Strategy 1: Text containing "All" + "assets have photosets"
+        try {
+            List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "label CONTAINS 'assets have photosets'"
+            ));
+            if (!found.isEmpty()) {
+                String label = found.get(0).getAttribute("label");
+                System.out.println("✅ 'All assets have photosets' indicator found: " + label);
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Text containing "All" and "photoset"
+        try {
+            List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true"
+            ));
+            for (WebElement text : allTexts) {
+                String label = text.getAttribute("label");
+                if (label != null && label.contains("All")
+                        && label.toLowerCase().contains("photoset")) {
+                    System.out.println("✅ Photosets indicator found: " + label);
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 3: Green checkmark near "assets" text
+        boolean hasCheckmark = isPhotosetCheckmarkDisplayed();
+        if (hasCheckmark) {
+            try {
+                List<WebElement> assetTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND "
+                    + "label CONTAINS 'asset' AND label CONTAINS 'photoset'"
+                ));
+                if (!assetTexts.isEmpty()) {
+                    System.out.println("✅ Checkmark + photoset text found");
+                    return true;
+                }
+            } catch (Exception e) { /* continue */ }
+        }
+
+        System.out.println("⚠️ 'All assets have photosets' indicator not found");
+        return false;
     }
 
     /**

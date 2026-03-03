@@ -683,10 +683,28 @@ public class IssuePage extends BasePage {
      */
     public int getVisibleIssueCount() {
         try {
-            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell'"));
-            System.out.println("   Visible issue entries: " + cells.size());
-            return cells.size();
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
+            List<WebElement> cells;
+            try {
+                cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeCell'"));
+            } finally {
+                driver.manage().timeouts().implicitlyWait(
+                    java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
+            }
+            // Filter to only count real issue entry cells (below filter tabs, with reasonable height)
+            int count = 0;
+            for (WebElement cell : cells) {
+                try {
+                    int y = cell.getLocation().getY();
+                    int h = cell.getSize().getHeight();
+                    if (y > 200 && h > 50) {
+                        count++;
+                    }
+                } catch (Exception ignored) {}
+            }
+            System.out.println("   Visible issue entries: " + count + " (total cells: " + cells.size() + ")");
+            return count;
         } catch (Exception e) {
             return 0;
         }
@@ -831,6 +849,7 @@ public class IssuePage extends BasePage {
      * @param status "Open", "Resolved", "Closed"
      */
     public boolean isStatusBadgeDisplayed(String status) {
+        driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
         try {
             // Use case-insensitive matching — iOS may render "In Progress", "IN PROGRESS", etc.
             List<WebElement> badges = driver.findElements(AppiumBy.iOSNsPredicateString(
@@ -853,7 +872,11 @@ public class IssuePage extends BasePage {
                     return true;
                 }
             }
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        } finally {
+            driver.manage().timeouts().implicitlyWait(
+                java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
+        }
         return false;
     }
 
@@ -3597,18 +3620,24 @@ public class IssuePage extends BasePage {
             // Strategy 1: Look for a button below "Subcategory" that shows the selected value
             // The selected chip is typically a button with the value text (long label, not "Select...")
             if (subcatY > 0) {
-                List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton'"));
-                for (WebElement btn : buttons) {
-                    int y = btn.getLocation().getY();
-                    String label = btn.getAttribute("label");
-                    if (y > subcatY && y < subcatY + 80 && label != null &&
-                        !label.equals("Select...") && !label.equals("Subcategory") &&
-                        !label.equals("xmark.circle") && !label.equals("xmark.circle.fill") &&
-                        label.length() > 3) {
-                        System.out.println("   Subcategory value (button): " + label);
-                        return label;
+                driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
+                try {
+                    List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton'"));
+                    for (WebElement btn : buttons) {
+                        int y = btn.getLocation().getY();
+                        String label = btn.getAttribute("label");
+                        if (y > subcatY && y < subcatY + 80 && label != null &&
+                            !label.equals("Select...") && !label.equals("Subcategory") &&
+                            !label.equals("xmark.circle") && !label.equals("xmark.circle.fill") &&
+                            label.length() > 3) {
+                            System.out.println("   Subcategory value (button): " + label);
+                            return label;
+                        }
                     }
+                } finally {
+                    driver.manage().timeouts().implicitlyWait(
+                        java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
                 }
             }
 
@@ -3627,19 +3656,25 @@ public class IssuePage extends BasePage {
             // Strategy 3: Look for static text near "Subcategory" label
             // Filter out short labels like "All", "Open", etc. that come from other UI elements
             if (subcatY > 0) {
-                List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText'"));
-                for (WebElement text : allTexts) {
-                    int y = text.getLocation().getY();
-                    String label = text.getAttribute("label");
-                    if (y > subcatY && y < subcatY + 60 && label != null &&
-                        !label.equals("Subcategory") && !label.contains("Type or select") &&
-                        !label.equals("All") && !label.equals("Open") &&
-                        !label.equals("Resolved") && !label.equals("Closed") &&
-                        label.length() > 5) {  // Real subcategory values are longer than 5 chars
-                        System.out.println("   Subcategory value (nearby text): " + label);
-                        return label;
+                driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
+                try {
+                    List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText'"));
+                    for (WebElement text : allTexts) {
+                        int y = text.getLocation().getY();
+                        String label = text.getAttribute("label");
+                        if (y > subcatY && y < subcatY + 60 && label != null &&
+                            !label.equals("Subcategory") && !label.contains("Type or select") &&
+                            !label.equals("All") && !label.equals("Open") &&
+                            !label.equals("Resolved") && !label.equals("Closed") &&
+                            label.length() > 5) {  // Real subcategory values are longer than 5 chars
+                            System.out.println("   Subcategory value (nearby text): " + label);
+                            return label;
+                        }
                     }
+                } finally {
+                    driver.manage().timeouts().implicitlyWait(
+                        java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
                 }
             }
 
@@ -4995,21 +5030,32 @@ public class IssuePage extends BasePage {
         } catch (Exception ignored) {}
 
         // Strategy 2: Find button near the "Issue Class" label (positional)
+        // Scoped predicate to avoid iterating ALL buttons on screen (50-100+ on CI)
         try {
             WebElement label = driver.findElement(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND " +
                 "(label == 'Issue Class' OR label CONTAINS 'Issue Class')"));
             int labelY = label.getLocation().getY();
-            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton'"));
-            for (WebElement btn : buttons) {
-                int y = btn.getLocation().getY();
-                if (Math.abs(y - labelY) < 50) {
-                    btn.click();
-                    sleep(500);
-                    System.out.println("   Opened Issue Class picker (positional match)");
-                    return true;
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
+            try {
+                List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND " +
+                    "(label CONTAINS 'Violation' OR label CONTAINS 'Anomaly' OR " +
+                    "label CONTAINS 'Repair' OR label CONTAINS 'Class' OR " +
+                    "label CONTAINS 'Select' OR label CONTAINS 'NEC' OR label CONTAINS 'NFPA' OR " +
+                    "label CONTAINS 'OSHA' OR label CONTAINS 'Issue Class')"));
+                for (WebElement btn : buttons) {
+                    int y = btn.getLocation().getY();
+                    if (Math.abs(y - labelY) < 50) {
+                        btn.click();
+                        sleep(500);
+                        System.out.println("   Opened Issue Class picker (positional match)");
+                        return true;
+                    }
                 }
+            } finally {
+                driver.manage().timeouts().implicitlyWait(
+                    java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
             }
         } catch (Exception e2) {
             System.out.println("   Strategy 2 (positional) failed: " + e2.getMessage());
@@ -5052,6 +5098,12 @@ public class IssuePage extends BasePage {
     public boolean changeIssueClassOnDetails(String newClass) {
         System.out.println("📋 Changing Issue Class on details to: " + newClass);
         resetDetailsScrollCount();
+
+        // Dismiss keyboard first — a lingering keyboard (e.g. from Position or temp fields)
+        // can block the Issue Class picker on CI machines
+        dismissKeyboard();
+        sleep(200);
+
         try {
             boolean pickerOpened = tryOpenIssueClassPicker();
 
@@ -5152,22 +5204,28 @@ public class IssuePage extends BasePage {
 
             // Strategy 1: Look for menu items (popover/dropdown items)
             try {
-                List<WebElement> menuItems = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeMenuItem' OR type == 'XCUIElementTypePickerWheel'"));
-                if (!menuItems.isEmpty()) {
-                    for (WebElement item : menuItems) {
-                        String label = item.getAttribute("label");
-                        if (label != null && !label.isEmpty()) {
-                            options.add(label);
+                driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
+                try {
+                    List<WebElement> menuItems = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeMenuItem' OR type == 'XCUIElementTypePickerWheel'"));
+                    if (!menuItems.isEmpty()) {
+                        for (WebElement item : menuItems) {
+                            String label = item.getAttribute("label");
+                            if (label != null && !label.isEmpty()) {
+                                options.add(label);
+                            }
+                        }
+                        if (!options.isEmpty()) {
+                            System.out.println("   Subcategory options (menu items): " + options.size());
+                            for (String opt : options) {
+                                System.out.println("     - " + opt);
+                            }
+                            return options;
                         }
                     }
-                    if (!options.isEmpty()) {
-                        System.out.println("   Subcategory options (menu items): " + options.size());
-                        for (String opt : options) {
-                            System.out.println("     - " + opt);
-                        }
-                        return options;
-                    }
+                } finally {
+                    driver.manage().timeouts().implicitlyWait(
+                        java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
                 }
             } catch (Exception ignored) {}
 
@@ -5212,10 +5270,17 @@ public class IssuePage extends BasePage {
 
             // Collect static texts and buttons that are likely subcategory options
             // They should be in a dropdown area below the Subcategory field
-            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' OR " +
-                "type == 'XCUIElementTypeCell') AND " +
-                "label != '' AND NOT (label CONTAINS 'Type or select')"));
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
+            List<WebElement> elements;
+            try {
+                elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' OR " +
+                    "type == 'XCUIElementTypeCell') AND " +
+                    "label != '' AND NOT (label CONTAINS 'Type or select')"));
+            } finally {
+                driver.manage().timeouts().implicitlyWait(
+                    java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
+            }
 
             final int baseY = subcatY;
             for (WebElement el : elements) {
@@ -6884,6 +6949,8 @@ public class IssuePage extends BasePage {
                 field.clear();
                 field.sendKeys(text);
                 sleep(300);
+                dismissKeyboard();
+                sleep(200);
                 System.out.println("✅ Entered position: " + text);
                 return;
             } catch (Exception ignored) {}
@@ -6903,6 +6970,8 @@ public class IssuePage extends BasePage {
                         field.clear();
                         field.sendKeys(text);
                         sleep(300);
+                        dismissKeyboard();
+                        sleep(200);
                         System.out.println("✅ Entered position (nearby field): " + text);
                         return;
                     }
@@ -6968,7 +7037,7 @@ public class IssuePage extends BasePage {
                 String placeholder = field.getAttribute("placeholderValue");
                 if (placeholder != null && !placeholder.isEmpty()) return placeholder;
                 String value = field.getAttribute("value");
-                if (value != null && value.contains("Enter number")) return value;
+                if (value != null && (value.contains("Enter number") || value.contains("Enter decimal"))) return value;
             } catch (Exception ignored) {}
 
             // Strategy 2: Find near "Problem Temp" label
@@ -6977,7 +7046,7 @@ public class IssuePage extends BasePage {
             if (!labels.isEmpty()) {
                 int labelY = labels.get(0).getLocation().getY();
                 List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND label CONTAINS 'Enter number'"));
+                    "type == 'XCUIElementTypeStaticText' AND (label CONTAINS 'Enter number' OR label CONTAINS 'Enter decimal')"));
                 for (WebElement text : allTexts) {
                     int y = text.getLocation().getY();
                     if (Math.abs(y - labelY) < 60) return text.getAttribute("label");
@@ -7359,13 +7428,14 @@ public class IssuePage extends BasePage {
             try {
                 WebElement field = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeTextView') AND " +
-                    "(name CONTAINS 'Problem Temp' OR name CONTAINS 'problem' OR " +
-                    "name CONTAINS 'Problem' OR placeholderValue CONTAINS 'Enter number')"));
+                    "(name CONTAINS 'Problem Temp' OR name CONTAINS 'problem temp')"));
                 field.click();
                 sleep(300);
                 field.clear();
                 field.sendKeys(value);
                 sleep(300);
+                dismissKeyboard();
+                sleep(200);
                 System.out.println("✅ Entered Problem Temp: " + value);
                 return;
             } catch (Exception ignored) {}
@@ -7385,6 +7455,8 @@ public class IssuePage extends BasePage {
                         field.clear();
                         field.sendKeys(value);
                         sleep(300);
+                        dismissKeyboard();
+                        sleep(200);
                         System.out.println("✅ Entered Problem Temp (nearby field): " + value);
                         return;
                     }
@@ -7399,14 +7471,18 @@ public class IssuePage extends BasePage {
                 driver.executeScript("mobile: scroll", scrollParams);
                 sleep(300);
 
+                // After scrolling to "Problem Temp" label, use name-only predicate
+                // to avoid matching Reference Temp which shares the same placeholder
                 WebElement field = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeTextView') AND " +
-                    "(name CONTAINS 'Problem' OR placeholderValue CONTAINS 'number')"));
+                    "(name CONTAINS 'Problem Temp' OR name CONTAINS 'problem temp' OR name CONTAINS 'Problem')"));
                 field.click();
                 sleep(300);
                 field.clear();
                 field.sendKeys(value);
                 sleep(300);
+                dismissKeyboard();
+                sleep(200);
                 System.out.println("✅ Entered Problem Temp after scroll: " + value);
                 return;
             } catch (Exception ignored) {}
@@ -7430,7 +7506,7 @@ public class IssuePage extends BasePage {
                     "(name CONTAINS 'Problem Temp' OR name CONTAINS 'problem' OR " +
                     "name CONTAINS 'Problem')"));
                 String value = field.getAttribute("value");
-                if (value != null && !value.contains("Enter number")) return value;
+                if (value != null && !value.contains("Enter number") && !value.contains("Enter decimal")) return value;
             } catch (Exception ignored) {}
 
             // Strategy 2: Find field near label
@@ -7444,7 +7520,7 @@ public class IssuePage extends BasePage {
                     int y = field.getLocation().getY();
                     if (y > labelY && y < labelY + 60) {
                         String value = field.getAttribute("value");
-                        if (value != null && !value.contains("Enter number")) return value;
+                        if (value != null && !value.contains("Enter number") && !value.contains("Enter decimal")) return value;
                     }
                 }
             }
@@ -7671,7 +7747,7 @@ public class IssuePage extends BasePage {
                 String placeholder = field.getAttribute("placeholderValue");
                 if (placeholder != null && !placeholder.isEmpty()) return placeholder;
                 String value = field.getAttribute("value");
-                if (value != null && value.contains("Enter number")) return value;
+                if (value != null && (value.contains("Enter number") || value.contains("Enter decimal"))) return value;
             } catch (Exception ignored) {}
 
             // Strategy 2: Find near "Reference Temp" label
@@ -7680,7 +7756,7 @@ public class IssuePage extends BasePage {
             if (!labels.isEmpty()) {
                 int labelY = labels.get(0).getLocation().getY();
                 List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND label CONTAINS 'Enter number'"));
+                    "type == 'XCUIElementTypeStaticText' AND (label CONTAINS 'Enter number' OR label CONTAINS 'Enter decimal')"));
                 for (WebElement text : allTexts) {
                     int y = text.getLocation().getY();
                     if (Math.abs(y - labelY) < 60) return text.getAttribute("label");
@@ -7721,6 +7797,8 @@ public class IssuePage extends BasePage {
                 field.clear();
                 field.sendKeys(value);
                 sleep(300);
+                dismissKeyboard();
+                sleep(200);
                 System.out.println("✅ Entered Reference Temp: " + value);
                 return;
             } catch (Exception ignored) {}
@@ -7740,6 +7818,8 @@ public class IssuePage extends BasePage {
                         field.clear();
                         field.sendKeys(value);
                         sleep(300);
+                        dismissKeyboard();
+                        sleep(200);
                         System.out.println("✅ Entered Reference Temp (nearby field): " + value);
                         return;
                     }
@@ -7755,13 +7835,17 @@ public class IssuePage extends BasePage {
                 sleep(300);
 
                 WebElement field = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    // After scrolling to "Reference Temp" label, use name-only predicate
+                    // to avoid matching Problem Temp which shares the same placeholder
                     "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeTextView') AND " +
-                    "(name CONTAINS 'Reference' OR placeholderValue CONTAINS 'number')"));
+                    "(name CONTAINS 'Reference Temp' OR name CONTAINS 'reference temp' OR name CONTAINS 'Reference')"));
                 field.click();
                 sleep(300);
                 field.clear();
                 field.sendKeys(value);
                 sleep(300);
+                dismissKeyboard();
+                sleep(200);
                 System.out.println("✅ Entered Reference Temp after scroll: " + value);
                 return;
             } catch (Exception ignored) {}
@@ -7784,7 +7868,7 @@ public class IssuePage extends BasePage {
                     "(name CONTAINS 'Reference Temp' OR name CONTAINS 'reference' OR " +
                     "name CONTAINS 'Reference')"));
                 String value = field.getAttribute("value");
-                if (value != null && !value.contains("Enter number")) return value;
+                if (value != null && !value.contains("Enter number") && !value.contains("Enter decimal")) return value;
             } catch (Exception ignored) {}
 
             // Strategy 2: Find field near label
@@ -7798,7 +7882,7 @@ public class IssuePage extends BasePage {
                     int y = field.getLocation().getY();
                     if (y > labelY && y < labelY + 60) {
                         String value = field.getAttribute("value");
-                        if (value != null && !value.contains("Enter number")) return value;
+                        if (value != null && !value.contains("Enter number") && !value.contains("Enter decimal")) return value;
                     }
                 }
             }
@@ -9732,8 +9816,9 @@ public class IssuePage extends BasePage {
      */
     public boolean isSwipeDeleteButtonVisible() {
         System.out.println("🔍 Checking for swipe Delete button...");
-        // Use short timeout — delete button should appear immediately after swipe animation
-        driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(1500));
+        // Use short timeout — delete button should appear after swipe animation
+        // 3000ms allows for slower CI animation rendering
+        driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(3000));
         try {
             // Combined query for all possible delete button forms
             List<WebElement> deleteBtns = driver.findElements(AppiumBy.iOSNsPredicateString(

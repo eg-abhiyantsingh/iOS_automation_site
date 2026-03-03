@@ -63,6 +63,7 @@ on:
           - 'location-only'
           - 'connections-only'
           - 'offline-only'
+          - 'rerun-failures'
 
 jobs:
   # ========================================
@@ -1944,11 +1945,121 @@ jobs:
           retention-days: 7
 
   # ========================================
+  # JOB 16: Rerun Failures (92 tests, ~3 hr)
+  # ========================================
+  rerun-failures:
+    name: "Rerun Failures (92 tests)"
+    if: github.event.inputs.job_selection == 'rerun-failures'
+    runs-on: macos-15
+    timeout-minutes: 420
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install Appium
+        run: |
+          npm install -g appium@next
+          appium driver install xcuitest
+      - name: Unzip App
+        run: unzip -o apps/Z-Platform-QA.zip -d apps/
+      - name: Boot Simulator and Wait Until Ready
+        run: |
+          UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && UDID=$(xcrun simctl list devices available | grep -E "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && UDID=$(xcrun simctl list devices available | grep -E "iPhone 1[5-6]" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && exit 1
+          xcrun simctl shutdown "$UDID" 2>/dev/null || true
+          sleep 3
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+          ELAPSED=0
+          while [ $ELAPSED -lt 240 ]; do
+            if xcrun simctl list devices | grep "$UDID" | grep -q "(Booted)"; then
+              echo "✅ Simulator booted after ${ELAPSED}s"
+              sleep 45
+              break
+            fi
+            sleep 5
+            ELAPSED=$((ELAPSED + 5))
+          done
+          [ $ELAPSED -ge 240 ] && exit 1
+          DEVICE=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
+          VERSION=$(xcrun simctl list devices available | grep -B 50 "$UDID" | grep "-- iOS" | tail -1 | sed 's/.*iOS \([0-9.]*\).*/\1/')
+          [ -z "$VERSION" ] && VERSION="18.5"
+          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+          echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
+          echo "PLATFORM_VERSION=$VERSION" >> $GITHUB_ENV
+      - name: Pre-install App
+        run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
+      - name: Pre-build WebDriverAgent
+        run: |
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          if [ -n "$WDA_PATH" ]; then
+            cd "$WDA_PATH"
+            xcodebuild build-for-testing -project WebDriverAgent.xcodeproj -scheme WebDriverAgentRunner -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" -derivedDataPath /tmp/wda-build -quiet || true
+          fi
+      - name: Start Appium Server
+        run: |
+          appium --relaxed-security --log-level error > appium.log 2>&1 &
+          for i in {1..60}; do
+            [ "$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:4723/status 2>/dev/null)" = "200" ] && break
+            sleep 2
+          done
+          sleep 10
+      - name: Warm-up WDA Session
+        env:
+          SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
+          APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
+        run: |
+          for attempt in 1 2 3; do
+            SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session -H "Content-Type: application/json" -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"$SIMULATOR_UDID"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' --max-time 600 2>&1) || true
+            SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
+            if [ -n "$SESSION_ID" ]; then
+              sleep 10
+              curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true
+              sleep 5
+              break
+            fi
+            [ $attempt -lt 3 ] && sleep 30
+          done
+      - name: Run Failed Tests Rerun
+        continue-on-error: true
+        run: |
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${{ github.workspace }}/apps/Z Platform-QA.app/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
+
+          echo "🔄 Rerunning 92 previously failed tests across 10 test classes"
+          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel/testng-failures.xml \
+            -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
+            -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
+            -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
+            -DAPP_BUNDLE_ID="$BUNDLE_ID" \
+            -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+      - name: Upload Failures Rerun Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failures-rerun-report
+          path: |
+            target/surefire-reports/
+            reports/
+            screenshots/
+          retention-days: 7
+
+  # ========================================
   # FINAL JOB: Merge Reports & Send Email
   # ========================================
   send-email:
     name: "Summary & Email"
-    needs: [smoke-tests, auth-tests, site-tests, assets-part1, assets-part2, assets-part3, assets-part4, assets-part5, assets-part6, issues-phase1, issues-phase2, issues-phase3, location-tests, connections-tests, offline-tests]
+    needs: [smoke-tests, auth-tests, site-tests, assets-part1, assets-part2, assets-part3, assets-part4, assets-part5, assets-part6, issues-phase1, issues-phase2, issues-phase3, location-tests, connections-tests, offline-tests, rerun-failures]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 420
@@ -2006,6 +2117,37 @@ jobs:
               <h2>${STATUS}</h2>
               <p><b>Smoke Job Result:</b> ${SMOKE}</p>
               <p><b>Modules:</b> Login (1) + Site (1) + Asset CRUD (4) + Location CRUD (4) + Connection CRUD (3) + Issue CRUD (4)</p>
+            </body>
+            </html>
+          EOF
+          elif [ "$SELECTION" = "rerun-failures" ]; then
+            # ── Rerun failures mode ──
+            RERUN="${{ needs.rerun-failures.result }}"
+            if [ "$RERUN" = "success" ]; then
+              STATUS="✅ RERUN PASSED"
+              SUCCESS=1; FAILED=0; TOTAL=1
+            else
+              STATUS="❌ RERUN FAILED"
+              SUCCESS=0; FAILED=1; TOTAL=1
+            fi
+            echo "SUCCESS=$SUCCESS" >> $GITHUB_OUTPUT
+            echo "FAILED=$FAILED" >> $GITHUB_OUTPUT
+            echo "TOTAL=$TOTAL" >> $GITHUB_OUTPUT
+            echo "STATUS=$STATUS" >> $GITHUB_OUTPUT
+
+            cat > email_body.html << EOF
+            <!DOCTYPE html>
+            <html>
+            <body style="font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto;">
+              <h1 style="color: #333;">🔄 iOS Failed Tests Rerun Results</h1>
+              <p><b>Branch:</b> ${{ github.ref_name }}</p>
+              <p><b>Mode:</b> Rerun Failures (92 tests across 10 classes)</p>
+              <p><b>Triggered by:</b> ${{ github.actor }}</p>
+              <hr>
+              <h2>${STATUS}</h2>
+              <p><b>Rerun Job Result:</b> ${RERUN}</p>
+              <p><b>Classes:</b> Issue P1 (5) + Issue P2 (15) + Issue P3 (3) + Location (7) + Connections (8) + Site Selection (15) + Asset P2 (28) + Asset P3 (5) + Asset P5 (5) + Asset P6 (1)</p>
+              <p><b>Run:</b> <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Full Details</a></p>
             </body>
             </html>
           EOF
@@ -2110,6 +2252,13 @@ jobs:
           if [ "$SELECTION" = "smoke" ]; then
             echo "  ─── Smoke CRUD (17 tests) ───"
             echo "  Smoke Tests:            ${{ needs.smoke-tests.result }}"
+          elif [ "$SELECTION" = "rerun-failures" ]; then
+            echo "  ─── Rerun Failures (92 tests across 10 classes) ───"
+            echo "  Rerun Failures:         ${{ needs.rerun-failures.result }}"
+            echo ""
+            echo "  Classes: Issue P1 (5) + Issue P2 (15) + Issue P3 (3)"
+            echo "           Location (7) + Connections (8) + Site Selection (15)"
+            echo "           Asset P2 (28) + Asset P3 (5) + Asset P5 (5) + Asset P6 (1)"
           else
             echo "  ─── Non-Asset Jobs ───"
             echo "  Auth (38):              ${{ needs.auth-tests.result }}"

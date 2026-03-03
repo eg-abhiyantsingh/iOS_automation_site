@@ -132,6 +132,8 @@ public class AppConstants {
     public static final String FEATURE_ASSET_CONTEXT_MENU = "Asset Context Menu";
     public static final String FEATURE_SESSION_BOTTOM_TABS = "Session Bottom Tabs";
     public static final String FEATURE_QUICK_COUNT = "Quick Count";
+    public static final String FEATURE_OCPD = "OCPD";
+    public static final String FEATURE_PHOTO_WALKTHROUGH = "Photo Walkthrough";
 
     // ============================================
     // FEATURE NAMES - ASSET MANAGEMENT
