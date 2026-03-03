@@ -1168,16 +1168,17 @@ public class SiteSelectionPage extends BasePage {
     }
 
     /**
-     * Click WiFi button (works for both online/offline states and with pending sync)
+     * Click WiFi button (works for both online/offline states and with pending sync).
+     * Uses W3C Actions coordinate tap as primary method — element.click() fails on
+     * iOS 18.5 where the WiFi button has visible=false.
      */
     public void clickWifiButton() {
         try {
             System.out.println("🔍 Attempting to click WiFi button...");
 
-            // Search for WiFi button by definitive names first, then nav bar for sync badge
             driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(500));
             try {
-                // Try definitive WiFi button names
+                // Find WiFi button by definitive names
                 java.util.List<WebElement> wifiButtons = driver.findElements(
                     AppiumBy.iOSNsPredicateString(
                         "type == 'XCUIElementTypeButton' AND " +
@@ -1186,8 +1187,21 @@ public class SiteSelectionPage extends BasePage {
                 if (!wifiButtons.isEmpty()) {
                     WebElement btn = wifiButtons.get(0);
                     String name = btn.getAttribute("name");
-                    System.out.println("✅ Found WiFi button (name: " + name + ")");
-                    btn.click();
+                    String visible = btn.getAttribute("visible");
+                    org.openqa.selenium.Point loc = btn.getLocation();
+                    org.openqa.selenium.Dimension sz = btn.getSize();
+                    int tapX = loc.getX() + sz.getWidth() / 2;
+                    int tapY = loc.getY() + sz.getHeight() / 2;
+
+                    System.out.println("[DEBUG-WIFI] WiFi button: name=" + name
+                        + ", visible=" + visible
+                        + ", loc=(" + loc.getX() + "," + loc.getY() + ")"
+                        + ", size=(" + sz.getWidth() + "x" + sz.getHeight() + ")"
+                        + ", tapCenter=(" + tapX + "," + tapY + ")");
+
+                    // Use W3C Actions tap (works regardless of visible attribute)
+                    performW3CTap(tapX, tapY);
+                    System.out.println("✅ Tapped WiFi button via W3C Actions (name: " + name + ")");
                     return;
                 }
 
@@ -1198,8 +1212,14 @@ public class SiteSelectionPage extends BasePage {
                     for (WebElement btn : navButtons) {
                         String name = btn.getAttribute("name");
                         if (name != null && name.matches("\\d+")) {
-                            System.out.println("✅ Found WiFi sync badge button (name: " + name + ")");
-                            btn.click();
+                            org.openqa.selenium.Point loc = btn.getLocation();
+                            org.openqa.selenium.Dimension sz = btn.getSize();
+                            int tapX = loc.getX() + sz.getWidth() / 2;
+                            int tapY = loc.getY() + sz.getHeight() / 2;
+                            System.out.println("[DEBUG-WIFI] Sync badge: name=" + name
+                                + ", tapCenter=(" + tapX + "," + tapY + ")");
+                            performW3CTap(tapX, tapY);
+                            System.out.println("✅ Tapped WiFi sync badge via W3C Actions (name: " + name + ")");
                             return;
                         }
                     }
@@ -1215,8 +1235,13 @@ public class SiteSelectionPage extends BasePage {
                 WebElement navBar = driver.findElement(AppiumBy.iOSClassChain("**/XCUIElementTypeNavigationBar"));
                 java.util.List<WebElement> buttons = navBar.findElements(AppiumBy.className("XCUIElementTypeButton"));
                 if (!buttons.isEmpty()) {
-                    buttons.get(0).click();
-                    System.out.println("✅ Clicked first navigation bar button");
+                    WebElement btn = buttons.get(0);
+                    org.openqa.selenium.Point loc = btn.getLocation();
+                    org.openqa.selenium.Dimension sz = btn.getSize();
+                    int tapX = loc.getX() + sz.getWidth() / 2;
+                    int tapY = loc.getY() + sz.getHeight() / 2;
+                    performW3CTap(tapX, tapY);
+                    System.out.println("✅ Tapped first nav bar button via W3C Actions at (" + tapX + "," + tapY + ")");
                     return;
                 }
             } catch (Exception ex) {
@@ -1225,6 +1250,25 @@ public class SiteSelectionPage extends BasePage {
         } catch (Exception e) {
             System.out.println("⚠️ clickWifiButton error: " + e.getMessage());
         }
+    }
+
+    /**
+     * Perform a W3C Actions tap at given viewport coordinates.
+     * Works on all Appium versions and regardless of element visible attribute.
+     */
+    private void performW3CTap(int x, int y) {
+        org.openqa.selenium.interactions.PointerInput finger =
+            new org.openqa.selenium.interactions.PointerInput(
+                org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
+        org.openqa.selenium.interactions.Sequence tap =
+            new org.openqa.selenium.interactions.Sequence(finger, 1);
+        tap.addAction(finger.createPointerMove(java.time.Duration.ofMillis(0),
+            org.openqa.selenium.interactions.PointerInput.Origin.viewport(), x, y));
+        tap.addAction(finger.createPointerDown(
+            org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+        tap.addAction(finger.createPointerUp(
+            org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+        driver.perform(java.util.Arrays.asList(tap));
     }
 
     /**
@@ -1289,24 +1333,82 @@ public class SiteSelectionPage extends BasePage {
                 } catch (Exception ignore) {}
             }
 
-            // All strategies failed — dump visible buttons for CI debugging
-            System.out.println("[DEBUG-POPUP] ❌ All strategies failed for '" + keyword + "'. Dumping visible buttons...");
+            // Strategy 4: Search for XCUIElementTypeMenuItem or XCUIElementTypeOther with keyword
+            // On iOS 18.5, SwiftUI menus may render as MenuItem or Other elements
+            System.out.println("[DEBUG-POPUP] Strategy 4: searching MenuItem/Other/Menu elements...");
             try {
-                java.util.List<WebElement> allButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND visible == true"));
-                System.out.println("[DEBUG-POPUP] Total visible buttons on screen: " + allButtons.size());
-                int dumpLimit = Math.min(allButtons.size(), 15);
-                for (int i = 0; i < dumpLimit; i++) {
+                java.util.List<WebElement> menuItems = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeMenuItem' OR type == 'XCUIElementTypeMenu' " +
+                    "OR type == 'XCUIElementTypeOther') AND " +
+                    "(label CONTAINS[c] '" + keyword + "' OR name CONTAINS[c] '" + keyword + "')"));
+                System.out.println("[DEBUG-POPUP] Strategy 4 found " + menuItems.size() + " elements");
+                if (!menuItems.isEmpty()) {
+                    WebElement el = menuItems.get(0);
+                    System.out.println("[DEBUG-POPUP] Clicking: type=" + el.getAttribute("type") +
+                        ", label=" + el.getAttribute("label") + ", name=" + el.getAttribute("name"));
+                    el.click();
+                    System.out.println("✅ Clicked " + keyword + " (MenuItem/Other match)");
+                    return true;
+                }
+            } catch (Exception ignore) {}
+
+            // Strategy 5: Any element with "Go Offline"/"Go Online" anywhere in the DOM
+            // Broadest possible search — any type, visible or not
+            System.out.println("[DEBUG-POPUP] Strategy 5: searching ANY element type with 'Go " + keyword + "'...");
+            try {
+                java.util.List<WebElement> anyMatch = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "label == 'Go " + keyword + "' OR name == 'Go " + keyword + "' OR " +
+                    "label CONTAINS 'Go " + keyword + "'"));
+                System.out.println("[DEBUG-POPUP] Strategy 5 found " + anyMatch.size() + " elements");
+                for (WebElement el : anyMatch) {
+                    String type = el.getAttribute("type");
+                    String label = el.getAttribute("label");
+                    String vis = el.getAttribute("visible");
+                    System.out.println("[DEBUG-POPUP]   Found: type=" + type + ", label=" + label + ", visible=" + vis);
+                    // Try clicking even if visible=false — use W3C tap
                     try {
-                        WebElement btn = allButtons.get(i);
-                        System.out.println("[DEBUG-POPUP]   Button[" + i + "]: label=" + btn.getAttribute("label") +
-                            ", name=" + btn.getAttribute("name") + ", Y=" + btn.getLocation().getY());
-                    } catch (Exception e) {
-                        System.out.println("[DEBUG-POPUP]   Button[" + i + "]: <stale>");
+                        org.openqa.selenium.Point loc = el.getLocation();
+                        org.openqa.selenium.Dimension sz = el.getSize();
+                        int elX = loc.getX() + sz.getWidth() / 2;
+                        int elY = loc.getY() + sz.getHeight() / 2;
+                        performW3CTap(elX, elY);
+                        System.out.println("✅ W3C tapped 'Go " + keyword + "' at (" + elX + "," + elY + ")");
+                        return true;
+                    } catch (Exception tapEx) {
+                        // Fall back to element.click()
+                        el.click();
+                        System.out.println("✅ Clicked 'Go " + keyword + "' (any-type match)");
+                        return true;
                     }
                 }
+            } catch (Exception ignore) {}
+
+            // All strategies failed — dump elements near nav bar area for CI debugging
+            System.out.println("[DEBUG-POPUP] ❌ All strategies failed for '" + keyword + "'. Dumping elements in popup zone (Y < 250)...");
+            try {
+                // Dump ALL element types in the top area where popup would appear
+                java.util.List<WebElement> topElements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' " +
+                    "OR type == 'XCUIElementTypeMenuItem' OR type == 'XCUIElementTypeOther' " +
+                    "OR type == 'XCUIElementTypeMenu' OR type == 'XCUIElementTypeCell')"));
+                int popupZoneCount = 0;
+                for (WebElement el : topElements) {
+                    try {
+                        int elY = el.getLocation().getY();
+                        if (elY < 250) {
+                            String type = el.getAttribute("type");
+                            String label = el.getAttribute("label");
+                            String name = el.getAttribute("name");
+                            System.out.println("[DEBUG-POPUP]   [Y=" + elY + "] type=" + type
+                                + ", label=" + label + ", name=" + name);
+                            popupZoneCount++;
+                            if (popupZoneCount >= 20) break;
+                        }
+                    } catch (Exception e) { /* stale */ }
+                }
+                System.out.println("[DEBUG-POPUP] Elements in popup zone (Y<250): " + popupZoneCount);
             } catch (Exception dumpEx) {
-                System.out.println("[DEBUG-POPUP] Could not dump buttons: " + dumpEx.getMessage());
+                System.out.println("[DEBUG-POPUP] Could not dump elements: " + dumpEx.getMessage());
             }
 
             System.out.println("⚠️ Could not find '" + keyword + "' popup option via any element strategy");
@@ -1395,7 +1497,8 @@ public class SiteSelectionPage extends BasePage {
     }
 
     /**
-     * Tap outside any popup to dismiss it
+     * Tap outside any popup to dismiss it.
+     * Uses W3C Actions (compatible with all Appium versions, unlike deprecated TouchAction).
      */
     public void tapOutsidePopup() {
         try {
@@ -1404,13 +1507,9 @@ public class SiteSelectionPage extends BasePage {
             org.openqa.selenium.Dimension size = driver.manage().window().getSize();
             int x = size.width / 2;
             int y = (int) (size.height * 0.8); // 80% down the screen
-            
-            new io.appium.java_client.touch.offset.PointOption();
-            io.appium.java_client.PerformsTouchActions touchDriver = (io.appium.java_client.PerformsTouchActions) driver;
-            new io.appium.java_client.TouchAction<>(touchDriver)
-                .tap(io.appium.java_client.touch.offset.PointOption.point(x, y))
-                .perform();
-            System.out.println("✅ Tapped at (" + x + ", " + y + ")");
+
+            performW3CTap(x, y);
+            System.out.println("✅ Tapped outside popup at (" + x + ", " + y + ")");
         } catch (Exception e) {
             System.out.println("⚠️ Could not tap outside popup: " + e.getMessage());
             // Alternative: try pressing escape or back

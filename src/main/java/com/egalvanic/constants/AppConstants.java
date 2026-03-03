@@ -134,6 +134,7 @@ public class AppConstants {
     public static final String FEATURE_QUICK_COUNT = "Quick Count";
     public static final String FEATURE_OCPD = "OCPD";
     public static final String FEATURE_PHOTO_WALKTHROUGH = "Photo Walkthrough";
+    public static final String FEATURE_LINK_EXISTING_ASSET = "Link Existing Asset";
 
     // ============================================
     // FEATURE NAMES - ASSET MANAGEMENT

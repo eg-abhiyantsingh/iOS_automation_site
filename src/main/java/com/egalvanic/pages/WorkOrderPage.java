@@ -15506,4 +15506,450 @@ public class WorkOrderPage extends BasePage {
             return false;
         }
     }
+
+    // ================================================================
+    // ASSETS IN ROOM — ASSET SEARCH (TC_JOB_230-231)
+    // ================================================================
+
+    /**
+     * Check if a specific asset name appears in the Assets in Room list.
+     * Searches visible static text elements in the content area.
+     * @param assetName name or partial name of the asset to find
+     * @return true if found
+     */
+    public boolean isAssetDisplayedInRoomList(String assetName) {
+        System.out.println("📍 Checking if asset '" + assetName + "' is in room list...");
+
+        try {
+            // Strategy 1: Exact or contains match on visible static texts
+            List<WebElement> matches = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true AND "
+                + "(label == '" + assetName + "' OR label CONTAINS '" + assetName + "')"
+            ));
+            for (WebElement el : matches) {
+                int y = el.getLocation().getY();
+                // Must be in the content area, not header/nav
+                if (y > 150) {
+                    System.out.println("✅ Asset '" + assetName + "' found in room list at Y=" + y);
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Search within cells
+        try {
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+            for (WebElement cell : cells) {
+                int y = cell.getLocation().getY();
+                if (y < 150) continue;
+                try {
+                    List<WebElement> texts = cell.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND "
+                        + "(label CONTAINS '" + assetName + "')"
+                    ));
+                    if (!texts.isEmpty()) {
+                        System.out.println("✅ Asset '" + assetName + "' found inside cell at Y=" + y);
+                        return true;
+                    }
+                } catch (Exception e) { /* continue */ }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Asset '" + assetName + "' not found in room list");
+        return false;
+    }
+
+    /**
+     * Get list of visible asset names from the Assets in Room list.
+     * Returns asset names (not types) — filters by Y position and row grouping.
+     * @return list of asset name strings
+     */
+    public java.util.List<String> getAssetNamesInRoomList() {
+        System.out.println("📍 Getting asset names from room list...");
+        java.util.List<String> names = new java.util.ArrayList<>();
+
+        try {
+            java.util.List<java.util.Map<String, String>> entries = getAssetEntries();
+            for (java.util.Map<String, String> entry : entries) {
+                String name = entry.get("name");
+                if (name != null && !name.isEmpty()) {
+                    names.add(name);
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Error getting asset names: " + e.getMessage());
+        }
+
+        System.out.println("📊 Asset names in room: " + names);
+        return names;
+    }
+
+    // ================================================================
+    // CANCEL CONFIRMATION DIALOG (TC_JOB_232)
+    // ================================================================
+
+    /**
+     * Check if a discard/cancel confirmation dialog is displayed.
+     * This appears when cancelling a walkthrough with captured photos.
+     * @return true if a confirmation dialog is detected
+     */
+    public boolean isDiscardConfirmationDisplayed() {
+        System.out.println("📍 Checking for discard confirmation dialog...");
+
+        // Strategy 1: Alert dialog
+        try {
+            List<WebElement> alerts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeAlert'"
+            ));
+            if (!alerts.isEmpty()) {
+                System.out.println("✅ Discard confirmation alert found");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Confirmation text (discard, are you sure, unsaved)
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS[c] 'discard' OR label CONTAINS[c] 'are you sure' "
+                + "OR label CONTAINS[c] 'unsaved' OR label CONTAINS[c] 'lose' "
+                + "OR label CONTAINS[c] 'cancel walkthrough')"
+            ));
+            if (!texts.isEmpty()) {
+                System.out.println("✅ Discard confirmation text found: " + texts.get(0).getAttribute("label"));
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 3: Destructive button pair (Discard/Yes + Cancel/No)
+        try {
+            List<WebElement> discardBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label == 'Discard' OR label == 'Yes' OR label CONTAINS 'Leave' "
+                + "OR label CONTAINS 'Discard')"
+            ));
+            List<WebElement> cancelBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label == 'Cancel' OR label == 'No' OR label CONTAINS 'Stay')"
+            ));
+            if (!discardBtns.isEmpty() && !cancelBtns.isEmpty()) {
+                System.out.println("✅ Discard confirmation via button pair");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ No discard confirmation dialog detected");
+        return false;
+    }
+
+    /**
+     * Tap the discard/confirm button on the cancel confirmation dialog.
+     * Tries: Discard, Yes, Leave, OK, Confirm.
+     * @return true if tapped
+     */
+    public boolean tapDiscardConfirmation() {
+        System.out.println("📍 Tapping discard on confirmation dialog...");
+
+        String[] buttonLabels = {"Discard", "Yes", "Leave", "OK", "Confirm"};
+        for (String label : buttonLabels) {
+            try {
+                List<WebElement> btns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND label == '" + label + "'"
+                ));
+                if (!btns.isEmpty()) {
+                    btns.get(0).click();
+                    System.out.println("✅ Tapped '" + label + "' on confirmation dialog");
+                    return true;
+                }
+            } catch (Exception e) { /* continue */ }
+        }
+
+        // Fallback: tap any alert button that isn't Cancel/No
+        try {
+            List<WebElement> alertButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label != 'Cancel' AND label != 'No'"
+            ));
+            if (!alertButtons.isEmpty()) {
+                alertButtons.get(0).click();
+                System.out.println("✅ Tapped fallback alert button");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap discard confirmation");
+        return false;
+    }
+
+    // ================================================================
+    // LINK EXISTING ASSET — SELECTION & ADD (TC_JOB_236-239)
+    // ================================================================
+
+    /**
+     * Check if the search bar on the Existing Asset tab is displayed.
+     * @return true if a search field is visible
+     */
+    public boolean isExistingAssetSearchBarDisplayed() {
+        System.out.println("📍 Checking for search bar on Existing Asset tab...");
+        try {
+            List<WebElement> searchBars = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeSearchField' OR "
+                + "(type == 'XCUIElementTypeTextField' AND "
+                + "(label CONTAINS 'Search' OR value CONTAINS 'Search'))"
+            ));
+            boolean found = !searchBars.isEmpty();
+            System.out.println(found ? "✅ Search bar found" : "⚠️ Search bar not found");
+            return found;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Check if the QR scan icon is displayed near the search bar on Existing Asset tab.
+     * @return true if QR/scan icon found
+     */
+    public boolean isExistingAssetQRScanIconDisplayed() {
+        System.out.println("📍 Checking for QR scan icon on Existing Asset tab...");
+        try {
+            List<WebElement> qrIcons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label CONTAINS 'QR' OR label CONTAINS 'qr' OR label CONTAINS 'scan' "
+                + "OR label CONTAINS 'Scan' OR name CONTAINS 'qrcode' "
+                + "OR name CONTAINS 'barcode' OR name CONTAINS 'camera')"
+            ));
+            boolean found = !qrIcons.isEmpty();
+            System.out.println(found
+                ? "✅ QR scan icon found"
+                : "⚠️ QR scan icon not found");
+            return found;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Get existing asset entry info at the given index.
+     * Returns a map with "name", "type", and "selected" keys.
+     * @param index 0-based index in the asset list
+     * @return map with entry info, or null if index out of range
+     */
+    public java.util.Map<String, String> getExistingAssetEntryAt(int index) {
+        System.out.println("📍 Getting existing asset entry at index " + index + "...");
+
+        try {
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+
+            // Filter to content cells
+            java.util.List<WebElement> contentCells = new java.util.ArrayList<>();
+            for (WebElement cell : cells) {
+                int y = cell.getLocation().getY();
+                int h = cell.getSize().getHeight();
+                if (y > 250 && h > 30 && h < 200) {
+                    contentCells.add(cell);
+                }
+            }
+
+            if (index >= contentCells.size()) {
+                System.out.println("⚠️ Index " + index + " out of range (only " + contentCells.size() + " entries)");
+                return null;
+            }
+
+            WebElement cell = contentCells.get(index);
+            java.util.Map<String, String> entry = new java.util.HashMap<>();
+
+            // Extract text children for name and type
+            List<WebElement> texts = cell.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText'"
+            ));
+
+            if (texts.size() >= 2) {
+                entry.put("name", texts.get(0).getAttribute("label"));
+                entry.put("type", texts.get(1).getAttribute("label"));
+            } else if (texts.size() == 1) {
+                entry.put("name", texts.get(0).getAttribute("label"));
+                entry.put("type", "");
+            } else {
+                entry.put("name", cell.getAttribute("label") != null ? cell.getAttribute("label") : "");
+                entry.put("type", "");
+            }
+
+            // Check for selected state (checkmark image or selected=true attribute)
+            String selected = "false";
+            try {
+                List<WebElement> images = cell.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeImage' AND "
+                    + "(label CONTAINS 'checkmark' OR name CONTAINS 'checkmark' "
+                    + "OR label CONTAINS 'selected')"
+                ));
+                if (!images.isEmpty()) {
+                    selected = "true";
+                }
+            } catch (Exception e) { /* continue */ }
+            try {
+                String cellValue = cell.getAttribute("value");
+                if (cellValue != null && cellValue.contains("selected")) {
+                    selected = "true";
+                }
+            } catch (Exception e) { /* continue */ }
+            entry.put("selected", selected);
+
+            System.out.println("📊 Entry[" + index + "]: name=" + entry.get("name")
+                + ", type=" + entry.get("type") + ", selected=" + entry.get("selected"));
+            return entry;
+        } catch (Exception e) {
+            System.out.println("⚠️ Error getting entry at index " + index + ": " + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Tap on an existing asset at the given index to toggle its selection.
+     * @param index 0-based index
+     * @return true if tapped
+     */
+    public boolean tapExistingAssetAtIndex(int index) {
+        System.out.println("📍 Tapping existing asset at index " + index + "...");
+
+        try {
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+
+            java.util.List<WebElement> contentCells = new java.util.ArrayList<>();
+            for (WebElement cell : cells) {
+                int y = cell.getLocation().getY();
+                int h = cell.getSize().getHeight();
+                if (y > 250 && h > 30 && h < 200) {
+                    contentCells.add(cell);
+                }
+            }
+
+            if (index >= contentCells.size()) {
+                System.out.println("⚠️ Index " + index + " out of range (only " + contentCells.size() + " entries)");
+                return false;
+            }
+
+            contentCells.get(index).click();
+            System.out.println("✅ Tapped existing asset at index " + index);
+            return true;
+        } catch (Exception e) {
+            System.out.println("⚠️ Error tapping asset at index " + index + ": " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Check if the existing asset at the given index is selected (has checkmark).
+     * @param index 0-based index
+     * @return true if selected
+     */
+    public boolean isExistingAssetSelectedAtIndex(int index) {
+        java.util.Map<String, String> entry = getExistingAssetEntryAt(index);
+        if (entry == null) return false;
+        return "true".equals(entry.get("selected"));
+    }
+
+    /**
+     * Get the "Add" button text on the Existing Asset tab.
+     * Expected format: "Add (N)" where N is the count of selected assets.
+     * @return button text (e.g., "Add (2)"), or empty string if not found
+     */
+    public String getExistingAssetAddButtonText() {
+        System.out.println("📍 Getting Add button text on Existing Asset tab...");
+
+        // Strategy 1: Button containing "Add" with a count
+        try {
+            List<WebElement> addBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label CONTAINS 'Add' OR label CONTAINS 'add')"
+            ));
+            for (WebElement btn : addBtns) {
+                String label = btn.getAttribute("label");
+                // Look for "Add (N)" pattern — not "Add Assets" or "Add More"
+                if (label != null && label.matches(".*Add\\s*\\(\\d+\\).*")) {
+                    System.out.println("✅ Add button text: " + label);
+                    return label;
+                }
+            }
+            // Fallback: any Add button without "Asset" or "More"
+            for (WebElement btn : addBtns) {
+                String label = btn.getAttribute("label");
+                if (label != null && !label.contains("Asset") && !label.contains("More")
+                        && !label.contains("OCPD") && !label.contains("Another")) {
+                    System.out.println("✅ Add button text (fallback): " + label);
+                    return label;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Add button not found on Existing Asset tab");
+        return "";
+    }
+
+    /**
+     * Check if the "Add" button on Existing Asset tab is enabled/active.
+     * The button is active when at least one asset is selected.
+     * @return true if enabled
+     */
+    public boolean isExistingAssetAddButtonEnabled() {
+        System.out.println("📍 Checking if Add button is enabled...");
+
+        try {
+            List<WebElement> addBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label CONTAINS 'Add' OR label CONTAINS 'add')"
+            ));
+            for (WebElement btn : addBtns) {
+                String label = btn.getAttribute("label");
+                if (label != null && label.matches(".*Add\\s*\\(\\d+\\).*")) {
+                    boolean enabled = btn.isEnabled();
+                    System.out.println("✅ Add button enabled: " + enabled);
+                    return enabled;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Add button not found");
+        return false;
+    }
+
+    /**
+     * Tap the "Add (N)" button on the Existing Asset tab to link selected assets.
+     * @return true if tapped
+     */
+    public boolean tapExistingAssetAddButton() {
+        System.out.println("📍 Tapping Add button on Existing Asset tab...");
+
+        try {
+            List<WebElement> addBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label CONTAINS 'Add' OR label CONTAINS 'add')"
+            ));
+            for (WebElement btn : addBtns) {
+                String label = btn.getAttribute("label");
+                if (label != null && label.matches(".*Add\\s*\\(\\d+\\).*")) {
+                    btn.click();
+                    System.out.println("✅ Tapped Add button: " + label);
+                    return true;
+                }
+            }
+            // Fallback: first "Add" button that isn't a tab or section header
+            for (WebElement btn : addBtns) {
+                String label = btn.getAttribute("label");
+                if (label != null && !label.contains("Asset") && !label.contains("More")
+                        && !label.contains("OCPD") && !label.contains("Another")) {
+                    btn.click();
+                    System.out.println("✅ Tapped Add button (fallback): " + label);
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap Add button");
+        return false;
+    }
 }
