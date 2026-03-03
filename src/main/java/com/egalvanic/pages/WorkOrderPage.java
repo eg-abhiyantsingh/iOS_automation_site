@@ -337,14 +337,22 @@ public class WorkOrderPage extends BasePage {
             }
         } catch (Exception e) { /* continue */ }
 
-        // Strategy 2: Count "AVAILABLE" badges (each work order has one)
+        // Strategy 2: Count "Start" buttons (each available work order has one)
         try {
-            List<WebElement> badges = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND label == 'AVAILABLE'"
+            List<WebElement> startButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND label == 'Start'"
             ));
-            if (!badges.isEmpty()) {
-                System.out.println("📊 Found " + badges.size() + " work order entries via AVAILABLE badges");
-                return badges.size();
+            // Filter to only those in the list area (Y > 150)
+            int startCount = 0;
+            for (WebElement btn : startButtons) {
+                try {
+                    int y = btn.getLocation().getY();
+                    if (y > 150) startCount++;
+                } catch (Exception e) { /* skip */ }
+            }
+            if (startCount > 0) {
+                System.out.println("📊 Found " + startCount + " work order entries via Start buttons");
+                return startCount;
             }
         } catch (Exception e) { /* continue */ }
 
@@ -429,45 +437,51 @@ public class WorkOrderPage extends BasePage {
     }
 
     /**
-     * Check if "AVAILABLE" badge is displayed for a work order at given index.
+     * Check if "available" state (Start button) is shown for a work order at given index.
+     * The app shows a "Start" button on available (non-active) work orders instead of
+     * an "AVAILABLE" text badge.
      */
     public boolean isAvailableBadgeDisplayed(int index) {
         try {
-            List<WebElement> badges = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND label == 'AVAILABLE'"
+            List<WebElement> startButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND label == 'Start'"
             ));
-            if (index < badges.size()) {
-                boolean displayed = badges.get(index).isDisplayed();
-                System.out.println("🏷️ AVAILABLE badge at index " + index + ": " + (displayed ? "visible" : "hidden"));
-                return displayed;
+            // Filter to list area (Y > 150)
+            java.util.List<WebElement> filtered = new java.util.ArrayList<>();
+            for (WebElement btn : startButtons) {
+                try {
+                    if (btn.getLocation().getY() > 150) filtered.add(btn);
+                } catch (Exception e) { /* skip */ }
+            }
+            if (index < filtered.size()) {
+                System.out.println("✅ Start button (available state) at index " + index + ": visible");
+                return true;
             }
         } catch (Exception e) {
-            System.out.println("⚠️ Error checking AVAILABLE badge at index " + index + ": " + e.getMessage());
+            System.out.println("⚠️ Error checking available state at index " + index + ": " + e.getMessage());
         }
         return false;
     }
 
     /**
-     * Check if any AVAILABLE badge exists on the Work Orders screen.
+     * Check if any available work order exists (has a "Start" button).
      */
     public boolean isAnyAvailableBadgeDisplayed() {
         try {
-            if (availableBadges != null && !availableBadges.isEmpty()) {
-                System.out.println("✅ Found " + availableBadges.size() + " AVAILABLE badge(s)");
-                return true;
+            List<WebElement> startButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND label == 'Start'"
+            ));
+            for (WebElement btn : startButtons) {
+                try {
+                    if (btn.getLocation().getY() > 150) {
+                        System.out.println("✅ Available work order found (Start button visible)");
+                        return true;
+                    }
+                } catch (Exception e) { /* skip */ }
             }
         } catch (Exception e) { /* continue */ }
-
-        try {
-            List<WebElement> badges = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND label == 'AVAILABLE'"
-            ));
-            boolean found = !badges.isEmpty();
-            System.out.println(found ? "✅ AVAILABLE badges found via search" : "⚠️ No AVAILABLE badges found");
-            return found;
-        } catch (Exception e) {
-            return false;
-        }
+        System.out.println("⚠️ No available work orders found (no Start buttons)");
+        return false;
     }
 
     /**
@@ -609,149 +623,176 @@ public class WorkOrderPage extends BasePage {
     // ================================================================
 
     /**
-     * Check if the "Activate" button is displayed on a work order entry.
-     * The Activate button appears on the right side of available (non-active) job cards.
+     * Check if a "Start" button is displayed on a work order entry.
+     * The app uses "Start" button (not "Activate") on available job cards.
      */
     public boolean isActivateButtonDisplayed() {
-        // Strategy 1: Button with label "Activate"
+        // Strategy 1: Button with label "Start"
         try {
             List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Activate'"
+                "type == 'XCUIElementTypeButton' AND label == 'Start'"
             ));
-            if (!buttons.isEmpty()) {
-                System.out.println("✅ Activate button found via button search (" + buttons.size() + " instances)");
-                return true;
+            for (WebElement btn : buttons) {
+                try {
+                    if (btn.getLocation().getY() > 150) {
+                        System.out.println("✅ Start button found on work order entry");
+                        return true;
+                    }
+                } catch (Exception e) { /* skip */ }
             }
         } catch (Exception e) { /* continue */ }
 
-        // Strategy 2: Static text "Activate" (SwiftUI may render as text within a tappable area)
+        // Strategy 2: Static text "Start" (SwiftUI may render as text within a tappable area)
         try {
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND label == 'Activate'"
+                "type == 'XCUIElementTypeStaticText' AND label == 'Start'"
             ));
-            if (!texts.isEmpty()) {
-                System.out.println("✅ Activate button found via static text search");
-                return true;
+            for (WebElement text : texts) {
+                try {
+                    if (text.getLocation().getY() > 150) {
+                        System.out.println("✅ Start button found via static text");
+                        return true;
+                    }
+                } catch (Exception e) { /* skip */ }
             }
         } catch (Exception e) { /* continue */ }
 
-        // Strategy 3: Accessibility ID or broader label match
+        // Strategy 3: Fallback — also check for "Activate" in case UI changes
         try {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "(label == 'Activate' OR label CONTAINS 'Activate') AND visible == true"
+                "(label == 'Activate' OR label == 'Start') AND visible == true"
             ));
             if (!elements.isEmpty()) {
-                System.out.println("✅ Activate element found via broad search");
+                System.out.println("✅ Start/Activate element found via broad search");
                 return true;
             }
         } catch (Exception e) { /* continue */ }
 
-        System.out.println("⚠️ Activate button not found");
+        System.out.println("⚠️ Start button not found");
         return false;
     }
 
     /**
-     * Tap the "Activate" button on the first available (non-active) work order.
+     * Tap the "Start" button on the first available (non-active) work order.
      * Returns true if the button was found and tapped.
      */
     public boolean tapActivateButton() {
-        System.out.println("📍 Tapping Activate button on first available work order...");
+        System.out.println("📍 Tapping Start button on first available work order...");
 
-        // Strategy 1: Button with label "Activate"
+        // Strategy 1: Button with label "Start" in list area
         try {
             List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Activate'"
+                "type == 'XCUIElementTypeButton' AND label == 'Start'"
             ));
-            if (!buttons.isEmpty()) {
-                buttons.get(0).click();
-                System.out.println("✅ Tapped Activate button (button type)");
-                return true;
+            for (WebElement btn : buttons) {
+                try {
+                    if (btn.getLocation().getY() > 150) {
+                        btn.click();
+                        System.out.println("✅ Tapped Start button (button type)");
+                        return true;
+                    }
+                } catch (Exception e) { /* skip */ }
             }
         } catch (Exception e) {
             System.out.println("⚠️ Button strategy failed: " + e.getMessage());
         }
 
-        // Strategy 2: Static text "Activate"
+        // Strategy 2: Static text "Start" in list area
         try {
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND label == 'Activate'"
+                "type == 'XCUIElementTypeStaticText' AND label == 'Start'"
             ));
-            if (!texts.isEmpty()) {
-                texts.get(0).click();
-                System.out.println("✅ Tapped Activate button (text type)");
-                return true;
+            for (WebElement text : texts) {
+                try {
+                    if (text.getLocation().getY() > 150) {
+                        text.click();
+                        System.out.println("✅ Tapped Start button (text type)");
+                        return true;
+                    }
+                } catch (Exception e) { /* skip */ }
             }
         } catch (Exception e) {
             System.out.println("⚠️ Text strategy failed: " + e.getMessage());
         }
 
-        // Strategy 3: Any element with Activate label
+        // Strategy 3: Any element with Start or Activate label
         try {
             WebElement element = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label == 'Activate' AND visible == true"
+                "(label == 'Start' OR label == 'Activate') AND visible == true"
             ));
             element.click();
-            System.out.println("✅ Tapped Activate via broad search");
+            System.out.println("✅ Tapped Start/Activate via broad search");
             return true;
         } catch (Exception e) {
-            System.out.println("⚠️ All Activate strategies failed: " + e.getMessage());
+            System.out.println("⚠️ All Start/Activate strategies failed: " + e.getMessage());
         }
 
         return false;
     }
 
     /**
-     * Check if an "ACTIVE" badge is displayed on any work order entry.
-     * After activation, the badge changes from "AVAILABLE" to "ACTIVE" (green).
+     * Check if an active/started work order is displayed.
+     * After tapping "Start", the entry may show "Active", "ACTIVE", "In Progress",
+     * "Stop", or the "Start" button may simply disappear/change.
      */
     public boolean isActiveBadgeDisplayed() {
-        // Strategy 1: Static text with label "ACTIVE"
+        // Strategy 1: Look for "ACTIVE" / "Active" / "In Progress" text
         try {
             List<WebElement> badges = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND label == 'ACTIVE'"
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "(label ==[c] 'ACTIVE' OR label ==[c] 'Active' OR label CONTAINS 'In Progress' OR label == 'Started')"
             ));
-            if (!badges.isEmpty()) {
-                System.out.println("✅ ACTIVE badge found (" + badges.size() + " instances)");
-                return true;
+            for (WebElement badge : badges) {
+                try {
+                    if (badge.getLocation().getY() > 150) {
+                        System.out.println("✅ Active state badge found: '" + badge.getAttribute("label") + "'");
+                        return true;
+                    }
+                } catch (Exception e) { /* skip */ }
             }
         } catch (Exception e) { /* continue */ }
 
-        // Strategy 2: Broader search including "Active" (case variations)
+        // Strategy 2: Look for "Stop" button (the opposite of "Start" — means job is active)
         try {
-            List<WebElement> badges = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND (label == 'ACTIVE' OR label == 'Active')"
+            List<WebElement> stopButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND label == 'Stop'"
             ));
-            if (!badges.isEmpty()) {
-                System.out.println("✅ Active badge found via case-insensitive search");
-                return true;
+            for (WebElement btn : stopButtons) {
+                try {
+                    if (btn.getLocation().getY() > 150) {
+                        System.out.println("✅ Active state detected via Stop button");
+                        return true;
+                    }
+                } catch (Exception e) { /* skip */ }
             }
         } catch (Exception e) { /* continue */ }
 
-        // Strategy 3: Any visible element with "ACTIVE" label
-        try {
-            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "label == 'ACTIVE' AND visible == true"
-            ));
-            if (!elements.isEmpty()) {
-                System.out.println("✅ ACTIVE element found via broad search");
-                return true;
-            }
-        } catch (Exception e) { /* continue */ }
+        // Strategy 3: Check if Session Details screen appeared (activation navigated away from Work Orders)
+        if (isSessionDetailsScreenDisplayed()) {
+            System.out.println("✅ Active state detected — Session Details screen is displayed");
+            return true;
+        }
 
-        System.out.println("⚠️ ACTIVE badge not found");
+        System.out.println("⚠️ Active state badge not found");
         return false;
     }
 
     /**
-     * Count how many "ACTIVE" badges are displayed.
-     * Used to verify only one job can be active at a time (TC_JOB_013).
+     * Count how many active state indicators are displayed.
+     * Looks for "Active", "Stop", "In Progress" — any sign of activated job.
      */
     public int getActiveBadgeCount() {
         try {
-            List<WebElement> badges = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND (label == 'ACTIVE' OR label == 'Active')"
+            int count = 0;
+            // Count Active/Stop/In Progress indicators in list area
+            List<WebElement> indicators = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(label ==[c] 'ACTIVE' OR label ==[c] 'Active' OR label == 'Stop' OR label CONTAINS 'In Progress' OR label == 'Started')"
             ));
-            int count = badges.size();
+            for (WebElement el : indicators) {
+                try {
+                    if (el.getLocation().getY() > 150) count++;
+                } catch (Exception e) { /* skip */ }
+            }
             System.out.println("📊 ACTIVE badge count: " + count);
             return count;
         } catch (Exception e) {
@@ -761,19 +802,23 @@ public class WorkOrderPage extends BasePage {
     }
 
     /**
-     * Count how many "AVAILABLE" badges remain after an activation.
-     * If a job was activated, it should no longer have AVAILABLE badge.
+     * Count how many "Start" buttons remain (available/non-active work orders).
      */
     public int getAvailableBadgeCount() {
         try {
-            List<WebElement> badges = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND label == 'AVAILABLE'"
+            List<WebElement> startButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND label == 'Start'"
             ));
-            int count = badges.size();
-            System.out.println("📊 AVAILABLE badge count: " + count);
+            int count = 0;
+            for (WebElement btn : startButtons) {
+                try {
+                    if (btn.getLocation().getY() > 150) count++;
+                } catch (Exception e) { /* skip */ }
+            }
+            System.out.println("📊 Available (Start button) count: " + count);
             return count;
         } catch (Exception e) {
-            System.out.println("⚠️ Error counting AVAILABLE badges: " + e.getMessage());
+            System.out.println("⚠️ Error counting available badges: " + e.getMessage());
             return 0;
         }
     }
@@ -829,12 +874,13 @@ public class WorkOrderPage extends BasePage {
     }
 
     /**
-     * Tap on the active (ACTIVE-badged) work order to open session details.
+     * Tap on the active work order to open session details.
+     * After activation, the entry may show "Stop" instead of "Start", or an "Active" label.
      */
     public boolean tapActiveWorkOrder() {
         System.out.println("📍 Tapping on the active work order...");
 
-        // Strategy 1: Find the cell containing "ACTIVE" badge, then tap the cell
+        // Strategy 1: Find cell with "Stop" button (active state) or "Active"/"ACTIVE" label
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeCell'"
@@ -843,14 +889,14 @@ public class WorkOrderPage extends BasePage {
                 try {
                     int y = cell.getLocation().getY();
                     int h = cell.getSize().getHeight();
-                    if (y > 200 && h > 40) {
-                        // Check if this cell has an ACTIVE badge as a child
-                        List<WebElement> activeBadges = cell.findElements(AppiumBy.iOSNsPredicateString(
-                            "type == 'XCUIElementTypeStaticText' AND (label == 'ACTIVE' OR label == 'Active')"
+                    if (y > 150 && h > 40) {
+                        // Check if this cell has active indicators
+                        List<WebElement> activeIndicators = cell.findElements(AppiumBy.iOSNsPredicateString(
+                            "label == 'Stop' OR label ==[c] 'ACTIVE' OR label ==[c] 'Active' OR label CONTAINS 'In Progress'"
                         ));
-                        if (!activeBadges.isEmpty()) {
+                        if (!activeIndicators.isEmpty()) {
                             cell.click();
-                            System.out.println("✅ Tapped active work order cell");
+                            System.out.println("✅ Tapped active work order cell (has active indicator)");
                             return true;
                         }
                     }
@@ -860,35 +906,34 @@ public class WorkOrderPage extends BasePage {
             System.out.println("⚠️ Cell-based active search failed: " + e.getMessage());
         }
 
-        // Strategy 2: Find ACTIVE badge, get its Y, find closest cell
+        // Strategy 2: Find active indicator element, tap near it
         try {
-            WebElement activeBadge = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND (label == 'ACTIVE' OR label == 'Active')"
+            WebElement activeEl = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "label == 'Stop' OR label ==[c] 'ACTIVE' OR label ==[c] 'Active'"
             ));
-            int badgeY = activeBadge.getLocation().getY();
-            // Tap slightly to the left of the badge (on the entry name area)
-            int badgeX = activeBadge.getLocation().getX();
-            org.openqa.selenium.interactions.PointerInput finger =
-                new org.openqa.selenium.interactions.PointerInput(
-                    org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
-            org.openqa.selenium.interactions.Sequence tap =
-                new org.openqa.selenium.interactions.Sequence(finger, 1);
-            int tapX = Math.max(badgeX - 100, 50); // Tap to the left of badge
-            tap.addAction(finger.createPointerMove(java.time.Duration.ZERO,
-                org.openqa.selenium.interactions.PointerInput.Origin.viewport(), tapX, badgeY));
-            tap.addAction(finger.createPointerDown(
-                org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
-            tap.addAction(finger.createPointerUp(
-                org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
-            driver.perform(java.util.Arrays.asList(tap));
-            System.out.println("✅ Tapped near ACTIVE badge at (" + tapX + ", " + badgeY + ")");
+            int elY = activeEl.getLocation().getY();
+            int elX = activeEl.getLocation().getX();
+            int tapX = Math.max(elX - 100, 50);
+            java.util.Map<String, Object> tapParams = new java.util.HashMap<>();
+            tapParams.put("x", tapX);
+            tapParams.put("y", elY);
+            tapParams.put("duration", 0.1);
+            driver.executeScript("mobile: tap", tapParams);
+            System.out.println("✅ Tapped near active indicator at (" + tapX + ", " + elY + ")");
             return true;
         } catch (Exception e) {
-            System.out.println("⚠️ Coordinate tap strategy failed: " + e.getMessage());
+            System.out.println("⚠️ Active indicator tap failed: " + e.getMessage());
         }
 
-        System.out.println("⚠️ Could not tap active work order");
-        return false;
+        // Strategy 3: If activation navigated directly to session details, we're already there
+        if (isSessionDetailsScreenDisplayed()) {
+            System.out.println("✅ Already on Session Details screen (activation navigated here)");
+            return true;
+        }
+
+        // Strategy 4: Tap first work order entry (fallback)
+        System.out.println("   Trying fallback: tap first work order entry");
+        return tapWorkOrderEntry(0);
     }
 
     // ================================================================
@@ -5266,6 +5311,1494 @@ public class WorkOrderPage extends BasePage {
         } catch (Exception e) { /* continue */ }
         System.out.println("⚠️ Location breadcrumb not found");
         return null;
+    }
+
+    // ================================================================
+    // SUBTYPE SELECTION — ACTIONS (TC_JOB_140)
+    // ================================================================
+
+    /**
+     * Tap the "Skip - No Subtype" button on the Select Subtype screen.
+     * This adds the asset type without a subtype and returns to Quick Count.
+     * @return true if the button was tapped
+     */
+    public boolean tapSkipNoSubtypeButton() {
+        System.out.println("📍 Tapping 'Skip - No Subtype' button...");
+
+        // Strategy 1: Button with exact or partial label
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label == 'Skip - No Subtype' OR label CONTAINS 'Skip' "
+                + "OR label CONTAINS 'No Subtype')"
+            ));
+            if (!buttons.isEmpty()) {
+                buttons.get(0).click();
+                System.out.println("✅ Tapped 'Skip - No Subtype' button");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Static text that is tappable
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'Skip' OR label CONTAINS 'No Subtype')"
+            ));
+            if (!texts.isEmpty()) {
+                texts.get(0).click();
+                System.out.println("✅ Tapped Skip via static text");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 3: Broad search at bottom of screen
+        try {
+            List<WebElement> all = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "label CONTAINS 'Skip' AND visible == true"
+            ));
+            for (WebElement el : all) {
+                int y = el.getLocation().getY();
+                // Skip button is typically at the bottom of the selection sheet
+                if (y > 400) {
+                    el.click();
+                    System.out.println("✅ Tapped Skip at bottom (Y=" + y + ")");
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap 'Skip - No Subtype' button");
+        return false;
+    }
+
+    /**
+     * Select a subtype from the "Select Subtype" picker by name.
+     * @param subtypeName the subtype to select (e.g., "Automatic Transfer Switch (<=1000V)")
+     * @return true if the subtype was selected
+     */
+    public boolean selectSubtype(String subtypeName) {
+        System.out.println("📍 Selecting subtype: " + subtypeName + "...");
+
+        // Strategy 1: Tap text with exact label
+        try {
+            List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton') "
+                + "AND label == '" + subtypeName + "'"
+            ));
+            if (!found.isEmpty()) {
+                found.get(0).click();
+                System.out.println("✅ Selected subtype: " + subtypeName);
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Contains match (handles Unicode characters like ≤ vs <=)
+        try {
+            // Normalize the search term
+            String searchTerm = subtypeName.replace("<=", "").replace(">=", "")
+                .replace("(", "").replace(")", "").trim();
+            // Take first significant part
+            if (searchTerm.contains(" ")) {
+                searchTerm = searchTerm.substring(0, Math.min(searchTerm.length(), 25));
+            }
+            List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton') "
+                + "AND label CONTAINS '" + searchTerm + "'"
+            ));
+            for (WebElement el : found) {
+                int y = el.getLocation().getY();
+                if (y > 200) { // In the content area
+                    el.click();
+                    System.out.println("✅ Selected subtype via contains: " + subtypeName);
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 3: Scroll to find off-screen subtype
+        try {
+            java.util.Map<String, Object> scrollParams = new java.util.HashMap<>();
+            scrollParams.put("direction", "down");
+            scrollParams.put("predicateString", "label CONTAINS '" + subtypeName.substring(0, 15) + "'");
+            driver.executeScript("mobile: scroll", scrollParams);
+            try { Thread.sleep(300); } catch (InterruptedException ie) { /* */ }
+
+            List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "label CONTAINS '" + subtypeName.substring(0, 15) + "' AND visible == true"
+            ));
+            if (!found.isEmpty()) {
+                found.get(0).click();
+                System.out.println("✅ Selected subtype after scroll: " + subtypeName);
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not select subtype: " + subtypeName);
+        return false;
+    }
+
+    // ================================================================
+    // QUICK COUNT — ASSET TYPE CARD (TC_JOB_141-144)
+    // ================================================================
+
+    /**
+     * Check if an asset type card is displayed on the Quick Count screen.
+     * The card shows: type name, count controls (+/-), delete icon, and optionally subtype.
+     * @param typeName the asset type name to look for (e.g., "ATS")
+     * @return true if the card for the given type is found
+     */
+    public boolean isAssetTypeCardDisplayed(String typeName) {
+        System.out.println("📍 Checking for asset type card: " + typeName + "...");
+
+        try {
+            List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton') "
+                + "AND label == '" + typeName + "'"
+            ));
+            // Filter: must be in content area (Y > 150) and on the Quick Count screen
+            for (WebElement el : found) {
+                int y = el.getLocation().getY();
+                if (y > 150) {
+                    System.out.println("✅ Asset type card found: " + typeName + " at Y=" + y);
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Look for cell containing the type name
+        try {
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+            for (WebElement cell : cells) {
+                List<WebElement> children = cell.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND label CONTAINS '" + typeName + "'"
+                ));
+                if (!children.isEmpty()) {
+                    System.out.println("✅ Asset type card found in cell: " + typeName);
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Asset type card not found: " + typeName);
+        return false;
+    }
+
+    /**
+     * Get the current count from an asset type card on the Quick Count screen.
+     * The count is displayed between the - and + buttons.
+     * @param typeName the asset type name (e.g., "ATS")
+     * @return the current count as an integer, or -1 if not found
+     */
+    public int getAssetTypeCardCount(String typeName) {
+        System.out.println("📍 Getting count for asset type card: " + typeName + "...");
+
+        try {
+            // Find the type name element to get its Y position
+            List<WebElement> typeLabels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label == '" + typeName + "'"
+            ));
+
+            int targetY = -1;
+            for (WebElement label : typeLabels) {
+                int y = label.getLocation().getY();
+                if (y > 150) { targetY = y; break; }
+            }
+
+            if (targetY < 0) {
+                System.out.println("⚠️ Type label not found for count");
+                return -1;
+            }
+
+            // Find numeric text near the type label (within 50px Y band)
+            List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true"
+            ));
+            for (WebElement text : allTexts) {
+                String label = text.getAttribute("label");
+                int y = text.getLocation().getY();
+                if (label != null && Math.abs(y - targetY) < 50 && label.matches("\\d+")) {
+                    int count = Integer.parseInt(label);
+                    System.out.println("📊 Asset type count for " + typeName + ": " + count);
+                    return count;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Error getting count: " + e.getMessage());
+        }
+
+        System.out.println("⚠️ Count not found for " + typeName);
+        return -1;
+    }
+
+    /**
+     * Get the subtype label displayed on an asset type card.
+     * @param typeName the asset type name (e.g., "ATS")
+     * @return the subtype text (e.g., "Automatic Transfer Switch (<=1000V)"), or null
+     */
+    public String getAssetTypeCardSubtype(String typeName) {
+        System.out.println("📍 Getting subtype for asset type card: " + typeName + "...");
+
+        try {
+            // Find the type name element
+            List<WebElement> typeLabels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label == '" + typeName + "'"
+            ));
+
+            int targetY = -1;
+            for (WebElement label : typeLabels) {
+                int y = label.getLocation().getY();
+                if (y > 150) { targetY = y; break; }
+            }
+
+            if (targetY < 0) return null;
+
+            // Find text just below the type name (subtype is below, within 20-60px)
+            List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true"
+            ));
+            for (WebElement text : allTexts) {
+                String label = text.getAttribute("label");
+                int y = text.getLocation().getY();
+                int diff = y - targetY;
+                // Subtype is below the type name (diff > 15), within 60px, and not a number
+                if (label != null && !label.isEmpty() && diff > 15 && diff < 60
+                        && !label.matches("\\d+") && !label.equals(typeName)
+                        && label.length() > 3) {
+                    System.out.println("📊 Subtype for " + typeName + ": " + label);
+                    return label;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Error getting subtype: " + e.getMessage());
+        }
+
+        System.out.println("⚠️ Subtype not found for " + typeName);
+        return null;
+    }
+
+    /**
+     * Tap the + (plus/increment) button on an asset type card in Quick Count.
+     * The + button increases the asset count.
+     * @param typeName the asset type name (e.g., "ATS")
+     * @return true if the + button was tapped
+     */
+    public boolean tapAssetTypeCardPlusButton(String typeName) {
+        System.out.println("📍 Tapping + button for asset type: " + typeName + "...");
+
+        try {
+            // Find the type name to get its Y position
+            int targetY = getTypeCardY(typeName);
+            if (targetY < 0) {
+                System.out.println("⚠️ Type card not found for +");
+                return false;
+            }
+
+            // Strategy 1: Find + button near the type name
+            List<WebElement> plusBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label == '+' OR label == 'plus' OR name == 'plus' "
+                + "OR name == 'plus.circle' OR name == 'plus.circle.fill' "
+                + "OR label == 'Increment' OR label CONTAINS 'plus')"
+            ));
+            for (WebElement btn : plusBtns) {
+                int y = btn.getLocation().getY();
+                if (Math.abs(y - targetY) < 50) {
+                    btn.click();
+                    System.out.println("✅ Tapped + for " + typeName);
+                    return true;
+                }
+            }
+
+            // Strategy 2: Find any button with "+" text near type row
+            List<WebElement> allBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND visible == true"
+            ));
+            for (WebElement btn : allBtns) {
+                String label = btn.getAttribute("label");
+                String name = btn.getAttribute("name");
+                int y = btn.getLocation().getY();
+                if (Math.abs(y - targetY) < 50
+                        && ("+".equals(label) || "plus".equals(label)
+                            || (name != null && name.contains("plus")))) {
+                    btn.click();
+                    System.out.println("✅ Tapped + for " + typeName + " (broad)");
+                    return true;
+                }
+            }
+
+            // Strategy 3: Use stepper if iOS renders it as a stepper control
+            List<WebElement> steppers = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStepper' AND visible == true"
+            ));
+            for (WebElement stepper : steppers) {
+                int y = stepper.getLocation().getY();
+                if (Math.abs(y - targetY) < 50) {
+                    // Tap the right half of stepper (+ side)
+                    int sx = stepper.getLocation().getX();
+                    int sw = stepper.getSize().getWidth();
+                    int sy = stepper.getLocation().getY();
+                    int sh = stepper.getSize().getHeight();
+                    org.openqa.selenium.interactions.PointerInput finger =
+                        new org.openqa.selenium.interactions.PointerInput(
+                            org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
+                    org.openqa.selenium.interactions.Sequence tap =
+                        new org.openqa.selenium.interactions.Sequence(finger, 1);
+                    tap.addAction(finger.createPointerMove(Duration.ZERO,
+                        org.openqa.selenium.interactions.PointerInput.Origin.viewport(),
+                        sx + (sw * 3 / 4), sy + sh / 2));
+                    tap.addAction(finger.createPointerDown(
+                        org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+                    tap.addAction(finger.createPointerUp(
+                        org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+                    driver.perform(java.util.Arrays.asList(tap));
+                    System.out.println("✅ Tapped + on stepper for " + typeName);
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Error tapping + button: " + e.getMessage());
+        }
+
+        System.out.println("⚠️ Could not tap + button for " + typeName);
+        return false;
+    }
+
+    /**
+     * Tap the - (minus/decrement) button on an asset type card in Quick Count.
+     * The - button decreases the asset count (minimum 1).
+     * @param typeName the asset type name (e.g., "ATS")
+     * @return true if the - button was tapped
+     */
+    public boolean tapAssetTypeCardMinusButton(String typeName) {
+        System.out.println("📍 Tapping - button for asset type: " + typeName + "...");
+
+        try {
+            int targetY = getTypeCardY(typeName);
+            if (targetY < 0) {
+                System.out.println("⚠️ Type card not found for -");
+                return false;
+            }
+
+            // Strategy 1: Find - button near the type name
+            List<WebElement> minusBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label == '-' OR label == 'minus' OR name == 'minus' "
+                + "OR name == 'minus.circle' OR name == 'minus.circle.fill' "
+                + "OR label == 'Decrement' OR label CONTAINS 'minus')"
+            ));
+            for (WebElement btn : minusBtns) {
+                int y = btn.getLocation().getY();
+                if (Math.abs(y - targetY) < 50) {
+                    btn.click();
+                    System.out.println("✅ Tapped - for " + typeName);
+                    return true;
+                }
+            }
+
+            // Strategy 2: Broad button search
+            List<WebElement> allBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND visible == true"
+            ));
+            for (WebElement btn : allBtns) {
+                String label = btn.getAttribute("label");
+                String name = btn.getAttribute("name");
+                int y = btn.getLocation().getY();
+                if (Math.abs(y - targetY) < 50
+                        && ("-".equals(label) || "minus".equals(label)
+                            || (name != null && name.contains("minus")))) {
+                    btn.click();
+                    System.out.println("✅ Tapped - for " + typeName + " (broad)");
+                    return true;
+                }
+            }
+
+            // Strategy 3: Stepper — tap the left half (- side)
+            List<WebElement> steppers = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStepper' AND visible == true"
+            ));
+            for (WebElement stepper : steppers) {
+                int y = stepper.getLocation().getY();
+                if (Math.abs(y - targetY) < 50) {
+                    int sx = stepper.getLocation().getX();
+                    int sw = stepper.getSize().getWidth();
+                    int sy = stepper.getLocation().getY();
+                    int sh = stepper.getSize().getHeight();
+                    org.openqa.selenium.interactions.PointerInput finger =
+                        new org.openqa.selenium.interactions.PointerInput(
+                            org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
+                    org.openqa.selenium.interactions.Sequence tap =
+                        new org.openqa.selenium.interactions.Sequence(finger, 1);
+                    tap.addAction(finger.createPointerMove(Duration.ZERO,
+                        org.openqa.selenium.interactions.PointerInput.Origin.viewport(),
+                        sx + (sw / 4), sy + sh / 2));
+                    tap.addAction(finger.createPointerDown(
+                        org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+                    tap.addAction(finger.createPointerUp(
+                        org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+                    driver.perform(java.util.Arrays.asList(tap));
+                    System.out.println("✅ Tapped - on stepper for " + typeName);
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Error tapping - button: " + e.getMessage());
+        }
+
+        System.out.println("⚠️ Could not tap - button for " + typeName);
+        return false;
+    }
+
+    /**
+     * Tap the delete (trash) icon on an asset type card to remove it from Quick Count.
+     * @param typeName the asset type name (e.g., "ATS")
+     * @return true if the delete icon was tapped
+     */
+    public boolean tapAssetTypeCardDeleteButton(String typeName) {
+        System.out.println("📍 Tapping delete/trash icon for asset type: " + typeName + "...");
+
+        try {
+            int targetY = getTypeCardY(typeName);
+            if (targetY < 0) {
+                System.out.println("⚠️ Type card not found for delete");
+                return false;
+            }
+
+            // Strategy 1: Trash icon button near the type row
+            List<WebElement> trashBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(name CONTAINS 'trash' OR label CONTAINS 'trash' "
+                + "OR label == 'Delete' OR name CONTAINS 'delete' "
+                + "OR name == 'trash.circle' OR name == 'trash.fill')"
+            ));
+            for (WebElement btn : trashBtns) {
+                int y = btn.getLocation().getY();
+                if (Math.abs(y - targetY) < 50) {
+                    btn.click();
+                    System.out.println("✅ Tapped trash for " + typeName);
+                    return true;
+                }
+            }
+
+            // Strategy 2: Image element with trash icon near the row
+            List<WebElement> trashImages = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeImage' AND "
+                + "(name CONTAINS 'trash' OR label CONTAINS 'trash')"
+            ));
+            for (WebElement img : trashImages) {
+                int y = img.getLocation().getY();
+                if (Math.abs(y - targetY) < 50) {
+                    img.click();
+                    System.out.println("✅ Tapped trash image for " + typeName);
+                    return true;
+                }
+            }
+
+            // Strategy 3: Small button on the right side of the type row
+            List<WebElement> allBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND visible == true"
+            ));
+            org.openqa.selenium.Dimension screenSize = driver.manage().window().getSize();
+            int rightThreshold = screenSize.width * 3 / 4; // Right 25% of screen
+            for (WebElement btn : allBtns) {
+                int y = btn.getLocation().getY();
+                int x = btn.getLocation().getX();
+                int w = btn.getSize().getWidth();
+                int h = btn.getSize().getHeight();
+                if (Math.abs(y - targetY) < 50 && x > rightThreshold
+                        && w < 60 && h < 60) {
+                    btn.click();
+                    System.out.println("✅ Tapped delete icon (right side) for " + typeName);
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Error tapping delete: " + e.getMessage());
+        }
+
+        System.out.println("⚠️ Could not tap delete for " + typeName);
+        return false;
+    }
+
+    /**
+     * Check if an asset type card is in expanded state (showing photosets section).
+     * @param typeName the asset type name (e.g., "ATS")
+     * @return true if the card appears expanded
+     */
+    public boolean isAssetTypeCardExpanded(String typeName) {
+        System.out.println("📍 Checking if asset type card is expanded: " + typeName + "...");
+
+        try {
+            int targetY = getTypeCardY(typeName);
+            if (targetY < 0) return false;
+
+            // An expanded card shows "Photosets" or "Add Photoset" below the type name
+            List<WebElement> expandedContent = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                + "AND (label CONTAINS 'Photoset' OR label CONTAINS 'photoset')"
+            ));
+            for (WebElement el : expandedContent) {
+                int y = el.getLocation().getY();
+                // Expanded content is below the card header (within 200px)
+                if (y > targetY && (y - targetY) < 200) {
+                    System.out.println("✅ Card is expanded: " + typeName + " (Photosets at Y=" + y + ")");
+                    return true;
+                }
+            }
+
+            // Also check for "Add Photoset for..." button
+            List<WebElement> addPhotoset = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') "
+                + "AND label CONTAINS 'Add Photoset'"
+            ));
+            for (WebElement el : addPhotoset) {
+                int y = el.getLocation().getY();
+                if (y > targetY && (y - targetY) < 200) {
+                    System.out.println("✅ Card is expanded: " + typeName + " (Add Photoset at Y=" + y + ")");
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Card not detected as expanded: " + typeName);
+        return false;
+    }
+
+    /**
+     * Tap the expand/collapse chevron on an asset type card.
+     * @param typeName the asset type name (e.g., "ATS")
+     * @return true if the chevron was tapped
+     */
+    public boolean tapAssetTypeCardChevron(String typeName) {
+        System.out.println("📍 Tapping chevron for asset type card: " + typeName + "...");
+
+        try {
+            int targetY = getTypeCardY(typeName);
+            if (targetY < 0) return false;
+
+            // Strategy 1: Chevron/disclosure image near the type row
+            List<WebElement> chevrons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeImage' AND "
+                + "(name CONTAINS 'chevron' OR name CONTAINS 'disclosure' "
+                + "OR name CONTAINS 'arrow')"
+            ));
+            for (WebElement chevron : chevrons) {
+                int y = chevron.getLocation().getY();
+                if (Math.abs(y - targetY) < 40) {
+                    chevron.click();
+                    System.out.println("✅ Tapped chevron for " + typeName);
+                    return true;
+                }
+            }
+
+            // Strategy 2: Tap the type name itself (many SwiftUI cards expand on tap)
+            List<WebElement> typeLabels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label == '" + typeName + "'"
+            ));
+            for (WebElement label : typeLabels) {
+                int y = label.getLocation().getY();
+                if (y > 150) {
+                    label.click();
+                    System.out.println("✅ Tapped type name to toggle expand: " + typeName);
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap chevron for " + typeName);
+        return false;
+    }
+
+    // ================================================================
+    // QUICK COUNT — PHOTOSETS SECTION (TC_JOB_145-146)
+    // ================================================================
+
+    /**
+     * Check if the "Photosets" label is displayed in an expanded asset type card.
+     * @return true if the "Photosets" label is visible
+     */
+    public boolean isPhotosetsLabelDisplayed() {
+        System.out.println("📍 Checking for 'Photosets' label...");
+        try {
+            List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'Photosets' OR label CONTAINS 'Photosets')"
+            ));
+            boolean displayed = !found.isEmpty();
+            System.out.println(displayed
+                ? "✅ Photosets label found"
+                : "⚠️ Photosets label not found");
+            return displayed;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Check if the "Add Photoset for [Type] [N]" button is displayed.
+     * @return true if the button is visible
+     */
+    public boolean isAddPhotosetButtonDisplayed() {
+        System.out.println("📍 Checking for 'Add Photoset' button...");
+        try {
+            List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') "
+                + "AND label CONTAINS 'Add Photoset'"
+            ));
+            boolean displayed = !found.isEmpty();
+            System.out.println(displayed
+                ? "✅ Add Photoset button found"
+                : "⚠️ Add Photoset button not found");
+            return displayed;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Get the full text of the "Add Photoset for [Type] [N]" button.
+     * @return the button text (e.g., "Add Photoset for ATS 1"), or null
+     */
+    public String getAddPhotosetButtonText() {
+        System.out.println("📍 Getting Add Photoset button text...");
+        try {
+            List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') "
+                + "AND label CONTAINS 'Add Photoset'"
+            ));
+            if (!found.isEmpty()) {
+                String label = found.get(0).getAttribute("label");
+                System.out.println("📊 Add Photoset button text: " + label);
+                return label;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("⚠️ Add Photoset button text not found");
+        return null;
+    }
+
+    /**
+     * Tap the "Add Photoset for [Type] [N]" button.
+     * @return true if the button was tapped
+     */
+    public boolean tapAddPhotosetButton() {
+        System.out.println("📍 Tapping 'Add Photoset' button...");
+
+        // Strategy 1: Button with "Add Photoset" label
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label CONTAINS 'Add Photoset'"
+            ));
+            if (!buttons.isEmpty()) {
+                buttons.get(0).click();
+                System.out.println("✅ Tapped Add Photoset button");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Static text that is tappable
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label CONTAINS 'Add Photoset'"
+            ));
+            if (!texts.isEmpty()) {
+                texts.get(0).click();
+                System.out.println("✅ Tapped Add Photoset text");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 3: Broad search
+        try {
+            WebElement el = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "label CONTAINS 'Add Photoset' AND visible == true"
+            ));
+            el.click();
+            System.out.println("✅ Tapped Add Photoset (broad)");
+            return true;
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not tap Add Photoset button");
+            return false;
+        }
+    }
+
+    /**
+     * Internal helper: Get the Y position of an asset type card's header row.
+     * @param typeName the asset type name
+     * @return the Y coordinate, or -1 if not found
+     */
+    private int getTypeCardY(String typeName) {
+        try {
+            List<WebElement> typeLabels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label == '" + typeName + "'"
+            ));
+            for (WebElement label : typeLabels) {
+                int y = label.getLocation().getY();
+                if (y > 150) return y;
+            }
+        } catch (Exception e) { /* continue */ }
+        return -1;
+    }
+
+    // ================================================================
+    // ADD PHOTOS SCREEN (TC_JOB_147-149)
+    // ================================================================
+
+    /**
+     * Check if the "Add Photos" screen is displayed (opened from "Add Photoset for..." button).
+     * Shows: Cancel, "Add Photos" title, "Take photos for [Type] [N]",
+     * camera icon, "No photos yet", Gallery and Camera buttons, Done button.
+     * @return true if the Add Photos screen is detected
+     */
+    public boolean isAddPhotosScreenDisplayed() {
+        System.out.println("📍 Checking for Add Photos screen...");
+
+        // Strategy 1: "Add Photos" navigation bar or title
+        try {
+            List<WebElement> titles = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeNavigationBar' AND "
+                + "(name == 'Add Photos' OR name CONTAINS 'Add Photos')) "
+                + "OR (type == 'XCUIElementTypeStaticText' AND label == 'Add Photos')"
+            ));
+            if (!titles.isEmpty()) {
+                System.out.println("✅ Add Photos screen detected via title");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: "Take photos for" label
+        try {
+            List<WebElement> takePhotos = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label CONTAINS 'Take photos for'"
+            ));
+            if (!takePhotos.isEmpty()) {
+                System.out.println("✅ Add Photos screen detected via 'Take photos for' text");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 3: "No photos yet" text
+        try {
+            List<WebElement> noPhotos = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'No photos yet' OR label CONTAINS 'No photos')"
+            ));
+            if (!noPhotos.isEmpty()) {
+                System.out.println("✅ Add Photos screen detected via 'No photos yet'");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Add Photos screen not detected");
+        return false;
+    }
+
+    /**
+     * Get the "Take photos for [Type] [N]" text on the Add Photos screen.
+     * @return the text (e.g., "Take photos for ATS 1"), or null
+     */
+    public String getAddPhotosAssetLabel() {
+        System.out.println("📍 Getting Add Photos asset label...");
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label CONTAINS 'Take photos for'"
+            ));
+            if (!texts.isEmpty()) {
+                String label = texts.get(0).getAttribute("label");
+                System.out.println("📊 Add Photos label: " + label);
+                return label;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("⚠️ Add Photos asset label not found");
+        return null;
+    }
+
+    /**
+     * Check if the "No photos yet" empty state text is displayed on Add Photos screen.
+     * @return true if the text is visible
+     */
+    public boolean isNoPhotosYetTextDisplayed() {
+        System.out.println("📍 Checking for 'No photos yet' text...");
+        try {
+            List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'No photos yet' OR label CONTAINS 'No photos')"
+            ));
+            boolean displayed = !found.isEmpty();
+            System.out.println(displayed
+                ? "✅ 'No photos yet' text found"
+                : "⚠️ 'No photos yet' text not found");
+            return displayed;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Check if the Gallery button is displayed on the Add Photos screen.
+     * @return true if the Gallery button is visible
+     */
+    public boolean isAddPhotosGalleryButtonDisplayed() {
+        System.out.println("📍 Checking for Gallery button on Add Photos screen...");
+        try {
+            List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') "
+                + "AND (label == 'Gallery' OR label CONTAINS 'Gallery' "
+                + "OR label == 'Photo Library' OR label CONTAINS 'photo.on.rectangle')"
+            ));
+            boolean displayed = !found.isEmpty();
+            System.out.println(displayed
+                ? "✅ Gallery button found"
+                : "⚠️ Gallery button not found");
+            return displayed;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Check if the Camera button is displayed on the Add Photos screen.
+     * @return true if the Camera button is visible
+     */
+    public boolean isAddPhotosCameraButtonDisplayed() {
+        System.out.println("📍 Checking for Camera button on Add Photos screen...");
+        try {
+            List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') "
+                + "AND (label == 'Camera' OR label CONTAINS 'Camera' "
+                + "OR label CONTAINS 'camera' OR label CONTAINS 'camera.fill')"
+            ));
+            boolean displayed = !found.isEmpty();
+            System.out.println(displayed
+                ? "✅ Camera button found"
+                : "⚠️ Camera button not found");
+            return displayed;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Check if the Done button is displayed on the Add Photos screen.
+     * Initially gray/disabled until photos are added.
+     * @return true if the Done button is visible
+     */
+    public boolean isAddPhotosDoneButtonDisplayed() {
+        System.out.println("📍 Checking for Done button on Add Photos screen...");
+        try {
+            List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == 'Done'"
+            ));
+            boolean displayed = !found.isEmpty();
+            System.out.println(displayed
+                ? "✅ Done button found"
+                : "⚠️ Done button not found");
+            return displayed;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Tap the Gallery button on the Add Photos screen.
+     * @return true if the button was tapped
+     */
+    public boolean tapAddPhotosGalleryButton() {
+        System.out.println("📍 Tapping Gallery button...");
+
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label == 'Gallery' OR label CONTAINS 'Gallery' "
+                + "OR label == 'Photo Library')"
+            ));
+            if (!buttons.isEmpty()) {
+                buttons.get(0).click();
+                System.out.println("✅ Tapped Gallery button");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Broad fallback
+        try {
+            WebElement el = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "label CONTAINS 'Gallery' AND visible == true"
+            ));
+            el.click();
+            System.out.println("✅ Tapped Gallery (broad)");
+            return true;
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not tap Gallery button");
+            return false;
+        }
+    }
+
+    /**
+     * Tap the Camera button on the Add Photos screen.
+     * @return true if the button was tapped
+     */
+    public boolean tapAddPhotosCameraButton() {
+        System.out.println("📍 Tapping Camera button...");
+
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label == 'Camera' OR label CONTAINS 'Camera')"
+            ));
+            if (!buttons.isEmpty()) {
+                buttons.get(0).click();
+                System.out.println("✅ Tapped Camera button");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        try {
+            WebElement el = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "label CONTAINS 'Camera' AND visible == true"
+            ));
+            el.click();
+            System.out.println("✅ Tapped Camera (broad)");
+            return true;
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not tap Camera button");
+            return false;
+        }
+    }
+
+    /**
+     * Tap the Cancel button on the Add Photos screen to go back to Quick Count.
+     * @return true if Cancel was tapped
+     */
+    public boolean tapAddPhotosCancelButton() {
+        System.out.println("📍 Tapping Cancel on Add Photos screen...");
+        try {
+            List<WebElement> cancelBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"
+            ));
+            if (!cancelBtns.isEmpty()) {
+                cancelBtns.get(0).click();
+                System.out.println("✅ Tapped Cancel on Add Photos");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("⚠️ Could not tap Cancel on Add Photos");
+        return false;
+    }
+
+    // ================================================================
+    // QUICK COUNT — PHOTOSET ENTRIES (TC_JOB_150-151)
+    // ================================================================
+
+    /**
+     * Get the number of photoset entries displayed in the expanded asset type card.
+     * A photoset entry shows: green checkmark, "[N] photos for [Type] [N]", thumbnail, X button.
+     * @return count of photoset entries, or 0 if none
+     */
+    public int getPhotosetEntryCount() {
+        System.out.println("📍 Counting photoset entries...");
+        try {
+            // Look for text matching "[N] photo(s) for" pattern
+            List<WebElement> photoTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'photo' OR label CONTAINS 'Photo') "
+                + "AND label CONTAINS 'for'"
+            ));
+            int count = 0;
+            for (WebElement text : photoTexts) {
+                String label = text.getAttribute("label");
+                if (label != null && label.matches(".*\\d+\\s+photo.*for.*")) {
+                    count++;
+                }
+            }
+            System.out.println("📊 Photoset entries: " + count);
+            return count;
+        } catch (Exception e) {
+            System.out.println("⚠️ Error counting photoset entries: " + e.getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Get the text of a photoset entry at the given index.
+     * Expected format: "[N] photos for [Type] [N]" (e.g., "3 photos for ATS 1")
+     * @param index 0-based index
+     * @return the photoset entry text, or null
+     */
+    public String getPhotosetEntryText(int index) {
+        System.out.println("📍 Getting photoset entry text at index " + index + "...");
+        try {
+            List<WebElement> photoTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'photo' OR label CONTAINS 'Photo') "
+                + "AND label CONTAINS 'for'"
+            ));
+            java.util.List<String> entries = new java.util.ArrayList<>();
+            for (WebElement text : photoTexts) {
+                String label = text.getAttribute("label");
+                if (label != null && label.matches(".*\\d+\\s+photo.*for.*")) {
+                    entries.add(label);
+                }
+            }
+            if (index < entries.size()) {
+                System.out.println("📊 Photoset entry " + index + ": " + entries.get(index));
+                return entries.get(index);
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("⚠️ Photoset entry at index " + index + " not found");
+        return null;
+    }
+
+    /**
+     * Check if a photoset entry has a green checkmark indicator.
+     * @return true if any checkmark is found near photoset entries
+     */
+    public boolean isPhotosetCheckmarkDisplayed() {
+        System.out.println("📍 Checking for photoset checkmark...");
+        try {
+            List<WebElement> checkmarks = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeImage' OR type == 'XCUIElementTypeStaticText') "
+                + "AND (label CONTAINS 'checkmark' OR name CONTAINS 'checkmark' "
+                + "OR label == '✓' OR name CONTAINS 'checkmark.circle')"
+            ));
+            boolean found = !checkmarks.isEmpty();
+            System.out.println(found ? "✅ Photoset checkmark found" : "⚠️ No checkmark found");
+            return found;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Tap the X (remove) button on a photoset entry to remove it.
+     * @param index 0-based index of the photoset entry to remove
+     * @return true if the X button was tapped
+     */
+    public boolean tapPhotosetRemoveButton(int index) {
+        System.out.println("📍 Tapping X button to remove photoset at index " + index + "...");
+
+        try {
+            // Find photoset entry text to get its Y position
+            List<WebElement> photoTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'photo' OR label CONTAINS 'Photo') "
+                + "AND label CONTAINS 'for'"
+            ));
+            java.util.List<Integer> entryYs = new java.util.ArrayList<>();
+            for (WebElement text : photoTexts) {
+                String label = text.getAttribute("label");
+                if (label != null && label.matches(".*\\d+\\s+photo.*for.*")) {
+                    entryYs.add(text.getLocation().getY());
+                }
+            }
+
+            if (index >= entryYs.size()) {
+                System.out.println("⚠️ Photoset index " + index + " out of range");
+                return false;
+            }
+
+            int targetY = entryYs.get(index);
+
+            // Strategy 1: Find X/close button near the photoset entry
+            List<WebElement> xButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label == 'X' OR label == 'x' OR label == 'Remove' "
+                + "OR name CONTAINS 'xmark' OR name CONTAINS 'close' "
+                + "OR name CONTAINS 'multiply' OR label CONTAINS 'Delete')"
+            ));
+            for (WebElement btn : xButtons) {
+                int y = btn.getLocation().getY();
+                if (Math.abs(y - targetY) < 40) {
+                    btn.click();
+                    System.out.println("✅ Tapped X to remove photoset " + index);
+                    return true;
+                }
+            }
+
+            // Strategy 2: Small button on right side of the entry row
+            List<WebElement> allBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND visible == true"
+            ));
+            org.openqa.selenium.Dimension screenSize = driver.manage().window().getSize();
+            for (WebElement btn : allBtns) {
+                int y = btn.getLocation().getY();
+                int x = btn.getLocation().getX();
+                int w = btn.getSize().getWidth();
+                if (Math.abs(y - targetY) < 40 && x > screenSize.width * 2 / 3 && w < 50) {
+                    btn.click();
+                    System.out.println("✅ Tapped remove button (right side) for photoset " + index);
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Error removing photoset: " + e.getMessage());
+        }
+
+        System.out.println("⚠️ Could not tap X on photoset " + index);
+        return false;
+    }
+
+    // ================================================================
+    // QUICK COUNT — SUMMARY SECTION (TC_JOB_152-154)
+    // ================================================================
+
+    /**
+     * Check if the Quick Count summary section is displayed at the bottom.
+     * Shows "Summary" label, asset/photo counts, and "Create [N] Assets" button.
+     * @return true if summary section is detected
+     */
+    public boolean isSummarySectionDisplayed() {
+        System.out.println("📍 Checking for Quick Count summary section...");
+
+        // Strategy 1: "Summary" label
+        try {
+            List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'Summary' OR label CONTAINS 'Summary')"
+            ));
+            if (!found.isEmpty()) {
+                System.out.println("✅ Summary section found via label");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: "Create" button with asset count
+        try {
+            List<WebElement> createBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') "
+                + "AND label CONTAINS 'Create' AND label CONTAINS 'Asset'"
+            ));
+            if (!createBtns.isEmpty()) {
+                System.out.println("✅ Summary section found via Create Assets button");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 3: Text with "assets" count pattern
+        try {
+            List<WebElement> countTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "label CONTAINS 'asset' AND visible == true"
+            ));
+            for (WebElement text : countTexts) {
+                String label = text.getAttribute("label");
+                if (label != null && label.matches(".*\\d+\\s+asset.*")) {
+                    System.out.println("✅ Summary section found via asset count text");
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Summary section not detected");
+        return false;
+    }
+
+    /**
+     * Get the summary text showing asset and photo counts.
+     * Expected format: "[N] assets, [N] photos" or "[N] assets"
+     * @return the summary text, or null
+     */
+    public String getSummaryText() {
+        System.out.println("📍 Getting Quick Count summary text...");
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true"
+            ));
+            for (WebElement text : texts) {
+                String label = text.getAttribute("label");
+                if (label != null && label.matches(".*\\d+\\s+asset.*")) {
+                    System.out.println("📊 Summary text: " + label);
+                    return label;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("⚠️ Summary text not found");
+        return null;
+    }
+
+    /**
+     * Check if the "Create [N] Assets" button is displayed.
+     * @return true if the button is visible
+     */
+    public boolean isCreateAssetsButtonDisplayed() {
+        System.out.println("📍 Checking for 'Create [N] Assets' button...");
+        try {
+            List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') "
+                + "AND label CONTAINS 'Create' AND label CONTAINS 'Asset'"
+            ));
+            boolean displayed = !found.isEmpty();
+            System.out.println(displayed
+                ? "✅ Create Assets button found"
+                : "⚠️ Create Assets button not found");
+            return displayed;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Get the "Create [N] Assets" button text.
+     * @return the full button text (e.g., "Create 15 Assets"), or null
+     */
+    public String getCreateAssetsButtonText() {
+        System.out.println("📍 Getting Create Assets button text...");
+        try {
+            List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') "
+                + "AND label CONTAINS 'Create' AND label CONTAINS 'Asset'"
+            ));
+            if (!found.isEmpty()) {
+                String label = found.get(0).getAttribute("label");
+                System.out.println("📊 Create button text: " + label);
+                return label;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("⚠️ Create Assets button text not found");
+        return null;
+    }
+
+    /**
+     * Tap the "Create [N] Assets" button to initiate bulk creation.
+     * @return true if the button was tapped
+     */
+    public boolean tapCreateAssetsButton() {
+        System.out.println("📍 Tapping 'Create [N] Assets' button...");
+
+        // Strategy 1: Button with Create + Asset label
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "label CONTAINS 'Create' AND label CONTAINS 'Asset'"
+            ));
+            if (!buttons.isEmpty()) {
+                buttons.get(0).click();
+                System.out.println("✅ Tapped Create Assets button");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Static text with Create Assets
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "label CONTAINS 'Create' AND label CONTAINS 'Asset'"
+            ));
+            if (!texts.isEmpty()) {
+                texts.get(0).click();
+                System.out.println("✅ Tapped Create Assets text");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap Create Assets button");
+        return false;
+    }
+
+    // ================================================================
+    // QUICK COUNT — BULK CREATION FLOW (TC_JOB_155-157)
+    // ================================================================
+
+    /**
+     * Check if the progress indicator is displayed during bulk asset creation.
+     * Shows "Creating [X] of [Total]..." text and possibly a spinner.
+     * @return true if a progress indicator is visible
+     */
+    public boolean isCreationProgressIndicatorDisplayed() {
+        System.out.println("📍 Checking for creation progress indicator...");
+
+        // Strategy 1: "Creating" text with progress
+        try {
+            List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'Creating' OR label CONTAINS 'creating')"
+            ));
+            if (!found.isEmpty()) {
+                System.out.println("✅ Progress indicator found: " + found.get(0).getAttribute("label"));
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Activity indicator (spinner)
+        try {
+            List<WebElement> spinners = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeActivityIndicator' AND visible == true"
+            ));
+            if (!spinners.isEmpty()) {
+                System.out.println("✅ Activity indicator/spinner found");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 3: Progress-related text patterns
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                + "AND (label CONTAINS ' of ' OR label CONTAINS 'Progress')"
+            ));
+            for (WebElement text : texts) {
+                String label = text.getAttribute("label");
+                if (label != null && label.matches(".*\\d+\\s+of\\s+\\d+.*")) {
+                    System.out.println("✅ Progress text found: " + label);
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Progress indicator not detected");
+        return false;
+    }
+
+    /**
+     * Get the progress indicator text (e.g., "Creating 5 of 15...").
+     * @return the progress text, or null
+     */
+    public String getCreationProgressText() {
+        System.out.println("📍 Getting creation progress text...");
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                + "AND (label CONTAINS 'Creating' OR label CONTAINS 'creating')"
+            ));
+            if (!texts.isEmpty()) {
+                String label = texts.get(0).getAttribute("label");
+                System.out.println("📊 Progress: " + label);
+                return label;
+            }
+        } catch (Exception e) { /* continue */ }
+        return null;
+    }
+
+    /**
+     * Wait for the bulk creation progress to complete (progress indicator disappears
+     * and success dialog or result screen appears).
+     * @param timeoutSeconds max seconds to wait
+     * @return true if creation completed within timeout
+     */
+    public boolean waitForCreationCompletion(int timeoutSeconds) {
+        System.out.println("📍 Waiting for creation to complete (max " + timeoutSeconds + "s)...");
+        try {
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(timeoutSeconds));
+            wait.pollingEvery(Duration.ofMillis(1000));
+            return wait.until(d -> {
+                // Check for success dialog or completion
+                boolean successDialog = isSuccessDialogDisplayed();
+                boolean noProgress = !isCreationProgressIndicatorDisplayed();
+                return successDialog || noProgress;
+            });
+        } catch (Exception e) {
+            System.out.println("⚠️ Timeout waiting for creation to complete");
+            return false;
+        }
+    }
+
+    /**
+     * Check if the success dialog is displayed after bulk asset creation.
+     * Shows: "Success" title, "Successfully created [N] assets" message, "OK" button.
+     * @return true if the success dialog is visible
+     */
+    public boolean isSuccessDialogDisplayed() {
+        System.out.println("📍 Checking for success dialog...");
+
+        // Strategy 1: Alert with "Success" title
+        try {
+            List<WebElement> alerts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeAlert'"
+            ));
+            if (!alerts.isEmpty()) {
+                System.out.println("✅ Alert dialog detected");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: "Success" text
+        try {
+            List<WebElement> successTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'Success' OR label CONTAINS 'Successfully created')"
+            ));
+            if (!successTexts.isEmpty()) {
+                System.out.println("✅ Success dialog text found");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 3: OK button + success-related text
+        try {
+            List<WebElement> okBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == 'OK'"
+            ));
+            List<WebElement> successContent = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'Success' OR label CONTAINS 'created' "
+                + "OR label CONTAINS 'Created')"
+            ));
+            if (!okBtns.isEmpty() && !successContent.isEmpty()) {
+                System.out.println("✅ Success dialog detected via OK + success text");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Success dialog not detected");
+        return false;
+    }
+
+    /**
+     * Get the success dialog message text.
+     * Expected: "Successfully created [N] assets"
+     * @return the message text, or null
+     */
+    public String getSuccessDialogText() {
+        System.out.println("📍 Getting success dialog text...");
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                + "AND (label CONTAINS 'Successfully' OR label CONTAINS 'created')"
+            ));
+            if (!texts.isEmpty()) {
+                String label = texts.get(0).getAttribute("label");
+                System.out.println("📊 Success text: " + label);
+                return label;
+            }
+        } catch (Exception e) { /* continue */ }
+        return null;
+    }
+
+    /**
+     * Tap the "OK" button on the success dialog.
+     * @return true if OK was tapped
+     */
+    public boolean tapSuccessDialogOKButton() {
+        System.out.println("📍 Tapping OK on success dialog...");
+
+        // Strategy 1: Alert button "OK"
+        try {
+            List<WebElement> okBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == 'OK'"
+            ));
+            if (!okBtns.isEmpty()) {
+                okBtns.get(0).click();
+                System.out.println("✅ Tapped OK on success dialog");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Any visible OK/Done button
+        try {
+            List<WebElement> btns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label == 'OK' OR label == 'Done' OR label == 'Dismiss') "
+                + "AND visible == true"
+            ));
+            if (!btns.isEmpty()) {
+                btns.get(0).click();
+                System.out.println("✅ Tapped OK/Done/Dismiss");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap OK button");
+        return false;
     }
 
     // ================================================================

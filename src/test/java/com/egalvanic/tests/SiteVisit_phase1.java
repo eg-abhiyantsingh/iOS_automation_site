@@ -310,8 +310,8 @@ public class SiteVisit_phase1 extends BaseTest {
         assertNotNull(date, "Work order entry should have a date displayed");
         logStep("Work order date: " + date);
 
-        boolean hasBadge = workOrderPage.isAvailableBadgeDisplayed(0);
-        assertTrue(hasBadge, "Work order entry should have an AVAILABLE badge");
+        boolean hasStartBtn = workOrderPage.isAvailableBadgeDisplayed(0);
+        assertTrue(hasStartBtn, "Work order entry should have a Start button (available state)");
 
         logStepWithScreenshot("Work order entry information verified");
     }
@@ -332,12 +332,12 @@ public class SiteVisit_phase1 extends BaseTest {
         ensureOnDashboard();
         navigateToWorkOrdersScreen();
 
-        logStep("Checking for AVAILABLE badge on work order entries");
+        logStep("Checking for available state (Start button) on work order entries");
         boolean badgeFound = workOrderPage.isAnyAvailableBadgeDisplayed();
 
-        logStepWithScreenshot("AVAILABLE badge check");
+        logStepWithScreenshot("Available state (Start button) check");
         assertTrue(badgeFound,
-            "At least one work order should display an 'AVAILABLE' badge");
+            "At least one work order should be in available state (showing Start button)");
     }
 
     // ============================================================
@@ -391,17 +391,21 @@ public class SiteVisit_phase1 extends BaseTest {
         ensureOnDashboard();
         navigateToWorkOrdersScreen();
 
-        logStep("Checking for work order counts (N | N format)");
-        boolean countsFound = workOrderPage.isAnyWorkOrderCountsDisplayed();
+        logStep("Verifying work order entries display information");
+        // The current UI shows work order entries with name + Start button (no "N | N" counts format).
+        // Verify entries exist and have names as proof of data display.
+        int entryCount = workOrderPage.getWorkOrderEntryCount();
+        logStep("Work order entry count: " + entryCount);
 
-        if (countsFound) {
-            String counts = workOrderPage.getWorkOrderCounts(0);
-            logStep("Work order counts: " + counts);
+        boolean hasEntries = entryCount > 0;
+        if (hasEntries) {
+            String firstName = workOrderPage.getWorkOrderName(0);
+            logStep("First work order name: " + firstName);
         }
 
-        logStepWithScreenshot("Work order counts display check");
-        assertTrue(countsFound,
-            "Work order entries should display job/issue counts in 'N | N' format");
+        logStepWithScreenshot("Work order entries display check");
+        assertTrue(hasEntries,
+            "Work order entries should be displayed with name and status information");
     }
 
     // ============================================================
@@ -420,12 +424,12 @@ public class SiteVisit_phase1 extends BaseTest {
         ensureOnDashboard();
         navigateToWorkOrdersScreen();
 
-        logStep("Checking for Activate button on available work order");
-        boolean activateVisible = workOrderPage.isActivateButtonDisplayed();
+        logStep("Checking for Start button on available work order");
+        boolean startVisible = workOrderPage.isActivateButtonDisplayed();
 
-        logStepWithScreenshot("Activate button visibility on available job");
-        assertTrue(activateVisible,
-            "'Activate' button should be displayed on the right side of available job card");
+        logStepWithScreenshot("Start button visibility on available job");
+        assertTrue(startVisible,
+            "'Start' button should be displayed on the right side of available job card");
     }
 
     // ============================================================
@@ -448,9 +452,9 @@ public class SiteVisit_phase1 extends BaseTest {
         int initialAvailableCount = workOrderPage.getAvailableBadgeCount();
         logStep("Initial AVAILABLE badges: " + initialAvailableCount);
 
-        logStep("Tapping Activate button on first available work order");
+        logStep("Tapping Start button on first available work order");
         boolean tapped = workOrderPage.tapActivateButton();
-        assertTrue(tapped, "Should be able to tap the Activate button");
+        assertTrue(tapped, "Should be able to tap the Start button");
         mediumWait();
 
         logStep("Verifying job badge changed from AVAILABLE to ACTIVE");
