@@ -1228,6 +1228,130 @@ public class SiteSelectionPage extends BasePage {
     }
 
     /**
+     * Find and click a popup option by keyword ("Offline" or "Online").
+     * Uses multiple strategies to handle different iOS versions (18.5 vs 26.2).
+     * Returns true if successfully clicked.
+     */
+    private boolean findAndClickPopupOption(String keyword) {
+        driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(1500));
+        try {
+            // Strategy 1: Exact label/name match (works on iOS 26.2)
+            java.util.List<WebElement> exactMatch = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(label == 'Go " + keyword + "' OR name == 'Go " + keyword + "')"));
+            if (!exactMatch.isEmpty()) {
+                exactMatch.get(0).click();
+                System.out.println("✅ Clicked Go " + keyword + " (exact label/name match)");
+                return true;
+            }
+
+            // Strategy 2: Case-insensitive contains on label/name/value (handles iOS 18.5 variations)
+            java.util.List<WebElement> containsMatch = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(label CONTAINS[c] '" + keyword + "' OR name CONTAINS[c] '" + keyword + "' OR " +
+                "value CONTAINS[c] '" + keyword + "')"));
+            if (!containsMatch.isEmpty()) {
+                WebElement el = containsMatch.get(0);
+                System.out.println("✅ Found '" + keyword + "' element: type=" + el.getAttribute("type") +
+                    ", label=" + el.getAttribute("label") + ", name=" + el.getAttribute("name"));
+                el.click();
+                System.out.println("✅ Clicked Go " + keyword + " (contains match)");
+                return true;
+            }
+
+            // Strategy 3: Search inside popup containers (XCUIElementTypeSheet, Alert, ScrollView)
+            String[] containerTypes = {"XCUIElementTypeSheet", "XCUIElementTypeAlert", "XCUIElementTypeScrollView"};
+            for (String containerType : containerTypes) {
+                try {
+                    java.util.List<WebElement> containers = driver.findElements(AppiumBy.className(containerType));
+                    for (WebElement container : containers) {
+                        java.util.List<WebElement> children = container.findElements(
+                            AppiumBy.iOSNsPredicateString(
+                                "label CONTAINS[c] '" + keyword + "' OR name CONTAINS[c] '" + keyword + "'"));
+                        if (!children.isEmpty()) {
+                            children.get(0).click();
+                            System.out.println("✅ Clicked " + keyword + " inside " + containerType);
+                            return true;
+                        }
+                    }
+                } catch (Exception ignore) {}
+            }
+
+            // Strategy 4: Find any button/other that appeared in the popup area (Y > 40, Y < 300)
+            // On iOS 18.5, popup menu items might be XCUIElementTypeOther without useful labels
+            try {
+                java.util.List<WebElement> popupButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND visible == true AND " +
+                    "(label CONTAINS[c] 'go' OR label CONTAINS[c] '" + keyword.toLowerCase() + "')"));
+                if (!popupButtons.isEmpty()) {
+                    popupButtons.get(0).click();
+                    System.out.println("✅ Clicked popup button (broad match)");
+                    return true;
+                }
+            } catch (Exception ignore) {}
+
+            System.out.println("⚠️ Could not find '" + keyword + "' popup option via any element strategy");
+            return false;
+        } finally {
+            driver.manage().timeouts().implicitlyWait(
+                java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
+        }
+    }
+
+    /**
+     * Tap popup option by coordinate relative to WiFi button position.
+     * WiFi popup options appear directly below the WiFi button.
+     * Used as last resort when element-based strategies fail (e.g., iOS 18.5 on CI).
+     */
+    private void tapPopupOptionByCoordinate() {
+        try {
+            int tapX, tapY;
+
+            // Find WiFi button position to calculate popup option position
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(500));
+            try {
+                java.util.List<WebElement> wifiButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND (name == 'Wi-Fi' OR name == 'Wi-Fi Off')"));
+
+                if (!wifiButtons.isEmpty()) {
+                    WebElement wifiBtn = wifiButtons.get(0);
+                    org.openqa.selenium.Point loc = wifiBtn.getLocation();
+                    org.openqa.selenium.Dimension sz = wifiBtn.getSize();
+                    tapX = loc.getX() + sz.getWidth() / 2;
+                    // Popup option appears ~55-70px below the button
+                    tapY = loc.getY() + sz.getHeight() + 65;
+                } else {
+                    // Fallback: WiFi button is typically top-left of nav bar
+                    tapX = 60;
+                    tapY = 130;
+                }
+            } finally {
+                driver.manage().timeouts().implicitlyWait(
+                    java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
+            }
+
+            System.out.println("🎯 Coordinate tap at (" + tapX + ", " + tapY + ")");
+
+            // Use W3C Actions for precise tap
+            org.openqa.selenium.interactions.PointerInput finger =
+                new org.openqa.selenium.interactions.PointerInput(
+                    org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
+            org.openqa.selenium.interactions.Sequence tap =
+                new org.openqa.selenium.interactions.Sequence(finger, 1);
+            tap.addAction(finger.createPointerMove(java.time.Duration.ofMillis(0),
+                org.openqa.selenium.interactions.PointerInput.Origin.viewport(), tapX, tapY));
+            tap.addAction(finger.createPointerDown(
+                org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+            tap.addAction(finger.createPointerUp(
+                org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+            driver.perform(java.util.Arrays.asList(tap));
+
+            System.out.println("✅ Coordinate tap performed");
+        } catch (Exception e) {
+            System.out.println("⚠️ Coordinate tap failed: " + e.getMessage());
+            throw new RuntimeException("Could not click popup option by coordinate", e);
+        }
+    }
+
+    /**
      * Click WiFi popup button (Go Online/Go Offline confirmation) with fallback.
      * Uses single combined query with short timeout to avoid 5s implicit wait per element.
      */
@@ -1235,29 +1359,13 @@ public class SiteSelectionPage extends BasePage {
         try {
             System.out.println("🔍 Clicking WiFi popup button...");
 
-            // Single combined query to find any Go Offline/Online option
-            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
-            try {
-                List<WebElement> popupOptions = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "(label == 'Go Offline' OR name == 'Go Offline' OR " +
-                    "label == 'Go Online' OR name == 'Go Online' OR " +
-                    "(label CONTAINS 'Go' AND (label CONTAINS 'Offline' OR label CONTAINS 'Online')))"
-                ));
+            // Try multi-strategy search for either Offline or Online option
+            if (findAndClickPopupOption("Offline")) return;
+            if (findAndClickPopupOption("Online")) return;
 
-                if (!popupOptions.isEmpty()) {
-                    WebElement option = popupOptions.get(0);
-                    System.out.println("✅ Found popup option: " + option.getAttribute("label"));
-                    option.click();
-                    return;
-                }
-            } finally {
-                driver.manage().timeouts().implicitlyWait(
-                    java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
-            }
-
-            // Fallback: try primary locator (class chain)
-            System.out.println("⚠️ No Go Offline/Online found, trying primary locator");
-            click(wifiPopupButton);
+            // Fallback: coordinate-based tap
+            System.out.println("⚠️ No Go Offline/Online found via element search, trying coordinate tap");
+            tapPopupOptionByCoordinate();
 
         } catch (Exception e) {
             System.out.println("⚠️ clickWifiPopupButton error: " + e.getMessage());
@@ -1303,28 +1411,13 @@ public class SiteSelectionPage extends BasePage {
 
             if (isWifiOnline()) {
                 clickWifiButton();
-                sleep(800); // Wait for popup animation (iOS needs 300-500ms)
+                sleep(1200); // Wait for popup animation (increased for CI - iOS 18.5 needs more time)
 
-                // Single query to find Go Offline option with short timeout
-                driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
-                try {
-                    List<WebElement> goOfflineEls = driver.findElements(AppiumBy.iOSNsPredicateString(
-                        "(label == 'Go Offline' OR name == 'Go Offline') OR " +
-                        "((label CONTAINS 'Offline' OR name CONTAINS 'Offline') AND " +
-                        "type == 'XCUIElementTypeButton')"
-                    ));
-                    if (!goOfflineEls.isEmpty()) {
-                        goOfflineEls.get(0).click();
-                        System.out.println("✅ Clicked Go Offline option");
-                    } else {
-                        System.out.println("⚠️ Go Offline not found in popup, trying clickWifiPopupButton");
-                        driver.manage().timeouts().implicitlyWait(
-                            java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
-                        clickWifiPopupButton();
-                    }
-                } finally {
-                    driver.manage().timeouts().implicitlyWait(
-                        java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
+                // Multi-strategy search for "Go Offline" popup option
+                if (!findAndClickPopupOption("Offline")) {
+                    // Last resort: coordinate-based tap below WiFi button
+                    System.out.println("⚠️ Element strategies failed, trying coordinate tap...");
+                    tapPopupOptionByCoordinate();
                 }
 
                 // Wait for offline state
@@ -1353,28 +1446,13 @@ public class SiteSelectionPage extends BasePage {
 
             if (isWifiOffline()) {
                 clickWifiButton();
-                sleep(800); // Wait for popup animation (iOS needs 300-500ms)
+                sleep(1200); // Wait for popup animation (increased for CI - iOS 18.5 needs more time)
 
-                // Single query to find Go Online option with short timeout
-                driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
-                try {
-                    List<WebElement> goOnlineEls = driver.findElements(AppiumBy.iOSNsPredicateString(
-                        "(label == 'Go Online' OR name == 'Go Online') OR " +
-                        "((label CONTAINS 'Online' OR name CONTAINS 'Online') AND " +
-                        "type == 'XCUIElementTypeButton')"
-                    ));
-                    if (!goOnlineEls.isEmpty()) {
-                        goOnlineEls.get(0).click();
-                        System.out.println("✅ Clicked Go Online option");
-                    } else {
-                        System.out.println("⚠️ Go Online not found in popup, trying clickWifiPopupButton");
-                        driver.manage().timeouts().implicitlyWait(
-                            java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
-                        clickWifiPopupButton();
-                    }
-                } finally {
-                    driver.manage().timeouts().implicitlyWait(
-                        java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
+                // Multi-strategy search for "Go Online" popup option
+                if (!findAndClickPopupOption("Online")) {
+                    // Last resort: coordinate-based tap below WiFi button
+                    System.out.println("⚠️ Element strategies failed, trying coordinate tap...");
+                    tapPopupOptionByCoordinate();
                 }
 
                 // Wait for online state
@@ -1398,10 +1476,12 @@ public class SiteSelectionPage extends BasePage {
      * Uses findElements with short timeout to avoid 5s implicit wait on annotated proxy.
      */
     public boolean isGoOfflineOptionVisible() {
-        driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
+        driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(1500));
         try {
             List<WebElement> els = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "label == 'Go Offline' OR name == 'Go Offline'"));
+                "label == 'Go Offline' OR name == 'Go Offline' OR " +
+                "label CONTAINS[c] 'offline' OR name CONTAINS[c] 'offline' OR " +
+                "value CONTAINS[c] 'offline'"));
             return !els.isEmpty();
         } catch (Exception e) {
             return false;
@@ -1416,10 +1496,12 @@ public class SiteSelectionPage extends BasePage {
      * Uses findElements with short timeout to avoid 5s implicit wait on annotated proxy.
      */
     public boolean isGoOnlineOptionVisible() {
-        driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
+        driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(1500));
         try {
             List<WebElement> els = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "label == 'Go Online' OR name == 'Go Online'"));
+                "label == 'Go Online' OR name == 'Go Online' OR " +
+                "label CONTAINS[c] 'online' OR name CONTAINS[c] 'online' OR " +
+                "value CONTAINS[c] 'online'"));
             return !els.isEmpty();
         } catch (Exception e) {
             return false;
@@ -1497,57 +1579,17 @@ public class SiteSelectionPage extends BasePage {
     public void clickGoOnline() {
         try {
             System.out.println("🔍 Attempting to click Go Online...");
-            
-            // First try the standard locator
-            if (isElementDisplayed(goOnlineText)) {
-                System.out.println("✅ Found Go Online via standard locator");
-                waitForElementToBeClickable(goOnlineText, 5);
-                click(goOnlineText);
-                System.out.println("✅ Clicked Go Online");
+
+            // Use multi-strategy search (handles iOS 18.5 and 26.2)
+            if (findAndClickPopupOption("Online")) {
                 waitForCondition(() -> isWifiOnline(), 5);
                 return;
             }
-            
-            // Fallback: Find by text in the current context menu
-            System.out.println("🔍 Trying fallback - searching for 'Go Online' text...");
-            try {
-                // Try to find any element containing "Go Online" text
-                java.util.List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND label CONTAINS 'Go Online'"
-                ));
-                if (!buttons.isEmpty()) {
-                    System.out.println("✅ Found Go Online button via fallback");
-                    buttons.get(0).click();
-                    waitForCondition(() -> isWifiOnline(), 5);
-                    return;
-                }
-                
-                // Try to find static text
-                java.util.List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND label == 'Go Online'"
-                ));
-                if (!texts.isEmpty()) {
-                    System.out.println("✅ Found Go Online text element");
-                    texts.get(0).click();
-                    waitForCondition(() -> isWifiOnline(), 5);
-                    return;
-                }
-                
-                // Try any element with Go Online
-                java.util.List<WebElement> anyElements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "label == 'Go Online' OR name == 'Go Online'"
-                ));
-                if (!anyElements.isEmpty()) {
-                    System.out.println("✅ Found element with Go Online label/name");
-                    anyElements.get(0).click();
-                    waitForCondition(() -> isWifiOnline(), 5);
-                    return;
-                }
-                
-                System.out.println("⚠️ Could not find Go Online element with any locator");
-            } catch (Exception fallbackError) {
-                System.out.println("⚠️ Fallback search failed: " + fallbackError.getMessage());
-            }
+
+            // Last resort: coordinate-based tap
+            System.out.println("⚠️ Element strategies failed, trying coordinate tap...");
+            tapPopupOptionByCoordinate();
+            waitForCondition(() -> isWifiOnline(), 5);
         } catch (Exception e) {
             System.out.println("⚠️ Could not click Go Online: " + e.getMessage());
         }
