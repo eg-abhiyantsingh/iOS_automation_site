@@ -15045,6 +15045,447 @@ public class WorkOrderPage extends BasePage {
         return false;
     }
 
+    // ================================================================
+    // TC_JOB_220-229: REVIEW ASSETS + CREATING + SUCCESS SCREENS
+    // ================================================================
+
+    /**
+     * Check if the "Review Assets" screen is displayed.
+     * @return true if on the Review Assets screen
+     */
+    public boolean isReviewAssetsScreenDisplayed() {
+        System.out.println("📍 Checking for 'Review Assets' screen...");
+
+        // Strategy 1: Title text "Review Assets"
+        try {
+            List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'Review Assets' OR label CONTAINS 'Review Assets')"
+            ));
+            if (!found.isEmpty()) {
+                System.out.println("✅ 'Review Assets' screen detected");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Nav bar
+        try {
+            List<WebElement> navBars = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeNavigationBar' AND "
+                + "(name CONTAINS 'Review' OR label CONTAINS 'Review')"
+            ));
+            if (!navBars.isEmpty()) {
+                System.out.println("✅ 'Review Assets' screen detected (nav bar)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 3: Combo — "Create All" button + "Add More" button
+        try {
+            List<WebElement> createAll = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND "
+                + "label CONTAINS 'Create All'"
+            ));
+            List<WebElement> addMore = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND "
+                + "label CONTAINS 'Add More'"
+            ));
+            if (!createAll.isEmpty() || !addMore.isEmpty()) {
+                System.out.println("✅ 'Review Assets' screen detected (Create All/Add More combo)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ 'Review Assets' screen not detected");
+        return false;
+    }
+
+    /**
+     * Get the list of asset entries shown on the Review Assets screen.
+     * Each entry typically shows asset name/type and photo count.
+     * @return list of asset entry labels
+     */
+    public java.util.ArrayList<String> getReviewAssetsEntries() {
+        System.out.println("📍 Getting Review Assets entries...");
+        java.util.ArrayList<String> entries = new java.util.ArrayList<>();
+        try {
+            // Look for cells or text elements that represent asset entries
+            // Typically formatted like "MCC 1 (1 photos)" or similar
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+            if (!cells.isEmpty()) {
+                for (WebElement cell : cells) {
+                    try {
+                        // Get child text elements within each cell
+                        List<WebElement> texts = cell.findElements(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeStaticText'"
+                        ));
+                        StringBuilder cellText = new StringBuilder();
+                        for (WebElement text : texts) {
+                            String label = text.getAttribute("label");
+                            if (label != null && !label.isEmpty()) {
+                                if (cellText.length() > 0) cellText.append(" | ");
+                                cellText.append(label);
+                            }
+                        }
+                        if (cellText.length() > 0) {
+                            entries.add(cellText.toString());
+                        }
+                    } catch (Exception e) { /* continue */ }
+                }
+            }
+
+            // Fallback: look for text elements with photo count patterns
+            if (entries.isEmpty()) {
+                List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND visible == true "
+                    + "AND (label CONTAINS 'photo' OR label CONTAINS 'Photo')"
+                ));
+                for (WebElement text : texts) {
+                    String label = text.getAttribute("label");
+                    if (label != null && !label.isEmpty()) {
+                        entries.add(label);
+                    }
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("📊 Review Assets entries: " + entries);
+        return entries;
+    }
+
+    /**
+     * Check if OCPD child is displayed under a parent asset in Review Assets.
+     * OCPDs are typically indented or shown as children with smaller text.
+     * @return true if at least one OCPD child entry is visible
+     */
+    public boolean isOCPDChildDisplayedUnderParent() {
+        System.out.println("📍 Checking for OCPD child entries in Review Assets...");
+        try {
+            // Look for OCPD-related text (Fuse, Disconnect Switch, etc.) in the list
+            List<WebElement> ocpdTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true AND "
+                + "(label CONTAINS 'Fuse' OR label CONTAINS 'Disconnect' "
+                + "OR label CONTAINS 'Relay' OR label CONTAINS 'MCC Bucket' "
+                + "OR label CONTAINS 'Other (OCP)')"
+            ));
+            if (!ocpdTexts.isEmpty()) {
+                System.out.println("✅ OCPD child entry found: " + ocpdTexts.get(0).getAttribute("label"));
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Fallback: look for indented/nested items (by X position — OCPD children have larger X)
+        try {
+            List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                + "AND label CONTAINS 'photo'"
+            ));
+            // If we have 2+ entries with different X positions, child is indented
+            if (allTexts.size() >= 2) {
+                int x1 = allTexts.get(0).getLocation().getX();
+                int x2 = allTexts.get(1).getLocation().getX();
+                if (Math.abs(x1 - x2) > 15) {
+                    System.out.println("✅ OCPD child detected by indentation (X diff: " + Math.abs(x1 - x2) + ")");
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ No OCPD child entry detected");
+        return false;
+    }
+
+    /**
+     * Get the Review Assets summary text (e.g., "2 assets" | "2 photos").
+     * @return array of [assetsText, photosText], or empty strings if not found
+     */
+    public String[] getReviewAssetsSummaryTexts() {
+        System.out.println("📍 Getting Review Assets summary texts...");
+        String assetsText = "";
+        String photosText = "";
+
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true AND "
+                + "(label CONTAINS 'asset' OR label CONTAINS 'Asset')"
+            ));
+            for (WebElement el : texts) {
+                String label = el.getAttribute("label");
+                if (label != null && label.matches(".*\\d+\\s+asset.*")) {
+                    assetsText = label;
+                    break;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true AND "
+                + "(label CONTAINS 'photo' OR label CONTAINS 'Photo')"
+            ));
+            for (WebElement el : texts) {
+                String label = el.getAttribute("label");
+                // Match "X photos" but NOT "X photos total" (that's What's Next screen)
+                if (label != null && label.matches(".*\\d+\\s+photo.*") && !label.contains("total")) {
+                    photosText = label;
+                    break;
+                }
+            }
+            // If no match without "total", try any
+            if (photosText.isEmpty()) {
+                for (WebElement el : texts) {
+                    String label = el.getAttribute("label");
+                    if (label != null && label.matches(".*\\d+\\s+photo.*")) {
+                        photosText = label;
+                        break;
+                    }
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("📊 Summary — assets: '" + assetsText + "', photos: '" + photosText + "'");
+        return new String[]{assetsText, photosText};
+    }
+
+    /**
+     * Check if the "Add More" button is displayed on the Review Assets screen.
+     * @return true if found
+     */
+    public boolean isAddMoreButtonDisplayed() {
+        System.out.println("📍 Checking for 'Add More' button...");
+        try {
+            List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND "
+                + "(label CONTAINS 'Add More' OR label == 'Add More')"
+            ));
+            boolean displayed = !found.isEmpty();
+            System.out.println(displayed
+                ? "✅ 'Add More' button found"
+                : "⚠️ 'Add More' button not found");
+            return displayed;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Tap the "Add More" button on the Review Assets screen.
+     * @return true if tapped successfully
+     */
+    public boolean tapAddMoreButton() {
+        System.out.println("📍 Tapping 'Add More' button...");
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND "
+                + "(label CONTAINS 'Add More' OR label == 'Add More')"
+            ));
+            if (!buttons.isEmpty()) {
+                buttons.get(0).click();
+                System.out.println("✅ Tapped 'Add More' button");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap 'Add More' button");
+        return false;
+    }
+
+    /**
+     * Check if the "Create All (X)" button is displayed on the Review Assets screen.
+     * @return true if found
+     */
+    public boolean isCreateAllButtonDisplayed() {
+        System.out.println("📍 Checking for 'Create All' button...");
+        try {
+            List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND "
+                + "label CONTAINS 'Create All'"
+            ));
+            boolean displayed = !found.isEmpty();
+            System.out.println(displayed
+                ? "✅ 'Create All' button found"
+                : "⚠️ 'Create All' button not found");
+            return displayed;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Get the "Create All (X)" button text showing asset count.
+     * @return the button text (e.g., "Create All (2)"), or empty string
+     */
+    public String getCreateAllButtonText() {
+        System.out.println("📍 Getting 'Create All' button text...");
+        try {
+            List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND "
+                + "label CONTAINS 'Create All'"
+            ));
+            if (!found.isEmpty()) {
+                String text = found.get(0).getAttribute("label");
+                System.out.println("✅ Create All button text: " + text);
+                return text != null ? text : "";
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ 'Create All' button text not found");
+        return "";
+    }
+
+    /**
+     * Tap the "Create All (X)" button on the Review Assets screen.
+     * @return true if tapped successfully
+     */
+    public boolean tapCreateAllButton() {
+        System.out.println("📍 Tapping 'Create All' button...");
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND "
+                + "label CONTAINS 'Create All'"
+            ));
+            if (!buttons.isEmpty()) {
+                buttons.get(0).click();
+                System.out.println("✅ Tapped 'Create All' button");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap 'Create All' button");
+        return false;
+    }
+
+    /**
+     * Check if the "Creating..." screen is displayed during asset creation.
+     * Shows: "Creating..." title, spinner, "Creating assets..." text, progress count.
+     * @return true if the creating screen is visible
+     */
+    public boolean isCreatingScreenDisplayed() {
+        System.out.println("📍 Checking for 'Creating...' screen...");
+
+        // Strategy 1: "Creating..." title
+        try {
+            List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'Creating...' OR label CONTAINS 'Creating')"
+            ));
+            if (!found.isEmpty()) {
+                System.out.println("✅ 'Creating...' screen detected");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Activity indicator + creating-related text
+        try {
+            boolean hasSpinner = !driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeActivityIndicator' AND visible == true"
+            )).isEmpty();
+            if (hasSpinner) {
+                System.out.println("✅ Creating screen detected (spinner)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Delegate to existing progress indicator check
+        return isCreationProgressIndicatorDisplayed();
+    }
+
+    /**
+     * Get the creation progress count text (e.g., "2 of 2").
+     * @return the progress count text, or empty string
+     */
+    public String getCreationProgressCountText() {
+        System.out.println("📍 Getting creation progress count...");
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                + "AND label CONTAINS ' of '"
+            ));
+            for (WebElement text : texts) {
+                String label = text.getAttribute("label");
+                if (label != null && label.matches(".*\\d+\\s+of\\s+\\d+.*")) {
+                    System.out.println("✅ Progress count: " + label);
+                    return label;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Fallback to existing method
+        String progressText = getCreationProgressText();
+        if (progressText != null) return progressText;
+
+        System.out.println("⚠️ Progress count not found");
+        return "";
+    }
+
+    /**
+     * Get the success dialog message text from walkthrough completion.
+     * Expected: "Created X assets with X photos"
+     * Falls back to existing getSuccessDialogText().
+     * @return the message text, or empty string
+     */
+    public String getWalkthroughSuccessMessage() {
+        System.out.println("📍 Getting walkthrough success message...");
+
+        // Strategy 1: "Created X assets with X photos"
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true AND "
+                + "(label CONTAINS 'Created' AND label CONTAINS 'photo')"
+            ));
+            if (!texts.isEmpty()) {
+                String label = texts.get(0).getAttribute("label");
+                System.out.println("✅ Success message: " + label);
+                return label;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Any text with "Created" + "assets"
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true AND "
+                + "(label CONTAINS 'Created' AND label CONTAINS 'asset')"
+            ));
+            if (!texts.isEmpty()) {
+                String label = texts.get(0).getAttribute("label");
+                System.out.println("✅ Success message: " + label);
+                return label;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Fallback to existing method
+        String existing = getSuccessDialogText();
+        return existing != null ? existing : "";
+    }
+
+    /**
+     * Tap the "Done" button on the success dialog.
+     * The walkthrough success dialog uses "Done" (not "OK").
+     * Falls back to tapSuccessDialogOKButton() if needed.
+     * @return true if Done/OK was tapped
+     */
+    public boolean tapSuccessDoneButton() {
+        System.out.println("📍 Tapping 'Done' on success dialog...");
+
+        // Strategy 1: "Done" button
+        try {
+            List<WebElement> doneBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label == 'Done' OR name == 'Done')"
+            ));
+            if (!doneBtns.isEmpty()) {
+                doneBtns.get(0).click();
+                System.out.println("✅ Tapped 'Done' on success dialog");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Fallback: existing OK button
+        return tapSuccessDialogOKButton();
+    }
+
     /**
      * Check if Cancel button is displayed on current screen (works on Classify OCPD, More OCPDs, What's Next).
      * @return true if found

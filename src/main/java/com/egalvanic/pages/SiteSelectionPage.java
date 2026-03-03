@@ -1236,38 +1236,52 @@ public class SiteSelectionPage extends BasePage {
         driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(1500));
         try {
             // Strategy 1: Exact label/name match (works on iOS 26.2)
+            System.out.println("[DEBUG-POPUP] Strategy 1: searching label/name == 'Go " + keyword + "'");
             java.util.List<WebElement> exactMatch = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(label == 'Go " + keyword + "' OR name == 'Go " + keyword + "')"));
+            System.out.println("[DEBUG-POPUP] Strategy 1 found " + exactMatch.size() + " elements");
             if (!exactMatch.isEmpty()) {
-                exactMatch.get(0).click();
+                WebElement el = exactMatch.get(0);
+                System.out.println("[DEBUG-POPUP] Clicking: type=" + el.getAttribute("type") +
+                    ", label=" + el.getAttribute("label") + ", name=" + el.getAttribute("name") +
+                    ", visible=" + el.getAttribute("visible"));
+                el.click();
                 System.out.println("✅ Clicked Go " + keyword + " (exact label/name match)");
                 return true;
             }
 
             // Strategy 2: Case-insensitive contains on label/name/value (handles iOS 18.5 variations)
+            System.out.println("[DEBUG-POPUP] Strategy 2: searching CONTAINS[c] '" + keyword + "'");
             java.util.List<WebElement> containsMatch = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(label CONTAINS[c] '" + keyword + "' OR name CONTAINS[c] '" + keyword + "' OR " +
                 "value CONTAINS[c] '" + keyword + "')"));
+            System.out.println("[DEBUG-POPUP] Strategy 2 found " + containsMatch.size() + " elements");
             if (!containsMatch.isEmpty()) {
                 WebElement el = containsMatch.get(0);
-                System.out.println("✅ Found '" + keyword + "' element: type=" + el.getAttribute("type") +
-                    ", label=" + el.getAttribute("label") + ", name=" + el.getAttribute("name"));
+                System.out.println("[DEBUG-POPUP] Clicking: type=" + el.getAttribute("type") +
+                    ", label=" + el.getAttribute("label") + ", name=" + el.getAttribute("name") +
+                    ", value=" + el.getAttribute("value") + ", visible=" + el.getAttribute("visible"));
                 el.click();
                 System.out.println("✅ Clicked Go " + keyword + " (contains match)");
                 return true;
             }
 
             // Strategy 3: Search inside popup containers (XCUIElementTypeSheet, Alert, ScrollView)
+            System.out.println("[DEBUG-POPUP] Strategy 3: searching inside popup containers...");
             String[] containerTypes = {"XCUIElementTypeSheet", "XCUIElementTypeAlert", "XCUIElementTypeScrollView"};
             for (String containerType : containerTypes) {
                 try {
                     java.util.List<WebElement> containers = driver.findElements(AppiumBy.className(containerType));
+                    System.out.println("[DEBUG-POPUP]   " + containerType + ": found " + containers.size() + " containers");
                     for (WebElement container : containers) {
                         java.util.List<WebElement> children = container.findElements(
                             AppiumBy.iOSNsPredicateString(
                                 "label CONTAINS[c] '" + keyword + "' OR name CONTAINS[c] '" + keyword + "'"));
                         if (!children.isEmpty()) {
-                            children.get(0).click();
+                            WebElement el = children.get(0);
+                            System.out.println("[DEBUG-POPUP] Clicking inside " + containerType + ": type=" +
+                                el.getAttribute("type") + ", label=" + el.getAttribute("label"));
+                            el.click();
                             System.out.println("✅ Clicked " + keyword + " inside " + containerType);
                             return true;
                         }
@@ -1275,18 +1289,25 @@ public class SiteSelectionPage extends BasePage {
                 } catch (Exception ignore) {}
             }
 
-            // Strategy 4: Find any button/other that appeared in the popup area (Y > 40, Y < 300)
-            // On iOS 18.5, popup menu items might be XCUIElementTypeOther without useful labels
+            // All strategies failed — dump visible buttons for CI debugging
+            System.out.println("[DEBUG-POPUP] ❌ All strategies failed for '" + keyword + "'. Dumping visible buttons...");
             try {
-                java.util.List<WebElement> popupButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND visible == true AND " +
-                    "(label CONTAINS[c] 'go' OR label CONTAINS[c] '" + keyword.toLowerCase() + "')"));
-                if (!popupButtons.isEmpty()) {
-                    popupButtons.get(0).click();
-                    System.out.println("✅ Clicked popup button (broad match)");
-                    return true;
+                java.util.List<WebElement> allButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND visible == true"));
+                System.out.println("[DEBUG-POPUP] Total visible buttons on screen: " + allButtons.size());
+                int dumpLimit = Math.min(allButtons.size(), 15);
+                for (int i = 0; i < dumpLimit; i++) {
+                    try {
+                        WebElement btn = allButtons.get(i);
+                        System.out.println("[DEBUG-POPUP]   Button[" + i + "]: label=" + btn.getAttribute("label") +
+                            ", name=" + btn.getAttribute("name") + ", Y=" + btn.getLocation().getY());
+                    } catch (Exception e) {
+                        System.out.println("[DEBUG-POPUP]   Button[" + i + "]: <stale>");
+                    }
                 }
-            } catch (Exception ignore) {}
+            } catch (Exception dumpEx) {
+                System.out.println("[DEBUG-POPUP] Could not dump buttons: " + dumpEx.getMessage());
+            }
 
             System.out.println("⚠️ Could not find '" + keyword + "' popup option via any element strategy");
             return false;
@@ -1402,34 +1423,110 @@ public class SiteSelectionPage extends BasePage {
     }
 
     /**
-     * Go Offline (with internal explicit wait and improved reliability).
-     * Uses findElements with short timeout to avoid 5s implicit wait per element.
+     * Dump WiFi button state for CI debugging.
+     * Logs all nav bar buttons with their attributes so we can see the actual DOM state on failure.
+     */
+    private void dumpWifiButtonState() {
+        driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(500));
+        try {
+            System.out.println("[DEBUG-WIFI] === WiFi Button State Dump ===");
+
+            // Check for Wi-Fi / Wi-Fi Off accessibility IDs
+            boolean wifiFound = !driver.findElements(AppiumBy.accessibilityId("Wi-Fi")).isEmpty();
+            boolean wifiOffFound = !driver.findElements(AppiumBy.accessibilityId("Wi-Fi Off")).isEmpty();
+            System.out.println("[DEBUG-WIFI] accessibilityId 'Wi-Fi' present: " + wifiFound);
+            System.out.println("[DEBUG-WIFI] accessibilityId 'Wi-Fi Off' present: " + wifiOffFound);
+
+            // Dump all nav bar buttons
+            try {
+                WebElement navBar = driver.findElement(AppiumBy.className("XCUIElementTypeNavigationBar"));
+                java.util.List<WebElement> navButtons = navBar.findElements(AppiumBy.className("XCUIElementTypeButton"));
+                System.out.println("[DEBUG-WIFI] Nav bar buttons: " + navButtons.size());
+                for (int i = 0; i < navButtons.size(); i++) {
+                    try {
+                        WebElement btn = navButtons.get(i);
+                        System.out.println("[DEBUG-WIFI]   NavBtn[" + i + "]: name=" + btn.getAttribute("name") +
+                            ", label=" + btn.getAttribute("label") + ", visible=" + btn.getAttribute("visible"));
+                    } catch (Exception e) {
+                        System.out.println("[DEBUG-WIFI]   NavBtn[" + i + "]: <stale>");
+                    }
+                }
+            } catch (Exception e) {
+                System.out.println("[DEBUG-WIFI] Could not find nav bar: " + e.getMessage());
+            }
+
+            System.out.println("[DEBUG-WIFI] === End Dump ===");
+        } catch (Exception e) {
+            System.out.println("[DEBUG-WIFI] dumpWifiButtonState error: " + e.getMessage());
+        } finally {
+            driver.manage().timeouts().implicitlyWait(
+                java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
+        }
+    }
+
+    /**
+     * Go Offline (with retry mechanism for CI reliability).
+     * Attempts up to 2 times: element-based search → coordinate tap fallback.
+     * Verifies state actually changed before reporting success.
      */
     public void goOffline() {
         try {
             System.out.println("🔄 Attempting to go offline...");
+            boolean currentlyOnline = isWifiOnline();
+            System.out.println("[DEBUG-WIFI] isWifiOnline() = " + currentlyOnline);
 
-            if (isWifiOnline()) {
-                clickWifiButton();
-                sleep(1200); // Wait for popup animation (increased for CI - iOS 18.5 needs more time)
+            if (currentlyOnline) {
+                boolean wentOffline = false;
 
-                // Multi-strategy search for "Go Offline" popup option
-                if (!findAndClickPopupOption("Offline")) {
-                    // Last resort: coordinate-based tap below WiFi button
-                    System.out.println("⚠️ Element strategies failed, trying coordinate tap...");
-                    tapPopupOptionByCoordinate();
+                for (int attempt = 1; attempt <= 2 && !wentOffline; attempt++) {
+                    System.out.println("📡 Go Offline attempt " + attempt + "/2");
+                    clickWifiButton();
+                    System.out.println("[DEBUG-WIFI] Waiting 2500ms for popup animation...");
+                    sleep(2500); // Wait for popup animation (iOS 18.5 CI needs extra time)
+
+                    // Multi-strategy search for "Go Offline" popup option
+                    boolean elementClicked = findAndClickPopupOption("Offline");
+                    System.out.println("[DEBUG-WIFI] findAndClickPopupOption('Offline') returned: " + elementClicked);
+
+                    if (!elementClicked) {
+                        // Last resort: coordinate-based tap below WiFi button
+                        System.out.println("⚠️ Element strategies failed, trying coordinate tap...");
+                        tapPopupOptionByCoordinate();
+                    }
+
+                    // Wait for state change
+                    System.out.println("[DEBUG-WIFI] Waiting 1500ms for state change...");
+                    sleep(1500);
+                    wentOffline = isWifiOffline();
+                    System.out.println("[DEBUG-WIFI] After attempt " + attempt + ": isWifiOffline() = " + wentOffline);
+
+                    if (!wentOffline && attempt == 1) {
+                        System.out.println("⚠️ Still online after attempt 1, dismissing popup & retrying...");
+                        tapOutsidePopup();
+                        sleep(800);
+                    }
                 }
 
-                // Wait for offline state
-                sleep(1200);
-                if (!isWifiOffline()) {
-                    System.out.println("⚠️ Not in offline mode yet, waiting longer...");
-                    waitForCondition(() -> isWifiOffline(), 5);
+                // Final extended wait if still not offline
+                if (!wentOffline) {
+                    System.out.println("[DEBUG-WIFI] Starting final waitForCondition(isWifiOffline, 5s)...");
+                    wentOffline = waitForCondition(() -> isWifiOffline(), 5);
+                    System.out.println("[DEBUG-WIFI] waitForCondition result: " + wentOffline);
                 }
-                System.out.println("✅ Successfully went offline");
+
+                if (wentOffline) {
+                    System.out.println("✅ Successfully went offline");
+                } else {
+                    // Dump WiFi button state for debugging
+                    dumpWifiButtonState();
+                    System.out.println("❌ Failed to go offline after all attempts");
+                    throw new RuntimeException("Failed to switch to offline mode");
+                }
             } else {
                 System.out.println("ℹ️ Already in offline mode");
             }
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             System.out.println("⚠️ goOffline error: " + e.getMessage());
             throw e;
@@ -1437,34 +1534,68 @@ public class SiteSelectionPage extends BasePage {
     }
 
     /**
-     * Go Online (with internal explicit wait and improved reliability).
-     * Uses findElements with short timeout to avoid 5s implicit wait per element.
+     * Go Online (with retry mechanism for CI reliability).
+     * Attempts up to 2 times: element-based search → coordinate tap fallback.
+     * Verifies state actually changed before reporting success.
      */
     public void goOnline() {
         try {
             System.out.println("🔄 Attempting to go online...");
+            boolean currentlyOffline = isWifiOffline();
+            System.out.println("[DEBUG-WIFI] isWifiOffline() = " + currentlyOffline);
 
-            if (isWifiOffline()) {
-                clickWifiButton();
-                sleep(1200); // Wait for popup animation (increased for CI - iOS 18.5 needs more time)
+            if (currentlyOffline) {
+                boolean wentOnline = false;
 
-                // Multi-strategy search for "Go Online" popup option
-                if (!findAndClickPopupOption("Online")) {
-                    // Last resort: coordinate-based tap below WiFi button
-                    System.out.println("⚠️ Element strategies failed, trying coordinate tap...");
-                    tapPopupOptionByCoordinate();
+                for (int attempt = 1; attempt <= 2 && !wentOnline; attempt++) {
+                    System.out.println("📡 Go Online attempt " + attempt + "/2");
+                    clickWifiButton();
+                    System.out.println("[DEBUG-WIFI] Waiting 2500ms for popup animation...");
+                    sleep(2500); // Wait for popup animation (iOS 18.5 CI needs extra time)
+
+                    // Multi-strategy search for "Go Online" popup option
+                    boolean elementClicked = findAndClickPopupOption("Online");
+                    System.out.println("[DEBUG-WIFI] findAndClickPopupOption('Online') returned: " + elementClicked);
+
+                    if (!elementClicked) {
+                        // Last resort: coordinate-based tap below WiFi button
+                        System.out.println("⚠️ Element strategies failed, trying coordinate tap...");
+                        tapPopupOptionByCoordinate();
+                    }
+
+                    // Wait for state change
+                    System.out.println("[DEBUG-WIFI] Waiting 1500ms for state change...");
+                    sleep(1500);
+                    wentOnline = isWifiOnline();
+                    System.out.println("[DEBUG-WIFI] After attempt " + attempt + ": isWifiOnline() = " + wentOnline);
+
+                    if (!wentOnline && attempt == 1) {
+                        System.out.println("⚠️ Still offline after attempt 1, dismissing popup & retrying...");
+                        tapOutsidePopup();
+                        sleep(800);
+                    }
                 }
 
-                // Wait for online state
-                sleep(1200);
-                if (!isWifiOnline()) {
-                    System.out.println("⚠️ Not in online mode yet, waiting longer...");
-                    waitForCondition(() -> isWifiOnline(), 5);
+                // Final extended wait if still not online
+                if (!wentOnline) {
+                    System.out.println("[DEBUG-WIFI] Starting final waitForCondition(isWifiOnline, 5s)...");
+                    wentOnline = waitForCondition(() -> isWifiOnline(), 5);
+                    System.out.println("[DEBUG-WIFI] waitForCondition result: " + wentOnline);
                 }
-                System.out.println("✅ Successfully went online");
+
+                if (wentOnline) {
+                    System.out.println("✅ Successfully went online");
+                } else {
+                    // Dump WiFi button state for debugging
+                    dumpWifiButtonState();
+                    System.out.println("❌ Failed to go online after all attempts");
+                    throw new RuntimeException("Failed to switch to online mode");
+                }
             } else {
                 System.out.println("ℹ️ Already in online mode");
             }
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             System.out.println("⚠️ goOnline error: " + e.getMessage());
             throw e;
