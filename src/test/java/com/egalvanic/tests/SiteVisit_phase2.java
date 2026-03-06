@@ -5220,7 +5220,7 @@ public class SiteVisit_phase2 extends BaseTest {
         workOrderPage.tapAddAssetTypeButton();
         mediumWait();
 
-        if (workOrderPage.isSelectAssetTypeSheetDisplayed()) {
+        if (workOrderPage.waitForSelectAssetTypeSheet()) {
             workOrderPage.selectAssetType("ATS");
             mediumWait();
 
@@ -5241,7 +5241,7 @@ public class SiteVisit_phase2 extends BaseTest {
         workOrderPage.tapAddAssetTypeButton();
         mediumWait();
 
-        if (workOrderPage.isSelectAssetTypeSheetDisplayed()) {
+        if (workOrderPage.waitForSelectAssetTypeSheet()) {
             workOrderPage.selectAssetType("Panel");
             mediumWait();
 
@@ -5638,7 +5638,7 @@ public class SiteVisit_phase2 extends BaseTest {
                 workOrderPage.tapAddAssetTypeButton();
                 mediumWait();
 
-                if (workOrderPage.isSelectAssetTypeSheetDisplayed()) {
+                if (workOrderPage.waitForSelectAssetTypeSheet()) {
                     workOrderPage.selectAssetType("ATS");
                     mediumWait();
 
