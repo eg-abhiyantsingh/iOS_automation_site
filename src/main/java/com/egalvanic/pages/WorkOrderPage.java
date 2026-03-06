@@ -5521,7 +5521,7 @@ public class WorkOrderPage extends BasePage {
                 int y = btn.getLocation().getY() + btn.getSize().getHeight() / 2;
                 System.out.println("📊 Add Asset Type BUTTON at (" + x + ", " + y
                     + "), size=" + btn.getSize().getWidth() + "x" + btn.getSize().getHeight());
-                // W3C coordinate tap — SwiftUI .click() is unreliable
+                // W3C coordinate tap with 150ms hold — SwiftUI needs brief hold to register
                 org.openqa.selenium.interactions.PointerInput finger =
                     new org.openqa.selenium.interactions.PointerInput(
                         org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
@@ -5531,6 +5531,8 @@ public class WorkOrderPage extends BasePage {
                     org.openqa.selenium.interactions.PointerInput.Origin.viewport(), x, y));
                 tap.addAction(finger.createPointerDown(
                     org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+                tap.addAction(finger.createPointerMove(Duration.ofMillis(150),
+                    org.openqa.selenium.interactions.PointerInput.Origin.viewport(), x, y));
                 tap.addAction(finger.createPointerUp(
                     org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
                 driver.perform(java.util.Arrays.asList(tap));
@@ -5663,15 +5665,15 @@ public class WorkOrderPage extends BasePage {
      * If the sheet doesn't appear, retries tapping the Add Asset Type button once.
      */
     public boolean waitForSelectAssetTypeSheet() {
-        // Wait up to 3 seconds for sheet to appear
-        for (int i = 0; i < 6; i++) {
+        // Wait up to 2 seconds for sheet to appear
+        for (int i = 0; i < 4; i++) {
             if (isSelectAssetTypeSheetDisplayed()) return true;
             try { Thread.sleep(500); } catch (InterruptedException e) { break; }
         }
-        // Retry: tap button again and wait
+        // Retry: tap button again and wait up to 2 seconds
         System.out.println("📍 Retrying tap on Add Asset Type button...");
         tapAddAssetTypeButton();
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < 4; i++) {
             if (isSelectAssetTypeSheetDisplayed()) return true;
             try { Thread.sleep(500); } catch (InterruptedException e) { break; }
         }
