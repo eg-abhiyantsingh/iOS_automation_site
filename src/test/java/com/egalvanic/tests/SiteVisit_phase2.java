@@ -419,7 +419,7 @@ public class SiteVisit_phase2 extends BaseTest {
 
         // First test — login and select site
         logStep("Logging in and selecting site");
-        loginAndSelectSite();
+       // loginAndSelectSite();
         mediumWait();
 
         boolean irSectionReached = navigateToIRPhotosSection();

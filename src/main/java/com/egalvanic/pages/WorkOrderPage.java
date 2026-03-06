@@ -2125,10 +2125,10 @@ public class WorkOrderPage extends BasePage {
     public boolean tapFirstRoomWithAssets() {
         System.out.println("📍 Looking for room with assets (fast path)...");
         try {
-            // Find "N asset" or "N assets" text elements
+            // Find "N asset" or "N assets" text elements (no visible check for speed)
             List<WebElement> assetTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
-                + "AND (label CONTAINS ' asset' OR label CONTAINS ' Asset')"
+                "type == 'XCUIElementTypeStaticText' "
+                + "AND (label MATCHES '\\\\d+ asset.*')"
             ));
             System.out.println("  Asset count texts found: " + assetTexts.size());
 
@@ -2138,10 +2138,9 @@ public class WorkOrderPage extends BasePage {
                 String label = assetText.getAttribute("label");
                 System.out.println("  Room entry: '" + label + "' at Y=" + y);
 
-                // Tap the chevron area (right side of the row) to enter the room
-                // Screen width ~393pt on iPhone, chevron is around X=370
+                // Tap the row to enter the room
                 driver.executeScript("mobile: tap",
-                    java.util.Map.of("x", 370, "y", y));
+                    java.util.Map.of("x", 200, "y", y));
                 System.out.println("✅ Tapped room row at Y=" + y);
                 return true;
             }
@@ -2149,16 +2148,18 @@ public class WorkOrderPage extends BasePage {
             System.out.println("  Error: " + e.getMessage());
         }
 
-        // Strategy 2: Find any row with a disclosure indicator (chevron >)
+        // Strategy 2: Find "N node" text elements
         try {
-            List<WebElement> chevrons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeDisclosureIndicator' AND visible == true"
+            List<WebElement> nodeTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' "
+                + "AND (label MATCHES '\\\\d+ node.*')"
             ));
-            for (WebElement chev : chevrons) {
-                int y = chev.getLocation().getY();
-                if (y > 300) { // Skip building/floor rows at top
-                    chev.click();
-                    System.out.println("✅ Tapped disclosure indicator at Y=" + y);
+            for (WebElement nodeText : nodeTexts) {
+                int y = nodeText.getLocation().getY();
+                if (y > 200) {
+                    driver.executeScript("mobile: tap",
+                        java.util.Map.of("x", 200, "y", y));
+                    System.out.println("✅ Tapped room (node label) at Y=" + y);
                     return true;
                 }
             }
@@ -2809,9 +2810,10 @@ public class WorkOrderPage extends BasePage {
         java.util.List<String> floors = new java.util.ArrayList<>();
 
         try {
-            // Look for texts that indicate floors (contain "room" or start with "Floor")
+            // Look for texts that indicate floors (no visible check — avoids slow DOM scan
+            // with 300+ floors in building)
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label CONTAINS ' room' OR label CONTAINS ' Room' "
                 + "OR label BEGINSWITH 'Floor' OR label BEGINSWITH 'floor')"
             ));
@@ -2885,78 +2887,34 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Tapping floor at index " + index + "...");
 
         try {
-            // Find floor-like entries (cells or buttons)
-            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+            // Fast: Find floor text elements directly (no visible check — avoids
+            // slow DOM traversal with 300+ floors in building)
+            List<WebElement> floorTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' "
+                + "AND (label BEGINSWITH 'Floor' OR label BEGINSWITH 'floor')"
             ));
 
-            java.util.List<WebElement> floorCells = new java.util.ArrayList<>();
-            for (WebElement cell : cells) {
-                int y = cell.getLocation().getY();
-                if (y < 200) continue;
-
-                List<WebElement> childTexts = cell.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText'"
-                ));
-                boolean isFloor = false;
-                boolean isBuilding = false;
-                for (WebElement child : childTexts) {
-                    String label = child.getAttribute("label");
-                    if (label == null) continue;
-                    // Skip pure count labels like "1 room", "5 rooms"
-                    if (label.matches("^\\d+\\s+(room|rooms|node|nodes|asset|assets)$")) continue;
-                    if (label.toLowerCase().contains("room")
-                            || label.toLowerCase().startsWith("floor")) {
-                        isFloor = true;
-                    }
-                    // Exclude building entries (they contain "floor" as floor count)
-                    if (label.matches(".*\\d+\\s+floor.*")) {
-                        isBuilding = true;
-                    }
-                }
-                if (isFloor && !isBuilding) {
-                    floorCells.add(cell);
-                }
+            java.util.List<WebElement> validFloors = new java.util.ArrayList<>();
+            for (WebElement el : floorTexts) {
+                String label = el.getAttribute("label");
+                if (label == null) continue;
+                // Exclude building "N floors" count labels
+                if (label.matches(".*\\d+\\s+floor.*")) continue;
+                validFloors.add(el);
             }
 
-            // Also check buttons that match floor patterns
-            if (floorCells.isEmpty()) {
-                List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND visible == true "
-                    + "AND (label CONTAINS ' room' OR label BEGINSWITH 'Floor')"
-                ));
-                for (WebElement btn : buttons) {
-                    int y = btn.getLocation().getY();
-                    if (y > 200) {
-                        floorCells.add(btn);
-                    }
-                }
+            if (index < validFloors.size()) {
+                WebElement target = validFloors.get(index);
+                int y = target.getLocation().getY();
+                // Tap the floor row via coordinate (faster than cell click)
+                driver.executeScript("mobile: tap", java.util.Map.of("x", 200, "y", y));
+                System.out.println("✅ Tapped floor " + index + " at Y=" + y);
+                return true;
             }
 
-            if (index >= floorCells.size()) {
-                System.out.println("⚠️ Floor index " + index + " out of bounds ("
-                    + floorCells.size() + " floors found)");
-                return false;
-            }
-
-            // Try tapping chevron/disclosure first, then the cell
-            WebElement floorCell = floorCells.get(index);
-            try {
-                List<WebElement> chevrons = floorCell.findElements(AppiumBy.iOSNsPredicateString(
-                    "(type == 'XCUIElementTypeDisclosureIndicator') "
-                    + "OR (type == 'XCUIElementTypeImage' AND "
-                    + "(name CONTAINS 'chevron' OR name CONTAINS 'disclosure'))"
-                ));
-                if (!chevrons.isEmpty()) {
-                    chevrons.get(0).click();
-                    System.out.println("✅ Tapped floor " + index + " chevron");
-                    return true;
-                }
-            } catch (Exception e) { /* continue */ }
-
-            floorCell.click();
-            System.out.println("✅ Tapped floor " + index + " cell");
-            return true;
+            System.out.println("⚠️ Floor index " + index + " out of bounds ("
+                + validFloors.size() + " floors found)");
+            return false;
         } catch (Exception e) {
             System.out.println("⚠️ Could not tap floor at index " + index + ": "
                 + e.getMessage());
@@ -2974,39 +2932,43 @@ public class WorkOrderPage extends BasePage {
         java.util.List<String> rooms = new java.util.ArrayList<>();
 
         try {
-            // Rooms typically contain "node", "asset", or start with "Room"
+            // Strategy 1: Look for elements starting with "Room" (fast, no visible check)
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton') "
-                + "AND visible == true "
-                + "AND (label BEGINSWITH 'Room' OR label BEGINSWITH 'room' "
-                + "OR label CONTAINS ' node' OR label CONTAINS ' asset')"
+                "type == 'XCUIElementTypeStaticText' "
+                + "AND (label BEGINSWITH 'Room' OR label BEGINSWITH 'room')"
             ));
 
-            java.util.Set<Integer> seenYPositions = new java.util.TreeSet<>();
             for (WebElement el : elements) {
-                int y = el.getLocation().getY();
-                if (y < 200) continue;
-
                 String label = el.getAttribute("label");
                 if (label == null || label.isEmpty()) continue;
-                // Exclude floor entries and building entries
-                if (label.toLowerCase().contains(" floor") && !label.toLowerCase().contains("room"))
-                    continue;
-
-                boolean duplicate = false;
-                for (int existingY : seenYPositions) {
-                    if (Math.abs(y - existingY) < 20) {
-                        duplicate = true;
-                        break;
-                    }
-                }
-                if (!duplicate) {
-                    seenYPositions.add(y);
-                    rooms.add(label);
-                    System.out.println("  Found room: " + label);
-                }
+                // Skip count labels like "1 room"
+                if (label.matches("^\\d+\\s+(room|rooms)$")) continue;
+                // Skip floor entries
+                if (label.toLowerCase().contains(" floor")) continue;
+                rooms.add(label);
+                System.out.println("  Found room: " + label);
+                if (rooms.size() >= 5) break; // Don't need all rooms
             }
-        } catch (Exception e) { /* continue */ }
+        } catch (Exception e) {
+            System.out.println("  Room search error: " + e.getMessage());
+        }
+
+        // Strategy 2: Look for "N asset" or "N node" entries (room sub-labels)
+        if (rooms.isEmpty()) {
+            try {
+                List<WebElement> assetTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' "
+                    + "AND (label MATCHES '\\\\d+ asset.*' OR label MATCHES '\\\\d+ node.*')"
+                ));
+                for (WebElement el : assetTexts) {
+                    String label = el.getAttribute("label");
+                    if (label == null) continue;
+                    rooms.add(label);
+                    System.out.println("  Found room (asset/node label): " + label);
+                    if (rooms.size() >= 5) break;
+                }
+            } catch (Exception e) { /* continue */ }
+        }
 
         System.out.println("📊 Room entries found: " + rooms.size() + " → " + rooms);
         return rooms;
@@ -3021,55 +2983,54 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Tapping room at index " + index + "...");
 
         try {
-            // Strategy 1: Look for buttons/cells with room-like labels
-            List<WebElement> roomElements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeCell') "
-                + "AND visible == true "
-                + "AND (label BEGINSWITH 'Room' OR label BEGINSWITH 'room' "
-                + "OR label CONTAINS ' node' OR label CONTAINS ' asset')"
+            // Strategy 1: Find "Room_xxx" text elements (fast, no visible check)
+            List<WebElement> roomTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' "
+                + "AND (label BEGINSWITH 'Room' OR label BEGINSWITH 'room')"
             ));
 
-            // Filter out floors and buildings
             java.util.List<WebElement> validRooms = new java.util.ArrayList<>();
-            for (WebElement el : roomElements) {
-                int y = el.getLocation().getY();
-                if (y < 200) continue;
+            for (WebElement el : roomTexts) {
                 String label = el.getAttribute("label");
-                if (label != null && !label.toLowerCase().contains(" floor")) {
-                    validRooms.add(el);
-                }
+                if (label == null) continue;
+                // Skip count labels like "1 room"
+                if (label.matches("^\\d+\\s+(room|rooms)$")) continue;
+                if (label.toLowerCase().contains(" floor")) continue;
+                validRooms.add(el);
             }
 
-            // Fallback: cells that have "Room" text in children
+            if (index < validRooms.size()) {
+                WebElement target = validRooms.get(index);
+                int y = target.getLocation().getY();
+                int x = target.getLocation().getX();
+                // Tap the room row (use coordinate tap for reliability)
+                driver.executeScript("mobile: tap", java.util.Map.of("x", x + 50, "y", y));
+                System.out.println("✅ Tapped room at index " + index + " (Y=" + y + ")");
+                return true;
+            }
+
+            // Strategy 2: Find "N asset" or "N node" labels and tap their row
             if (validRooms.isEmpty()) {
-                List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeCell' AND visible == true"
+                List<WebElement> assetLabels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' "
+                    + "AND (label MATCHES '\\\\d+ asset.*' OR label MATCHES '\\\\d+ node.*')"
                 ));
-                for (WebElement cell : cells) {
-                    int y = cell.getLocation().getY();
-                    if (y < 200) continue;
-
-                    List<WebElement> childTexts = cell.findElements(
-                        AppiumBy.iOSNsPredicateString(
-                            "type == 'XCUIElementTypeStaticText' AND "
-                            + "(label BEGINSWITH 'Room' OR label CONTAINS ' node' "
-                            + "OR label CONTAINS ' asset')"
-                        ));
-                    if (!childTexts.isEmpty()) {
-                        validRooms.add(cell);
-                    }
+                java.util.List<WebElement> filtered = new java.util.ArrayList<>();
+                for (WebElement el : assetLabels) {
+                    int y = el.getLocation().getY();
+                    if (y > 200) filtered.add(el);
+                }
+                if (index < filtered.size()) {
+                    int y = filtered.get(index).getLocation().getY();
+                    driver.executeScript("mobile: tap", java.util.Map.of("x", 200, "y", y));
+                    System.out.println("✅ Tapped room (asset label) at index " + index);
+                    return true;
                 }
             }
 
-            if (index >= validRooms.size()) {
-                System.out.println("⚠️ Room index " + index + " out of bounds ("
-                    + validRooms.size() + " rooms found)");
-                return false;
-            }
-
-            validRooms.get(index).click();
-            System.out.println("✅ Tapped room at index " + index);
-            return true;
+            System.out.println("⚠️ Room index " + index + " out of bounds ("
+                + validRooms.size() + " rooms found)");
+            return false;
         } catch (Exception e) {
             System.out.println("⚠️ Could not tap room at index " + index + ": "
                 + e.getMessage());
