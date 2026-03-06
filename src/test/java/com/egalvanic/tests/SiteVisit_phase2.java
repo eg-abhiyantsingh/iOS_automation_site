@@ -1315,9 +1315,14 @@ public class SiteVisit_phase2 extends BaseTest {
         mediumWait();
         workOrderPage.waitForAddAssetsScreen();
 
-        workOrderPage.tapNewAssetTab();
-        mediumWait();
-        workOrderPage.tapCreateNewAssetOption();
+        // Handle popup menu vs old tabbed screen
+        if (workOrderPage.isAddAssetsPopupMenu()) {
+            workOrderPage.tapPopupNewAssetOption();
+        } else {
+            workOrderPage.tapNewAssetTab();
+            mediumWait();
+            workOrderPage.tapCreateNewAssetOption();
+        }
         mediumWait();
         workOrderPage.waitForSessionNewAssetForm();
 
@@ -1517,9 +1522,14 @@ public class SiteVisit_phase2 extends BaseTest {
                     mediumWait();
                     workOrderPage.waitForAddAssetsScreen();
 
-                    workOrderPage.tapNewAssetTab();
-                    mediumWait();
-                    workOrderPage.tapCreateNewAssetOption();
+                    // Handle popup menu vs old tabbed screen
+                    if (workOrderPage.isAddAssetsPopupMenu()) {
+                        workOrderPage.tapPopupNewAssetOption();
+                    } else {
+                        workOrderPage.tapNewAssetTab();
+                        mediumWait();
+                        workOrderPage.tapCreateNewAssetOption();
+                    }
                     mediumWait();
                     workOrderPage.waitForSessionNewAssetForm();
 
@@ -1833,15 +1843,20 @@ public class SiteVisit_phase2 extends BaseTest {
             return true;
         }
 
-        // No assets — create one via floating + → New Asset tab → Create New Asset
+        // No assets — create one via floating + → popup → New Asset
         logStep("No assets found — creating one via New Asset form");
         workOrderPage.tapAssetsInRoomFloatingPlusButton();
         mediumWait();
         workOrderPage.waitForAddAssetsScreen();
 
-        workOrderPage.tapNewAssetTab();
-        mediumWait();
-        workOrderPage.tapCreateNewAssetOption();
+        // Handle popup menu vs old tabbed screen
+        if (workOrderPage.isAddAssetsPopupMenu()) {
+            workOrderPage.tapPopupNewAssetOption();
+        } else {
+            workOrderPage.tapNewAssetTab();
+            mediumWait();
+            workOrderPage.tapCreateNewAssetOption();
+        }
         mediumWait();
         workOrderPage.waitForSessionNewAssetForm();
 
@@ -2547,7 +2562,7 @@ public class SiteVisit_phase2 extends BaseTest {
     private boolean navigateToQuickCountScreen() {
         logStep("Starting navigation to Quick Count screen...");
 
-        // Navigate to Add Assets → New Asset tab
+        // Navigate to Assets in Room → tap floating +
         navigateToAddAssetsScreen();
         shortWait();
 
@@ -2556,24 +2571,30 @@ public class SiteVisit_phase2 extends BaseTest {
             return false;
         }
 
-        logStep("Switching to New Asset tab");
-        workOrderPage.tapNewAssetTab();
-        mediumWait();
+        // The + button shows a popup menu (New Asset, Link Existing, Photo Walkthrough, Quick Count)
+        if (workOrderPage.isAddAssetsPopupMenu()) {
+            logStep("Popup menu detected — tapping 'Quick Count' directly");
+            boolean tapped = workOrderPage.tapPopupQuickCountOption();
+            mediumWait();
+            logStep("Quick Count popup option tapped: " + tapped);
+        } else {
+            // Fallback: old tabbed screen
+            logStep("Switching to New Asset tab (fallback)");
+            workOrderPage.tapNewAssetTab();
+            mediumWait();
 
-        // Check if Quick Count option is visible
-        boolean qcOptionVisible = workOrderPage.isCreateQuickCountOptionDisplayed();
-        logStep("Create Quick Count option visible: " + qcOptionVisible);
+            boolean qcOptionVisible = workOrderPage.isCreateQuickCountOptionDisplayed();
+            logStep("Create Quick Count option visible: " + qcOptionVisible);
 
-        if (!qcOptionVisible) {
-            logWarning("Create Quick Count option not found on New Asset tab");
-            return false;
+            if (!qcOptionVisible) {
+                logWarning("Create Quick Count option not found");
+                return false;
+            }
+
+            logStep("Tapping 'Create Quick Count'");
+            workOrderPage.tapCreateQuickCountOption();
+            mediumWait();
         }
-
-        // Tap Create Quick Count
-        logStep("Tapping 'Create Quick Count'");
-        boolean tapped = workOrderPage.tapCreateQuickCountOption();
-        mediumWait();
-        logStep("Create Quick Count tapped: " + tapped);
 
         // Wait for Quick Count screen
         boolean qcScreen = workOrderPage.waitForQuickCountScreen();
@@ -3096,7 +3117,7 @@ public class SiteVisit_phase2 extends BaseTest {
         logStepWithScreenshot("After tapping + Add Asset Type");
 
         // Check if the asset type selection sheet appeared
-        boolean sheetDisplayed = workOrderPage.isSelectAssetTypeSheetDisplayed();
+        boolean sheetDisplayed = workOrderPage.waitForSelectAssetTypeSheet();
         logStep("'Select Asset Type' sheet displayed: " + sheetDisplayed);
 
         // Check for Cancel button at bottom
@@ -3161,7 +3182,7 @@ public class SiteVisit_phase2 extends BaseTest {
         workOrderPage.tapAddAssetTypeButton();
         mediumWait();
 
-        boolean sheetDisplayed = workOrderPage.isSelectAssetTypeSheetDisplayed();
+        boolean sheetDisplayed = workOrderPage.waitForSelectAssetTypeSheet();
         logStep("Select Asset Type sheet: " + sheetDisplayed);
 
         if (!sheetDisplayed) {
@@ -3292,7 +3313,7 @@ public class SiteVisit_phase2 extends BaseTest {
         workOrderPage.tapAddAssetTypeButton();
         mediumWait();
 
-        if (!workOrderPage.isSelectAssetTypeSheetDisplayed()) {
+        if (!workOrderPage.waitForSelectAssetTypeSheet()) {
             cleanupFromQuickCount();
             assertTrue(false,
                 "Asset type selection sheet did not open.");
@@ -3381,7 +3402,7 @@ public class SiteVisit_phase2 extends BaseTest {
         workOrderPage.tapAddAssetTypeButton();
         mediumWait();
 
-        if (!workOrderPage.isSelectAssetTypeSheetDisplayed()) {
+        if (!workOrderPage.waitForSelectAssetTypeSheet()) {
             cleanupFromQuickCount();
             assertTrue(false,
                 "Asset type selection sheet did not open.");
@@ -3490,7 +3511,7 @@ public class SiteVisit_phase2 extends BaseTest {
         workOrderPage.tapAddAssetTypeButton();
         mediumWait();
 
-        if (!workOrderPage.isSelectAssetTypeSheetDisplayed()) {
+        if (!workOrderPage.waitForSelectAssetTypeSheet()) {
             logWarning("Asset type selection sheet did not open");
             return false;
         }
@@ -3903,7 +3924,7 @@ public class SiteVisit_phase2 extends BaseTest {
     private boolean navigateToPhotoWalkthroughScreen() {
         logStep("Navigating to Photo Walkthrough screen...");
 
-        // Navigate to Add Assets → New Asset tab
+        // Navigate to Assets in Room → tap floating +
         navigateToAddAssetsScreen();
         shortWait();
 
@@ -3912,25 +3933,30 @@ public class SiteVisit_phase2 extends BaseTest {
             return false;
         }
 
-        // Switch to New Asset tab
-        logStep("Switching to New Asset tab");
-        workOrderPage.tapNewAssetTab();
-        mediumWait();
+        // The + button shows a popup menu (New Asset, Link Existing, Photo Walkthrough, Quick Count)
+        if (workOrderPage.isAddAssetsPopupMenu()) {
+            logStep("Popup menu detected — tapping 'Photo Walkthrough' directly");
+            boolean tapped = workOrderPage.tapPopupPhotoWalkthroughOption();
+            mediumWait();
+            logStep("Photo Walkthrough popup option tapped: " + tapped);
+        } else {
+            // Fallback: old tabbed screen
+            logStep("Switching to New Asset tab (fallback)");
+            workOrderPage.tapNewAssetTab();
+            mediumWait();
 
-        // Check if Photo Walkthrough option is visible
-        boolean pwOptionVisible = workOrderPage.isCreatePhotoWalkthroughOptionDisplayed();
-        logStep("Create Photo Walkthrough option visible: " + pwOptionVisible);
+            boolean pwOptionVisible = workOrderPage.isCreatePhotoWalkthroughOptionDisplayed();
+            logStep("Create Photo Walkthrough option visible: " + pwOptionVisible);
 
-        if (!pwOptionVisible) {
-            logWarning("'Create Photo Walkthrough' option not found on New Asset tab");
-            return false;
+            if (!pwOptionVisible) {
+                logWarning("'Create Photo Walkthrough' option not found");
+                return false;
+            }
+
+            logStep("Tapping 'Create Photo Walkthrough'");
+            workOrderPage.tapCreatePhotoWalkthroughOption();
+            mediumWait();
         }
-
-        // Tap Create Photo Walkthrough
-        logStep("Tapping 'Create Photo Walkthrough'");
-        boolean tapped = workOrderPage.tapCreatePhotoWalkthroughOption();
-        mediumWait();
-        logStep("Photo Walkthrough option tapped: " + tapped);
 
         // Verify we're on the Photo Walkthrough screen
         boolean pwScreen = workOrderPage.isPhotoWalkthroughScreenDisplayed();
@@ -3999,7 +4025,7 @@ public class SiteVisit_phase2 extends BaseTest {
         workOrderPage.tapAddAssetTypeButton();
         mediumWait();
 
-        if (!workOrderPage.isSelectAssetTypeSheetDisplayed()) {
+        if (!workOrderPage.waitForSelectAssetTypeSheet()) {
             cleanupFromQuickCount();
             assertTrue(false, "Asset type selection sheet did not open.");
             return;
@@ -5024,7 +5050,7 @@ public class SiteVisit_phase2 extends BaseTest {
         workOrderPage.tapAddAssetTypeButton();
         mediumWait();
 
-        if (!workOrderPage.isSelectAssetTypeSheetDisplayed()) {
+        if (!workOrderPage.waitForSelectAssetTypeSheet()) {
             cleanupFromQuickCount();
             assertTrue(false, "Asset type selection sheet did not open.");
             return;
@@ -5049,7 +5075,7 @@ public class SiteVisit_phase2 extends BaseTest {
         workOrderPage.tapAddAssetTypeButton();
         mediumWait();
 
-        boolean typeSheetOpen = workOrderPage.isSelectAssetTypeSheetDisplayed();
+        boolean typeSheetOpen = workOrderPage.waitForSelectAssetTypeSheet();
         logStep("Asset type sheet opened for second type: " + typeSheetOpen);
 
         boolean secondTypeSelected = false;
@@ -5596,10 +5622,15 @@ public class SiteVisit_phase2 extends BaseTest {
         }
 
         if (workOrderPage.isAddAssetsScreenDisplayed()) {
-            workOrderPage.tapNewAssetTab();
-            mediumWait();
-
-            boolean qcTapped = workOrderPage.tapCreateQuickCountOption();
+            // Handle popup menu vs old tabbed screen
+            boolean qcTapped = false;
+            if (workOrderPage.isAddAssetsPopupMenu()) {
+                qcTapped = workOrderPage.tapPopupQuickCountOption();
+            } else {
+                workOrderPage.tapNewAssetTab();
+                mediumWait();
+                qcTapped = workOrderPage.tapCreateQuickCountOption();
+            }
             mediumWait();
 
             if (qcTapped && workOrderPage.isQuickCountScreenDisplayed()) {
@@ -5745,11 +5776,15 @@ public class SiteVisit_phase2 extends BaseTest {
         if (onAddAssets) {
             logStep("Re-opening Quick Count to verify it was reset");
 
-            // Switch to New Asset tab if needed
-            workOrderPage.tapNewAssetTab();
-            mediumWait();
-
-            boolean qcTapped = workOrderPage.tapCreateQuickCountOption();
+            // Handle popup menu vs old tabbed screen
+            boolean qcTapped = false;
+            if (workOrderPage.isAddAssetsPopupMenu()) {
+                qcTapped = workOrderPage.tapPopupQuickCountOption();
+            } else {
+                workOrderPage.tapNewAssetTab();
+                mediumWait();
+                qcTapped = workOrderPage.tapCreateQuickCountOption();
+            }
             mediumWait();
 
             if (qcTapped && workOrderPage.waitForQuickCountScreen()) {
@@ -8347,7 +8382,7 @@ public class SiteVisit_phase2 extends BaseTest {
         workOrderPage.tapAddAssetTypeButton();
         mediumWait();
 
-        if (!workOrderPage.isSelectAssetTypeSheetDisplayed()) {
+        if (!workOrderPage.waitForSelectAssetTypeSheet()) {
             cleanupFromQuickCount();
             assertTrue(false, "Asset type selection sheet did not open.");
             return;
@@ -8622,7 +8657,7 @@ public class SiteVisit_phase2 extends BaseTest {
         workOrderPage.tapAddAssetTypeButton();
         mediumWait();
 
-        if (!workOrderPage.isSelectAssetTypeSheetDisplayed()) {
+        if (!workOrderPage.waitForSelectAssetTypeSheet()) {
             cleanupFromQuickCount();
             assertTrue(false, "Asset type selection sheet did not open.");
             return;
@@ -8733,7 +8768,7 @@ public class SiteVisit_phase2 extends BaseTest {
         workOrderPage.tapAddAssetTypeButton();
         mediumWait();
 
-        if (!workOrderPage.isSelectAssetTypeSheetDisplayed()) {
+        if (!workOrderPage.waitForSelectAssetTypeSheet()) {
             cleanupFromQuickCount();
             assertTrue(false, "Asset type selection sheet did not open.");
             return;

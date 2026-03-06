@@ -4984,9 +4984,14 @@ public class SiteVisit_phase3 extends BaseTest {
         mediumWait();
         workOrderPage.waitForAddAssetsScreen();
 
-        workOrderPage.tapNewAssetTab();
-        mediumWait();
-        workOrderPage.tapCreateNewAssetOption();
+        // Handle popup menu vs old tabbed screen
+        if (workOrderPage.isAddAssetsPopupMenu()) {
+            workOrderPage.tapPopupNewAssetOption();
+        } else {
+            workOrderPage.tapNewAssetTab();
+            mediumWait();
+            workOrderPage.tapCreateNewAssetOption();
+        }
         mediumWait();
         workOrderPage.waitForSessionNewAssetForm();
 

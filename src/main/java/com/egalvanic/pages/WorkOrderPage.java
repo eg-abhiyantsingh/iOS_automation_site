@@ -3084,16 +3084,14 @@ public class WorkOrderPage extends BasePage {
             }
         } catch (Exception e) { /* continue */ }
 
-        // Strategy 3: Presence of both Done button and breadcrumb (unique to this screen)
+        // Strategy 3: Presence of breadcrumb with ">" (building > floor > room path)
+        // plus a floating "+" button — unique to the Assets in Room screen
         try {
-            List<WebElement> doneButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Done'"
-            ));
             List<WebElement> breadcrumbs = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND label CONTAINS '>'"
             ));
-            if (!doneButtons.isEmpty() && !breadcrumbs.isEmpty()) {
-                System.out.println("✅ Assets in Room screen (Done + breadcrumb)");
+            if (!breadcrumbs.isEmpty()) {
+                System.out.println("✅ Assets in Room screen (breadcrumb detected)");
                 return true;
             }
         } catch (Exception e) { /* continue */ }
@@ -3115,15 +3113,15 @@ public class WorkOrderPage extends BasePage {
     }
 
     /**
-     * Check if the Done button is displayed in the Assets in Room header.
+     * Check if a Done or Back button is displayed in the Assets in Room header.
      */
     public boolean isAssetsInRoomDoneButtonDisplayed() {
         try {
             List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Done'"
+                "type == 'XCUIElementTypeButton' AND (label == 'Done' OR label == 'Back' OR label CONTAINS 'Work Orders' OR label CONTAINS 'Session')"
             ));
             boolean found = !buttons.isEmpty();
-            System.out.println(found ? "✅ Done button found" : "⚠️ Done button not found");
+            System.out.println(found ? "✅ Done/Back button found" : "⚠️ Done/Back button not found");
             return found;
         } catch (Exception e) {
             return false;
@@ -3131,19 +3129,55 @@ public class WorkOrderPage extends BasePage {
     }
 
     /**
-     * Tap the Done button on the Assets in Room screen to return to Locations tab.
+     * Tap the Done/Back button on the Assets in Room screen to return to Locations tab.
+     * The screen may have a "Done" button or a back chevron ("<" / "Work Orders").
      */
     public boolean tapAssetsInRoomDoneButton() {
-        System.out.println("📍 Tapping Done button on Assets in Room...");
+        System.out.println("📍 Tapping Done/Back button on Assets in Room...");
+
+        // Strategy 1: "Done" button
         try {
-            WebElement done = driver.findElement(AppiumBy.iOSNsPredicateString(
+            List<WebElement> doneButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND label == 'Done'"
             ));
-            done.click();
-            System.out.println("✅ Tapped Done button");
+            if (!doneButtons.isEmpty()) {
+                doneButtons.get(0).click();
+                System.out.println("✅ Tapped Done button");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Back button / chevron (< Work Orders, < Session, Back)
+        try {
+            WebElement back = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND (label == 'Back' OR label CONTAINS 'back' OR label CONTAINS 'Work Orders' OR label CONTAINS 'Session')"
+            ));
+            back.click();
+            System.out.println("✅ Tapped back button on Assets in Room");
+            return true;
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 3: iOS swipe-back gesture (edge swipe from left)
+        try {
+            org.openqa.selenium.Dimension size = driver.manage().window().getSize();
+            org.openqa.selenium.interactions.PointerInput finger =
+                new org.openqa.selenium.interactions.PointerInput(
+                    org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
+            org.openqa.selenium.interactions.Sequence swipe =
+                new org.openqa.selenium.interactions.Sequence(finger, 1);
+            swipe.addAction(finger.createPointerMove(java.time.Duration.ZERO,
+                org.openqa.selenium.interactions.PointerInput.Origin.viewport(), 5, size.height / 2));
+            swipe.addAction(finger.createPointerDown(
+                org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+            swipe.addAction(finger.createPointerMove(java.time.Duration.ofMillis(300),
+                org.openqa.selenium.interactions.PointerInput.Origin.viewport(), size.width * 3 / 4, size.height / 2));
+            swipe.addAction(finger.createPointerUp(
+                org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+            driver.perform(java.util.Arrays.asList(swipe));
+            System.out.println("✅ Went back from Assets in Room via swipe gesture");
             return true;
         } catch (Exception e) {
-            System.out.println("⚠️ Could not tap Done button: " + e.getMessage());
+            System.out.println("⚠️ Could not go back from Assets in Room: " + e.getMessage());
             return false;
         }
     }
@@ -4338,6 +4372,42 @@ public class WorkOrderPage extends BasePage {
     }
 
     /**
+     * Tap the "Quick Count" option in the popup menu.
+     */
+    public boolean tapPopupQuickCountOption() {
+        System.out.println("📍 Tapping 'Quick Count' in popup...");
+        try {
+            WebElement el = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "label CONTAINS 'Quick Count' AND visible == true"
+            ));
+            el.click();
+            System.out.println("✅ Tapped Quick Count popup option");
+            return true;
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not tap Quick Count popup option");
+            return false;
+        }
+    }
+
+    /**
+     * Tap the "Photo Walkthrough" option in the popup menu.
+     */
+    public boolean tapPopupPhotoWalkthroughOption() {
+        System.out.println("📍 Tapping 'Photo Walkthrough' in popup...");
+        try {
+            WebElement el = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "label CONTAINS 'Photo Walkthrough' AND visible == true"
+            ));
+            el.click();
+            System.out.println("✅ Tapped Photo Walkthrough popup option");
+            return true;
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not tap Photo Walkthrough popup option");
+            return false;
+        }
+    }
+
+    /**
      * Wait for the Add Assets screen to appear (up to 10 seconds).
      */
     public boolean waitForAddAssetsScreen() {
@@ -5438,41 +5508,100 @@ public class WorkOrderPage extends BasePage {
     public boolean tapAddAssetTypeButton() {
         System.out.println("📍 Tapping '+ Add Asset Type' button...");
 
-        // Strategy 1: Button with label
+        // Strategy 1: Find BUTTON element specifically (not the instruction text in the middle)
+        // Screen has "Tap '+ Add Asset Type' to start counting assets" text that also matches
         try {
             List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND "
-                + "(label CONTAINS 'Add Asset Type' OR label CONTAINS '+ Add Asset Type')"
+                "type == 'XCUIElementTypeButton' AND label CONTAINS 'Add Asset Type'"
             ));
             if (!buttons.isEmpty()) {
-                buttons.get(0).click();
-                System.out.println("✅ Tapped Add Asset Type button");
+                // Pick the bottom-most button (the real one at screen bottom)
+                WebElement btn = buttons.get(buttons.size() - 1);
+                int x = btn.getLocation().getX() + btn.getSize().getWidth() / 2;
+                int y = btn.getLocation().getY() + btn.getSize().getHeight() / 2;
+                System.out.println("📊 Add Asset Type BUTTON at (" + x + ", " + y
+                    + "), size=" + btn.getSize().getWidth() + "x" + btn.getSize().getHeight());
+                // W3C coordinate tap — SwiftUI .click() is unreliable
+                org.openqa.selenium.interactions.PointerInput finger =
+                    new org.openqa.selenium.interactions.PointerInput(
+                        org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
+                org.openqa.selenium.interactions.Sequence tap =
+                    new org.openqa.selenium.interactions.Sequence(finger, 1);
+                tap.addAction(finger.createPointerMove(Duration.ZERO,
+                    org.openqa.selenium.interactions.PointerInput.Origin.viewport(), x, y));
+                tap.addAction(finger.createPointerDown(
+                    org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+                tap.addAction(finger.createPointerUp(
+                    org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+                driver.perform(java.util.Arrays.asList(tap));
+                System.out.println("✅ Tapped Add Asset Type BUTTON at (" + x + ", " + y + ")");
                 return true;
             }
-        } catch (Exception e) { /* continue */ }
+        } catch (Exception e) {
+            System.out.println("⚠️ Strategy 1 (button type) failed: " + e.getMessage());
+        }
 
-        // Strategy 2: Static text tap (SwiftUI sometimes renders as text)
+        // Strategy 2: Find ALL "Add Asset Type" elements, pick bottom-most (Y > 600)
         try {
-            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND label CONTAINS 'Add Asset Type'"
-            ));
-            if (!texts.isEmpty()) {
-                texts.get(0).click();
-                System.out.println("✅ Tapped Add Asset Type text");
-                return true;
-            }
-        } catch (Exception e) { /* continue */ }
-
-        // Strategy 3: Broad search
-        try {
-            WebElement el = driver.findElement(AppiumBy.iOSNsPredicateString(
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "label CONTAINS 'Add Asset Type' AND visible == true"
             ));
-            el.click();
-            System.out.println("✅ Tapped Add Asset Type (broad)");
+            WebElement bottomElement = null;
+            int maxY = 0;
+            for (WebElement el : elements) {
+                int elY = el.getLocation().getY();
+                String elType = el.getAttribute("type");
+                System.out.println("📊 'Add Asset Type' element: type=" + elType
+                    + " Y=" + elY + " label=" + el.getAttribute("label"));
+                if (elY > maxY) {
+                    maxY = elY;
+                    bottomElement = el;
+                }
+            }
+            if (bottomElement != null && maxY > 600) {
+                int x = bottomElement.getLocation().getX() + bottomElement.getSize().getWidth() / 2;
+                int y = bottomElement.getLocation().getY() + bottomElement.getSize().getHeight() / 2;
+                org.openqa.selenium.interactions.PointerInput finger =
+                    new org.openqa.selenium.interactions.PointerInput(
+                        org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
+                org.openqa.selenium.interactions.Sequence tap =
+                    new org.openqa.selenium.interactions.Sequence(finger, 1);
+                tap.addAction(finger.createPointerMove(Duration.ZERO,
+                    org.openqa.selenium.interactions.PointerInput.Origin.viewport(), x, y));
+                tap.addAction(finger.createPointerDown(
+                    org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+                tap.addAction(finger.createPointerUp(
+                    org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+                driver.perform(java.util.Arrays.asList(tap));
+                System.out.println("✅ Tapped bottom-most 'Add Asset Type' at (" + x + ", " + y + ")");
+                return true;
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Strategy 2 failed: " + e.getMessage());
+        }
+
+        // Strategy 3: Tap near bottom of screen where the button is always located
+        try {
+            org.openqa.selenium.Dimension size = driver.manage().window().getSize();
+            int centerX = size.width / 2;
+            int bottomY = size.height - 60;
+            System.out.println("📊 Fallback: bottom-center tap at (" + centerX + ", " + bottomY + ")");
+            org.openqa.selenium.interactions.PointerInput finger =
+                new org.openqa.selenium.interactions.PointerInput(
+                    org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
+            org.openqa.selenium.interactions.Sequence tap =
+                new org.openqa.selenium.interactions.Sequence(finger, 1);
+            tap.addAction(finger.createPointerMove(Duration.ZERO,
+                org.openqa.selenium.interactions.PointerInput.Origin.viewport(), centerX, bottomY));
+            tap.addAction(finger.createPointerDown(
+                org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+            tap.addAction(finger.createPointerUp(
+                org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+            driver.perform(java.util.Arrays.asList(tap));
+            System.out.println("✅ Tapped bottom-center for Add Asset Type");
             return true;
         } catch (Exception e) {
-            System.out.println("⚠️ Could not tap Add Asset Type button");
+            System.out.println("⚠️ Could not tap Add Asset Type button: " + e.getMessage());
             return false;
         }
     }
@@ -5526,6 +5655,27 @@ public class WorkOrderPage extends BasePage {
         } catch (Exception e) { /* continue */ }
 
         System.out.println("⚠️ Select Asset Type sheet not detected");
+        return false;
+    }
+
+    /**
+     * Wait for the Select Asset Type sheet to appear (up to 5 seconds).
+     * If the sheet doesn't appear, retries tapping the Add Asset Type button once.
+     */
+    public boolean waitForSelectAssetTypeSheet() {
+        // Wait up to 3 seconds for sheet to appear
+        for (int i = 0; i < 6; i++) {
+            if (isSelectAssetTypeSheetDisplayed()) return true;
+            try { Thread.sleep(500); } catch (InterruptedException e) { break; }
+        }
+        // Retry: tap button again and wait
+        System.out.println("📍 Retrying tap on Add Asset Type button...");
+        tapAddAssetTypeButton();
+        for (int i = 0; i < 6; i++) {
+            if (isSelectAssetTypeSheetDisplayed()) return true;
+            try { Thread.sleep(500); } catch (InterruptedException e) { break; }
+        }
+        System.out.println("⚠️ Select Asset Type sheet did not appear after retry");
         return false;
     }
 
