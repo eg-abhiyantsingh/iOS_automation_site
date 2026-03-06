@@ -71,6 +71,9 @@ on:
           - 'connections-only'
           - 'offline-only'
           - 'sitevisit-only'
+          - 'sitevisit-phase1'
+          - 'sitevisit-phase2'
+          - 'sitevisit-phase3'
 
 # ============================================================
 # JOB 0: Build iOS App from Source
@@ -2806,7 +2809,12 @@ jobs:
   sitevisit-tests:
     name: "Site Visit / Work Orders"
     needs: [build-app]
-    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'sitevisit-only'
+    if: >-
+      github.event.inputs.job_selection == 'all' ||
+      github.event.inputs.job_selection == 'sitevisit-only' ||
+      github.event.inputs.job_selection == 'sitevisit-phase1' ||
+      github.event.inputs.job_selection == 'sitevisit-phase2' ||
+      github.event.inputs.job_selection == 'sitevisit-phase3'
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -2926,8 +2934,18 @@ jobs:
 
           BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
 
+          # Select XML based on phase
+          SELECTION="${{ github.event.inputs.job_selection }}"
+          case "$SELECTION" in
+            sitevisit-phase1) XML="src/test/resources/parallel/testng-sitevisit-phase1.xml" ;;
+            sitevisit-phase2) XML="src/test/resources/parallel/testng-sitevisit-phase2.xml" ;;
+            sitevisit-phase3) XML="src/test/resources/parallel/testng-sitevisit-phase3.xml" ;;
+            *) XML="src/test/resources/parallel/testng-sitevisit.xml" ;;
+          esac
+          echo "Running: $XML"
+
           mvn test -B -q \
-            -DsuiteXmlFile=src/test/resources/parallel/testng-sitevisit.xml \
+            -DsuiteXmlFile="$XML" \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \

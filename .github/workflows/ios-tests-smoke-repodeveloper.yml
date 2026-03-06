@@ -91,6 +91,9 @@ on:
           - 'connections-only'
           - 'offline-only'
           - 'sitevisit-only'
+          - 'sitevisit-phase1'
+          - 'sitevisit-phase2'
+          - 'sitevisit-phase3'
       capture_api:
         description: 'Capture API traffic for debugging'
         required: false
@@ -654,6 +657,15 @@ jobs:
               ;;
             sitevisit-only)
               run_mvn src/test/resources/parallel/testng-sitevisit.xml
+              ;;
+            sitevisit-phase1)
+              run_mvn src/test/resources/parallel/testng-sitevisit-phase1.xml
+              ;;
+            sitevisit-phase2)
+              run_mvn src/test/resources/parallel/testng-sitevisit-phase2.xml
+              ;;
+            sitevisit-phase3)
+              run_mvn src/test/resources/parallel/testng-sitevisit-phase3.xml
               ;;
           esac
 
