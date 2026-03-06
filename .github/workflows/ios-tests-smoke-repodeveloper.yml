@@ -35,6 +35,7 @@ name: Automation Test
 #   location-only             → Locations (82 tests)
 #   connections-only          → Connections (94 tests)
 #   offline-only              → Offline Mode (35 tests)
+#   sitevisit-only            → Site Visit / Work Orders (all phases)
 #
 # S3 Drift Detection (branch-based):
 #   release/dev       → dev S3 only         (10 tests)  → Total 27
@@ -89,6 +90,7 @@ on:
           - 'location-only'
           - 'connections-only'
           - 'offline-only'
+          - 'sitevisit-only'
       capture_api:
         description: 'Capture API traffic for debugging'
         required: false
@@ -575,6 +577,7 @@ jobs:
               run_mvn src/test/resources/parallel/testng-issues-phase3.xml
               run_mvn src/test/resources/parallel/testng-location.xml
               run_mvn src/test/resources/parallel/testng-connections.xml
+              run_mvn src/test/resources/parallel/testng-sitevisit.xml
               ;;
             smoke)
               # ── Smoke Dashboard — all 7 CRUD modules with live progress ──
@@ -648,6 +651,9 @@ jobs:
               ;;
             offline-only)
               run_mvn src/test/resources/parallel/testng-offline.xml
+              ;;
+            sitevisit-only)
+              run_mvn src/test/resources/parallel/testng-sitevisit.xml
               ;;
           esac
 

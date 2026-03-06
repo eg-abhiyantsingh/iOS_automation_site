@@ -1,21 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<suite time-out="480000" name="Site Visit / Work Orders - Phase 1 (39 tests)" verbose="0">
+<suite time-out="480000" name="Site Visit / Work Orders - All Phases" verbose="0">
     <!--
     ============================================================
-    SITE VISIT PHASE 1 — 39 tests (TC_JOB_001 - TC_JOB_039)
+    SITE VISIT — ALL PHASES (TC_JOB_001 - TC_JOB_344)
     ============================================================
-      - Dashboard: No Active Job card display and tap
-      - Work Orders screen: header, Start New button, Available section
-      - Work order entries: name, date, badge, indicator, counts
-      - Activate Job: button display, activation, ACTIVE badge, single-active rule
-      - Session Details: header, Active Session badge, stats, information, QR action
-      - Session Tabs: bottom tabs (Details, Locations, Tasks, Issues, Files)
-      - Session Issues: tab badge, summary, Manage Issues, linked list, + button
-      - Link Issues: screen UI, search, checkboxes, already-linked checkmarks
-      - Link Issues interactions: empty circle, select/deselect, Update state
-      - Link Issues save/cancel: Update saves, Cancel discards, search filtering
-      - My Session filter: tab display and count verification
+      Phase 1: Dashboard, Work Orders, Activate Job, Session Details,
+               Session Tabs, Issues, Link Issues, My Session
+      Phase 2: Session Details deep, Tasks, Photo Walkthrough setup,
+               Gallery, Add Photos, Quick Count, Link Existing Asset
+      Phase 3: Photo Walkthrough: Camera, Done, Remove, Classify Asset,
+               OCPD, Issues grouped, Files tab
     ============================================================
     -->
 
@@ -26,6 +21,18 @@
     <test name="Site Visit Phase 1 - Work Orders Screen UI">
         <classes>
             <class name="com.egalvanic.tests.SiteVisit_phase1"/>
+        </classes>
+    </test>
+
+    <test name="Site Visit Phase 2 - Session Details and Tasks">
+        <classes>
+            <class name="com.egalvanic.tests.SiteVisit_phase2"/>
+        </classes>
+    </test>
+
+    <test name="Site Visit Phase 3 - Photo Walkthrough and Files">
+        <classes>
+            <class name="com.egalvanic.tests.SiteVisit_phase3"/>
         </classes>
     </test>
 

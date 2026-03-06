@@ -1818,7 +1818,7 @@ public class WorkOrderPage extends BasePage {
      */
     public java.util.List<String> getSessionBottomTabLabels() {
         java.util.List<String> tabLabels = new java.util.ArrayList<>();
-        String[] expectedTabs = {"Details", "Locations", "Tasks", "Issues", "Files"};
+        String[] expectedTabs = {"Details", "Assets", "Tasks", "Issues", "Files"};
 
         for (String tabName : expectedTabs) {
             try {
@@ -1985,77 +1985,119 @@ public class WorkOrderPage extends BasePage {
      * Returns a list of building info strings (e.g., "Building A, 3 floors").
      */
     public java.util.List<String> getLocationsBuildingNames() {
-        System.out.println("📍 Getting building names on Locations tab...");
+        System.out.println("📍 Getting building names on Assets tab...");
         java.util.List<String> buildings = new java.util.ArrayList<>();
 
-        // Strategy 1: Find cells and inspect children for building name + floor count
+        // Strategy 1: Find "N floors" text, then use its parent to get the building name.
+        // FAST — avoids iterating all visible texts (which is extremely slow on large trees).
         try {
-            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+            List<WebElement> floorTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS ' floor' OR label CONTAINS ' Floor') AND visible == true"
             ));
-            for (WebElement cell : cells) {
-                int y = cell.getLocation().getY();
-                if (y < 200) continue; // Skip nav bar area
+            System.out.println("  Floor count texts found: " + floorTexts.size());
 
-                List<WebElement> childTexts = cell.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText'"
-                ));
-                String buildingName = null;
-                boolean hasFloorInfo = false;
+            for (WebElement floorText : floorTexts) {
+                int floorY = floorText.getLocation().getY();
+                if (floorY < 150) continue;
+                String floorLabel = floorText.getAttribute("label");
+                System.out.println("  Floor text: '" + floorLabel + "' at Y=" + floorY);
 
-                for (WebElement child : childTexts) {
-                    String label = child.getAttribute("label");
-                    if (label == null) continue;
-
-                    if (label.toLowerCase().contains("floor")) {
-                        hasFloorInfo = true;
-                    }
-                    // Building name is typically the first/longest meaningful text
-                    if (buildingName == null && !label.isEmpty()
-                            && !label.toLowerCase().contains("no location")
-                            && !label.matches("\\d+ floor.*")) {
-                        buildingName = label;
-                    }
-                }
-
-                if (hasFloorInfo && buildingName != null) {
-                    buildings.add(buildingName);
-                    System.out.println("  Found building: " + buildingName);
-                } else if (buildingName != null && cell.getSize().getHeight() > 40) {
-                    // Some buildings may not show floor count but are still valid entries
-                    buildings.add(buildingName);
-                    System.out.println("  Found building (no floor info): " + buildingName);
-                }
-            }
-        } catch (Exception e) { /* continue */ }
-
-        // Strategy 2: Look for static texts with floor count and extract nearby names
-        if (buildings.isEmpty()) {
-            try {
-                List<WebElement> floorTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND visible == true "
-                    + "AND (label CONTAINS ' floor' OR label CONTAINS ' Floor')"
-                ));
-                for (WebElement floorText : floorTexts) {
-                    int floorY = floorText.getLocation().getY();
-                    if (floorY < 200) continue;
-
-                    // Find the nearest text above/near this floor count (building name)
-                    List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeStaticText' AND visible == true"
+                // Try to get parent element and find sibling text (building name)
+                try {
+                    // Use XPath to go up to parent and find sibling StaticText
+                    WebElement parent = floorText.findElement(AppiumBy.xpath("./.."));
+                    List<WebElement> siblings = parent.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText'"
                     ));
-                    for (WebElement text : allTexts) {
-                        String label = text.getAttribute("label");
-                        int textY = text.getLocation().getY();
+                    for (WebElement sib : siblings) {
+                        String label = sib.getAttribute("label");
                         if (label != null && !label.isEmpty()
-                                && Math.abs(textY - floorY) < 25
                                 && !label.toLowerCase().contains("floor")
-                                && !label.equals(floorText.getAttribute("label"))) {
+                                && !label.matches("\\d+")) {
                             if (!buildings.contains(label)) {
                                 buildings.add(label);
-                                System.out.println("  Found building (Y-match): " + label);
+                                System.out.println("  Found building (parent): " + label);
                             }
                             break;
+                        }
+                    }
+                } catch (Exception e) {
+                    System.out.println("  Parent traversal failed: " + e.getMessage());
+                }
+
+                // If parent didn't work, try grandparent
+                if (buildings.isEmpty()) {
+                    try {
+                        WebElement grandparent = floorText.findElement(AppiumBy.xpath("./../.."));
+                        List<WebElement> descendants = grandparent.findElements(
+                            AppiumBy.iOSNsPredicateString(
+                                "type == 'XCUIElementTypeStaticText'"
+                            ));
+                        for (WebElement desc : descendants) {
+                            String label = desc.getAttribute("label");
+                            if (label != null && !label.isEmpty()
+                                    && !label.toLowerCase().contains("floor")
+                                    && !label.toLowerCase().contains("room")
+                                    && !label.toLowerCase().contains("asset")
+                                    && !label.matches("\\d+")) {
+                                if (!buildings.contains(label)) {
+                                    buildings.add(label);
+                                    System.out.println("  Found building (grandparent): " + label);
+                                }
+                                break;
+                            }
+                        }
+                    } catch (Exception e) {
+                        System.out.println("  Grandparent traversal failed: " + e.getMessage());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("  Strategy 1 error: " + e.getMessage());
+        }
+
+        // Strategy 2: Targeted text search — only look for texts NOT matching
+        // known non-building patterns (rooms, floors, assets, pure numbers)
+        if (buildings.isEmpty()) {
+            try {
+                // Get floor text Y positions first
+                List<WebElement> floorTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND "
+                    + "(label CONTAINS ' floor' OR label CONTAINS ' Floor') AND visible == true"
+                ));
+
+                // Get ONLY non-floor/room/asset texts (much smaller set)
+                List<WebElement> candidateTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND visible == true "
+                    + "AND NOT (label CONTAINS ' floor') "
+                    + "AND NOT (label CONTAINS ' room') "
+                    + "AND NOT (label CONTAINS ' asset') "
+                    + "AND NOT (label CONTAINS ' node') "
+                    + "AND NOT (label == 'Details') "
+                    + "AND NOT (label == 'Assets') "
+                    + "AND NOT (label == 'Tasks') "
+                    + "AND NOT (label == 'Issues') "
+                    + "AND NOT (label == 'Files') "
+                    + "AND label.length > 2"
+                ));
+
+                System.out.println("  Candidate texts (strategy 2): " + candidateTexts.size());
+
+                for (WebElement floorText : floorTexts) {
+                    int floorY = floorText.getLocation().getY();
+                    if (floorY < 150) continue;
+
+                    for (WebElement cand : candidateTexts) {
+                        int candY = cand.getLocation().getY();
+                        if (Math.abs(candY - floorY) < 30) {
+                            String label = cand.getAttribute("label");
+                            if (label != null && !label.matches("\\d+")
+                                    && !buildings.contains(label)) {
+                                buildings.add(label);
+                                System.out.println("  Found building (text match): " + label);
+                                break;
+                            }
                         }
                     }
                 }
@@ -2071,6 +2113,59 @@ public class WorkOrderPage extends BasePage {
      */
     public int getLocationsBuildingCount() {
         return getLocationsBuildingNames().size();
+    }
+
+    /**
+     * FAST: Tap the first visible room entry that has assets.
+     * Looks for "N asset" text on screen (e.g., "1 asset", "3 assets"),
+     * finds the chevron (>) on that row, and taps it.
+     * Works when the tree is already expanded — no need to expand building/floor.
+     * @return true if a room with assets was tapped
+     */
+    public boolean tapFirstRoomWithAssets() {
+        System.out.println("📍 Looking for room with assets (fast path)...");
+        try {
+            // Find "N asset" or "N assets" text elements
+            List<WebElement> assetTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                + "AND (label CONTAINS ' asset' OR label CONTAINS ' Asset')"
+            ));
+            System.out.println("  Asset count texts found: " + assetTexts.size());
+
+            for (WebElement assetText : assetTexts) {
+                int y = assetText.getLocation().getY();
+                if (y < 200) continue;
+                String label = assetText.getAttribute("label");
+                System.out.println("  Room entry: '" + label + "' at Y=" + y);
+
+                // Tap the chevron area (right side of the row) to enter the room
+                // Screen width ~393pt on iPhone, chevron is around X=370
+                driver.executeScript("mobile: tap",
+                    java.util.Map.of("x", 370, "y", y));
+                System.out.println("✅ Tapped room row at Y=" + y);
+                return true;
+            }
+        } catch (Exception e) {
+            System.out.println("  Error: " + e.getMessage());
+        }
+
+        // Strategy 2: Find any row with a disclosure indicator (chevron >)
+        try {
+            List<WebElement> chevrons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeDisclosureIndicator' AND visible == true"
+            ));
+            for (WebElement chev : chevrons) {
+                int y = chev.getLocation().getY();
+                if (y > 300) { // Skip building/floor rows at top
+                    chev.click();
+                    System.out.println("✅ Tapped disclosure indicator at Y=" + y);
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ No room with assets found");
+        return false;
     }
 
     /**
@@ -2185,6 +2280,58 @@ public class WorkOrderPage extends BasePage {
     public boolean tapLocationsBuildingAtIndex(int index) {
         System.out.println("📍 Tapping building at index " + index + "...");
 
+        // Strategy 1: Find "N floors" text, use parent to find and tap building name
+        try {
+            List<WebElement> floorTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS ' floor' OR label CONTAINS ' Floor') AND visible == true"
+            ));
+
+            java.util.List<WebElement> validFloorTexts = new java.util.ArrayList<>();
+            for (WebElement ft : floorTexts) {
+                if (ft.getLocation().getY() > 150) {
+                    validFloorTexts.add(ft);
+                }
+            }
+
+            if (index < validFloorTexts.size()) {
+                WebElement floorText = validFloorTexts.get(index);
+                int floorY = floorText.getLocation().getY();
+
+                // Use parent traversal (fast — only checks siblings, not all visible texts)
+                try {
+                    WebElement parent = floorText.findElement(AppiumBy.xpath("./.."));
+                    List<WebElement> siblings = parent.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText'"
+                    ));
+                    for (WebElement sib : siblings) {
+                        String label = sib.getAttribute("label");
+                        if (label != null && !label.isEmpty()
+                                && !label.toLowerCase().contains("floor")
+                                && !label.matches("\\d+")) {
+                            sib.click();
+                            System.out.println("✅ Tapped building name: " + label);
+                            return true;
+                        }
+                    }
+                    // If no sibling found, tap the parent element itself
+                    parent.click();
+                    System.out.println("✅ Tapped building parent element");
+                    return true;
+                } catch (Exception e) {
+                    // Fallback: coordinate tap near the floor text
+                    int x = floorText.getLocation().getX();
+                    driver.executeScript("mobile: tap",
+                        java.util.Map.of("x", Math.max(x - 50, 50), "y", floorY));
+                    System.out.println("✅ Tapped near building at Y=" + floorY);
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("  Strategy 1 error: " + e.getMessage());
+        }
+
+        // Strategy 2: Cell-based approach (legacy)
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeCell' AND visible == true"
@@ -2193,7 +2340,7 @@ public class WorkOrderPage extends BasePage {
             java.util.List<WebElement> buildingCells = new java.util.ArrayList<>();
             for (WebElement cell : cells) {
                 int y = cell.getLocation().getY();
-                if (y < 200) continue;
+                if (y < 150) continue;
 
                 List<WebElement> childTexts = cell.findElements(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeStaticText'"
@@ -2207,36 +2354,15 @@ public class WorkOrderPage extends BasePage {
                 }
             }
 
-            if (index >= buildingCells.size()) {
-                System.out.println("⚠️ Building index " + index + " out of bounds");
-                return false;
+            if (index < buildingCells.size()) {
+                buildingCells.get(index).click();
+                System.out.println("✅ Tapped building " + index + " cell (legacy)");
+                return true;
             }
+        } catch (Exception e) { /* continue */ }
 
-            // Try tapping the chevron/disclosure first for expand/collapse
-            WebElement buildingCell = buildingCells.get(index);
-            try {
-                List<WebElement> chevrons = buildingCell.findElements(AppiumBy.iOSNsPredicateString(
-                    "(type == 'XCUIElementTypeDisclosureIndicator') "
-                    + "OR (type == 'XCUIElementTypeImage' AND "
-                    + "(name CONTAINS 'chevron' OR name CONTAINS 'disclosure' "
-                    + "OR name CONTAINS 'arrow'))"
-                ));
-                if (!chevrons.isEmpty()) {
-                    chevrons.get(0).click();
-                    System.out.println("✅ Tapped building " + index + " chevron");
-                    return true;
-                }
-            } catch (Exception e) { /* continue with cell tap */ }
-
-            // Fall back to tapping the cell itself
-            buildingCell.click();
-            System.out.println("✅ Tapped building " + index + " cell");
-            return true;
-        } catch (Exception e) {
-            System.out.println("⚠️ Could not tap building at index " + index + ": "
-                + e.getMessage());
-            return false;
-        }
+        System.out.println("⚠️ Could not tap building at index " + index);
+        return false;
     }
 
     /**
@@ -4539,19 +4665,34 @@ public class WorkOrderPage extends BasePage {
      * Check if the "Create Photo Walkthrough" option is displayed on the New Asset tab.
      */
     public boolean isCreatePhotoWalkthroughOptionDisplayed() {
+        // Search ANY element type — popup menus use buttons, not static text
         try {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND "
-                + "(label CONTAINS 'Photo Walkthrough' OR label CONTAINS 'Create Photo Walkthrough')"
+                "(label CONTAINS 'Photo Walkthrough' OR label CONTAINS 'Create Photo Walkthrough') "
+                + "AND visible == true"
             ));
-            boolean found = !elements.isEmpty();
-            System.out.println(found
-                ? "✅ Create Photo Walkthrough option found"
-                : "⚠️ Create Photo Walkthrough option not found");
-            return found;
-        } catch (Exception e) {
-            return false;
-        }
+            if (!elements.isEmpty()) {
+                String type = elements.get(0).getAttribute("type");
+                System.out.println("✅ Photo Walkthrough option found (type=" + type + ")");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        // Debug: check what menu items ARE visible
+        try {
+            List<WebElement> menuItems = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeMenuItem' "
+                + "OR type == 'XCUIElementTypeStaticText') AND visible == true "
+                + "AND (label CONTAINS 'New Asset' OR label CONTAINS 'Link Existing' "
+                + "OR label CONTAINS 'Quick Count' OR label CONTAINS 'Photo')"
+            ));
+            System.out.println("  Popup menu items found: " + menuItems.size());
+            for (WebElement item : menuItems) {
+                System.out.println("    Menu: '" + item.getAttribute("label")
+                    + "' type=" + item.getAttribute("type"));
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("⚠️ Create Photo Walkthrough option not found");
+        return false;
     }
 
     /**
@@ -15951,5 +16092,5844 @@ public class WorkOrderPage extends BasePage {
 
         System.out.println("⚠️ Could not tap Add button");
         return false;
+    }
+
+    // ================================================================
+    // EXISTING ASSET — SEARCH FUNCTIONALITY (TC_JOB_240-241)
+    // ================================================================
+
+    /**
+     * Search for an asset in the Existing Asset tab search bar.
+     * Taps the search field, clears it, and types the query.
+     * @param query the search text to enter
+     * @return true if search text was entered
+     */
+    public boolean searchInExistingAssets(String query) {
+        System.out.println("📍 Searching for '" + query + "' in Existing Assets...");
+
+        // Strategy 1: XCUIElementTypeSearchField
+        try {
+            List<WebElement> fields = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeSearchField'"
+            ));
+            if (!fields.isEmpty()) {
+                WebElement field = fields.get(0);
+                field.click();
+                try { Thread.sleep(300); } catch (InterruptedException ie) { /* */ }
+                field.clear();
+                field.sendKeys(query);
+                System.out.println("✅ Entered search query via search field: '" + query + "'");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: XCUIElementTypeTextField with Search placeholder
+        try {
+            List<WebElement> fields = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeTextField' AND "
+                + "(value CONTAINS 'Search' OR value CONTAINS 'search' OR label CONTAINS 'Search')"
+            ));
+            if (!fields.isEmpty()) {
+                WebElement field = fields.get(0);
+                field.click();
+                try { Thread.sleep(300); } catch (InterruptedException ie) { /* */ }
+                field.clear();
+                field.sendKeys(query);
+                System.out.println("✅ Entered search query via text field: '" + query + "'");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 3: Any visible search/text field in upper area
+        try {
+            List<WebElement> fields = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeSearchField' OR type == 'XCUIElementTypeTextField') "
+                + "AND visible == true"
+            ));
+            for (WebElement field : fields) {
+                try {
+                    int y = field.getLocation().getY();
+                    if (y < 300) {
+                        field.click();
+                        try { Thread.sleep(300); } catch (InterruptedException ie) { /* */ }
+                        field.clear();
+                        field.sendKeys(query);
+                        System.out.println("✅ Entered search query via upper field: '" + query + "'");
+                        return true;
+                    }
+                } catch (Exception e2) { /* skip */ }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not enter search query in Existing Assets");
+        return false;
+    }
+
+    /**
+     * Clear the search bar text in the Existing Asset tab.
+     * @return true if cleared successfully
+     */
+    public boolean clearSearchInExistingAssets() {
+        System.out.println("📍 Clearing search in Existing Assets...");
+
+        // Strategy 1: Tap "Clear text" button (X icon)
+        try {
+            List<WebElement> clearBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label == 'Clear text' OR label CONTAINS 'clear' OR label CONTAINS 'Clear')"
+            ));
+            if (!clearBtns.isEmpty()) {
+                clearBtns.get(0).click();
+                System.out.println("✅ Cleared search via Clear text button");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Clear via the search field itself
+        try {
+            List<WebElement> fields = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeSearchField' OR "
+                + "(type == 'XCUIElementTypeTextField' AND "
+                + "(value CONTAINS 'Search' OR label CONTAINS 'Search'))"
+            ));
+            if (!fields.isEmpty()) {
+                fields.get(0).clear();
+                System.out.println("✅ Cleared search via field.clear()");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not clear search");
+        return false;
+    }
+
+    /**
+     * Get the count of filtered/visible assets in the Existing Asset tab after search.
+     * Same as getExistingAssetListCount() but named for clarity in search context.
+     * @return count of visible asset entries
+     */
+    public int getFilteredExistingAssetCount() {
+        return getExistingAssetListCount();
+    }
+
+    /**
+     * Tap the QR scan icon button on the Existing Asset tab.
+     * @return true if tapped
+     */
+    public boolean tapExistingAssetQRScanButton() {
+        System.out.println("📍 Tapping QR scan button on Existing Asset tab...");
+
+        try {
+            List<WebElement> qrBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label CONTAINS 'QR' OR label CONTAINS 'qr' OR label CONTAINS 'scan' "
+                + "OR label CONTAINS 'Scan' OR name CONTAINS 'qrcode' "
+                + "OR name CONTAINS 'barcode' OR name CONTAINS 'camera')"
+            ));
+            if (!qrBtns.isEmpty()) {
+                qrBtns.get(0).click();
+                System.out.println("✅ Tapped QR scan button");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap QR scan button");
+        return false;
+    }
+
+    /**
+     * Check if the QR scanner screen is displayed.
+     * @return true if QR scanner is visible
+     */
+    public boolean isQRScannerScreenDisplayed() {
+        System.out.println("📍 Checking for QR Scanner screen...");
+
+        // Strategy 1: Camera permission alert
+        try {
+            List<WebElement> alerts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeAlert'"
+            ));
+            if (!alerts.isEmpty()) {
+                System.out.println("✅ Camera permission alert detected (QR scanner triggered)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Scanner-related text or elements
+        try {
+            List<WebElement> scannerElements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeOther') AND "
+                + "(label CONTAINS 'Scan' OR label CONTAINS 'scan' OR label CONTAINS 'QR' "
+                + "OR label CONTAINS 'camera' OR label CONTAINS 'Camera')"
+            ));
+            for (WebElement el : scannerElements) {
+                int y = el.getLocation().getY();
+                // Scanner text should be visible on screen
+                if (y > 0 && y < 800) {
+                    System.out.println("✅ QR Scanner element found: " + el.getAttribute("label"));
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ QR Scanner screen not detected");
+        return false;
+    }
+
+    /**
+     * Dismiss the QR scanner / camera permission alert by tapping Allow or Cancel.
+     */
+    public void dismissQRScanner() {
+        System.out.println("📍 Dismissing QR scanner...");
+
+        // Try to dismiss camera alert
+        try {
+            List<WebElement> allowBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label == 'Allow' OR label == 'OK' OR label CONTAINS 'Allow')"
+            ));
+            if (!allowBtns.isEmpty()) {
+                allowBtns.get(0).click();
+                System.out.println("✅ Dismissed camera alert (tapped Allow)");
+                try { Thread.sleep(500); } catch (InterruptedException ie) { /* */ }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Try back/cancel to exit scanner
+        try {
+            List<WebElement> cancelBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label == 'Cancel' OR label == 'Close' OR label == 'Done')"
+            ));
+            if (!cancelBtns.isEmpty()) {
+                cancelBtns.get(0).click();
+                System.out.println("✅ Closed QR scanner");
+            }
+        } catch (Exception e) { /* continue */ }
+    }
+
+    // ================================================================
+    // EXISTING ASSET — ASSET TYPE DISPLAY (TC_JOB_244)
+    // ================================================================
+
+    /**
+     * Get the asset type text (secondary line) for an existing asset entry at the given index.
+     * @param index 0-based index
+     * @return the type text (e.g., "fuse", "ats", "electricalPanel"), or empty string
+     */
+    public String getExistingAssetTypeAt(int index) {
+        java.util.Map<String, String> entry = getExistingAssetEntryAt(index);
+        if (entry != null) {
+            String type = entry.get("type");
+            return type != null ? type : "";
+        }
+        return "";
+    }
+
+    /**
+     * Get the asset name text (primary line) for an existing asset entry at the given index.
+     * @param index 0-based index
+     * @return the name text, or empty string
+     */
+    public String getExistingAssetNameAt(int index) {
+        java.util.Map<String, String> entry = getExistingAssetEntryAt(index);
+        if (entry != null) {
+            String name = entry.get("name");
+            return name != null ? name : "";
+        }
+        return "";
+    }
+
+    // ================================================================
+    // REMOVE FROM SESSION — CONFIRMATION DIALOG (TC_JOB_245-249)
+    // ================================================================
+
+    /**
+     * Get the title text of the removal confirmation dialog.
+     * Expected: "Remove this asset from the session?"
+     * @return the title text, or empty string if not found
+     */
+    public String getRemovalConfirmationTitle() {
+        System.out.println("📍 Getting removal confirmation title...");
+
+        // Strategy 1: Alert title
+        try {
+            List<WebElement> alerts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeAlert'"
+            ));
+            if (!alerts.isEmpty()) {
+                List<WebElement> texts = alerts.get(0).findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText'"
+                ));
+                if (!texts.isEmpty()) {
+                    String title = texts.get(0).getAttribute("label");
+                    System.out.println("✅ Confirmation title: " + title);
+                    return title != null ? title : "";
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Static text containing "Remove" and "session"
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'Remove' OR label CONTAINS 'remove')"
+            ));
+            for (WebElement text : texts) {
+                String label = text.getAttribute("label");
+                if (label != null && (label.contains("session") || label.contains("asset"))) {
+                    System.out.println("✅ Confirmation title: " + label);
+                    return label;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not find removal confirmation title");
+        return "";
+    }
+
+    /**
+     * Get the message body of the removal confirmation dialog.
+     * Expected: "The asset will remain in your library but won't be linked to this session."
+     * @return the message text, or empty string if not found
+     */
+    public String getRemovalConfirmationMessage() {
+        System.out.println("📍 Getting removal confirmation message...");
+
+        // Strategy 1: Alert body (second text element in alert)
+        try {
+            List<WebElement> alerts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeAlert'"
+            ));
+            if (!alerts.isEmpty()) {
+                List<WebElement> texts = alerts.get(0).findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText'"
+                ));
+                if (texts.size() >= 2) {
+                    String message = texts.get(1).getAttribute("label");
+                    System.out.println("✅ Confirmation message: " + message);
+                    return message != null ? message : "";
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Static text containing "library" or "linked"
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'library' OR label CONTAINS 'linked' "
+                + "OR label CONTAINS 'remain')"
+            ));
+            if (!texts.isEmpty()) {
+                String label = texts.get(0).getAttribute("label");
+                System.out.println("✅ Confirmation message: " + label);
+                return label != null ? label : "";
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not find removal confirmation message");
+        return "";
+    }
+
+    /**
+     * Check if the "Remove" button in the confirmation dialog has red/destructive styling.
+     * On iOS, destructive buttons typically render in red.
+     * @return true if a Remove button is found (styling verification is limited in automation)
+     */
+    public boolean isRemoveButtonDisplayed() {
+        System.out.println("📍 Checking for 'Remove' button in confirmation...");
+        try {
+            List<WebElement> removeBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND (label == 'Remove' OR label CONTAINS 'Remove')"
+            ));
+            boolean found = !removeBtns.isEmpty();
+            System.out.println(found ? "✅ Remove button found" : "⚠️ Remove button not found");
+            return found;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Check if the "Cancel" button is displayed in the removal confirmation dialog.
+     * @return true if Cancel button is found
+     */
+    public boolean isRemovalCancelButtonDisplayed() {
+        System.out.println("📍 Checking for 'Cancel' button in removal confirmation...");
+        try {
+            List<WebElement> cancelBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'No')"
+            ));
+            boolean found = !cancelBtns.isEmpty();
+            System.out.println(found ? "✅ Cancel button found" : "⚠️ Cancel button not found");
+            return found;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Cancel the asset removal by tapping the "Cancel" button on the confirmation dialog.
+     * @return true if Cancel was tapped
+     */
+    public boolean cancelAssetRemoval() {
+        System.out.println("📍 Cancelling asset removal...");
+
+        try {
+            List<WebElement> cancelBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'No')"
+            ));
+            if (!cancelBtns.isEmpty()) {
+                cancelBtns.get(0).click();
+                System.out.println("✅ Tapped 'Cancel' on removal confirmation");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not find Cancel button");
+        return false;
+    }
+
+    // ================================================================
+    // LINKED ASSET INDICATOR (TC_JOB_250)
+    // ================================================================
+
+    /**
+     * Check if an asset on the Existing Asset tab shows a "linked" indicator.
+     * Already-linked assets may show: pre-selected checkmark, "Already in session" text,
+     * grayed-out appearance, or simply not appear in the list.
+     * @param index zero-based index of the asset entry
+     * @return true if the asset shows any linked/selected indicator
+     */
+    public boolean isExistingAssetAlreadyLinkedAtIndex(int index) {
+        System.out.println("📍 Checking if existing asset[" + index + "] is already linked...");
+
+        // Strategy 1: Check if asset is pre-selected (checkmark visible)
+        boolean preSelected = isExistingAssetSelectedAtIndex(index);
+        if (preSelected) {
+            System.out.println("✅ Asset[" + index + "] is pre-selected (checkmark)");
+            return true;
+        }
+
+        // Strategy 2: Look for "Already in session" or "Linked" indicator text near the asset
+        try {
+            List<WebElement> entries = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+            java.util.List<WebElement> assetCells = new java.util.ArrayList<>();
+            for (WebElement cell : entries) {
+                int y = cell.getLocation().getY();
+                int h = cell.getSize().getHeight();
+                if (y > 150 && h > 30) assetCells.add(cell);
+            }
+
+            if (index < assetCells.size()) {
+                WebElement targetCell = assetCells.get(index);
+                int cellY = targetCell.getLocation().getY();
+                int cellH = targetCell.getSize().getHeight();
+
+                // Look for indicator text within cell's Y range
+                List<WebElement> indicators = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND "
+                    + "(label CONTAINS 'Already' OR label CONTAINS 'already' "
+                    + "OR label CONTAINS 'Linked' OR label CONTAINS 'linked' "
+                    + "OR label CONTAINS 'In session' OR label CONTAINS 'in session')"
+                ));
+                for (WebElement ind : indicators) {
+                    int indY = ind.getLocation().getY();
+                    if (indY >= cellY && indY <= cellY + cellH) {
+                        System.out.println("✅ Asset[" + index + "] has linked indicator: "
+                            + ind.getAttribute("label"));
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 3: Check if asset is disabled/not tappable (grayed out)
+        try {
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+            java.util.List<WebElement> validCells = new java.util.ArrayList<>();
+            for (WebElement cell : cells) {
+                int y = cell.getLocation().getY();
+                int h = cell.getSize().getHeight();
+                if (y > 150 && h > 30) validCells.add(cell);
+            }
+            if (index < validCells.size()) {
+                String enabled = validCells.get(index).getAttribute("enabled");
+                if ("false".equalsIgnoreCase(enabled)) {
+                    System.out.println("✅ Asset[" + index + "] is disabled (already linked)");
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("ℹ️ Asset[" + index + "] does not show linked indicator");
+        return false;
+    }
+
+    /**
+     * Get the count of already-linked assets on the Existing Asset tab.
+     * Counts assets that show pre-selected state, "Already in session" text, or disabled state.
+     * @return count of assets showing linked indicator
+     */
+    public int getAlreadyLinkedAssetCount() {
+        System.out.println("📍 Counting already-linked assets on Existing Asset tab...");
+        int linkedCount = 0;
+        int totalCount = getExistingAssetListCount();
+
+        for (int i = 0; i < totalCount; i++) {
+            if (isExistingAssetAlreadyLinkedAtIndex(i)) {
+                linkedCount++;
+            }
+        }
+
+        System.out.println("📊 Already-linked assets: " + linkedCount + " / " + totalCount);
+        return linkedCount;
+    }
+
+    // ================================================================
+    // IR ONLY BADGE & VISUAL PHOTO NOTE (TC_JOB_256-257)
+    // ================================================================
+
+    /**
+     * Check if the "IR Only" badge is displayed in the Infrared Photos section.
+     * This badge appears for FLIR-IND photo type indicating only IR photo is needed.
+     * @return true if the "IR Only" badge is visible
+     */
+    public boolean isIROnlyBadgeDisplayed() {
+        System.out.println("📍 Checking for 'IR Only' badge...");
+
+        try {
+            List<WebElement> badges = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' "
+                + "OR type == 'XCUIElementTypeOther') "
+                + "AND (label == 'IR Only' OR label CONTAINS 'IR Only' "
+                + "OR label == 'IR only' OR label CONTAINS 'IR only')"
+            ));
+            if (!badges.isEmpty()) {
+                System.out.println("✅ 'IR Only' badge found: " + badges.get(0).getAttribute("label"));
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Fallback: look near the Infrared Photos section
+        try {
+            List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                + "AND label CONTAINS 'Only'"
+            ));
+            for (WebElement text : allTexts) {
+                String label = text.getAttribute("label");
+                if (label != null && label.toLowerCase().contains("ir")) {
+                    System.out.println("✅ IR Only badge found (fallback): " + label);
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ 'IR Only' badge not found");
+        return false;
+    }
+
+    /**
+     * Check if the "Visual Photo (Not required for FLIR-IND)" note is displayed.
+     * This note appears in the Infrared Photos section for FLIR-IND photo type.
+     * @return true if the note is visible
+     */
+    public boolean isVisualPhotoNotRequiredNoteDisplayed() {
+        System.out.println("📍 Checking for 'Visual Photo Not required' note...");
+
+        try {
+            List<WebElement> notes = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'Not required' OR label CONTAINS 'not required' "
+                + "OR label CONTAINS 'Not Required')"
+            ));
+            if (!notes.isEmpty()) {
+                System.out.println("✅ 'Not required' note found: " + notes.get(0).getAttribute("label"));
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Fallback: look for visual photo note with FLIR-IND context
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                + "AND (label CONTAINS 'Visual Photo' OR label CONTAINS 'visual photo')"
+            ));
+            for (WebElement text : texts) {
+                String label = text.getAttribute("label");
+                if (label != null && (label.contains("Not required") || label.contains("not required")
+                        || label.contains("FLIR-IND"))) {
+                    System.out.println("✅ Visual Photo note found: " + label);
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Visual Photo 'Not required' note not found");
+        return false;
+    }
+
+    /**
+     * Check if the "Add IR Photo Pair" button is enabled (blue) vs disabled (gray).
+     * Button becomes enabled after entering the required filename(s).
+     * @return true if the button is enabled
+     */
+    public boolean isAddIRPhotoPairButtonEnabled() {
+        System.out.println("📍 Checking if Add IR Photo Pair button is enabled...");
+
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') "
+                + "AND (label == 'Add IR Photo Pair' OR label CONTAINS 'Add IR Photo Pair' "
+                + "OR label CONTAINS 'Add IR Photo')"
+            ));
+            if (!buttons.isEmpty()) {
+                String enabled = buttons.get(0).getAttribute("enabled");
+                boolean isEnabled = "true".equalsIgnoreCase(enabled);
+                System.out.println("📊 Add IR Photo Pair button enabled: " + isEnabled);
+                return isEnabled;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Add IR Photo Pair button not found for enabled check");
+        return false;
+    }
+
+    /**
+     * Get the display text of an IR photo pair in the "New IR Photos" section.
+     * Expected format: "IR: Abhiyant 1" or "IR: 1 / Visual: 2"
+     * @param pairIndex zero-based index of the photo pair
+     * @return the display text, or empty string if not found
+     */
+    public String getNewIRPhotoPairDisplayText(int pairIndex) {
+        System.out.println("📍 Getting display text for IR photo pair[" + pairIndex + "]...");
+
+        try {
+            // Look for text elements in the New IR Photos section
+            List<WebElement> irSectionHeaders = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'New IR Photos' OR label CONTAINS 'New IR Photos')"
+            ));
+
+            if (!irSectionHeaders.isEmpty()) {
+                int sectionY = irSectionHeaders.get(0).getLocation().getY();
+
+                // Get all text elements below the section header
+                List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND visible == true"
+                ));
+
+                java.util.List<WebElement> pairTexts = new java.util.ArrayList<>();
+                for (WebElement text : allTexts) {
+                    int textY = text.getLocation().getY();
+                    String label = text.getAttribute("label");
+                    if (textY > sectionY && label != null
+                            && (label.contains("IR:") || label.contains("Visual:"))) {
+                        pairTexts.add(text);
+                    }
+                }
+
+                if (pairIndex < pairTexts.size()) {
+                    String displayText = pairTexts.get(pairIndex).getAttribute("label");
+                    System.out.println("✅ Pair[" + pairIndex + "] text: " + displayText);
+                    return displayText;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Fallback: use getIRPhotoPairIRValue
+        String irVal = getIRPhotoPairIRValue(pairIndex);
+        if (irVal != null && !irVal.isEmpty()) {
+            String result = "IR: " + irVal;
+            System.out.println("✅ Pair[" + pairIndex + "] text (constructed): " + result);
+            return result;
+        }
+
+        System.out.println("⚠️ Could not get display text for pair[" + pairIndex + "]");
+        return "";
+    }
+
+    // ================================================================
+    // ACTIVE JOB BANNER ON DASHBOARD (TC_JOB_265-268)
+    // ================================================================
+
+    /**
+     * Check if the "Active Job" banner is displayed on the site dashboard.
+     * Banner shows: signal icon, "Active Job" label, job name, "END" button.
+     * @return true if the Active Job banner is visible
+     */
+    public boolean isActiveJobBannerDisplayed() {
+        System.out.println("📍 Checking for Active Job banner on dashboard...");
+
+        // Strategy 1: Look for "Active Job" text label
+        try {
+            List<WebElement> labels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'Active Job' OR label CONTAINS 'Active Job')"
+            ));
+            if (!labels.isEmpty()) {
+                System.out.println("✅ Active Job banner found: " + labels.get(0).getAttribute("label"));
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Look for "END" button near top of screen (banner area)
+        try {
+            List<WebElement> endBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') "
+                + "AND (label == 'END' OR label == 'End')"
+            ));
+            for (WebElement btn : endBtns) {
+                int y = btn.getLocation().getY();
+                if (y < 350) {
+                    System.out.println("✅ Active Job banner found via END button at Y=" + y);
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 3: Look for signal/broadcast icon near "Active" text
+        try {
+            List<WebElement> activeTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                + "AND (label CONTAINS 'Active' OR label CONTAINS 'active')"
+            ));
+            for (WebElement text : activeTexts) {
+                String label = text.getAttribute("label");
+                int y = text.getLocation().getY();
+                if (y < 350 && label != null && label.contains("Job")) {
+                    System.out.println("✅ Active Job banner found: " + label);
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Active Job banner not found on dashboard");
+        return false;
+    }
+
+    /**
+     * Get the job name displayed on the Active Job banner.
+     * @return the job name, or empty string if not found
+     */
+    public String getActiveJobBannerName() {
+        System.out.println("📍 Getting Active Job banner job name...");
+
+        try {
+            // Find "Active Job" label first to locate the banner area
+            List<WebElement> activeLabels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'Active Job' OR label CONTAINS 'Active Job')"
+            ));
+
+            if (!activeLabels.isEmpty()) {
+                int bannerY = activeLabels.get(0).getLocation().getY();
+
+                // Look for the job name text near the Active Job label
+                List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND visible == true"
+                ));
+
+                for (WebElement text : texts) {
+                    int textY = text.getLocation().getY();
+                    String label = text.getAttribute("label");
+                    if (label == null) continue;
+
+                    // Job name should be near the Active Job label, and not be "Active Job" or "END"
+                    if (Math.abs(textY - bannerY) < 40
+                            && !label.equals("Active Job")
+                            && !label.equals("END")
+                            && !label.equals("End")
+                            && label.length() > 2) {
+                        System.out.println("✅ Active Job name: " + label);
+                        return label;
+                    }
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Fallback: look for "Job -" pattern (common job name format)
+        try {
+            List<WebElement> jobTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                + "AND (label BEGINSWITH 'Job' OR label CONTAINS 'Job -')"
+            ));
+            for (WebElement text : jobTexts) {
+                int y = text.getLocation().getY();
+                if (y < 350) {
+                    String name = text.getAttribute("label");
+                    System.out.println("✅ Active Job name (fallback): " + name);
+                    return name;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not get Active Job name");
+        return "";
+    }
+
+    /**
+     * Check if the "END" button is displayed on the Active Job banner.
+     * @return true if END button is visible
+     */
+    public boolean isActiveJobEndButtonDisplayed() {
+        System.out.println("📍 Checking for END button on Active Job banner...");
+
+        try {
+            List<WebElement> endBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') "
+                + "AND (label == 'END' OR label == 'End')"
+            ));
+            for (WebElement btn : endBtns) {
+                int y = btn.getLocation().getY();
+                if (y < 350) {
+                    System.out.println("✅ END button found at Y=" + y);
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ END button not found");
+        return false;
+    }
+
+    /**
+     * Tap the "END" button on the Active Job banner.
+     * This should trigger the "Clear Active Job?" confirmation dialog.
+     * @return true if END button was tapped
+     */
+    public boolean tapActiveJobEndButton() {
+        System.out.println("📍 Tapping END button on Active Job banner...");
+
+        try {
+            List<WebElement> endBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') "
+                + "AND (label == 'END' OR label == 'End')"
+            ));
+            for (WebElement btn : endBtns) {
+                int y = btn.getLocation().getY();
+                if (y < 350) {
+                    btn.click();
+                    System.out.println("✅ Tapped END button");
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap END button");
+        return false;
+    }
+
+    /**
+     * Check if the "Clear Active Job?" confirmation dialog is displayed.
+     * Dialog shows: title, message, Cancel button, Deactivate button.
+     * @return true if the dialog is visible
+     */
+    public boolean isClearActiveJobDialogDisplayed() {
+        System.out.println("📍 Checking for Clear Active Job dialog...");
+
+        // Strategy 1: Look for "Clear Active Job" title
+        try {
+            List<WebElement> titles = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'Clear Active Job' OR label CONTAINS 'clear active job' "
+                + "OR label CONTAINS 'Deactivate' OR label CONTAINS 'End Job')"
+            ));
+            if (!titles.isEmpty()) {
+                System.out.println("✅ Clear Active Job dialog found: " + titles.get(0).getAttribute("label"));
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Look for alert/sheet with Deactivate button
+        try {
+            List<WebElement> alerts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeAlert' OR type == 'XCUIElementTypeSheet'"
+            ));
+            if (!alerts.isEmpty()) {
+                List<WebElement> deactivateBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND "
+                    + "(label == 'Deactivate' OR label CONTAINS 'Deactivate')"
+                ));
+                if (!deactivateBtns.isEmpty()) {
+                    System.out.println("✅ Clear Active Job dialog found (via alert + Deactivate button)");
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 3: Look for both Cancel and Deactivate buttons visible simultaneously
+        try {
+            List<WebElement> cancelBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"
+            ));
+            List<WebElement> deactivateBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label == 'Deactivate' OR label CONTAINS 'Deactivate')"
+            ));
+            if (!cancelBtns.isEmpty() && !deactivateBtns.isEmpty()) {
+                System.out.println("✅ Clear Active Job dialog found (Cancel + Deactivate buttons)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Clear Active Job dialog not found");
+        return false;
+    }
+
+    /**
+     * Get the title of the Clear Active Job confirmation dialog.
+     * Expected: "Clear Active Job?"
+     * @return the dialog title, or empty string if not found
+     */
+    public String getClearActiveJobDialogTitle() {
+        System.out.println("📍 Getting Clear Active Job dialog title...");
+
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                + "AND (label CONTAINS 'Clear' OR label CONTAINS 'Deactivate' "
+                + "OR label CONTAINS 'End')"
+            ));
+            for (WebElement text : texts) {
+                String label = text.getAttribute("label");
+                if (label != null && (label.contains("Active Job") || label.contains("active job")
+                        || label.contains("Deactivate") || label.contains("End Job"))) {
+                    System.out.println("✅ Dialog title: " + label);
+                    return label;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not get dialog title");
+        return "";
+    }
+
+    /**
+     * Get the message of the Clear Active Job confirmation dialog.
+     * Expected: "Are you sure you want to clear [Job Name] as the active job?"
+     * @return the dialog message, or empty string if not found
+     */
+    public String getClearActiveJobDialogMessage() {
+        System.out.println("📍 Getting Clear Active Job dialog message...");
+
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                + "AND (label CONTAINS 'Are you sure' OR label CONTAINS 'are you sure' "
+                + "OR label CONTAINS 'want to clear' OR label CONTAINS 'active job')"
+            ));
+            if (!texts.isEmpty()) {
+                String msg = texts.get(0).getAttribute("label");
+                System.out.println("✅ Dialog message: " + msg);
+                return msg;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Fallback: look for long text that isn't the title
+        try {
+            List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true"
+            ));
+            for (WebElement text : allTexts) {
+                String label = text.getAttribute("label");
+                if (label != null && label.length() > 30
+                        && (label.contains("sure") || label.contains("clear")
+                            || label.contains("active"))) {
+                    System.out.println("✅ Dialog message (fallback): " + label);
+                    return label;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not get dialog message");
+        return "";
+    }
+
+    /**
+     * Tap "Deactivate" button on the Clear Active Job confirmation dialog.
+     * @return true if Deactivate was tapped
+     */
+    public boolean tapClearActiveJobDeactivate() {
+        System.out.println("📍 Tapping Deactivate on Clear Active Job dialog...");
+
+        try {
+            List<WebElement> btns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label == 'Deactivate' OR label CONTAINS 'Deactivate' "
+                + "OR label == 'DEACTIVATE')"
+            ));
+            if (!btns.isEmpty()) {
+                btns.get(0).click();
+                System.out.println("✅ Tapped Deactivate");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap Deactivate button");
+        return false;
+    }
+
+    /**
+     * Tap "Cancel" button on the Clear Active Job confirmation dialog.
+     * @return true if Cancel was tapped
+     */
+    public boolean tapClearActiveJobCancel() {
+        System.out.println("📍 Tapping Cancel on Clear Active Job dialog...");
+
+        try {
+            List<WebElement> btns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"
+            ));
+            if (!btns.isEmpty()) {
+                btns.get(0).click();
+                System.out.println("✅ Tapped Cancel");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap Cancel button");
+        return false;
+    }
+
+    // ================================================================
+    // JOBS LIST SCREEN LAYOUT (TC_JOB_269)
+    // ================================================================
+
+    /**
+     * Check if the "Done" button is displayed on the Jobs/Work Orders screen header.
+     * @return true if Done button is visible
+     */
+    public boolean isJobsScreenDoneButtonDisplayed() {
+        System.out.println("📍 Checking for Done button on Jobs screen...");
+
+        try {
+            List<WebElement> doneBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label == 'Done' OR label == 'DONE')"
+            ));
+            for (WebElement btn : doneBtns) {
+                int y = btn.getLocation().getY();
+                if (y < 120) {
+                    System.out.println("✅ Done button found on Jobs screen");
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Done button not found on Jobs screen");
+        return false;
+    }
+
+    /**
+     * Check if the Refresh icon is displayed on the Jobs/Work Orders screen.
+     * @return true if refresh icon is visible
+     */
+    public boolean isJobsScreenRefreshIconDisplayed() {
+        System.out.println("📍 Checking for Refresh icon on Jobs screen...");
+
+        try {
+            List<WebElement> refreshBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeImage') "
+                + "AND (name CONTAINS 'arrow.clockwise' OR label CONTAINS 'Refresh' "
+                + "OR label CONTAINS 'refresh' OR name CONTAINS 'refresh' "
+                + "OR label CONTAINS 'Reload' OR name CONTAINS 'reload')"
+            ));
+            if (!refreshBtns.isEmpty()) {
+                System.out.println("✅ Refresh icon found on Jobs screen");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Refresh icon not found on Jobs screen");
+        return false;
+    }
+
+    /**
+     * Check if the "Jobs" title is displayed on the screen header.
+     * @return true if Jobs title is visible
+     */
+    public boolean isJobsScreenTitleDisplayed() {
+        System.out.println("📍 Checking for Jobs screen title...");
+
+        try {
+            List<WebElement> titles = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'Jobs' OR label == 'Work Orders' OR label == 'JOBS')"
+            ));
+            for (WebElement title : titles) {
+                int y = title.getLocation().getY();
+                if (y < 150) {
+                    System.out.println("✅ Jobs title found: " + title.getAttribute("label"));
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Jobs title not found");
+        return false;
+    }
+
+    /**
+     * Check if the "Start New Job" button (teal) is displayed.
+     * @return true if Start New Job button is visible
+     */
+    public boolean isStartNewJobButtonDisplayed() {
+        System.out.println("📍 Checking for Start New Job button...");
+
+        try {
+            List<WebElement> btns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') "
+                + "AND (label CONTAINS 'Start New' OR label CONTAINS 'New Work Order' "
+                + "OR label CONTAINS 'Start New Job' OR label CONTAINS 'New Job')"
+            ));
+            if (!btns.isEmpty()) {
+                System.out.println("✅ Start New Job button found: " + btns.get(0).getAttribute("label"));
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Start New Job button not found");
+        return false;
+    }
+
+    /**
+     * Check if the "Available Jobs" section header is displayed.
+     * @return true if Available Jobs section is visible
+     */
+    public boolean isAvailableJobsSectionDisplayed() {
+        System.out.println("📍 Checking for Available Jobs section...");
+
+        try {
+            List<WebElement> headers = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'Available Jobs' OR label CONTAINS 'Available' "
+                + "OR label CONTAINS 'AVAILABLE JOBS')"
+            ));
+            if (!headers.isEmpty()) {
+                System.out.println("✅ Available Jobs section found: "
+                    + headers.get(0).getAttribute("label"));
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Available Jobs section not found");
+        return false;
+    }
+
+    /**
+     * Get the count of job cards displayed in the Jobs/Work Orders list.
+     * @return count of job cards, or 0 if none found
+     */
+    public int getJobCardCount() {
+        System.out.println("📍 Counting job cards...");
+
+        try {
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+
+            int count = 0;
+            for (WebElement cell : cells) {
+                int y = cell.getLocation().getY();
+                int h = cell.getSize().getHeight();
+                if (y > 200 && h > 40) count++;
+            }
+
+            System.out.println("📊 Job cards found: " + count);
+            return count;
+        } catch (Exception e) {
+            System.out.println("⚠️ Error counting job cards: " + e.getMessage());
+            return 0;
+        }
+    }
+
+    // ================================================================
+    // TASKS TAB — EMPTY STATE (TC_JOB_281)
+    // ================================================================
+
+    /**
+     * Check if the Tasks tab empty state is displayed.
+     * Empty state shows: checklist icon, "No Tasks" heading,
+     * descriptive message, and "Manage Tasks" button.
+     * @return true if the empty state is visible
+     */
+    public boolean isTasksTabEmptyStateDisplayed() {
+        System.out.println("📍 Checking for Tasks tab empty state...");
+
+        try {
+            List<WebElement> noTasks = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'No Tasks' OR label == 'No tasks' "
+                + "OR label CONTAINS 'No Tasks' OR label CONTAINS 'No tasks')"
+            ));
+            if (!noTasks.isEmpty()) {
+                System.out.println("✅ Tasks tab empty state found");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Tasks tab empty state not found");
+        return false;
+    }
+
+    /**
+     * Get the Tasks tab empty state message.
+     * Expected: "Get started by linking existing tasks or creating new ones"
+     * @return the message text, or empty string if not found
+     */
+    public String getTasksEmptyStateMessage() {
+        System.out.println("📍 Getting Tasks tab empty state message...");
+
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                + "AND (label CONTAINS 'Get started' OR label CONTAINS 'linking' "
+                + "OR label CONTAINS 'creating new')"
+            ));
+            if (!texts.isEmpty()) {
+                String msg = texts.get(0).getAttribute("label");
+                System.out.println("✅ Empty state message: " + msg);
+                return msg;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Fallback: look for long descriptive text below "No Tasks"
+        try {
+            List<WebElement> noTasks = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'No Tasks' OR label == 'No tasks')"
+            ));
+            if (!noTasks.isEmpty()) {
+                int headingY = noTasks.get(0).getLocation().getY();
+                List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND visible == true"
+                ));
+                for (WebElement text : allTexts) {
+                    int y = text.getLocation().getY();
+                    String label = text.getAttribute("label");
+                    if (y > headingY && y < headingY + 80 && label != null && label.length() > 20) {
+                        System.out.println("✅ Empty state message (fallback): " + label);
+                        return label;
+                    }
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not get empty state message");
+        return "";
+    }
+
+    /**
+     * Check if the "Manage Tasks" button is displayed on the Tasks tab empty state.
+     * @return true if the button is visible
+     */
+    public boolean isManageTasksButtonDisplayed() {
+        System.out.println("📍 Checking for Manage Tasks button...");
+
+        try {
+            List<WebElement> btns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') "
+                + "AND (label == 'Manage Tasks' OR label CONTAINS 'Manage Tasks' "
+                + "OR label == 'Manage' OR label CONTAINS 'Manage tasks')"
+            ));
+            if (!btns.isEmpty()) {
+                System.out.println("✅ Manage Tasks button found: " + btns.get(0).getAttribute("label"));
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Manage Tasks button not found");
+        return false;
+    }
+
+    /**
+     * Tap the "Manage Tasks" button on the Tasks tab.
+     * This should open the Link Tasks screen.
+     * @return true if the button was tapped
+     */
+    public boolean tapManageTasksButton() {
+        System.out.println("📍 Tapping Manage Tasks button...");
+
+        try {
+            List<WebElement> btns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') "
+                + "AND (label == 'Manage Tasks' OR label CONTAINS 'Manage Tasks' "
+                + "OR label CONTAINS 'Manage tasks')"
+            ));
+            if (!btns.isEmpty()) {
+                btns.get(0).click();
+                System.out.println("✅ Tapped Manage Tasks button");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Fallback: look for "Manage" button in the Tasks area
+        try {
+            List<WebElement> manageBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == 'Manage'"
+            ));
+            if (!manageBtns.isEmpty()) {
+                manageBtns.get(0).click();
+                System.out.println("✅ Tapped Manage button (fallback)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap Manage Tasks button");
+        return false;
+    }
+
+    // ================================================================
+    // LINK TASKS SCREEN (TC_JOB_282-284)
+    // ================================================================
+
+    /**
+     * Check if the Link Tasks screen is displayed.
+     * Screen shows: Cancel button, "Link Tasks" title, Update button.
+     * @return true if the screen is visible
+     */
+    public boolean isLinkTasksScreenDisplayed() {
+        System.out.println("📍 Checking for Link Tasks screen...");
+
+        // Strategy 1: Look for "Link Tasks" title
+        try {
+            List<WebElement> titles = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeNavigationBar') "
+                + "AND (label == 'Link Tasks' OR label CONTAINS 'Link Tasks')"
+            ));
+            if (!titles.isEmpty()) {
+                System.out.println("✅ Link Tasks screen found");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Look for "SELECT TASKS TO LINK" header
+        try {
+            List<WebElement> headers = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'SELECT TASKS' OR label CONTAINS 'Select Tasks' "
+                + "OR label CONTAINS 'select tasks')"
+            ));
+            if (!headers.isEmpty()) {
+                System.out.println("✅ Link Tasks screen found via SELECT TASKS header");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Link Tasks screen not found");
+        return false;
+    }
+
+    /**
+     * Wait for the Link Tasks screen to be displayed (up to 10 seconds).
+     * @return true if the screen appeared
+     */
+    public boolean waitForLinkTasksScreen() {
+        System.out.println("📍 Waiting for Link Tasks screen...");
+        for (int i = 0; i < 20; i++) {
+            if (isLinkTasksScreenDisplayed()) return true;
+            try { Thread.sleep(500); } catch (InterruptedException e) { break; }
+        }
+        System.out.println("⚠️ Link Tasks screen did not appear within 10s");
+        return false;
+    }
+
+    /**
+     * Check if the Cancel button is displayed on the Link Tasks screen.
+     * @return true if Cancel button is visible
+     */
+    public boolean isLinkTasksCancelButtonDisplayed() {
+        try {
+            List<WebElement> btns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"
+            ));
+            return !btns.isEmpty();
+        } catch (Exception e) { return false; }
+    }
+
+    /**
+     * Check if the Update button is displayed on the Link Tasks screen.
+     * @return true if Update button is visible
+     */
+    public boolean isLinkTasksUpdateButtonDisplayed() {
+        System.out.println("📍 Checking for Update button on Link Tasks...");
+        try {
+            List<WebElement> btns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label == 'Update' OR label CONTAINS 'Update')"
+            ));
+            boolean found = !btns.isEmpty();
+            System.out.println(found ? "✅ Update button found" : "⚠️ Update button not found");
+            return found;
+        } catch (Exception e) { return false; }
+    }
+
+    /**
+     * Check if the Update button is enabled on the Link Tasks screen.
+     * @return true if the Update button is enabled
+     */
+    public boolean isLinkTasksUpdateButtonEnabled() {
+        System.out.println("📍 Checking if Update button is enabled...");
+        try {
+            List<WebElement> btns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label == 'Update' OR label CONTAINS 'Update')"
+            ));
+            if (!btns.isEmpty()) {
+                String enabled = btns.get(0).getAttribute("enabled");
+                boolean isEnabled = "true".equalsIgnoreCase(enabled);
+                System.out.println("📊 Update button enabled: " + isEnabled);
+                return isEnabled;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("⚠️ Update button not found for enabled check");
+        return false;
+    }
+
+    /**
+     * Tap the Update button on the Link Tasks screen.
+     * @return true if Update was tapped
+     */
+    public boolean tapLinkTasksUpdateButton() {
+        System.out.println("📍 Tapping Update button on Link Tasks...");
+        try {
+            WebElement btn = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label == 'Update' OR label CONTAINS 'Update')"
+            ));
+            btn.click();
+            System.out.println("✅ Tapped Update button");
+            return true;
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not tap Update button: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Tap Cancel on the Link Tasks screen.
+     * @return true if Cancel was tapped
+     */
+    public boolean tapLinkTasksCancelButton() {
+        System.out.println("📍 Tapping Cancel on Link Tasks...");
+        try {
+            WebElement btn = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"
+            ));
+            btn.click();
+            System.out.println("✅ Tapped Cancel on Link Tasks");
+            return true;
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not tap Cancel: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Check if the search bar is displayed on the Link Tasks screen.
+     * Expected placeholder: "Search tasks"
+     * @return true if search bar is visible
+     */
+    public boolean isLinkTasksSearchBarDisplayed() {
+        System.out.println("📍 Checking for search bar on Link Tasks...");
+        try {
+            List<WebElement> fields = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeSearchField' OR type == 'XCUIElementTypeTextField') "
+                + "AND (value CONTAINS 'Search' OR label CONTAINS 'Search' "
+                + "OR value CONTAINS 'search' OR label CONTAINS 'search')"
+            ));
+            boolean found = !fields.isEmpty();
+            System.out.println(found ? "✅ Search bar found" : "⚠️ Search bar not found");
+            return found;
+        } catch (Exception e) { return false; }
+    }
+
+    /**
+     * Check if the "SELECT TASKS TO LINK TO THIS SESSION" header is displayed.
+     * @return true if the header is visible
+     */
+    public boolean isSelectTasksHeaderDisplayed() {
+        System.out.println("📍 Checking for SELECT TASKS header...");
+        try {
+            List<WebElement> headers = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'SELECT TASKS' OR label CONTAINS 'Select Tasks' "
+                + "OR label CONTAINS 'LINK TO THIS SESSION' OR label CONTAINS 'link to this session')"
+            ));
+            boolean found = !headers.isEmpty();
+            System.out.println(found
+                ? "✅ SELECT TASKS header found: " + headers.get(0).getAttribute("label")
+                : "⚠️ SELECT TASKS header not found");
+            return found;
+        } catch (Exception e) { return false; }
+    }
+
+    /**
+     * Get the count of task items in the Link Tasks list.
+     * @return count of task items
+     */
+    public int getLinkTasksListCount() {
+        System.out.println("📍 Counting tasks in Link Tasks list...");
+        try {
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+            int count = 0;
+            for (WebElement cell : cells) {
+                int y = cell.getLocation().getY();
+                int h = cell.getSize().getHeight();
+                if (y > 150 && h > 30) count++;
+            }
+            System.out.println("📊 Link Tasks list count: " + count);
+            return count;
+        } catch (Exception e) {
+            System.out.println("⚠️ Error counting Link Tasks: " + e.getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Get the name of a task item at the given index in the Link Tasks list.
+     * @param index zero-based index
+     * @return the task name, or empty string if not found
+     */
+    public String getLinkTaskItemNameAt(int index) {
+        System.out.println("📍 Getting task name at index " + index + "...");
+        try {
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+            java.util.List<WebElement> taskCells = new java.util.ArrayList<>();
+            for (WebElement cell : cells) {
+                int y = cell.getLocation().getY();
+                int h = cell.getSize().getHeight();
+                if (y > 150 && h > 30) taskCells.add(cell);
+            }
+
+            if (index < taskCells.size()) {
+                WebElement cell = taskCells.get(index);
+                int cellY = cell.getLocation().getY();
+                int cellH = cell.getSize().getHeight();
+
+                // Look for the primary text (task name) inside cell's Y range
+                List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND visible == true"
+                ));
+
+                // First text element in the cell is typically the name
+                for (WebElement text : texts) {
+                    int textY = text.getLocation().getY();
+                    String label = text.getAttribute("label");
+                    if (textY >= cellY && textY <= cellY + cellH
+                            && label != null && !label.isEmpty()
+                            && !label.equals("Completed")
+                            && !label.contains("Due") && label.length() > 1) {
+                        System.out.println("✅ Task[" + index + "] name: " + label);
+                        return label;
+                    }
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not get task name at index " + index);
+        return "";
+    }
+
+    /**
+     * Check if a task item at the given index has a "Completed" badge.
+     * @param index zero-based index
+     * @return true if the task shows "Completed" badge
+     */
+    public boolean isLinkTaskItemCompletedAt(int index) {
+        System.out.println("📍 Checking if task[" + index + "] is completed...");
+        try {
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+            java.util.List<WebElement> taskCells = new java.util.ArrayList<>();
+            for (WebElement cell : cells) {
+                int y = cell.getLocation().getY();
+                int h = cell.getSize().getHeight();
+                if (y > 150 && h > 30) taskCells.add(cell);
+            }
+
+            if (index < taskCells.size()) {
+                int cellY = taskCells.get(index).getLocation().getY();
+                int cellH = taskCells.get(index).getSize().getHeight();
+
+                List<WebElement> badges = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND "
+                    + "(label == 'Completed' OR label CONTAINS 'Completed')"
+                ));
+                for (WebElement badge : badges) {
+                    int badgeY = badge.getLocation().getY();
+                    if (badgeY >= cellY && badgeY <= cellY + cellH) {
+                        System.out.println("✅ Task[" + index + "] has Completed badge");
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("ℹ️ Task[" + index + "] does not have Completed badge");
+        return false;
+    }
+
+    /**
+     * Tap a task item at the given index to toggle selection in Link Tasks.
+     * @param index zero-based index
+     * @return true if tapped
+     */
+    public boolean tapLinkTaskItemAt(int index) {
+        System.out.println("📍 Tapping task item[" + index + "]...");
+        try {
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+            java.util.List<WebElement> taskCells = new java.util.ArrayList<>();
+            for (WebElement cell : cells) {
+                int y = cell.getLocation().getY();
+                int h = cell.getSize().getHeight();
+                if (y > 150 && h > 30) taskCells.add(cell);
+            }
+
+            if (index < taskCells.size()) {
+                taskCells.get(index).click();
+                System.out.println("✅ Tapped task item[" + index + "]");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap task item[" + index + "]");
+        return false;
+    }
+
+    /**
+     * Check if a task item at the given index is selected (checkmark visible).
+     * @param index zero-based index
+     * @return true if the task shows a selected/checkmark state
+     */
+    public boolean isLinkTaskItemSelectedAt(int index) {
+        System.out.println("📍 Checking if task[" + index + "] is selected...");
+        try {
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+            java.util.List<WebElement> taskCells = new java.util.ArrayList<>();
+            for (WebElement cell : cells) {
+                int y = cell.getLocation().getY();
+                int h = cell.getSize().getHeight();
+                if (y > 150 && h > 30) taskCells.add(cell);
+            }
+
+            if (index < taskCells.size()) {
+                WebElement cell = taskCells.get(index);
+
+                // Check cell's selected attribute
+                String selected = cell.getAttribute("selected");
+                if ("true".equalsIgnoreCase(selected)) {
+                    System.out.println("✅ Task[" + index + "] is selected (attribute)");
+                    return true;
+                }
+
+                // Look for checkmark image inside cell's Y range
+                int cellY = cell.getLocation().getY();
+                int cellH = cell.getSize().getHeight();
+
+                List<WebElement> images = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeImage' OR type == 'XCUIElementTypeButton') "
+                    + "AND (name CONTAINS 'checkmark' OR name CONTAINS 'selected' "
+                    + "OR label CONTAINS 'checkmark' OR label CONTAINS 'Selected')"
+                ));
+                for (WebElement img : images) {
+                    int imgY = img.getLocation().getY();
+                    if (imgY >= cellY && imgY <= cellY + cellH) {
+                        System.out.println("✅ Task[" + index + "] has checkmark");
+                        return true;
+                    }
+                }
+
+                // Fallback: look for filled circle or blue indicator
+                List<WebElement> indicators = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeImage' OR type == 'XCUIElementTypeOther') "
+                    + "AND (name CONTAINS 'circle.fill' OR name CONTAINS 'checkmark.circle.fill')"
+                ));
+                for (WebElement ind : indicators) {
+                    int indY = ind.getLocation().getY();
+                    if (indY >= cellY && indY <= cellY + cellH) {
+                        System.out.println("✅ Task[" + index + "] has filled circle indicator");
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("ℹ️ Task[" + index + "] is not selected");
+        return false;
+    }
+
+    // ================================================================
+    // LINK TASKS — SEARCH (TC_JOB_286)
+    // ================================================================
+
+    /**
+     * Search for tasks in the Link Tasks screen search bar.
+     * @param query the search query
+     * @return true if search was performed
+     */
+    public boolean searchInLinkTasks(String query) {
+        System.out.println("📍 Searching in Link Tasks for: '" + query + "'...");
+        try {
+            List<WebElement> fields = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeSearchField' OR type == 'XCUIElementTypeTextField') "
+                + "AND (value CONTAINS 'Search' OR label CONTAINS 'Search' "
+                + "OR value CONTAINS 'search' OR label CONTAINS 'search')"
+            ));
+            if (!fields.isEmpty()) {
+                fields.get(0).click();
+                try { Thread.sleep(300); } catch (InterruptedException e) { /* */ }
+                fields.get(0).clear();
+                fields.get(0).sendKeys(query);
+                System.out.println("✅ Searched for: " + query);
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not search in Link Tasks");
+        return false;
+    }
+
+    /**
+     * Clear the search in Link Tasks screen.
+     * @return true if search was cleared
+     */
+    public boolean clearLinkTasksSearch() {
+        System.out.println("📍 Clearing Link Tasks search...");
+        try {
+            // Try Clear button first
+            List<WebElement> clearBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label == 'Clear text' OR label == 'Clear' OR name == 'Clear text')"
+            ));
+            if (!clearBtns.isEmpty()) {
+                clearBtns.get(0).click();
+                System.out.println("✅ Cleared search via Clear button");
+                return true;
+            }
+
+            // Fallback: clear the search field
+            List<WebElement> fields = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeSearchField' OR type == 'XCUIElementTypeTextField'"
+            ));
+            if (!fields.isEmpty()) {
+                fields.get(0).clear();
+                System.out.println("✅ Cleared search field");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not clear Link Tasks search");
+        return false;
+    }
+
+    // ================================================================
+    // TASKS TAB — SUMMARY STATS (TC_JOB_288-289)
+    // ================================================================
+
+    /**
+     * Check if the Tasks tab summary stats bar is displayed.
+     * Shows: total count, pending count, completed count.
+     * @return true if the summary bar is visible
+     */
+    public boolean isTasksSummaryBarDisplayed() {
+        System.out.println("📍 Checking for Tasks summary bar...");
+
+        try {
+            // Look for count indicators (numbers with color context)
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                + "AND (label CONTAINS 'Total' OR label CONTAINS 'Pending' "
+                + "OR label CONTAINS 'Completed' OR label CONTAINS 'total' "
+                + "OR label CONTAINS 'pending' OR label CONTAINS 'completed')"
+            ));
+            if (texts.size() >= 2) {
+                System.out.println("✅ Tasks summary bar found with " + texts.size() + " labels");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Fallback: look for numeric stat elements near top of task content area
+        try {
+            List<WebElement> numbers = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true"
+            ));
+            int numbersInRange = 0;
+            for (WebElement num : numbers) {
+                String label = num.getAttribute("label");
+                int y = num.getLocation().getY();
+                if (label != null && label.matches("\\d+") && y > 100 && y < 350) {
+                    numbersInRange++;
+                }
+            }
+            if (numbersInRange >= 2) {
+                System.out.println("✅ Tasks summary bar found (numeric elements)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Tasks summary bar not found");
+        return false;
+    }
+
+    /**
+     * Get the total task count from the summary bar.
+     * @return the total count string, or empty if not found
+     */
+    public String getTasksTotalCount() {
+        System.out.println("📍 Getting total task count...");
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                + "AND (label CONTAINS 'Total' OR label == 'Total')"
+            ));
+            if (!texts.isEmpty()) {
+                int labelY = texts.get(0).getLocation().getY();
+                int labelX = texts.get(0).getLocation().getX();
+
+                // Find number near this label
+                List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND visible == true"
+                ));
+                for (WebElement t : allTexts) {
+                    String label = t.getAttribute("label");
+                    int y = t.getLocation().getY();
+                    int x = t.getLocation().getX();
+                    if (label != null && label.matches("\\d+")
+                            && Math.abs(x - labelX) < 80
+                            && Math.abs(y - labelY) < 60) {
+                        System.out.println("✅ Total task count: " + label);
+                        return label;
+                    }
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not get total task count");
+        return "";
+    }
+
+    /**
+     * Get the pending task count from the summary bar.
+     * @return the pending count string, or empty if not found
+     */
+    public String getTasksPendingCount() {
+        System.out.println("📍 Getting pending task count...");
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                + "AND (label CONTAINS 'Pending' OR label == 'Pending')"
+            ));
+            if (!texts.isEmpty()) {
+                int labelY = texts.get(0).getLocation().getY();
+                int labelX = texts.get(0).getLocation().getX();
+
+                List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND visible == true"
+                ));
+                for (WebElement t : allTexts) {
+                    String label = t.getAttribute("label");
+                    int y = t.getLocation().getY();
+                    int x = t.getLocation().getX();
+                    if (label != null && label.matches("\\d+")
+                            && Math.abs(x - labelX) < 80
+                            && Math.abs(y - labelY) < 60) {
+                        System.out.println("✅ Pending task count: " + label);
+                        return label;
+                    }
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not get pending task count");
+        return "";
+    }
+
+    /**
+     * Get the completed task count from the summary bar.
+     * @return the completed count string, or empty if not found
+     */
+    public String getTasksCompletedCount() {
+        System.out.println("📍 Getting completed task count...");
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                + "AND (label CONTAINS 'Completed' OR label == 'Completed')"
+            ));
+            if (!texts.isEmpty()) {
+                int labelY = texts.get(0).getLocation().getY();
+                int labelX = texts.get(0).getLocation().getX();
+
+                List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND visible == true"
+                ));
+                for (WebElement t : allTexts) {
+                    String label = t.getAttribute("label");
+                    int y = t.getLocation().getY();
+                    int x = t.getLocation().getX();
+                    if (label != null && label.matches("\\d+")
+                            && Math.abs(x - labelX) < 80
+                            && Math.abs(y - labelY) < 60) {
+                        System.out.println("✅ Completed task count: " + label);
+                        return label;
+                    }
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not get completed task count");
+        return "";
+    }
+
+    /**
+     * Check if the "Group By" dropdown is displayed on the Tasks tab.
+     * @return true if the dropdown is visible
+     */
+    public boolean isGroupByDropdownDisplayed() {
+        System.out.println("📍 Checking for Group By dropdown...");
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') "
+                + "AND (label CONTAINS 'Group By' OR label CONTAINS 'Group by' "
+                + "OR label CONTAINS 'GROUP BY')"
+            ));
+            boolean found = !elements.isEmpty();
+            System.out.println(found ? "✅ Group By dropdown found" : "⚠️ Group By dropdown not found");
+            return found;
+        } catch (Exception e) { return false; }
+    }
+
+    /**
+     * Check if the "Pending Tasks" subsection is displayed on the Tasks tab.
+     * @return true if the subsection is visible
+     */
+    public boolean isPendingTasksSubsectionDisplayed() {
+        System.out.println("📍 Checking for Pending Tasks subsection...");
+        try {
+            List<WebElement> headers = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'Pending Tasks' OR label CONTAINS 'Pending Tasks' "
+                + "OR label == 'PENDING TASKS')"
+            ));
+            boolean found = !headers.isEmpty();
+            System.out.println(found ? "✅ Pending Tasks subsection found" : "⚠️ Not found");
+            return found;
+        } catch (Exception e) { return false; }
+    }
+
+    /**
+     * Get the count of task cards displayed on the Tasks tab.
+     * @return count of task cards
+     */
+    public int getLinkedTaskCardCount() {
+        System.out.println("📍 Counting linked task cards...");
+        try {
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+            int count = 0;
+            for (WebElement cell : cells) {
+                int y = cell.getLocation().getY();
+                int h = cell.getSize().getHeight();
+                if (y > 200 && h > 40) count++;
+            }
+            System.out.println("📊 Linked task cards: " + count);
+            return count;
+        } catch (Exception e) {
+            System.out.println("⚠️ Error counting task cards: " + e.getMessage());
+            return 0;
+        }
+    }
+
+    // ================================================================
+    // TASKS TAB — BADGE COUNT (TC_JOB_290)
+    // ================================================================
+
+    /**
+     * Get the task badge count shown on the Tasks tab icon.
+     * The badge is typically a red circle with a number overlay on the tab button.
+     * @return the badge count as a string, or null if no badge found
+     */
+    public String getTasksTabBadgeCount() {
+        System.out.println("📍 Checking Tasks tab badge count...");
+
+        // Strategy 1: Look for a badge element near "Tasks" tab button
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label CONTAINS 'Tasks'"
+            ));
+            for (WebElement btn : buttons) {
+                String label = btn.getAttribute("label");
+                // Badge count may be embedded in the label (e.g., "Tasks, 2 items")
+                if (label != null && label.matches(".*\\d+.*")) {
+                    String count = label.replaceAll("[^0-9]", "");
+                    if (!count.isEmpty()) {
+                        System.out.println("✅ Tasks tab badge count from label: " + count);
+                        return count;
+                    }
+                }
+                // Check value attribute
+                String value = btn.getAttribute("value");
+                if (value != null && value.matches(".*\\d+.*")) {
+                    String count = value.replaceAll("[^0-9]", "");
+                    if (!count.isEmpty()) {
+                        System.out.println("✅ Tasks tab badge count from value: " + count);
+                        return count;
+                    }
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Look for badge text near Tasks tab Y position
+        try {
+            List<WebElement> tabElements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton') "
+                + "AND label == 'Tasks'"
+            ));
+            if (!tabElements.isEmpty()) {
+                int tabX = tabElements.get(0).getLocation().getX();
+                int tabY = tabElements.get(0).getLocation().getY();
+
+                // Badge is typically overlaid on the tab icon — look for small number text nearby
+                List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND visible == true "
+                    + "AND label MATCHES '^[0-9]+$'"
+                ));
+                for (WebElement text : allTexts) {
+                    int textX = text.getLocation().getX();
+                    int textY = text.getLocation().getY();
+                    // Badge should be within ~60px of tab icon
+                    if (Math.abs(textX - tabX) < 60 && Math.abs(textY - tabY) < 60) {
+                        String count = text.getAttribute("label");
+                        System.out.println("✅ Tasks tab badge count (nearby text): " + count);
+                        return count;
+                    }
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 3: Look for any badge/count element on the tab bar
+        try {
+            List<WebElement> badges = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeOther') "
+                + "AND (name CONTAINS 'badge' OR name CONTAINS 'Badge' OR label MATCHES '^[0-9]+$') "
+                + "AND visible == true"
+            ));
+            for (WebElement badge : badges) {
+                int y = badge.getLocation().getY();
+                // Tab bar is typically in the bottom region or near session tabs
+                String label = badge.getAttribute("label");
+                if (label != null && label.matches("^[0-9]+$")) {
+                    System.out.println("✅ Badge count found: " + label + " at Y=" + y);
+                    return label;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("ℹ️ No badge count found on Tasks tab");
+        return null;
+    }
+
+    /**
+     * Check if the Tasks tab shows a badge with a count.
+     * @return true if a badge count is visible
+     */
+    public boolean isTasksTabBadgeDisplayed() {
+        String badge = getTasksTabBadgeCount();
+        return badge != null && !badge.isEmpty();
+    }
+
+    // ================================================================
+    // CREATE TASK DIALOG (TC_JOB_291-293)
+    // ================================================================
+
+    /**
+     * Check if the "+" (Add/Create) button is displayed on the Tasks tab.
+     * This is typically a floating action button or toolbar button.
+     * @return true if the + button is visible
+     */
+    public boolean isTasksAddButtonDisplayed() {
+        System.out.println("📍 Checking for Tasks + button...");
+
+        // Strategy 1: Accessibility ID "Add" or "plus"
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(name == 'Add' OR name == 'add' OR label == 'Add' "
+                + "OR name CONTAINS 'plus' OR label CONTAINS 'plus' "
+                + "OR label == '+' OR name == '+')"
+            ));
+            if (!buttons.isEmpty()) {
+                System.out.println("✅ Tasks + button found");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Look for SF Symbol "plus" or "plus.circle"
+        try {
+            List<WebElement> icons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(name CONTAINS 'plus.circle' OR name CONTAINS 'plus.square')"
+            ));
+            if (!icons.isEmpty()) {
+                System.out.println("✅ Tasks + button found (SF Symbol)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("ℹ️ Tasks + button not found");
+        return false;
+    }
+
+    /**
+     * Tap the "+" (Add/Create) button on the Tasks tab.
+     * @return true if the button was tapped
+     */
+    public boolean tapTasksAddButton() {
+        System.out.println("📍 Tapping Tasks + button...");
+
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(name == 'Add' OR name == 'add' OR label == 'Add' "
+                + "OR name CONTAINS 'plus' OR label CONTAINS 'plus' "
+                + "OR label == '+' OR name == '+')"
+            ));
+            if (!buttons.isEmpty()) {
+                buttons.get(0).click();
+                System.out.println("✅ Tapped Tasks + button");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Fallback: SF Symbol
+        try {
+            List<WebElement> icons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(name CONTAINS 'plus.circle' OR name CONTAINS 'plus.square')"
+            ));
+            if (!icons.isEmpty()) {
+                icons.get(0).click();
+                System.out.println("✅ Tapped Tasks + button (SF Symbol)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap Tasks + button");
+        return false;
+    }
+
+    /**
+     * Check if the Create Task dialog is displayed.
+     * Dialog shows "Create Task" title, "Choose task type" subtitle,
+     * Simple Task and Complex Task options, and Cancel button.
+     * @return true if the dialog is visible
+     */
+    public boolean isCreateTaskDialogDisplayed() {
+        System.out.println("📍 Checking for Create Task dialog...");
+
+        // Strategy 1: Look for "Create Task" title text
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'Create Task' OR label == 'Create task')"
+            ));
+            if (!elements.isEmpty()) {
+                System.out.println("✅ Create Task dialog found (title text)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Look for "Choose task type" subtitle
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'Choose task type' OR label CONTAINS 'choose task type' "
+                + "OR label CONTAINS 'task type')"
+            ));
+            if (!elements.isEmpty()) {
+                System.out.println("✅ Create Task dialog found (subtitle)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 3: Look for both Simple Task and Complex Task options
+        try {
+            boolean hasSimple = !driver.findElements(AppiumBy.iOSNsPredicateString(
+                "label CONTAINS 'Simple Task'"
+            )).isEmpty();
+            boolean hasComplex = !driver.findElements(AppiumBy.iOSNsPredicateString(
+                "label CONTAINS 'Complex Task'"
+            )).isEmpty();
+            if (hasSimple && hasComplex) {
+                System.out.println("✅ Create Task dialog found (Simple + Complex options)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("ℹ️ Create Task dialog not found");
+        return false;
+    }
+
+    /**
+     * Wait for the Create Task dialog to appear.
+     * @return true if dialog appeared within timeout
+     */
+    public boolean waitForCreateTaskDialog() {
+        System.out.println("📍 Waiting for Create Task dialog...");
+        for (int i = 0; i < 10; i++) {
+            if (isCreateTaskDialogDisplayed()) return true;
+            try { Thread.sleep(500); } catch (InterruptedException e) { break; }
+        }
+        System.out.println("⚠️ Create Task dialog did not appear within timeout");
+        return false;
+    }
+
+    /**
+     * Get the Create Task dialog title text.
+     * @return the title text, or null if not found
+     */
+    public String getCreateTaskDialogTitle() {
+        System.out.println("📍 Getting Create Task dialog title...");
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'Create Task' OR label == 'Create task')"
+            ));
+            if (!elements.isEmpty()) {
+                String title = elements.get(0).getAttribute("label");
+                System.out.println("✅ Title: " + title);
+                return title;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ Title not found");
+        return null;
+    }
+
+    /**
+     * Get the Create Task dialog subtitle text.
+     * @return the subtitle text, or null if not found
+     */
+    public String getCreateTaskDialogSubtitle() {
+        System.out.println("📍 Getting Create Task dialog subtitle...");
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'Choose task type' OR label CONTAINS 'choose task type' "
+                + "OR label CONTAINS 'task type')"
+            ));
+            if (!elements.isEmpty()) {
+                String subtitle = elements.get(0).getAttribute("label");
+                System.out.println("✅ Subtitle: " + subtitle);
+                return subtitle;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ Subtitle not found");
+        return null;
+    }
+
+    /**
+     * Check if Simple Task option is displayed in the Create Task dialog.
+     * @return true if Simple Task option is visible
+     */
+    public boolean isSimpleTaskOptionDisplayed() {
+        System.out.println("📍 Checking for Simple Task option...");
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "label CONTAINS 'Simple Task' AND visible == true"
+            ));
+            if (!elements.isEmpty()) {
+                System.out.println("✅ Simple Task option found");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ Simple Task option not found");
+        return false;
+    }
+
+    /**
+     * Check if Complex Task option is displayed in the Create Task dialog.
+     * @return true if Complex Task option is visible
+     */
+    public boolean isComplexTaskOptionDisplayed() {
+        System.out.println("📍 Checking for Complex Task option...");
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "label CONTAINS 'Complex Task' AND visible == true"
+            ));
+            if (!elements.isEmpty()) {
+                System.out.println("✅ Complex Task option found");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ Complex Task option not found");
+        return false;
+    }
+
+    /**
+     * Get the description text for the Simple Task option.
+     * Expected: "One task for one asset"
+     * @return the description text, or null if not found
+     */
+    public String getSimpleTaskDescription() {
+        System.out.println("📍 Getting Simple Task description...");
+        try {
+            // Look for "One task for one asset" text
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'one asset' OR label CONTAINS 'One task for one')"
+            ));
+            if (!elements.isEmpty()) {
+                String desc = elements.get(0).getAttribute("label");
+                System.out.println("✅ Simple Task description: " + desc);
+                return desc;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Fallback: find "Simple Task" element and look for nearby text below it
+        try {
+            List<WebElement> simpleLabels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label == 'Simple Task'"
+            ));
+            if (!simpleLabels.isEmpty()) {
+                int simpleY = simpleLabels.get(0).getLocation().getY();
+                int simpleX = simpleLabels.get(0).getLocation().getX();
+
+                // Description is below the title
+                List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND visible == true"
+                ));
+                WebElement closest = null;
+                int closestDist = Integer.MAX_VALUE;
+                for (WebElement text : allTexts) {
+                    int y = text.getLocation().getY();
+                    int x = text.getLocation().getX();
+                    String label = text.getAttribute("label");
+                    // Below title, within same X range, not a title itself
+                    if (y > simpleY && y < simpleY + 60
+                        && Math.abs(x - simpleX) < 100
+                        && label != null && !label.equals("Simple Task")
+                        && !label.equals("Complex Task")
+                        && !label.equals("Create Task")
+                        && label.length() > 5) {
+                        int dist = y - simpleY;
+                        if (dist < closestDist) {
+                            closestDist = dist;
+                            closest = text;
+                        }
+                    }
+                }
+                if (closest != null) {
+                    String desc = closest.getAttribute("label");
+                    System.out.println("✅ Simple Task description (proximity): " + desc);
+                    return desc;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("ℹ️ Simple Task description not found");
+        return null;
+    }
+
+    /**
+     * Get the description text for the Complex Task option.
+     * Expected: "One task for multiple assets or forms"
+     * @return the description text, or null if not found
+     */
+    public String getComplexTaskDescription() {
+        System.out.println("📍 Getting Complex Task description...");
+        try {
+            // Look for "multiple assets" text
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'multiple assets' OR label CONTAINS 'Multiple assets')"
+            ));
+            if (!elements.isEmpty()) {
+                String desc = elements.get(0).getAttribute("label");
+                System.out.println("✅ Complex Task description: " + desc);
+                return desc;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Fallback: find "Complex Task" element and look for nearby text below it
+        try {
+            List<WebElement> complexLabels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label == 'Complex Task'"
+            ));
+            if (!complexLabels.isEmpty()) {
+                int complexY = complexLabels.get(0).getLocation().getY();
+                int complexX = complexLabels.get(0).getLocation().getX();
+
+                List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND visible == true"
+                ));
+                WebElement closest = null;
+                int closestDist = Integer.MAX_VALUE;
+                for (WebElement text : allTexts) {
+                    int y = text.getLocation().getY();
+                    int x = text.getLocation().getX();
+                    String label = text.getAttribute("label");
+                    if (y > complexY && y < complexY + 60
+                        && Math.abs(x - complexX) < 100
+                        && label != null && !label.equals("Complex Task")
+                        && !label.equals("Simple Task")
+                        && !label.equals("Create Task")
+                        && label.length() > 5) {
+                        int dist = y - complexY;
+                        if (dist < closestDist) {
+                            closestDist = dist;
+                            closest = text;
+                        }
+                    }
+                }
+                if (closest != null) {
+                    String desc = closest.getAttribute("label");
+                    System.out.println("✅ Complex Task description (proximity): " + desc);
+                    return desc;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("ℹ️ Complex Task description not found");
+        return null;
+    }
+
+    /**
+     * Tap the Simple Task option in the Create Task dialog.
+     * @return true if tapped successfully
+     */
+    public boolean tapSimpleTaskOption() {
+        System.out.println("📍 Tapping Simple Task option...");
+
+        // Strategy 1: Button or cell with "Simple Task" label
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeCell' "
+                + "OR type == 'XCUIElementTypeOther') AND label CONTAINS 'Simple Task'"
+            ));
+            if (!elements.isEmpty()) {
+                elements.get(0).click();
+                System.out.println("✅ Tapped Simple Task");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Static text with "Simple Task"
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label == 'Simple Task'"
+            ));
+            if (!texts.isEmpty()) {
+                texts.get(0).click();
+                System.out.println("✅ Tapped Simple Task (text)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap Simple Task");
+        return false;
+    }
+
+    /**
+     * Tap the Complex Task option in the Create Task dialog.
+     * @return true if tapped successfully
+     */
+    public boolean tapComplexTaskOption() {
+        System.out.println("📍 Tapping Complex Task option...");
+
+        // Strategy 1: Button or cell with "Complex Task" label
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeCell' "
+                + "OR type == 'XCUIElementTypeOther') AND label CONTAINS 'Complex Task'"
+            ));
+            if (!elements.isEmpty()) {
+                elements.get(0).click();
+                System.out.println("✅ Tapped Complex Task");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Static text
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label == 'Complex Task'"
+            ));
+            if (!texts.isEmpty()) {
+                texts.get(0).click();
+                System.out.println("✅ Tapped Complex Task (text)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap Complex Task");
+        return false;
+    }
+
+    /**
+     * Check if the Create Task dialog Cancel button is displayed.
+     * @return true if Cancel button is visible
+     */
+    public boolean isCreateTaskDialogCancelDisplayed() {
+        System.out.println("📍 Checking for Create Task Cancel button...");
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label == 'Cancel' OR label == 'cancel') AND visible == true"
+            ));
+            if (!buttons.isEmpty()) {
+                System.out.println("✅ Cancel button found");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ Cancel button not found");
+        return false;
+    }
+
+    /**
+     * Tap the Cancel button on the Create Task dialog.
+     * @return true if tapped
+     */
+    public boolean tapCreateTaskDialogCancel() {
+        System.out.println("📍 Tapping Create Task Cancel...");
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label == 'Cancel' OR label == 'cancel') AND visible == true"
+            ));
+            if (!buttons.isEmpty()) {
+                buttons.get(0).click();
+                System.out.println("✅ Tapped Cancel");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("⚠️ Could not tap Cancel");
+        return false;
+    }
+
+    // ================================================================
+    // SIMPLE TASK FORM (TC_JOB_294-297)
+    // ================================================================
+
+    /**
+     * Check if the New Simple Task screen is displayed.
+     * Looks for "New Simple Task" nav bar title.
+     * @return true if the screen is visible
+     */
+    public boolean isNewSimpleTaskScreenDisplayed() {
+        System.out.println("📍 Checking for New Simple Task screen...");
+
+        // Strategy 1: Navigation bar with "New Simple Task"
+        try {
+            List<WebElement> navBars = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeNavigationBar' OR type == 'XCUIElementTypeStaticText') "
+                + "AND (label == 'New Simple Task' OR name == 'New Simple Task')"
+            ));
+            if (!navBars.isEmpty()) {
+                System.out.println("✅ New Simple Task screen displayed");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Title text "New Simple Task"
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label CONTAINS 'Simple Task' "
+                + "AND visible == true"
+            ));
+            for (WebElement text : texts) {
+                int y = text.getLocation().getY();
+                if (y < 150) {
+                    System.out.println("✅ New Simple Task screen (title text at Y=" + y + ")");
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("ℹ️ New Simple Task screen not found");
+        return false;
+    }
+
+    /**
+     * Wait for the New Simple Task screen to appear.
+     * @return true if screen appeared within timeout
+     */
+    public boolean waitForNewSimpleTaskScreen() {
+        System.out.println("📍 Waiting for New Simple Task screen...");
+        for (int i = 0; i < 10; i++) {
+            if (isNewSimpleTaskScreenDisplayed()) return true;
+            try { Thread.sleep(500); } catch (InterruptedException e) { break; }
+        }
+        System.out.println("⚠️ New Simple Task screen did not appear");
+        return false;
+    }
+
+    /**
+     * Check if the task form Cancel button is displayed (top-left).
+     * @return true if Cancel button is visible
+     */
+    public boolean isTaskFormCancelButtonDisplayed() {
+        System.out.println("📍 Checking for task form Cancel button...");
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == 'Cancel' AND visible == true"
+            ));
+            for (WebElement btn : buttons) {
+                int y = btn.getLocation().getY();
+                if (y < 150) {
+                    System.out.println("✅ Cancel button found at Y=" + y);
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ Cancel button not found");
+        return false;
+    }
+
+    /**
+     * Tap the Cancel button on the task creation form.
+     * @return true if tapped
+     */
+    public boolean tapTaskFormCancel() {
+        System.out.println("📍 Tapping task form Cancel...");
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == 'Cancel' AND visible == true"
+            ));
+            for (WebElement btn : buttons) {
+                int y = btn.getLocation().getY();
+                if (y < 150) {
+                    btn.click();
+                    System.out.println("✅ Tapped Cancel");
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("⚠️ Could not tap Cancel");
+        return false;
+    }
+
+    /**
+     * Check if the Create Task button is displayed on the form (top-right).
+     * @return true if visible
+     */
+    public boolean isCreateTaskButtonDisplayed() {
+        System.out.println("📍 Checking for Create Task button...");
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label == 'Create Task' OR label == 'Create task' OR label == 'Create')"
+            ));
+            if (!buttons.isEmpty()) {
+                System.out.println("✅ Create Task button found");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ Create Task button not found");
+        return false;
+    }
+
+    /**
+     * Check if Title field is displayed on the task form.
+     * @return true if Title field is visible
+     */
+    public boolean isTaskTitleFieldDisplayed() {
+        System.out.println("📍 Checking for Title field...");
+        try {
+            List<WebElement> fields = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeTextField' AND "
+                + "(value CONTAINS 'title' OR value CONTAINS 'Title' "
+                + "OR label CONTAINS 'Title' OR name CONTAINS 'Title')"
+            ));
+            if (!fields.isEmpty()) {
+                System.out.println("✅ Title field found");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Fallback: look for "Title" label text + a nearby text field
+        try {
+            List<WebElement> labels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label == 'Title'"
+            ));
+            if (!labels.isEmpty()) {
+                System.out.println("✅ Title field found (label)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("ℹ️ Title field not found");
+        return false;
+    }
+
+    /**
+     * Check if Description field is displayed on the task form.
+     * @return true if Description field is visible
+     */
+    public boolean isTaskDescriptionFieldDisplayed() {
+        System.out.println("📍 Checking for Description field...");
+
+        // Look for "Description" label or "TASK DETAILS" section with text view
+        try {
+            List<WebElement> labels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'Description' OR label CONTAINS 'description')"
+            ));
+            if (!labels.isEmpty()) {
+                System.out.println("✅ Description field found");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Fallback: text view element
+        try {
+            List<WebElement> textViews = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeTextView' AND visible == true"
+            ));
+            if (!textViews.isEmpty()) {
+                System.out.println("✅ Description field found (text view)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("ℹ️ Description field not found");
+        return false;
+    }
+
+    /**
+     * Check if the Description field shows a required indicator (asterisk *).
+     * @return true if the asterisk/required marker is visible near Description
+     */
+    public boolean isDescriptionFieldRequired() {
+        System.out.println("📍 Checking if Description field is marked required...");
+
+        // Strategy 1: Look for "Description *" or "Description*" text
+        try {
+            List<WebElement> labels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'Description' OR label CONTAINS 'description')"
+            ));
+            for (WebElement label : labels) {
+                String text = label.getAttribute("label");
+                if (text != null && text.contains("*")) {
+                    System.out.println("✅ Description required (asterisk in label): " + text);
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Look for standalone "*" text near Description label
+        try {
+            List<WebElement> descLabels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label == 'Description'"
+            ));
+            if (!descLabels.isEmpty()) {
+                int descY = descLabels.get(0).getLocation().getY();
+                int descX = descLabels.get(0).getLocation().getX();
+
+                List<WebElement> asterisks = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND "
+                    + "(label == '*' OR label == '* ' OR label CONTAINS 'required')"
+                ));
+                for (WebElement ast : asterisks) {
+                    int y = ast.getLocation().getY();
+                    int x = ast.getLocation().getX();
+                    if (Math.abs(y - descY) < 25 && Math.abs(x - descX) < 200) {
+                        System.out.println("✅ Description required (nearby asterisk)");
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 3: Check the "TASK DETAILS" section header for required indicator
+        try {
+            List<WebElement> headers = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "label CONTAINS 'TASK DETAILS'"
+            ));
+            if (!headers.isEmpty()) {
+                System.out.println("ℹ️ TASK DETAILS section found — checking fields for asterisk");
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("ℹ️ Description required indicator not found");
+        return false;
+    }
+
+    /**
+     * Check if Due Date field is displayed on the task form.
+     * @return true if Due Date field is visible
+     */
+    public boolean isDueDateFieldDisplayed() {
+        System.out.println("📍 Checking for Due Date field...");
+        try {
+            List<WebElement> labels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'Due Date' OR label CONTAINS 'due date' "
+                + "OR label CONTAINS 'Due date')"
+            ));
+            if (!labels.isEmpty()) {
+                System.out.println("✅ Due Date field found");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Fallback: look for SCHEDULE section header
+        try {
+            List<WebElement> labels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label CONTAINS 'SCHEDULE'"
+            ));
+            if (!labels.isEmpty()) {
+                System.out.println("✅ SCHEDULE section found (Due Date present)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("ℹ️ Due Date field not found");
+        return false;
+    }
+
+    /**
+     * Get the current value of the Due Date field.
+     * @return the date text (e.g., "Mar 5, 2026"), or null if not found
+     */
+    public String getDueDateValue() {
+        System.out.println("📍 Getting Due Date value...");
+
+        // Strategy 1: Look for date picker button or date text near "Due Date" label
+        try {
+            List<WebElement> dueDateLabels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'Due Date' OR label CONTAINS 'Due date')"
+            ));
+            if (!dueDateLabels.isEmpty()) {
+                int labelY = dueDateLabels.get(0).getLocation().getY();
+
+                // Look for date picker or button with date value nearby
+                List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeDatePicker' "
+                    + "OR type == 'XCUIElementTypeStaticText') AND visible == true"
+                ));
+                for (WebElement btn : buttons) {
+                    int y = btn.getLocation().getY();
+                    String label = btn.getAttribute("label");
+                    // Near the Due Date label and looks like a date
+                    if (Math.abs(y - labelY) < 40
+                        && label != null
+                        && (label.matches(".*\\d{1,2},.*\\d{4}.*")
+                            || label.matches(".*[A-Za-z]{3}\\s+\\d{1,2}.*")
+                            || label.contains("202"))) {
+                        System.out.println("✅ Due Date value: " + label);
+                        return label;
+                    }
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Look for date picker element
+        try {
+            List<WebElement> datePickers = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeDatePicker'"
+            ));
+            if (!datePickers.isEmpty()) {
+                String value = datePickers.get(0).getAttribute("value");
+                if (value != null && !value.isEmpty()) {
+                    System.out.println("✅ Due Date value (picker): " + value);
+                    return value;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 3: Look for any date-like text in the SCHEDULE section
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true"
+            ));
+            for (WebElement text : texts) {
+                String label = text.getAttribute("label");
+                if (label != null && label.matches(".*[A-Z][a-z]{2}\\s+\\d{1,2},?\\s+\\d{4}.*")) {
+                    System.out.println("✅ Due Date value (date pattern): " + label);
+                    return label;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("ℹ️ Due Date value not found");
+        return null;
+    }
+
+    /**
+     * Check if Asset/Assignment dropdown is displayed on the task form.
+     * For Simple Task: "Select Asset" (single). For Complex Task: "Assets" (plural).
+     * @return true if asset selection field is visible
+     */
+    public boolean isTaskAssetFieldDisplayed() {
+        System.out.println("📍 Checking for Asset field...");
+
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton') "
+                + "AND (label CONTAINS 'Asset' OR label CONTAINS 'asset' "
+                + "OR label CONTAINS 'ASSIGNMENT' OR label CONTAINS 'Select Asset')"
+            ));
+            if (!elements.isEmpty()) {
+                System.out.println("✅ Asset field found");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("ℹ️ Asset field not found");
+        return false;
+    }
+
+    /**
+     * Tap the Asset/Assignment dropdown to open asset selection.
+     * @return true if tapped
+     */
+    public boolean tapTaskAssetField() {
+        System.out.println("📍 Tapping Asset field...");
+
+        // Strategy 1: Button with "Select Asset" or "Assets"
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label CONTAINS 'Select Asset' OR label CONTAINS 'Select asset' "
+                + "OR label CONTAINS 'Assets' OR label CONTAINS 'Asset')"
+            ));
+            if (!buttons.isEmpty()) {
+                buttons.get(0).click();
+                System.out.println("✅ Tapped Asset field");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Cell or Other with asset label
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeOther') "
+                + "AND (label CONTAINS 'Asset' OR label CONTAINS 'Select Asset')"
+            ));
+            if (!elements.isEmpty()) {
+                elements.get(0).click();
+                System.out.println("✅ Tapped Asset field (cell)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 3: Find "ASSIGNMENT" section label and tap below it
+        try {
+            List<WebElement> labels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'ASSIGNMENT' OR label == 'Assignment')"
+            ));
+            if (!labels.isEmpty()) {
+                int labelY = labels.get(0).getLocation().getY();
+                List<WebElement> allButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeCell') "
+                    + "AND visible == true"
+                ));
+                for (WebElement btn : allButtons) {
+                    int y = btn.getLocation().getY();
+                    if (y > labelY && y < labelY + 80) {
+                        btn.click();
+                        System.out.println("✅ Tapped asset field below ASSIGNMENT");
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap Asset field");
+        return false;
+    }
+
+    /**
+     * Check if Mark as Completed toggle is displayed on the task form.
+     * @return true if the toggle is visible
+     */
+    public boolean isMarkAsCompletedToggleDisplayed() {
+        System.out.println("📍 Checking for Mark as Completed toggle...");
+        try {
+            List<WebElement> switches = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeSwitch' AND "
+                + "(name CONTAINS 'Mark as Completed' OR label CONTAINS 'Mark as Completed')"
+            ));
+            if (!switches.isEmpty()) {
+                System.out.println("✅ Mark as Completed toggle found");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Fallback: look for "STATUS" section with toggle
+        try {
+            List<WebElement> labels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'Mark as Completed' OR label == 'STATUS')"
+            ));
+            if (!labels.isEmpty()) {
+                System.out.println("✅ Mark as Completed toggle found (label)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("ℹ️ Mark as Completed toggle not found");
+        return false;
+    }
+
+    /**
+     * Check if TASK DETAILS section header is displayed.
+     * @return true if visible
+     */
+    public boolean isTaskDetailsSectionDisplayed() {
+        System.out.println("📍 Checking for TASK DETAILS section...");
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'TASK DETAILS' OR label == 'Task Details')"
+            ));
+            if (!elements.isEmpty()) {
+                System.out.println("✅ TASK DETAILS section found");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ TASK DETAILS section not found");
+        return false;
+    }
+
+    /**
+     * Check if SCHEDULE section header is displayed.
+     * @return true if visible
+     */
+    public boolean isScheduleSectionDisplayed() {
+        System.out.println("📍 Checking for SCHEDULE section...");
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'SCHEDULE' OR label == 'Schedule')"
+            ));
+            if (!elements.isEmpty()) {
+                System.out.println("✅ SCHEDULE section found");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ SCHEDULE section not found");
+        return false;
+    }
+
+    /**
+     * Check if ASSIGNMENT section header is displayed.
+     * @return true if visible
+     */
+    public boolean isAssignmentSectionDisplayed() {
+        System.out.println("📍 Checking for ASSIGNMENT section...");
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'ASSIGNMENT' OR label == 'Assignment')"
+            ));
+            if (!elements.isEmpty()) {
+                System.out.println("✅ ASSIGNMENT section found");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ ASSIGNMENT section not found");
+        return false;
+    }
+
+    /**
+     * Check if STATUS section header is displayed.
+     * @return true if visible
+     */
+    public boolean isStatusSectionDisplayed() {
+        System.out.println("📍 Checking for STATUS section...");
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'STATUS' OR label == 'Status')"
+            ));
+            if (!elements.isEmpty()) {
+                System.out.println("✅ STATUS section found");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ STATUS section not found");
+        return false;
+    }
+
+    // ================================================================
+    // COMPLEX TASK FORM (TC_JOB_298-299)
+    // ================================================================
+
+    /**
+     * Check if the New Task (Complex) screen is displayed.
+     * Complex task screen may show "New Task" (not "New Simple Task").
+     * @return true if the screen is visible
+     */
+    public boolean isNewComplexTaskScreenDisplayed() {
+        System.out.println("📍 Checking for New Complex Task screen...");
+
+        // Strategy 1: "New Task" navigation bar (without "Simple")
+        try {
+            List<WebElement> navBars = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeNavigationBar' OR type == 'XCUIElementTypeStaticText') "
+                + "AND (label == 'New Task' OR name == 'New Task')"
+            ));
+            if (!navBars.isEmpty()) {
+                System.out.println("✅ New Task (Complex) screen displayed");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Title text containing "New Task" at top
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'New Task' OR label CONTAINS 'Complex Task') "
+                + "AND visible == true"
+            ));
+            for (WebElement text : texts) {
+                int y = text.getLocation().getY();
+                if (y < 150) {
+                    System.out.println("✅ New Task screen (title at Y=" + y + ")");
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("ℹ️ New Complex Task screen not found");
+        return false;
+    }
+
+    /**
+     * Wait for the New Complex Task screen to appear.
+     * @return true if screen appeared within timeout
+     */
+    public boolean waitForNewComplexTaskScreen() {
+        System.out.println("📍 Waiting for New Complex Task screen...");
+        for (int i = 0; i < 10; i++) {
+            if (isNewComplexTaskScreenDisplayed()) return true;
+            try { Thread.sleep(500); } catch (InterruptedException e) { break; }
+        }
+        System.out.println("⚠️ New Complex Task screen did not appear");
+        return false;
+    }
+
+    /**
+     * Get the count badge on the Assets field in Complex Task form.
+     * @return the count text (e.g., "2"), or null if not found
+     */
+    public String getComplexTaskAssetCount() {
+        System.out.println("📍 Getting Complex Task asset count...");
+
+        try {
+            // Look for a badge/count near "Assets" label
+            List<WebElement> assetLabels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'Assets' OR label CONTAINS 'Assets')"
+            ));
+            if (!assetLabels.isEmpty()) {
+                int labelY = assetLabels.get(0).getLocation().getY();
+                int labelX = assetLabels.get(0).getLocation().getX();
+
+                // Look for a number badge near the Assets label
+                List<WebElement> badges = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND label MATCHES '^[0-9]+$' "
+                    + "AND visible == true"
+                ));
+                for (WebElement badge : badges) {
+                    int y = badge.getLocation().getY();
+                    int x = badge.getLocation().getX();
+                    if (Math.abs(y - labelY) < 30) {
+                        String count = badge.getAttribute("label");
+                        System.out.println("✅ Asset count badge: " + count);
+                        return count;
+                    }
+                }
+
+                // Also check the Assets label itself for embedded count
+                String fullLabel = assetLabels.get(0).getAttribute("label");
+                if (fullLabel != null && fullLabel.matches(".*\\d+.*")) {
+                    String count = fullLabel.replaceAll("[^0-9]", "");
+                    System.out.println("✅ Asset count from label: " + count);
+                    return count;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("ℹ️ Asset count not found");
+        return null;
+    }
+
+    /**
+     * Check if an asset selection list is displayed (after tapping Assets field).
+     * @return true if asset selection list is visible
+     */
+    public boolean isAssetSelectionListDisplayed() {
+        System.out.println("📍 Checking for asset selection list...");
+        try {
+            // Look for asset cells in the list
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+            int assetCells = 0;
+            for (WebElement cell : cells) {
+                int y = cell.getLocation().getY();
+                int h = cell.getSize().getHeight();
+                if (y > 100 && h > 30) assetCells++;
+            }
+            if (assetCells > 0) {
+                System.out.println("✅ Asset selection list with " + assetCells + " items");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ Asset selection list not found");
+        return false;
+    }
+
+    /**
+     * Select an asset at the given index in the asset selection list.
+     * @param index zero-based index
+     * @return true if asset was selected
+     */
+    public boolean selectTaskAssetAtIndex(int index) {
+        System.out.println("📍 Selecting asset at index " + index + "...");
+        try {
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+            java.util.List<WebElement> assetCells = new java.util.ArrayList<>();
+            for (WebElement cell : cells) {
+                int y = cell.getLocation().getY();
+                int h = cell.getSize().getHeight();
+                if (y > 100 && h > 30) assetCells.add(cell);
+            }
+            if (index < assetCells.size()) {
+                assetCells.get(index).click();
+                System.out.println("✅ Selected asset[" + index + "]");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("⚠️ Could not select asset[" + index + "]");
+        return false;
+    }
+
+    /**
+     * Get count of currently selected assets (shown with X remove buttons).
+     * Used for Complex Task form where multiple assets can be selected.
+     * @return count of selected assets
+     */
+    public int getSelectedAssetCount() {
+        System.out.println("📍 Counting selected assets...");
+        try {
+            // Look for X/remove buttons that indicate selected assets
+            List<WebElement> removeButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label CONTAINS 'Remove' OR label CONTAINS 'remove' "
+                + "OR name CONTAINS 'xmark' OR label == 'X' OR label == 'x' "
+                + "OR name CONTAINS 'multiply' OR name CONTAINS 'xmark.circle')"
+            ));
+            int count = removeButtons.size();
+            System.out.println("📊 Selected assets: " + count);
+            return count;
+        } catch (Exception e) {
+            System.out.println("⚠️ Error counting selected assets: " + e.getMessage());
+            return 0;
+        }
+    }
+
+    // ================================================================
+    // LINKED SESSION BANNER — PHOTO TYPE (TC_JOB_300)
+    // ================================================================
+
+    /**
+     * Get the photo type text from the "Linked to active session" banner.
+     * Expected format: "Type: FLIR-SEP" or similar.
+     * @return the photo type text, or null if not found
+     */
+    public String getLinkedSessionPhotoType() {
+        System.out.println("📍 Getting photo type from linked session banner...");
+
+        // Strategy 1: Look for "Type:" text
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                + "AND (label CONTAINS 'Type:' OR label CONTAINS 'type:')"
+            ));
+            for (WebElement el : elements) {
+                int y = el.getLocation().getY();
+                if (y < 300) {
+                    String label = el.getAttribute("label");
+                    // Extract type after "Type:"
+                    if (label.contains("Type:")) {
+                        String type = label.substring(label.indexOf("Type:") + 5).trim();
+                        System.out.println("✅ Photo type: " + type);
+                        return type;
+                    }
+                    if (label.contains("type:")) {
+                        String type = label.substring(label.indexOf("type:") + 5).trim();
+                        System.out.println("✅ Photo type: " + type);
+                        return type;
+                    }
+                    System.out.println("✅ Photo type (full label): " + label);
+                    return label;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Look for known photo type values near banner
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                + "AND (label CONTAINS 'FLIR' OR label CONTAINS 'FLUKE' "
+                + "OR label CONTAINS 'FOTRIC')"
+            ));
+            for (WebElement text : texts) {
+                int y = text.getLocation().getY();
+                if (y < 300) {
+                    String label = text.getAttribute("label");
+                    System.out.println("✅ Photo type (known value): " + label);
+                    return label;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 3: Search all texts in banner area for type-like content
+        try {
+            List<WebElement> bannerTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true"
+            ));
+            for (WebElement text : bannerTexts) {
+                int y = text.getLocation().getY();
+                String label = text.getAttribute("label");
+                if (y < 250 && label != null
+                    && (label.matches(".*FLIR.*") || label.matches(".*FLUKE.*")
+                        || label.matches(".*FOTRIC.*") || label.contains("Type"))) {
+                    System.out.println("✅ Photo type (banner area): " + label);
+                    return label;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("ℹ️ Photo type not found in banner");
+        return null;
+    }
+
+    /**
+     * Check if the linked session banner shows a signal/antenna icon.
+     * @return true if signal icon is visible in banner area
+     */
+    public boolean isLinkedSessionSignalIconDisplayed() {
+        System.out.println("📍 Checking for signal icon in banner...");
+        try {
+            List<WebElement> icons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeImage' OR type == 'XCUIElementTypeButton' "
+                + "OR type == 'XCUIElementTypeOther') AND "
+                + "(name CONTAINS 'antenna' OR name CONTAINS 'signal' "
+                + "OR name CONTAINS 'broadcast' OR name CONTAINS 'wifi' "
+                + "OR name CONTAINS 'dot.radiowaves' OR name CONTAINS 'wave')"
+            ));
+            for (WebElement icon : icons) {
+                int y = icon.getLocation().getY();
+                if (y < 300) {
+                    System.out.println("✅ Signal icon found at Y=" + y);
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ Signal icon not found");
+        return false;
+    }
+
+    // ================================================================
+    // COMPLEX TASK — ASSET REMOVAL (TC_JOB_301)
+    // ================================================================
+
+    /**
+     * Remove a selected asset at the given index by tapping its X/remove button.
+     * Used in Complex Task form where multiple assets are selected.
+     * @param index zero-based index of the asset to remove
+     * @return true if the X button was tapped
+     */
+    public boolean removeSelectedAssetAtIndex(int index) {
+        System.out.println("📍 Removing selected asset at index " + index + "...");
+        try {
+            List<WebElement> removeButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label CONTAINS 'Remove' OR label CONTAINS 'remove' "
+                + "OR name CONTAINS 'xmark' OR label == 'X' OR label == 'x' "
+                + "OR name CONTAINS 'multiply' OR name CONTAINS 'xmark.circle' "
+                + "OR name CONTAINS 'delete' OR name CONTAINS 'close')"
+            ));
+
+            // Filter to buttons in the assignment/assets area (below header, above status)
+            java.util.List<WebElement> assetRemoveButtons = new java.util.ArrayList<>();
+            for (WebElement btn : removeButtons) {
+                int y = btn.getLocation().getY();
+                if (y > 200 && y < 700) {
+                    assetRemoveButtons.add(btn);
+                }
+            }
+
+            if (index < assetRemoveButtons.size()) {
+                assetRemoveButtons.get(index).click();
+                System.out.println("✅ Removed asset at index " + index);
+                return true;
+            }
+
+            System.out.println("⚠️ No remove button at index " + index
+                + " (found " + assetRemoveButtons.size() + ")");
+        } catch (Exception e) {
+            System.out.println("⚠️ Error removing asset: " + e.getMessage());
+        }
+        return false;
+    }
+
+    // ================================================================
+    // TASK CARD — OTHERS INDICATOR (TC_JOB_302)
+    // ================================================================
+
+    /**
+     * Get the "+ N others" text from a task card at the given index.
+     * Complex tasks with multiple assets show "AssetName + 1 others".
+     * @param index zero-based task card index
+     * @return the others text, or null if not found
+     */
+    public String getTaskCardOthersText(int index) {
+        System.out.println("📍 Getting 'others' text from task card[" + index + "]...");
+        try {
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+            java.util.List<WebElement> taskCells = new java.util.ArrayList<>();
+            for (WebElement cell : cells) {
+                int y = cell.getLocation().getY();
+                int h = cell.getSize().getHeight();
+                if (y > 200 && h > 40) taskCells.add(cell);
+            }
+
+            if (index < taskCells.size()) {
+                WebElement cell = taskCells.get(index);
+                // Search for "+ N others" text within the cell's Y range
+                int cellY = cell.getLocation().getY();
+                int cellH = cell.getSize().getHeight();
+
+                List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND visible == true "
+                    + "AND (label CONTAINS 'other' OR label CONTAINS 'Others')"
+                ));
+                for (WebElement text : texts) {
+                    int textY = text.getLocation().getY();
+                    if (textY >= cellY && textY <= cellY + cellH) {
+                        String label = text.getAttribute("label");
+                        System.out.println("✅ Others text: " + label);
+                        return label;
+                    }
+                }
+
+                // Fallback: check cell label itself
+                String cellLabel = cell.getAttribute("label");
+                if (cellLabel != null && cellLabel.contains("other")) {
+                    System.out.println("✅ Others in cell label: " + cellLabel);
+                    return cellLabel;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Error getting others text: " + e.getMessage());
+        }
+        System.out.println("ℹ️ No 'others' text found in task card[" + index + "]");
+        return null;
+    }
+
+    /**
+     * Get the task name from a task card at the given index on the Tasks tab.
+     * @param index zero-based task card index
+     * @return the task name, or null if not found
+     */
+    public String getTaskCardNameAt(int index) {
+        System.out.println("📍 Getting task card name at index " + index + "...");
+        try {
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+            java.util.List<WebElement> taskCells = new java.util.ArrayList<>();
+            for (WebElement cell : cells) {
+                int y = cell.getLocation().getY();
+                int h = cell.getSize().getHeight();
+                if (y > 200 && h > 40) taskCells.add(cell);
+            }
+
+            if (index < taskCells.size()) {
+                WebElement cell = taskCells.get(index);
+                // Try cell label
+                String label = cell.getAttribute("label");
+                if (label != null && !label.isEmpty()) {
+                    System.out.println("✅ Task card name: " + label);
+                    return label;
+                }
+                // Try first static text child
+                int cellY = cell.getLocation().getY();
+                int cellH = cell.getSize().getHeight();
+                List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND visible == true"
+                ));
+                for (WebElement text : texts) {
+                    int textY = text.getLocation().getY();
+                    if (textY >= cellY && textY <= cellY + cellH) {
+                        String textLabel = text.getAttribute("label");
+                        if (textLabel != null && !textLabel.isEmpty()
+                            && !textLabel.matches("^[0-9]+$")
+                            && !textLabel.contains("Pending")
+                            && !textLabel.contains("Completed")) {
+                            System.out.println("✅ Task card name (child text): " + textLabel);
+                            return textLabel;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Error getting task card name: " + e.getMessage());
+        }
+        System.out.println("ℹ️ Task card name not found at index " + index);
+        return null;
+    }
+
+    // ================================================================
+    // GROUP BY DROPDOWN (TC_JOB_303-306)
+    // ================================================================
+
+    /**
+     * Tap the Group By dropdown on the Tasks tab.
+     * @return true if the dropdown was tapped
+     */
+    public boolean tapGroupByDropdown() {
+        System.out.println("📍 Tapping Group By dropdown...");
+
+        // Strategy 1: Button with "Group By" label
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label CONTAINS 'Group By' OR label CONTAINS 'Group by' "
+                + "OR label CONTAINS 'GROUP BY')"
+            ));
+            if (!buttons.isEmpty()) {
+                buttons.get(0).click();
+                System.out.println("✅ Tapped Group By dropdown (button)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Static text + tap
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'Group By' OR label CONTAINS 'Group by')"
+            ));
+            if (!texts.isEmpty()) {
+                texts.get(0).click();
+                System.out.println("✅ Tapped Group By dropdown (text)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 3: Picker or popup trigger with grouping context
+        try {
+            List<WebElement> pickers = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeOther') "
+                + "AND (label CONTAINS 'Grouping' OR label CONTAINS 'grouping' "
+                + "OR label CONTAINS 'No Grouping')"
+            ));
+            if (!pickers.isEmpty()) {
+                pickers.get(0).click();
+                System.out.println("✅ Tapped Group By (picker/grouping)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap Group By dropdown");
+        return false;
+    }
+
+    /**
+     * Get all options currently visible in the Group By dropdown/popup.
+     * Expected options: "No Grouping", "By Location", "By Parent Node"
+     * @return list of option labels
+     */
+    public java.util.List<String> getGroupByOptions() {
+        System.out.println("📍 Getting Group By options...");
+        java.util.List<String> options = new java.util.ArrayList<>();
+
+        // Look for known grouping option labels
+        String[] expectedOptions = {"No Grouping", "By Location", "By Parent Node"};
+        for (String opt : expectedOptions) {
+            try {
+                List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton') "
+                    + "AND label == '" + opt + "'"
+                ));
+                if (!elements.isEmpty()) {
+                    options.add(opt);
+                }
+            } catch (Exception e) { /* continue */ }
+        }
+
+        // Also search for partial matches in case labels differ slightly
+        if (options.isEmpty()) {
+            try {
+                List<WebElement> allItems = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' "
+                    + "OR type == 'XCUIElementTypeCell') AND visible == true "
+                    + "AND (label CONTAINS 'Grouping' OR label CONTAINS 'Location' "
+                    + "OR label CONTAINS 'Parent Node' OR label CONTAINS 'parent node')"
+                ));
+                for (WebElement item : allItems) {
+                    String label = item.getAttribute("label");
+                    if (label != null && !label.isEmpty() && !options.contains(label)) {
+                        options.add(label);
+                    }
+                }
+            } catch (Exception e) { /* continue */ }
+        }
+
+        System.out.println("📊 Group By options: " + options);
+        return options;
+    }
+
+    /**
+     * Select a Group By option by its label.
+     * @param optionName the option to select (e.g., "No Grouping", "By Location", "By Parent Node")
+     * @return true if the option was selected
+     */
+    public boolean selectGroupByOption(String optionName) {
+        System.out.println("📍 Selecting Group By option: " + optionName + "...");
+
+        // Strategy 1: Button or text with exact match
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' "
+                + "OR type == 'XCUIElementTypeCell') AND label == '" + optionName + "'"
+            ));
+            if (!elements.isEmpty()) {
+                elements.get(0).click();
+                System.out.println("✅ Selected: " + optionName);
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Contains match
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' "
+                + "OR type == 'XCUIElementTypeCell') AND label CONTAINS '" + optionName + "'"
+            ));
+            if (!elements.isEmpty()) {
+                elements.get(0).click();
+                System.out.println("✅ Selected (contains): " + optionName);
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not select Group By option: " + optionName);
+        return false;
+    }
+
+    /**
+     * Get the count of visible group headers in the grouped task view.
+     * Group headers show the group name and count (e.g., "No Location ○ 3").
+     * @return count of group headers
+     */
+    public int getGroupHeaderCount() {
+        System.out.println("📍 Counting group headers...");
+        try {
+            // Group headers are typically disclosure groups or section headers
+            List<WebElement> headers = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeDisclosureTriangle' "
+                + "OR type == 'XCUIElementTypeButton' "
+                + "OR type == 'XCUIElementTypeOther') "
+                + "AND visible == true "
+                + "AND (label CONTAINS '○' OR label CONTAINS '●' "
+                + "OR name CONTAINS 'Section Header')"
+            ));
+            if (!headers.isEmpty()) {
+                System.out.println("📊 Group headers (disclosure): " + headers.size());
+                return headers.size();
+            }
+
+            // Fallback: look for section-like text with count patterns
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true"
+            ));
+            int count = 0;
+            for (WebElement text : texts) {
+                String label = text.getAttribute("label");
+                int y = text.getLocation().getY();
+                // Group headers: contain circle indicator or count, in the list area
+                if (y > 200 && label != null
+                    && (label.contains("○") || label.contains("●")
+                        || label.matches(".*\\(\\d+\\).*"))) {
+                    count++;
+                }
+            }
+            System.out.println("📊 Group headers (text): " + count);
+            return count;
+        } catch (Exception e) {
+            System.out.println("⚠️ Error counting headers: " + e.getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Check if a specific group header is displayed by name.
+     * @param groupName the group name to look for (e.g., "No Location", "No Parent Node")
+     * @return true if the group header is visible
+     */
+    public boolean isGroupHeaderDisplayed(String groupName) {
+        System.out.println("📍 Checking for group header: " + groupName + "...");
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' "
+                + "OR type == 'XCUIElementTypeOther') AND visible == true "
+                + "AND label CONTAINS '" + groupName + "'"
+            ));
+            if (!elements.isEmpty()) {
+                System.out.println("✅ Group header found: " + groupName);
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ Group header not found: " + groupName);
+        return false;
+    }
+
+    /**
+     * Tap a group header to expand/collapse it.
+     * @param groupName the group name to tap
+     * @return true if the header was tapped
+     */
+    public boolean tapGroupHeader(String groupName) {
+        System.out.println("📍 Tapping group header: " + groupName + "...");
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' "
+                + "OR type == 'XCUIElementTypeOther' OR type == 'XCUIElementTypeDisclosureTriangle') "
+                + "AND visible == true AND label CONTAINS '" + groupName + "'"
+            ));
+            if (!elements.isEmpty()) {
+                elements.get(0).click();
+                System.out.println("✅ Tapped group header: " + groupName);
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("⚠️ Could not tap group header: " + groupName);
+        return false;
+    }
+
+    /**
+     * Check if the task list is displayed as a flat list (no group headers).
+     * Used when "No Grouping" is selected.
+     * @return true if the view shows a flat list without group headers
+     */
+    public boolean isFlatTaskListDisplayed() {
+        System.out.println("📍 Checking for flat task list (no grouping)...");
+
+        boolean hasPendingSection = isPendingTasksSubsectionDisplayed();
+        int groupHeaders = getGroupHeaderCount();
+        int taskCards = getLinkedTaskCardCount();
+
+        System.out.println("📊 Flat list check: Pending section=" + hasPendingSection
+            + ", group headers=" + groupHeaders + ", task cards=" + taskCards);
+
+        // Flat list: has tasks and pending section, but minimal group headers
+        return taskCards > 0 && groupHeaders <= 1;
+    }
+
+    // ================================================================
+    // MANAGE BUTTON ON TASKS TAB (TC_JOB_307)
+    // ================================================================
+
+    /**
+     * Check if the "Manage" button is displayed on the Tasks tab.
+     * When tasks are linked, the button may show as "Manage" instead of "Manage Tasks".
+     * @return true if Manage button is visible
+     */
+    public boolean isManageButtonOnTasksTabDisplayed() {
+        System.out.println("📍 Checking for Manage button on Tasks tab...");
+
+        // Strategy 1: Button with "Manage" label (could be "Manage" or "Manage Tasks")
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label == 'Manage' OR label == 'Manage Tasks' "
+                + "OR label CONTAINS 'Manage')"
+            ));
+            if (!buttons.isEmpty()) {
+                System.out.println("✅ Manage button found");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Static text "Manage"
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'Manage' OR label == 'Manage Tasks')"
+            ));
+            if (!texts.isEmpty()) {
+                System.out.println("✅ Manage button found (text)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("ℹ️ Manage button not found");
+        return false;
+    }
+
+    /**
+     * Tap the "Manage" button on the Tasks tab to open Link Tasks for editing.
+     * @return true if the button was tapped
+     */
+    public boolean tapManageButtonOnTasksTab() {
+        System.out.println("📍 Tapping Manage button on Tasks tab...");
+
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label == 'Manage' OR label == 'Manage Tasks' "
+                + "OR label CONTAINS 'Manage')"
+            ));
+            if (!buttons.isEmpty()) {
+                buttons.get(0).click();
+                System.out.println("✅ Tapped Manage button");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Fallback: tap text
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'Manage' OR label == 'Manage Tasks')"
+            ));
+            if (!texts.isEmpty()) {
+                texts.get(0).click();
+                System.out.println("✅ Tapped Manage (text)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap Manage button");
+        return false;
+    }
+
+    // ================================================================
+    // TASK CARD NAVIGATION (TC_JOB_308)
+    // ================================================================
+
+    /**
+     * Tap on a task card at the given index to navigate to task details.
+     * Taps on the right side (arrow area) of the card.
+     * @param index zero-based task card index
+     * @return true if the card was tapped
+     */
+    public boolean tapTaskCardAt(int index) {
+        System.out.println("📍 Tapping task card at index " + index + "...");
+        try {
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+            java.util.List<WebElement> taskCells = new java.util.ArrayList<>();
+            for (WebElement cell : cells) {
+                int y = cell.getLocation().getY();
+                int h = cell.getSize().getHeight();
+                if (y > 200 && h > 40) taskCells.add(cell);
+            }
+
+            if (index < taskCells.size()) {
+                WebElement card = taskCells.get(index);
+                // Tap the right side (arrow area) of the card
+                int cardX = card.getLocation().getX();
+                int cardY = card.getLocation().getY();
+                int cardW = card.getSize().getWidth();
+                int cardH = card.getSize().getHeight();
+                int tapX = cardX + cardW - 30; // Right side for arrow
+                int tapY = cardY + cardH / 2;  // Center vertically
+
+                driver.executeScript("mobile: tap",
+                    java.util.Map.of("x", tapX, "y", tapY));
+                System.out.println("✅ Tapped task card[" + index + "] at (" + tapX + ", " + tapY + ")");
+                return true;
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Error tapping task card: " + e.getMessage());
+        }
+        System.out.println("⚠️ Could not tap task card[" + index + "]");
+        return false;
+    }
+
+    /**
+     * Check if the task detail view is displayed after tapping a task card.
+     * @return true if a task detail view is visible
+     */
+    public boolean isTaskDetailViewDisplayed() {
+        System.out.println("📍 Checking for task detail view...");
+
+        // Strategy 1: Navigation bar with task-related title
+        try {
+            List<WebElement> navBars = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeNavigationBar' AND visible == true"
+            ));
+            for (WebElement nav : navBars) {
+                String label = nav.getAttribute("label");
+                String name = nav.getAttribute("name");
+                // Task detail view should not show "Session Details" or "Link Tasks"
+                if (label != null && !label.contains("Session Details")
+                    && !label.contains("Link Tasks") && !label.contains("Jobs")
+                    && !label.contains("Work Orders")) {
+                    System.out.println("✅ Task detail view (nav: " + label + ")");
+                    return true;
+                }
+                if (name != null && !name.contains("Session Details")
+                    && !name.contains("Link Tasks") && !name.contains("Jobs")) {
+                    System.out.println("✅ Task detail view (nav name: " + name + ")");
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Look for task-specific content (TASK DETAILS header, title/description)
+        try {
+            boolean taskDetails = isTaskDetailsSectionDisplayed();
+            if (taskDetails) {
+                System.out.println("✅ Task detail view (TASK DETAILS section)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 3: Look for task title/description with a back button
+        try {
+            List<WebElement> backButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label CONTAINS 'Back' OR label CONTAINS 'back' "
+                + "OR name CONTAINS 'Back' OR label CONTAINS 'Tasks')"
+            ));
+            boolean hasBack = !backButtons.isEmpty();
+            if (hasBack) {
+                // Also check for task-like content
+                List<WebElement> statusLabels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND "
+                    + "(label == 'STATUS' OR label == 'SCHEDULE' "
+                    + "OR label == 'ASSIGNMENT' OR label CONTAINS 'Mark as Completed')"
+                ));
+                if (!statusLabels.isEmpty()) {
+                    System.out.println("✅ Task detail view (back + task fields)");
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("ℹ️ Task detail view not found");
+        return false;
+    }
+
+    /**
+     * Go back from task detail view to the Tasks tab.
+     * @return true if navigation back was successful
+     */
+    public boolean goBackFromTaskDetail() {
+        System.out.println("📍 Going back from task detail...");
+
+        // Strategy 1: Back button with "Tasks" or "Back" label
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label CONTAINS 'Back' OR label CONTAINS 'Tasks' "
+                + "OR name CONTAINS 'Back')"
+            ));
+            if (!buttons.isEmpty()) {
+                buttons.get(0).click();
+                System.out.println("✅ Went back from task detail");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Generic back
+        try {
+            goBack();
+            return true;
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not go back from task detail");
+        return false;
+    }
+
+    // ================================================================
+    // TASK COMPLETION CHECKBOX (TC_JOB_309)
+    // ================================================================
+
+    /**
+     * Tap the completion checkbox on a task card at the given index.
+     * The checkbox is typically on the left side of the task card.
+     * @param index zero-based task card index
+     * @return true if the checkbox was tapped
+     */
+    public boolean tapTaskCompletionCheckboxAt(int index) {
+        System.out.println("📍 Tapping completion checkbox on task card[" + index + "]...");
+        try {
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+            java.util.List<WebElement> taskCells = new java.util.ArrayList<>();
+            for (WebElement cell : cells) {
+                int y = cell.getLocation().getY();
+                int h = cell.getSize().getHeight();
+                if (y > 200 && h > 40) taskCells.add(cell);
+            }
+
+            if (index < taskCells.size()) {
+                WebElement card = taskCells.get(index);
+                int cardX = card.getLocation().getX();
+                int cardY = card.getLocation().getY();
+                int cardH = card.getSize().getHeight();
+
+                // Strategy 1: Find checkbox/circle button within the card's Y range
+                List<WebElement> checkboxes = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeImage') "
+                    + "AND (name CONTAINS 'circle' OR name CONTAINS 'checkbox' "
+                    + "OR name CONTAINS 'checkmark' OR label CONTAINS 'Complete' "
+                    + "OR label CONTAINS 'circle')"
+                ));
+                for (WebElement cb : checkboxes) {
+                    int cbY = cb.getLocation().getY();
+                    if (cbY >= cardY && cbY <= cardY + cardH) {
+                        cb.click();
+                        System.out.println("✅ Tapped checkbox on task card[" + index + "]");
+                        return true;
+                    }
+                }
+
+                // Strategy 2: Tap the left side of the card (where checkbox usually is)
+                int tapX = cardX + 30;  // Left side for checkbox
+                int tapY = cardY + cardH / 2;
+                driver.executeScript("mobile: tap",
+                    java.util.Map.of("x", tapX, "y", tapY));
+                System.out.println("✅ Tapped left side of card[" + index + "] at (" + tapX + ", " + tapY + ")");
+                return true;
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Error tapping checkbox: " + e.getMessage());
+        }
+        System.out.println("⚠️ Could not tap checkbox on task card[" + index + "]");
+        return false;
+    }
+
+    /**
+     * Check if a task card at the given index shows a completed state.
+     * @param index zero-based task card index
+     * @return true if the task appears completed (checkmark, strikethrough, etc.)
+     */
+    public boolean isTaskCardCompletedAt(int index) {
+        System.out.println("📍 Checking if task card[" + index + "] is completed...");
+        try {
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+            java.util.List<WebElement> taskCells = new java.util.ArrayList<>();
+            for (WebElement cell : cells) {
+                int y = cell.getLocation().getY();
+                int h = cell.getSize().getHeight();
+                if (y > 200 && h > 40) taskCells.add(cell);
+            }
+
+            if (index < taskCells.size()) {
+                WebElement card = taskCells.get(index);
+                int cardY = card.getLocation().getY();
+                int cardH = card.getSize().getHeight();
+
+                // Look for checkmark.circle.fill or completed indicator
+                List<WebElement> indicators = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeImage' OR type == 'XCUIElementTypeButton') "
+                    + "AND (name CONTAINS 'checkmark.circle.fill' "
+                    + "OR name CONTAINS 'checkmark.circle' "
+                    + "OR label CONTAINS 'Completed')"
+                ));
+                for (WebElement ind : indicators) {
+                    int indY = ind.getLocation().getY();
+                    if (indY >= cardY && indY <= cardY + cardH) {
+                        System.out.println("✅ Task card[" + index + "] is completed");
+                        return true;
+                    }
+                }
+
+                // Check cell label for "Completed" or "Done"
+                String cellLabel = card.getAttribute("label");
+                if (cellLabel != null
+                    && (cellLabel.contains("Completed") || cellLabel.contains("completed")
+                        || cellLabel.contains("Done"))) {
+                    System.out.println("✅ Task card[" + index + "] completed (label)");
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Error checking completion: " + e.getMessage());
+        }
+        System.out.println("ℹ️ Task card[" + index + "] is not completed");
+        return false;
+    }
+
+    /**
+     * Check if a "Completed Tasks" subsection is displayed on the Tasks tab.
+     * @return true if the section is visible
+     */
+    public boolean isCompletedTasksSubsectionDisplayed() {
+        System.out.println("📍 Checking for Completed Tasks subsection...");
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                + "AND (label CONTAINS 'Completed Tasks' OR label CONTAINS 'COMPLETED TASKS' "
+                + "OR label CONTAINS 'Completed')"
+            ));
+            for (WebElement el : elements) {
+                String label = el.getAttribute("label");
+                if (label != null && label.toLowerCase().contains("completed")
+                    && label.toLowerCase().contains("task")) {
+                    System.out.println("✅ Completed Tasks subsection found");
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ Completed Tasks subsection not found");
+        return false;
+    }
+
+    // ================================================================
+    // MARK AS COMPLETED TOGGLE — STATE & TAP (TC_JOB_310)
+    // ================================================================
+
+    /**
+     * Get the current state of the Mark as Completed toggle.
+     * @return "1" if ON, "0" if OFF, or null if not found
+     */
+    public String getMarkAsCompletedToggleState() {
+        System.out.println("📍 Getting Mark as Completed toggle state...");
+        try {
+            List<WebElement> switches = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeSwitch' AND "
+                + "(name CONTAINS 'Mark as Completed' OR label CONTAINS 'Mark as Completed')"
+            ));
+            if (!switches.isEmpty()) {
+                String value = switches.get(0).getAttribute("value");
+                System.out.println("✅ Toggle state: " + value);
+                return value;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ Toggle not found");
+        return null;
+    }
+
+    /**
+     * Tap the Mark as Completed toggle to change its state.
+     * @return true if the toggle was tapped
+     */
+    public boolean tapMarkAsCompletedToggle() {
+        System.out.println("📍 Tapping Mark as Completed toggle...");
+        try {
+            List<WebElement> switches = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeSwitch' AND "
+                + "(name CONTAINS 'Mark as Completed' OR label CONTAINS 'Mark as Completed')"
+            ));
+            if (!switches.isEmpty()) {
+                WebElement toggle = switches.get(0);
+                // Tap on the right side of the switch control
+                int x = toggle.getLocation().getX() + toggle.getSize().getWidth() - 25;
+                int y = toggle.getLocation().getY() + toggle.getSize().getHeight() / 2;
+                driver.executeScript("mobile: tap", java.util.Map.of("x", x, "y", y));
+                System.out.println("✅ Tapped toggle at (" + x + ", " + y + ")");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Fallback: try clicking the switch directly
+        try {
+            List<WebElement> switches = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeSwitch' AND "
+                + "(name CONTAINS 'Mark as Completed' OR label CONTAINS 'Mark as Completed')"
+            ));
+            if (!switches.isEmpty()) {
+                switches.get(0).click();
+                System.out.println("✅ Tapped toggle (direct click)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap toggle");
+        return false;
+    }
+
+    // ================================================================
+    // ISSUES TAB — EMPTY STATE (TC_JOB_311)
+    // ================================================================
+
+    /**
+     * Check if the Issues tab shows an empty state ("No Issues" heading).
+     * @return true if the empty state is displayed
+     */
+    public boolean isIssuesTabEmptyStateDisplayed() {
+        System.out.println("📍 Checking for Issues tab empty state...");
+
+        // Strategy 1: "No Issues" heading
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'No Issues' OR label == 'No issues')"
+            ));
+            if (!elements.isEmpty()) {
+                System.out.println("✅ Issues empty state found (No Issues heading)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Empty state message text
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'linking existing issues' "
+                + "OR label CONTAINS 'creating new ones' "
+                + "OR label CONTAINS 'Get started by')"
+            ));
+            if (!elements.isEmpty()) {
+                System.out.println("✅ Issues empty state found (description)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("ℹ️ Issues empty state not found");
+        return false;
+    }
+
+    /**
+     * Get the Issues tab empty state message text.
+     * @return the message text, or null if not found
+     */
+    public String getIssuesEmptyStateMessage() {
+        System.out.println("📍 Getting Issues empty state message...");
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'linking existing' OR label CONTAINS 'creating new' "
+                + "OR label CONTAINS 'Get started')"
+            ));
+            if (!elements.isEmpty()) {
+                String msg = elements.get(0).getAttribute("label");
+                System.out.println("✅ Empty state message: " + msg);
+                return msg;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ Empty state message not found");
+        return null;
+    }
+
+    // ================================================================
+    // LINK ISSUES — ISSUE STATUS BADGE (TC_JOB_314-315)
+    // ================================================================
+
+    /**
+     * Get the status badge text of an issue at the given index in the Link Issues list.
+     * Expected values: "Open", "In Progress", "Resolved", "Closed"
+     * @param index zero-based issue index
+     * @return the status badge text, or null if not found
+     */
+    public String getLinkIssueStatusBadgeAt(int index) {
+        System.out.println("📍 Getting status badge for issue[" + index + "]...");
+        try {
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell'"
+            ));
+            java.util.List<WebElement> issueCells = new java.util.ArrayList<>();
+            for (WebElement cell : cells) {
+                int y = cell.getLocation().getY();
+                int h = cell.getSize().getHeight();
+                if (y > 150 && h > 40) issueCells.add(cell);
+            }
+
+            if (index < issueCells.size()) {
+                WebElement cell = issueCells.get(index);
+                // Search child texts for status keywords
+                List<WebElement> children = cell.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText'"
+                ));
+                for (WebElement child : children) {
+                    String label = child.getAttribute("label");
+                    if (label != null && (label.equals("Open") || label.equals("In Progress")
+                        || label.equals("Resolved") || label.equals("Closed")
+                        || label.equalsIgnoreCase("AVAILABLE"))) {
+                        System.out.println("✅ Status badge: " + label);
+                        return label;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Error: " + e.getMessage());
+        }
+        System.out.println("ℹ️ Status badge not found for issue[" + index + "]");
+        return null;
+    }
+
+    /**
+     * Get the title text of an issue at the given index in the Link Issues list.
+     * @param index zero-based issue index
+     * @return the issue title, or null if not found
+     */
+    public String getLinkIssueTitleAt(int index) {
+        System.out.println("📍 Getting title for issue[" + index + "]...");
+        try {
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell'"
+            ));
+            java.util.List<WebElement> issueCells = new java.util.ArrayList<>();
+            for (WebElement cell : cells) {
+                int y = cell.getLocation().getY();
+                int h = cell.getSize().getHeight();
+                if (y > 150 && h > 40) issueCells.add(cell);
+            }
+
+            if (index < issueCells.size()) {
+                WebElement cell = issueCells.get(index);
+                List<WebElement> children = cell.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText'"
+                ));
+                // Title is typically the first non-status, non-date text
+                String[] statusKeywords = {"Open", "In Progress", "Resolved", "Closed", "AVAILABLE"};
+                for (WebElement child : children) {
+                    String label = child.getAttribute("label");
+                    if (label == null || label.isEmpty() || label.length() <= 2) continue;
+                    boolean isStatus = false;
+                    for (String kw : statusKeywords) {
+                        if (label.equalsIgnoreCase(kw)) { isStatus = true; break; }
+                    }
+                    if (!isStatus && !label.matches(".*\\b\\d{4}\\b.*")
+                        && !label.matches("^\\d{1,2}:\\d{2}.*")) {
+                        System.out.println("✅ Issue title: " + label);
+                        return label;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Error: " + e.getMessage());
+        }
+        System.out.println("ℹ️ Title not found for issue[" + index + "]");
+        return null;
+    }
+
+    // ================================================================
+    // ISSUES TAB — SECTION HEADERS (TC_JOB_320)
+    // ================================================================
+
+    /**
+     * Check if the "Issues" section header is displayed on the Issues tab.
+     * @return true if visible
+     */
+    public boolean isIssuesSectionHeaderDisplayed() {
+        System.out.println("📍 Checking for Issues section header...");
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'Issues' OR label == 'ISSUES') AND visible == true"
+            ));
+            for (WebElement el : elements) {
+                int y = el.getLocation().getY();
+                if (y > 200) {
+                    System.out.println("✅ Issues section header found at Y=" + y);
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ Issues section header not found");
+        return false;
+    }
+
+    /**
+     * Check if the "Open" subsection is displayed on the Issues tab.
+     * @return true if visible
+     */
+    public boolean isOpenIssuesSubsectionDisplayed() {
+        System.out.println("📍 Checking for Open subsection...");
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'Open' OR label CONTAINS 'Open Issues' "
+                + "OR label CONTAINS 'OPEN') AND visible == true"
+            ));
+            for (WebElement el : elements) {
+                int y = el.getLocation().getY();
+                if (y > 200) {
+                    System.out.println("✅ Open subsection found at Y=" + y);
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ Open subsection not found");
+        return false;
+    }
+
+    // ================================================================
+    // ISSUE CARD DETAILS ON ISSUES TAB (TC_JOB_321)
+    // ================================================================
+
+    /**
+     * Get the title of an issue card at the given index on the Issues tab.
+     * @param index zero-based issue card index
+     * @return the issue title, or null if not found
+     */
+    public String getSessionIssueTitleAt(int index) {
+        System.out.println("📍 Getting session issue title at index " + index + "...");
+        try {
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+            java.util.List<WebElement> issueCells = new java.util.ArrayList<>();
+            for (WebElement cell : cells) {
+                int y = cell.getLocation().getY();
+                int h = cell.getSize().getHeight();
+                if (y > 250 && h > 50) issueCells.add(cell);
+            }
+
+            if (index < issueCells.size()) {
+                WebElement cell = issueCells.get(index);
+                List<WebElement> children = cell.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText'"
+                ));
+                // Title is typically first longer text (not status, not date)
+                String[] skipWords = {"Open", "In Progress", "Resolved", "Closed", "AVAILABLE"};
+                for (WebElement child : children) {
+                    String label = child.getAttribute("label");
+                    if (label == null || label.length() <= 2) continue;
+                    boolean isSkip = false;
+                    for (String kw : skipWords) {
+                        if (label.equalsIgnoreCase(kw)) { isSkip = true; break; }
+                    }
+                    if (!isSkip && !label.matches("^\\d+$")) {
+                        System.out.println("✅ Issue title: " + label);
+                        return label;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Error: " + e.getMessage());
+        }
+        System.out.println("ℹ️ Issue title not found at index " + index);
+        return null;
+    }
+
+    /**
+     * Get the status badge of an issue card at the given index on the Issues tab.
+     * @param index zero-based issue card index
+     * @return the status text (Open/In Progress/Closed), or null
+     */
+    public String getSessionIssueStatusBadgeAt(int index) {
+        System.out.println("📍 Getting session issue status badge at index " + index + "...");
+        try {
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+            java.util.List<WebElement> issueCells = new java.util.ArrayList<>();
+            for (WebElement cell : cells) {
+                int y = cell.getLocation().getY();
+                int h = cell.getSize().getHeight();
+                if (y > 250 && h > 50) issueCells.add(cell);
+            }
+
+            if (index < issueCells.size()) {
+                WebElement cell = issueCells.get(index);
+                List<WebElement> children = cell.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText'"
+                ));
+                for (WebElement child : children) {
+                    String label = child.getAttribute("label");
+                    if (label != null && (label.equals("Open") || label.equals("In Progress")
+                        || label.equals("Resolved") || label.equals("Closed"))) {
+                        System.out.println("✅ Status badge: " + label);
+                        return label;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Error: " + e.getMessage());
+        }
+        System.out.println("ℹ️ Status badge not found at index " + index);
+        return null;
+    }
+
+    // ================================================================
+    // NEW ISSUE FORM (TC_JOB_323-326)
+    // ================================================================
+
+    /**
+     * Check if the New Issue screen is displayed.
+     * @return true if "New Issue" nav bar or title is visible
+     */
+    public boolean isNewIssueScreenDisplayed() {
+        System.out.println("📍 Checking for New Issue screen...");
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeNavigationBar' OR type == 'XCUIElementTypeStaticText') "
+                + "AND (label == 'New Issue' OR name == 'New Issue')"
+            ));
+            if (!elements.isEmpty()) {
+                System.out.println("✅ New Issue screen displayed");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ New Issue screen not found");
+        return false;
+    }
+
+    /**
+     * Wait for the New Issue screen to appear.
+     * @return true if appeared within timeout
+     */
+    public boolean waitForNewIssueScreen() {
+        System.out.println("📍 Waiting for New Issue screen...");
+        for (int i = 0; i < 10; i++) {
+            if (isNewIssueScreenDisplayed()) return true;
+            try { Thread.sleep(500); } catch (InterruptedException e) { break; }
+        }
+        System.out.println("⚠️ New Issue screen did not appear");
+        return false;
+    }
+
+    /**
+     * Check if the Create Issue button is displayed on the New Issue form.
+     * @return true if visible
+     */
+    public boolean isCreateIssueButtonDisplayed() {
+        System.out.println("📍 Checking for Create Issue button...");
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label == 'Create Issue' OR label == 'Create issue')"
+            ));
+            if (!buttons.isEmpty()) {
+                System.out.println("✅ Create Issue button found");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ Create Issue button not found");
+        return false;
+    }
+
+    /**
+     * Check if CLASSIFICATION section is displayed with Issue Class dropdown.
+     * @return true if Issue Class dropdown or CLASSIFICATION header is visible
+     */
+    public boolean isIssueClassDropdownDisplayed() {
+        System.out.println("📍 Checking for Issue Class dropdown...");
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton') "
+                + "AND (label CONTAINS 'Issue Class' OR label CONTAINS 'CLASSIFICATION' "
+                + "OR label CONTAINS 'Classification' OR label CONTAINS 'Select class')"
+            ));
+            if (!elements.isEmpty()) {
+                System.out.println("✅ Issue Class dropdown found");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ Issue Class dropdown not found");
+        return false;
+    }
+
+    /**
+     * Check if the Issue Title field is displayed on the New Issue form.
+     * @return true if visible
+     */
+    public boolean isIssueTitleFieldDisplayed() {
+        System.out.println("📍 Checking for Issue Title field...");
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeStaticText') "
+                + "AND (label CONTAINS 'Title' OR value CONTAINS 'title' "
+                + "OR label == 'ISSUE DETAILS' OR label == 'Issue Details')"
+            ));
+            if (!elements.isEmpty()) {
+                System.out.println("✅ Issue Title field found");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ Issue Title field not found");
+        return false;
+    }
+
+    /**
+     * Check if the Priority dropdown is displayed on the New Issue form.
+     * @return true if visible
+     */
+    public boolean isPriorityDropdownDisplayed() {
+        System.out.println("📍 Checking for Priority dropdown...");
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton') "
+                + "AND (label CONTAINS 'Priority' OR label CONTAINS 'priority')"
+            ));
+            if (!elements.isEmpty()) {
+                System.out.println("✅ Priority dropdown found");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ Priority dropdown not found");
+        return false;
+    }
+
+    /**
+     * Check if the Asset field is displayed on the New Issue form (ASSIGNMENT section).
+     * @return true if visible
+     */
+    public boolean isIssueAssetFieldDisplayed() {
+        System.out.println("📍 Checking for Issue Asset field...");
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton') "
+                + "AND (label CONTAINS 'Asset' OR label CONTAINS 'ASSIGNMENT' "
+                + "OR label CONTAINS 'Select Asset' OR label CONTAINS 'Select asset')"
+            ));
+            if (!elements.isEmpty()) {
+                System.out.println("✅ Issue Asset field found");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ Issue Asset field not found");
+        return false;
+    }
+
+    /**
+     * Check if "Asset is required" validation message is displayed.
+     * @return true if the validation message is visible
+     */
+    public boolean isAssetRequiredValidationDisplayed() {
+        System.out.println("📍 Checking for 'Asset is required' validation...");
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'Asset is required' OR label CONTAINS 'asset is required' "
+                + "OR label CONTAINS 'Required' OR label CONTAINS 'required field')"
+            ));
+            if (!elements.isEmpty()) {
+                System.out.println("✅ Asset required validation found: "
+                    + elements.get(0).getAttribute("label"));
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ Asset required validation not found");
+        return false;
+    }
+
+    /**
+     * Tap the Cancel button on the New Issue form.
+     * @return true if tapped
+     */
+    public boolean tapNewIssueCancel() {
+        System.out.println("📍 Tapping New Issue Cancel...");
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == 'Cancel' AND visible == true"
+            ));
+            for (WebElement btn : buttons) {
+                int y = btn.getLocation().getY();
+                if (y < 150) {
+                    btn.click();
+                    System.out.println("✅ Tapped Cancel");
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("⚠️ Could not tap Cancel");
+        return false;
+    }
+
+    /**
+     * Check if the issue detail view is displayed after tapping an issue card.
+     * @return true if a detail view is visible
+     */
+    public boolean isIssueDetailViewDisplayed() {
+        System.out.println("📍 Checking for issue detail view...");
+
+        // Strategy 1: Navigation bar without "Session Details"
+        try {
+            List<WebElement> navBars = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeNavigationBar' AND visible == true"
+            ));
+            for (WebElement nav : navBars) {
+                String label = nav.getAttribute("label");
+                if (label != null && !label.contains("Session Details")
+                    && !label.contains("Link Issues") && !label.contains("Jobs")
+                    && !label.contains("Work Orders") && !label.contains("New Issue")) {
+                    System.out.println("✅ Issue detail view (nav: " + label + ")");
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 2: Look for issue-specific sections (CLASSIFICATION, ISSUE DETAILS)
+        try {
+            List<WebElement> sections = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'CLASSIFICATION' OR label == 'ISSUE DETAILS' "
+                + "OR label CONTAINS 'Issue Class')"
+            ));
+            if (!sections.isEmpty()) {
+                System.out.println("✅ Issue detail view (sections found)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 3: Back button + issue-like content
+        try {
+            List<WebElement> backBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label CONTAINS 'Back' OR label CONTAINS 'Issues')"
+            ));
+            if (!backBtns.isEmpty()) {
+                List<WebElement> priorityLabels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND "
+                    + "(label CONTAINS 'Priority' OR label CONTAINS 'NEC' "
+                    + "OR label CONTAINS 'Violation' OR label CONTAINS 'Anomaly')"
+                ));
+                if (!priorityLabels.isEmpty()) {
+                    System.out.println("✅ Issue detail view (back + content)");
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("ℹ️ Issue detail view not found");
+        return false;
+    }
+
+    /**
+     * Go back from issue detail view.
+     * @return true if navigated back
+     */
+    public boolean goBackFromIssueDetail() {
+        System.out.println("📍 Going back from issue detail...");
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label CONTAINS 'Back' OR label CONTAINS 'Issues' "
+                + "OR name CONTAINS 'Back')"
+            ));
+            if (!buttons.isEmpty()) {
+                buttons.get(0).click();
+                System.out.println("✅ Went back from issue detail");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        try { goBack(); return true; } catch (Exception e) { /* continue */ }
+        System.out.println("⚠️ Could not go back");
+        return false;
+    }
+
+    // ================================================================
+    // ISSUES GROUPED BY STATUS (TC_JOB_330)
+    // ================================================================
+
+    /**
+     * Check if "Closed" subsection header is displayed on the Issues tab.
+     */
+    public boolean isClosedIssuesSubsectionDisplayed() {
+        System.out.println("📍 Checking for Closed subsection...");
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'Closed' OR label CONTAINS 'Closed Issues' "
+                + "OR label CONTAINS 'CLOSED' OR label == 'Resolved') AND visible == true"
+            ));
+            for (WebElement el : elements) {
+                int y = el.getLocation().getY();
+                if (y > 200) {
+                    System.out.println("✅ Closed subsection found at Y=" + y);
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ Closed subsection not found");
+        return false;
+    }
+
+    /**
+     * Get the list of issue status group headers visible on the Issues tab.
+     * @return list of group header labels (e.g., "Open", "Closed")
+     */
+    public java.util.List<String> getIssueStatusGroupHeaders() {
+        System.out.println("📍 Getting issue status group headers...");
+        java.util.List<String> headers = new java.util.ArrayList<>();
+        try {
+            // Look for section header text elements in the issues area
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'Open' OR label == 'Closed' OR label == 'Resolved' "
+                + "OR label == 'In Progress' OR label CONTAINS 'OPEN' "
+                + "OR label CONTAINS 'CLOSED') AND visible == true"
+            ));
+            for (WebElement el : elements) {
+                int y = el.getLocation().getY();
+                String label = el.getAttribute("label");
+                // Only consider elements in the content area (below tabs)
+                if (y > 200 && label != null && !label.isEmpty()) {
+                    // Avoid duplicates from badge labels
+                    int h = el.getSize().getHeight();
+                    // Group headers tend to be taller or styled differently
+                    // Accept if not already in list
+                    if (!headers.contains(label)) {
+                        System.out.println("  Found header: '" + label + "' at Y=" + y + ", H=" + h);
+                        headers.add(label);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Error getting headers: " + e.getMessage());
+        }
+        System.out.println("📍 Status group headers: " + headers);
+        return headers;
+    }
+
+    /**
+     * Count the number of issue cards under a specific status group (Open/Closed).
+     * @param statusGroup the status group label (e.g., "Open", "Closed")
+     * @return number of issue cards under that group, or -1 if not determined
+     */
+    public int getIssueCountUnderGroup(String statusGroup) {
+        System.out.println("📍 Counting issues under group: " + statusGroup);
+        try {
+            // Find the group header Y position
+            List<WebElement> headers = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == '" + statusGroup + "' OR label CONTAINS '"
+                + statusGroup + "') AND visible == true"
+            ));
+            int headerY = -1;
+            for (WebElement h : headers) {
+                int y = h.getLocation().getY();
+                if (y > 200) {
+                    headerY = y;
+                    break;
+                }
+            }
+            if (headerY == -1) {
+                System.out.println("ℹ️ Group header not found for: " + statusGroup);
+                return -1;
+            }
+
+            // Find all cells below this header
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+            int count = 0;
+            for (WebElement cell : cells) {
+                int cellY = cell.getLocation().getY();
+                int cellH = cell.getSize().getHeight();
+                // Count cells that are below the header and have reasonable height
+                if (cellY > headerY && cellH > 40) {
+                    count++;
+                }
+            }
+            System.out.println("✅ Found " + count + " issues under '" + statusGroup + "'");
+            return count;
+        } catch (Exception e) {
+            System.out.println("⚠️ Error: " + e.getMessage());
+            return -1;
+        }
+    }
+
+    // ================================================================
+    // FILES TAB - EMPTY STATE (TC_JOB_331)
+    // ================================================================
+
+    /**
+     * Check if the Files tab empty state is displayed ("No Attachments").
+     */
+    public boolean isFilesTabEmptyStateDisplayed() {
+        System.out.println("📍 Checking Files tab empty state...");
+        // Strategy 1: Look for "No Attachments" text
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'No Attachments' OR label CONTAINS 'No Attachments' "
+                + "OR label CONTAINS 'no attachments') AND visible == true"
+            ));
+            if (!elements.isEmpty()) {
+                System.out.println("✅ Files empty state found: 'No Attachments'");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        // Strategy 2: Look for the description text
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'Add documents' OR label CONTAINS 'add documents' "
+                + "OR label CONTAINS 'files to this session') AND visible == true"
+            ));
+            if (!elements.isEmpty()) {
+                System.out.println("✅ Files empty state found via description text");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ Files tab empty state not detected");
+        return false;
+    }
+
+    /**
+     * Get the Files tab empty state heading text.
+     * @return the heading text (e.g., "No Attachments"), or null
+     */
+    public String getFilesEmptyStateHeading() {
+        System.out.println("📍 Getting Files empty state heading...");
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'No Attachments' OR label CONTAINS 'Attachments') "
+                + "AND visible == true"
+            ));
+            for (WebElement el : elements) {
+                String label = el.getAttribute("label");
+                if (label != null && label.contains("No")) {
+                    System.out.println("✅ Empty state heading: " + label);
+                    return label;
+                }
+            }
+            // Return first match if "No" not found
+            if (!elements.isEmpty()) {
+                String label = elements.get(0).getAttribute("label");
+                System.out.println("✅ Heading: " + label);
+                return label;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ Empty state heading not found");
+        return null;
+    }
+
+    /**
+     * Get the Files tab empty state description text.
+     * @return the description (e.g., "Add documents, images, or other files..."), or null
+     */
+    public String getFilesEmptyStateDescription() {
+        System.out.println("📍 Getting Files empty state description...");
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'Add documents' OR label CONTAINS 'files to this session' "
+                + "OR label CONTAINS 'add documents') AND visible == true"
+            ));
+            if (!elements.isEmpty()) {
+                String label = elements.get(0).getAttribute("label");
+                System.out.println("✅ Description: " + label);
+                return label;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ Description not found");
+        return null;
+    }
+
+    /**
+     * Check if the "Attachments" section header is displayed on the Files tab.
+     */
+    public boolean isAttachmentsHeaderDisplayed() {
+        System.out.println("📍 Checking Attachments header...");
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'Attachments' OR label CONTAINS 'Attachments') AND visible == true"
+            ));
+            for (WebElement el : elements) {
+                int y = el.getLocation().getY();
+                if (y > 100) {
+                    System.out.println("✅ Attachments header at Y=" + y);
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ Attachments header not found");
+        return false;
+    }
+
+    /**
+     * Check if the document icon is displayed in the Files tab empty state.
+     */
+    public boolean isFilesEmptyDocumentIconDisplayed() {
+        System.out.println("📍 Checking document icon in empty state...");
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeImage' AND visible == true"
+            ));
+            // Look for an image element in the center area (empty state icon)
+            for (WebElement el : elements) {
+                int y = el.getLocation().getY();
+                int h = el.getSize().getHeight();
+                // Empty state icon is typically centered, Y between 250-500
+                if (y > 250 && y < 600 && h > 30) {
+                    System.out.println("✅ Document icon found at Y=" + y + ", H=" + h);
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+        // Strategy 2: Look for icon by accessibility
+        try {
+            List<WebElement> icons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeImage' OR type == 'XCUIElementTypeOther') AND "
+                + "(label CONTAINS 'document' OR label CONTAINS 'doc' OR label CONTAINS 'file' "
+                + "OR name CONTAINS 'document' OR name CONTAINS 'doc') AND visible == true"
+            ));
+            if (!icons.isEmpty()) {
+                System.out.println("✅ Document icon found via label/name");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ Document icon not found");
+        return false;
+    }
+
+    // ================================================================
+    // FILES TAB - ADD FILE / BROWSE FILES (TC_JOB_332-334)
+    // ================================================================
+
+    /**
+     * Check if "+ Add File" button is displayed in the Files tab header.
+     */
+    public boolean isAddFileButtonDisplayed() {
+        System.out.println("📍 Checking + Add File button...");
+        // Strategy 1: Button with "Add File" label
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label CONTAINS 'Add File' OR label CONTAINS 'add file' "
+                + "OR label == 'Add File' OR label CONTAINS 'Add file') AND visible == true"
+            ));
+            if (!buttons.isEmpty()) {
+                System.out.println("✅ + Add File button found");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        // Strategy 2: Static text with "+ Add File"
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS '+ Add File' OR label CONTAINS 'Add File') AND visible == true"
+            ));
+            if (!texts.isEmpty()) {
+                System.out.println("✅ + Add File text found");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ + Add File button not found");
+        return false;
+    }
+
+    /**
+     * Tap the "+ Add File" button in the Files tab header.
+     * @return true if tapped
+     */
+    public boolean tapAddFileButton() {
+        System.out.println("📍 Tapping + Add File button...");
+        // Strategy 1: Button element
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label CONTAINS 'Add File' OR label CONTAINS 'add file' "
+                + "OR label == 'Add File') AND visible == true"
+            ));
+            if (!buttons.isEmpty()) {
+                buttons.get(0).click();
+                System.out.println("✅ Tapped + Add File button");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        // Strategy 2: Any tappable element with "Add File"
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(label CONTAINS 'Add File' OR label CONTAINS 'add file') AND visible == true"
+            ));
+            if (!elements.isEmpty()) {
+                elements.get(0).click();
+                System.out.println("✅ Tapped Add File element");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("⚠️ Could not tap + Add File");
+        return false;
+    }
+
+    /**
+     * Check if the "Browse Files" button is displayed (empty state).
+     */
+    public boolean isBrowseFilesButtonDisplayed() {
+        System.out.println("📍 Checking Browse Files button...");
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND "
+                + "(label CONTAINS 'Browse Files' OR label CONTAINS 'Browse files' "
+                + "OR label CONTAINS 'browse files') AND visible == true"
+            ));
+            if (!buttons.isEmpty()) {
+                System.out.println("✅ Browse Files button found");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ Browse Files button not found");
+        return false;
+    }
+
+    /**
+     * Tap the "Browse Files" button.
+     * @return true if tapped
+     */
+    public boolean tapBrowseFilesButton() {
+        System.out.println("📍 Tapping Browse Files button...");
+        try {
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND "
+                + "(label CONTAINS 'Browse Files' OR label CONTAINS 'Browse files') "
+                + "AND visible == true"
+            ));
+            if (!buttons.isEmpty()) {
+                buttons.get(0).click();
+                System.out.println("✅ Tapped Browse Files");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        // Strategy 2: Any element with browse files
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "label CONTAINS 'Browse' AND visible == true"
+            ));
+            for (WebElement el : elements) {
+                String label = el.getAttribute("label");
+                if (label != null && label.toLowerCase().contains("file")) {
+                    el.click();
+                    System.out.println("✅ Tapped Browse element: " + label);
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("⚠️ Could not tap Browse Files");
+        return false;
+    }
+
+    /**
+     * Check if the iOS file picker / document browser is displayed.
+     */
+    public boolean isFilePickerDisplayed() {
+        System.out.println("📍 Checking for iOS file picker...");
+        // Strategy 1: Document browser / file picker elements
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeNavigationBar' OR type == 'XCUIElementTypeOther') AND "
+                + "(label CONTAINS 'Browse' OR label CONTAINS 'Recents' "
+                + "OR label CONTAINS 'Documents' OR name CONTAINS 'DOC') AND visible == true"
+            ));
+            if (!elements.isEmpty()) {
+                System.out.println("✅ File picker detected via nav bar");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        // Strategy 2: Look for "Cancel" + file picker UI indicators
+        try {
+            List<WebElement> cancel = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == 'Cancel' AND visible == true"
+            ));
+            List<WebElement> recents = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "label CONTAINS 'Recents' OR label CONTAINS 'Browse' "
+                + "OR label CONTAINS 'iCloud' AND visible == true"
+            ));
+            if (!cancel.isEmpty() && !recents.isEmpty()) {
+                System.out.println("✅ File picker detected (Cancel + Browse/Recents)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ File picker not detected");
+        return false;
+    }
+
+    /**
+     * Dismiss the iOS file picker by tapping Cancel.
+     * @return true if dismissed
+     */
+    public boolean dismissFilePicker() {
+        System.out.println("📍 Dismissing file picker...");
+        try {
+            List<WebElement> cancel = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == 'Cancel' AND visible == true"
+            ));
+            if (!cancel.isEmpty()) {
+                cancel.get(0).click();
+                System.out.println("✅ File picker dismissed");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        // Strategy 2: tap Done if present
+        try {
+            List<WebElement> done = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == 'Done' AND visible == true"
+            ));
+            if (!done.isEmpty()) {
+                done.get(0).click();
+                System.out.println("✅ File picker dismissed via Done");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("⚠️ Could not dismiss file picker");
+        return false;
+    }
+
+    // ================================================================
+    // FILES TAB - FILE ENTRIES & METADATA (TC_JOB_335-344)
+    // ================================================================
+
+    /**
+     * Check if there are attached files displayed in the Files tab list.
+     * @return true if at least one file entry is visible
+     */
+    public boolean isFileListDisplayed() {
+        System.out.println("📍 Checking if file list is displayed...");
+        try {
+            // Look for cells that represent file entries (below the header)
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+            int fileCount = 0;
+            for (WebElement cell : cells) {
+                int y = cell.getLocation().getY();
+                int h = cell.getSize().getHeight();
+                // File entry cells are below the header area and have reasonable height
+                if (y > 200 && h > 40) {
+                    fileCount++;
+                }
+            }
+            if (fileCount > 0) {
+                System.out.println("✅ File list displayed with " + fileCount + " entries");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        // Strategy 2: Look for file-related text (filenames or type indicators)
+        try {
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS '.HEIC' OR label CONTAINS '.jpg' "
+                + "OR label CONTAINS '.png' OR label CONTAINS '.pdf' "
+                + "OR label CONTAINS '.doc' OR label CONTAINS 'IMG_' "
+                + "OR label == 'Unknown') AND visible == true"
+            ));
+            if (!texts.isEmpty()) {
+                System.out.println("✅ File entries detected via filenames");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ No file list entries found");
+        return false;
+    }
+
+    /**
+     * Get the count of file entries in the attachments list.
+     * @return number of file entries visible
+     */
+    public int getFileEntryCount() {
+        System.out.println("📍 Getting file entry count...");
+        try {
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+            int count = 0;
+            for (WebElement cell : cells) {
+                int y = cell.getLocation().getY();
+                int h = cell.getSize().getHeight();
+                if (y > 200 && h > 40) {
+                    count++;
+                }
+            }
+            System.out.println("✅ File entry count: " + count);
+            return count;
+        } catch (Exception e) {
+            System.out.println("⚠️ Error: " + e.getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Get the filename of a file entry at the given index.
+     * @param index zero-based file entry index
+     * @return filename string, or null if not found
+     */
+    public String getFileNameAt(int index) {
+        System.out.println("📍 Getting filename at index " + index + "...");
+        try {
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+            // Collect valid file entry cells
+            java.util.List<WebElement> fileCells = new java.util.ArrayList<>();
+            for (WebElement cell : cells) {
+                int y = cell.getLocation().getY();
+                int h = cell.getSize().getHeight();
+                if (y > 200 && h > 40) {
+                    fileCells.add(cell);
+                }
+            }
+            if (index < fileCells.size()) {
+                WebElement cell = fileCells.get(index);
+                // Get child static texts — first one is typically the filename
+                List<WebElement> texts = cell.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText'"
+                ));
+                for (WebElement text : texts) {
+                    String label = text.getAttribute("label");
+                    if (label != null && !label.isEmpty()
+                        && !label.equalsIgnoreCase("Unknown")
+                        && !label.matches("\\w{3}\\s+\\d{1,2},\\s+\\d{4}.*")) {
+                        // Not "Unknown" and not a date — likely the filename
+                        System.out.println("✅ Filename: " + label);
+                        return label;
+                    }
+                }
+                // Fallback: return first non-empty text
+                if (!texts.isEmpty()) {
+                    String label = texts.get(0).getAttribute("label");
+                    System.out.println("✅ Filename (fallback): " + label);
+                    return label;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Error: " + e.getMessage());
+        }
+        System.out.println("ℹ️ Filename not found at index " + index);
+        return null;
+    }
+
+    /**
+     * Get the file type text of a file entry at the given index.
+     * @param index zero-based file entry index
+     * @return file type (e.g., "HEIC", "PDF", "Unknown"), or null
+     */
+    public String getFileTypeAt(int index) {
+        System.out.println("📍 Getting file type at index " + index + "...");
+        try {
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+            java.util.List<WebElement> fileCells = new java.util.ArrayList<>();
+            for (WebElement cell : cells) {
+                int y = cell.getLocation().getY();
+                int h = cell.getSize().getHeight();
+                if (y > 200 && h > 40) {
+                    fileCells.add(cell);
+                }
+            }
+            if (index < fileCells.size()) {
+                WebElement cell = fileCells.get(index);
+                List<WebElement> texts = cell.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText'"
+                ));
+                // File type is typically a short label like "HEIC", "PDF", "Unknown"
+                for (WebElement text : texts) {
+                    String label = text.getAttribute("label");
+                    if (label != null && (label.equalsIgnoreCase("Unknown")
+                        || label.matches("(?i)(HEIC|JPG|JPEG|PNG|PDF|DOC|DOCX|XLS|XLSX|TXT|CSV)"))) {
+                        System.out.println("✅ File type: " + label);
+                        return label;
+                    }
+                }
+                // Fallback: look for second text that's not a filename or date
+                if (texts.size() >= 2) {
+                    String label = texts.get(1).getAttribute("label");
+                    System.out.println("✅ File type (fallback): " + label);
+                    return label;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Error: " + e.getMessage());
+        }
+        System.out.println("ℹ️ File type not found at index " + index);
+        return null;
+    }
+
+    /**
+     * Get the upload timestamp of a file entry at the given index.
+     * @param index zero-based file entry index
+     * @return timestamp string (e.g., "Dec 24, 2025 at 6:15 PM"), or null
+     */
+    public String getFileTimestampAt(int index) {
+        System.out.println("📍 Getting file timestamp at index " + index + "...");
+        try {
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+            java.util.List<WebElement> fileCells = new java.util.ArrayList<>();
+            for (WebElement cell : cells) {
+                int y = cell.getLocation().getY();
+                int h = cell.getSize().getHeight();
+                if (y > 200 && h > 40) {
+                    fileCells.add(cell);
+                }
+            }
+            if (index < fileCells.size()) {
+                WebElement cell = fileCells.get(index);
+                List<WebElement> texts = cell.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText'"
+                ));
+                // Timestamp matches pattern: "Mon DD, YYYY at H:MM AM/PM"
+                for (WebElement text : texts) {
+                    String label = text.getAttribute("label");
+                    if (label != null && label.matches(".*\\d{4}.*at.*[AP]M.*")) {
+                        System.out.println("✅ Timestamp: " + label);
+                        return label;
+                    }
+                    // Also match "Month DD, YYYY" without "at" part
+                    if (label != null && label.matches("[A-Z][a-z]{2}\\s+\\d{1,2},\\s+\\d{4}.*")) {
+                        System.out.println("✅ Timestamp: " + label);
+                        return label;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Error: " + e.getMessage());
+        }
+        System.out.println("ℹ️ Timestamp not found at index " + index);
+        return null;
+    }
+
+    /**
+     * Check if the download icon is displayed on a file entry at the given index.
+     * @param index zero-based file entry index
+     * @return true if download icon found
+     */
+    public boolean isFileDownloadIconDisplayedAt(int index) {
+        System.out.println("📍 Checking download icon at index " + index + "...");
+        try {
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+            java.util.List<WebElement> fileCells = new java.util.ArrayList<>();
+            for (WebElement cell : cells) {
+                int y = cell.getLocation().getY();
+                int h = cell.getSize().getHeight();
+                if (y > 200 && h > 40) {
+                    fileCells.add(cell);
+                }
+            }
+            if (index < fileCells.size()) {
+                WebElement cell = fileCells.get(index);
+                // Look for download button/icon within the cell
+                List<WebElement> icons = cell.findElements(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeImage') AND "
+                    + "(label CONTAINS 'download' OR label CONTAINS 'Download' "
+                    + "OR label CONTAINS 'cloud' OR label CONTAINS 'arrow.down' "
+                    + "OR name CONTAINS 'download' OR name CONTAINS 'arrow.down')"
+                ));
+                if (!icons.isEmpty()) {
+                    System.out.println("✅ Download icon found");
+                    return true;
+                }
+                // Strategy 2: Check for buttons — download is typically 2nd-to-last button
+                List<WebElement> buttons = cell.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton'"
+                ));
+                if (buttons.size() >= 2) {
+                    System.out.println("✅ Found " + buttons.size() + " buttons in cell (download likely present)");
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Error: " + e.getMessage());
+        }
+        System.out.println("ℹ️ Download icon not found at index " + index);
+        return false;
+    }
+
+    /**
+     * Tap the download icon on a file entry at the given index.
+     * @param index zero-based file entry index
+     * @return true if tapped
+     */
+    public boolean tapFileDownloadAt(int index) {
+        System.out.println("📍 Tapping download icon at index " + index + "...");
+        try {
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+            java.util.List<WebElement> fileCells = new java.util.ArrayList<>();
+            for (WebElement cell : cells) {
+                int y = cell.getLocation().getY();
+                int h = cell.getSize().getHeight();
+                if (y > 200 && h > 40) {
+                    fileCells.add(cell);
+                }
+            }
+            if (index < fileCells.size()) {
+                WebElement cell = fileCells.get(index);
+                List<WebElement> icons = cell.findElements(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeImage') AND "
+                    + "(label CONTAINS 'download' OR label CONTAINS 'Download' "
+                    + "OR label CONTAINS 'cloud' OR name CONTAINS 'download')"
+                ));
+                if (!icons.isEmpty()) {
+                    icons.get(0).click();
+                    System.out.println("✅ Download icon tapped");
+                    return true;
+                }
+                // Fallback: tap the second-to-last button (download is before share)
+                List<WebElement> buttons = cell.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton'"
+                ));
+                if (buttons.size() >= 2) {
+                    buttons.get(buttons.size() - 2).click();
+                    System.out.println("✅ Tapped button (presumed download)");
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Error: " + e.getMessage());
+        }
+        System.out.println("⚠️ Could not tap download");
+        return false;
+    }
+
+    /**
+     * Check if the share icon is displayed on a file entry at the given index.
+     * @param index zero-based file entry index
+     * @return true if share icon found
+     */
+    public boolean isFileShareIconDisplayedAt(int index) {
+        System.out.println("📍 Checking share icon at index " + index + "...");
+        try {
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+            java.util.List<WebElement> fileCells = new java.util.ArrayList<>();
+            for (WebElement cell : cells) {
+                int y = cell.getLocation().getY();
+                int h = cell.getSize().getHeight();
+                if (y > 200 && h > 40) {
+                    fileCells.add(cell);
+                }
+            }
+            if (index < fileCells.size()) {
+                WebElement cell = fileCells.get(index);
+                List<WebElement> icons = cell.findElements(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeImage') AND "
+                    + "(label CONTAINS 'Share' OR label CONTAINS 'share' "
+                    + "OR name CONTAINS 'share' OR name CONTAINS 'square.and.arrow.up')"
+                ));
+                if (!icons.isEmpty()) {
+                    System.out.println("✅ Share icon found");
+                    return true;
+                }
+                // Fallback: last button in cell is likely share
+                List<WebElement> buttons = cell.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton'"
+                ));
+                if (buttons.size() >= 2) {
+                    System.out.println("✅ Found buttons in cell (share likely present)");
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Error: " + e.getMessage());
+        }
+        System.out.println("ℹ️ Share icon not found at index " + index);
+        return false;
+    }
+
+    /**
+     * Tap the share icon on a file entry at the given index.
+     * @param index zero-based file entry index
+     * @return true if tapped
+     */
+    public boolean tapFileShareAt(int index) {
+        System.out.println("📍 Tapping share icon at index " + index + "...");
+        try {
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+            java.util.List<WebElement> fileCells = new java.util.ArrayList<>();
+            for (WebElement cell : cells) {
+                int y = cell.getLocation().getY();
+                int h = cell.getSize().getHeight();
+                if (y > 200 && h > 40) {
+                    fileCells.add(cell);
+                }
+            }
+            if (index < fileCells.size()) {
+                WebElement cell = fileCells.get(index);
+                List<WebElement> icons = cell.findElements(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeImage') AND "
+                    + "(label CONTAINS 'Share' OR label CONTAINS 'share' "
+                    + "OR name CONTAINS 'share' OR name CONTAINS 'square.and.arrow.up')"
+                ));
+                if (!icons.isEmpty()) {
+                    icons.get(0).click();
+                    System.out.println("✅ Share icon tapped");
+                    return true;
+                }
+                // Fallback: tap last button in cell
+                List<WebElement> buttons = cell.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton'"
+                ));
+                if (!buttons.isEmpty()) {
+                    buttons.get(buttons.size() - 1).click();
+                    System.out.println("✅ Tapped last button (presumed share)");
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Error: " + e.getMessage());
+        }
+        System.out.println("⚠️ Could not tap share");
+        return false;
+    }
+
+    /**
+     * Check if the iOS share sheet is displayed.
+     */
+    public boolean isShareSheetDisplayed() {
+        System.out.println("📍 Checking for iOS share sheet...");
+        try {
+            // Share sheet has recognizable elements like AirDrop, Messages, Mail
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(label CONTAINS 'AirDrop' OR label CONTAINS 'Messages' "
+                + "OR label CONTAINS 'Mail' OR label CONTAINS 'Copy' "
+                + "OR label CONTAINS 'Save to Files') AND visible == true"
+            ));
+            if (!elements.isEmpty()) {
+                System.out.println("✅ Share sheet detected");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        // Strategy 2: Check for the share sheet container
+        try {
+            List<WebElement> sheets = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCollectionView' AND visible == true"
+            ));
+            // Share sheet typically has a large collection view
+            for (WebElement sheet : sheets) {
+                int h = sheet.getSize().getHeight();
+                if (h > 200) {
+                    System.out.println("✅ Share sheet (collection view) detected, H=" + h);
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ Share sheet not detected");
+        return false;
+    }
+
+    /**
+     * Dismiss the iOS share sheet by tapping Close/Cancel.
+     * @return true if dismissed
+     */
+    public boolean dismissShareSheet() {
+        System.out.println("📍 Dismissing share sheet...");
+        try {
+            List<WebElement> close = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label == 'Close' OR label == 'Cancel') AND visible == true"
+            ));
+            if (!close.isEmpty()) {
+                close.get(0).click();
+                System.out.println("✅ Share sheet dismissed");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        // Fallback: tap outside the share sheet
+        try {
+            driver.executeScript("mobile: tap", java.util.Map.of("x", 200, "y", 100));
+            System.out.println("✅ Tapped outside share sheet");
+            return true;
+        } catch (Exception e) { /* continue */ }
+        System.out.println("⚠️ Could not dismiss share sheet");
+        return false;
+    }
+
+    /**
+     * Tap a file entry at the given index (to open preview).
+     * @param index zero-based file entry index
+     * @return true if tapped
+     */
+    public boolean tapFileEntryAt(int index) {
+        System.out.println("📍 Tapping file entry at index " + index + "...");
+        try {
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+            java.util.List<WebElement> fileCells = new java.util.ArrayList<>();
+            for (WebElement cell : cells) {
+                int y = cell.getLocation().getY();
+                int h = cell.getSize().getHeight();
+                if (y > 200 && h > 40) {
+                    fileCells.add(cell);
+                }
+            }
+            if (index < fileCells.size()) {
+                WebElement cell = fileCells.get(index);
+                // Tap center-left area (avoid download/share icons on the right)
+                int x = cell.getLocation().getX() + 100;
+                int y = cell.getLocation().getY() + cell.getSize().getHeight() / 2;
+                driver.executeScript("mobile: tap", java.util.Map.of("x", x, "y", y));
+                System.out.println("✅ File entry tapped at (" + x + ", " + y + ")");
+                return true;
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Error: " + e.getMessage());
+        }
+        System.out.println("⚠️ Could not tap file entry at index " + index);
+        return false;
+    }
+
+    /**
+     * Check if a file preview screen is displayed after tapping a file entry.
+     */
+    public boolean isFilePreviewDisplayed() {
+        System.out.println("📍 Checking for file preview...");
+        // Strategy 1: Look for image viewer / preview indicators
+        try {
+            List<WebElement> images = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeImage' AND visible == true"
+            ));
+            for (WebElement img : images) {
+                int h = img.getSize().getHeight();
+                // A preview image takes up significant screen space
+                if (h > 300) {
+                    System.out.println("✅ File preview detected (large image, H=" + h + ")");
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+        // Strategy 2: Look for preview nav bar (Done/Close button)
+        try {
+            List<WebElement> navBars = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeNavigationBar' AND visible == true"
+            ));
+            // If we have a nav bar different from the session details one
+            if (!navBars.isEmpty()) {
+                String label = navBars.get(0).getAttribute("label");
+                if (label != null && !label.contains("Session") && !label.contains("Work Order")) {
+                    System.out.println("✅ File preview nav bar: " + label);
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+        // Strategy 3: Check if we're no longer on the Files tab (new screen)
+        try {
+            boolean filesEmpty = isFilesTabEmptyStateDisplayed();
+            boolean fileList = isFileListDisplayed();
+            if (!filesEmpty && !fileList) {
+                // We're on a different screen — likely preview
+                System.out.println("✅ File preview detected (not on Files tab)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        System.out.println("ℹ️ File preview not detected");
+        return false;
+    }
+
+    /**
+     * Go back from file preview to the Files tab.
+     * @return true if navigated back
+     */
+    public boolean goBackFromFilePreview() {
+        System.out.println("📍 Going back from file preview...");
+        // Strategy 1: Done button
+        try {
+            List<WebElement> done = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label == 'Done' OR label == 'Close') AND visible == true"
+            ));
+            if (!done.isEmpty()) {
+                done.get(0).click();
+                System.out.println("✅ Went back from preview via Done/Close");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        // Strategy 2: Back button
+        try {
+            List<WebElement> back = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND "
+                + "(label CONTAINS 'Back' OR name CONTAINS 'Back') AND visible == true"
+            ));
+            if (!back.isEmpty()) {
+                back.get(0).click();
+                System.out.println("✅ Went back from preview via Back");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        try { goBack(); return true; } catch (Exception e) { /* continue */ }
+        System.out.println("⚠️ Could not go back from preview");
+        return false;
+    }
+
+    /**
+     * Check if a file entry has a document icon (left side).
+     * @param index zero-based file entry index
+     * @return true if icon is present
+     */
+    public boolean isFileDocumentIconDisplayedAt(int index) {
+        System.out.println("📍 Checking document icon at file index " + index + "...");
+        try {
+            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == true"
+            ));
+            java.util.List<WebElement> fileCells = new java.util.ArrayList<>();
+            for (WebElement cell : cells) {
+                int y = cell.getLocation().getY();
+                int h = cell.getSize().getHeight();
+                if (y > 200 && h > 40) {
+                    fileCells.add(cell);
+                }
+            }
+            if (index < fileCells.size()) {
+                WebElement cell = fileCells.get(index);
+                // Look for image elements within the cell (document icon)
+                List<WebElement> images = cell.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeImage'"
+                ));
+                if (!images.isEmpty()) {
+                    System.out.println("✅ Document icon found (" + images.size() + " images in cell)");
+                    return true;
+                }
+                // Fallback: any XCUIElementTypeOther that could be an icon
+                List<WebElement> others = cell.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeOther'"
+                ));
+                if (!others.isEmpty()) {
+                    System.out.println("✅ Icon element found (Other type)");
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Error: " + e.getMessage());
+        }
+        System.out.println("ℹ️ Document icon not found at index " + index);
+        return false;
+    }
+
+    /**
+     * Check if the file type at the given index is "Unknown".
+     * @param index zero-based file entry index
+     * @return true if file type is "Unknown"
+     */
+    public boolean isFileTypeUnknownAt(int index) {
+        String fileType = getFileTypeAt(index);
+        boolean isUnknown = fileType != null && fileType.equalsIgnoreCase("Unknown");
+        System.out.println("📍 File type at " + index + " is Unknown: " + isUnknown);
+        return isUnknown;
     }
 }

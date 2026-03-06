@@ -207,7 +207,7 @@ public class SiteVisit_phase2 extends BaseTest {
         logStep("Starting navigation to Assets in Room...");
 
         ensureOnSessionDetailsScreen();
-        workOrderPage.tapSessionTab("Locations");
+        workOrderPage.tapSessionTab("Assets");
         mediumWait();
 
         int buildingCount = workOrderPage.getLocationsBuildingCount();
@@ -1265,7 +1265,7 @@ public class SiteVisit_phase2 extends BaseTest {
         }
 
         // Step 6: Navigate to New Asset form and scroll to IR section
-        workOrderPage.tapSessionTab("Locations");
+        workOrderPage.tapSessionTab("Assets");
         mediumWait();
 
         int buildingCount = workOrderPage.getLocationsBuildingCount();
@@ -1479,7 +1479,7 @@ public class SiteVisit_phase2 extends BaseTest {
         workOrderPage.waitForSessionDetailsScreen();
 
         // Navigate to New Asset form
-        workOrderPage.tapSessionTab("Locations");
+        workOrderPage.tapSessionTab("Assets");
         mediumWait();
 
         int buildingCount = workOrderPage.getLocationsBuildingCount();
@@ -1631,7 +1631,7 @@ public class SiteVisit_phase2 extends BaseTest {
 
         logStep("Navigating to Session Details → Locations tab");
         ensureOnSessionDetailsScreen();
-        workOrderPage.tapSessionTab("Locations");
+        workOrderPage.tapSessionTab("Assets");
         mediumWait();
 
         // Verify Locations tab content is displayed
@@ -1679,7 +1679,7 @@ public class SiteVisit_phase2 extends BaseTest {
 
         logStep("Navigating to Session Details → Locations tab");
         ensureOnSessionDetailsScreen();
-        workOrderPage.tapSessionTab("Locations");
+        workOrderPage.tapSessionTab("Assets");
         mediumWait();
 
         // Expand first building
@@ -1762,7 +1762,7 @@ public class SiteVisit_phase2 extends BaseTest {
 
         logStep("Navigating to Session Details → Locations tab");
         ensureOnSessionDetailsScreen();
-        workOrderPage.tapSessionTab("Locations");
+        workOrderPage.tapSessionTab("Assets");
         mediumWait();
 
         // Check for floating + button (blue)

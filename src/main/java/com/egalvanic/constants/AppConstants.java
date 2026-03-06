@@ -135,6 +135,23 @@ public class AppConstants {
     public static final String FEATURE_OCPD = "OCPD";
     public static final String FEATURE_PHOTO_WALKTHROUGH = "Photo Walkthrough";
     public static final String FEATURE_LINK_EXISTING_ASSET = "Link Existing Asset";
+    public static final String FEATURE_REMOVE_FROM_SESSION = "Remove from Session";
+    public static final String FEATURE_JOB_CREATION_PHOTO_TYPE = "Job Creation - Photo Type";
+    public static final String FEATURE_IR_PHOTOS_FLIR_IND = "IR Photos - FLIR-IND";
+    public static final String FEATURE_IR_PHOTOS_FLUKE = "IR Photos - FLUKE";
+    public static final String FEATURE_IR_PHOTOS_FOTRIC = "IR Photos - FOTRIC";
+    public static final String FEATURE_IR_PHOTOS_FLIR_SEP = "IR Photos - FLIR-SEP";
+    public static final String FEATURE_JOB_MANAGEMENT = "Job Management";
+    public static final String FEATURE_JOBS_LIST = "Jobs List";
+    public static final String FEATURE_IR_PHOTOS = "IR Photos";
+    public static final String FEATURE_TASKS_TAB = "Tasks Tab";
+    public static final String FEATURE_LINK_TASKS = "Link Tasks";
+    public static final String FEATURE_CREATE_TASK = "Create Task";
+    public static final String FEATURE_SIMPLE_TASK = "Simple Task";
+    public static final String FEATURE_COMPLEX_TASK = "Complex Task";
+    public static final String FEATURE_TASKS_GROUP_BY = "Tasks - Group By";
+    public static final String FEATURE_ISSUES_TAB = "Issues Tab";
+    public static final String FEATURE_FILES_TAB = "Files Tab";
 
     // ============================================
     // FEATURE NAMES - ASSET MANAGEMENT

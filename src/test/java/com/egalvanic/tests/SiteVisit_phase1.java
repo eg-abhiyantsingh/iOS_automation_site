@@ -4210,7 +4210,7 @@ public class SiteVisit_phase1 extends BaseTest {
 
         // Tap Locations tab
         logStep("Tapping Locations tab");
-        boolean tabTapped = workOrderPage.tapSessionTab("Locations");
+        boolean tabTapped = workOrderPage.tapSessionTab("Assets");
         mediumWait();
         logStep("Locations tab tapped: " + tabTapped);
         logStepWithScreenshot("After tapping Locations tab");
@@ -4257,7 +4257,7 @@ public class SiteVisit_phase1 extends BaseTest {
         ensureOnSessionDetailsScreen();
 
         logStep("Tapping Locations tab");
-        workOrderPage.tapSessionTab("Locations");
+        workOrderPage.tapSessionTab("Assets");
         mediumWait();
 
         // Get building count
@@ -4340,7 +4340,7 @@ public class SiteVisit_phase1 extends BaseTest {
         ensureOnSessionDetailsScreen();
 
         logStep("Tapping Locations tab");
-        workOrderPage.tapSessionTab("Locations");
+        workOrderPage.tapSessionTab("Assets");
         mediumWait();
 
         int buildingCount = workOrderPage.getLocationsBuildingCount();
@@ -4419,7 +4419,7 @@ public class SiteVisit_phase1 extends BaseTest {
         ensureOnSessionDetailsScreen();
 
         logStep("Tapping Locations tab");
-        workOrderPage.tapSessionTab("Locations");
+        workOrderPage.tapSessionTab("Assets");
         mediumWait();
         logStepWithScreenshot("Locations tab loaded");
 
@@ -4475,7 +4475,7 @@ public class SiteVisit_phase1 extends BaseTest {
         ensureOnSessionDetailsScreen();
 
         logStep("Tapping Locations tab");
-        workOrderPage.tapSessionTab("Locations");
+        workOrderPage.tapSessionTab("Assets");
         mediumWait();
 
         int buildingCount = workOrderPage.getLocationsBuildingCount();
@@ -4532,7 +4532,7 @@ public class SiteVisit_phase1 extends BaseTest {
         ensureOnSessionDetailsScreen();
 
         logStep("Tapping Locations tab");
-        workOrderPage.tapSessionTab("Locations");
+        workOrderPage.tapSessionTab("Assets");
         mediumWait();
         logStepWithScreenshot("Locations tab loaded");
 
@@ -4698,7 +4698,7 @@ public class SiteVisit_phase1 extends BaseTest {
         ensureOnSessionDetailsScreen();
 
         logStep("Tapping Locations tab");
-        workOrderPage.tapSessionTab("Locations");
+        workOrderPage.tapSessionTab("Assets");
         mediumWait();
 
         int buildingCount = workOrderPage.getLocationsBuildingCount();
@@ -6032,7 +6032,7 @@ public class SiteVisit_phase1 extends BaseTest {
 
         // Step 1: Get to Session Details → Locations tab
         ensureOnSessionDetailsScreen();
-        workOrderPage.tapSessionTab("Locations");
+        workOrderPage.tapSessionTab("Assets");
         mediumWait();
 
         // Step 2: Expand first building
