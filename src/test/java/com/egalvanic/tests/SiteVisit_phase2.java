@@ -209,91 +209,49 @@ public class SiteVisit_phase2 extends BaseTest {
         // Step 1: Get to Session Details → Assets tab
         ensureOnSessionDetailsScreen();
         workOrderPage.tapSessionTab("Assets");
-        try { Thread.sleep(800); } catch (InterruptedException ignored) {}
+        try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
 
-        // Step 2: Expand first building
-        int buildingCount = workOrderPage.getLocationsBuildingCount();
-        logStep("Buildings found: " + buildingCount);
+        // The tree may already be expanded (building > floor > rooms visible).
+        // Rooms are labeled with just numbers ("1", "2", "233") NOT "Room_xxx".
+        // They have "1 asset" sub-labels and disclosure chevrons (>).
+        // DO NOT tap building/floor if already expanded — that COLLAPSES it!
 
-        if (buildingCount == 0) {
-            logWarning("No buildings found — cannot navigate to room");
-            return;
+        // Step 2: Try tapping a room directly (tree may already be expanded)
+        logStep("Looking for room with assets (disclosure chevron)...");
+        if (workOrderPage.tapFirstRoomWithAssets()) {
+            try { Thread.sleep(800); } catch (InterruptedException ignored) {}
+            if (workOrderPage.isAssetsInRoomScreenDisplayed()) {
+                logStep("Navigation to Assets in Room complete (direct room tap)");
+                return;
+            }
         }
 
+        // Step 3: No rooms visible — expand building then try again
+        logStep("No rooms visible — expanding building...");
         workOrderPage.tapLocationsBuildingAtIndex(0);
         try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
 
-        // Step 3: Expand first floor
-        java.util.List<String> floors = workOrderPage.getLocationsFloorEntries();
-        logStep("Floors found: " + floors.size());
-
-        if (floors.isEmpty()) {
-            try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
-            floors = workOrderPage.getLocationsFloorEntries();
-            logStep("Floors (retry): " + floors.size());
-        }
-
-        if (floors.isEmpty()) {
-            logWarning("No floors found after expanding building");
-            return;
-        }
-
-        workOrderPage.tapLocationsFloorAtIndex(0);
-        try { Thread.sleep(1500); } catch (InterruptedException ignored) {}
-
-        // Debug: dump all StaticText elements to see what's on screen after floor tap
-        try {
-            java.util.List<org.openqa.selenium.WebElement> allTexts =
-                com.egalvanic.utils.DriverManager.getDriver().findElements(
-                    io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeStaticText' AND label != ''"
-                    ));
-            System.out.println("🔍 DEBUG: All visible text after floor tap (" + allTexts.size() + " elements):");
-            int count = 0;
-            for (org.openqa.selenium.WebElement el : allTexts) {
-                try {
-                    String label = el.getAttribute("label");
-                    int y = el.getLocation().getY();
-                    if (y > 100 && y < 800 && label != null && !label.isEmpty()) {
-                        System.out.println("  [Y=" + y + "] " + label);
-                        count++;
-                        if (count >= 20) break;
-                    }
-                } catch (Exception ignored2) {}
-            }
-        } catch (Exception e) {
-            System.out.println("🔍 DEBUG dump failed: " + e.getMessage());
-        }
-
-        // Step 4: Tap first room
-        java.util.List<String> rooms = workOrderPage.getLocationsRoomEntries();
-        logStep("Rooms found: " + rooms.size());
-
-        if (rooms.isEmpty()) {
-            // Retry: floor might still be expanding
-            try { Thread.sleep(1500); } catch (InterruptedException ignored) {}
-            rooms = workOrderPage.getLocationsRoomEntries();
-            logStep("Rooms (retry): " + rooms.size());
-        }
-
-        if (rooms.isEmpty()) {
-            // Last resort: try tapFirstRoomWithAssets which looks for "N asset" text
-            logStep("Trying fast path: tapFirstRoomWithAssets");
-            if (workOrderPage.tapFirstRoomWithAssets()) {
-                try { Thread.sleep(800); } catch (InterruptedException ignored) {}
-                workOrderPage.waitForAssetsInRoomScreen();
-                logStep("Navigation to Assets in Room complete (fast path)");
+        if (workOrderPage.tapFirstRoomWithAssets()) {
+            try { Thread.sleep(800); } catch (InterruptedException ignored) {}
+            if (workOrderPage.isAssetsInRoomScreenDisplayed()) {
+                logStep("Navigation to Assets in Room complete (after building expand)");
                 return;
             }
-            logWarning("No rooms found after expanding floor");
+        }
+
+        // Step 4: Expand first floor then try again
+        logStep("Expanding floor...");
+        workOrderPage.tapLocationsFloorAtIndex(0);
+        try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
+
+        if (workOrderPage.tapFirstRoomWithAssets()) {
+            try { Thread.sleep(800); } catch (InterruptedException ignored) {}
+            workOrderPage.waitForAssetsInRoomScreen();
+            logStep("Navigation to Assets in Room complete (after floor expand)");
             return;
         }
 
-        workOrderPage.tapLocationsRoomAtIndex(0);
-        try { Thread.sleep(800); } catch (InterruptedException ignored) {}
-
-        workOrderPage.waitForAssetsInRoomScreen();
-        logStep("Navigation to Assets in Room complete");
+        logWarning("No rooms found after expanding building and floor");
     }
 
     /**

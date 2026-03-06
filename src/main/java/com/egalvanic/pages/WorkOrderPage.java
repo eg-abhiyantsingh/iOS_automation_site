@@ -2124,42 +2124,53 @@ public class WorkOrderPage extends BasePage {
      */
     public boolean tapFirstRoomWithAssets() {
         System.out.println("📍 Looking for room with assets (fast path)...");
+
+        // Room rows show "1 asset", "2 assets" etc. as sub-labels.
+        // The room name itself is just a number ("1", "2", "233").
+        // We find the "N asset" label and tap its row to enter Assets in Room.
         try {
-            // Find "N asset" or "N assets" text elements (no visible check for speed)
             List<WebElement> assetTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' "
-                + "AND (label MATCHES '\\\\d+ asset.*')"
+                + "AND (label CONTAINS 'asset')"
             ));
-            System.out.println("  Asset count texts found: " + assetTexts.size());
+            System.out.println("  'asset' texts found: " + assetTexts.size());
 
             for (WebElement assetText : assetTexts) {
+                String label = assetText.getAttribute("label");
+                if (label == null) continue;
+
+                // Skip building/floor level texts (like "331 floors" which won't match,
+                // but also skip "11 rooms" or large counts that aren't room rows)
+                // Room asset counts are small: "1 asset", "2 assets", etc.
+                if (label.contains("floor") || label.contains("room")) continue;
+
                 int y = assetText.getLocation().getY();
                 if (y < 200) continue;
-                String label = assetText.getAttribute("label");
-                System.out.println("  Room entry: '" + label + "' at Y=" + y);
+                System.out.println("  Room asset label: '" + label + "' at Y=" + y);
 
-                // Tap the row to enter the room
+                // Tap the row (slightly above the asset text, on the room name)
                 driver.executeScript("mobile: tap",
-                    java.util.Map.of("x", 200, "y", y));
-                System.out.println("✅ Tapped room row at Y=" + y);
+                    java.util.Map.of("x", 300, "y", y - 15));
+                System.out.println("✅ Tapped room row at Y=" + (y - 15));
                 return true;
             }
         } catch (Exception e) {
             System.out.println("  Error: " + e.getMessage());
         }
 
-        // Strategy 2: Find "N node" text elements
+        // Strategy 2: Find disclosure chevrons (>) — room rows have these
         try {
-            List<WebElement> nodeTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' "
-                + "AND (label MATCHES '\\\\d+ node.*')"
+            List<WebElement> chevrons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeDisclosureIndicator'"
             ));
-            for (WebElement nodeText : nodeTexts) {
-                int y = nodeText.getLocation().getY();
-                if (y > 200) {
+            System.out.println("  Disclosure indicators found: " + chevrons.size());
+            for (WebElement chev : chevrons) {
+                int y = chev.getLocation().getY();
+                // Room rows are below building/floor rows (typically Y > 300)
+                if (y > 300) {
                     driver.executeScript("mobile: tap",
-                        java.util.Map.of("x", 200, "y", y));
-                    System.out.println("✅ Tapped room (node label) at Y=" + y);
+                        java.util.Map.of("x", 300, "y", y));
+                    System.out.println("✅ Tapped disclosure chevron at Y=" + y);
                     return true;
                 }
             }
