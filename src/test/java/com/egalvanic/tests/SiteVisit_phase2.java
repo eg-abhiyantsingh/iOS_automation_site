@@ -273,7 +273,9 @@ public class SiteVisit_phase2 extends BaseTest {
     }
 
     /**
-     * Navigate to New Asset form: Add Assets → New Asset tab → Create New Asset.
+     * Navigate to New Asset form.
+     * The + button shows a popup menu (New Asset, Link Existing, Photo Walkthrough, Quick Count)
+     * NOT the old tabbed "Add Assets" screen.
      */
     private void navigateToNewAssetForm() {
         logStep("Navigating to Add Assets screen...");
@@ -284,14 +286,22 @@ public class SiteVisit_phase2 extends BaseTest {
             return;
         }
 
-        logStep("Switching to New Asset tab");
-        workOrderPage.tapNewAssetTab();
-        mediumWait();
-
-        logStep("Tapping 'Create New Asset' option");
-        workOrderPage.tapCreateNewAssetOption();
-        mediumWait();
-        workOrderPage.waitForSessionNewAssetForm();
+        // The + button shows a popup menu, not tabs
+        if (workOrderPage.isAddAssetsPopupMenu()) {
+            logStep("Popup menu detected — tapping 'New Asset' directly");
+            workOrderPage.tapPopupNewAssetOption();
+            mediumWait();
+            workOrderPage.waitForSessionNewAssetForm();
+        } else {
+            // Fallback: old tabbed screen
+            logStep("Switching to New Asset tab");
+            workOrderPage.tapNewAssetTab();
+            mediumWait();
+            logStep("Tapping 'Create New Asset' option");
+            workOrderPage.tapCreateNewAssetOption();
+            mediumWait();
+            workOrderPage.waitForSessionNewAssetForm();
+        }
     }
 
     /**
