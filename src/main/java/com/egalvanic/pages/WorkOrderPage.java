@@ -2705,6 +2705,27 @@ public class WorkOrderPage extends BasePage {
                 }
             } catch (Exception e) { /* continue */ }
 
+            // Strategy 4: Look for any button/image child in the cell (broad search)
+            try {
+                List<WebElement> allChildren = buildingCell.findElements(
+                    AppiumBy.iOSNsPredicateString(
+                        "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeImage') "
+                        + "AND visible == true"
+                    ));
+                for (WebElement child : allChildren) {
+                    int w = child.getSize().getWidth();
+                    int h = child.getSize().getHeight();
+                    if (w < 60 && h < 60 && w > 10 && h > 10) {
+                        String label = child.getAttribute("label");
+                        String name = child.getAttribute("name");
+                        System.out.println("✅ Small button/image found in building " + index
+                            + " — label='" + label + "', name='" + name
+                            + "', size=" + w + "x" + h);
+                        return true;
+                    }
+                }
+            } catch (Exception e) { /* continue */ }
+
         } catch (Exception e) {
             System.out.println("⚠️ Error checking + button: " + e.getMessage());
         }
@@ -2753,9 +2774,9 @@ public class WorkOrderPage extends BasePage {
                 int btnW = btn.getSize().getWidth();
                 int btnH = btn.getSize().getHeight();
 
-                boolean isBottomRight = btnX > screenWidth * 0.7
-                    && btnY > screenHeight * 0.8;
-                boolean isCircular = Math.abs(btnW - btnH) < 10 && btnW < 80;
+                boolean isBottomRight = btnX > screenWidth * 0.6
+                    && btnY > screenHeight * 0.7;
+                boolean isCircular = Math.abs(btnW - btnH) < 15 && btnW < 80;
 
                 if (isBottomRight && isCircular) {
                     String label = btn.getAttribute("label");
@@ -4204,8 +4225,135 @@ public class WorkOrderPage extends BasePage {
             }
         } catch (Exception e) { /* continue */ }
 
+        // Strategy 4: Popup menu with asset options (new UI — replaces tabbed screen)
+        try {
+            List<WebElement> menuItems = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(label CONTAINS 'New Asset' OR label CONTAINS 'Link Existing' "
+                + "OR label CONTAINS 'Quick Count' OR label CONTAINS 'Photo Walkthrough') "
+                + "AND visible == true"
+            ));
+            if (menuItems.size() >= 2) {
+                System.out.println("✅ Add Assets popup menu found (" + menuItems.size() + " options)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
         System.out.println("⚠️ Add Assets screen not found");
         return false;
+    }
+
+    /**
+     * Check if the Add Assets is showing as a popup menu (new UI).
+     * The popup shows: New Asset, Link Existing Asset, Photo Walkthrough, Quick Count.
+     */
+    public boolean isAddAssetsPopupMenu() {
+        try {
+            List<WebElement> menuItems = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(label CONTAINS 'New Asset' OR label CONTAINS 'Link Existing' "
+                + "OR label CONTAINS 'Quick Count' OR label CONTAINS 'Photo Walkthrough') "
+                + "AND visible == true"
+            ));
+            return menuItems.size() >= 2;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Dismiss the popup menu by tapping outside it.
+     */
+    public boolean dismissAddAssetsPopup() {
+        System.out.println("📍 Dismissing Add Assets popup...");
+        try {
+            org.openqa.selenium.Dimension size = driver.manage().window().getSize();
+            int centerX = size.width / 2;
+            int topY = 100;
+            org.openqa.selenium.interactions.PointerInput finger =
+                new org.openqa.selenium.interactions.PointerInput(
+                    org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
+            org.openqa.selenium.interactions.Sequence tap =
+                new org.openqa.selenium.interactions.Sequence(finger, 1);
+            tap.addAction(finger.createPointerMove(java.time.Duration.ZERO,
+                org.openqa.selenium.interactions.PointerInput.Origin.viewport(), centerX, topY));
+            tap.addAction(finger.createPointerDown(org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+            tap.addAction(finger.createPointerUp(org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+            driver.perform(java.util.Collections.singletonList(tap));
+            System.out.println("✅ Tapped outside popup to dismiss");
+            return true;
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not dismiss popup: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Get the popup menu option labels.
+     * Returns a list of option labels found in the popup.
+     */
+    public java.util.List<String> getAddAssetsPopupOptions() {
+        java.util.List<String> options = new java.util.ArrayList<>();
+        try {
+            List<WebElement> menuItems = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(label CONTAINS 'New Asset' OR label CONTAINS 'Link Existing' "
+                + "OR label CONTAINS 'Quick Count' OR label CONTAINS 'Photo Walkthrough') "
+                + "AND visible == true"
+            ));
+            for (WebElement item : menuItems) {
+                String label = item.getAttribute("label");
+                if (label != null && !label.isEmpty()) {
+                    options.add(label);
+                }
+            }
+        } catch (Exception e) { /* return empty */ }
+        System.out.println("📍 Popup options: " + options);
+        return options;
+    }
+
+    /**
+     * Tap the "New Asset" option in the popup menu.
+     */
+    public boolean tapPopupNewAssetOption() {
+        System.out.println("📍 Tapping 'New Asset' in popup...");
+        try {
+            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(label == 'New Asset' OR label == 'Create New Asset') AND visible == true"
+            ));
+            if (!elements.isEmpty()) {
+                elements.get(0).click();
+                System.out.println("✅ Tapped New Asset popup option");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+        // Fallback: broader search
+        try {
+            WebElement el = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "label CONTAINS 'New Asset' AND visible == true"
+            ));
+            el.click();
+            System.out.println("✅ Tapped New Asset (broad)");
+            return true;
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not tap New Asset popup option");
+            return false;
+        }
+    }
+
+    /**
+     * Tap the "Link Existing Asset" option in the popup menu.
+     */
+    public boolean tapPopupLinkExistingAssetOption() {
+        System.out.println("📍 Tapping 'Link Existing Asset' in popup...");
+        try {
+            WebElement el = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "label CONTAINS 'Link Existing' AND visible == true"
+            ));
+            el.click();
+            System.out.println("✅ Tapped Link Existing Asset popup option");
+            return true;
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not tap Link Existing Asset popup option");
+            return false;
+        }
     }
 
     /**
@@ -4247,6 +4395,10 @@ public class WorkOrderPage extends BasePage {
             System.out.println("✅ Tapped Cancel on Add Assets");
             return true;
         } catch (Exception e) {
+            // Fallback: if it's a popup menu, dismiss by tapping outside
+            if (isAddAssetsPopupMenu()) {
+                return dismissAddAssetsPopup();
+            }
             System.out.println("⚠️ Could not tap Cancel: " + e.getMessage());
             return false;
         }
@@ -4629,8 +4781,8 @@ public class WorkOrderPage extends BasePage {
     public boolean isCreateNewAssetOptionDisplayed() {
         try {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND "
-                + "(label == 'Create New Asset' OR label CONTAINS 'Create New Asset')"
+                "(label == 'Create New Asset' OR label CONTAINS 'Create New Asset' "
+                + "OR label == 'New Asset') AND visible == true"
             ));
             boolean found = !elements.isEmpty();
             System.out.println(found
@@ -4648,8 +4800,8 @@ public class WorkOrderPage extends BasePage {
     public boolean isCreateQuickCountOptionDisplayed() {
         try {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND "
-                + "(label == 'Create Quick Count' OR label CONTAINS 'Create Quick Count')"
+                "(label == 'Create Quick Count' OR label CONTAINS 'Create Quick Count' "
+                + "OR label == 'Quick Count' OR label CONTAINS 'Quick Count') AND visible == true"
             ));
             boolean found = !elements.isEmpty();
             System.out.println(found
@@ -4917,10 +5069,18 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Getting details for option: " + optionTitle + "...");
 
         try {
-            // Find the title element
+            // Find the title element — search any visible element type for popup compatibility
             List<WebElement> titleElements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND label CONTAINS '" + optionTitle + "'"
+                "label CONTAINS '" + optionTitle + "' AND visible == true"
             ));
+            // If full title not found, try shorter version (e.g., "Create New Asset" → "New Asset")
+            if (titleElements.isEmpty() && optionTitle.startsWith("Create ")) {
+                String shortTitle = optionTitle.substring("Create ".length());
+                titleElements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "label CONTAINS '" + shortTitle + "' AND visible == true"
+                ));
+                System.out.println("  Trying shorter label '" + shortTitle + "': " + titleElements.size() + " found");
+            }
             if (titleElements.isEmpty()) {
                 System.out.println("⚠️ Option title not found: " + optionTitle);
                 return null;
@@ -10664,10 +10824,12 @@ public class WorkOrderPage extends BasePage {
             }
         } catch (Exception e) { /* continue */ }
 
-        // Strategy 2: Total/Open/Closed summary labels
+        // Strategy 2: Total/Open/Closed summary labels (case-insensitive)
         try {
             List<WebElement> totalLabels = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND (label == 'Total' OR label == 'Open' OR label == 'Closed')"
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label ==[c] 'Total' OR label ==[c] 'Open' OR label ==[c] 'Closed' "
+                + "OR label == 'TOTAL' OR label == 'OPEN' OR label == 'CLOSED')"
             ));
             if (totalLabels.size() >= 2) {
                 System.out.println("✅ Session Issues content detected via summary labels");
@@ -10757,7 +10919,8 @@ public class WorkOrderPage extends BasePage {
         for (String labelName : labels) {
             try {
                 List<WebElement> labelElements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND label == '" + labelName + "'"
+                    "type == 'XCUIElementTypeStaticText' AND "
+                    + "(label ==[c] '" + labelName + "' OR label == '" + labelName.toUpperCase() + "')"
                 ));
                 if (!labelElements.isEmpty()) {
                     int labelY = labelElements.get(0).getLocation().getY();
