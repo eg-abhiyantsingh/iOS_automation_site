@@ -239,7 +239,31 @@ public class SiteVisit_phase2 extends BaseTest {
         }
 
         workOrderPage.tapLocationsFloorAtIndex(0);
-        try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
+        try { Thread.sleep(1500); } catch (InterruptedException ignored) {}
+
+        // Debug: dump all StaticText elements to see what's on screen after floor tap
+        try {
+            java.util.List<org.openqa.selenium.WebElement> allTexts =
+                com.egalvanic.utils.DriverManager.getDriver().findElements(
+                    io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND label != ''"
+                    ));
+            System.out.println("🔍 DEBUG: All visible text after floor tap (" + allTexts.size() + " elements):");
+            int count = 0;
+            for (org.openqa.selenium.WebElement el : allTexts) {
+                try {
+                    String label = el.getAttribute("label");
+                    int y = el.getLocation().getY();
+                    if (y > 100 && y < 800 && label != null && !label.isEmpty()) {
+                        System.out.println("  [Y=" + y + "] " + label);
+                        count++;
+                        if (count >= 20) break;
+                    }
+                } catch (Exception ignored2) {}
+            }
+        } catch (Exception e) {
+            System.out.println("🔍 DEBUG dump failed: " + e.getMessage());
+        }
 
         // Step 4: Tap first room
         java.util.List<String> rooms = workOrderPage.getLocationsRoomEntries();
