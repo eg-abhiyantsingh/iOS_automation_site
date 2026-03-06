@@ -649,6 +649,7 @@ public class SiteVisit_phase3 extends BaseTest {
 
     @Test(priority = 200)
     public void TC_JOB_200_verifyCameraButtonInWalkthrough() {
+        loginAndSelectSite();
         ExtentReportManager.createTest(
             AppConstants.MODULE_JOBS,
             AppConstants.FEATURE_PHOTO_WALKTHROUGH,
