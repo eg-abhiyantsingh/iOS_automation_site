@@ -2821,6 +2821,16 @@ public class WorkOrderPage extends BasePage {
                 int y = el.getLocation().getY();
                 if (y < 200) continue;
 
+                String label = el.getAttribute("label");
+                if (label == null || label.isEmpty()) continue;
+
+                // Skip pure room/node/asset count labels like "1 room", "5 rooms", "3 nodes"
+                // These are sub-labels of floors, not floor entries themselves
+                if (label.matches("^\\d+\\s+(room|rooms|node|nodes|asset|assets)$")) {
+                    System.out.println("  Skipping count label: " + label);
+                    continue;
+                }
+
                 boolean duplicate = false;
                 for (int existingY : seenYPositions) {
                     if (Math.abs(y - existingY) < 20) {
@@ -2830,11 +2840,8 @@ public class WorkOrderPage extends BasePage {
                 }
                 if (!duplicate) {
                     seenYPositions.add(y);
-                    String label = el.getAttribute("label");
-                    if (label != null && !label.isEmpty()) {
-                        floors.add(label);
-                        System.out.println("  Found floor: " + label);
-                    }
+                    floors.add(label);
+                    System.out.println("  Found floor: " + label);
                 }
             }
         } catch (Exception e) { /* continue */ }
@@ -2896,6 +2903,8 @@ public class WorkOrderPage extends BasePage {
                 for (WebElement child : childTexts) {
                     String label = child.getAttribute("label");
                     if (label == null) continue;
+                    // Skip pure count labels like "1 room", "5 rooms"
+                    if (label.matches("^\\d+\\s+(room|rooms|node|nodes|asset|assets)$")) continue;
                     if (label.toLowerCase().contains("room")
                             || label.toLowerCase().startsWith("floor")) {
                         isFloor = true;

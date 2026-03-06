@@ -206,10 +206,12 @@ public class SiteVisit_phase2 extends BaseTest {
     private void navigateToAssetsInRoom() {
         logStep("Starting navigation to Assets in Room...");
 
+        // Step 1: Get to Session Details → Assets tab
         ensureOnSessionDetailsScreen();
         workOrderPage.tapSessionTab("Assets");
-        mediumWait();
+        try { Thread.sleep(800); } catch (InterruptedException ignored) {}
 
+        // Step 2: Expand first building
         int buildingCount = workOrderPage.getLocationsBuildingCount();
         logStep("Buildings found: " + buildingCount);
 
@@ -219,10 +221,17 @@ public class SiteVisit_phase2 extends BaseTest {
         }
 
         workOrderPage.tapLocationsBuildingAtIndex(0);
-        mediumWait();
+        try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
 
+        // Step 3: Expand first floor
         java.util.List<String> floors = workOrderPage.getLocationsFloorEntries();
         logStep("Floors found: " + floors.size());
+
+        if (floors.isEmpty()) {
+            try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
+            floors = workOrderPage.getLocationsFloorEntries();
+            logStep("Floors (retry): " + floors.size());
+        }
 
         if (floors.isEmpty()) {
             logWarning("No floors found after expanding building");
@@ -230,18 +239,34 @@ public class SiteVisit_phase2 extends BaseTest {
         }
 
         workOrderPage.tapLocationsFloorAtIndex(0);
-        mediumWait();
+        try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
 
+        // Step 4: Tap first room
         java.util.List<String> rooms = workOrderPage.getLocationsRoomEntries();
         logStep("Rooms found: " + rooms.size());
 
         if (rooms.isEmpty()) {
+            // Retry: floor might still be expanding
+            try { Thread.sleep(1500); } catch (InterruptedException ignored) {}
+            rooms = workOrderPage.getLocationsRoomEntries();
+            logStep("Rooms (retry): " + rooms.size());
+        }
+
+        if (rooms.isEmpty()) {
+            // Last resort: try tapFirstRoomWithAssets which looks for "N asset" text
+            logStep("Trying fast path: tapFirstRoomWithAssets");
+            if (workOrderPage.tapFirstRoomWithAssets()) {
+                try { Thread.sleep(800); } catch (InterruptedException ignored) {}
+                workOrderPage.waitForAssetsInRoomScreen();
+                logStep("Navigation to Assets in Room complete (fast path)");
+                return;
+            }
             logWarning("No rooms found after expanding floor");
             return;
         }
 
         workOrderPage.tapLocationsRoomAtIndex(0);
-        mediumWait();
+        try { Thread.sleep(800); } catch (InterruptedException ignored) {}
 
         workOrderPage.waitForAssetsInRoomScreen();
         logStep("Navigation to Assets in Room complete");
