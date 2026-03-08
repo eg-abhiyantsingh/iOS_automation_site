@@ -1905,7 +1905,7 @@ public class SiteVisit_phase2 extends BaseTest {
             AppConstants.MODULE_JOBS,
             AppConstants.FEATURE_SESSION_BOTTOM_TABS,
             "TC_JOB_120 - Verify 5 bottom tabs displayed on Session Details screen: "
-            + "Details, Locations, Tasks, Issues, Files"
+            + "Details, Assets, Tasks, Issues, Files"
         );
 
         logStep("Navigating to Session Details screen");
@@ -1917,7 +1917,7 @@ public class SiteVisit_phase2 extends BaseTest {
         logStepWithScreenshot("Session Details bottom tabs");
 
         // Check all 5 expected tabs individually
-        String[] expectedTabs = {"Details", "Locations", "Tasks", "Issues", "Files"};
+        String[] expectedTabs = {"Details", "Assets", "Tasks", "Issues", "Files"};
         java.util.List<String> missingTabs = new java.util.ArrayList<>();
         for (String tab : expectedTabs) {
             boolean found = workOrderPage.isTabDisplayed(tab);
@@ -1947,7 +1947,7 @@ public class SiteVisit_phase2 extends BaseTest {
         mediumWait();
 
         assertTrue(missingTabs.isEmpty(),
-            "Session Details screen should show 5 bottom tabs: Details, Locations, Tasks, "
+            "Session Details screen should show 5 bottom tabs: Details, Assets, Tasks, "
             + "Issues, Files. Found: " + tabLabels + ". Missing: " + missingTabs
             + ". Navigable: " + navigableTabs);
     }

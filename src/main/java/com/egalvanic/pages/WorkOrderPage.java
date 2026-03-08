@@ -3406,6 +3406,14 @@ public class WorkOrderPage extends BasePage {
                 int cellH = cell.getSize().getHeight();
                 // Asset cells: below search/header area (Y > 200), with content height (H > 40)
                 if (cellY > 200 && cellH > 40) {
+                    // Check if this is an empty state cell (contains "No Assets" text)
+                    try {
+                        List<WebElement> emptyTexts = cell.findElements(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeStaticText' AND "
+                            + "(label CONTAINS 'No Assets' OR label CONTAINS 'No Asset Types')"
+                        ));
+                        if (!emptyTexts.isEmpty()) continue; // Skip empty state cell
+                    } catch (Exception inner) { /* continue counting */ }
                     count++;
                 }
             }
@@ -3533,6 +3541,9 @@ public class WorkOrderPage extends BasePage {
                     for (WebElement child : childTexts) {
                         String label = child.getAttribute("label");
                         if (label == null || label.isEmpty()) continue;
+                        // Skip empty state texts
+                        if (label.contains("No Assets") || label.contains("No Asset Types")
+                                || label.contains("Tap '")) continue;
 
                         if (label.matches(".*\\d+%.*")) {
                             entry.put("completion", label.replaceAll("[^0-9%]", ""));
@@ -3549,7 +3560,10 @@ public class WorkOrderPage extends BasePage {
                         entry.put("name", cellLabel);
                     }
                 }
-                entries.add(entry);
+                // Only add entry if it has a name (skip empty state cells)
+                if (entry.containsKey("name")) {
+                    entries.add(entry);
+                }
             }
 
             // If no cells found, try extracting from visible texts directly
@@ -3563,7 +3577,9 @@ public class WorkOrderPage extends BasePage {
                     int y = text.getLocation().getY();
                     String label = text.getAttribute("label");
                     if (y < 250 || label == null || label.isEmpty()
-                            || label.contains("Assets in Room") || label.equals("Done")) continue;
+                            || label.contains("Assets in Room") || label.equals("Done")
+                            || label.contains("No Assets") || label.contains("No Asset Types")
+                            || label.contains("Tap '")) continue;
 
                     // Find or create row entry (within 20px band)
                     Integer rowKey = null;
@@ -3606,7 +3622,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Long-pressing on asset at index " + index + "...");
 
         try {
-            // Find asset cells
+            // Find asset cells (filter out empty state cells)
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeCell' AND visible == true"
             ));
@@ -3614,8 +3630,20 @@ public class WorkOrderPage extends BasePage {
             for (WebElement cell : cells) {
                 int y = cell.getLocation().getY();
                 int h = cell.getSize().getHeight();
-                if (y > 200 && h > 40) assetCells.add(cell);
+                if (y > 200 && h > 40) {
+                    // Skip empty state cell
+                    try {
+                        List<WebElement> emptyTexts = cell.findElements(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeStaticText' AND "
+                            + "(label CONTAINS 'No Assets' OR label CONTAINS 'No Asset Types')"
+                        ));
+                        if (!emptyTexts.isEmpty()) continue;
+                    } catch (Exception inner) { /* continue */ }
+                    assetCells.add(cell);
+                }
             }
+
+            System.out.println("📊 Found " + assetCells.size() + " asset entries");
 
             WebElement targetCell = null;
             if (index < assetCells.size()) {
