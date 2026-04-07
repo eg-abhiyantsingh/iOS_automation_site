@@ -354,25 +354,15 @@ jobs:
           PROJECT_FILE=$(basename "$XCODEPROJ_PATH")
 
           echo "🔨 Building: ${{ env.BUILD_SCHEME }} from ${{ github.event.inputs.branch }}"
+          echo "  Xcode: $(xcodebuild -version | head -1)"
+          echo "  Swift: $(swift --version 2>&1 | head -1)"
 
           # ═══════════════════════════════════════════════════════════
-          # FIX: Removed CODE_SIGNING_ALLOWED=NO
-          #
-          # CODE_SIGNING_ALLOWED=NO prevents ALL code signing, which
-          # causes iOS Keychain to silently reject token saves.
-          # Result: Login API succeeds → token save fails → app shows
-          # "Not authenticated" on next API call.
-          #
-          # CODE_SIGN_IDENTITY="-" gives ad-hoc signing — enough for
-          # simulator Keychain operations to work correctly.
-          #
-          # Also removed "-configuration Debug" flag — the scheme
-          # "Egalvanic PZ-QA" has buildConfiguration = "Debug-QA".
-          # Passing "-configuration Debug" overrides the scheme and
-          # uses the wrong config (which builds PROD app).
+          # Build the app, capturing full output to log file.
+          # We disable -e temporarily to capture the exit code ourselves,
+          # then display targeted error info before failing.
           # ═══════════════════════════════════════════════════════════
-
-          set -o pipefail
+          set +e
           xcodebuild build \
             -project "$PROJECT_FILE" \
             -scheme "${{ env.BUILD_SCHEME }}" \
@@ -381,12 +371,31 @@ jobs:
             -clonedSourcePackagesDirPath ../spm-cache \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
-            2>&1 | tail -20
+            2>&1 | tee /tmp/xcodebuild.log | grep -E "error:|warning:|BUILD SUCCEEDED|BUILD FAILED|✅|❌" | tail -50
+          BUILD_EXIT=${PIPESTATUS[0]}
+          set -e
 
+          if [ "$BUILD_EXIT" -ne 0 ]; then
+            echo ""
+            echo "╔══════════════════════════════════════════════════════════════╗"
+            echo "║  ❌ BUILD FAILED (exit code $BUILD_EXIT)"
+            echo "╚══════════════════════════════════════════════════════════════╝"
+            echo ""
+            echo "─── Swift Compilation Errors ───"
+            grep "error:" /tmp/xcodebuild.log | grep -v "^$" | grep -v "Command.*failed" | head -40
+            echo ""
+            echo "─── Build Summary ───"
+            tail -15 /tmp/xcodebuild.log
+            # Save log for artifact upload
+            cp /tmp/xcodebuild.log "${{ github.workspace }}/xcodebuild-error.log" 2>/dev/null || true
+            exit 1
+          fi
+
+          echo ""
           APP_PATH=$(find build -name "*.app" -type d | head -1)
 
           if [ -z "$APP_PATH" ]; then
-            echo "❌ Build failed! No .app found"
+            echo "❌ Build reported success but no .app found"
             find build -type d | head -20
             exit 1
           fi
@@ -395,11 +404,9 @@ jobs:
           EXEC_NAME=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP_PATH/Info.plist" 2>/dev/null)
           if [ -z "$EXEC_NAME" ] || [ ! -f "$APP_PATH/$EXEC_NAME" ]; then
             echo "❌ App bundle missing executable!"
-            echo "Expected: $APP_PATH/$EXEC_NAME"
+            echo "  Expected: $APP_PATH/$EXEC_NAME"
             echo "─── App contents ───"
             ls -la "$APP_PATH/"
-            echo "─── Build errors (last 50 lines of full log) ───"
-            find build -name "*.log" -exec tail -50 {} \; 2>/dev/null || true
             exit 1
           fi
 
@@ -781,6 +788,16 @@ jobs:
             qa-automation/target/surefire-reports/
             qa-automation/screenshots/
           retention-days: 30
+
+      # Upload build log when xcodebuild fails (shows actual Swift errors)
+      - name: Upload Build Log (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log-${{ github.run_number }}
+          path: xcodebuild-error.log
+          retention-days: 7
+          if-no-files-found: ignore
 
       # Only upload Appium log on failure (saves artifact space)
       - name: Upload Appium Log (on failure)

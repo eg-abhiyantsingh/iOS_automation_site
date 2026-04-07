@@ -170,7 +170,11 @@ jobs:
           PROJECT_FILE=$(basename "$XCODEPROJ_PATH")
 
           echo "🔨 Building: ${{ env.BUILD_SCHEME }} from ${{ github.event.inputs.branch }}"
+          echo "  Xcode: $(xcodebuild -version | head -1)"
+          echo "  Swift: $(swift --version 2>&1 | head -1)"
 
+          # Build and capture full output to log file for error analysis
+          set +e
           xcodebuild build \
             -project "$PROJECT_FILE" \
             -scheme "${{ env.BUILD_SCHEME }}" \
@@ -179,17 +183,45 @@ jobs:
             -clonedSourcePackagesDirPath ../spm-cache \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
-            -quiet 2>&1 | tail -5
+            2>&1 | tee /tmp/xcodebuild.log | grep -E "error:|warning:|BUILD SUCCEEDED|BUILD FAILED|✅|❌" | tail -50
+          BUILD_EXIT=${PIPESTATUS[0]}
+          set -e
 
+          if [ "$BUILD_EXIT" -ne 0 ]; then
+            echo ""
+            echo "╔══════════════════════════════════════════════════════════════╗"
+            echo "║  ❌ BUILD FAILED (exit code $BUILD_EXIT)"
+            echo "╚══════════════════════════════════════════════════════════════╝"
+            echo ""
+            echo "─── Swift Compilation Errors ───"
+            grep "error:" /tmp/xcodebuild.log | grep -v "^$" | grep -v "Command.*failed" | head -40
+            echo ""
+            echo "─── Build Summary ───"
+            tail -15 /tmp/xcodebuild.log
+            cp /tmp/xcodebuild.log "${{ github.workspace }}/xcodebuild-error.log" 2>/dev/null || true
+            exit 1
+          fi
+
+          echo ""
           APP_PATH=$(find build -name "*.app" -type d | head -1)
 
           if [ -z "$APP_PATH" ]; then
-            echo "❌ Build failed! No .app found"
+            echo "❌ Build reported success but no .app found"
             find build -type d | head -20
             exit 1
           fi
 
-          echo "✅ Built: $(basename "$APP_PATH")"
+          # Verify the executable exists inside the .app bundle
+          EXEC_NAME=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP_PATH/Info.plist" 2>/dev/null)
+          if [ -z "$EXEC_NAME" ] || [ ! -f "$APP_PATH/$EXEC_NAME" ]; then
+            echo "❌ App bundle missing executable!"
+            echo "  Expected: $APP_PATH/$EXEC_NAME"
+            echo "─── App contents ───"
+            ls -la "$APP_PATH/"
+            exit 1
+          fi
+
+          echo "✅ Built: $(basename "$APP_PATH") (exec: $EXEC_NAME)"
 
           # Copy built app to QA automation directory
           mkdir -p ../qa-automation/apps
@@ -210,6 +242,15 @@ jobs:
             # Export bundle ID so tests can use the correct value for terminateApp/activateApp
             echo "APP_BUNDLE_ID=$BUNDLE_ID" >> $GITHUB_ENV
           fi
+
+      - name: Upload Build Log (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log-${{ github.run_number }}
+          path: xcodebuild-error.log
+          retention-days: 7
+          if-no-files-found: ignore
 
       - name: Upload Built App
         uses: actions/upload-artifact@v4
