@@ -386,7 +386,6 @@ jobs:
               curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true
               sleep 5
               WDA_SUCCESS=true
-sleep 5
               break
             fi
             [ $attempt -lt 5 ] && sleep 30
@@ -522,7 +521,6 @@ sleep 5
               curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true
               sleep 5
               WDA_SUCCESS=true
-sleep 5
               break
             fi
             [ $attempt -lt 5 ] && sleep 30
@@ -653,7 +651,6 @@ sleep 5
               curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true
               sleep 5
               WDA_SUCCESS=true
-sleep 5
               break
             fi
             [ $attempt -lt 5 ] && sleep 30
