@@ -445,8 +445,8 @@ jobs:
         run: |
           echo "=== Warming up WDA with a test session ==="
           
-          for attempt in 1 2 3 4; do
-            echo "Warm-up attempt $attempt/3..."
+          for attempt in 1 2 3 4 5; do
+            echo "Warm-up attempt $attempt/5..."
             
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
@@ -479,7 +479,7 @@ jobs:
               break
             else
               echo "⚠️ Attempt $attempt failed"
-              [ $attempt -lt 4 ] && sleep 30
+              [ $attempt -lt 5 ] && sleep 30
             fi
           done
 

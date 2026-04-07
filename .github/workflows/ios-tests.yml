@@ -176,8 +176,8 @@ jobs:
           echo "This ensures WDA is fully built and ready before actual tests run"
           
           # Retry warm-up up to 3 times
-          for attempt in 1 2 3 4; do
-            echo "Warm-up attempt $attempt/3..."
+          for attempt in 1 2 3 4 5; do
+            echo "Warm-up attempt $attempt/5..."
             
             # Create a simple session to warm up WDA
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
@@ -222,7 +222,7 @@ jobs:
               exit 0
             else
               echo "⚠️ Attempt $attempt failed - session not created"
-              if [ $attempt -lt 4 ]; then
+              if [ $attempt -lt 5 ]; then
                 echo "Waiting 30s before retry..."
                 sleep 30
               fi

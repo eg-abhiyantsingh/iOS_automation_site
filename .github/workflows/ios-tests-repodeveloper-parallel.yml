@@ -355,8 +355,8 @@ jobs:
           APP_FILE=$(ls apps/ | grep ".app" | head -1)
           FULL_APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
 
-          for attempt in 1 2 3 4; do
-            echo "WDA warm-up attempt $attempt/3..."
+          for attempt in 1 2 3 4 5; do
+            echo "WDA warm-up attempt $attempt/5..."
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
               -d '{
@@ -386,7 +386,7 @@ jobs:
               echo "✅ WDA warm-up complete"
               break
             else
-              [ $attempt -lt 4 ] && sleep 30
+              [ $attempt -lt 5 ] && sleep 30
             fi
           done
 
@@ -603,8 +603,8 @@ jobs:
           APP_FILE=$(ls apps/ | grep ".app" | head -1)
           FULL_APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
 
-          for attempt in 1 2 3 4; do
-            echo "WDA warm-up attempt $attempt/3..."
+          for attempt in 1 2 3 4 5; do
+            echo "WDA warm-up attempt $attempt/5..."
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
               -d '{
@@ -634,7 +634,7 @@ jobs:
               echo "✅ WDA warm-up complete"
               break
             else
-              [ $attempt -lt 4 ] && sleep 30
+              [ $attempt -lt 5 ] && sleep 30
             fi
           done
 
@@ -800,8 +800,8 @@ jobs:
           APP_FILE=$(ls apps/ | grep ".app" | head -1)
           FULL_APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
 
-          for attempt in 1 2 3 4; do
-            echo "WDA warm-up attempt $attempt/3..."
+          for attempt in 1 2 3 4 5; do
+            echo "WDA warm-up attempt $attempt/5..."
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
               -d '{
@@ -831,7 +831,7 @@ jobs:
               echo "✅ WDA warm-up complete"
               break
             else
-              [ $attempt -lt 4 ] && sleep 30
+              [ $attempt -lt 5 ] && sleep 30
             fi
           done
 
@@ -987,7 +987,7 @@ jobs:
           APP_FILE=$(ls apps/ | grep ".app" | head -1)
           FULL_APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
 
-          for attempt in 1 2 3 4; do
+          for attempt in 1 2 3 4 5; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
               -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"${{ env.SIMULATOR_UDID }}"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$FULL_APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' \
@@ -998,7 +998,7 @@ jobs:
               curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true
               sleep 5; break
             else
-              [ $attempt -lt 4 ] && sleep 30
+              [ $attempt -lt 5 ] && sleep 30
             fi
           done
 
@@ -1150,7 +1150,7 @@ jobs:
           APP_FILE=$(ls apps/ | grep ".app" | head -1)
           FULL_APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
 
-          for attempt in 1 2 3 4; do
+          for attempt in 1 2 3 4 5; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
               -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"${{ env.SIMULATOR_UDID }}"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$FULL_APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' \
@@ -1161,7 +1161,7 @@ jobs:
               curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true
               sleep 5; break
             else
-              [ $attempt -lt 4 ] && sleep 30
+              [ $attempt -lt 5 ] && sleep 30
             fi
           done
 
@@ -1310,7 +1310,7 @@ jobs:
         run: |
           APP_FILE=$(ls apps/ | grep ".app" | head -1)
           FULL_APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
-          for attempt in 1 2 3 4; do
+          for attempt in 1 2 3 4 5; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
               -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"${{ env.SIMULATOR_UDID }}"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$FULL_APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' \
@@ -1320,7 +1320,7 @@ jobs:
               echo "✅ WDA warm-up OK"; sleep 10
               curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true; sleep 5; break
             else
-              [ $attempt -lt 4 ] && sleep 30
+              [ $attempt -lt 5 ] && sleep 30
             fi
           done
 
@@ -1471,7 +1471,7 @@ jobs:
         run: |
           APP_FILE=$(ls apps/ | grep ".app" | head -1)
           FULL_APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
-          for attempt in 1 2 3 4; do
+          for attempt in 1 2 3 4 5; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
               -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"${{ env.SIMULATOR_UDID }}"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$FULL_APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' \
@@ -1481,7 +1481,7 @@ jobs:
               echo "✅ WDA warm-up OK"; sleep 10
               curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true; sleep 5; break
             else
-              [ $attempt -lt 4 ] && sleep 30
+              [ $attempt -lt 5 ] && sleep 30
             fi
           done
 
@@ -1632,7 +1632,7 @@ jobs:
         run: |
           APP_FILE=$(ls apps/ | grep ".app" | head -1)
           FULL_APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
-          for attempt in 1 2 3 4; do
+          for attempt in 1 2 3 4 5; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
               -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"${{ env.SIMULATOR_UDID }}"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$FULL_APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' \
@@ -1642,7 +1642,7 @@ jobs:
               echo "✅ WDA warm-up OK"; sleep 10
               curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true; sleep 5; break
             else
-              [ $attempt -lt 4 ] && sleep 30
+              [ $attempt -lt 5 ] && sleep 30
             fi
           done
 
@@ -1797,7 +1797,7 @@ jobs:
         run: |
           APP_FILE=$(ls apps/ | grep ".app" | head -1)
           FULL_APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
-          for attempt in 1 2 3 4; do
+          for attempt in 1 2 3 4 5; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
               -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"${{ env.SIMULATOR_UDID }}"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$FULL_APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' \
@@ -1807,7 +1807,7 @@ jobs:
               echo "✅ WDA warm-up OK"; sleep 10
               curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true; sleep 5; break
             else
-              [ $attempt -lt 4 ] && sleep 30
+              [ $attempt -lt 5 ] && sleep 30
             fi
           done
 
@@ -1956,7 +1956,7 @@ jobs:
         run: |
           APP_FILE=$(ls apps/ | grep ".app" | head -1)
           FULL_APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
-          for attempt in 1 2 3 4; do
+          for attempt in 1 2 3 4 5; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
               -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"${{ env.SIMULATOR_UDID }}"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$FULL_APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' \
@@ -1966,7 +1966,7 @@ jobs:
               echo "✅ WDA warm-up OK"; sleep 10
               curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true; sleep 5; break
             else
-              [ $attempt -lt 4 ] && sleep 30
+              [ $attempt -lt 5 ] && sleep 30
             fi
           done
 
@@ -2115,7 +2115,7 @@ jobs:
         run: |
           APP_FILE=$(ls apps/ | grep ".app" | head -1)
           FULL_APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
-          for attempt in 1 2 3 4; do
+          for attempt in 1 2 3 4 5; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
               -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"${{ env.SIMULATOR_UDID }}"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$FULL_APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' \
@@ -2125,7 +2125,7 @@ jobs:
               echo "✅ WDA warm-up OK"; sleep 10
               curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true; sleep 5; break
             else
-              [ $attempt -lt 4 ] && sleep 30
+              [ $attempt -lt 5 ] && sleep 30
             fi
           done
 
@@ -2274,7 +2274,7 @@ jobs:
         run: |
           APP_FILE=$(ls apps/ | grep ".app" | head -1)
           FULL_APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
-          for attempt in 1 2 3 4; do
+          for attempt in 1 2 3 4 5; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
               -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"${{ env.SIMULATOR_UDID }}"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$FULL_APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' \
@@ -2284,7 +2284,7 @@ jobs:
               echo "✅ WDA warm-up OK"; sleep 10
               curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true; sleep 5; break
             else
-              [ $attempt -lt 4 ] && sleep 30
+              [ $attempt -lt 5 ] && sleep 30
             fi
           done
 
@@ -2432,7 +2432,7 @@ jobs:
         run: |
           APP_FILE=$(ls apps/ | grep ".app" | head -1)
           FULL_APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
-          for attempt in 1 2 3 4; do
+          for attempt in 1 2 3 4 5; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
               -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"${{ env.SIMULATOR_UDID }}"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$FULL_APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' \
@@ -2442,7 +2442,7 @@ jobs:
               echo "✅ WDA warm-up OK"; sleep 10
               curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true; sleep 5; break
             else
-              [ $attempt -lt 4 ] && sleep 30
+              [ $attempt -lt 5 ] && sleep 30
             fi
           done
 
@@ -2590,7 +2590,7 @@ jobs:
         run: |
           APP_FILE=$(ls apps/ | grep ".app" | head -1)
           FULL_APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
-          for attempt in 1 2 3 4; do
+          for attempt in 1 2 3 4 5; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
               -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"${{ env.SIMULATOR_UDID }}"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$FULL_APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' \
@@ -2600,7 +2600,7 @@ jobs:
               echo "✅ WDA warm-up OK"; sleep 10
               curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true; sleep 5; break
             else
-              [ $attempt -lt 4 ] && sleep 30
+              [ $attempt -lt 5 ] && sleep 30
             fi
           done
 
@@ -2748,7 +2748,7 @@ jobs:
         run: |
           APP_FILE=$(ls apps/ | grep ".app" | head -1)
           FULL_APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
-          for attempt in 1 2 3 4; do
+          for attempt in 1 2 3 4 5; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
               -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"${{ env.SIMULATOR_UDID }}"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$FULL_APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' \
@@ -2758,7 +2758,7 @@ jobs:
               echo "✅ WDA warm-up OK"; sleep 10
               curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true; sleep 5; break
             else
-              [ $attempt -lt 4 ] && sleep 30
+              [ $attempt -lt 5 ] && sleep 30
             fi
           done
 
@@ -2911,7 +2911,7 @@ jobs:
         run: |
           APP_FILE=$(ls apps/ | grep ".app" | head -1)
           FULL_APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
-          for attempt in 1 2 3 4; do
+          for attempt in 1 2 3 4 5; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
               -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"${{ env.SIMULATOR_UDID }}"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$FULL_APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' \
@@ -2921,7 +2921,7 @@ jobs:
               echo "✅ WDA warm-up OK"; sleep 10
               curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true; sleep 5; break
             else
-              [ $attempt -lt 4 ] && sleep 30
+              [ $attempt -lt 5 ] && sleep 30
             fi
           done
 
