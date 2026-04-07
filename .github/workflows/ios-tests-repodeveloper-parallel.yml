@@ -170,10 +170,13 @@ jobs:
           PROJECT_FILE=$(basename "$XCODEPROJ_PATH")
 
           echo "🔨 Building: ${{ env.BUILD_SCHEME }} from ${{ github.event.inputs.branch }}"
-          echo "  Xcode: $(xcodebuild -version | head -1)"
-          echo "  Swift: $(swift --version 2>&1 | head -1)"
+          XCODE_VER=$(xcodebuild -version 2>&1 || true)
+          SWIFT_VER=$(swift --version 2>&1 || true)
+          echo "  Xcode: $(echo "$XCODE_VER" | head -1)"
+          echo "  Swift: $(echo "$SWIFT_VER" | head -1)"
 
-          # Build and capture full output to log file for error analysis
+          # IMPORTANT: No pipes on xcodebuild — causes SIGPIPE / Broken pipe crash
+          echo "  Building... (output saved to /tmp/xcodebuild.log)"
           set +e
           xcodebuild build \
             -project "$PROJECT_FILE" \
@@ -183,8 +186,8 @@ jobs:
             -clonedSourcePackagesDirPath ../spm-cache \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
-            2>&1 | tee /tmp/xcodebuild.log | grep -E "error:|warning:|BUILD SUCCEEDED|BUILD FAILED|✅|❌" | tail -50
-          BUILD_EXIT=${PIPESTATUS[0]}
+            > /tmp/xcodebuild.log 2>&1
+          BUILD_EXIT=$?
           set -e
 
           if [ "$BUILD_EXIT" -ne 0 ]; then
@@ -194,15 +197,17 @@ jobs:
             echo "╚══════════════════════════════════════════════════════════════╝"
             echo ""
             echo "─── Swift Compilation Errors ───"
-            grep "error:" /tmp/xcodebuild.log | grep -v "^$" | grep -v "Command.*failed" | head -40
+            grep "error:" /tmp/xcodebuild.log | grep -v "^$" | grep -v "Command.*failed" | head -40 || echo "(no error: lines found)"
             echo ""
-            echo "─── Build Summary ───"
-            tail -15 /tmp/xcodebuild.log
+            echo "─── Build Summary (last 20 lines) ───"
+            tail -20 /tmp/xcodebuild.log
             cp /tmp/xcodebuild.log "${{ github.workspace }}/xcodebuild-error.log" 2>/dev/null || true
             exit 1
           fi
 
-          echo ""
+          echo "─── Build Output (last 5 lines) ───"
+          tail -5 /tmp/xcodebuild.log
+
           APP_PATH=$(find build -name "*.app" -type d | head -1)
 
           if [ -z "$APP_PATH" ]; then
