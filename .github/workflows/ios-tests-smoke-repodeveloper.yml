@@ -452,7 +452,7 @@ jobs:
           FULL_APP_PATH="${{ github.workspace }}/qa-automation/apps/$APP_FILE"
           echo "FULL_APP_PATH=$FULL_APP_PATH" >> $GITHUB_ENV
 
-          for attempt in 1 2 3; do
+          for attempt in 1 2 3 4; do
             echo "WDA warm-up attempt $attempt/3..."
 
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
@@ -484,7 +484,7 @@ jobs:
               echo "✅ WDA warm-up complete"
               break
             else
-              [ $attempt -lt 3 ] && sleep 30
+              [ $attempt -lt 4 ] && sleep 30
             fi
           done
 

@@ -197,7 +197,7 @@ public class EmailUtil {
         body.append("<div class='reports-section'>");
         body.append("<h3 style='margin-top: 0;'>📊 Attached Report</h3>");
         body.append("<div class='report-item'>");
-        body.append("<strong>� Celient Report</strong><br>");
+        body.append("<strong>Client Report</strong><br>");
         body.append("<small>Clean summary with Module > Feature > Test > Pass/Fail</small>");
         body.append("</div>");
         body.append("</div>");

@@ -185,7 +185,7 @@ jobs:
           SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
           APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
         run: |
-          for attempt in 1 2 3; do
+          for attempt in 1 2 3 4; do
             echo "Warm-up attempt $attempt/3..."
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
@@ -215,7 +215,7 @@ jobs:
               sleep 5
               break
             else
-              [ $attempt -lt 3 ] && sleep 30
+              [ $attempt -lt 4 ] && sleep 30
             fi
           done
 
@@ -409,7 +409,7 @@ jobs:
         run: |
           echo "=== Warming up WDA with a test session ==="
           
-          for attempt in 1 2 3; do
+          for attempt in 1 2 3 4; do
             echo "Warm-up attempt $attempt/3..."
             
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
@@ -443,7 +443,7 @@ jobs:
               break
             else
               echo "⚠️ Attempt $attempt failed"
-              [ $attempt -lt 3 ] && sleep 30
+              [ $attempt -lt 4 ] && sleep 30
             fi
           done
 
@@ -552,7 +552,7 @@ jobs:
           SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
           APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
         run: |
-          for attempt in 1 2 3; do
+          for attempt in 1 2 3 4; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session -H "Content-Type: application/json" -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"$SIMULATOR_UDID"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' --max-time 600 2>&1) || true
             SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
             if [ -n "$SESSION_ID" ]; then
@@ -561,7 +561,7 @@ jobs:
               sleep 5
               break
             fi
-            [ $attempt -lt 3 ] && sleep 30
+            [ $attempt -lt 4 ] && sleep 30
           done
       - name: Run Site Tests
         continue-on-error: true
@@ -664,7 +664,7 @@ jobs:
           SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
           APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
         run: |
-          for attempt in 1 2 3; do
+          for attempt in 1 2 3 4; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session -H "Content-Type: application/json" -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"$SIMULATOR_UDID"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' --max-time 600 2>&1) || true
             SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
             if [ -n "$SESSION_ID" ]; then
@@ -673,7 +673,7 @@ jobs:
               sleep 5
               break
             fi
-            [ $attempt -lt 3 ] && sleep 30
+            [ $attempt -lt 4 ] && sleep 30
           done
       - name: Run Asset Part 1 Tests
         continue-on-error: true
@@ -776,7 +776,7 @@ jobs:
           SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
           APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
         run: |
-          for attempt in 1 2 3; do
+          for attempt in 1 2 3 4; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session -H "Content-Type: application/json" -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"$SIMULATOR_UDID"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' --max-time 600 2>&1) || true
             SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
             if [ -n "$SESSION_ID" ]; then
@@ -785,7 +785,7 @@ jobs:
               sleep 5
               break
             fi
-            [ $attempt -lt 3 ] && sleep 30
+            [ $attempt -lt 4 ] && sleep 30
           done
       - name: Run Asset Part 2 Tests
         continue-on-error: true
@@ -887,7 +887,7 @@ jobs:
           SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
           APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
         run: |
-          for attempt in 1 2 3; do
+          for attempt in 1 2 3 4; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session -H "Content-Type: application/json" -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"$SIMULATOR_UDID"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' --max-time 600 2>&1) || true
             SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
             if [ -n "$SESSION_ID" ]; then
@@ -896,7 +896,7 @@ jobs:
               sleep 5
               break
             fi
-            [ $attempt -lt 3 ] && sleep 30
+            [ $attempt -lt 4 ] && sleep 30
           done
       - name: Run Asset Part 3 Tests
         continue-on-error: true
@@ -999,7 +999,7 @@ jobs:
           SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
           APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
         run: |
-          for attempt in 1 2 3; do
+          for attempt in 1 2 3 4; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session -H "Content-Type: application/json" -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"$SIMULATOR_UDID"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' --max-time 600 2>&1) || true
             SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
             if [ -n "$SESSION_ID" ]; then
@@ -1008,7 +1008,7 @@ jobs:
               sleep 5
               break
             fi
-            [ $attempt -lt 3 ] && sleep 30
+            [ $attempt -lt 4 ] && sleep 30
           done
       - name: Run Asset Part 4 Tests
         continue-on-error: true
@@ -1112,7 +1112,7 @@ jobs:
           SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
           APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
         run: |
-          for attempt in 1 2 3; do
+          for attempt in 1 2 3 4; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session -H "Content-Type: application/json" -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"$SIMULATOR_UDID"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' --max-time 600 2>&1) || true
             SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
             if [ -n "$SESSION_ID" ]; then
@@ -1121,7 +1121,7 @@ jobs:
               sleep 5
               break
             fi
-            [ $attempt -lt 3 ] && sleep 30
+            [ $attempt -lt 4 ] && sleep 30
           done
       - name: Run Asset Part 5 Tests
         continue-on-error: true
@@ -1228,7 +1228,7 @@ jobs:
           SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
           APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
         run: |
-          for attempt in 1 2 3; do
+          for attempt in 1 2 3 4; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session -H "Content-Type: application/json" -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"$SIMULATOR_UDID"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' --max-time 600 2>&1) || true
             SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
             if [ -n "$SESSION_ID" ]; then
@@ -1237,7 +1237,7 @@ jobs:
               sleep 5
               break
             fi
-            [ $attempt -lt 3 ] && sleep 30
+            [ $attempt -lt 4 ] && sleep 30
           done
       - name: Run Asset Part 6 Tests
         continue-on-error: true
@@ -1338,7 +1338,7 @@ jobs:
           SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
           APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
         run: |
-          for attempt in 1 2 3; do
+          for attempt in 1 2 3 4; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session -H "Content-Type: application/json" -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"$SIMULATOR_UDID"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' --max-time 600 2>&1) || true
             SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
             if [ -n "$SESSION_ID" ]; then
@@ -1347,7 +1347,7 @@ jobs:
               sleep 5
               break
             fi
-            [ $attempt -lt 3 ] && sleep 30
+            [ $attempt -lt 4 ] && sleep 30
           done
       - name: Run Issues Phase 1 Tests
         continue-on-error: true
@@ -1448,7 +1448,7 @@ jobs:
           SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
           APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
         run: |
-          for attempt in 1 2 3; do
+          for attempt in 1 2 3 4; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session -H "Content-Type: application/json" -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"$SIMULATOR_UDID"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' --max-time 600 2>&1) || true
             SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
             if [ -n "$SESSION_ID" ]; then
@@ -1457,7 +1457,7 @@ jobs:
               sleep 5
               break
             fi
-            [ $attempt -lt 3 ] && sleep 30
+            [ $attempt -lt 4 ] && sleep 30
           done
       - name: Run Issues Phase 2 Tests
         continue-on-error: true
@@ -1558,7 +1558,7 @@ jobs:
           SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
           APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
         run: |
-          for attempt in 1 2 3; do
+          for attempt in 1 2 3 4; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session -H "Content-Type: application/json" -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"$SIMULATOR_UDID"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' --max-time 600 2>&1) || true
             SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
             if [ -n "$SESSION_ID" ]; then
@@ -1567,7 +1567,7 @@ jobs:
               sleep 5
               break
             fi
-            [ $attempt -lt 3 ] && sleep 30
+            [ $attempt -lt 4 ] && sleep 30
           done
       - name: Run Issues Phase 3 Tests
         continue-on-error: true
@@ -1668,7 +1668,7 @@ jobs:
           SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
           APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
         run: |
-          for attempt in 1 2 3; do
+          for attempt in 1 2 3 4; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session -H "Content-Type: application/json" -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"$SIMULATOR_UDID"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' --max-time 600 2>&1) || true
             SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
             if [ -n "$SESSION_ID" ]; then
@@ -1677,7 +1677,7 @@ jobs:
               sleep 5
               break
             fi
-            [ $attempt -lt 3 ] && sleep 30
+            [ $attempt -lt 4 ] && sleep 30
           done
       - name: Run Location Tests
         continue-on-error: true
@@ -1779,7 +1779,7 @@ jobs:
           SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
           APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
         run: |
-          for attempt in 1 2 3; do
+          for attempt in 1 2 3 4; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session -H "Content-Type: application/json" -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"$SIMULATOR_UDID"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' --max-time 600 2>&1) || true
             SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
             if [ -n "$SESSION_ID" ]; then
@@ -1788,7 +1788,7 @@ jobs:
               sleep 5
               break
             fi
-            [ $attempt -lt 3 ] && sleep 30
+            [ $attempt -lt 4 ] && sleep 30
           done
       - name: Run Connections Tests
         continue-on-error: true
@@ -1915,7 +1915,7 @@ jobs:
         env:
           APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
         run: |
-          for attempt in 1 2 3; do
+          for attempt in 1 2 3 4; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session -H "Content-Type: application/json" -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"$SIMULATOR_UDID"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' --max-time 600 2>&1) || true
             SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
             if [ -n "$SESSION_ID" ]; then
@@ -1924,7 +1924,7 @@ jobs:
               sleep 5
               break
             fi
-            [ $attempt -lt 3 ] && sleep 30
+            [ $attempt -lt 4 ] && sleep 30
           done
       - name: Run Offline Tests
         continue-on-error: true
@@ -2068,7 +2068,7 @@ jobs:
           SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
           APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
         run: |
-          for attempt in 1 2 3; do
+          for attempt in 1 2 3 4; do
             echo "Warm-up attempt $attempt/3..."
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
@@ -2098,7 +2098,7 @@ jobs:
               sleep 5
               break
             else
-              [ $attempt -lt 3 ] && sleep 30
+              [ $attempt -lt 4 ] && sleep 30
             fi
           done
 
@@ -2218,7 +2218,7 @@ jobs:
           SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
           APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
         run: |
-          for attempt in 1 2 3; do
+          for attempt in 1 2 3 4; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session -H "Content-Type: application/json" -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"$SIMULATOR_UDID"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' --max-time 600 2>&1) || true
             SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
             if [ -n "$SESSION_ID" ]; then
@@ -2227,7 +2227,7 @@ jobs:
               sleep 5
               break
             fi
-            [ $attempt -lt 3 ] && sleep 30
+            [ $attempt -lt 4 ] && sleep 30
           done
       - name: Run Failed Tests Rerun
         continue-on-error: true
