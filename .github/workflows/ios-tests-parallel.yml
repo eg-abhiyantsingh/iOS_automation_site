@@ -2040,8 +2040,8 @@ jobs:
           node-version: '18'
       - name: Install Appium
         run: |
-          npm install -g appium@next 2>&1 | tail -1
-          appium driver install xcuitest 2>&1 | tail -1
+          npm install -g appium@next > /dev/null 2>&1
+          appium driver install xcuitest > /dev/null 2>&1
           echo "Appium $(appium --version) ready"
       - name: Download App from S3
         env:
@@ -2105,9 +2105,18 @@ jobs:
           WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
+            set +e
             xcodebuild build-for-testing -project WebDriverAgent.xcodeproj -scheme WebDriverAgentRunner \
               -destination "platform=iOS Simulator,id=$SIMULATOR_UDID" \
-              -derivedDataPath /tmp/wda-build -quiet 2>&1 | tail -3
+              -derivedDataPath /tmp/wda-build -quiet > /tmp/wda-build.log 2>&1
+            WDA_EXIT=$?
+            set -e
+            if [ "$WDA_EXIT" -ne 0 ]; then
+              echo "⚠️ WDA pre-build failed (exit $WDA_EXIT) — will build on first test run"
+              tail -10 /tmp/wda-build.log 2>/dev/null || true
+            else
+              echo "✅ WDA pre-built"
+            fi
           fi
       - name: Start Appium
         run: |

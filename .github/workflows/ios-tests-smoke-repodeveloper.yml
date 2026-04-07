@@ -238,14 +238,14 @@ jobs:
 
       - name: Install Appium
         run: |
-          npm install -g appium@latest 2>&1 | tail -1
-          appium driver install xcuitest 2>&1 | tail -1
+          npm install -g appium@latest > /dev/null 2>&1
+          appium driver install xcuitest > /dev/null 2>&1
           echo "✅ Appium $(appium --version)"
 
       - name: Setup API Capture
         if: github.event.inputs.capture_api != 'false'
         run: |
-          brew install mitmproxy 2>&1 | tail -3
+          brew install mitmproxy > /dev/null 2>&1
           mkdir -p qa-automation/reports/api_logs qa-automation/scripts
 
           cat > qa-automation/scripts/parse_api.py << 'PYSCRIPT'
@@ -341,11 +341,24 @@ jobs:
         run: |
           cd ios-app
           PROJECT_FILE=$(basename "$XCODEPROJ_PATH")
+          echo "Resolving SPM dependencies..."
+          set +e
           xcodebuild -resolvePackageDependencies \
             -project "$PROJECT_FILE" \
             -scheme "${{ env.BUILD_SCHEME }}" \
             -clonedSourcePackagesDirPath ../spm-cache \
-            -quiet 2>&1 | tail -3
+            > /tmp/spm-resolve.log 2>&1
+          SPM_EXIT=$?
+          set -e
+          if [ "$SPM_EXIT" -ne 0 ]; then
+            echo "❌ SPM dependency resolution FAILED (exit code $SPM_EXIT)"
+            echo "─── SPM Errors ───"
+            grep -i "error:" /tmp/spm-resolve.log | head -20 || true
+            echo "─── Full Output (last 30 lines) ───"
+            tail -30 /tmp/spm-resolve.log
+            cp /tmp/spm-resolve.log "${{ github.workspace }}/spm-error.log" 2>/dev/null || true
+            exit 1
+          fi
           echo "✅ Dependencies resolved"
 
       - name: Build iOS App for Simulator
@@ -450,13 +463,21 @@ jobs:
 
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
+            set +e
             xcodebuild build-for-testing \
               -project WebDriverAgent.xcodeproj \
               -scheme WebDriverAgentRunner \
               -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" \
               -derivedDataPath /tmp/wda-build \
-              -quiet 2>&1 | tail -3
-            echo "✅ WDA pre-built"
+              -quiet > /tmp/wda-build.log 2>&1
+            WDA_EXIT=$?
+            set -e
+            if [ "$WDA_EXIT" -ne 0 ]; then
+              echo "⚠️ WDA pre-build failed (exit $WDA_EXIT) — will build on first test run"
+              tail -10 /tmp/wda-build.log 2>/dev/null || true
+            else
+              echo "✅ WDA pre-built"
+            fi
           fi
 
       - name: Start Appium Server
@@ -800,8 +821,10 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: xcodebuild-log-${{ github.run_number }}
-          path: xcodebuild-error.log
+          name: build-logs-${{ github.run_number }}
+          path: |
+            xcodebuild-error.log
+            spm-error.log
           retention-days: 7
           if-no-files-found: ignore
 
