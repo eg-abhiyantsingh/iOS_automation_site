@@ -452,8 +452,17 @@ jobs:
           FULL_APP_PATH="${{ github.workspace }}/qa-automation/apps/$APP_FILE"
           echo "FULL_APP_PATH=$FULL_APP_PATH" >> $GITHUB_ENV
 
+          WDA_SUCCESS=false
           for attempt in 1 2 3 4 5; do
             echo "WDA warm-up attempt $attempt/5..."
+
+            # Use fresh WDA on retries to avoid stale state
+            if [ $attempt -le 2 ]; then
+              USE_NEW_WDA="false"
+            else
+              USE_NEW_WDA="true"
+              echo "  ↳ Using fresh WDA build for attempt $attempt"
+            fi
 
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
@@ -468,7 +477,7 @@ jobs:
                     "appium:app": "'"$FULL_APP_PATH"'",
                     "appium:wdaLaunchTimeout": 600000,
                     "appium:wdaConnectionTimeout": 300000,
-                    "appium:useNewWDA": false,
+                    "appium:useNewWDA": '"$USE_NEW_WDA"',
                     "appium:noReset": false
                   }
                 }
@@ -477,16 +486,34 @@ jobs:
             SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
 
             if [ -n "$SESSION_ID" ]; then
-              echo "✅ WDA session OK"
+              echo "✅ WDA session OK (attempt $attempt)"
               sleep 10
               curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true
               sleep 5
               echo "✅ WDA warm-up complete"
+              WDA_SUCCESS=true
               break
             else
-              [ $attempt -lt 5 ] && sleep 30
+              echo "  ❌ Attempt $attempt failed. Response:"
+              echo "$SESSION_RESPONSE" | head -5
+              if [ $attempt -lt 5 ]; then
+                echo "  ↳ Retrying in 30s..."
+                sleep 30
+              fi
             fi
           done
+
+          if [ "$WDA_SUCCESS" = false ]; then
+            echo ""
+            echo "❌ WDA warm-up FAILED after 5 attempts!"
+            echo "─── Appium log (last 50 lines) ───"
+            tail -50 appium.log 2>/dev/null || echo "(no appium log)"
+            echo "─── Simulator status ───"
+            xcrun simctl list devices | grep -A1 "Booted" || echo "(no booted sim)"
+            echo "─── App file check ───"
+            ls -la "$FULL_APP_PATH" 2>/dev/null || echo "App not found at: $FULL_APP_PATH"
+            exit 1
+          fi
 
       # ============================================================
       # STEP 8: Start API Capture & Run Tests

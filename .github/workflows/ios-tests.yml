@@ -176,9 +176,17 @@ jobs:
           echo "This ensures WDA is fully built and ready before actual tests run"
           
           # Retry warm-up up to 3 times
+          WDA_SUCCESS=false
           for attempt in 1 2 3 4 5; do
             echo "Warm-up attempt $attempt/5..."
-            
+
+            # Use fresh WDA on retries to avoid stale state
+            if [ $attempt -le 2 ]; then
+              USE_NEW_WDA="false"
+            else
+              USE_NEW_WDA="true"
+              echo "  ↳ Using fresh WDA build for attempt $attempt"
+            fi
             # Create a simple session to warm up WDA
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
@@ -193,7 +201,7 @@ jobs:
                     "appium:app": "'"$APP_PATH"'",
                     "appium:wdaLaunchTimeout": 600000,
                     "appium:wdaConnectionTimeout": 300000,
-                    "appium:useNewWDA": false,
+                    "appium:useNewWDA": '"$USE_NEW_WDA"',
                     "appium:noReset": false
                   }
                 }
@@ -228,6 +236,16 @@ jobs:
               fi
             fi
           done
+
+          if [ "$WDA_SUCCESS" = false ]; then
+            echo ""
+            echo "❌ WDA warm-up FAILED after 5 attempts!"
+            echo "─── Appium log (last 50 lines) ───"
+            tail -50 appium.log 2>/dev/null || echo "(no appium log)"
+            echo "─── Simulator status ───"
+            xcrun simctl list devices | grep -A1 "Booted" || echo "(no booted sim)"
+            exit 1
+          fi
           
           echo "⚠️ WDA warm-up failed after 3 attempts, but continuing..."
           echo "Tests may experience longer startup time on first run"

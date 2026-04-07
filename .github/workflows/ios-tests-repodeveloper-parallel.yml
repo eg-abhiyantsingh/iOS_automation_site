@@ -355,8 +355,17 @@ jobs:
           APP_FILE=$(ls apps/ | grep ".app" | head -1)
           FULL_APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
 
+          WDA_SUCCESS=false
           for attempt in 1 2 3 4 5; do
             echo "WDA warm-up attempt $attempt/5..."
+
+            # Use fresh WDA on retries to avoid stale state
+            if [ $attempt -le 2 ]; then
+              USE_NEW_WDA="false"
+            else
+              USE_NEW_WDA="true"
+              echo "  ↳ Using fresh WDA build for attempt $attempt"
+            fi
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
               -d '{
@@ -370,7 +379,7 @@ jobs:
                     "appium:app": "'"$FULL_APP_PATH"'",
                     "appium:wdaLaunchTimeout": 600000,
                     "appium:wdaConnectionTimeout": 300000,
-                    "appium:useNewWDA": false,
+                    "appium:useNewWDA": '"$USE_NEW_WDA"',
                     "appium:noReset": false
                   }
                 }
@@ -384,11 +393,33 @@ jobs:
               curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true
               sleep 5
               echo "✅ WDA warm-up complete"
+              WDA_SUCCESS=true
               break
             else
-              [ $attempt -lt 5 ] && sleep 30
+
+              echo "  ❌ Attempt $attempt failed. Response:"
+
+              echo "$SESSION_RESPONSE" | head -5
+
+              if [ $attempt -lt 5 ]; then
+
+                echo "  ↳ Retrying in 30s..."
+
+                sleep 30
+
+              fi
             fi
           done
+
+          if [ "$WDA_SUCCESS" = false ]; then
+            echo ""
+            echo "❌ WDA warm-up FAILED after 5 attempts!"
+            echo "─── Appium log (last 50 lines) ───"
+            tail -50 appium.log 2>/dev/null || echo "(no appium log)"
+            echo "─── Simulator status ───"
+            xcrun simctl list devices | grep -A1 "Booted" || echo "(no booted sim)"
+            exit 1
+          fi
 
       - name: Run Smoke Tests
         continue-on-error: true
@@ -603,8 +634,17 @@ jobs:
           APP_FILE=$(ls apps/ | grep ".app" | head -1)
           FULL_APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
 
+          WDA_SUCCESS=false
           for attempt in 1 2 3 4 5; do
             echo "WDA warm-up attempt $attempt/5..."
+
+            # Use fresh WDA on retries to avoid stale state
+            if [ $attempt -le 2 ]; then
+              USE_NEW_WDA="false"
+            else
+              USE_NEW_WDA="true"
+              echo "  ↳ Using fresh WDA build for attempt $attempt"
+            fi
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
               -d '{
@@ -618,7 +658,7 @@ jobs:
                     "appium:app": "'"$FULL_APP_PATH"'",
                     "appium:wdaLaunchTimeout": 600000,
                     "appium:wdaConnectionTimeout": 300000,
-                    "appium:useNewWDA": false,
+                    "appium:useNewWDA": '"$USE_NEW_WDA"',
                     "appium:noReset": false
                   }
                 }
@@ -632,11 +672,33 @@ jobs:
               curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true
               sleep 5
               echo "✅ WDA warm-up complete"
+              WDA_SUCCESS=true
               break
             else
-              [ $attempt -lt 5 ] && sleep 30
+
+              echo "  ❌ Attempt $attempt failed. Response:"
+
+              echo "$SESSION_RESPONSE" | head -5
+
+              if [ $attempt -lt 5 ]; then
+
+                echo "  ↳ Retrying in 30s..."
+
+                sleep 30
+
+              fi
             fi
           done
+
+          if [ "$WDA_SUCCESS" = false ]; then
+            echo ""
+            echo "❌ WDA warm-up FAILED after 5 attempts!"
+            echo "─── Appium log (last 50 lines) ───"
+            tail -50 appium.log 2>/dev/null || echo "(no appium log)"
+            echo "─── Simulator status ───"
+            xcrun simctl list devices | grep -A1 "Booted" || echo "(no booted sim)"
+            exit 1
+          fi
 
       - name: Run Auth Tests
         continue-on-error: true
@@ -800,8 +862,17 @@ jobs:
           APP_FILE=$(ls apps/ | grep ".app" | head -1)
           FULL_APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
 
+          WDA_SUCCESS=false
           for attempt in 1 2 3 4 5; do
             echo "WDA warm-up attempt $attempt/5..."
+
+            # Use fresh WDA on retries to avoid stale state
+            if [ $attempt -le 2 ]; then
+              USE_NEW_WDA="false"
+            else
+              USE_NEW_WDA="true"
+              echo "  ↳ Using fresh WDA build for attempt $attempt"
+            fi
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
               -d '{
@@ -815,7 +886,7 @@ jobs:
                     "appium:app": "'"$FULL_APP_PATH"'",
                     "appium:wdaLaunchTimeout": 600000,
                     "appium:wdaConnectionTimeout": 300000,
-                    "appium:useNewWDA": false,
+                    "appium:useNewWDA": '"$USE_NEW_WDA"',
                     "appium:noReset": false
                   }
                 }
@@ -829,11 +900,33 @@ jobs:
               curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true
               sleep 5
               echo "✅ WDA warm-up complete"
+              WDA_SUCCESS=true
               break
             else
-              [ $attempt -lt 5 ] && sleep 30
+
+              echo "  ❌ Attempt $attempt failed. Response:"
+
+              echo "$SESSION_RESPONSE" | head -5
+
+              if [ $attempt -lt 5 ]; then
+
+                echo "  ↳ Retrying in 30s..."
+
+                sleep 30
+
+              fi
             fi
           done
+
+          if [ "$WDA_SUCCESS" = false ]; then
+            echo ""
+            echo "❌ WDA warm-up FAILED after 5 attempts!"
+            echo "─── Appium log (last 50 lines) ───"
+            tail -50 appium.log 2>/dev/null || echo "(no appium log)"
+            echo "─── Simulator status ───"
+            xcrun simctl list devices | grep -A1 "Booted" || echo "(no booted sim)"
+            exit 1
+          fi
 
       - name: Run Site Tests
         continue-on-error: true
@@ -987,6 +1080,7 @@ jobs:
           APP_FILE=$(ls apps/ | grep ".app" | head -1)
           FULL_APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
 
+          WDA_SUCCESS=false
           for attempt in 1 2 3 4 5; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
@@ -996,11 +1090,32 @@ jobs:
             if [ -n "$SESSION_ID" ]; then
               echo "✅ WDA warm-up OK"; sleep 10
               curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true
-              sleep 5; break
+              WDA_SUCCESS=true; sleep 5; break
             else
-              [ $attempt -lt 5 ] && sleep 30
+
+              echo "  ❌ Attempt $attempt failed. Response:"
+
+              echo "$SESSION_RESPONSE" | head -5
+
+              if [ $attempt -lt 5 ]; then
+
+                echo "  ↳ Retrying in 30s..."
+
+                sleep 30
+
+              fi
             fi
           done
+
+          if [ "$WDA_SUCCESS" = false ]; then
+            echo ""
+            echo "❌ WDA warm-up FAILED after 5 attempts!"
+            echo "─── Appium log (last 50 lines) ───"
+            tail -50 appium.log 2>/dev/null || echo "(no appium log)"
+            echo "─── Simulator status ───"
+            xcrun simctl list devices | grep -A1 "Booted" || echo "(no booted sim)"
+            exit 1
+          fi
 
       - name: Run Asset Part 1 Tests
         continue-on-error: true
@@ -1150,6 +1265,7 @@ jobs:
           APP_FILE=$(ls apps/ | grep ".app" | head -1)
           FULL_APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
 
+          WDA_SUCCESS=false
           for attempt in 1 2 3 4 5; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
@@ -1159,11 +1275,32 @@ jobs:
             if [ -n "$SESSION_ID" ]; then
               echo "✅ WDA warm-up OK"; sleep 10
               curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true
-              sleep 5; break
+              WDA_SUCCESS=true; sleep 5; break
             else
-              [ $attempt -lt 5 ] && sleep 30
+
+              echo "  ❌ Attempt $attempt failed. Response:"
+
+              echo "$SESSION_RESPONSE" | head -5
+
+              if [ $attempt -lt 5 ]; then
+
+                echo "  ↳ Retrying in 30s..."
+
+                sleep 30
+
+              fi
             fi
           done
+
+          if [ "$WDA_SUCCESS" = false ]; then
+            echo ""
+            echo "❌ WDA warm-up FAILED after 5 attempts!"
+            echo "─── Appium log (last 50 lines) ───"
+            tail -50 appium.log 2>/dev/null || echo "(no appium log)"
+            echo "─── Simulator status ───"
+            xcrun simctl list devices | grep -A1 "Booted" || echo "(no booted sim)"
+            exit 1
+          fi
 
       - name: Run Asset Part 2 Tests
         continue-on-error: true
@@ -1310,6 +1447,7 @@ jobs:
         run: |
           APP_FILE=$(ls apps/ | grep ".app" | head -1)
           FULL_APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
+          WDA_SUCCESS=false
           for attempt in 1 2 3 4 5; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
@@ -1318,11 +1456,32 @@ jobs:
             SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
             if [ -n "$SESSION_ID" ]; then
               echo "✅ WDA warm-up OK"; sleep 10
-              curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true; sleep 5; break
+              curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true; WDA_SUCCESS=true; sleep 5; break
             else
-              [ $attempt -lt 5 ] && sleep 30
+
+              echo "  ❌ Attempt $attempt failed. Response:"
+
+              echo "$SESSION_RESPONSE" | head -5
+
+              if [ $attempt -lt 5 ]; then
+
+                echo "  ↳ Retrying in 30s..."
+
+                sleep 30
+
+              fi
             fi
           done
+
+          if [ "$WDA_SUCCESS" = false ]; then
+            echo ""
+            echo "❌ WDA warm-up FAILED after 5 attempts!"
+            echo "─── Appium log (last 50 lines) ───"
+            tail -50 appium.log 2>/dev/null || echo "(no appium log)"
+            echo "─── Simulator status ───"
+            xcrun simctl list devices | grep -A1 "Booted" || echo "(no booted sim)"
+            exit 1
+          fi
 
       - name: Run Asset Part 3 Tests
         continue-on-error: true
@@ -1471,6 +1630,7 @@ jobs:
         run: |
           APP_FILE=$(ls apps/ | grep ".app" | head -1)
           FULL_APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
+          WDA_SUCCESS=false
           for attempt in 1 2 3 4 5; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
@@ -1479,11 +1639,32 @@ jobs:
             SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
             if [ -n "$SESSION_ID" ]; then
               echo "✅ WDA warm-up OK"; sleep 10
-              curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true; sleep 5; break
+              curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true; WDA_SUCCESS=true; sleep 5; break
             else
-              [ $attempt -lt 5 ] && sleep 30
+
+              echo "  ❌ Attempt $attempt failed. Response:"
+
+              echo "$SESSION_RESPONSE" | head -5
+
+              if [ $attempt -lt 5 ]; then
+
+                echo "  ↳ Retrying in 30s..."
+
+                sleep 30
+
+              fi
             fi
           done
+
+          if [ "$WDA_SUCCESS" = false ]; then
+            echo ""
+            echo "❌ WDA warm-up FAILED after 5 attempts!"
+            echo "─── Appium log (last 50 lines) ───"
+            tail -50 appium.log 2>/dev/null || echo "(no appium log)"
+            echo "─── Simulator status ───"
+            xcrun simctl list devices | grep -A1 "Booted" || echo "(no booted sim)"
+            exit 1
+          fi
 
       - name: Run Asset Part 4 Tests
         continue-on-error: true
@@ -1632,6 +1813,7 @@ jobs:
         run: |
           APP_FILE=$(ls apps/ | grep ".app" | head -1)
           FULL_APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
+          WDA_SUCCESS=false
           for attempt in 1 2 3 4 5; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
@@ -1640,11 +1822,32 @@ jobs:
             SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
             if [ -n "$SESSION_ID" ]; then
               echo "✅ WDA warm-up OK"; sleep 10
-              curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true; sleep 5; break
+              curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true; WDA_SUCCESS=true; sleep 5; break
             else
-              [ $attempt -lt 5 ] && sleep 30
+
+              echo "  ❌ Attempt $attempt failed. Response:"
+
+              echo "$SESSION_RESPONSE" | head -5
+
+              if [ $attempt -lt 5 ]; then
+
+                echo "  ↳ Retrying in 30s..."
+
+                sleep 30
+
+              fi
             fi
           done
+
+          if [ "$WDA_SUCCESS" = false ]; then
+            echo ""
+            echo "❌ WDA warm-up FAILED after 5 attempts!"
+            echo "─── Appium log (last 50 lines) ───"
+            tail -50 appium.log 2>/dev/null || echo "(no appium log)"
+            echo "─── Simulator status ───"
+            xcrun simctl list devices | grep -A1 "Booted" || echo "(no booted sim)"
+            exit 1
+          fi
 
       - name: Run Asset Part 5 Tests
         continue-on-error: true
@@ -1797,6 +2000,7 @@ jobs:
         run: |
           APP_FILE=$(ls apps/ | grep ".app" | head -1)
           FULL_APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
+          WDA_SUCCESS=false
           for attempt in 1 2 3 4 5; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
@@ -1805,11 +2009,32 @@ jobs:
             SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
             if [ -n "$SESSION_ID" ]; then
               echo "✅ WDA warm-up OK"; sleep 10
-              curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true; sleep 5; break
+              curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true; WDA_SUCCESS=true; sleep 5; break
             else
-              [ $attempt -lt 5 ] && sleep 30
+
+              echo "  ❌ Attempt $attempt failed. Response:"
+
+              echo "$SESSION_RESPONSE" | head -5
+
+              if [ $attempt -lt 5 ]; then
+
+                echo "  ↳ Retrying in 30s..."
+
+                sleep 30
+
+              fi
             fi
           done
+
+          if [ "$WDA_SUCCESS" = false ]; then
+            echo ""
+            echo "❌ WDA warm-up FAILED after 5 attempts!"
+            echo "─── Appium log (last 50 lines) ───"
+            tail -50 appium.log 2>/dev/null || echo "(no appium log)"
+            echo "─── Simulator status ───"
+            xcrun simctl list devices | grep -A1 "Booted" || echo "(no booted sim)"
+            exit 1
+          fi
 
       - name: Run Asset Part 6 Tests
         continue-on-error: true
@@ -1956,6 +2181,7 @@ jobs:
         run: |
           APP_FILE=$(ls apps/ | grep ".app" | head -1)
           FULL_APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
+          WDA_SUCCESS=false
           for attempt in 1 2 3 4 5; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
@@ -1964,11 +2190,32 @@ jobs:
             SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
             if [ -n "$SESSION_ID" ]; then
               echo "✅ WDA warm-up OK"; sleep 10
-              curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true; sleep 5; break
+              curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true; WDA_SUCCESS=true; sleep 5; break
             else
-              [ $attempt -lt 5 ] && sleep 30
+
+              echo "  ❌ Attempt $attempt failed. Response:"
+
+              echo "$SESSION_RESPONSE" | head -5
+
+              if [ $attempt -lt 5 ]; then
+
+                echo "  ↳ Retrying in 30s..."
+
+                sleep 30
+
+              fi
             fi
           done
+
+          if [ "$WDA_SUCCESS" = false ]; then
+            echo ""
+            echo "❌ WDA warm-up FAILED after 5 attempts!"
+            echo "─── Appium log (last 50 lines) ───"
+            tail -50 appium.log 2>/dev/null || echo "(no appium log)"
+            echo "─── Simulator status ───"
+            xcrun simctl list devices | grep -A1 "Booted" || echo "(no booted sim)"
+            exit 1
+          fi
 
       - name: Run Issues Phase 1 Tests
         continue-on-error: true
@@ -2115,6 +2362,7 @@ jobs:
         run: |
           APP_FILE=$(ls apps/ | grep ".app" | head -1)
           FULL_APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
+          WDA_SUCCESS=false
           for attempt in 1 2 3 4 5; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
@@ -2123,11 +2371,32 @@ jobs:
             SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
             if [ -n "$SESSION_ID" ]; then
               echo "✅ WDA warm-up OK"; sleep 10
-              curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true; sleep 5; break
+              curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true; WDA_SUCCESS=true; sleep 5; break
             else
-              [ $attempt -lt 5 ] && sleep 30
+
+              echo "  ❌ Attempt $attempt failed. Response:"
+
+              echo "$SESSION_RESPONSE" | head -5
+
+              if [ $attempt -lt 5 ]; then
+
+                echo "  ↳ Retrying in 30s..."
+
+                sleep 30
+
+              fi
             fi
           done
+
+          if [ "$WDA_SUCCESS" = false ]; then
+            echo ""
+            echo "❌ WDA warm-up FAILED after 5 attempts!"
+            echo "─── Appium log (last 50 lines) ───"
+            tail -50 appium.log 2>/dev/null || echo "(no appium log)"
+            echo "─── Simulator status ───"
+            xcrun simctl list devices | grep -A1 "Booted" || echo "(no booted sim)"
+            exit 1
+          fi
 
       - name: Run Issues Phase 2 Tests
         continue-on-error: true
@@ -2274,6 +2543,7 @@ jobs:
         run: |
           APP_FILE=$(ls apps/ | grep ".app" | head -1)
           FULL_APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
+          WDA_SUCCESS=false
           for attempt in 1 2 3 4 5; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
@@ -2282,11 +2552,32 @@ jobs:
             SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
             if [ -n "$SESSION_ID" ]; then
               echo "✅ WDA warm-up OK"; sleep 10
-              curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true; sleep 5; break
+              curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true; WDA_SUCCESS=true; sleep 5; break
             else
-              [ $attempt -lt 5 ] && sleep 30
+
+              echo "  ❌ Attempt $attempt failed. Response:"
+
+              echo "$SESSION_RESPONSE" | head -5
+
+              if [ $attempt -lt 5 ]; then
+
+                echo "  ↳ Retrying in 30s..."
+
+                sleep 30
+
+              fi
             fi
           done
+
+          if [ "$WDA_SUCCESS" = false ]; then
+            echo ""
+            echo "❌ WDA warm-up FAILED after 5 attempts!"
+            echo "─── Appium log (last 50 lines) ───"
+            tail -50 appium.log 2>/dev/null || echo "(no appium log)"
+            echo "─── Simulator status ───"
+            xcrun simctl list devices | grep -A1 "Booted" || echo "(no booted sim)"
+            exit 1
+          fi
 
       - name: Run Issues Phase 3 Tests
         continue-on-error: true
@@ -2432,6 +2723,7 @@ jobs:
         run: |
           APP_FILE=$(ls apps/ | grep ".app" | head -1)
           FULL_APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
+          WDA_SUCCESS=false
           for attempt in 1 2 3 4 5; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
@@ -2440,11 +2732,32 @@ jobs:
             SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
             if [ -n "$SESSION_ID" ]; then
               echo "✅ WDA warm-up OK"; sleep 10
-              curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true; sleep 5; break
+              curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true; WDA_SUCCESS=true; sleep 5; break
             else
-              [ $attempt -lt 5 ] && sleep 30
+
+              echo "  ❌ Attempt $attempt failed. Response:"
+
+              echo "$SESSION_RESPONSE" | head -5
+
+              if [ $attempt -lt 5 ]; then
+
+                echo "  ↳ Retrying in 30s..."
+
+                sleep 30
+
+              fi
             fi
           done
+
+          if [ "$WDA_SUCCESS" = false ]; then
+            echo ""
+            echo "❌ WDA warm-up FAILED after 5 attempts!"
+            echo "─── Appium log (last 50 lines) ───"
+            tail -50 appium.log 2>/dev/null || echo "(no appium log)"
+            echo "─── Simulator status ───"
+            xcrun simctl list devices | grep -A1 "Booted" || echo "(no booted sim)"
+            exit 1
+          fi
 
       - name: Run Location Tests
         continue-on-error: true
@@ -2590,6 +2903,7 @@ jobs:
         run: |
           APP_FILE=$(ls apps/ | grep ".app" | head -1)
           FULL_APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
+          WDA_SUCCESS=false
           for attempt in 1 2 3 4 5; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
@@ -2598,11 +2912,32 @@ jobs:
             SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
             if [ -n "$SESSION_ID" ]; then
               echo "✅ WDA warm-up OK"; sleep 10
-              curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true; sleep 5; break
+              curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true; WDA_SUCCESS=true; sleep 5; break
             else
-              [ $attempt -lt 5 ] && sleep 30
+
+              echo "  ❌ Attempt $attempt failed. Response:"
+
+              echo "$SESSION_RESPONSE" | head -5
+
+              if [ $attempt -lt 5 ]; then
+
+                echo "  ↳ Retrying in 30s..."
+
+                sleep 30
+
+              fi
             fi
           done
+
+          if [ "$WDA_SUCCESS" = false ]; then
+            echo ""
+            echo "❌ WDA warm-up FAILED after 5 attempts!"
+            echo "─── Appium log (last 50 lines) ───"
+            tail -50 appium.log 2>/dev/null || echo "(no appium log)"
+            echo "─── Simulator status ───"
+            xcrun simctl list devices | grep -A1 "Booted" || echo "(no booted sim)"
+            exit 1
+          fi
 
       - name: Run Connections Tests
         continue-on-error: true
@@ -2748,6 +3083,7 @@ jobs:
         run: |
           APP_FILE=$(ls apps/ | grep ".app" | head -1)
           FULL_APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
+          WDA_SUCCESS=false
           for attempt in 1 2 3 4 5; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
@@ -2756,11 +3092,32 @@ jobs:
             SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
             if [ -n "$SESSION_ID" ]; then
               echo "✅ WDA warm-up OK"; sleep 10
-              curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true; sleep 5; break
+              curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true; WDA_SUCCESS=true; sleep 5; break
             else
-              [ $attempt -lt 5 ] && sleep 30
+
+              echo "  ❌ Attempt $attempt failed. Response:"
+
+              echo "$SESSION_RESPONSE" | head -5
+
+              if [ $attempt -lt 5 ]; then
+
+                echo "  ↳ Retrying in 30s..."
+
+                sleep 30
+
+              fi
             fi
           done
+
+          if [ "$WDA_SUCCESS" = false ]; then
+            echo ""
+            echo "❌ WDA warm-up FAILED after 5 attempts!"
+            echo "─── Appium log (last 50 lines) ───"
+            tail -50 appium.log 2>/dev/null || echo "(no appium log)"
+            echo "─── Simulator status ───"
+            xcrun simctl list devices | grep -A1 "Booted" || echo "(no booted sim)"
+            exit 1
+          fi
 
       - name: Run Offline Tests
         continue-on-error: true
@@ -2911,6 +3268,7 @@ jobs:
         run: |
           APP_FILE=$(ls apps/ | grep ".app" | head -1)
           FULL_APP_PATH="${{ github.workspace }}/apps/$APP_FILE"
+          WDA_SUCCESS=false
           for attempt in 1 2 3 4 5; do
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
               -H "Content-Type: application/json" \
@@ -2919,11 +3277,32 @@ jobs:
             SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
             if [ -n "$SESSION_ID" ]; then
               echo "✅ WDA warm-up OK"; sleep 10
-              curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true; sleep 5; break
+              curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true; WDA_SUCCESS=true; sleep 5; break
             else
-              [ $attempt -lt 5 ] && sleep 30
+
+              echo "  ❌ Attempt $attempt failed. Response:"
+
+              echo "$SESSION_RESPONSE" | head -5
+
+              if [ $attempt -lt 5 ]; then
+
+                echo "  ↳ Retrying in 30s..."
+
+                sleep 30
+
+              fi
             fi
           done
+
+          if [ "$WDA_SUCCESS" = false ]; then
+            echo ""
+            echo "❌ WDA warm-up FAILED after 5 attempts!"
+            echo "─── Appium log (last 50 lines) ───"
+            tail -50 appium.log 2>/dev/null || echo "(no appium log)"
+            echo "─── Simulator status ───"
+            xcrun simctl list devices | grep -A1 "Booted" || echo "(no booted sim)"
+            exit 1
+          fi
 
       - name: Run Site Visit Tests
         continue-on-error: true
