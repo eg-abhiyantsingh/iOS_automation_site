@@ -373,11 +373,22 @@ jobs:
           echo "  Swift: $(echo "$SWIFT_VER" | head -1)"
 
           # ═══════════════════════════════════════════════════════════
-          # IMPORTANT: No pipes on xcodebuild output!
-          # Piping through tee/grep/tail causes SIGPIPE (Broken pipe)
-          # which crashes xcodebuild with NSFileHandleOperationException.
-          # Instead: redirect ALL output to file, show results after.
+          # CI runner (macos-15) has M1 / 3 cores / 7GB RAM — much
+          # slower than a developer Mac. Complex SwiftUI expressions
+          # can exceed the Swift type-checker's default time limit.
+          #
+          # Fix: Create an xcconfig that increases the per-expression
+          # solver timeout to 240s (from default ~15s) so the slower
+          # CI CPU has enough time. $(inherited) preserves any flags
+          # the Xcode project already defines.
+          #
+          # Also: No pipes on xcodebuild output — causes SIGPIPE.
           # ═══════════════════════════════════════════════════════════
+          cat > /tmp/ci-overrides.xcconfig << 'XCCONFIG'
+          // CI build overrides — increase Swift type-checker timeout for slower CI hardware
+          OTHER_SWIFT_FLAGS = $(inherited) -Xfrontend -solver-expression-time-threshold -Xfrontend 240
+          XCCONFIG
+
           echo "  Building... (output saved to /tmp/xcodebuild.log)"
           set +e
           xcodebuild build \
@@ -386,6 +397,7 @@ jobs:
             -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" \
             -derivedDataPath build \
             -clonedSourcePackagesDirPath ../spm-cache \
+            -xcconfig /tmp/ci-overrides.xcconfig \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
             > /tmp/xcodebuild.log 2>&1
