@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn clean test-compile:*)",
+      "Bash(xcrun simctl:*)",
+      "Bash(tee:*)",
+      "Bash(gh api:*)",
+      "Read(//Users/abhiyantsingh/Downloads/report _ qa/**)",
+      "Read(//dev/**)",
+      "Read(//Users/abhiyantsyngh/Downloads/iOS_automation_site/src/test/java/com/egalvanic/tests/**)",
+      "Read(//SESSION LOCATIONS TAB/**)"
+    ],
+    "additionalDirectories": [
+      "/Users/abhiyantsingh/Downloads/report _ qa"
+    ]
+  }
+}

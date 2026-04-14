@@ -33,7 +33,7 @@ public class AppConstants {
     // ============================================
     public static final String VALID_COMPANY_CODE = "acme.egalvanic";
     public static final String INVALID_COMPANY_CODE = "xyz123invalid";
-    public static final String VALID_EMAIL = "abhiyant.singh+acme@egalvanic.com";
+    public static final String VALID_EMAIL = "abhiyant.singh+admin@egalvanic.com";
     public static final String VALID_PASSWORD = "RP@egalvanic123";
     public static final String INVALID_EMAIL = "invalidemail@test.com";
     public static final String INVALID_PASSWORD = "wrongpassword123";
