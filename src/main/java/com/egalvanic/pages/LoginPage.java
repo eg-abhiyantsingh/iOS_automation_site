@@ -36,6 +36,11 @@ public class LoginPage extends BasePage {
     @iOSXCUITFindBy(accessibility = "Show Password")
     private WebElement showPasswordIcon;
 
+    // Terms & Conditions checkbox — required before Sign In is enabled.
+    // May render as Switch, Button, Image, or Other depending on app version.
+    @iOSXCUITFindBy(iOSNsPredicate = "(type == 'XCUIElementTypeSwitch' OR type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeImage' OR type == 'XCUIElementTypeOther') AND (label CONTAINS[c] 'agree' OR label CONTAINS[c] 'terms' OR name CONTAINS 'checkbox' OR name CONTAINS 'square')")
+    private WebElement termsCheckbox;
+
     // ================================================================
     // CONSTRUCTOR
     // ================================================================
@@ -132,6 +137,7 @@ public class LoginPage extends BasePage {
     public void enterEmail(String email) {
         try {
             click(emailField);
+            emailField.clear();
             emailField.sendKeys(email);
         } catch (org.openqa.selenium.StaleElementReferenceException e) {
             // Re-find element if stale
@@ -140,6 +146,7 @@ public class LoginPage extends BasePage {
                 io.appium.java_client.AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' AND visible == 1")
             );
             freshEmailField.click();
+            freshEmailField.clear();
             freshEmailField.sendKeys(email);
         }
     }
@@ -147,6 +154,7 @@ public class LoginPage extends BasePage {
     public void enterPassword(String password) {
         try {
             click(passwordField);
+            passwordField.clear();
             passwordField.sendKeys(password);
         } catch (org.openqa.selenium.StaleElementReferenceException e) {
             // Re-find element if stale
@@ -155,6 +163,7 @@ public class LoginPage extends BasePage {
                 io.appium.java_client.AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeSecureTextField'")
             );
             freshPasswordField.click();
+            freshPasswordField.clear();
             freshPasswordField.sendKeys(password);
         }
     }
@@ -179,6 +188,64 @@ public class LoginPage extends BasePage {
             );
             freshPasswordField.clear();
         }
+    }
+
+    /**
+     * Accept Terms & Conditions checkbox if present and not already checked.
+     * The checkbox may be a Switch or a tappable "I agree" element.
+     * Safe to call even if the checkbox doesn't exist (older app versions).
+     */
+    public void acceptTermsIfPresent() {
+        try {
+            // Strategy 1: Look for a switch/toggle element
+            if (isElementDisplayed(termsCheckbox)) {
+                String value = termsCheckbox.getAttribute("value");
+                // "0" or "false" means unchecked
+                if ("0".equals(value) || "false".equalsIgnoreCase(value)) {
+                    termsCheckbox.click();
+                    System.out.println("✅ Terms & Conditions checkbox tapped");
+                } else {
+                    System.out.println("✅ Terms & Conditions already accepted");
+                }
+                return;
+            }
+        } catch (Exception e) {
+            // Ignore — element not found
+        }
+
+        // Strategy 2: Broad search for any agree/terms tappable element
+        try {
+            List<WebElement> candidates = driver.findElements(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "visible == true AND (label CONTAINS[c] 'I agree' OR label CONTAINS[c] 'Terms' OR label CONTAINS[c] 'accept')"
+                )
+            );
+            for (WebElement el : candidates) {
+                String type = el.getAttribute("type");
+                // Tap switches, checkboxes, or other interactive elements (not plain static text labels)
+                if (type != null && (type.contains("Switch") || type.contains("Button") || type.contains("Other") || type.contains("Image"))) {
+                    el.click();
+                    System.out.println("✅ Terms element tapped (fallback): " + el.getAttribute("label"));
+                    return;
+                }
+            }
+            // Strategy 3: if we found static text only, there may be a checkbox image nearby
+            // Look for unchecked checkbox by common iOS patterns
+            List<WebElement> checkboxes = driver.findElements(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeImage' AND visible == true AND (name CONTAINS 'checkbox' OR name CONTAINS 'square' OR name CONTAINS 'check')"
+                )
+            );
+            if (!checkboxes.isEmpty()) {
+                checkboxes.get(0).click();
+                System.out.println("✅ Checkbox image tapped");
+                return;
+            }
+        } catch (Exception e) {
+            // No terms element found — OK for older app versions
+        }
+
+        System.out.println("ℹ️ No Terms & Conditions checkbox found (may not be present)");
     }
 
    /**
@@ -356,6 +423,8 @@ public void clickShowPassword() {
         shortWait();
         enterPassword(password);
         shortWait();
+        // Accept Terms & Conditions if present (added April 2026 — new app requirement)
+        acceptTermsIfPresent();
         tapSignIn();
         // Wait for Save Password popup to be fully gone before proceeding
         waitForNoSavePasswordPopup();
@@ -421,18 +490,21 @@ public void clickShowPassword() {
      */
     public void loginTurbo(String email, String password) {
         long start = System.currentTimeMillis();
-        
+
         // Enter credentials (small delay ensures email field is ready for input)
         try { Thread.sleep(500); } catch (InterruptedException e) {}
         enterEmail(email);
         enterPassword(password);
-        
+
+        // Accept Terms & Conditions if the checkbox is present (new app versions)
+        acceptTermsIfPresent();
+
         // Quick tap sign in
         tapSignIn();
-        
+
         // Fast popup handling (max 1.5 seconds)
         handleSavePasswordTurbo();
-        
+
         System.out.println("⚡ loginTurbo completed in " + (System.currentTimeMillis() - start) + "ms");
     }
 

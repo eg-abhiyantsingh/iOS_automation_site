@@ -111,6 +111,7 @@ public class WelcomePage extends BasePage {
             WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
             wait.until(ExpectedConditions.elementToBeClickable(companyCodeFieldWithPlaceholder));
             companyCodeFieldWithPlaceholder.click();
+            companyCodeFieldWithPlaceholder.clear();
             companyCodeFieldWithPlaceholder.sendKeys(companyCode);
         } catch (Exception e) {
             // Fallback to generic text field
@@ -118,10 +119,12 @@ public class WelcomePage extends BasePage {
                 WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(3));
                 wait.until(ExpectedConditions.elementToBeClickable(companyCodeField));
                 companyCodeField.click();
+                companyCodeField.clear();
                 companyCodeField.sendKeys(companyCode);
             } catch (Exception e2) {
                 // Direct click as last resort
                 companyCodeField.click();
+                companyCodeField.clear();
                 companyCodeField.sendKeys(companyCode);
             }
         }
