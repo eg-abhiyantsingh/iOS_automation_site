@@ -1365,7 +1365,6 @@ public final class OfflineTest extends BaseTest {
         // is never picked, and Create Issue stays disabled. (TC_OFF_014 fix)
         logStep("Dismissing keyboard before asset selection");
         try {
-            io.appium.java_client.ios.IOSDriver d = DriverManager.getDriver();
             d.executeScript("mobile: hideKeyboard");
             shortWait();
         } catch (Exception e) {
