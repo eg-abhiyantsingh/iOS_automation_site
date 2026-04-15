@@ -1,12 +1,13 @@
 # 007 — Harden T&C Checkbox Detection + Fix Asset Class Dropdown
 
 **Date:** 2026-04-15
-**Prompt:** "still lots of test cases are failing check directly dont wait to complete it fully" — CI run #24438205550 (in progress)
+**Prompt:** "still lots of test cases are failing check directly dont wait to complete it fully" — CI runs #24438205550, #24441465618
 **Prior Fix Reference:** 006 — First T&C checkbox + field clearing fix (commit cf6340e)
-**Scope:** LoginPage T&C handling hardened, AssetPage dropdown locator rewritten
+**Scope:** LoginPage T&C handling hardened (keyboard dismiss + visibility fix), AssetPage dropdown locator rewritten
 **Files Changed:**
 - `src/main/java/com/egalvanic/pages/LoginPage.java`
 - `src/main/java/com/egalvanic/pages/AssetPage.java`
+**Commits:** `a1e8869`, `b948e7b`, `a7cf772`
 
 ---
 
@@ -30,27 +31,42 @@ After fix 006 (commit cf6340e) was deployed, CI run #24438205550 still showed te
 
 ## Fix 1: Harden T&C Checkbox Detection (LoginPage.java)
 
-### Problem
+### Problem (Initial — commit a1e8869)
 SwiftUI `Toggle` renders as **two separate elements**:
 - `XCUIElementTypeSwitch` — the tappable toggle (may NOT carry "agree" label)
 - `XCUIElementTypeStaticText` — the label text "I agree to the Terms..."
 
-The original fix (006) searched for elements with "agree/terms" labels of type Switch/Button/Image/Other. If the Switch doesn't carry the label (common in SwiftUI), Strategy 1 fails. Strategy 2's broad search may only find the StaticText (not clickable as a checkbox). No fallback existed.
+The original fix (006) searched for elements with "agree/terms" labels of type Switch/Button/Image/Other. None matched because the tappable element doesn't carry the label text.
 
-### Solution: 4-Strategy Approach
+### Problem (Critical — commit a7cf772)
+**CI runs #24438205550 and #24441465618 proved the 4-strategy approach still failed.** Screenshots showed the T&C checkbox clearly on screen, but logs showed "No Terms & Conditions checkbox found."
 
-**Strategy 1:** Direct annotated element match (same as before, but handles `value == null`)
+**Root cause: keyboard occlusion.** The login flow calls:
+```
+enterPassword() → acceptTermsIfPresent() → tapSignIn()
+```
+After `enterPassword()`, the iOS keyboard remains open. The T&C checkbox sits below the password field — **exactly where the keyboard covers**. In iOS, elements behind the keyboard have `visible == false`, so `isElementDisplayed()` returns false and `visible == true` predicates skip them.
 
-**Strategy 2 (NEW):** Broad DOM search for any **non-StaticText** tappable element with T&C-related labels. Key improvement: filters out StaticText elements that look like matches but aren't the actual checkbox.
+### Solution: Keyboard Dismiss + Visibility-Independent Search
 
-**Strategy 3 (NEW — coordinate tap):** If only the StaticText label is found, calculates the checkbox icon position (25px left of the label text) and taps at those coordinates using the W3C PointerInput API. This handles the case where the checkbox icon is an unlabeled image or decorative element.
+**Pre-step (commit a7cf772):** Dismiss keyboard before any T&C search:
+```java
+driver.hideKeyboard();  // Primary
+tapAtCoordinates(screenWidth/2, 200);  // Fallback: tap neutral area
+```
 
-**Strategy 4 (NEW — any Switch):** Finds any `XCUIElementTypeSwitch` visible on the login screen. The T&C toggle is typically the only switch present, so this catches the case where the Switch has no descriptive label.
+**Strategy 1:** Direct annotated element match (handles `value == null`)
 
-### Performance Optimization
-Temporarily reduces implicit wait from 5s to 2s during T&C detection to prevent each failed `isElementDisplayed()` from hanging. Restored via `restoreImplicitWait()` on all exit paths.
+**Strategy 2:** Broad DOM search for non-StaticText tappable elements — **NO `visible == true` constraint** (elements may be in DOM but marked non-visible due to keyboard timing)
 
-### New Helper Methods
+**Strategy 3 (coordinate tap):** Find "I agree..." StaticText, tap 25px to its LEFT where checkbox icon sits
+
+**Strategy 4 (any Switch):** Find any `XCUIElementTypeSwitch` — **NO `visible == true` constraint**
+
+### Diagnostic Logging
+Added `"🔍 T&C search found N candidate elements"` to confirm whether the predicate matches anything — essential for debugging future failures.
+
+### Helper Methods
 ```java
 private void restoreImplicitWait()     // Restore default 5s implicit wait
 private void tapAtCoordinates(int, int) // W3C PointerInput API for coordinate-based taps
