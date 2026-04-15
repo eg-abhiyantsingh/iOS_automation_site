@@ -199,6 +199,21 @@ public class LoginPage extends BasePage {
      * Safe to call even if the checkbox doesn't exist (older app versions).
      */
     public void acceptTermsIfPresent() {
+        // CRITICAL: Dismiss keyboard first! After enterPassword(), the keyboard covers the
+        // T&C checkbox area at the bottom of the login screen. Elements behind the keyboard
+        // are not "visible" in iOS accessibility, so all visible-based searches fail.
+        try {
+            driver.hideKeyboard();
+            System.out.println("⌨️ Keyboard dismissed before T&C check");
+        } catch (Exception e) {
+            // Keyboard might not be open — that's fine
+            try {
+                // Fallback: tap on a neutral area above the keyboard to dismiss it
+                org.openqa.selenium.Dimension screenSize = driver.manage().window().getSize();
+                tapAtCoordinates(screenSize.getWidth() / 2, 200);
+            } catch (Exception ignored) {}
+        }
+
         // Temporarily reduce implicit wait so failed searches don't hang
         try {
             driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(2));
@@ -221,13 +236,16 @@ public class LoginPage extends BasePage {
             // Not found via annotated element
         }
 
-        // Strategy 2: Find any tappable element with agree/terms/checkbox labels
+        // Strategy 2: Find any tappable element with agree/terms/checkbox labels.
+        // NOTE: No "visible == true" constraint — elements may be in DOM but marked non-visible
+        // due to scroll position or recent keyboard dismissal. Appium can still interact with them.
         try {
             List<WebElement> candidates = driver.findElements(
                 io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                    "visible == true AND (label CONTAINS[c] 'I agree' OR label CONTAINS[c] 'Terms' OR label CONTAINS[c] 'accept' OR name CONTAINS 'checkbox' OR name CONTAINS 'square')"
+                    "(label CONTAINS[c] 'I agree' OR label CONTAINS[c] 'Terms' OR label CONTAINS[c] 'accept' OR name CONTAINS 'checkbox' OR name CONTAINS 'square')"
                 )
             );
+            System.out.println("🔍 T&C search found " + candidates.size() + " candidate elements");
             for (WebElement el : candidates) {
                 String type = el.getAttribute("type");
                 if (type != null && !type.contains("StaticText")) {
@@ -263,7 +281,7 @@ public class LoginPage extends BasePage {
         // Strategy 4: Look for any Switch on the login screen (T&C is usually the only switch)
         try {
             List<WebElement> switches = driver.findElements(
-                io.appium.java_client.AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeSwitch' AND visible == true")
+                io.appium.java_client.AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeSwitch'")
             );
             if (!switches.isEmpty()) {
                 WebElement sw = switches.get(0);
