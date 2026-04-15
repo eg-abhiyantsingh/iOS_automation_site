@@ -38,7 +38,9 @@ public class LoginPage extends BasePage {
 
     // Terms & Conditions checkbox — required before Sign In is enabled.
     // May render as Switch, Button, Image, or Other depending on app version.
-    @iOSXCUITFindBy(iOSNsPredicate = "(type == 'XCUIElementTypeSwitch' OR type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeImage' OR type == 'XCUIElementTypeOther') AND (label CONTAINS[c] 'agree' OR label CONTAINS[c] 'terms' OR name CONTAINS 'checkbox' OR name CONTAINS 'square')")
+    // NOTE: "label CONTAINS 'terms'" is intentionally EXCLUDED — it matches the
+    // "Terms & Conditions" hyperlink (blue link text) which navigates to T&C page.
+    @iOSXCUITFindBy(iOSNsPredicate = "(type == 'XCUIElementTypeSwitch' OR type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeImage' OR type == 'XCUIElementTypeOther') AND (label CONTAINS[c] 'agree' OR name CONTAINS 'checkbox' OR name CONTAINS 'square')")
     private WebElement termsCheckbox;
 
     // ================================================================
@@ -211,8 +213,14 @@ public class LoginPage extends BasePage {
                 // Fallback: tap on a neutral area above the keyboard to dismiss it
                 org.openqa.selenium.Dimension screenSize = driver.manage().window().getSize();
                 tapAtCoordinates(screenSize.getWidth() / 2, 200);
+                System.out.println("⌨️ Tapped neutral area to dismiss keyboard");
             } catch (Exception ignored) {}
         }
+
+        // CRITICAL: Wait for keyboard dismiss animation (~300ms) and iOS accessibility
+        // tree refresh. Without this, elements behind the keyboard are still marked
+        // invisible in the DOM even though the keyboard is gone visually.
+        try { Thread.sleep(500); } catch (InterruptedException ignored) {}
 
         // Temporarily reduce implicit wait so failed searches don't hang
         try {

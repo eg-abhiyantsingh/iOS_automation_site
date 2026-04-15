@@ -3544,10 +3544,12 @@ public class AssetPage extends BasePage {
         // Strategy 2: Find button whose label CONTAINS "asset class" (case-insensitive).
         // SwiftUI Picker with .menu style renders as XCUIElementTypeButton with a combined label
         // like "Asset Class, Select asset class" — exact match misses this.
+        // NOTE: No "visible == true" constraint — after keyboard dismiss, elements may
+        // still be marked non-visible for a brief period during iOS DOM refresh.
         try {
             WebElement classBtn = driver.findElement(
                 AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND visible == true AND " +
+                    "type == 'XCUIElementTypeButton' AND " +
                     "(name CONTAINS[c] 'asset class' OR label CONTAINS[c] 'asset class' OR name ==[c] 'Select asset class')"
                 )
             );
@@ -3568,7 +3570,7 @@ public class AssetPage extends BasePage {
             try {
                 WebElement classBtn = driver.findElement(
                     AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeButton' AND name == '" + className + "' AND visible == true"
+                        "type == 'XCUIElementTypeButton' AND name == '" + className + "'"
                     )
                 );
                 classBtn.click();
@@ -3589,8 +3591,9 @@ public class AssetPage extends BasePage {
             System.out.println("   Found 'Asset Class' label at Y=" + labelY);
 
             // Find buttons near the Asset Class label (within 100 pixels vertically)
+            // No "visible == true" — after keyboard dismiss, DOM may lag behind visual state
             List<WebElement> buttons = driver.findElements(
-                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND visible == true")
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton'")
             );
 
             WebElement closest = null;
@@ -3627,7 +3630,7 @@ public class AssetPage extends BasePage {
         try {
             WebElement classBtn = driver.findElement(
                 AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND visible == true AND " +
+                    "type == 'XCUIElementTypeButton' AND " +
                     "(name == 'MCC' OR name == 'ATS' OR name == 'Generator' OR name == 'Busway' OR " +
                     "name CONTAINS[c] 'select asset' OR name CONTAINS[c] 'Circuit' OR name CONTAINS[c] 'Disconnect')"
                 )
@@ -3638,6 +3641,25 @@ public class AssetPage extends BasePage {
         } catch (Exception e) {
             System.out.println("   Fallback failed: " + e.getMessage());
         }
+
+        // DIAGNOSTIC: Log what buttons ARE on screen so we can debug the mismatch
+        try {
+            List<WebElement> allButtons = driver.findElements(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton'")
+            );
+            System.out.println("🔍 DIAGNOSTIC: Found " + allButtons.size() + " buttons on screen:");
+            int logged = 0;
+            for (WebElement btn : allButtons) {
+                if (logged >= 15) { System.out.println("   ... and " + (allButtons.size() - 15) + " more"); break; }
+                try {
+                    String name = btn.getAttribute("name");
+                    String label = btn.getAttribute("label");
+                    int y = btn.getLocation().getY();
+                    System.out.println("   btn: name=\"" + name + "\" label=\"" + label + "\" Y=" + y);
+                } catch (Exception ignored) {}
+                logged++;
+            }
+        } catch (Exception ignored) {}
 
         throw new RuntimeException("Failed to click Asset Class dropdown - no matching button found");
     }

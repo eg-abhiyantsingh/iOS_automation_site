@@ -82,11 +82,8 @@
                     <include name="ATS_ECR_31_verifySaveAssetWithValidData"/>
                     <include name="ATS_ECR_37_verifyAssetAppearsInAssetList"/>
                     <include name="ATS_EAD_01_openEditAssetDetailsScreen"/>
-                </methods>
-            </class>
-            <class name="com.egalvanic.tests.Asset_Phase5_Test">
-                <methods>
-                    <include name="BUG_DELETE_01_deleteRequiresConfirmation"/>
+                    <!-- Was incorrectly in Asset_Phase5_Test with wrong method name -->
+                    <include name="BUG_DELETE_01_deleteAssetVerification"/>
                 </methods>
             </class>
         </classes>
