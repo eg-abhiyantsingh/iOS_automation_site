@@ -166,7 +166,39 @@ This is the **#1 cause of flaky iOS tests** in this codebase. The pattern:
 
 ---
 
+## Post-Fix: Compilation Error (Duplicate Variable)
+
+**Date**: 2026-04-15 ~20:00 IST
+
+### What Happened
+The TC_OFF_014 keyboard dismissal block (Failure 2 fix above) introduced a **duplicate local variable** `d`:
+```java
+// Line 1306 (method scope):
+io.appium.java_client.ios.IOSDriver d = DriverManager.getDriver();
+// ...
+// Line 1368 (inside try block — COMPILATION ERROR):
+io.appium.java_client.ios.IOSDriver d = DriverManager.getDriver();
+```
+
+Java does not allow a local variable in an inner block to shadow a local variable from the enclosing block. This is different from C/C++ or JavaScript where shadowing is legal. The compiler rejects this with "Duplicate local variable d".
+
+### Fix
+Removed the redundant declaration — the `try` block now uses the existing `d` from line 1306:
+```java
+try {
+    d.executeScript("mobile: hideKeyboard");  // uses method-scope d
+    shortWait();
+} catch (Exception e) {
+    logWarning("Could not dismiss keyboard: " + e.getMessage());
+}
+```
+
+### Lesson
+When adding code to an existing method, always check whether the variable you're about to declare already exists in the enclosing scope. In this case, `d` was declared at the top of `TC_OFF_014` (line 1306) and used throughout the method (lines 1310, 1393, etc.).
+
+---
+
 ## Status
 
-- **Part 1 COMPLETE**: Offline module (3 fixes)
+- **Part 1 COMPLETE**: Offline module (3 fixes + 1 compilation fix)
 - **Part 2 PENDING**: Waiting for Assets P1/P4/P5, Issues P1, Site Selection jobs to complete
