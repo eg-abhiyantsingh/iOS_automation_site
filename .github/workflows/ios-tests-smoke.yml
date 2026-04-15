@@ -72,6 +72,14 @@ on:
         options:
           - 'true'
           - 'false'
+      send_email:
+        description: 'Send email with test results'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
 
 jobs:
   smoke-tests:
@@ -838,4 +846,101 @@ jobs:
         run: |
           echo "╔════════════════════════════════════════════════════════════╗"
           echo "║    🚀 FULL TEST SUITE TRIGGERED                            ║"
+          echo "╚════════════════════════════════════════════════════════════╝"
+
+  # ========================================
+  # SEND EMAIL WITH RESULTS
+  # ========================================
+  send-email:
+    name: "Send Email Report"
+    needs: smoke-tests
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Download Smoke Reports
+        uses: actions/download-artifact@v4
+        with:
+          name: smoke-test-reports
+          path: smoke-reports
+        continue-on-error: true
+
+      - name: Prepare Email
+        id: email
+        env:
+          SMOKE_RESULT: ${{ needs.smoke-tests.result }}
+          BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ "$SMOKE_RESULT" = "success" ]; then
+            STATUS="PASSED"
+            STATUS_ICON="✅"
+            COLOR="#28a745"
+          else
+            STATUS="FAILED"
+            STATUS_ICON="❌"
+            COLOR="#dc3545"
+          fi
+
+          echo "STATUS=$STATUS" >> "$GITHUB_OUTPUT"
+          echo "STATUS_ICON=$STATUS_ICON" >> "$GITHUB_OUTPUT"
+
+          cat > email_body.html << EMAILEOF
+          <!DOCTYPE html>
+          <html>
+          <body style="font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto;">
+            <h1 style="color: #333;">🧪 iOS Smoke Test Results</h1>
+            <p><b>Branch:</b> ${BRANCH}</p>
+            <p><b>Triggered by:</b> ${ACTOR}</p>
+            <p><b>Run:</b> <a href="${RUN_URL}">View Details</a></p>
+            <hr>
+            <h2 style="color: ${COLOR};">${STATUS_ICON} Smoke Tests: ${STATUS}</h2>
+            <table border="1" cellpadding="8" style="border-collapse: collapse; width: 100%;">
+              <tr style="background-color: #4a90d9; color: white;">
+                <th>Phase</th><th>Module</th><th>Tests</th>
+              </tr>
+              <tr><td>Phase 1</td><td>S3 Drift Detection</td><td>10-42 (branch-based)</td></tr>
+              <tr><td>Phase 1</td><td>Authentication UI</td><td>4</td></tr>
+              <tr><td>Phase 1</td><td>Site Selection UI</td><td>3</td></tr>
+              <tr><td>Phase 1</td><td>Asset UI</td><td>2</td></tr>
+              <tr><td>Phase 1</td><td>Location UI</td><td>2</td></tr>
+              <tr><td>Phase 1</td><td>Connections UI</td><td>2</td></tr>
+              <tr><td>Phase 2</td><td>Login Flow</td><td>1</td></tr>
+              <tr><td>Phase 2</td><td>Asset CRUD</td><td>4</td></tr>
+              <tr><td>Phase 2</td><td>Location CRUD</td><td>4</td></tr>
+              <tr><td>Phase 2</td><td>Connection CRUD</td><td>3</td></tr>
+              <tr><td>Phase 2</td><td>Issue CRUD</td><td>4</td></tr>
+            </table>
+            <hr>
+            <p style="color: #666; font-size: 12px;">
+              iOS Automation — Smoke Suite | ${RUN_URL}
+            </p>
+          </body>
+          </html>
+          EMAILEOF
+
+      - name: Send Email
+        if: github.event.inputs.send_email != 'false'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "[${{ steps.email.outputs.STATUS_ICON }} ${{ steps.email.outputs.STATUS }}] iOS Smoke Tests - ${{ github.ref_name }}"
+          html_body: file://email_body.html
+          to: ${{ secrets.EMAIL_TO }}
+          from: "iOS Automation <${{ secrets.EMAIL_USERNAME }}>"
+        continue-on-error: true
+
+      - name: Email Summary
+        run: |
+          echo "╔════════════════════════════════════════════════════════════╗"
+          echo "║    📧  EMAIL REPORT SUMMARY                                ║"
+          echo "╠════════════════════════════════════════════════════════════╣"
+          echo "║  Status: ${{ steps.email.outputs.STATUS_ICON }} ${{ steps.email.outputs.STATUS }}"
+          echo "║  Email:  ${{ github.event.inputs.send_email != 'false' && 'Sent' || 'Skipped (disabled)' }}"
           echo "╚════════════════════════════════════════════════════════════╝"
