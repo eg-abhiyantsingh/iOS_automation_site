@@ -2452,6 +2452,16 @@ public class SiteSelectionPage extends BasePage {
         // Wait for building name field to appear
         waitForElementToBeClickable(buildingNameField, 3);
         enterBuildingName(buildingName);
+        // Dismiss keyboard left open by sendKeys() in enterBuildingName().
+        // Without this, the Appium page-factory proxy for saveButton enters a
+        // compounding FluentWait (outer WebDriverWait + inner AppiumElementLocator wait)
+        // that can exceed the TestNG 420s method timeout. (TC_OFF_035 fix)
+        try {
+            driver.executeScript("mobile: hideKeyboard");
+            sleep(300);
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not dismiss keyboard in createBuilding: " + e.getMessage());
+        }
         // Wait for save button to be clickable
         waitForElementToBeClickable(saveButton, 2);
         clickSave();

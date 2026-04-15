@@ -404,10 +404,14 @@ public final class OfflineTest extends BaseTest {
             if (isWifiIconClean(d)) return;
 
             // Definitively offline ("Wi-Fi Off" icon)? Go online.
+            // Use findElements (returns empty list immediately) instead of findElement
+            // (honours implicit wait and can hang 30-60s when Appium/WDA is sluggish
+            // after offline-mode toggling — caused TC_OFF_008 ThreadTimeoutException).
             boolean definitelyOffline = false;
             try {
-                definitelyOffline = d.findElement(
-                    AppiumBy.accessibilityId("Wi-Fi Off")).isDisplayed();
+                java.util.List<org.openqa.selenium.WebElement> offlineIcons =
+                    d.findElements(AppiumBy.accessibilityId("Wi-Fi Off"));
+                definitelyOffline = !offlineIcons.isEmpty() && offlineIcons.get(0).isDisplayed();
             } catch (Exception e) { /* not offline */ }
 
             if (definitelyOffline) {
@@ -1355,6 +1359,18 @@ public final class OfflineTest extends BaseTest {
         shortWait();
 
         // Step 4: Select asset (REQUIRED — Create Issue stays disabled without it)
+        // CRITICAL: Dismiss keyboard left open by enterIssueTitle().sendKeys().
+        // Without this, the keyboard covers the ASSIGNMENT section where "Select Asset"
+        // lives — all 3 scroll strategies in tapSelectAsset() fail silently, the asset
+        // is never picked, and Create Issue stays disabled. (TC_OFF_014 fix)
+        logStep("Dismissing keyboard before asset selection");
+        try {
+            io.appium.java_client.ios.IOSDriver d = DriverManager.getDriver();
+            d.executeScript("mobile: hideKeyboard");
+            shortWait();
+        } catch (Exception e) {
+            logWarning("Could not dismiss keyboard: " + e.getMessage());
+        }
         logStep("Selecting asset for issue");
         issuePage.tapSelectAsset();
         mediumWait();
