@@ -13,6 +13,7 @@ import org.openqa.selenium.interactions.PointerInput;
 import org.openqa.selenium.interactions.Sequence;
 import org.openqa.selenium.remote.RemoteWebElement;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
@@ -3528,7 +3529,7 @@ public class AssetPage extends BasePage {
 
     public void clickSelectAssetClass() {
         System.out.println("📍 Attempting to click Asset Class dropdown...");
-        
+
         // Strategy 1: Use PageFactory element directly (for "Select asset class" placeholder)
         try {
             if (selectAssetClassButton != null && selectAssetClassButton.isDisplayed()) {
@@ -3539,78 +3540,96 @@ public class AssetPage extends BasePage {
         } catch (Exception e) {
             System.out.println("   PageFactory element not available");
         }
-        
-        // Strategy 2: Find "Select asset class" text (for new assets without a class)
+
+        // Strategy 2: Find button whose label CONTAINS "asset class" (case-insensitive).
+        // SwiftUI Picker with .menu style renders as XCUIElementTypeButton with a combined label
+        // like "Asset Class, Select asset class" — exact match misses this.
         try {
             WebElement classBtn = driver.findElement(
-                AppiumBy.iOSNsPredicateString("name == 'Select asset class' AND type == 'XCUIElementTypeButton' AND visible == true")
+                AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND visible == true AND " +
+                    "(name CONTAINS[c] 'asset class' OR label CONTAINS[c] 'asset class' OR name ==[c] 'Select asset class')"
+                )
             );
             classBtn.click();
-            System.out.println("✅ Clicked 'Select asset class' button");
+            System.out.println("✅ Clicked Asset Class button (contains match): " + classBtn.getAttribute("name"));
             return;
-        } catch (Exception e) {}
-        
+        } catch (Exception e) {
+            System.out.println("   Contains-match strategy failed");
+        }
+
         // Strategy 3: Find existing asset class button (MCC, ATS, Generator, etc.)
         // When asset already has a class, the button shows the class name instead of "Select asset class"
-        String[] assetClasses = {"MCC", "ATS", "Generator", "Busway", "Capacitor", "Circuit Breaker", 
-                                  "Disconnect Switch", "Fuse", "Junction Box", "Loadcenter", "Motor", 
+        String[] assetClasses = {"MCC", "ATS", "Generator", "Busway", "Capacitor", "Circuit Breaker",
+                                  "Disconnect Switch", "Fuse", "Junction Box", "Loadcenter", "Motor",
                                   "Panelboard", "Switchboard", "Transformer", "VFD", "Wire"};
-        
+
         for (String className : assetClasses) {
             try {
-                // Look for button with exact class name that's positioned in the Asset Class area
                 WebElement classBtn = driver.findElement(
                     AppiumBy.iOSNsPredicateString(
                         "type == 'XCUIElementTypeButton' AND name == '" + className + "' AND visible == true"
                     )
                 );
-                
-                // Verify it's the Asset Class button (not in a list or picker)
-                int y = classBtn.getLocation().getY();
-                if (y > 600 && y < 800) { // Asset Class field is typically in this Y range
-                    classBtn.click();
-                    System.out.println("✅ Clicked existing class button: " + className);
-                    return;
-                }
+                classBtn.click();
+                System.out.println("✅ Clicked existing class button: " + className);
+                return;
             } catch (Exception e) {}
         }
-        
-        // Strategy 4: Find ANY button after "Asset Class" label
+
+        // Strategy 4: Find "Asset Class" label (case-insensitive), then find the nearest button
         try {
-            // First find the Asset Class label to get position reference
             WebElement assetClassLabel = driver.findElement(
-                AppiumBy.iOSNsPredicateString("name CONTAINS 'Asset Class' AND type == 'XCUIElementTypeStaticText' AND visible == true")
+                AppiumBy.iOSNsPredicateString(
+                    "(name CONTAINS[c] 'Asset Class' OR label CONTAINS[c] 'Asset Class') AND " +
+                    "type == 'XCUIElementTypeStaticText'"
+                )
             );
             int labelY = assetClassLabel.getLocation().getY();
-            
-            // Find buttons near the Asset Class label (within 100 pixels below it)
+            System.out.println("   Found 'Asset Class' label at Y=" + labelY);
+
+            // Find buttons near the Asset Class label (within 100 pixels vertically)
             List<WebElement> buttons = driver.findElements(
                 AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND visible == true")
             );
-            
+
+            WebElement closest = null;
+            int closestDist = Integer.MAX_VALUE;
             for (WebElement btn : buttons) {
                 int btnY = btn.getLocation().getY();
                 String name = btn.getAttribute("name");
-                
-                // Button should be slightly below the label and not contain common non-class names
-                if (btnY > labelY && btnY < labelY + 100 && name != null && 
-                    !name.contains("location") && !name.contains("subtype") && !name.contains("Subtype")) {
-                    btn.click();
-                    System.out.println("✅ Clicked Asset Class field button: " + name);
-                    return;
+                int dist = Math.abs(btnY - labelY);
+                // Must be within 100px and not a location/subtype button
+                if (dist < 100 && dist < closestDist && name != null &&
+                    !name.toLowerCase().contains("location") && !name.toLowerCase().contains("subtype")) {
+                    closest = btn;
+                    closestDist = dist;
                 }
             }
+            if (closest != null) {
+                closest.click();
+                System.out.println("✅ Clicked Asset Class field button: " + closest.getAttribute("name") + " (dist=" + closestDist + "px)");
+                return;
+            }
+
+            // No button found near label — tap right of the label (picker area)
+            int tapX = assetClassLabel.getLocation().getX() + assetClassLabel.getSize().getWidth() + 50;
+            int tapY = labelY + (assetClassLabel.getSize().getHeight() / 2);
+            System.out.println("   No button near label, tapping picker area at (" + tapX + "," + tapY + ")");
+            tapAtCoordinates(tapX, tapY);
+            System.out.println("✅ Clicked Asset Class area (coordinate tap near label)");
+            return;
         } catch (Exception e) {
-            System.out.println("   Position-based strategy failed: " + e.getMessage());
+            System.out.println("   Label-based strategy failed: " + e.getMessage());
         }
-        
-        // Strategy 5: Final fallback - find any clickable element with asset class names
+
+        // Strategy 5: Final fallback - find any clickable element with asset class names (case-insensitive)
         try {
             WebElement classBtn = driver.findElement(
                 AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeButton' AND visible == true AND " +
                     "(name == 'MCC' OR name == 'ATS' OR name == 'Generator' OR name == 'Busway' OR " +
-                    "name == 'Select asset class' OR name CONTAINS 'Circuit' OR name CONTAINS 'Disconnect')"
+                    "name CONTAINS[c] 'select asset' OR name CONTAINS[c] 'Circuit' OR name CONTAINS[c] 'Disconnect')"
                 )
             );
             classBtn.click();
@@ -3619,7 +3638,7 @@ public class AssetPage extends BasePage {
         } catch (Exception e) {
             System.out.println("   Fallback failed: " + e.getMessage());
         }
-        
+
         throw new RuntimeException("Failed to click Asset Class dropdown - no matching button found");
     }
 
@@ -11501,5 +11520,14 @@ public class AssetPage extends BasePage {
         }
     }
 
+    /** Tap at specific screen coordinates using W3C Actions API */
+    private void tapAtCoordinates(int x, int y) {
+        PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
+        Sequence tap = new Sequence(finger, 0);
+        tap.addAction(finger.createPointerMove(Duration.ofMillis(0), PointerInput.Origin.viewport(), x, y));
+        tap.addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()));
+        tap.addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
+        driver.perform(Collections.singletonList(tap));
+    }
 
 }
