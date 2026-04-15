@@ -1038,19 +1038,59 @@ public class IssuePage extends BasePage {
      */
     public void selectIssueClass(String className) {
         System.out.println("📋 Selecting Issue Class: " + className);
-        try {
-            // Tap the Issue Class picker button (shows "None ⌃")
-            WebElement picker = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND name CONTAINS 'Issue Class'"));
-            picker.click();
-            sleep(400);
 
-            // Select the option from the dropdown
-            WebElement option = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == '" + className + "'"));
-            option.click();
-            sleep(300);
-            System.out.println("✅ Selected Issue Class: " + className);
+        // Dismiss keyboard if open — safety for any lingering keyboard from prior interactions
+        dismissKeyboard();
+        sleep(500); // Wait for keyboard animation + DOM refresh (same pattern as LoginPage fix)
+
+        try {
+            // Open picker using robust 3-strategy approach (button match → positional → coordinate tap)
+            boolean pickerOpened = tryOpenIssueClassPicker();
+            if (!pickerOpened) {
+                System.out.println("⚠️ Could not open Issue Class picker");
+                return;
+            }
+
+            // Select the option — retry up to 3 times for menu animation
+            String typeFilter = "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' OR " +
+                "type == 'XCUIElementTypeMenuItem' OR type == 'XCUIElementTypeOther')";
+            boolean selected = false;
+            for (int attempt = 1; attempt <= 3 && !selected; attempt++) {
+                // Try exact match first
+                try {
+                    List<WebElement> options = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        typeFilter + " AND label == '" + className + "'"));
+                    if (!options.isEmpty()) {
+                        options.get(0).click();
+                        sleep(300);
+                        selected = true;
+                        System.out.println("✅ Selected Issue Class: " + className);
+                        break;
+                    }
+                } catch (Exception ignored) {}
+
+                // Try case-insensitive CONTAINS
+                try {
+                    List<WebElement> options = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        typeFilter + " AND label CONTAINS[c] '" + className + "'"));
+                    if (!options.isEmpty()) {
+                        options.get(0).click();
+                        sleep(300);
+                        selected = true;
+                        System.out.println("✅ Selected Issue Class: " + className + " (contains match)");
+                        break;
+                    }
+                } catch (Exception ignored) {}
+
+                if (!selected && attempt < 3) {
+                    System.out.println("   Retry " + attempt + "/3: menu items not loaded yet, waiting...");
+                    sleep(800);
+                }
+            }
+
+            if (!selected) {
+                System.out.println("⚠️ Could not select Issue Class '" + className + "' after 3 attempts");
+            }
         } catch (Exception e) {
             System.out.println("⚠️ Could not select Issue Class: " + e.getMessage());
         }
@@ -1081,17 +1121,123 @@ public class IssuePage extends BasePage {
      */
     public void selectPriority(String priority) {
         System.out.println("📋 Selecting Priority: " + priority);
-        try {
-            WebElement picker = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND name CONTAINS 'Priority'"));
-            picker.click();
-            sleep(400);
 
-            WebElement option = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == '" + priority + "'"));
-            option.click();
-            sleep(300);
-            System.out.println("✅ Selected Priority: " + priority);
+        // CRITICAL: Dismiss keyboard — selectPriority() is called right after enterIssueTitle()
+        // which uses sendKeys() and leaves the keyboard open. Without dismissing, the Priority
+        // picker button is behind the keyboard and invisible to the accessibility tree.
+        dismissKeyboard();
+        sleep(500); // Wait for keyboard animation + DOM refresh
+
+        try {
+            // ===== OPEN PRIORITY PICKER (3 strategies) =====
+            boolean pickerOpened = false;
+
+            // Strategy 1: Direct button match (case-insensitive)
+            try {
+                WebElement picker = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND " +
+                    "(name CONTAINS[c] 'priority' OR label CONTAINS[c] 'priority')"));
+                System.out.println("   Found Priority picker: '" + picker.getAttribute("label") + "'");
+                picker.click();
+                sleep(500);
+                pickerOpened = true;
+                System.out.println("   Opened Priority picker (button)");
+            } catch (Exception ignored) {}
+
+            // Strategy 2: Find button near the "Priority" label (positional)
+            if (!pickerOpened) {
+                try {
+                    WebElement label = driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND label CONTAINS[c] 'priority'"));
+                    int labelY = label.getLocation().getY();
+                    List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND " +
+                        "(label CONTAINS 'None' OR label CONTAINS 'High' OR label CONTAINS 'Medium' OR " +
+                        "label CONTAINS 'Low' OR label CONTAINS 'Priority')"));
+                    for (WebElement btn : buttons) {
+                        int y = btn.getLocation().getY();
+                        if (Math.abs(y - labelY) < 50) {
+                            btn.click();
+                            sleep(500);
+                            pickerOpened = true;
+                            System.out.println("   Opened Priority picker (positional match at Y=" + y + ")");
+                            break;
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
+
+            // Strategy 3: Coordinate tap next to Priority label
+            if (!pickerOpened) {
+                try {
+                    WebElement label = driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND label CONTAINS[c] 'priority'"));
+                    int labelY = label.getLocation().getY();
+                    int screenWidth = driver.manage().window().getSize().getWidth();
+                    org.openqa.selenium.interactions.PointerInput finger =
+                        new org.openqa.selenium.interactions.PointerInput(
+                            org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
+                    org.openqa.selenium.interactions.Sequence tap =
+                        new org.openqa.selenium.interactions.Sequence(finger, 0);
+                    tap.addAction(finger.createPointerMove(Duration.ZERO,
+                        org.openqa.selenium.interactions.PointerInput.Origin.viewport(),
+                        screenWidth * 3 / 4, labelY + 10));
+                    tap.addAction(finger.createPointerDown(
+                        org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+                    tap.addAction(finger.createPointerUp(
+                        org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+                    driver.perform(java.util.Collections.singletonList(tap));
+                    sleep(500);
+                    pickerOpened = true;
+                    System.out.println("   Opened Priority picker (coordinate tap at Y=" + labelY + ")");
+                } catch (Exception ignored) {}
+            }
+
+            if (!pickerOpened) {
+                System.out.println("⚠️ Could not open Priority picker");
+                return;
+            }
+
+            // ===== SELECT OPTION (retry up to 3 times for menu animation) =====
+            String typeFilter = "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' OR " +
+                "type == 'XCUIElementTypeMenuItem' OR type == 'XCUIElementTypeOther')";
+            boolean selected = false;
+            for (int attempt = 1; attempt <= 3 && !selected; attempt++) {
+                // Try exact match first
+                try {
+                    List<WebElement> options = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        typeFilter + " AND label == '" + priority + "'"));
+                    if (!options.isEmpty()) {
+                        options.get(0).click();
+                        sleep(300);
+                        selected = true;
+                        System.out.println("✅ Selected Priority: " + priority);
+                        break;
+                    }
+                } catch (Exception ignored) {}
+
+                // Try case-insensitive CONTAINS
+                try {
+                    List<WebElement> options = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        typeFilter + " AND label CONTAINS[c] '" + priority + "'"));
+                    if (!options.isEmpty()) {
+                        options.get(0).click();
+                        sleep(300);
+                        selected = true;
+                        System.out.println("✅ Selected Priority: " + priority + " (contains match)");
+                        break;
+                    }
+                } catch (Exception ignored) {}
+
+                if (!selected && attempt < 3) {
+                    System.out.println("   Retry " + attempt + "/3: priority menu not loaded yet, waiting...");
+                    sleep(800);
+                }
+            }
+
+            if (!selected) {
+                System.out.println("⚠️ Could not select Priority '" + priority + "' after 3 attempts");
+            }
         } catch (Exception e) {
             System.out.println("⚠️ Could not select Priority: " + e.getMessage());
         }

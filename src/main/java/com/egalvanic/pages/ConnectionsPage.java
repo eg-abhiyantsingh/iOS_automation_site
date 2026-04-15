@@ -2113,7 +2113,7 @@ public class ConnectionsPage {
         try {
             System.out.println("🎲 Selecting random sibling asset (excluding indices: " + excludeIndices
                 + ", names: " + excludeNames + ")...");
-            sleep(400);  // Wait for dropdown to open
+            sleep(800);  // Wait for dropdown to fully populate (was 400ms — too fast on CI)
 
             String[] headersToSkip = {
                 "New Connection", "Connection Details", "Source Node", "Target Node",
@@ -2126,11 +2126,19 @@ public class ConnectionsPage {
                 "Missing Node"
             ));
 
-            // ===== PHASE 1: Scan initial visible assets =====
+            // ===== PHASE 1: Scan initial visible assets (with retry on empty) =====
             java.util.LinkedHashSet<String> allAssetNames = new java.util.LinkedHashSet<>();
             String parentAssetName = null;
 
             List<String> initialNames = scanDropdownAssetNames(headersToSkip);
+
+            // Retry if 0 assets found — dropdown may still be animating on slower CI machines
+            if (initialNames.isEmpty()) {
+                System.out.println("   ⚠️ Initial scan found 0 assets — retrying after 1200ms...");
+                sleep(1200);
+                initialNames = scanDropdownAssetNames(headersToSkip);
+            }
+
             allAssetNames.addAll(initialNames);
             if (!initialNames.isEmpty()) {
                 parentAssetName = initialNames.get(0);
@@ -2276,6 +2284,7 @@ public class ConnectionsPage {
             // Single pass: cache label + position to avoid redundant Appium calls
             List<String> filteredLabels = new java.util.ArrayList<>();
             List<Integer> filteredY = new java.util.ArrayList<>();
+            int rejectedByCoords = 0;
 
             for (WebElement el : candidates) {
                 String label = el.getAttribute("label");
@@ -2293,10 +2302,19 @@ public class ConnectionsPage {
                 if (isHeader) continue;
 
                 org.openqa.selenium.Point loc = el.getLocation(); // 1 call (was 2)
-                if (loc.getX() >= 30 && loc.getX() <= 90 && loc.getY() >= 280) {
+                // Widened X range from (30-90) to (15-200) for screen size variations.
+                // Y threshold lowered from 280 to 230 to catch elements higher in the dropdown.
+                if (loc.getX() >= 15 && loc.getX() <= 200 && loc.getY() >= 230) {
                     filteredLabels.add(trimmed);
                     filteredY.add(loc.getY());
+                } else {
+                    rejectedByCoords++;
                 }
+            }
+
+            if (filteredLabels.isEmpty() && rejectedByCoords > 0) {
+                System.out.println("   ⚠️ scanDropdownAssetNames: " + rejectedByCoords
+                    + " candidates rejected by coordinate filter (X:15-200, Y>=230)");
             }
 
             // Group by Y-gap using cached positions (0 extra Appium calls)
