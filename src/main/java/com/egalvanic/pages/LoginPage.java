@@ -239,18 +239,23 @@ public class LoginPage extends BasePage {
         // Strategy 2: Find any tappable element with agree/terms/checkbox labels.
         // NOTE: No "visible == true" constraint — elements may be in DOM but marked non-visible
         // due to scroll position or recent keyboard dismissal. Appium can still interact with them.
+        // IMPORTANT: "label CONTAINS 'Terms'" is excluded — it matches the "Terms & Conditions"
+        // hyperlink (blue text) which opens the T&C page instead of toggling the checkbox.
         try {
             List<WebElement> candidates = driver.findElements(
                 io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                    "(label CONTAINS[c] 'I agree' OR label CONTAINS[c] 'Terms' OR label CONTAINS[c] 'accept' OR name CONTAINS 'checkbox' OR name CONTAINS 'square')"
+                    "(label CONTAINS[c] 'I agree' OR name CONTAINS 'checkbox' OR name CONTAINS 'square' OR name CONTAINS 'agree')"
                 )
             );
             System.out.println("🔍 T&C search found " + candidates.size() + " candidate elements");
             for (WebElement el : candidates) {
                 String type = el.getAttribute("type");
-                if (type != null && !type.contains("StaticText")) {
+                String label = el.getAttribute("label");
+                System.out.println("   candidate: type=" + type + " label=" + label);
+                // Skip StaticText (handled in Strategy 3) and skip hyperlinks
+                if (type != null && !type.contains("StaticText") && !type.contains("Link")) {
                     el.click();
-                    System.out.println("✅ Terms element tapped (strategy 2): type=" + type + " label=" + el.getAttribute("label"));
+                    System.out.println("✅ Terms element tapped (strategy 2): type=" + type + " label=" + label);
                     restoreImplicitWait();
                     return;
                 }
