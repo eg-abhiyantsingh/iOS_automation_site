@@ -192,60 +192,114 @@ public class LoginPage extends BasePage {
 
     /**
      * Accept Terms & Conditions checkbox if present and not already checked.
-     * The checkbox may be a Switch or a tappable "I agree" element.
+     * Uses multiple strategies because the checkbox renders differently across app versions:
+     * - SwiftUI Toggle → XCUIElementTypeSwitch (label on separate static text)
+     * - Custom checkbox → XCUIElementTypeButton or XCUIElementTypeImage
+     * - Entire row tappable → XCUIElementTypeOther containing "agree" text
      * Safe to call even if the checkbox doesn't exist (older app versions).
      */
     public void acceptTermsIfPresent() {
+        // Temporarily reduce implicit wait so failed searches don't hang
         try {
-            // Strategy 1: Look for a switch/toggle element
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(2));
+        } catch (Exception ignored) {}
+
+        try {
+            // Strategy 1: Direct match via annotated element
             if (isElementDisplayed(termsCheckbox)) {
                 String value = termsCheckbox.getAttribute("value");
-                // "0" or "false" means unchecked
-                if ("0".equals(value) || "false".equalsIgnoreCase(value)) {
+                if ("0".equals(value) || "false".equalsIgnoreCase(value) || value == null) {
                     termsCheckbox.click();
-                    System.out.println("✅ Terms & Conditions checkbox tapped");
+                    System.out.println("✅ Terms & Conditions checkbox tapped (strategy 1)");
                 } else {
                     System.out.println("✅ Terms & Conditions already accepted");
                 }
+                restoreImplicitWait();
                 return;
             }
         } catch (Exception e) {
-            // Ignore — element not found
+            // Not found via annotated element
         }
 
-        // Strategy 2: Broad search for any agree/terms tappable element
+        // Strategy 2: Find any tappable element with agree/terms/checkbox labels
         try {
             List<WebElement> candidates = driver.findElements(
                 io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                    "visible == true AND (label CONTAINS[c] 'I agree' OR label CONTAINS[c] 'Terms' OR label CONTAINS[c] 'accept')"
+                    "visible == true AND (label CONTAINS[c] 'I agree' OR label CONTAINS[c] 'Terms' OR label CONTAINS[c] 'accept' OR name CONTAINS 'checkbox' OR name CONTAINS 'square')"
                 )
             );
             for (WebElement el : candidates) {
                 String type = el.getAttribute("type");
-                // Tap switches, checkboxes, or other interactive elements (not plain static text labels)
-                if (type != null && (type.contains("Switch") || type.contains("Button") || type.contains("Other") || type.contains("Image"))) {
+                if (type != null && !type.contains("StaticText")) {
                     el.click();
-                    System.out.println("✅ Terms element tapped (fallback): " + el.getAttribute("label"));
+                    System.out.println("✅ Terms element tapped (strategy 2): type=" + type + " label=" + el.getAttribute("label"));
+                    restoreImplicitWait();
                     return;
                 }
             }
-            // Strategy 3: if we found static text only, there may be a checkbox image nearby
-            // Look for unchecked checkbox by common iOS patterns
-            List<WebElement> checkboxes = driver.findElements(
-                io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeImage' AND visible == true AND (name CONTAINS 'checkbox' OR name CONTAINS 'square' OR name CONTAINS 'check')"
-                )
+
+            // Strategy 3: Found static text "I agree..." — tap to its LEFT where checkbox icon sits.
+            // In iOS, checkbox is typically rendered to the left of its label text.
+            for (WebElement el : candidates) {
+                String type = el.getAttribute("type");
+                if (type != null && type.contains("StaticText")) {
+                    int labelX = el.getLocation().getX();
+                    int labelY = el.getLocation().getY();
+                    int labelH = el.getSize().getHeight();
+                    // Tap 25px to the left of the label text (where checkbox icon is)
+                    int tapX = Math.max(labelX - 25, 20);
+                    int tapY = labelY + (labelH / 2);
+                    System.out.println("📍 Terms label found at (" + labelX + "," + labelY + "), tapping checkbox at (" + tapX + "," + tapY + ")");
+                    tapAtCoordinates(tapX, tapY);
+                    System.out.println("✅ Terms checkbox tapped (strategy 3: coordinate tap left of label)");
+                    restoreImplicitWait();
+                    return;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Strategy 2/3 failed: " + e.getMessage());
+        }
+
+        // Strategy 4: Look for any Switch on the login screen (T&C is usually the only switch)
+        try {
+            List<WebElement> switches = driver.findElements(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeSwitch' AND visible == true")
             );
-            if (!checkboxes.isEmpty()) {
-                checkboxes.get(0).click();
-                System.out.println("✅ Checkbox image tapped");
+            if (!switches.isEmpty()) {
+                WebElement sw = switches.get(0);
+                String value = sw.getAttribute("value");
+                if ("0".equals(value) || "false".equalsIgnoreCase(value) || value == null) {
+                    sw.click();
+                    System.out.println("✅ Switch tapped (strategy 4): value was " + value);
+                } else {
+                    System.out.println("✅ Switch already on (strategy 4)");
+                }
+                restoreImplicitWait();
                 return;
             }
         } catch (Exception e) {
-            // No terms element found — OK for older app versions
+            // No switch found
         }
 
-        System.out.println("ℹ️ No Terms & Conditions checkbox found (may not be present)");
+        System.out.println("ℹ️ No Terms & Conditions checkbox found (may not be present in this app version)");
+        restoreImplicitWait();
+    }
+
+    /** Restore implicit wait to default after temporary reduction */
+    private void restoreImplicitWait() {
+        try {
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(5));
+        } catch (Exception ignored) {}
+    }
+
+    /** Tap at specific screen coordinates using W3C Actions API */
+    private void tapAtCoordinates(int x, int y) {
+        PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
+        Sequence tap = new Sequence(finger, 0);
+        tap.addAction(finger.createPointerMove(Duration.ofMillis(0), PointerInput.Origin.viewport(), x, y));
+        tap.addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()));
+        tap.addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
+        driver.perform(Collections.singletonList(tap));
     }
 
    /**
