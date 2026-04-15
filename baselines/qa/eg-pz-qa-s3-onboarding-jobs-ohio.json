@@ -12,6 +12,33 @@
         "s3:PutObjectAcl"
       ],
       "Resource": "arn:aws:s3:::eg-pz-qa-s3-onboarding-jobs-ohio/*"
+    },
+    {
+      "Sid": "AllowCICDDevopsAccess",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::165183897698:user/cicd-devops"
+      },
+      "Action": "s3:*",
+      "Resource": [
+        "arn:aws:s3:::eg-pz-qa-s3-onboarding-jobs-ohio",
+        "arn:aws:s3:::eg-pz-qa-s3-onboarding-jobs-ohio/*"
+      ]
+    },
+    {
+      "Sid": "DenyInsecureTransport",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:*",
+      "Resource": [
+        "arn:aws:s3:::eg-pz-qa-s3-onboarding-jobs-ohio",
+        "arn:aws:s3:::eg-pz-qa-s3-onboarding-jobs-ohio/*"
+      ],
+      "Condition": {
+        "Bool": {
+          "aws:SecureTransport": "false"
+        }
+      }
     }
   ]
 }
