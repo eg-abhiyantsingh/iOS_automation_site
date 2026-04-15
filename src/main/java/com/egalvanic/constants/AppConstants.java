@@ -214,8 +214,11 @@ public class AppConstants {
     //email to here i think send proper email and secreat & variable ->action key send repo link by mail.  
     public static final String EMAIL_SUBJECT = "eGalvanic iOS Automation - Test Report";
 
-    //public static final boolean SEND_EMAIL_ENABLED = true;
-    public static final boolean SEND_EMAIL_ENABLED = false;
+    // Controllable via -DSEND_EMAIL_ENABLED=true or SEND_EMAIL_ENABLED env var.
+    // Default: false — prevents per-module emails in parallel CI jobs.
+    // The workflow's send-email job handles the consolidated email instead.
+    public static final boolean SEND_EMAIL_ENABLED = Boolean.parseBoolean(
+        getEnv("SEND_EMAIL_ENABLED", "false"));
     // ================================================================
     // APP RESET BEHAVIOR
     // ================================================================

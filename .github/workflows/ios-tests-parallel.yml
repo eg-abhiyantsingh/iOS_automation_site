@@ -2535,6 +2535,183 @@ jobs:
           path: all-reports
         continue-on-error: true
 
+      - name: Consolidate Client Reports
+        id: reports
+        run: |
+          echo "=== Finding Client Reports ==="
+          mkdir -p consolidated-reports
+
+          # Find all Client_Report HTML files from all module artifacts
+          REPORT_COUNT=0
+          ATTACHMENT_LIST=""
+
+          for report in $(find all-reports -name "Client_Report_*.html" -type f 2>/dev/null | sort); do
+            REPORT_COUNT=$((REPORT_COUNT+1))
+            # Extract module name from artifact directory
+            MODULE=$(echo "$report" | awk -F'/' '{print $2}' | sed 's/-report$//')
+            cp "$report" "consolidated-reports/${MODULE}_client_report.html"
+            echo "  Found: $MODULE → $(basename $report)"
+
+            # Build comma-separated attachment list
+            if [ -n "$ATTACHMENT_LIST" ]; then
+              ATTACHMENT_LIST="${ATTACHMENT_LIST},consolidated-reports/${MODULE}_client_report.html"
+            else
+              ATTACHMENT_LIST="consolidated-reports/${MODULE}_client_report.html"
+            fi
+          done
+
+          echo "Total client reports found: $REPORT_COUNT"
+          echo "REPORT_COUNT=$REPORT_COUNT" >> "$GITHUB_OUTPUT"
+          echo "ATTACHMENT_LIST=$ATTACHMENT_LIST" >> "$GITHUB_OUTPUT"
+
+          # Also build a consolidated summary from TestNG XML results
+          echo ""
+          echo "=== Parsing TestNG Results ==="
+          python3 << 'PYEOF'
+          import xml.etree.ElementTree as ET
+          import os, glob, html
+
+          results = []
+          total_pass = 0
+          total_fail = 0
+          total_skip = 0
+
+          # Find all testng-results.xml from artifacts
+          for xml_path in sorted(glob.glob("all-reports/*/target/surefire-reports/testng-results.xml")):
+              module = xml_path.split("/")[1].replace("-report", "")
+              try:
+                  tree = ET.parse(xml_path)
+                  root = tree.getroot()
+                  passed = int(root.get("passed", 0))
+                  failed = int(root.get("failed", 0))
+                  skipped = int(root.get("skipped", 0))
+                  total = passed + failed + skipped
+                  total_pass += passed
+                  total_fail += failed
+                  total_skip += skipped
+
+                  # Collect failed test names
+                  failed_tests = []
+                  for test_method in root.iter("test-method"):
+                      if test_method.get("status") == "FAIL" and test_method.get("is-config") != "true":
+                          name = test_method.get("name", "unknown")
+                          failed_tests.append(name)
+
+                  results.append({
+                      "module": module,
+                      "passed": passed,
+                      "failed": failed,
+                      "skipped": skipped,
+                      "total": total,
+                      "failed_tests": failed_tests
+                  })
+              except Exception as e:
+                  results.append({
+                      "module": module,
+                      "passed": 0, "failed": 0, "skipped": 0, "total": 0,
+                      "failed_tests": [], "error": str(e)
+                  })
+
+          # Generate consolidated HTML report
+          grand_total = total_pass + total_fail + total_skip
+          pass_rate = (total_pass / grand_total * 100) if grand_total > 0 else 0
+
+          report_html = f"""<!DOCTYPE html>
+          <html>
+          <head>
+          <style>
+            body {{ font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }}
+            .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }}
+            .header h1 {{ margin: 0; font-size: 24px; }}
+            .header p {{ margin: 8px 0 0; opacity: 0.9; }}
+            .summary {{ display: flex; justify-content: center; gap: 30px; padding: 20px; background: white; border-bottom: 1px solid #e1e4e8; }}
+            .stat {{ text-align: center; }}
+            .stat .number {{ font-size: 32px; font-weight: bold; }}
+            .stat .label {{ font-size: 12px; color: #666; text-transform: uppercase; }}
+            .pass {{ color: #28a745; }}
+            .fail {{ color: #dc3545; }}
+            .skip {{ color: #ffc107; }}
+            .content {{ max-width: 1000px; margin: 20px auto; padding: 0 20px; }}
+            table {{ width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }}
+            th {{ background: #4a90d9; color: white; padding: 12px; text-align: left; font-size: 13px; }}
+            td {{ padding: 10px 12px; border-bottom: 1px solid #f0f0f0; font-size: 13px; }}
+            tr:hover {{ background: #f8f9fa; }}
+            .badge {{ display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; }}
+            .badge-pass {{ background: #d4edda; color: #155724; }}
+            .badge-fail {{ background: #f8d7da; color: #721c24; }}
+            .badge-skip {{ background: #fff3cd; color: #856404; }}
+            .failed-tests {{ font-size: 11px; color: #721c24; margin-top: 4px; }}
+            .footer {{ text-align: center; padding: 20px; color: #999; font-size: 12px; }}
+          </style>
+          </head>
+          <body>
+            <div class="header">
+              <h1>eGalvanic iOS Automation — Consolidated Test Report</h1>
+              <p>Parallel Suite Execution Summary</p>
+            </div>
+            <div class="summary">
+              <div class="stat"><div class="number">{grand_total}</div><div class="label">Total Tests</div></div>
+              <div class="stat"><div class="number pass">{total_pass}</div><div class="label">Passed</div></div>
+              <div class="stat"><div class="number fail">{total_fail}</div><div class="label">Failed</div></div>
+              <div class="stat"><div class="number skip">{total_skip}</div><div class="label">Skipped</div></div>
+              <div class="stat"><div class="number">{pass_rate:.1f}%</div><div class="label">Pass Rate</div></div>
+            </div>
+            <div class="content">
+              <table>
+                <tr><th>Module</th><th>Total</th><th>Passed</th><th>Failed</th><th>Skipped</th><th>Status</th></tr>
+          """
+
+          for r in results:
+              if "error" in r:
+                  status = '<span class="badge badge-skip">NO DATA</span>'
+              elif r["failed"] == 0:
+                  status = '<span class="badge badge-pass">PASS</span>'
+              else:
+                  status = '<span class="badge badge-fail">FAIL</span>'
+
+              failed_html = ""
+              if r["failed_tests"]:
+                  tests_str = ", ".join(html.escape(t) for t in r["failed_tests"][:10])
+                  if len(r["failed_tests"]) > 10:
+                      tests_str += f" (+{len(r['failed_tests'])-10} more)"
+                  failed_html = f'<div class="failed-tests">Failed: {tests_str}</div>'
+
+              report_html += f"""<tr>
+                <td><b>{html.escape(r['module'])}</b>{failed_html}</td>
+                <td>{r['total']}</td>
+                <td class="pass">{r['passed']}</td>
+                <td class="fail">{r['failed']}</td>
+                <td>{r['skipped']}</td>
+                <td>{status}</td>
+              </tr>"""
+
+          report_html += """</table>
+            </div>
+            <div class="footer">
+              <p>eGalvanic iOS Automation Framework — Consolidated Report</p>
+            </div>
+          </body>
+          </html>"""
+
+          with open("consolidated-reports/Consolidated_Client_Report.html", "w") as f:
+              f.write(report_html)
+
+          print(f"Consolidated report: {total_pass} passed, {total_fail} failed, {total_skip} skipped ({pass_rate:.1f}%)")
+          PYEOF
+
+          # Add consolidated report to attachment list (as first attachment)
+          if [ -f "consolidated-reports/Consolidated_Client_Report.html" ]; then
+            if [ -n "$ATTACHMENT_LIST" ]; then
+              ATTACHMENT_LIST="consolidated-reports/Consolidated_Client_Report.html,$ATTACHMENT_LIST"
+            else
+              ATTACHMENT_LIST="consolidated-reports/Consolidated_Client_Report.html"
+            fi
+            echo "ATTACHMENT_LIST=$ATTACHMENT_LIST" >> "$GITHUB_OUTPUT"
+            echo "Consolidated report generated"
+          fi
+
+          ls -la consolidated-reports/ 2>/dev/null || echo "No reports directory"
+
       - name: Prepare Email Summary
         id: email
         run: |
@@ -2704,6 +2881,7 @@ jobs:
           html_body: file://email_body.html
           to: ${{ secrets.EMAIL_TO }}
           from: "iOS Automation <${{ secrets.EMAIL_USERNAME }}>"
+          attachments: ${{ steps.reports.outputs.ATTACHMENT_LIST }}
         continue-on-error: true
 
       - name: Summary
@@ -2752,5 +2930,6 @@ jobs:
           fi
 
           echo ""
-          echo "  📧 Email sent to configured recipients"
+          echo "  📧 Consolidated email sent to configured recipients"
+          echo "  📎 Client reports attached: ${{ steps.reports.outputs.REPORT_COUNT || '0' }}"
           echo "  🔗 Details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
