@@ -2702,6 +2702,11 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 3: Enter 'Test' in Description field");
         issuePage.enterDescription("Test");
         shortWait();
+        // Dismiss keyboard left open by enterDescription().sendKeys() —
+        // without this, elements behind the keyboard (description text view,
+        // nav bar close button) become inaccessible. (TC_ISS_068 fix)
+        issuePage.dismissKeyboard();
+        shortWait();
 
         logStep("Step 4: Verify entered text");
         String descValue = issuePage.getDescriptionValue();
@@ -3187,6 +3192,11 @@ public final class Issue_Phase1_Test extends BaseTest {
         // Enter some text in description to trigger "modified" state
         issuePage.enterDescription("Save test");
         shortWait();
+        // Dismiss keyboard — Save Changes button is below the keyboard area
+        // and isSaveChangesButtonDisplayed() uses scrollDownOnDetailsScreen()
+        // which scrolls the wrong container when the keyboard is up. (TC_ISS_077 fix)
+        issuePage.dismissKeyboard();
+        shortWait();
 
         logStep("Step 4: Scroll to bottom to find Save Changes button");
         boolean saveDisplayed = issuePage.isSaveChangesButtonDisplayed();
@@ -3233,6 +3243,10 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStep("Step 3: Make a modification (add description)");
         issuePage.enterDescription("Automated test save");
+        shortWait();
+        // Dismiss keyboard — tapSaveChangesButton() uses findElement/scroll
+        // which hang or target wrong scroll container with keyboard open. (TC_ISS_078 fix)
+        issuePage.dismissKeyboard();
         shortWait();
 
         logStep("Step 4: Tap Save Changes");
@@ -3295,6 +3309,10 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStep("Step 3: Make a modification without saving");
         issuePage.enterDescription("Unsaved change test");
+        shortWait();
+        // Dismiss keyboard — tapCloseIssueDetails() looks for nav bar close button
+        // which can be obstructed by the keyboard. (TC_ISS_079 fix)
+        issuePage.dismissKeyboard();
         shortWait();
 
         logStep("Step 4: Tap Close without saving");
