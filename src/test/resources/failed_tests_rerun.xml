@@ -29,7 +29,7 @@
     <!-- ======================================== -->
     <test name="1. CRITICAL BUGS - Data Integrity">
         <classes>
-            <class name="com.egalvanic.tests.Asset_Phase5_Test">
+            <class name="com.egalvanic.tests.Asset_Phase1_Test">
                 <methods>
                     <!-- CRITICAL: Duplicate asset names allowed -->
                     <include name="BUG_DUP_01_createAssetWithDuplicateName"/>
@@ -43,25 +43,21 @@
                     <include name="BUG_REQUIRED_01_createAssetWithoutLocation"/>
                     <!-- CRITICAL: Empty name on edit allowed -->
                     <include name="BUG_EDIT_01_clearRequiredFieldShouldBlockSave"/>
-                    <!-- CRITICAL: Delete without confirmation -->
-                    <include name="BUG_DELETE_01_deleteRequiresConfirmation"/>
-                </methods>
-            </class>
-            <class name="com.egalvanic.tests.Asset_Phase1_Test">
-                <methods>
+                    <!-- CRITICAL: Delete verification (was incorrectly named deleteRequiresConfirmation) -->
+                    <include name="BUG_DELETE_01_deleteAssetVerification"/>
                     <!-- CRITICAL: Spaces-only names allowed -->
                     <include name="ATS_ECR_07_verifyNameWithOnlySpaces"/>
                 </methods>
             </class>
         </classes>
     </test>
-    
+
     <!-- ======================================== -->
     <!-- HIGH BUGS - Significant user impact -->
     <!-- ======================================== -->
     <test name="2. HIGH BUGS - User Impact">
         <classes>
-            <class name="com.egalvanic.tests.Asset_Phase5_Test">
+            <class name="com.egalvanic.tests.Asset_Phase1_Test">
                 <methods>
                     <!-- HIGH: Case-sensitive search -->
                     <include name="BUG_SEARCH_04_searchCaseInsensitivity"/>
@@ -77,7 +73,7 @@
             </class>
         </classes>
     </test>
-    
+
     <!-- ======================================== -->
     <!-- MEDIUM BUGS - Workaround exists -->
     <!-- ======================================== -->
@@ -87,16 +83,8 @@
                 <methods>
                     <!-- MEDIUM: Name trimming not implemented -->
                     <include name="ATS_ECR_10_verifyNameTrimming"/>
-                </methods>
-            </class>
-            <class name="com.egalvanic.tests.Asset_Phase5_Test">
-                <methods>
-                    <!-- MEDIUM: Field labels capitalization -->
-                    <include name="BUG_CASE_01_fieldLabelsCapitalization"/>
-                    <!-- MEDIUM: Asset class options capitalization -->
-                    <include name="BUG_CASE_02_assetClassOptionsCapitalization"/>
-                    <!-- MEDIUM: Selected class capitalization -->
-                    <include name="BUG_CASE_03_selectedAssetClassCapitalization"/>
+                    <!-- MEDIUM: Core Attributes labels capitalization (was incorrectly named fieldLabelsCapitalization) -->
+                    <include name="BUG_CASE_01_coreAttributesLabelsCapitalization"/>
                     <!-- MEDIUM: Emoji handling -->
                     <include name="BUG_SPECIAL_02_emojiInAssetName"/>
                     <!-- MEDIUM: Asset name max character limit -->

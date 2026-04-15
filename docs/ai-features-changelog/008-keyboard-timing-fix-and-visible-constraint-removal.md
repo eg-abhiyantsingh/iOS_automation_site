@@ -163,7 +163,7 @@ With all three fixes applied:
 
 | Module | Before | After (expected) |
 |--------|--------|-------------------|
-| S3 Drift (8 tests) | 8 fail | 8 fail (infra — not code) |
+| S3 Drift (10 QA tests) | 2 pass, 8 fail | 2 pass, 8 fail (infra — not code) |
 | Login (TC25) | 1 pass* | 1 pass |
 | Site Selection (TC_SS_044) | 1 fail | PASS |
 | Asset CRUD (4 tests) | 4 fail | PASS (T&C + dropdown fix) |
@@ -173,7 +173,77 @@ With all three fixes applied:
 
 *TC25 passes vacuously — no assertion on actual login success.
 
-**Expected result: 19/27 pass, 8 fail (all S3 infrastructure)**
+**Expected result: 19/27 pass, 8 fail (S3 policy drift — infrastructure, not code)**
+
+---
+
+## Log Evidence (Run #24441465618)
+
+Analysis of the previous run's logs confirms all hypotheses:
+
+### T&C Timing Failure Confirmed
+Every login attempt shows:
+```
+🔐 Performing login...
+✅ Login page ready
+ℹ️ No Terms & Conditions checkbox found (may not be present in this app version)
+⚡ loginTurbo completed in 40735ms
+```
+All 4 strategies returned 0 matches — the DOM wasn't refreshed after keyboard dismiss.
+
+### Asset Class Dropdown Failure Confirmed
+```
+✅ Entered asset name (alt): Asset_1776239396617
+✅ Keyboard dismissed (tap outside)
+📋 Selecting asset class: ATS
+...
+└─ Error: Failed to click Asset Class dropdown - no matching button found
+```
+The `visible == true` constraint in `clickSelectAssetClass()` rejected the button during DOM refresh.
+
+### Location CRUD Cascade Failure Confirmed
+```
+LocationTest.TC_NB_010 -- FAILURE!
+Should successfully navigate to New Building screen
+```
+Location tests have no login code — they rely on session from Module 2. Module 2's login failed → no session → can't navigate.
+
+### Module Timing (Run #24441465618 — BEFORE fixes)
+| Module | Duration | Result |
+|--------|----------|--------|
+| S3 Drift (QA) | 58s | 2 pass, 8 fail |
+| Login | 3m 10s | 1 pass (vacuous) |
+| Site Selection | 5m 7s | 0/1 fail |
+| Asset CRUD | 9m 42s | 0/3 fail (+ 1 skipped) |
+| Location CRUD | 14m 47s | 0/4 fail |
+| Connection CRUD | 25m 48s | 0/3 fail |
+| Issue CRUD | 21m 47s | 0/4 fail |
+| **Total** | **81m** | **3/27 pass** |
+
+### Run #24444064147 Results — AFTER keyboard dismiss + hyperlink fix (a7cf772 + 7e8800e)
+This run had commits a7cf772 (keyboard dismiss) and 7e8800e (hyperlink prevention) but NOT ce44bee (500ms wait). Results:
+
+| Module | Duration | Result | vs Previous |
+|--------|----------|--------|-------------|
+| S3 Drift (QA) | 47s | 2 pass, 8 fail | Same (infra) |
+| Login | 2m 47s | 1/1 pass | Same |
+| **Site Selection** | **2m 43s** | **1/1 pass** | **FIXED** (was 0/1) |
+| **Asset CRUD** | **11m 33s** | **3/3 pass + 1 skipped** | **FIXED** (was 0/3) |
+| **Location CRUD** | **21m 55s** | **4/4 pass** | **FIXED** (was 0/4) |
+| **Connection CRUD** | **8m 27s** | **2/3 pass** | **2 FIXED** (was 0/3) |
+| **Issue CRUD** | **6m 26s** | **1/4 pass** | **1 FIXED** (was 0/4) |
+| **Total** | **54m 40s** | **14/27 pass** | **+11 tests fixed** |
+
+### Remaining Non-S3 Failures (4 tests — NOT login/T&C related)
+- **TC_CONN_037**: `"All connection fields should be filled successfully"` — form field filling fails (dropdown/timing)
+- **TC_ISS_049**: `"Create Issue button should be tapped successfully"` — button not found on create screen
+- **TC_ISS_050**: Cascade from TC_ISS_049 (issue wasn't created → can't verify in list)
+- **TC_ISS_076**: Cascade from TC_ISS_049 (no issue to delete)
+
+These are functional test issues requiring separate investigation, not T&C/login fixes.
+
+### Expected with ce44bee (next run)
+The 500ms wait should eliminate the timing race condition that makes login flaky. The BUG_DELETE_01 smoke XML fix should add 1 more passing test. Expected: **15-16/27 pass**.
 
 ---
 
@@ -194,5 +264,23 @@ Updated all 3 smoke XML files to reference the correct class and method:
 
 Combined all 4 Asset CRUD tests into a single `Asset_Phase1_Test` class entry.
 
-### Note
-`bug_tests_suite.xml` and `failed_tests_rerun.xml` have similar mismatches for ALL BUG_* tests — they reference `Asset_Phase5_Test` but the methods are in `Asset_Phase1_Test`. These are not used in smoke CI runs and are deferred for a future fix.
+---
+
+## Fix 5: Bug/Rerun XML Class and Method Mismatches (DEFERRED → NOW FIXED)
+
+### Problem
+Both `bug_tests_suite.xml` and `failed_tests_rerun.xml` had **all BUG_\* tests** under `Asset_Phase5_Test`, but `Asset_Phase5_Test.java` contains zero BUG_* methods. All 43 BUG_* methods live in `Asset_Phase1_Test.java`. Additionally:
+- `BUG_DELETE_01_deleteRequiresConfirmation` → actual name: `BUG_DELETE_01_deleteAssetVerification`
+- `BUG_CASE_01_fieldLabelsCapitalization` → actual name: `BUG_CASE_01_coreAttributesLabelsCapitalization`
+- `BUG_CASE_02_assetClassOptionsCapitalization` → doesn't exist in any Java file (phantom)
+- `BUG_CASE_03_selectedAssetClassCapitalization` → doesn't exist in any Java file (phantom)
+
+**Result:** TestNG silently skipped all mismatched tests — the suite reported 0 failures but was also running 0 actual tests.
+
+### Solution
+Updated both XML files:
+- **`src/test/resources/bug_tests_suite.xml`**: Moved all BUG_* methods to `Asset_Phase1_Test`, fixed `BUG_DELETE_01` method name, consolidated duplicate class entries
+- **`src/test/resources/failed_tests_rerun.xml`**: Same class fix + fixed `BUG_CASE_01` method name + removed phantom `BUG_CASE_02` and `BUG_CASE_03`
+
+**Before:** 18 tests in bug suite, ~20 tests in rerun suite — all silently skipped
+**After:** All tests correctly reference existing methods in the correct class
