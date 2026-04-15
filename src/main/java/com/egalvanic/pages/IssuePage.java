@@ -5167,7 +5167,7 @@ public class IssuePage extends BasePage {
         try {
             WebElement picker = driver.findElement(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND " +
-                "(name CONTAINS 'Issue Class' OR label CONTAINS 'Issue Class')"));
+                "(name CONTAINS[c] 'issue class' OR label CONTAINS[c] 'issue class')"));
             System.out.println("   Found Issue Class picker: '" + picker.getAttribute("label") + "'");
             picker.click();
             sleep(500);
