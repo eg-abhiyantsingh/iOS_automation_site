@@ -76,7 +76,11 @@ public class IssuePage extends BasePage {
     // ================================================================
 
     /**
-     * Navigate to Issues screen from Dashboard via Quick Actions
+     * Navigate to Issues screen from Dashboard via tab bar.
+     *
+     * After tapping, waits up to 3 seconds for the Issues screen to appear
+     * (polling every 500ms). The old 500ms flat wait was too short for
+     * screen transitions on slower CI simulators.
      */
     public boolean navigateToIssuesScreen() {
         resetDetailsScrollCount();
@@ -90,11 +94,15 @@ public class IssuePage extends BasePage {
 
             boolean tapped = tapOnIssuesButton();
             if (tapped) {
-                sleep(500);
-                if (isIssuesScreenDisplayed()) {
-                    System.out.println("✅ Successfully navigated to Issues screen");
-                    return true;
+                // Poll for screen transition — up to 3 seconds (6 × 500ms)
+                for (int poll = 0; poll < 6; poll++) {
+                    sleep(500);
+                    if (isIssuesScreenDisplayed()) {
+                        System.out.println("✅ Successfully navigated to Issues screen (after " + ((poll + 1) * 500) + "ms)");
+                        return true;
+                    }
                 }
+                System.out.println("⚠️ Tapped Issues but screen not detected after 3s");
             }
 
             System.out.println("⚠️ Failed to navigate to Issues screen");
@@ -106,53 +114,106 @@ public class IssuePage extends BasePage {
     }
 
     /**
-     * Tap Issues button on Dashboard with multiple fallback strategies
+     * Tap Issues button on Dashboard with multiple fallback strategies.
+     *
+     * CRITICAL: The Dashboard has multiple elements with label "Issues" —
+     * the tab bar button (at bottom) and possibly static text labels in
+     * dashboard cards/headers (higher up). We must target the TAB BAR
+     * button specifically, otherwise we tap a non-navigational label.
      */
     public boolean tapOnIssuesButton() {
         try {
             System.out.println("📋 Tapping on Issues button...");
+            int screenHeight = driver.manage().window().getSize().getHeight();
 
-            // Strategy 1: Wait for Issues button to appear and tap
+            // Strategy 1: Find Issues button INSIDE the tab bar element (most reliable)
             try {
-                WebDriverWait btnWait = new WebDriverWait(driver, Duration.ofSeconds(5));
-                WebElement btn = btnWait.until(ExpectedConditions.presenceOfElementLocated(
-                    AppiumBy.iOSNsPredicateString(
-                        "label == 'Issues' AND (type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText')")));
-                btn.click();
-                sleep(300);
-                System.out.println("✓ Tapped Issues button (waited for DOM)");
+                WebDriverWait barWait = new WebDriverWait(driver, Duration.ofSeconds(3));
+                WebElement tabBar = barWait.until(ExpectedConditions.presenceOfElementLocated(
+                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTabBar'")));
+                WebElement issuesBtn = tabBar.findElement(AppiumBy.iOSNsPredicateString(
+                    "label == 'Issues' OR label CONTAINS 'Issues'"));
+                issuesBtn.click();
+                sleep(500);
+                System.out.println("✓ Tapped Issues in tab bar");
                 return true;
             } catch (Exception e1) {
-                System.out.println("   Wait for Issues button timed out, trying fallbacks...");
+                System.out.println("   Tab bar Issues button not found, trying fallbacks...");
             }
 
-            // Strategy 2: accessibilityId
+            // Strategy 2: Button with label "Issues" in bottom 20% of screen (tab bar area)
             try {
-                driver.findElement(AppiumBy.accessibilityId("Issues")).click();
-                sleep(300);
-                System.out.println("✓ Tapped Issues via accessibilityId");
-                return true;
-            } catch (Exception e2) {}
+                List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND (label == 'Issues' OR label CONTAINS 'Issues')"));
+                int tabBarY = (int)(screenHeight * 0.80);
+                for (WebElement btn : buttons) {
+                    int y = btn.getLocation().getY();
+                    if (y > tabBarY) {
+                        btn.click();
+                        sleep(500);
+                        System.out.println("✓ Tapped Issues button in tab bar area (y=" + y + ")");
+                        return true;
+                    }
+                }
+                System.out.println("   No Issues button found in tab bar area");
+            } catch (Exception e2) {
+                System.out.println("   Button search failed: " + e2.getMessage());
+            }
 
-            // Strategy 3: Any visible element with Issues label
+            // Strategy 3: accessibilityId — find all matches, prefer bottom-most (tab bar)
             try {
-                List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "label == 'Issues'"));
-                for (WebElement el : elements) {
-                    try {
-                        el.click();
-                        sleep(300);
-                        if (isIssuesScreenDisplayed()) {
-                            System.out.println("✓ Tapped Issues element");
-                            return true;
+                List<WebElement> issuesElements = driver.findElements(AppiumBy.accessibilityId("Issues"));
+                if (!issuesElements.isEmpty()) {
+                    // Sort by Y descending — tab bar is at the bottom
+                    WebElement bottomMost = issuesElements.get(0);
+                    int maxY = bottomMost.getLocation().getY();
+                    for (WebElement el : issuesElements) {
+                        int y = el.getLocation().getY();
+                        if (y > maxY) {
+                            maxY = y;
+                            bottomMost = el;
                         }
-                    } catch (Exception ignored) {}
+                    }
+                    bottomMost.click();
+                    sleep(500);
+                    System.out.println("✓ Tapped Issues via accessibilityId (y=" + maxY + ")");
+                    return true;
                 }
             } catch (Exception e3) {}
+
+            // Strategy 4: Coordinate tap on expected tab bar position
+            // Tab bar is at the bottom. "Issues" is typically the 4th or 5th tab.
+            // Try tapping at multiple X positions along the tab bar.
+            try {
+                int tabBarCenterY = screenHeight - 30; // Tab bar is ~50px from bottom
+                int screenWidth = driver.manage().window().getSize().getWidth();
+                // Try common tab positions (divide screen into segments)
+                int[] tabXPositions = {
+                    (int)(screenWidth * 0.5),   // center
+                    (int)(screenWidth * 0.7),   // right-center
+                    (int)(screenWidth * 0.3),   // left-center
+                    (int)(screenWidth * 0.9),   // far right
+                };
+                for (int tabX : tabXPositions) {
+                    Map<String, Object> tapArgs = new HashMap<>();
+                    tapArgs.put("x", tabX);
+                    tapArgs.put("y", tabBarCenterY);
+                    driver.executeScript("mobile: tap", tapArgs);
+                    sleep(1000);
+                    if (isIssuesScreenDisplayed()) {
+                        System.out.println("✓ Tapped Issues via coordinate tap (x=" + tabX + ", y=" + tabBarCenterY + ")");
+                        return true;
+                    }
+                }
+                System.out.println("   Coordinate tap did not reach Issues screen");
+            } catch (Exception e4) {
+                System.out.println("   Coordinate tap failed: " + e4.getMessage());
+            }
 
             System.out.println("⚠️ Could not tap Issues button");
             return false;
         } catch (Exception e) {
+            System.out.println("⚠️ Issues button tap error: " + e.getMessage());
             return false;
         }
     }
@@ -163,12 +224,17 @@ public class IssuePage extends BasePage {
 
     /**
      * Check if Issues screen is displayed.
-     * Looks for "Issues" nav bar/title OR the unique combination of
-     * search bar + filter tabs (All/Open/Resolved).
+     * Uses reduced implicit wait (1s) for each check to avoid blocking.
+     * Multiple strategies: nav bar, title text, filter tabs, Done+Sort+Add buttons,
+     * "No Issues Found" empty state.
      */
     public boolean isIssuesScreenDisplayed() {
+        // Temporarily reduce implicit wait so each strategy fails fast
+        Duration originalTimeout = Duration.ofSeconds(10);
         try {
-            // Strategy 1: Navigation bar title
+            driver.manage().timeouts().implicitlyWait(Duration.ofMillis(1500));
+
+            // Strategy 1: Navigation bar with "Issues" title
             try {
                 WebElement navBar = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeNavigationBar' AND (name == 'Issues' OR label == 'Issues')"));
@@ -178,7 +244,7 @@ public class IssuePage extends BasePage {
                 }
             } catch (Exception e1) {}
 
-            // Strategy 2: Large "Issues" title text near top
+            // Strategy 2: Large "Issues" title text near top of screen
             try {
                 List<WebElement> titles = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeStaticText' AND label == 'Issues'"));
@@ -191,11 +257,10 @@ public class IssuePage extends BasePage {
                 }
             } catch (Exception e2) {}
 
-            // Strategy 3: Search bar + filter tabs unique to Issues
+            // Strategy 3: Search bar + filter tabs (All/Open/Resolved/Closed)
             try {
                 WebElement searchBar = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeSearchField'"));
-                // Check for at least one filter tab
                 WebElement tab = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeButton' AND " +
                     "(label BEGINSWITH 'All' OR label BEGINSWITH 'Open' OR label CONTAINS 'Resolved')"));
@@ -205,9 +270,43 @@ public class IssuePage extends BasePage {
                 }
             } catch (Exception e3) {}
 
+            // Strategy 4: "No Issues Found" empty state (valid Issues screen with no data)
+            try {
+                WebElement noIssues = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND " +
+                    "(label CONTAINS 'No Issues' OR label CONTAINS 'No issues')"));
+                if (noIssues.isDisplayed()) {
+                    System.out.println("✓ Issues screen detected (empty state: No Issues Found)");
+                    return true;
+                }
+            } catch (Exception e4) {}
+
+            // Strategy 5: Combination of Done + Sort + Add buttons in header
+            // (unique to Issues screen — Dashboard doesn't have this combo)
+            try {
+                boolean hasDone = false;
+                boolean hasAdd = false;
+                try {
+                    driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND label == 'Done'"));
+                    hasDone = true;
+                } catch (Exception ignored) {}
+                try {
+                    driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND (label == 'Add' OR name == 'plus')"));
+                    hasAdd = true;
+                } catch (Exception ignored) {}
+                if (hasDone && hasAdd) {
+                    System.out.println("✓ Issues screen detected (Done + Add buttons)");
+                    return true;
+                }
+            } catch (Exception e5) {}
+
             return false;
         } catch (Exception e) {
             return false;
+        } finally {
+            driver.manage().timeouts().implicitlyWait(originalTimeout);
         }
     }
 
