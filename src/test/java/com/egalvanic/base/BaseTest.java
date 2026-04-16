@@ -354,6 +354,15 @@ public class BaseTest {
                 className.contains("UnreachableBrowserException")) {
                 return true;
             }
+            // ThreadTimeoutException means TestNG killed a method that exceeded the suite
+            // time-out. On CI, this almost always means a findElement/findElements HTTP call
+            // hung because the Appium session is unresponsive. Treating it as dead prevents
+            // teardown from also hanging (420s) which would cascade-skip all subsequent tests.
+            // Evidence: CI run 24513764702 — 5 Location timeouts caused 60 cascade skips
+            // because teardown tried to use the dead session for screenshots/quit.
+            if (className.contains("ThreadTimeoutException")) {
+                return true;
+            }
             // Known session-dead message patterns
             if (message.contains("Connection refused") ||
                 message.contains("Connection reset") ||
@@ -362,7 +371,8 @@ public class BaseTest {
                 message.contains("session is either terminated") ||
                 message.contains("Session not found") ||
                 message.contains("Could not start a new session") ||
-                message.contains("Unable to create session")) {
+                message.contains("Unable to create session") ||
+                message.contains("didn't finish within the time-out")) {
                 return true;
             }
             current = current.getCause();
