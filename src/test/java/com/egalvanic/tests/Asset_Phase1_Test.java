@@ -5500,36 +5500,99 @@ public class Asset_Phase1_Test extends BaseTest {
 
         logStep("Step 5: Verify dialog has Cancel and Delete buttons");
 
-        // Check Cancel button
+        // Wait for dialog buttons to render — on CI, alert container appears before child buttons
+        sleep(800);
+
+        // Try to find buttons scoped WITHIN the alert first, then fall back to full DOM
+        WebElement alertElement = null;
+        try {
+            alertElement = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeAlert'"));
+        } catch (Exception e) {
+            logStep("Could not re-find alert for scoped search, using full DOM");
+        }
+
+        // Check Cancel button (scoped search first, then full DOM)
         boolean cancelFound = false;
         try {
-            driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label == 'Cancel' AND type == 'XCUIElementTypeButton'"));
+            if (alertElement != null) {
+                alertElement.findElement(AppiumBy.iOSNsPredicateString(
+                    "label == 'Cancel' AND type == 'XCUIElementTypeButton'"));
+            } else {
+                driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "label == 'Cancel' AND type == 'XCUIElementTypeButton'"));
+            }
             cancelFound = true;
             logStep("✅ Cancel button found");
-        } catch (Exception e) {}
+        } catch (Exception e) {
+            // Fallback: try without type constraint — some alerts use different element types
+            try {
+                if (alertElement != null) {
+                    alertElement.findElement(AppiumBy.iOSNsPredicateString("label == 'Cancel'"));
+                } else {
+                    driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "label == 'Cancel' AND (type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeOther')"));
+                }
+                cancelFound = true;
+                logStep("✅ Cancel button found (flexible type)");
+            } catch (Exception e2) {
+                logStep("Cancel button not found: " + e2.getMessage());
+            }
+        }
         assertTrue(cancelFound, "Confirmation dialog should have a Cancel button");
 
-        // Check Delete button
+        // Check Delete button (scoped search first, then full DOM)
         boolean deleteFound = false;
         try {
-            driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label == 'Delete' AND type == 'XCUIElementTypeButton'"));
+            if (alertElement != null) {
+                alertElement.findElement(AppiumBy.iOSNsPredicateString(
+                    "label == 'Delete' AND type == 'XCUIElementTypeButton'"));
+            } else {
+                driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "label == 'Delete' AND type == 'XCUIElementTypeButton'"));
+            }
             deleteFound = true;
             logStep("✅ Delete button found");
-        } catch (Exception e) {}
+        } catch (Exception e) {
+            try {
+                if (alertElement != null) {
+                    alertElement.findElement(AppiumBy.iOSNsPredicateString("label == 'Delete'"));
+                } else {
+                    driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "label == 'Delete' AND (type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeOther')"));
+                }
+                deleteFound = true;
+                logStep("✅ Delete button found (flexible type)");
+            } catch (Exception e2) {
+                logStep("Delete button not found: " + e2.getMessage());
+            }
+        }
         assertTrue(deleteFound, "Confirmation dialog should have a Delete button");
 
         logStep("Step 6: Tap Delete — confirm deletion");
-        try {
-            WebElement deleteBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label == 'Delete' AND type == 'XCUIElementTypeButton'"));
-            deleteBtn.click();
-            sleep(1500); // Wait for deletion + list refresh on CI
-            logStep("✅ Tapped Delete — asset deletion confirmed");
-        } catch (Exception e) {
-            logWarning("Could not tap Delete: " + e.getMessage());
-            throw new AssertionError("Failed to tap Delete button: " + e.getMessage());
+        boolean deleteTapped = false;
+        for (int attempt = 0; attempt < 3 && !deleteTapped; attempt++) {
+            try {
+                if (attempt > 0) sleep(500);
+                WebElement deleteBtn;
+                if (alertElement != null) {
+                    deleteBtn = alertElement.findElement(AppiumBy.iOSNsPredicateString(
+                        "label == 'Delete' AND type == 'XCUIElementTypeButton'"));
+                } else {
+                    deleteBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "label == 'Delete' AND type == 'XCUIElementTypeButton'"));
+                }
+                deleteBtn.click();
+                deleteTapped = true;
+                sleep(1500); // Wait for deletion + list refresh on CI
+                logStep("✅ Tapped Delete — asset deletion confirmed");
+            } catch (Exception e) {
+                if (attempt == 2) {
+                    logWarning("Could not tap Delete: " + e.getMessage());
+                    throw new AssertionError("Failed to tap Delete button: " + e.getMessage());
+                }
+                logStep("   Retry " + (attempt + 1) + " — re-finding Delete button...");
+            }
         }
 
         logStepWithScreenshot("After tapping Delete");

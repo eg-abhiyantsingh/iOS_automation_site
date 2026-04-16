@@ -972,5 +972,7 @@ jobs:
           echo "║    📧  EMAIL REPORT SUMMARY                                ║"
           echo "╠════════════════════════════════════════════════════════════╣"
           echo "║  Status: ${{ steps.email.outputs.STATUS_ICON }} ${{ steps.email.outputs.STATUS }}"
-          echo "║  Email:  ${{ github.event.inputs.send_email != 'false' && 'Sent' || 'Skipped (disabled)' }}"
+          echo "║  Email:  ${{ github.event.inputs.send_email != 'false' && 'Attempted' || 'Skipped (disabled)' }}"
+          echo "║  To:     ${{ secrets.EMAIL_TO != '' && '(EMAIL_TO secret)' || 'abhiyant.singh@egalvanic.com (fallback)' }}"
+          echo "║  Note:   Check Spam/Promotions if not in inbox"
           echo "╚════════════════════════════════════════════════════════════╝"

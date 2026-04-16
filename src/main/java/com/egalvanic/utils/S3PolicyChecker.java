@@ -573,18 +573,20 @@ public class S3PolicyChecker {
 
     /**
      * Recursively sort all JSON object keys alphabetically.
-     * Arrays preserve their element order (order matters in JSON arrays).
+     * Arrays of objects with "Sid" fields (IAM policy statements) are sorted by Sid,
+     * because AWS can return statements in any order — order has no semantic meaning.
+     * Other arrays preserve their element order (order matters in general JSON arrays).
      * Primitives and nulls pass through unchanged.
      */
     private static JsonElement sortJsonElement(JsonElement element) {
         if (element == null || element.isJsonNull()) {
             return element;
         }
-        
+
         if (element.isJsonObject()) {
             JsonObject original = element.getAsJsonObject();
             JsonObject sorted = new JsonObject();
-            
+
             // TreeMap sorts keys alphabetically
             TreeMap<String, JsonElement> sortedMap = new TreeMap<>();
             for (Map.Entry<String, JsonElement> entry : original.entrySet()) {
@@ -595,18 +597,47 @@ public class S3PolicyChecker {
             }
             return sorted;
         }
-        
+
         if (element.isJsonArray()) {
             JsonArray original = element.getAsJsonArray();
             JsonArray sorted = new JsonArray();
+
+            // First, recursively sort each element
+            List<JsonElement> elements = new ArrayList<>();
             for (JsonElement item : original) {
-                sorted.add(sortJsonElement(item));
+                elements.add(sortJsonElement(item));
+            }
+
+            // If ALL elements are objects with a "Sid" field, sort by Sid.
+            // AWS IAM policy statements have Sid and their order is irrelevant.
+            if (elements.size() > 1 && allObjectsHaveSid(elements)) {
+                elements.sort((a, b) -> {
+                    String sidA = a.getAsJsonObject().get("Sid").getAsString();
+                    String sidB = b.getAsJsonObject().get("Sid").getAsString();
+                    return sidA.compareTo(sidB);
+                });
+            }
+
+            for (JsonElement item : elements) {
+                sorted.add(item);
             }
             return sorted;
         }
-        
+
         // JsonPrimitive or JsonNull — return as-is
         return element;
+    }
+
+    /**
+     * Check if all elements in a list are JSON objects that have a "Sid" field.
+     * Used to detect IAM policy Statement arrays that should be sorted by Sid.
+     */
+    private static boolean allObjectsHaveSid(List<JsonElement> elements) {
+        for (JsonElement el : elements) {
+            if (!el.isJsonObject()) return false;
+            if (!el.getAsJsonObject().has("Sid")) return false;
+        }
+        return true;
     }
 
     /**

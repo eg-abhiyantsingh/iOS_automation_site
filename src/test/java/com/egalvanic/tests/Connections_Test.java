@@ -4539,18 +4539,28 @@ public final class Connections_Test extends BaseTest {
 
         logStep("Step 2: Capture first connection and count total");
 
-        // Count initial connections
-        java.util.List<WebElement> initialCells = driver.findElements(AppiumBy.iOSNsPredicateString(
-            "type == 'XCUIElementTypeCell' AND visible == true"));
-        int initialCount = initialCells.size();
-        logStep("Initial connection count: " + initialCount);
+        int screenHeight = driver.manage().window().getSize().getHeight();
+        int screenWidth = driver.manage().window().getSize().getWidth();
 
-        if (initialCount == 0) {
+        // Count initial connections (no visible == true — CI elements may not be flagged visible)
+        java.util.List<WebElement> initialCells = driver.findElements(AppiumBy.iOSNsPredicateString(
+            "type == 'XCUIElementTypeCell'"));
+
+        // Filter to cells in the list area (below nav bar, above tab bar)
+        WebElement firstCell = null;
+        int validCellCount = 0;
+        for (WebElement cell : initialCells) {
+            int y = cell.getLocation().getY();
+            if (y > 120 && y < screenHeight * 0.85) {
+                validCellCount++;
+                if (firstCell == null) firstCell = cell;
+            }
+        }
+        logStep("Initial connection count: " + validCellCount);
+
+        if (validCellCount == 0) {
             throw new SkipException("SKIPPED: No connections available to test deletion");
         }
-
-        // Find the first connection cell
-        WebElement firstCell = initialCells.get(0);
 
         // Capture label for verification later
         String firstConnectionLabel = "";
@@ -4570,30 +4580,50 @@ public final class Connections_Test extends BaseTest {
         int cellH = firstCell.getSize().getHeight();
         int centerY = cellY + (cellH / 2);
         int startX = cellX + cellW - 20;
-        int endX = cellX + 50;
+        int endX = cellX + 20; // Swipe further left for reliability
 
         logStep("Swiping left: startX=" + startX + " endX=" + endX + " Y=" + centerY);
 
-        PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
-        Sequence swipe = new Sequence(finger, 1);
-        swipe.addAction(finger.createPointerMove(java.time.Duration.ZERO,
-            PointerInput.Origin.viewport(), startX, centerY));
-        swipe.addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()));
-        swipe.addAction(finger.createPointerMove(java.time.Duration.ofMillis(300),
-            PointerInput.Origin.viewport(), endX, centerY));
-        swipe.addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
-        driver.perform(java.util.Arrays.asList(swipe));
-        sleep(500);
+        // Primary: mobile: dragFromToForDuration (native XCUITest gesture, most reliable on CI)
+        boolean swipePerformed = false;
+        try {
+            java.util.Map<String, Object> dragParams = new java.util.HashMap<>();
+            dragParams.put("fromX", startX);
+            dragParams.put("fromY", centerY);
+            dragParams.put("toX", endX);
+            dragParams.put("toY", centerY);
+            dragParams.put("duration", 0.3);
+            driver.executeScript("mobile: dragFromToForDuration", dragParams);
+            swipePerformed = true;
+            logStep("Swipe performed (mobile: dragFromToForDuration)");
+        } catch (Exception dragEx) {
+            logStep("dragFromToForDuration failed, trying W3C Actions: " + dragEx.getMessage());
+        }
+
+        // Fallback: W3C PointerInput with fast 150ms movement
+        if (!swipePerformed) {
+            PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
+            Sequence swipe = new Sequence(finger, 1);
+            swipe.addAction(finger.createPointerMove(java.time.Duration.ZERO,
+                PointerInput.Origin.viewport(), startX, centerY));
+            swipe.addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()));
+            swipe.addAction(finger.createPointerMove(java.time.Duration.ofMillis(150),
+                PointerInput.Origin.viewport(), endX, centerY));
+            swipe.addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
+            driver.perform(java.util.Arrays.asList(swipe));
+            logStep("Swipe performed (W3C PointerInput, 150ms)");
+        }
+        sleep(800); // Wait for iOS swipe animation to fully reveal action buttons
 
         logStepWithScreenshot("Swiped left — trash icon should be visible");
 
         logStep("Step 4: Tap red trash/delete icon");
         boolean trashTapped = false;
 
-        // Strategy 1: Find Delete button by label
+        // Strategy 1: Find Delete button by label (no visible == true)
         try {
             WebElement trashBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(label == 'Delete' OR label == 'trash' OR label == 'Trash') AND type == 'XCUIElementTypeButton' AND visible == true"));
+                "(label == 'Delete' OR label == 'trash' OR label == 'Trash') AND type == 'XCUIElementTypeButton'"));
             trashBtn.click();
             trashTapped = true;
             logStep("Tapped Delete/Trash button");
@@ -4601,18 +4631,16 @@ public final class Connections_Test extends BaseTest {
             logStep("Delete button not found by label, trying coordinates...");
         }
 
-        // Strategy 2: Tap the red trash area by coordinates
+        // Strategy 2: Tap at screen right edge (where delete always appears after swipe)
         if (!trashTapped) {
             try {
-                int trashX = cellX + cellW - 40;
+                int trashX = screenWidth - 40; // Delete button is at the far right edge
                 int trashY = centerY;
                 logStep("Tapping red trash area at (" + trashX + ", " + trashY + ")");
-                Sequence tap = new Sequence(finger, 1);
-                tap.addAction(finger.createPointerMove(java.time.Duration.ZERO,
-                    PointerInput.Origin.viewport(), trashX, trashY));
-                tap.addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()));
-                tap.addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
-                driver.perform(java.util.Arrays.asList(tap));
+                java.util.Map<String, Object> tapArgs = new java.util.HashMap<>();
+                tapArgs.put("x", trashX);
+                tapArgs.put("y", trashY);
+                driver.executeScript("mobile: tap", tapArgs);
                 trashTapped = true;
                 logStep("Tapped trash area by coordinates");
             } catch (Exception e2) {
@@ -4621,17 +4649,18 @@ public final class Connections_Test extends BaseTest {
         }
 
         assertTrue(trashTapped, "Should be able to tap the delete/trash icon after swipe");
-        sleep(500);
+        sleep(800); // Wait for dialog to fully render on CI
 
         logStep("Step 5: Check if confirmation dialog appeared");
         logStepWithScreenshot("Checking for confirmation dialog");
 
         boolean dialogFound = false;
+        WebElement alertElement = null;
 
-        // Check for alert
+        // Check for alert (no visible == true)
         try {
-            driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeAlert' AND visible == true"));
+            alertElement = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeAlert'"));
             dialogFound = true;
             logStep("\u2705 Confirmation dialog found (Alert)");
         } catch (Exception e1) {}
@@ -4640,7 +4669,7 @@ public final class Connections_Test extends BaseTest {
         if (!dialogFound) {
             try {
                 driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label CONTAINS 'Delete' AND label CONTAINS 'Connection') AND type == 'XCUIElementTypeStaticText' AND visible == true"));
+                    "(label CONTAINS 'Delete' AND label CONTAINS 'Connection') AND type == 'XCUIElementTypeStaticText'"));
                 dialogFound = true;
                 logStep("\u2705 Confirmation dialog found (Delete Connection title)");
             } catch (Exception e2) {}
@@ -4650,24 +4679,44 @@ public final class Connections_Test extends BaseTest {
         if (!dialogFound) {
             try {
                 driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "label CONTAINS 'Are you sure' AND visible == true"));
+                    "label CONTAINS 'Are you sure' OR label CONTAINS 'cannot be undone'"));
                 dialogFound = true;
-                logStep("\u2705 Confirmation dialog found (Are you sure text)");
+                logStep("\u2705 Confirmation dialog found (confirmation text)");
             } catch (Exception e3) {}
         }
 
         if (dialogFound) {
             logStep("Step 6: Tap Delete on confirmation dialog");
+
+            // Wait for dialog buttons to render — on CI, alert container appears before child buttons
+            sleep(800);
+
             // CI runners are slower — the alert can re-render between find and click,
-            // causing a stale element reference. Use a retry loop to handle this.
+            // causing a stale element reference. Use a retry loop with scoped search.
             boolean deleted = false;
             for (int attempt = 0; attempt < 3 && !deleted; attempt++) {
                 try {
-                    if (attempt > 0) sleep(500);
-                    WebElement deleteBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                        "label == 'Delete' AND type == 'XCUIElementTypeButton' AND visible == true"));
+                    if (attempt > 0) {
+                        sleep(500);
+                        // Re-find alert on retry in case of stale reference
+                        try {
+                            alertElement = driver.findElement(AppiumBy.iOSNsPredicateString(
+                                "type == 'XCUIElementTypeAlert'"));
+                        } catch (Exception ignored) {
+                            alertElement = null;
+                        }
+                    }
+                    WebElement deleteBtn;
+                    if (alertElement != null) {
+                        // Scoped search within the alert (more reliable)
+                        deleteBtn = alertElement.findElement(AppiumBy.iOSNsPredicateString(
+                            "label == 'Delete' AND type == 'XCUIElementTypeButton'"));
+                    } else {
+                        deleteBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
+                            "label == 'Delete' AND type == 'XCUIElementTypeButton'"));
+                    }
                     deleteBtn.click();
-                    sleep(1000);
+                    sleep(1500); // Wait for deletion + list refresh on CI
                     deleted = true;
                     logStep("\u2705 Tapped Delete — connection deletion confirmed via dialog");
                 } catch (Exception e) {
@@ -4697,7 +4746,7 @@ public final class Connections_Test extends BaseTest {
         if (firstConnectionLabel != null && !firstConnectionLabel.isEmpty()) {
             try {
                 java.util.List<WebElement> remainingCells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeCell' AND visible == true AND label == '" +
+                    "type == 'XCUIElementTypeCell' AND label == '" +
                     firstConnectionLabel.replace("'", "\\'") + "'"));
                 assertTrue(remainingCells.isEmpty(),
                     "Deleted connection '" + firstConnectionLabel + "' should NOT appear in the list anymore");

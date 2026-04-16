@@ -1394,8 +1394,19 @@ public class IssuePage extends BasePage {
      */
     public void tapSelectAsset() {
         System.out.println("📋 Tapping Select Asset...");
+
+        // Dismiss keyboard first — it may be covering the Asset section at the bottom of the form.
+        // On CI, after entering the title, the keyboard can persist or reappear after picker selection.
+        try {
+            driver.executeScript("mobile: hideKeyboard");
+            System.out.println("   Keyboard dismissed before Select Asset");
+            sleep(300);
+        } catch (Exception kbIgnored) {
+            // No keyboard up — that's fine
+        }
+
         String predicate =
-            "(label == 'Select Asset' OR label BEGINSWITH 'Select Asset') AND " +
+            "(label == 'Select Asset' OR label BEGINSWITH 'Select Asset' OR label CONTAINS 'Select Asset') AND " +
             "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeCell' OR " +
             "type == 'XCUIElementTypeOther')";
 
@@ -1410,20 +1421,22 @@ public class IssuePage extends BasePage {
             System.out.println("   Select Asset not found directly, scrolling down...");
         }
 
-        // Attempt 2: Scroll form down (Asset is in ASSIGNMENT section at bottom)
-        try {
-            scrollDownOnDetailsScreen();
-            sleep(300);
-            WebElement selectAsset = driver.findElement(AppiumBy.iOSNsPredicateString(predicate));
-            selectAsset.click();
-            sleep(500);
-            System.out.println("✅ Opened Select Asset picker (after scroll)");
-            return;
-        } catch (Exception e) {
-            System.out.println("   Select Asset not found after scroll, trying mobile:scroll...");
+        // Attempt 2: Multiple scroll-down attempts (Asset is in ASSIGNMENT section at bottom of form)
+        for (int scrollAttempt = 1; scrollAttempt <= 3; scrollAttempt++) {
+            try {
+                scrollDownOnDetailsScreen();
+                sleep(300);
+                WebElement selectAsset = driver.findElement(AppiumBy.iOSNsPredicateString(predicate));
+                selectAsset.click();
+                sleep(500);
+                System.out.println("✅ Opened Select Asset picker (after scroll " + scrollAttempt + ")");
+                return;
+            } catch (Exception e) {
+                System.out.println("   Select Asset not found after scroll " + scrollAttempt + "/3");
+            }
         }
 
-        // Attempt 3: iOS native scroll to the element
+        // Attempt 3: iOS native scroll to the element by predicate
         try {
             Map<String, Object> scrollParams = new HashMap<>();
             scrollParams.put("direction", "down");
@@ -1436,8 +1449,29 @@ public class IssuePage extends BasePage {
             System.out.println("✅ Opened Select Asset picker (after mobile:scroll)");
             return;
         } catch (Exception e) {
-            System.out.println("⚠️ Could not tap Select Asset after all attempts: " + e.getMessage());
+            System.out.println("   mobile:scroll by predicate failed: " + e.getMessage());
         }
+
+        // Attempt 4: Try alternative labels — the button text may differ on some app versions
+        String altPredicate =
+            "(label CONTAINS 'Asset' AND label CONTAINS 'Select') AND " +
+            "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeCell' OR " +
+            "type == 'XCUIElementTypeOther' OR type == 'XCUIElementTypeStaticText')";
+        try {
+            WebElement selectAsset = driver.findElement(AppiumBy.iOSNsPredicateString(altPredicate));
+            // Only tap if it's in the form area (not the nav bar)
+            int elY = selectAsset.getLocation().getY();
+            if (elY > 120) {
+                selectAsset.click();
+                sleep(500);
+                System.out.println("✅ Opened Select Asset picker (alternative label match at Y=" + elY + ")");
+                return;
+            }
+        } catch (Exception e) {
+            // Fall through to final warning
+        }
+
+        System.out.println("⚠️ Could not tap Select Asset after all attempts");
     }
 
     /**
