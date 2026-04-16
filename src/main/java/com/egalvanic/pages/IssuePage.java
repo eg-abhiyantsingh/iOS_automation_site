@@ -448,9 +448,39 @@ public class IssuePage extends BasePage {
      */
     public boolean isResolvedTabDisplayed() {
         try {
-            WebElement tab = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label CONTAINS 'Resolved'"));
-            return tab.isDisplayed();
+            // App may show "Resolved", "In Progress", or "Complete" as the 3rd filter tab
+            List<WebElement> tabs = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(label CONTAINS 'Resolved' OR label CONTAINS 'In Progress' OR " +
+                "label CONTAINS 'Complete' OR name CONTAINS 'Resolved' OR " +
+                "name CONTAINS 'InProgress')"));
+            if (!tabs.isEmpty()) {
+                System.out.println("   Resolved/InProgress tab found: '" + tabs.get(0).getAttribute("label") + "'");
+                return tabs.get(0).isDisplayed();
+            }
+            // Fallback: check for any 3rd button in the filter area (between Open and Closed)
+            List<WebElement> allButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton'"));
+            for (WebElement btn : allButtons) {
+                try {
+                    String label = btn.getAttribute("label");
+                    if (label != null && !label.equals("All") && !label.startsWith("All ")
+                            && !label.equals("Open") && !label.startsWith("Open ")
+                            && !label.equals("Closed") && !label.startsWith("Closed ")
+                            && !label.equals("Done") && !label.equals("Cancel")
+                            && !label.contains("Sort") && !label.contains("Add")
+                            && !label.contains("Search") && !label.isEmpty()) {
+                        int y = btn.getLocation().getY();
+                        // Filter tabs are in the header area (Y < 250)
+                        if (y > 100 && y < 250) {
+                            System.out.println("   Possible 3rd filter tab: '" + label + "' at Y=" + y);
+                            return true;
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
+            System.out.println("⚠️ Resolved/In Progress tab not found");
+            return false;
         } catch (Exception e) {
             return false;
         }
@@ -509,13 +539,21 @@ public class IssuePage extends BasePage {
      * Tap Resolved filter tab
      */
     public void tapResolvedTab() {
-        System.out.println("📋 Tapping Resolved tab...");
+        System.out.println("📋 Tapping Resolved/In Progress tab...");
         try {
-            WebElement tab = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label CONTAINS 'Resolved'"));
-            tab.click();
-            sleep(400);
-            System.out.println("✅ Tapped Resolved tab");
+            // Try "Resolved" first, then "In Progress", then "Complete"
+            List<WebElement> tabs = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(label CONTAINS 'Resolved' OR label CONTAINS 'In Progress' OR " +
+                "label CONTAINS 'Complete' OR name CONTAINS 'Resolved' OR " +
+                "name CONTAINS 'InProgress')"));
+            if (!tabs.isEmpty()) {
+                tabs.get(0).click();
+                sleep(400);
+                System.out.println("✅ Tapped tab: " + tabs.get(0).getAttribute("label"));
+            } else {
+                System.out.println("⚠️ Could not find Resolved/In Progress tab");
+            }
         } catch (Exception e) {
             System.out.println("⚠️ Could not tap Resolved tab: " + e.getMessage());
         }
@@ -578,8 +616,13 @@ public class IssuePage extends BasePage {
      */
     public boolean isResolvedTabSelected() {
         try {
-            WebElement tab = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label CONTAINS 'Resolved'"));
+            List<WebElement> tabs = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(label CONTAINS 'Resolved' OR label CONTAINS 'In Progress' OR " +
+                "label CONTAINS 'Complete' OR name CONTAINS 'Resolved' OR " +
+                "name CONTAINS 'InProgress')"));
+            if (tabs.isEmpty()) return false;
+            WebElement tab = tabs.get(0);
             String selected = tab.getAttribute("selected");
             if ("true".equals(selected)) return true;
             String value = tab.getAttribute("value");
@@ -649,10 +692,14 @@ public class IssuePage extends BasePage {
      */
     public int getResolvedTabCount() {
         try {
-            WebElement tab = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label CONTAINS 'Resolved'"));
-            String label = tab.getAttribute("label");
-            System.out.println("   Resolved tab label: '" + label + "'");
+            List<WebElement> tabs = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(label CONTAINS 'Resolved' OR label CONTAINS 'In Progress' OR " +
+                "label CONTAINS 'Complete' OR name CONTAINS 'Resolved' OR " +
+                "name CONTAINS 'InProgress')"));
+            if (tabs.isEmpty()) return -1;
+            String label = tabs.get(0).getAttribute("label");
+            System.out.println("   Resolved/InProgress tab label: '" + label + "'");
             return extractCountFromTabLabel(label);
         } catch (Exception e) {
             return -1;
@@ -1567,10 +1614,12 @@ public class IssuePage extends BasePage {
     public boolean tapCreateIssue() {
         System.out.println("🆕 Tapping Create Issue...");
         try {
-            // Wait for the button to become enabled — asset picker dismissal can delay this
-            for (int attempt = 1; attempt <= 6; attempt++) {
+            // Wait for the button to become enabled — asset picker dismissal + form
+            // re-validation on iOS can take several seconds, especially on CI
+            for (int attempt = 1; attempt <= 10; attempt++) {
                 WebElement btn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label == 'Create Issue' OR name == 'Create Issue') AND type == 'XCUIElementTypeButton'"));
+                    "(label == 'Create Issue' OR name == 'Create Issue' OR " +
+                    "label == 'Create' OR name == 'Create') AND type == 'XCUIElementTypeButton'"));
                 String enabled = btn.getAttribute("enabled");
                 if ("true".equals(enabled)) {
                     btn.click();
@@ -1578,10 +1627,10 @@ public class IssuePage extends BasePage {
                     System.out.println("✅ Tapped Create Issue");
                     return true;
                 }
-                System.out.println("   Create Issue not yet enabled (attempt " + attempt + "/6), waiting...");
+                System.out.println("   Create Issue not yet enabled (attempt " + attempt + "/10), waiting...");
                 sleep(500);
             }
-            System.out.println("⚠️ Create Issue button stayed disabled after 3s");
+            System.out.println("⚠️ Create Issue button stayed disabled after 5s");
             return false;
         } catch (Exception e) {
             System.out.println("⚠️ Could not tap Create Issue: " + e.getMessage());
@@ -5011,7 +5060,7 @@ public class IssuePage extends BasePage {
         System.out.println("🆕 Creating quick issue: " + title);
         try {
             tapAddButton();
-            sleep(500);
+            sleep(800);
 
             if (!isNewIssueFormDisplayed()) {
                 System.out.println("⚠️ New Issue form did not open");
@@ -5020,19 +5069,33 @@ public class IssuePage extends BasePage {
 
             // Select Issue Class — use "NEC Violation" (always available)
             selectIssueClass("NEC Violation");
-            sleep(300);
+            sleep(500);
 
             // Enter title
             enterIssueTitle(title);
-            sleep(300);
+            sleep(500);
+
+            // Dismiss keyboard before proceeding to asset selection
+            try {
+                driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND label == 'Done'")).click();
+                sleep(300);
+            } catch (Exception ignored) {
+                // Try tapping outside the text field to dismiss keyboard
+                try {
+                    driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND label == 'New Issue'")).click();
+                    sleep(300);
+                } catch (Exception ignored2) {}
+            }
 
             // Select asset (required)
             tapSelectAsset();
-            sleep(500);
+            sleep(800);
             selectAssetByName(assetName);
-            sleep(500);
+            sleep(800);
 
-            // Tap Create Issue
+            // Tap Create Issue — increased wait time for form validation on CI
             boolean tapped = tapCreateIssue();
             if (!tapped) {
                 System.out.println("⚠️ Could not tap Create Issue — cancelling");

@@ -2744,6 +2744,7 @@ public class SiteVisit_phase1 extends BaseTest {
         if (bannerSessionName != null && sessionName != null) {
             // Session name may be partial match (e.g., "Job - Dec 17" vs full header)
             boolean nameMatches = bannerSessionName.contains("Job")
+                || bannerSessionName.contains("Work Order")
                 || sessionName.contains(bannerSessionName)
                 || bannerSessionName.contains(sessionName);
             logStep("Session name match: " + nameMatches
@@ -3259,25 +3260,27 @@ public class SiteVisit_phase1 extends BaseTest {
         logStepWithScreenshot("Job name field with auto-generated value");
 
         if (jobName != null) {
-            // Verify format: "Job - [Date], [Time]" (e.g., "Job - Dec 24, 12:07 PM")
-            boolean startsWithJob = jobName.startsWith("Job") || jobName.contains("Job");
+            // Verify format: "Job - [Date], [Time]" or "Work Order - [Date], [Time]"
+            // The app renamed "Job" → "Work Order" — accept both for backward compatibility
+            boolean startsWithJobOrWO = jobName.startsWith("Job") || jobName.contains("Job")
+                    || jobName.startsWith("Work Order") || jobName.contains("Work Order");
             boolean containsDate = jobName.contains(","); // dates have commas
             boolean containsTime = jobName.contains("AM") || jobName.contains("PM");
 
-            logStep("Format check: startsWithJob=" + startsWithJob
+            logStep("Format check: startsWithJobOrWO=" + startsWithJobOrWO
                 + ", containsDate=" + containsDate + ", containsTime=" + containsTime);
 
-            if (startsWithJob && (containsDate || containsTime)) {
-                logStep("Job name matches expected format 'Job - [Date], [Time]': " + jobName);
-            } else if (startsWithJob) {
-                logStep("Job name starts with 'Job' but format differs: " + jobName);
+            if (startsWithJobOrWO && (containsDate || containsTime)) {
+                logStep("Name matches expected format: " + jobName);
+            } else if (startsWithJobOrWO) {
+                logStep("Name starts with 'Job'/'Work Order' but format differs: " + jobName);
             } else {
-                logWarning("Job name format unexpected: '" + jobName
-                    + "'. Expected 'Job - Dec 24, 12:07 PM' format.");
+                logWarning("Name format unexpected: '" + jobName
+                    + "'. Expected 'Job/Work Order - [Date], [Time]' format.");
             }
 
-            assertTrue(startsWithJob,
-                "Auto-generated job name should start with 'Job' and include current date/time. "
+            assertTrue(startsWithJobOrWO,
+                "Auto-generated name should start with 'Job' or 'Work Order' and include date/time. "
                 + "Actual: '" + jobName + "'");
         } else {
             logWarning("Could not retrieve job name field value — "
@@ -5910,8 +5913,9 @@ public class SiteVisit_phase1 extends BaseTest {
             logStep("Type label: " + (typeLabel != null ? "'" + typeLabel + "'" : "null"));
 
             if (jobInfo != null) {
-                boolean hasJobKeyword = jobInfo.contains("Job") || jobInfo.contains("job");
-                logStep("Job info contains 'Job': " + hasJobKeyword);
+                boolean hasJobKeyword = jobInfo.contains("Job") || jobInfo.contains("job")
+                    || jobInfo.contains("Work Order") || jobInfo.contains("work order");
+                logStep("Job info contains 'Job'/'Work Order': " + hasJobKeyword);
             }
 
             if (typeLabel != null) {

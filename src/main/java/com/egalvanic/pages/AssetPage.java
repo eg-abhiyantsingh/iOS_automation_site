@@ -137,11 +137,29 @@ public class AssetPage extends BasePage {
     private WebElement searchBar;
 
     // ================================================================
+    // TOGGLE SEARCH CACHE
+    // ================================================================
+
+    /**
+     * Cache: once toggle search fails, skip subsequent searches in the same test.
+     * Reset via resetToggleSearchCache() when navigating to a new asset.
+     */
+    private boolean toggleSearchExhausted = false;
+    private static final long TOGGLE_SEARCH_MAX_MS = 15_000; // 15 seconds max total
+
+    // ================================================================
     // CONSTRUCTOR
     // ================================================================
 
     public AssetPage() {
         super();
+    }
+
+    /**
+     * Reset toggle search cache — call when navigating to a new asset or screen.
+     */
+    public void resetToggleSearchCache() {
+        this.toggleSearchExhausted = false;
     }
 
     // ================================================================
@@ -6902,6 +6920,9 @@ public class AssetPage extends BasePage {
      * TURBO: Click Edit button - direct fast click (no retry)
      */
     public void clickEditTurbo() {
+        // Reset toggle cache since we're entering a (potentially different) edit screen
+        resetToggleSearchCache();
+
         // Asset Detail screen is DIRECTLY editable - no separate Edit button exists
         // The screen already shows editable fields (TextField for name, Buttons for class, etc.)
         sleep(500); // Wait for screen to fully load
@@ -7114,19 +7135,34 @@ public class AssetPage extends BasePage {
     /**
      * Find the Required Fields Only toggle using multiple strategies.
      * Returns the toggle WebElement or null if not found.
-     * Uses short implicit wait (800ms) and detects dead driver sessions early.
+     *
+     * Performance: enforces a 15-second total time bound. Previous version could
+     * take 5-7 minutes per call, and callers invoke this 6+ times, exceeding the
+     * 420s test timeout. With the cache, repeated "not found" results return instantly.
+     *
+     * Also searches for XCUIElementTypeButton in addition to XCUIElementTypeSwitch,
+     * in case the app changed the toggle's element type.
      */
     private WebElement findRequiredFieldsToggle() {
+        // CACHE: if a previous search already exhausted all strategies, return null instantly
+        if (toggleSearchExhausted) {
+            System.out.println("🔍 Toggle search cached as not-found — skipping (call resetToggleSearchCache() on new asset)");
+            return null;
+        }
+
         System.out.println("🔍 Finding Required Fields Only toggle...");
+        long searchStart = System.currentTimeMillis();
 
         // Use short implicit wait to avoid 5s blocks per failed findElement call
         driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
         try {
 
-        // FIRST: Scroll down to Core Attributes section where toggle is located
-        System.out.println("   📜 Scrolling to Core Attributes section (toggle location)...");
-        for (int scrollAttempt = 0; scrollAttempt < 3; scrollAttempt++) {
-            // Check if toggle is already visible before scrolling more
+        // Helper: element type predicate that covers both Switch and Button
+        String switchOrButton = "(type == 'XCUIElementTypeSwitch' OR type == 'XCUIElementTypeButton')";
+
+        // FIRST: Quick scroll to Core Attributes area (2 attempts max)
+        for (int scrollAttempt = 0; scrollAttempt < 2; scrollAttempt++) {
+            if (System.currentTimeMillis() - searchStart > TOGGLE_SEARCH_MAX_MS) break;
             try {
                 WebElement toggle = driver.findElement(
                     AppiumBy.iOSNsPredicateString(
@@ -7134,9 +7170,8 @@ public class AssetPage extends BasePage {
                     )
                 );
                 if (toggle != null && toggle.isDisplayed()) {
-                    System.out.println("   ✅ Found visible toggle (scroll attempt " + scrollAttempt + ")");
-                    // Continue with validation below
-                    break;
+                    System.out.println("   ✅ Found visible switch (scroll attempt " + scrollAttempt + ")");
+                    return toggle;
                 }
             } catch (Exception e) {
                 if (isDriverSessionDead(e)) {
@@ -7149,37 +7184,17 @@ public class AssetPage extends BasePage {
             }
         }
 
-        // Strategy 1: Find toggle by name/label containing "Required" (case insensitive search)
-        try {
-            WebElement toggle = driver.findElement(
-                AppiumBy.iOSNsPredicateString(
-                    "(name CONTAINS[c] 'Required' OR label CONTAINS[c] 'Required' OR " +
-                    "name CONTAINS[c] 'required fields' OR label CONTAINS[c] 'required fields') " +
-                    "AND type == 'XCUIElementTypeSwitch' AND visible == true"
-                )
-            );
-            if (toggle != null && toggle.isDisplayed()) {
-                System.out.println("   ✅ Found toggle by name/label containing 'Required'");
-                return toggle;
-            }
-        } catch (Exception e) {
-            if (isDriverSessionDead(e)) {
-                System.out.println("   ❌ Driver session is dead, aborting toggle search");
-                return null;
-            }
-            System.out.println("   Strategy 1 (name contains): not found");
-        }
-
-        // Strategy 2: Find toggle by accessibility ID (multiple variations)
-        String[] accessibilityIds = {
-            "Required Fields Only", "RequiredFieldsOnly", "required_fields_only",
-            "Required Fields", "RequiredFields", "toggle_required"
-        };
-        for (String accId : accessibilityIds) {
+        // Strategy 1: Find toggle by name/label containing "Required"
+        if (System.currentTimeMillis() - searchStart < TOGGLE_SEARCH_MAX_MS) {
             try {
-                WebElement toggle = driver.findElement(AppiumBy.accessibilityId(accId));
+                WebElement toggle = driver.findElement(
+                    AppiumBy.iOSNsPredicateString(
+                        "(name CONTAINS[c] 'Required' OR label CONTAINS[c] 'Required') " +
+                        "AND " + switchOrButton + " AND visible == true"
+                    )
+                );
                 if (toggle != null && toggle.isDisplayed()) {
-                    System.out.println("   ✅ Found toggle by accessibility ID: " + accId);
+                    System.out.println("   ✅ Found toggle by name/label containing 'Required'");
                     return toggle;
                 }
             } catch (Exception e) {
@@ -7187,200 +7202,141 @@ public class AssetPage extends BasePage {
                     System.out.println("   ❌ Driver session is dead, aborting toggle search");
                     return null;
                 }
+                System.out.println("   Strategy 1 (name contains): not found");
             }
         }
-        System.out.println("   Strategy 2 (accessibility ID): not found");
 
-        // Strategy 3: Scroll to "Core Attributes" section and find toggle there
-        try {
-            System.out.println("   Strategy 3: Looking for Core Attributes section...");
-            
-            // First try to find Core Attributes label and scroll to it
-            for (int i = 0; i < 5; i++) {
+        // Strategy 2: Find toggle by accessibility ID (multiple variations)
+        if (System.currentTimeMillis() - searchStart < TOGGLE_SEARCH_MAX_MS) {
+            String[] accessibilityIds = {
+                "Required Fields Only", "RequiredFieldsOnly", "required_fields_only",
+                "Required Fields", "RequiredFields", "toggle_required"
+            };
+            for (String accId : accessibilityIds) {
+                if (System.currentTimeMillis() - searchStart > TOGGLE_SEARCH_MAX_MS) break;
                 try {
-                    WebElement coreAttrLabel = driver.findElement(
-                        AppiumBy.iOSNsPredicateString(
-                            "(name CONTAINS[c] 'Core Attribute' OR label CONTAINS[c] 'Core Attribute') " +
-                            "AND type == 'XCUIElementTypeStaticText' AND visible == true"
-                        )
-                    );
-                    if (coreAttrLabel != null && coreAttrLabel.isDisplayed()) {
-                        System.out.println("   Found 'Core Attributes' section at Y=" + coreAttrLabel.getLocation().getY());
-                        
-                        // Now find toggle in this section (within 200 pixels below Core Attributes)
-                        int coreAttrY = coreAttrLabel.getLocation().getY();
-                        List<WebElement> switches = driver.findElements(
-                            AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeSwitch' AND visible == true")
-                        );
-                        for (WebElement sw : switches) {
-                            int switchY = sw.getLocation().getY();
-                            // Toggle should be BELOW Core Attributes label (within 200px)
-                            if (switchY > coreAttrY && switchY < coreAttrY + 200) {
-                                System.out.println("   ✅ Found toggle in Core Attributes section (Y=" + switchY + ")");
-                                return sw;
-                            }
-                        }
-                        break; // Found section but no toggle, don't keep scrolling
+                    WebElement toggle = driver.findElement(AppiumBy.accessibilityId(accId));
+                    if (toggle != null && toggle.isDisplayed()) {
+                        System.out.println("   ✅ Found toggle by accessibility ID: " + accId);
+                        return toggle;
                     }
-                } catch (Exception notFound) {
-                    if (isDriverSessionDead(notFound)) {
+                } catch (Exception e) {
+                    if (isDriverSessionDead(e)) {
                         System.out.println("   ❌ Driver session is dead, aborting toggle search");
                         return null;
                     }
-                    System.out.println("   Scrolling to find Core Attributes (attempt " + (i+1) + ")...");
-                    scrollFormDown();
-                    sleep(300);
                 }
             }
-        } catch (Exception e) {
-            if (isDriverSessionDead(e)) {
-                System.out.println("   ❌ Driver session is dead, aborting toggle search");
-                return null;
-            }
-            System.out.println("   Strategy 3 (Core Attributes section): not found");
+            System.out.println("   Strategy 2 (accessibility ID): not found");
         }
 
-        // Strategy 4: Find the label "Required" and then find nearby toggle
-        try {
-            // Try multiple label patterns
-            String[] labelPatterns = {
-                "(name CONTAINS[c] 'Required' OR label CONTAINS[c] 'Required') AND type == 'XCUIElementTypeStaticText' AND visible == true",
-                "type == 'XCUIElementTypeStaticText' AND (name BEGINSWITH[c] 'Required' OR label BEGINSWITH[c] 'Required') AND visible == true"
-            };
-            
-            for (String pattern : labelPatterns) {
-                try {
-                    List<WebElement> labels = driver.findElements(AppiumBy.iOSNsPredicateString(pattern));
-                    for (WebElement label : labels) {
-                        if (label != null && label.isDisplayed()) {
-                            System.out.println("   Found 'Required' label at Y=" + label.getLocation().getY() + " text: " + label.getAttribute("label"));
-                            int labelY = label.getLocation().getY();
+        // Strategy 3: Scroll to "Core Attributes" section and find toggle nearby
+        if (System.currentTimeMillis() - searchStart < TOGGLE_SEARCH_MAX_MS) {
+            try {
+                System.out.println("   Strategy 3: Looking for Core Attributes section...");
+                for (int i = 0; i < 2; i++) {
+                    if (System.currentTimeMillis() - searchStart > TOGGLE_SEARCH_MAX_MS) break;
+                    try {
+                        WebElement coreAttrLabel = driver.findElement(
+                            AppiumBy.iOSNsPredicateString(
+                                "(name CONTAINS[c] 'Core Attribute' OR label CONTAINS[c] 'Core Attribute') " +
+                                "AND type == 'XCUIElementTypeStaticText' AND visible == true"
+                            )
+                        );
+                        if (coreAttrLabel != null && coreAttrLabel.isDisplayed()) {
+                            int coreAttrY = coreAttrLabel.getLocation().getY();
+                            System.out.println("   Found 'Core Attributes' section at Y=" + coreAttrY);
 
-                            // Find switches near this label (within 150 pixels vertically for better coverage)
+                            // Find switch OR button near Core Attributes (within 200px below)
                             List<WebElement> switches = driver.findElements(
-                                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeSwitch' AND visible == true")
+                                AppiumBy.iOSNsPredicateString(switchOrButton + " AND visible == true")
                             );
                             for (WebElement sw : switches) {
                                 int switchY = sw.getLocation().getY();
-                                if (Math.abs(switchY - labelY) < 150) {
-                                    System.out.println("   ✅ Found toggle near 'Required' label (Y diff: " + Math.abs(switchY - labelY) + ")");
+                                if (switchY > coreAttrY && switchY < coreAttrY + 200) {
+                                    System.out.println("   ✅ Found toggle in Core Attributes section (Y=" + switchY + ")");
                                     return sw;
                                 }
                             }
+                            break; // Found section but no toggle
                         }
-                    }
-                } catch (Exception e) {
-                    if (isDriverSessionDead(e)) {
-                        System.out.println("   ❌ Driver session is dead, aborting toggle search");
-                        return null;
+                    } catch (Exception notFound) {
+                        if (isDriverSessionDead(notFound)) {
+                            System.out.println("   ❌ Driver session is dead, aborting toggle search");
+                            return null;
+                        }
+                        System.out.println("   Scrolling to find Core Attributes (attempt " + (i+1) + ")...");
+                        scrollFormDown();
+                        sleep(300);
                     }
                 }
+            } catch (Exception e) {
+                if (isDriverSessionDead(e)) {
+                    System.out.println("   ❌ Driver session is dead, aborting toggle search");
+                    return null;
+                }
+                System.out.println("   Strategy 3 (Core Attributes section): not found");
             }
-        } catch (Exception e) {
-            if (isDriverSessionDead(e)) {
-                System.out.println("   ❌ Driver session is dead, aborting toggle search");
-                return null;
-            }
-            System.out.println("   Strategy 4 (find by nearby label): not found");
         }
 
-        // Strategy 5: Look for toggle in a cell/row containing "Required" text
-        try {
-            List<WebElement> cells = driver.findElements(
-                AppiumBy.iOSNsPredicateString("(type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeOther') AND visible == true")
-            );
-            System.out.println("   Strategy 6: Found " + cells.size() + " cells/rows");
-            for (WebElement cell : cells) {
-                try {
-                    String cellName = cell.getAttribute("name");
-                    String cellLabel = cell.getAttribute("label");
-                    String cellText = (cellName != null ? cellName : "") + (cellLabel != null ? cellLabel : "");
-                    if (cellText.toLowerCase().contains("required")) {
-                        System.out.println("   Found cell with 'required' text: " + cellText.substring(0, Math.min(50, cellText.length())));
-                        try {
-                            WebElement toggle = cell.findElement(AppiumBy.className("XCUIElementTypeSwitch"));
-                            if (toggle != null && toggle.isDisplayed()) {
-                                System.out.println("   ✅ Found toggle in cell containing 'Required'");
-                                return toggle;
-                            }
-                        } catch (Exception e) {
-                            if (isDriverSessionDead(e)) {
-                                System.out.println("   ❌ Driver session is dead, aborting toggle search");
-                                return null;
+        // Strategy 4: Find "Required" label and look for nearby toggle
+        if (System.currentTimeMillis() - searchStart < TOGGLE_SEARCH_MAX_MS) {
+            try {
+                List<WebElement> labels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "(name CONTAINS[c] 'Required' OR label CONTAINS[c] 'Required') " +
+                    "AND type == 'XCUIElementTypeStaticText' AND visible == true"
+                ));
+                for (WebElement label : labels) {
+                    if (System.currentTimeMillis() - searchStart > TOGGLE_SEARCH_MAX_MS) break;
+                    try {
+                        int labelY = label.getLocation().getY();
+                        List<WebElement> switches = driver.findElements(
+                            AppiumBy.iOSNsPredicateString(switchOrButton + " AND visible == true")
+                        );
+                        for (WebElement sw : switches) {
+                            int switchY = sw.getLocation().getY();
+                            if (Math.abs(switchY - labelY) < 150) {
+                                System.out.println("   ✅ Found toggle near 'Required' label (Y diff: " + Math.abs(switchY - labelY) + ")");
+                                return sw;
                             }
                         }
-                    }
-                } catch (Exception e) {
-                    if (isDriverSessionDead(e)) {
-                        System.out.println("   ❌ Driver session is dead, aborting toggle search");
-                        return null;
+                    } catch (Exception e) {
+                        if (isDriverSessionDead(e)) return null;
                     }
                 }
+            } catch (Exception e) {
+                if (isDriverSessionDead(e)) return null;
             }
-        } catch (Exception e) {
-            if (isDriverSessionDead(e)) {
-                System.out.println("   ❌ Driver session is dead, aborting toggle search");
-                return null;
-            }
-            System.out.println("   Strategy 5 (find in cell): error - " + e.getMessage());
         }
 
-        // Strategy 6: Find switch by value attribute (toggle switches typically have value = "0" or "1")
-        try {
-            List<WebElement> switches = driver.findElements(
-                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeSwitch' AND visible == true")
-            );
-            System.out.println("   Strategy 6: Found " + switches.size() + " visible switches");
-            
-            // Log info about each switch to help debug
-            for (int i = 0; i < switches.size(); i++) {
-                WebElement sw = switches.get(i);
-                String name = sw.getAttribute("name");
-                String label = sw.getAttribute("label");
-                String value = sw.getAttribute("value");
-                int y = sw.getLocation().getY();
-                System.out.println("      Switch " + i + ": name=" + name + ", label=" + label + ", value=" + value + ", Y=" + y);
-            }
-            
-            // Try to find the one that's in the top area (typically Required Fields toggle is near top)
-            for (WebElement sw : switches) {
-                int switchY = sw.getLocation().getY();
-                // Required Fields toggle is typically in the upper portion of the screen
-                if (switchY > 100 && switchY < 500) {
-                    System.out.println("   ✅ Found switch in upper screen area (Y=" + switchY + ") - likely Required Fields toggle");
-                    return sw;
+        // Strategy 5: Any visible switch on screen (position-based)
+        if (System.currentTimeMillis() - searchStart < TOGGLE_SEARCH_MAX_MS) {
+            try {
+                List<WebElement> switches = driver.findElements(
+                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeSwitch' AND visible == true")
+                );
+                System.out.println("   Strategy 5: Found " + switches.size() + " visible switches");
+                for (WebElement sw : switches) {
+                    int switchY = sw.getLocation().getY();
+                    if (switchY > 100 && switchY < 500) {
+                        System.out.println("   ✅ Found switch in upper screen area (Y=" + switchY + ")");
+                        return sw;
+                    }
                 }
+                // Fallback: return first visible switch
+                if (!switches.isEmpty()) {
+                    System.out.println("   ⚠️ FALLBACK: Using first visible switch on page");
+                    return switches.get(0);
+                }
+            } catch (Exception e) {
+                if (isDriverSessionDead(e)) return null;
             }
-        } catch (Exception e) {
-            if (isDriverSessionDead(e)) {
-                System.out.println("   ❌ Driver session is dead, aborting toggle search");
-                return null;
-            }
-            System.out.println("   Strategy 6 (find by position): error - " + e.getMessage());
         }
 
-        // Strategy 7 (Fallback): Get first visible switch with detailed logging
-        try {
-            List<WebElement> toggles = driver.findElements(
-                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeSwitch' AND visible == true")
-            );
-            if (toggles.size() > 0) {
-                System.out.println("   ⚠️ FALLBACK: Using first visible switch on page");
-                System.out.println("   Found " + toggles.size() + " visible switches total");
-                WebElement firstSwitch = toggles.get(0);
-                System.out.println("   First switch: name=" + firstSwitch.getAttribute("name") + 
-                    ", label=" + firstSwitch.getAttribute("label") + ", Y=" + firstSwitch.getLocation().getY());
-                return firstSwitch;
-            }
-        } catch (Exception e) {
-            if (isDriverSessionDead(e)) {
-                System.out.println("   ❌ Driver session is dead, aborting toggle search");
-                return null;
-            }
-            System.out.println("   Strategy 7 (fallback first switch): not found");
-        }
-
-        System.out.println("   ❌ Could not find Required Fields toggle after all strategies");
+        long elapsed = System.currentTimeMillis() - searchStart;
+        System.out.println("   ❌ Could not find Required Fields toggle after all strategies (" + elapsed + "ms)");
+        // Cache: mark as exhausted so future calls in this test return instantly
+        toggleSearchExhausted = true;
         return null;
 
         } finally {
