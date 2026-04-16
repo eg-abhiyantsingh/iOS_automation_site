@@ -899,12 +899,15 @@ jobs:
       - name: Prepare Email
         id: email
         env:
-          SMOKE_RESULT: ${{ needs.smoke-tests.result }}
+          # Use the custom smoke_result output (correctly reflects test failures)
+          # NOT needs.smoke-tests.result (always "success" due to continue-on-error)
+          SMOKE_RESULT: ${{ needs.smoke-tests.outputs.smoke_result }}
           BRANCH: ${{ github.ref_name }}
           ACTOR: ${{ github.actor }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          if [ "$SMOKE_RESULT" = "success" ]; then
+          echo "Smoke result from job output: $SMOKE_RESULT"
+          if [ "$SMOKE_RESULT" = "passed" ]; then
             STATUS="PASSED"
             STATUS_ICON="✅"
             COLOR="#28a745"
@@ -952,6 +955,7 @@ jobs:
           EMAILEOF
 
       - name: Send Email
+        id: send_email
         if: github.event.inputs.send_email != 'false'
         uses: dawidd6/action-send-mail@v3
         with:
@@ -967,12 +971,21 @@ jobs:
         continue-on-error: true
 
       - name: Email Summary
+        if: always()
         run: |
           echo "╔════════════════════════════════════════════════════════════╗"
           echo "║    📧  EMAIL REPORT SUMMARY                                ║"
           echo "╠════════════════════════════════════════════════════════════╣"
-          echo "║  Status: ${{ steps.email.outputs.STATUS_ICON }} ${{ steps.email.outputs.STATUS }}"
-          echo "║  Email:  ${{ github.event.inputs.send_email != 'false' && 'Attempted' || 'Skipped (disabled)' }}"
-          echo "║  To:     ${{ secrets.EMAIL_TO != '' && '(EMAIL_TO secret)' || 'abhiyant.singh@egalvanic.com (fallback)' }}"
-          echo "║  Note:   Check Spam/Promotions if not in inbox"
+          echo "║  Test Status: ${{ steps.email.outputs.STATUS_ICON }} ${{ steps.email.outputs.STATUS }}"
+          echo "║  Smoke Result: ${{ needs.smoke-tests.outputs.smoke_result || 'unknown' }}"
+          if [ "${{ steps.send_email.outcome }}" = "success" ]; then
+            echo "║  Email Send:  ✅ Success (check Spam/Promotions if not in inbox)"
+          elif [ "${{ github.event.inputs.send_email }}" = "false" ]; then
+            echo "║  Email Send:  ⏭️  Skipped (disabled by user)"
+          else
+            echo "║  Email Send:  ❌ FAILED — check EMAIL_USERNAME and EMAIL_PASSWORD secrets"
+            echo "║  Note: Gmail requires an App Password (not regular password)"
+            echo "║  Go to: Google Account > Security > 2-Step Verification > App Passwords"
+          fi
+          echo "║  To:     ${{ secrets.EMAIL_TO != '' && '(EMAIL_TO secret configured)' || 'abhiyant.singh@egalvanic.com (fallback — EMAIL_TO secret not set)' }}"
           echo "╚════════════════════════════════════════════════════════════╝"

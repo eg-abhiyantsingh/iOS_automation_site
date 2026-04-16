@@ -172,24 +172,56 @@ for (int scrollAttempt = 1; scrollAttempt <= 3; scrollAttempt++) {
 
 ---
 
-## Email Investigation
+## Bug 4: Email Always Shows "PASSED" + No Delivery Visibility
 
-The CI email step executed successfully (SMTP connection to `smtp.gmail.com:465` was established, subject was set). The email was likely **delivered but filtered**.
+### Root Cause 1: Wrong Status Variable
 
-**Most likely cause:** Gmail's spam filter catches automated emails from GitHub Actions SMTP.
+The email job's Prepare Email step (line 902) used:
+```yaml
+SMOKE_RESULT: ${{ needs.smoke-tests.result }}
+```
 
-**Check:**
-1. Gmail **Spam** folder
-2. Gmail **Promotions** tab
-3. Search for `from:iOS Automation` or `subject:iOS Smoke Tests`
+This is the **job result**, which is always `"success"` because `continue-on-error: true` on the test step (line 550) masks Maven's non-zero exit code. So the email always said `[✅ PASSED]` regardless of actual test results.
 
-**Minor improvement:** Updated the Email Summary step to show whether `EMAIL_TO` secret is configured or using the fallback address, and added a note about checking Spam/Promotions.
+The correct variable is:
+```yaml
+SMOKE_RESULT: ${{ needs.smoke-tests.outputs.smoke_result }}
+```
+
+This comes from `steps.smoke_status` which checks the actual `SMOKE_RESULT` env var set by the dashboard script (which correctly uses `exit 1` on failure).
+
+Also, the comparison was `"success"` but the custom output uses `"passed"`:
+```yaml
+# Before: if [ "$SMOKE_RESULT" = "success" ]; then  ← never matches "passed"
+# After:  if [ "$SMOKE_RESULT" = "passed" ]; then   ← correctly matches
+```
+
+### Root Cause 2: Silent Email Failures
+
+`continue-on-error: true` on the Send Email step masks any SMTP failures. If `EMAIL_PASSWORD` is wrong (e.g., regular Gmail password instead of App Password), the action silently fails and the CI shows green.
+
+### Fix
+
+1. **Correct status variable**: `needs.smoke-tests.outputs.smoke_result` instead of `needs.smoke-tests.result`
+2. **Correct comparison**: `"passed"` instead of `"success"`
+3. **Diagnostic Email Summary**: The Email Summary step now checks `steps.send_email.outcome` and shows:
+   - Whether the send actually succeeded or failed
+   - If failed: instructions to create a Gmail App Password
+   - Whether `EMAIL_TO` secret is configured or using the fallback address
+
+### Gmail App Password Requirement
+
+Gmail SMTP requires an **App Password** (not your regular Gmail password). To set this up:
+1. Go to Google Account > Security > 2-Step Verification (must be enabled)
+2. Go to App Passwords > Generate a new app password
+3. Copy the 16-character password
+4. Set it as `EMAIL_PASSWORD` secret in GitHub repo settings
 
 ### File Changed
 
 | File | Change |
 |------|--------|
-| `.github/workflows/ios-tests-smoke.yml` | Email Summary: shows EMAIL_TO status + spam check note |
+| `.github/workflows/ios-tests-smoke.yml` | Fixed email status variable, added diagnostic summary with App Password instructions |
 
 ---
 
@@ -201,7 +233,7 @@ The CI email step executed successfully (SMTP connection to `smtp.gmail.com:465`
 | `src/test/java/com/egalvanic/tests/Asset_Phase1_Test.java` | BUG_DELETE_01 dialog button timing fix |
 | `src/test/java/com/egalvanic/tests/Connections_Test.java` | TC_CONN_051 full CI hardening |
 | `src/main/java/com/egalvanic/pages/IssuePage.java` | `tapSelectAsset()` keyboard + scroll fix |
-| `.github/workflows/ios-tests-smoke.yml` | Email summary improvement |
+| `.github/workflows/ios-tests-smoke.yml` | Fixed email status (wrong variable) + diagnostic summary |
 
 ---
 
@@ -216,4 +248,5 @@ The CI email step executed successfully (SMTP connection to `smtp.gmail.com:465`
 | TC_ISS_049 | Keyboard blocking asset picker scroll | **FIXED** (keyboard dismiss + 3x scroll) |
 | TC_ISS_050 | Cascade from TC_ISS_049 | **FIXED** (TC_ISS_049 fix resolves) |
 | TC_ISS_076 | Cascade from `tapSelectAsset()` | **FIXED** (same `tapSelectAsset()` fix) |
-| Email | Spam/Promotions filter | **NOTE** — check spam folder |
+| Email Status | Wrong variable (`needs.smoke-tests.result`) | **FIXED** (uses `outputs.smoke_result`) |
+| Email Delivery | Silent failures + possibly wrong credentials | **FIXED** (diagnostic summary) + **ACTION NEEDED** (verify App Password) |
