@@ -57,13 +57,14 @@ on:
           - 'production'
           - 'bces-iq'
       run_full_suite_after:
-        description: 'Run full test suite after smoke tests pass'
+        description: 'Run full parallel suite on this branch after smoke'
         required: false
-        default: 'false'
+        default: 'never'
         type: choice
         options:
-          - 'true'
-          - 'false'
+          - 'never'
+          - 'if_passed'
+          - 'always'
       capture_api:
         description: 'Capture API traffic (experimental)'
         required: false
@@ -198,6 +199,11 @@ jobs:
       - name: Unzip App
         run: |
           unzip -o apps/Z-Platform-QA.zip -d apps/
+          # Rename: zip extracts as "Z-Platform-QA.app" (hyphen) but workflow expects "Z Platform-QA.app" (space)
+          if [ -d "apps/Z-Platform-QA.app" ] && [ ! -d "apps/Z Platform-QA.app" ]; then
+            mv "apps/Z-Platform-QA.app" "apps/Z Platform-QA.app"
+            echo "✅ Renamed Z-Platform-QA.app → Z Platform-QA.app"
+          fi
           ls -la apps/
 
       # ============================================================
@@ -817,36 +823,60 @@ jobs:
   trigger-full-suite:
     needs: smoke-tests
     if: |
-      always() && 
-      needs.smoke-tests.outputs.smoke_result == 'passed' && 
-      github.event.inputs.run_full_suite_after == 'true'
+      always() &&
+      github.event.inputs.run_full_suite_after != 'never' &&
+      (
+        github.event.inputs.run_full_suite_after == 'always' ||
+        (github.event.inputs.run_full_suite_after == 'if_passed' && needs.smoke-tests.outputs.smoke_result == 'passed')
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    
+
     steps:
       - name: Trigger Full Test Suite
         uses: actions/github-script@v7
+        env:
+          SMOKE_RESULT: ${{ needs.smoke-tests.outputs.smoke_result }}
+          TRIGGER_MODE: ${{ github.event.inputs.run_full_suite_after }}
+          SEND_EMAIL: ${{ github.event.inputs.send_email }}
         with:
           script: |
-            console.log('🚀 Smoke tests passed! Triggering full test suite...');
-            
+            const mode = process.env.TRIGGER_MODE;
+            const smokeResult = process.env.SMOKE_RESULT;
+            const sendEmail = process.env.SEND_EMAIL;
+            const branch = context.ref;
+
+            console.log(`Trigger mode: ${mode}`);
+            console.log(`Smoke result: ${smokeResult}`);
+            console.log(`Branch: ${branch}`);
+            console.log(`Send email: ${sendEmail}`);
+
             await github.rest.actions.createWorkflowDispatch({
               owner: context.repo.owner,
               repo: context.repo.repo,
               workflow_id: 'ios-tests-parallel.yml',
-              ref: context.ref,
+              ref: branch,
               inputs: {
-                job_selection: 'all'
+                job_selection: 'all',
+                send_email: sendEmail || 'true'
               }
             });
-            
-            console.log('✅ Full test suite triggered successfully');
+
+            console.log(`Full test suite triggered on branch: ${branch}`);
 
       - name: Summary
+        env:
+          SMOKE_RESULT: ${{ needs.smoke-tests.outputs.smoke_result }}
+          TRIGGER_MODE: ${{ github.event.inputs.run_full_suite_after }}
+          BRANCH: ${{ github.ref_name }}
         run: |
-          echo "╔════════════════════════════════════════════════════════════╗"
-          echo "║    🚀 FULL TEST SUITE TRIGGERED                            ║"
-          echo "╚════════════════════════════════════════════════════════════╝"
+          echo "============================================================"
+          echo "  FULL TEST SUITE TRIGGERED"
+          echo "============================================================"
+          echo "  Branch:       $BRANCH"
+          echo "  Trigger mode: $TRIGGER_MODE"
+          echo "  Smoke result: $SMOKE_RESULT"
+          echo "============================================================"
 
   # ========================================
   # SEND EMAIL WITH RESULTS
@@ -922,7 +952,7 @@ jobs:
           EMAILEOF
 
       - name: Send Email
-        if: github.event.inputs.send_email != 'false' && secrets.EMAIL_USERNAME != ''
+        if: github.event.inputs.send_email != 'false'
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com

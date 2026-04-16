@@ -69,6 +69,14 @@ on:
           - 'sitevisit-phase2'
           - 'sitevisit-phase3'
           - 'rerun-failures'
+      send_email:
+        description: 'Send email with test results'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
 
 jobs:
   # ========================================
@@ -104,6 +112,10 @@ jobs:
       - name: Unzip App
         run: |
           unzip -o apps/Z-Platform-QA.zip -d apps/
+          if [ -d "apps/Z-Platform-QA.app" ] && [ ! -d "apps/Z Platform-QA.app" ]; then
+            mv "apps/Z-Platform-QA.app" "apps/Z Platform-QA.app"
+            echo "✅ Renamed Z-Platform-QA.app → Z Platform-QA.app"
+          fi
           ls -la apps/
 
       - name: Boot Simulator and Wait Until Ready
@@ -323,6 +335,10 @@ jobs:
       - name: Unzip App
         run: |
           unzip -o apps/Z-Platform-QA.zip -d apps/
+          if [ -d "apps/Z-Platform-QA.app" ] && [ ! -d "apps/Z Platform-QA.app" ]; then
+            mv "apps/Z-Platform-QA.app" "apps/Z Platform-QA.app"
+            echo "✅ Renamed Z-Platform-QA.app → Z Platform-QA.app"
+          fi
           ls -la apps/
 
       - name: Boot Simulator and Wait Until Ready
@@ -562,7 +578,12 @@ jobs:
           npm install -g appium@next
           appium driver install xcuitest
       - name: Unzip App
-        run: unzip -o apps/Z-Platform-QA.zip -d apps/
+        run: |
+          unzip -o apps/Z-Platform-QA.zip -d apps/
+          if [ -d "apps/Z-Platform-QA.app" ] && [ ! -d "apps/Z Platform-QA.app" ]; then
+            mv "apps/Z-Platform-QA.app" "apps/Z Platform-QA.app"
+            echo "✅ Renamed Z-Platform-QA.app → Z Platform-QA.app"
+          fi
       - name: Boot Simulator and Wait Until Ready
         run: |
           UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
@@ -686,7 +707,12 @@ jobs:
           npm install -g appium@next
           appium driver install xcuitest
       - name: Unzip App
-        run: unzip -o apps/Z-Platform-QA.zip -d apps/
+        run: |
+          unzip -o apps/Z-Platform-QA.zip -d apps/
+          if [ -d "apps/Z-Platform-QA.app" ] && [ ! -d "apps/Z Platform-QA.app" ]; then
+            mv "apps/Z-Platform-QA.app" "apps/Z Platform-QA.app"
+            echo "✅ Renamed Z-Platform-QA.app → Z Platform-QA.app"
+          fi
       - name: Boot Simulator and Wait Until Ready
         run: |
           UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
@@ -810,7 +836,12 @@ jobs:
           npm install -g appium@next
           appium driver install xcuitest
       - name: Unzip App
-        run: unzip -o apps/Z-Platform-QA.zip -d apps/
+        run: |
+          unzip -o apps/Z-Platform-QA.zip -d apps/
+          if [ -d "apps/Z-Platform-QA.app" ] && [ ! -d "apps/Z Platform-QA.app" ]; then
+            mv "apps/Z-Platform-QA.app" "apps/Z Platform-QA.app"
+            echo "✅ Renamed Z-Platform-QA.app → Z Platform-QA.app"
+          fi
       - name: Boot Simulator and Wait Until Ready
         run: |
           UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
@@ -933,7 +964,12 @@ jobs:
           npm install -g appium@next
           appium driver install xcuitest
       - name: Unzip App
-        run: unzip -o apps/Z-Platform-QA.zip -d apps/
+        run: |
+          unzip -o apps/Z-Platform-QA.zip -d apps/
+          if [ -d "apps/Z-Platform-QA.app" ] && [ ! -d "apps/Z Platform-QA.app" ]; then
+            mv "apps/Z-Platform-QA.app" "apps/Z Platform-QA.app"
+            echo "✅ Renamed Z-Platform-QA.app → Z Platform-QA.app"
+          fi
       - name: Boot Simulator and Wait Until Ready
         run: |
           UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
@@ -1057,7 +1093,12 @@ jobs:
           npm install -g appium@next
           appium driver install xcuitest
       - name: Unzip App
-        run: unzip -o apps/Z-Platform-QA.zip -d apps/
+        run: |
+          unzip -o apps/Z-Platform-QA.zip -d apps/
+          if [ -d "apps/Z-Platform-QA.app" ] && [ ! -d "apps/Z Platform-QA.app" ]; then
+            mv "apps/Z-Platform-QA.app" "apps/Z Platform-QA.app"
+            echo "✅ Renamed Z-Platform-QA.app → Z Platform-QA.app"
+          fi
       - name: Boot Simulator and Wait Until Ready
         run: |
           UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
@@ -1182,7 +1223,12 @@ jobs:
           npm install -g appium@next
           appium driver install xcuitest
       - name: Unzip App
-        run: unzip -o apps/Z-Platform-QA.zip -d apps/
+        run: |
+          unzip -o apps/Z-Platform-QA.zip -d apps/
+          if [ -d "apps/Z-Platform-QA.app" ] && [ ! -d "apps/Z Platform-QA.app" ]; then
+            mv "apps/Z-Platform-QA.app" "apps/Z Platform-QA.app"
+            echo "✅ Renamed Z-Platform-QA.app → Z Platform-QA.app"
+          fi
       - name: Boot Simulator and Wait Until Ready
         run: |
           UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
@@ -1310,7 +1356,12 @@ jobs:
           npm install -g appium@next
           appium driver install xcuitest
       - name: Unzip App
-        run: unzip -o apps/Z-Platform-QA.zip -d apps/
+        run: |
+          unzip -o apps/Z-Platform-QA.zip -d apps/
+          if [ -d "apps/Z-Platform-QA.app" ] && [ ! -d "apps/Z Platform-QA.app" ]; then
+            mv "apps/Z-Platform-QA.app" "apps/Z Platform-QA.app"
+            echo "✅ Renamed Z-Platform-QA.app → Z Platform-QA.app"
+          fi
       - name: Boot Simulator and Wait Until Ready
         run: |
           UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
@@ -1432,7 +1483,12 @@ jobs:
           npm install -g appium@next
           appium driver install xcuitest
       - name: Unzip App
-        run: unzip -o apps/Z-Platform-QA.zip -d apps/
+        run: |
+          unzip -o apps/Z-Platform-QA.zip -d apps/
+          if [ -d "apps/Z-Platform-QA.app" ] && [ ! -d "apps/Z Platform-QA.app" ]; then
+            mv "apps/Z-Platform-QA.app" "apps/Z Platform-QA.app"
+            echo "✅ Renamed Z-Platform-QA.app → Z Platform-QA.app"
+          fi
       - name: Boot Simulator and Wait Until Ready
         run: |
           UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
@@ -1554,7 +1610,12 @@ jobs:
           npm install -g appium@next
           appium driver install xcuitest
       - name: Unzip App
-        run: unzip -o apps/Z-Platform-QA.zip -d apps/
+        run: |
+          unzip -o apps/Z-Platform-QA.zip -d apps/
+          if [ -d "apps/Z-Platform-QA.app" ] && [ ! -d "apps/Z Platform-QA.app" ]; then
+            mv "apps/Z-Platform-QA.app" "apps/Z Platform-QA.app"
+            echo "✅ Renamed Z-Platform-QA.app → Z Platform-QA.app"
+          fi
       - name: Boot Simulator and Wait Until Ready
         run: |
           UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
@@ -1676,7 +1737,12 @@ jobs:
           npm install -g appium@next
           appium driver install xcuitest
       - name: Unzip App
-        run: unzip -o apps/Z-Platform-QA.zip -d apps/
+        run: |
+          unzip -o apps/Z-Platform-QA.zip -d apps/
+          if [ -d "apps/Z-Platform-QA.app" ] && [ ! -d "apps/Z Platform-QA.app" ]; then
+            mv "apps/Z-Platform-QA.app" "apps/Z Platform-QA.app"
+            echo "✅ Renamed Z-Platform-QA.app → Z Platform-QA.app"
+          fi
       - name: Boot Simulator and Wait Until Ready
         run: |
           UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
@@ -1798,7 +1864,12 @@ jobs:
           npm install -g appium@next
           appium driver install xcuitest
       - name: Unzip App
-        run: unzip -o apps/Z-Platform-QA.zip -d apps/
+        run: |
+          unzip -o apps/Z-Platform-QA.zip -d apps/
+          if [ -d "apps/Z-Platform-QA.app" ] && [ ! -d "apps/Z Platform-QA.app" ]; then
+            mv "apps/Z-Platform-QA.app" "apps/Z Platform-QA.app"
+            echo "✅ Renamed Z-Platform-QA.app → Z Platform-QA.app"
+          fi
       - name: Boot Simulator and Wait Until Ready
         run: |
           UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
@@ -1921,7 +1992,12 @@ jobs:
           npm install -g appium@next
           appium driver install xcuitest
       - name: Unzip App
-        run: unzip -o apps/Z-Platform-QA.zip -d apps/
+        run: |
+          unzip -o apps/Z-Platform-QA.zip -d apps/
+          if [ -d "apps/Z-Platform-QA.app" ] && [ ! -d "apps/Z Platform-QA.app" ]; then
+            mv "apps/Z-Platform-QA.app" "apps/Z Platform-QA.app"
+            echo "✅ Renamed Z-Platform-QA.app → Z Platform-QA.app"
+          fi
       - name: Boot Simulator and Wait Until Ready
         run: |
           UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
@@ -2067,6 +2143,11 @@ jobs:
           echo "📥 Downloading from s3://${S3_BUCKET}/${S3_KEY}"
           aws s3 cp "s3://${S3_BUCKET}/${S3_KEY}" apps/app.zip
           cd apps && unzip -q app.zip && rm app.zip
+          cd ..
+          if [ -d "apps/Z-Platform-QA.app" ] && [ ! -d "apps/Z Platform-QA.app" ]; then
+            mv "apps/Z-Platform-QA.app" "apps/Z Platform-QA.app"
+            echo "✅ Renamed Z-Platform-QA.app → Z Platform-QA.app"
+          fi
           echo "✅ App downloaded for env: ${TARGET_ENV}"
       - name: Boot Simulator
         run: |
@@ -2211,6 +2292,10 @@ jobs:
       - name: Unzip App
         run: |
           unzip -o apps/Z-Platform-QA.zip -d apps/
+          if [ -d "apps/Z-Platform-QA.app" ] && [ ! -d "apps/Z Platform-QA.app" ]; then
+            mv "apps/Z-Platform-QA.app" "apps/Z Platform-QA.app"
+            echo "✅ Renamed Z-Platform-QA.app → Z Platform-QA.app"
+          fi
           ls -la apps/
 
       - name: Boot Simulator and Wait Until Ready
@@ -2423,7 +2508,12 @@ jobs:
           npm install -g appium@next
           appium driver install xcuitest
       - name: Unzip App
-        run: unzip -o apps/Z-Platform-QA.zip -d apps/
+        run: |
+          unzip -o apps/Z-Platform-QA.zip -d apps/
+          if [ -d "apps/Z-Platform-QA.app" ] && [ ! -d "apps/Z Platform-QA.app" ]; then
+            mv "apps/Z-Platform-QA.app" "apps/Z Platform-QA.app"
+            echo "✅ Renamed Z-Platform-QA.app → Z Platform-QA.app"
+          fi
       - name: Boot Simulator and Wait Until Ready
         run: |
           UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
@@ -2870,7 +2960,7 @@ jobs:
           fi
 
       - name: Send Email
-        if: ${{ secrets.EMAIL_USERNAME != '' }}
+        if: github.event.inputs.send_email != 'false'
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
