@@ -2917,49 +2917,82 @@ jobs:
             fi
             echo "STATUS=$STATUS" >> $GITHUB_OUTPUT
 
+            # Helper function: convert job result to colored HTML badge
+            badge() {
+              local result="$1"
+              case "$result" in
+                success)   echo '<span style="background:#28a745;color:white;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:bold;">✅ PASSED</span>' ;;
+                failure)   echo '<span style="background:#dc3545;color:white;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:bold;">❌ FAILED</span>' ;;
+                cancelled) echo '<span style="background:#e67e22;color:white;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:bold;">⏱️ TIMEOUT</span>' ;;
+                skipped)   echo '<span style="background:#6c757d;color:white;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:bold;">⏭️ SKIPPED</span>' ;;
+                *)         echo '<span style="background:#6c757d;color:white;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:bold;">❓ UNKNOWN</span>' ;;
+              esac
+            }
+
+            if [ $SUCCESS -eq 15 ]; then
+              HEADER_COLOR="#28a745"
+            elif [ $SUCCESS -ge 13 ]; then
+              HEADER_COLOR="#e67e22"
+            else
+              HEADER_COLOR="#dc3545"
+            fi
+
             cat > email_body.html << EOF
             <!DOCTYPE html>
             <html>
-            <body style="font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto;">
-              <h1 style="color: #333;">🧪 iOS Full Parallel Suite Results</h1>
-              <p><b>Branch:</b> ${{ github.ref_name }}</p>
-              <p><b>Commit:</b> ${{ github.sha }}</p>
-              <p><b>Triggered by:</b> ${{ github.actor }}</p>
-              <p><b>Run:</b> <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Full Details</a></p>
-              <hr>
+            <body style="font-family: 'Segoe UI', Arial, sans-serif; padding: 0; margin: 0; background: #f5f5f5;">
+              <div style="background: linear-gradient(135deg, ${HEADER_COLOR} 0%, #333 100%); color: white; padding: 25px; text-align: center;">
+                <h1 style="margin: 0; font-size: 22px;">iOS Full Parallel Suite Results</h1>
+                <p style="margin: 8px 0 0; opacity: 0.9; font-size: 14px;">${STATUS} — ${SUCCESS}/15 Jobs Passed</p>
+              </div>
 
-              <h2>Results: ${SUCCESS}/15 Jobs Passed — ${STATUS}</h2>
+              <div style="max-width: 800px; margin: 20px auto; padding: 0 20px;">
+                <table style="width: 100%; margin-bottom: 15px; font-size: 13px;">
+                  <tr><td><b>Branch:</b> ${{ github.ref_name }}</td><td><b>Triggered by:</b> ${{ github.actor }}</td></tr>
+                  <tr><td><b>Commit:</b> ${{ github.sha }}</td><td><b>Run:</b> <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Details</a></td></tr>
+                </table>
 
-              <table border="1" cellpadding="10" style="border-collapse: collapse; width: 100%;">
-                <tr style="background-color: #4a90d9; color: white;">
-                  <th>Job</th><th>Tests</th><th>Coverage</th><th>Status</th>
-                </tr>
-                <tr><td>Auth Tests</td><td>38</td><td>Authentication & Login</td><td>${AUTH}</td></tr>
-                <tr><td>Site Tests</td><td>52</td><td>Site Selection</td><td>${SITE}</td></tr>
-                <tr><td>Asset Part 1</td><td>100</td><td>Creation + Edit + Busway + Capacitor + Bug Regression</td><td>${AP1}</td></tr>
-                <tr><td>Asset Part 2</td><td>120</td><td>CB + DS + Fuse + Generator + Junction Box + Bug Tests (from P1)</td><td>${AP2}</td></tr>
-                <tr><td>Asset Part 3</td><td>97</td><td>Load Center + MCC + MCC Bucket + Motor + Other</td><td>${AP3}</td></tr>
-                <tr><td>Asset Part 4</td><td>109</td><td>OCP + Panelboard + PDU + Relay + SWB + Transformer + Other (from P3)</td><td>${AP4}</td></tr>
-                <tr><td>Asset Part 5</td><td>100</td><td>UPS + Utility + VFD + Subtypes (ATS, Busway, Cap, CB, Def, DS)</td><td>${AP5}</td></tr>
-                <tr><td>Asset Part 6</td><td>126</td><td>Subtypes + Tasks + Issues + Connections + Screen + DS/Fuse (from P5)</td><td>${AP6}</td></tr>
-                <tr><td>Issues Phase 1</td><td>103</td><td>List + Filter + Search + Creation + Class Change</td><td>${ISS1}</td></tr>
-                <tr><td>Issues Phase 2</td><td>50</td><td>Thermal + Severity + Temperature + Ultrasonic</td><td>${ISS2}</td></tr>
-                <tr><td>Issues Phase 3</td><td>84</td><td>Ultrasonic Save + Swipe Delete + Sort + Status + CRUD + NFPA + OSHA</td><td>${ISS3}</td></tr>
-                <tr><td>Location</td><td>82</td><td>Location Hierarchy</td><td>${LOC}</td></tr>
-                <tr><td>Connections</td><td>94</td><td>Asset Connections</td><td>${CONN}</td></tr>
-                <tr><td>Offline</td><td>35</td><td>Offline Mode</td><td>${OFFL}</td></tr>
-                <tr><td>Site Visit</td><td>—</td><td>Work Orders / Photo Walkthrough / Files</td><td>${SVISIT}</td></tr>
-              </table>
+                <table border="1" cellpadding="8" style="border-collapse: collapse; width: 100%; background: white; font-size: 13px;">
+                  <tr style="background-color: #4a90d9; color: white;">
+                    <th style="text-align:left;">Job</th><th>Tests</th><th style="text-align:left;">Coverage</th><th>Status</th>
+                  </tr>
+                  <tr><td>Auth Tests</td><td align="center">38</td><td>Authentication & Login</td><td align="center">$(badge "$AUTH")</td></tr>
+                  <tr><td>Site Tests</td><td align="center">52</td><td>Site Selection</td><td align="center">$(badge "$SITE")</td></tr>
+                  <tr style="background:#f8f9fa;"><td colspan="4" style="padding:4px 8px;font-weight:bold;color:#555;">Asset Tests (652 tests, 6 parts)</td></tr>
+                  <tr><td>Asset Part 1</td><td align="center">100</td><td>Creation + Edit + Busway + Capacitor + Bug Regression</td><td align="center">$(badge "$AP1")</td></tr>
+                  <tr><td>Asset Part 2</td><td align="center">120</td><td>CB + DS + Fuse + Generator + Junction Box + Bugs</td><td align="center">$(badge "$AP2")</td></tr>
+                  <tr><td>Asset Part 3</td><td align="center">97</td><td>Load Center + MCC + MCC Bucket + Motor + Other</td><td align="center">$(badge "$AP3")</td></tr>
+                  <tr><td>Asset Part 4</td><td align="center">109</td><td>OCP + Panelboard + PDU + Relay + SWB + Transformer</td><td align="center">$(badge "$AP4")</td></tr>
+                  <tr><td>Asset Part 5</td><td align="center">100</td><td>UPS + Utility + VFD + Subtypes</td><td align="center">$(badge "$AP5")</td></tr>
+                  <tr><td>Asset Part 6</td><td align="center">126</td><td>Subtypes + Tasks + Issues + Connections + Screen</td><td align="center">$(badge "$AP6")</td></tr>
+                  <tr style="background:#f8f9fa;"><td colspan="4" style="padding:4px 8px;font-weight:bold;color:#555;">Issues Tests (237 tests, 3 phases)</td></tr>
+                  <tr><td>Issues Phase 1</td><td align="center">103</td><td>List + Filter + Search + Creation + Class Change</td><td align="center">$(badge "$ISS1")</td></tr>
+                  <tr><td>Issues Phase 2</td><td align="center">50</td><td>Thermal + Severity + Temperature + Ultrasonic</td><td align="center">$(badge "$ISS2")</td></tr>
+                  <tr><td>Issues Phase 3</td><td align="center">84</td><td>Ultrasonic Save + Swipe Delete + Sort + CRUD + NFPA + OSHA</td><td align="center">$(badge "$ISS3")</td></tr>
+                  <tr style="background:#f8f9fa;"><td colspan="4" style="padding:4px 8px;font-weight:bold;color:#555;">Other Modules</td></tr>
+                  <tr><td>Location</td><td align="center">82</td><td>Location Hierarchy</td><td align="center">$(badge "$LOC")</td></tr>
+                  <tr><td>Connections</td><td align="center">94</td><td>Asset Connections</td><td align="center">$(badge "$CONN")</td></tr>
+                  <tr><td>Offline</td><td align="center">35</td><td>Offline Mode</td><td align="center">$(badge "$OFFL")</td></tr>
+                  <tr><td>Site Visit</td><td align="center">—</td><td>Work Orders / Photo Walkthrough / Files</td><td align="center">$(badge "$SVISIT")</td></tr>
+                </table>
 
-              <hr>
-              <p><b>Total Tests:</b> ~1190 (652 asset + 103 issues-p1 + 50 issues-p2 + 84 issues-p3 + 38 auth + 52 site + 82 location + 94 connections + 35 offline)</p>
-              <p><b>Jobs Passed:</b> ${SUCCESS} | <b>Failed:</b> ${FAILED}</p>
+                <div style="margin-top: 15px; padding: 12px; background: white; border-radius: 6px; font-size: 13px;">
+                  <b>Total Tests:</b> ~1190 | <b>Passed Jobs:</b> ${SUCCESS} | <b>Failed:</b> ${FAILED}
+                  <br><span style="color:#e67e22;">⏱️ TIMEOUT</span> = Job exceeded time limit — tests that ran before timeout are still valid
+                  <br><b>Client Reports Attached:</b> ${REPORT_COUNT:-0}
+                </div>
+
+                <p style="margin-top: 15px; color: #999; font-size: 11px; text-align: center;">
+                  eGalvanic iOS Automation Suite | Asset tests (652) in 6 parts, Issues (237) in 3 phases
+                </p>
+              </div>
             </body>
             </html>
           EOF
           fi
 
       - name: Send Email
+        id: send_email
         if: github.event.inputs.send_email != 'false'
         uses: dawidd6/action-send-mail@v3
         with:
@@ -2974,6 +3007,31 @@ jobs:
           from: "iOS Automation <${{ secrets.EMAIL_USERNAME }}>"
           attachments: ${{ steps.reports.outputs.ATTACHMENT_LIST }}
         continue-on-error: true
+
+      - name: Email Summary
+        if: always()
+        run: |
+          echo "╔════════════════════════════════════════════════════════════╗"
+          echo "║    📧  EMAIL REPORT SUMMARY                                ║"
+          echo "╠════════════════════════════════════════════════════════════╣"
+          echo "║  Suite Result: ${{ steps.email.outputs.STATUS }}"
+          echo "║  Jobs: ${{ steps.email.outputs.SUCCESS }}/${{ steps.email.outputs.TOTAL }} Passed"
+          echo "║  Client Reports Attached: ${{ steps.reports.outputs.REPORT_COUNT || '0' }}"
+          if [ "${{ steps.send_email.outcome }}" = "success" ]; then
+            echo "║  Email Send:  ✅ SUCCESS (check Spam/Promotions if not in inbox)"
+          elif [ "${{ github.event.inputs.send_email }}" = "false" ]; then
+            echo "║  Email Send:  ⏭️  Skipped (disabled by user)"
+          else
+            echo "║  Email Send:  ❌ FAILED"
+            echo "║"
+            echo "║  TROUBLESHOOTING:"
+            echo "║  1. EMAIL_USERNAME must be a Gmail address"
+            echo "║  2. EMAIL_PASSWORD must be a Gmail App Password (NOT regular password)"
+            echo "║     → Google Account > Security > 2-Step Verification > App Passwords"
+            echo "║  3. EMAIL_TO should be set (falls back to abhiyant.singh@egalvanic.com)"
+          fi
+          echo "║  To:     ${{ secrets.EMAIL_TO != '' && '(EMAIL_TO secret configured)' || 'abhiyant.singh@egalvanic.com (fallback)' }}"
+          echo "╚════════════════════════════════════════════════════════════╝"
 
       - name: Summary
         run: |
