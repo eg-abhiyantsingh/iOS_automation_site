@@ -1057,6 +1057,7 @@ jobs:
           EOF
 
       - name: Send Email
+        id: send_email
         if: github.event.inputs.send_email != 'false'
         uses: dawidd6/action-send-mail@v3
         with:
@@ -1067,7 +1068,7 @@ jobs:
           password: ${{ secrets.EMAIL_PASSWORD }}
           subject: "iOS Quick Verification - ${{ steps.email.outputs.SUCCESS }}/7 Passed"
           html_body: file://email_body.html
-          to: ${{ secrets.EMAIL_TO }}
+          to: ${{ secrets.EMAIL_TO || 'abhiyant.singh@egalvanic.com' }}
           from: "iOS Automation <${{ secrets.EMAIL_USERNAME }}>"
         continue-on-error: true
 
@@ -1079,3 +1080,22 @@ jobs:
           echo "Passed: ${{ steps.email.outputs.SUCCESS }}/7"
           echo "Failed: ${{ steps.email.outputs.FAILED }}/7"
           echo "========================================"
+
+      - name: Email Summary
+        if: always()
+        run: |
+          echo "╔════════════════════════════════════════════════════════════╗"
+          echo "║    📧  EMAIL REPORT SUMMARY                                ║"
+          echo "╠════════════════════════════════════════════════════════════╣"
+          echo "║  Results: ${{ steps.email.outputs.SUCCESS }}/7 Passed"
+          if [ "${{ steps.send_email.outcome }}" = "success" ]; then
+            echo "║  Email Send:  ✅ Success (check Spam/Promotions if not in inbox)"
+          elif [ "${{ github.event.inputs.send_email }}" = "false" ]; then
+            echo "║  Email Send:  ⏭️  Skipped (disabled by user)"
+          else
+            echo "║  Email Send:  ❌ FAILED — check EMAIL_USERNAME and EMAIL_PASSWORD secrets"
+            echo "║  Note: Gmail requires an App Password (not regular password)"
+            echo "║  Go to: Google Account > Security > 2-Step Verification > App Passwords"
+          fi
+          echo "║  To:     ${{ secrets.EMAIL_TO != '' && '(EMAIL_TO secret configured)' || 'abhiyant.singh@egalvanic.com (fallback — EMAIL_TO secret not set)' }}"
+          echo "╚════════════════════════════════════════════════════════════╝"
