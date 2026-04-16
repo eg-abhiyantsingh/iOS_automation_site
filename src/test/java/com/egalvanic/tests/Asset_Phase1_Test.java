@@ -5317,16 +5317,21 @@ public class Asset_Phase1_Test extends BaseTest {
 
         logStep("Step 2: Find first asset cell and swipe LEFT to reveal delete");
         IOSDriver driver = DriverManager.getDriver();
+        int screenHeight = driver.manage().window().getSize().getHeight();
 
-        // Find the first asset cell in the list
+        // Find the first asset cell in the list (no visible == true — CI elements may be off-screen)
         WebElement firstCell = null;
         try {
-            // Try to find a cell/button in the asset list area
             java.util.List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"));
-            if (!cells.isEmpty()) {
-                firstCell = cells.get(0);
-                logStep("Found " + cells.size() + " cells, using first cell");
+                "type == 'XCUIElementTypeCell'"));
+            // Pick the first cell in the asset list area (below nav bar, above tab bar)
+            for (WebElement cell : cells) {
+                int y = cell.getLocation().getY();
+                if (y > 120 && y < screenHeight * 0.85) {
+                    firstCell = cell;
+                    logStep("Found cell at y=" + y + " (total cells: " + cells.size() + ")");
+                    break;
+                }
             }
         } catch (Exception e) {
             logStep("No cells found, trying buttons...");
@@ -5336,10 +5341,10 @@ public class Asset_Phase1_Test extends BaseTest {
         if (firstCell == null) {
             try {
                 java.util.List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND visible == true AND label CONTAINS ','"));
+                    "type == 'XCUIElementTypeButton' AND label CONTAINS ','"));
                 for (WebElement btn : buttons) {
                     int y = btn.getLocation().getY();
-                    if (y > 200 && y < 800) { // Asset list area
+                    if (y > 120 && y < screenHeight * 0.85) {
                         firstCell = btn;
                         logStep("Using asset button: '" + btn.getAttribute("label") + "'");
                         break;
@@ -5369,24 +5374,43 @@ public class Asset_Phase1_Test extends BaseTest {
         int cellH = firstCell.getSize().getHeight();
         int centerY = cellY + (cellH / 2);
         int startX = cellX + cellW - 20;  // Right edge of cell
-        int endX = cellX + 50;            // Left side of cell
+        int endX = cellX + 20;            // Left side of cell (swipe further for reliability)
 
         logStep("Swiping left on cell: startX=" + startX + " endX=" + endX + " Y=" + centerY);
 
-        // Use W3C Actions for precise swipe
-        org.openqa.selenium.interactions.PointerInput finger = 
-            new org.openqa.selenium.interactions.PointerInput(
-                org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
-        org.openqa.selenium.interactions.Sequence swipe = 
-            new org.openqa.selenium.interactions.Sequence(finger, 1);
-        swipe.addAction(finger.createPointerMove(java.time.Duration.ZERO, 
-            org.openqa.selenium.interactions.PointerInput.Origin.viewport(), startX, centerY));
-        swipe.addAction(finger.createPointerDown(org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
-        swipe.addAction(finger.createPointerMove(java.time.Duration.ofMillis(300), 
-            org.openqa.selenium.interactions.PointerInput.Origin.viewport(), endX, centerY));
-        swipe.addAction(finger.createPointerUp(org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
-        driver.perform(java.util.Arrays.asList(swipe));
-        sleep(500);
+        // Primary: mobile: dragFromToForDuration (native XCUITest gesture, most reliable on CI)
+        boolean swipePerformed = false;
+        try {
+            java.util.Map<String, Object> dragParams = new java.util.HashMap<>();
+            dragParams.put("fromX", startX);
+            dragParams.put("fromY", centerY);
+            dragParams.put("toX", endX);
+            dragParams.put("toY", centerY);
+            dragParams.put("duration", 0.3);
+            driver.executeScript("mobile: dragFromToForDuration", dragParams);
+            swipePerformed = true;
+            logStep("Swipe performed (mobile: dragFromToForDuration)");
+        } catch (Exception dragEx) {
+            logStep("dragFromToForDuration failed, trying W3C Actions: " + dragEx.getMessage());
+        }
+
+        // Fallback: W3C PointerInput with fast 150ms movement (not 300ms — faster triggers delete)
+        if (!swipePerformed) {
+            org.openqa.selenium.interactions.PointerInput finger =
+                new org.openqa.selenium.interactions.PointerInput(
+                    org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
+            org.openqa.selenium.interactions.Sequence swipe =
+                new org.openqa.selenium.interactions.Sequence(finger, 0);
+            swipe.addAction(finger.createPointerMove(java.time.Duration.ZERO,
+                org.openqa.selenium.interactions.PointerInput.Origin.viewport(), startX, centerY));
+            swipe.addAction(finger.createPointerDown(org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+            swipe.addAction(finger.createPointerMove(java.time.Duration.ofMillis(150),
+                org.openqa.selenium.interactions.PointerInput.Origin.viewport(), endX, centerY));
+            swipe.addAction(finger.createPointerUp(org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+            driver.perform(java.util.Arrays.asList(swipe));
+            logStep("Swipe performed (W3C PointerInput, 150ms)");
+        }
+        sleep(800); // Wait for iOS swipe animation to fully reveal action buttons
 
         logStepWithScreenshot("Swiped left — trash icon should be visible");
 
@@ -5396,7 +5420,7 @@ public class Asset_Phase1_Test extends BaseTest {
         // Strategy 1: Find Delete button that appeared after swipe
         try {
             WebElement trashBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(label == 'Delete' OR label == 'trash' OR label == 'Trash') AND type == 'XCUIElementTypeButton' AND visible == true"));
+                "(label == 'Delete' OR label == 'trash' OR label == 'Trash') AND type == 'XCUIElementTypeButton'"));
             trashBtn.click();
             trashTapped = true;
             logStep("Tapped Delete/Trash button");
@@ -5408,30 +5432,26 @@ public class Asset_Phase1_Test extends BaseTest {
         if (!trashTapped) {
             try {
                 WebElement swipeAction = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND visible == true AND label CONTAINS 'Delete'"));
+                    "type == 'XCUIElementTypeButton' AND label CONTAINS 'Delete'"));
                 swipeAction.click();
                 trashTapped = true;
                 logStep("Tapped swipe action Delete button");
             } catch (Exception e2) {
-                logStep("Swipe action not found, trying by image/accessibility...");
+                logStep("Swipe action not found, trying coordinate tap...");
             }
         }
 
-        // Strategy 3: Tap the red area directly (right side of swiped cell)
+        // Strategy 3: Tap the red area directly — after swipe-left, delete appears at screen right edge
         if (!trashTapped) {
             try {
-                // The red trash area appears at the right edge after swipe
-                int trashX = cellX + cellW - 40;
+                int screenWidth = driver.manage().window().getSize().getWidth();
+                int trashX = screenWidth - 40; // Delete button is at the far right edge
                 int trashY = centerY;
                 logStep("Tapping red trash area at coordinates: (" + trashX + ", " + trashY + ")");
-                new org.openqa.selenium.interactions.Sequence(finger, 1);
-                org.openqa.selenium.interactions.Sequence tap = 
-                    new org.openqa.selenium.interactions.Sequence(finger, 1);
-                tap.addAction(finger.createPointerMove(java.time.Duration.ZERO,
-                    org.openqa.selenium.interactions.PointerInput.Origin.viewport(), trashX, trashY));
-                tap.addAction(finger.createPointerDown(org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
-                tap.addAction(finger.createPointerUp(org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
-                driver.perform(java.util.Arrays.asList(tap));
+                java.util.Map<String, Object> tapArgs = new java.util.HashMap<>();
+                tapArgs.put("x", trashX);
+                tapArgs.put("y", trashY);
+                driver.executeScript("mobile: tap", tapArgs);
                 trashTapped = true;
                 logStep("Tapped trash area by coordinates");
             } catch (Exception e3) {
@@ -5440,19 +5460,18 @@ public class Asset_Phase1_Test extends BaseTest {
         }
 
         assertTrue(trashTapped, "Should be able to tap the delete/trash icon after swipe");
-        sleep(500);
+        sleep(800);
 
         logStep("Step 4: Verify 'Delete Asset' confirmation dialog appears");
         logStepWithScreenshot("Checking for confirmation dialog");
 
         // Check for the alert/dialog
         boolean dialogFound = false;
-        WebElement alertDialog = null;
 
         // Strategy 1: Find by XCUIElementTypeAlert
         try {
-            alertDialog = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeAlert' AND visible == true"));
+            driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeAlert'"));
             dialogFound = true;
             logStep("✅ Confirmation dialog found (XCUIElementTypeAlert)");
         } catch (Exception e1) {}
@@ -5460,11 +5479,21 @@ public class Asset_Phase1_Test extends BaseTest {
         // Strategy 2: Find by "Delete Asset" text
         if (!dialogFound) {
             try {
-                WebElement deleteTitle = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "label == 'Delete Asset' AND type == 'XCUIElementTypeStaticText' AND visible == true"));
+                driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "label == 'Delete Asset' AND type == 'XCUIElementTypeStaticText'"));
                 dialogFound = true;
                 logStep("✅ Confirmation dialog found ('Delete Asset' title)");
             } catch (Exception e2) {}
+        }
+
+        // Strategy 3: Find by confirmation message text
+        if (!dialogFound) {
+            try {
+                driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "label CONTAINS 'cannot be undone' OR label CONTAINS 'Are you sure'"));
+                dialogFound = true;
+                logStep("✅ Confirmation dialog found (confirmation text)");
+            } catch (Exception e3) {}
         }
 
         assertTrue(dialogFound, "Delete Asset confirmation dialog should appear after tapping trash icon");
@@ -5474,8 +5503,8 @@ public class Asset_Phase1_Test extends BaseTest {
         // Check Cancel button
         boolean cancelFound = false;
         try {
-            WebElement cancelBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label == 'Cancel' AND type == 'XCUIElementTypeButton' AND visible == true"));
+            driver.findElement(AppiumBy.iOSNsPredicateString(
+                "label == 'Cancel' AND type == 'XCUIElementTypeButton'"));
             cancelFound = true;
             logStep("✅ Cancel button found");
         } catch (Exception e) {}
@@ -5484,8 +5513,8 @@ public class Asset_Phase1_Test extends BaseTest {
         // Check Delete button
         boolean deleteFound = false;
         try {
-            WebElement deleteBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label == 'Delete' AND type == 'XCUIElementTypeButton' AND visible == true"));
+            driver.findElement(AppiumBy.iOSNsPredicateString(
+                "label == 'Delete' AND type == 'XCUIElementTypeButton'"));
             deleteFound = true;
             logStep("✅ Delete button found");
         } catch (Exception e) {}
@@ -5494,9 +5523,9 @@ public class Asset_Phase1_Test extends BaseTest {
         logStep("Step 6: Tap Delete — confirm deletion");
         try {
             WebElement deleteBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label == 'Delete' AND type == 'XCUIElementTypeButton' AND visible == true"));
+                "label == 'Delete' AND type == 'XCUIElementTypeButton'"));
             deleteBtn.click();
-            sleep(1000);
+            sleep(1500); // Wait for deletion + list refresh on CI
             logStep("✅ Tapped Delete — asset deletion confirmed");
         } catch (Exception e) {
             logWarning("Could not tap Delete: " + e.getMessage());
@@ -5506,15 +5535,12 @@ public class Asset_Phase1_Test extends BaseTest {
         logStepWithScreenshot("After tapping Delete");
 
         logStep("Step 7: Verify asset is removed from the list");
-        // Check that the deleted asset is no longer visible
         boolean assetStillPresent = false;
         if (firstAssetLabel != null && !firstAssetLabel.isEmpty()) {
             try {
-                // Small wait for list to refresh
-                sleep(500);
                 java.util.List<WebElement> remainingCells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeCell' AND visible == true AND label == \'" + 
-                    firstAssetLabel.replace("'", "\\'") + "\'")); 
+                    "type == 'XCUIElementTypeCell' AND label == '" +
+                    firstAssetLabel.replace("'", "\\'") + "'"));
                 if (remainingCells.isEmpty()) {
                     logStep("✅ Asset '" + firstAssetLabel + "' is no longer in the list");
                 } else {
@@ -5522,17 +5548,16 @@ public class Asset_Phase1_Test extends BaseTest {
                     logWarning("❌ Asset '" + firstAssetLabel + "' still appears in the list!");
                 }
             } catch (Exception e) {
-                // Element not found = asset is gone = good
                 logStep("✅ Asset no longer found in list (confirmed deleted)");
             }
         } else {
             logStep("No asset label captured — skipping name-based verification");
         }
 
-        // Also verify by checking the total count decreased or first cell changed
+        // Also verify by checking first cell changed
         try {
             java.util.List<WebElement> currentCells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"));
+                "type == 'XCUIElementTypeCell'"));
             logStep("Remaining cells in list: " + currentCells.size());
             if (!currentCells.isEmpty()) {
                 String newFirstLabel = currentCells.get(0).getAttribute("label");
