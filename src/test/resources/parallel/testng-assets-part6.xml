@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<suite time-out="420000" name="Asset Tests - Part 6 of 6 (114 tests)" verbose="0">
+<suite time-out="420000" name="Asset Tests - Part 6 of 6 (126 tests)" verbose="0">
     <!--
     ============================================================
-    ASSET PART 6 — 114 tests
+    ASSET PART 6 — 126 tests
     ============================================================
+    Native (114 tests):
+
     ASSET SUBTYPES PER TYPE (38 tests):
       - GEN       (4 tests) — Generator core attributes with subtypes
       - JB_AST    (1 test)  — Junction Box subtype = None
@@ -33,6 +35,9 @@
                                search, select, count, clear, cancel
       - AS       (11 tests) — Asset Screen: search by name/type/location, grouping,
                                card details, scroll behavior
+
+    Moved from Part 5 (12 tests):
+      - TC_DS_ST_16 + TC_FUSE_ST_01-11: DS/Fuse subtype tests
     ============================================================
     -->
 
@@ -40,9 +45,32 @@
         <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
     </listeners>
 
+    <!-- Native Part 6 tests (114 tests) — all methods -->
     <test name="Asset Phase 6 - Subtypes, Tasks, Issues, Connections, Asset Screen">
         <classes>
             <class name="com.egalvanic.tests.Asset_Phase6_Test"/>
+        </classes>
+    </test>
+
+    <!-- Moved from Part 5: 12 DS/Fuse subtype tests -->
+    <test name="Asset Phase 6 - DS/Fuse Subtype Tests (from P5)">
+        <classes>
+            <class name="com.egalvanic.tests.Asset_Phase5_Test">
+                <methods>
+                    <include name="TC_DS_ST_16_verifySubtypeDoesNotAffectOtherFields"/>
+                    <include name="TC_FUSE_ST_01_verifyAssetSubtypeFieldVisibility"/>
+                    <include name="TC_FUSE_ST_02_verifyDefaultAssetSubtypeValue"/>
+                    <include name="TC_FUSE_ST_03_verifyAssetSubtypeDropdownOptions"/>
+                    <include name="TC_FUSE_ST_04_selectFuse1000VOrLess"/>
+                    <include name="TC_FUSE_ST_05_selectFuseOver1000V"/>
+                    <include name="TC_FUSE_ST_06_switchBetweenFuseSubtypes"/>
+                    <include name="TC_FUSE_ST_07_saveFuseAssetWithSubtypeSelected"/>
+                    <include name="TC_FUSE_ST_08_verifySubtypePersistenceAfterSave"/>
+                    <include name="TC_FUSE_ST_09_saveFuseAssetWithSubtypeNone"/>
+                    <include name="TC_FUSE_ST_10_verifyCancelBehaviorAfterSubtypeChange"/>
+                    <include name="TC_FUSE_ST_11_verifySubtypeDoesNotAffectOtherFields"/>
+                </methods>
+            </class>
         </classes>
     </test>
 

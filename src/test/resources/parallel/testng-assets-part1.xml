@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<suite time-out="420000" name="Asset Tests - Part 1 of 6 (112 tests)" verbose="0">
+<suite time-out="420000" name="Asset Tests - Part 1 of 6 (100 tests)" verbose="0">
     <!--
     ============================================================
-    ASSET PART 1 — 112 tests
+    ASSET PART 1 — 100 tests
     ============================================================
       - ATS_ECR  (19 tests) — Asset Creation: new asset screen, name validation,
                                location, asset class, subtype, QR code, save/cancel
@@ -11,9 +11,11 @@
                                toggle, completion %, save with partial/all fields
       - BUS_EAD   (4 tests) — Busway: no core attributes, save without them
       - CAP_EAD  (26 tests) — Capacitor: all 24 core attribute fields + save/cancel
-      - BUG_*    (44 tests) — Bug regression: duplicates, special chars, max length,
-                               class change, search edge cases, UI race conditions,
-                               validation, empty/required fields, navigation
+      - BUG_*    (32 tests) — Bug regression (12 moved to Part 2)
+
+    MOVED TO PART 2 (12 tests — tail-end BUG_* regression tests):
+      BUG_PERSIST_01, BUG_EDIT_01, BUG_CASE_01, BUG_SEARCH_04-05,
+      BUG_SPECIAL_01-02, BUG_LIMIT_01-02, BUG_DELETE_01, BUG_NAV_01-02
     ============================================================
     -->
 
@@ -23,7 +25,23 @@
 
     <test name="Asset Phase 1 - Creation, Edit Details, Busway, Capacitor, Bug Regression">
         <classes>
-            <class name="com.egalvanic.tests.Asset_Phase1_Test"/>
+            <class name="com.egalvanic.tests.Asset_Phase1_Test">
+                <methods>
+                    <!-- Exclude 12 BUG_* tests — moved to Part 2 for load balancing -->
+                    <exclude name="BUG_PERSIST_01_editedDataShouldPersist"/>
+                    <exclude name="BUG_EDIT_01_clearRequiredFieldShouldBlockSave"/>
+                    <exclude name="BUG_CASE_01_coreAttributesLabelsCapitalization"/>
+                    <exclude name="BUG_SEARCH_04_searchCaseInsensitivity"/>
+                    <exclude name="BUG_SEARCH_05_partialSearchFunctionality"/>
+                    <exclude name="BUG_SPECIAL_01_specialCharactersInAssetName"/>
+                    <exclude name="BUG_SPECIAL_02_emojiInAssetName"/>
+                    <exclude name="BUG_LIMIT_01_assetNameMaxCharacterLimit"/>
+                    <exclude name="BUG_LIMIT_02_qrCodeMaxCharacterLimit"/>
+                    <exclude name="BUG_DELETE_01_deleteAssetVerification"/>
+                    <exclude name="BUG_NAV_01_navigationStateAfterValidationError"/>
+                    <exclude name="BUG_NAV_02_unsavedChangesWarningOnBack"/>
+                </methods>
+            </class>
         </classes>
     </test>
 

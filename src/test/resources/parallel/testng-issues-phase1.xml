@@ -1,16 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<suite time-out="420000" name="Issues Tests - Phase 1 (119 tests)" verbose="0">
+<suite time-out="420000" name="Issues Tests - Phase 1 (103 tests)" verbose="0">
     <!--
     ============================================================
-    ISSUES PHASE 1 — 119 tests (TC_ISS_001 - TC_ISS_119)
+    ISSUES PHASE 1 — 103 tests (TC_ISS_001 - TC_ISS_119, minus 16 moved to P3)
     ============================================================
       - Issues list, header elements, filter tabs (Open/Closed/All)
       - Search bar, issue entries, sort options
       - Create new issue: UI elements, required fields, asset selection
       - Issue details: edit fields, save changes, delete
-      - Class change: subcategory options, completion indicators
-      - Offline creation, performance, NFPA70B subcategories
+      - Class change: subcategory options (partial), completion indicators
+      - Offline creation, performance
+
+    MOVED TO PHASE 3 (16 tests — all 420s+ timeout in CI):
+      TC_ISS_092-105 (14 NFPA chapter verification tests)
+      TC_ISS_112-113 (2 issue class change tests)
     ============================================================
     -->
 
@@ -20,7 +24,27 @@
 
     <test name="Issues Phase 1 - List, Filter, Search, Creation, Class Change">
         <classes>
-            <class name="com.egalvanic.tests.Issue_Phase1_Test"/>
+            <class name="com.egalvanic.tests.Issue_Phase1_Test">
+                <methods>
+                    <!-- Exclude 16 slow tests (420s+ each) — moved to Phase 3 -->
+                    <exclude name="TC_ISS_092_verifyNFPA70BSubcategoryDropdownOpens"/>
+                    <exclude name="TC_ISS_093_verifyChapter28_3_2_MotorControlCleaning"/>
+                    <exclude name="TC_ISS_094_verifyChapter28_3_1_VisualInspections"/>
+                    <exclude name="TC_ISS_095_verifyChapter15_3_2_CircuitBreakers"/>
+                    <exclude name="TC_ISS_096_verifyChapter15_3_1_VisualInspections"/>
+                    <exclude name="TC_ISS_097_verifyChapter25_3_2_UPSCleaning"/>
+                    <exclude name="TC_ISS_098_verifyChapter25_3_1_VisualInspections"/>
+                    <exclude name="TC_ISS_099_verifyChapter11_3_2_TransformerCleaning"/>
+                    <exclude name="TC_ISS_100_verifyChapter11_3_1_VisualInspections"/>
+                    <exclude name="TC_ISS_101_verifyChapter12_3_2_SubstationsCleaning"/>
+                    <exclude name="TC_ISS_102_verifyChapter12_3_1_VisualInspections"/>
+                    <exclude name="TC_ISS_103_verifyChapter13_5_2_PanelboardsCleaning"/>
+                    <exclude name="TC_ISS_104_verifyChapter13_3_1_VisualInspections"/>
+                    <exclude name="TC_ISS_105_verifyChapter17_3_1_VisualInspections"/>
+                    <exclude name="TC_ISS_112_verifyChangingIssueClassUpdatesSubcategoryOptions"/>
+                    <exclude name="TC_ISS_113_verifySubcategoryClearedWhenIssueClassChanges"/>
+                </methods>
+            </class>
         </classes>
     </test>
 

@@ -21,15 +21,15 @@ name: iOS Tests - Full Parallel Suite
 #   Job 0:  smoke-tests        → Smoke CRUD: Login + Site + Asset + Location + Connection + Issue (17 tests)
 #   Job 1:  auth-tests         → Authentication (38 tests)
 #   Job 2:  site-tests         → Site Selection (52 tests)
-#   Job 3:  assets-part1       → P1: Creation + Edit + Busway + Capacitor + P5: Bug Tests (112 tests)
-#   Job 4:  assets-part2       → P1: CB + DS + Fuse + P2: Generator + Junction Box (108 tests)
-#   Job 5:  assets-part3       → P2: Load Center + MCC + MCC Bucket + Motor + Other (109 tests)
-#   Job 6:  assets-part4       → P2: OCP + P3: Panelboard + PDU + Relay + SWB + Transformer (97 tests)
-#   Job 7:  assets-part5       → P3: UPS + Utility + VFD + Subtypes + P4: DS/Fuse Subtypes (112 tests)
-#   Job 8:  assets-part6       → P4: Subtypes + Tasks + Issues + Connections + Asset Screen (114 tests)
-#   Job 9:  issues-phase1      → Issues Phase 1: List + Filter + Search + Creation + Class Change (119 tests)
-#   Job 10: issues-phase2      → Issues Phase 2: OSHA + Thermal + Severity + Temperature + Ultrasonic (60 tests)
-#   Job 11: issues-phase3      → Issues Phase 3: Ultrasonic Save + Swipe Delete + Sort + Status + CRUD (58 tests)
+#   Job 3:  assets-part1       → Creation + Edit + Busway + Capacitor + Bug Regression (100 tests)
+#   Job 4:  assets-part2       → CB + DS + Fuse + Generator + Junction Box + Bug Tests from P1 (120 tests)
+#   Job 5:  assets-part3       → Load Center + MCC + MCC Bucket + Motor + Other (97 tests)
+#   Job 6:  assets-part4       → OCP + Panelboard + PDU + Relay + SWB + Transformer + Other from P3 (109 tests)
+#   Job 7:  assets-part5       → UPS + Utility + VFD + Subtypes (ATS, Busway, Cap, CB, Def, DS) (100 tests)
+#   Job 8:  assets-part6       → Subtypes + Tasks + Issues + Connections + Screen + DS/Fuse from P5 (126 tests)
+#   Job 9:  issues-phase1      → Issues Phase 1: List + Filter + Search + Creation + Class Change (103 tests)
+#   Job 10: issues-phase2      → Issues Phase 2: Thermal + Severity + Temperature + Ultrasonic (50 tests)
+#   Job 11: issues-phase3      → Issues Phase 3: Ultrasonic Save + Swipe Delete + Sort + Status + CRUD + NFPA + OSHA (84 tests)
 #   Job 12: location-tests     → Locations (82 tests)
 #   Job 13: connections-tests  → Connections (94 tests)
 #   Job 14: offline-tests      → Offline Mode (35 tests)
@@ -2846,15 +2846,15 @@ jobs:
                 </tr>
                 <tr><td>Auth Tests</td><td>38</td><td>Authentication & Login</td><td>${AUTH}</td></tr>
                 <tr><td>Site Tests</td><td>52</td><td>Site Selection</td><td>${SITE}</td></tr>
-                <tr><td>Asset Part 1</td><td>112</td><td>P1: Creation + Edit + Busway + Capacitor + P5: Bug Tests</td><td>${AP1}</td></tr>
-                <tr><td>Asset Part 2</td><td>108</td><td>P1: CB + DS + Fuse + P2: Generator + Junction Box</td><td>${AP2}</td></tr>
-                <tr><td>Asset Part 3</td><td>109</td><td>P2: Load Center + MCC + MCC Bucket + Motor + Other</td><td>${AP3}</td></tr>
-                <tr><td>Asset Part 4</td><td>97</td><td>P2: OCP + P3: Panelboard + PDU + Relay + SWB + Transformer</td><td>${AP4}</td></tr>
-                <tr><td>Asset Part 5</td><td>112</td><td>P3: UPS + Utility + VFD + Subtypes + P4: DS/Fuse Subtypes</td><td>${AP5}</td></tr>
-                <tr><td>Asset Part 6</td><td>114</td><td>P4: Subtypes + Tasks + Issues + Connections + Asset Screen</td><td>${AP6}</td></tr>
-                <tr><td>Issues Phase 1</td><td>119</td><td>List + Filter + Search + Creation + Class Change</td><td>${ISS1}</td></tr>
-                <tr><td>Issues Phase 2</td><td>60</td><td>OSHA + Thermal + Severity + Temperature + Ultrasonic</td><td>${ISS2}</td></tr>
-                <tr><td>Issues Phase 3</td><td>58</td><td>Ultrasonic Save + Swipe Delete + Sort + Status + CRUD</td><td>${ISS3}</td></tr>
+                <tr><td>Asset Part 1</td><td>100</td><td>Creation + Edit + Busway + Capacitor + Bug Regression</td><td>${AP1}</td></tr>
+                <tr><td>Asset Part 2</td><td>120</td><td>CB + DS + Fuse + Generator + Junction Box + Bug Tests (from P1)</td><td>${AP2}</td></tr>
+                <tr><td>Asset Part 3</td><td>97</td><td>Load Center + MCC + MCC Bucket + Motor + Other</td><td>${AP3}</td></tr>
+                <tr><td>Asset Part 4</td><td>109</td><td>OCP + Panelboard + PDU + Relay + SWB + Transformer + Other (from P3)</td><td>${AP4}</td></tr>
+                <tr><td>Asset Part 5</td><td>100</td><td>UPS + Utility + VFD + Subtypes (ATS, Busway, Cap, CB, Def, DS)</td><td>${AP5}</td></tr>
+                <tr><td>Asset Part 6</td><td>126</td><td>Subtypes + Tasks + Issues + Connections + Screen + DS/Fuse (from P5)</td><td>${AP6}</td></tr>
+                <tr><td>Issues Phase 1</td><td>103</td><td>List + Filter + Search + Creation + Class Change</td><td>${ISS1}</td></tr>
+                <tr><td>Issues Phase 2</td><td>50</td><td>Thermal + Severity + Temperature + Ultrasonic</td><td>${ISS2}</td></tr>
+                <tr><td>Issues Phase 3</td><td>84</td><td>Ultrasonic Save + Swipe Delete + Sort + Status + CRUD + NFPA + OSHA</td><td>${ISS3}</td></tr>
                 <tr><td>Location</td><td>82</td><td>Location Hierarchy</td><td>${LOC}</td></tr>
                 <tr><td>Connections</td><td>94</td><td>Asset Connections</td><td>${CONN}</td></tr>
                 <tr><td>Offline</td><td>35</td><td>Offline Mode</td><td>${OFFL}</td></tr>
@@ -2862,7 +2862,7 @@ jobs:
               </table>
 
               <hr>
-              <p><b>Total Tests:</b> ~1190 (652 asset + 119 issues-p1 + 60 issues-p2 + 58 issues-p3 + 38 auth + 52 site + 82 location + 94 connections + 35 offline)</p>
+              <p><b>Total Tests:</b> ~1190 (652 asset + 103 issues-p1 + 50 issues-p2 + 84 issues-p3 + 38 auth + 52 site + 82 location + 94 connections + 35 offline)</p>
               <p><b>Jobs Passed:</b> ${SUCCESS} | <b>Failed:</b> ${FAILED}</p>
             </body>
             </html>
@@ -2870,6 +2870,7 @@ jobs:
           fi
 
       - name: Send Email
+        if: ${{ secrets.EMAIL_USERNAME != '' }}
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
@@ -2879,7 +2880,7 @@ jobs:
           password: ${{ secrets.EMAIL_PASSWORD }}
           subject: "[${{ steps.email.outputs.STATUS }}] iOS Suite - ${{ steps.email.outputs.SUCCESS }}/${{ steps.email.outputs.TOTAL }} Passed"
           html_body: file://email_body.html
-          to: ${{ secrets.EMAIL_TO }}
+          to: ${{ secrets.EMAIL_TO || 'abhiyant.singh@egalvanic.com' }}
           from: "iOS Automation <${{ secrets.EMAIL_USERNAME }}>"
           attachments: ${{ steps.reports.outputs.ATTACHMENT_LIST }}
         continue-on-error: true
@@ -2909,18 +2910,18 @@ jobs:
             echo "  Auth (38):              ${{ needs.auth-tests.result }}"
             echo "  Site (52):              ${{ needs.site-tests.result }}"
             echo ""
-            echo "  ─── Asset Parts (652 tests, 6 balanced parts) ───"
-            echo "  Part 1 (112): P1 Creation+Edit+Busway+Cap + P5 Bugs     ${{ needs.assets-part1.result }}"
-            echo "  Part 2 (108): P1 CB+DS+Fuse + P2 Gen+JB                 ${{ needs.assets-part2.result }}"
-            echo "  Part 3 (109): P2 LC+MCC+MCCB+Motor+Other                ${{ needs.assets-part3.result }}"
-            echo "  Part 4 (97):  P2 OCP + P3 PB+PDU+Relay+SWB+TRF         ${{ needs.assets-part4.result }}"
-            echo "  Part 5 (112): P3 UPS+UTL+VFD+Subtypes + P4 DS/Fuse ST  ${{ needs.assets-part5.result }}"
-            echo "  Part 6 (114): P4 Subtypes+Tasks+Issues+Conn+Screen      ${{ needs.assets-part6.result }}"
+            echo "  ─── Asset Parts (652 tests, 6 rebalanced parts) ───"
+            echo "  Part 1 (100): Creation+Edit+Busway+Cap+BugRegression    ${{ needs.assets-part1.result }}"
+            echo "  Part 2 (120): CB+DS+Fuse+Gen+JB+BugTests(from P1)      ${{ needs.assets-part2.result }}"
+            echo "  Part 3 (97):  LC+MCC+MCCB+Motor+Other                   ${{ needs.assets-part3.result }}"
+            echo "  Part 4 (109): OCP+PB+PDU+Relay+SWB+TRF+Other(from P3)  ${{ needs.assets-part4.result }}"
+            echo "  Part 5 (100): UPS+UTL+VFD+Subtypes(ATS,Bus,Cap,CB,DS)  ${{ needs.assets-part5.result }}"
+            echo "  Part 6 (126): Subtypes+Tasks+Iss+Conn+Screen+Fuse(P5)  ${{ needs.assets-part6.result }}"
             echo ""
-            echo "  ─── Issues (237 tests, 3 phases) ───"
-            echo "  Phase 1 (119): List+Filter+Search+Creation+ClassChange   ${{ needs.issues-phase1.result }}"
-            echo "  Phase 2 (60):  OSHA+Thermal+Severity+Temp+Ultrasonic    ${{ needs.issues-phase2.result }}"
-            echo "  Phase 3 (58):  UltraSave+SwipeDel+Sort+Status+CRUD      ${{ needs.issues-phase3.result }}"
+            echo "  ─── Issues (237 tests, 3 rebalanced phases) ───"
+            echo "  Phase 1 (103): List+Filter+Search+Creation+ClassChange   ${{ needs.issues-phase1.result }}"
+            echo "  Phase 2 (50):  Thermal+Severity+Temp+Ultrasonic          ${{ needs.issues-phase2.result }}"
+            echo "  Phase 3 (84):  UltraSave+SwipeDel+Sort+CRUD+NFPA+OSHA   ${{ needs.issues-phase3.result }}"
             echo ""
             echo "  ─── Other Jobs ───"
             echo "  Location (82):          ${{ needs.location-tests.result }}"

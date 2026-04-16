@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<suite time-out="420000" name="Asset Tests - Part 2 of 6 (108 tests)" verbose="0">
+<suite time-out="420000" name="Asset Tests - Part 2 of 6 (120 tests)" verbose="0">
     <!--
     ============================================================
-    ASSET PART 2 — 108 tests
+    ASSET PART 2 — 120 tests
     ============================================================
+      Native (108 tests):
       - CB_EAD   (24 tests) — Circuit Breaker: required fields, ampere rating,
                                breaker settings, interrupting rating, mfg, model, voltage
       - DS_EAD   (23 tests) — Disconnect Switch: required fields, ampere rating,
@@ -15,6 +16,10 @@
                                power factor, serial number, voltage, issues section
       - JB_EAD   (17 tests) — Junction Box: catalog number, manufacturer, model,
                                notes, size, field placeholders, issues section
+
+      Moved from Part 1 (12 tests):
+      - BUG_PERSIST_01, BUG_EDIT_01, BUG_CASE_01, BUG_SEARCH_04-05,
+        BUG_SPECIAL_01-02, BUG_LIMIT_01-02, BUG_DELETE_01, BUG_NAV_01-02
     ============================================================
     -->
 
@@ -22,9 +27,32 @@
         <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
     </listeners>
 
+    <!-- Native Part 2 tests (108 tests) — all methods -->
     <test name="Asset Phase 2 - Circuit Breaker, Disconnect Switch, Fuse, Generator, Junction Box">
         <classes>
             <class name="com.egalvanic.tests.Asset_Phase2_Test"/>
+        </classes>
+    </test>
+
+    <!-- Moved from Part 1: 12 BUG_* regression tests -->
+    <test name="Asset Phase 2 - Bug Regression Tests (from P1)">
+        <classes>
+            <class name="com.egalvanic.tests.Asset_Phase1_Test">
+                <methods>
+                    <include name="BUG_PERSIST_01_editedDataShouldPersist"/>
+                    <include name="BUG_EDIT_01_clearRequiredFieldShouldBlockSave"/>
+                    <include name="BUG_CASE_01_coreAttributesLabelsCapitalization"/>
+                    <include name="BUG_SEARCH_04_searchCaseInsensitivity"/>
+                    <include name="BUG_SEARCH_05_partialSearchFunctionality"/>
+                    <include name="BUG_SPECIAL_01_specialCharactersInAssetName"/>
+                    <include name="BUG_SPECIAL_02_emojiInAssetName"/>
+                    <include name="BUG_LIMIT_01_assetNameMaxCharacterLimit"/>
+                    <include name="BUG_LIMIT_02_qrCodeMaxCharacterLimit"/>
+                    <include name="BUG_DELETE_01_deleteAssetVerification"/>
+                    <include name="BUG_NAV_01_navigationStateAfterValidationError"/>
+                    <include name="BUG_NAV_02_unsavedChangesWarningOnBack"/>
+                </methods>
+            </class>
         </classes>
     </test>
 

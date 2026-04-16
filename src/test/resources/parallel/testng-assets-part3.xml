@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<suite time-out="420000" name="Asset Tests - Part 3 of 6 (109 tests)" verbose="0">
+<suite time-out="420000" name="Asset Tests - Part 3 of 6 (97 tests)" verbose="0">
     <!--
     ============================================================
-    ASSET PART 3 — 109 tests
+    ASSET PART 3 — 97 tests
     ============================================================
       - LC_EAD    (28 tests) — Load Center: required fields, ampere rating, columns,
                                 configuration, fault withstand, mains type, mfg, voltage
@@ -13,8 +13,10 @@
                                 no validation indicators, issues section
       - MOTOR_EAD (30 tests) — Motor: required fields, mains type, duty cycle, frame,
                                 full load amps, horsepower, motor class, RPM, service factor
-      - OTHER_EAD_CA (13 tests) — Other Asset Class: no required fields indicator,
-                                  model, notes, NP volts, serial number, placeholder text
+      - OTHER_EAD_CA (1 test) — Other Asset Class (12 moved to Part 4)
+
+    MOVED TO PART 4 (12 tests — OTHER_EAD_CA core attribute tests):
+      OTHER_EAD_CA_02-13
     ============================================================
     -->
 
@@ -24,7 +26,23 @@
 
     <test name="Asset Phase 3 - Load Center, MCC, MCC Bucket, Motor, Other">
         <classes>
-            <class name="com.egalvanic.tests.Asset_Phase3_Test"/>
+            <class name="com.egalvanic.tests.Asset_Phase3_Test">
+                <methods>
+                    <!-- Exclude 12 OTHER_EAD_CA tests — moved to Part 4 for load balancing -->
+                    <exclude name="OTHER_EAD_CA_02_verifyCoreAttributesFieldsList"/>
+                    <exclude name="OTHER_EAD_CA_03_verifyNoRequiredFieldsIndicator"/>
+                    <exclude name="OTHER_EAD_CA_04_verifyRequiredFieldsToggleNotVisible"/>
+                    <exclude name="OTHER_EAD_CA_05_editModelField"/>
+                    <exclude name="OTHER_EAD_CA_06_editNotesField"/>
+                    <exclude name="OTHER_EAD_CA_07_editNPVoltsField"/>
+                    <exclude name="OTHER_EAD_CA_08_editSerialNumberField"/>
+                    <exclude name="OTHER_EAD_CA_09_saveWithAllCoreAttributesEmpty"/>
+                    <exclude name="OTHER_EAD_CA_10_saveWithPartialCoreAttributes"/>
+                    <exclude name="OTHER_EAD_CA_11_saveWithAllCoreAttributesFilled"/>
+                    <exclude name="OTHER_EAD_CA_12_verifyPlaceholderText"/>
+                    <exclude name="OTHER_EAD_CA_13_cancelEditWithoutSaving"/>
+                </methods>
+            </class>
         </classes>
     </test>
 

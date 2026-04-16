@@ -1,16 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<suite time-out="420000" name="Issues Tests - Phase 3 (58 tests)" verbose="0">
+<suite time-out="420000" name="Issues Tests - Phase 3 (84 tests)" verbose="0">
     <!--
     ============================================================
-    ISSUES PHASE 3 — 58 tests (TC_ISS_180 - TC_ISS_237)
+    ISSUES PHASE 3 — 84 tests
     ============================================================
+      Native (58 tests, TC_ISS_180-237):
       - Ultrasonic Anomaly save/create
       - Class comparison (Ultrasonic vs Thermal vs Repair Needed)
       - Swipe delete, sort options, created date
       - Status workflow (Open, Resolved, Closed)
       - Issue CRUD operations
       - Filter persistence
+
+      Moved from Phase 1 (16 tests):
+      - TC_ISS_092-105: 14 NFPA chapter verification tests (420s+ each)
+      - TC_ISS_112-113: 2 issue class change tests (420s+ each)
+
+      Moved from Phase 2 (10 tests):
+      - TC_ISS_120-129: 10 OSHA subcategory option tests (420s+ each)
     ============================================================
     -->
 
@@ -18,9 +26,56 @@
         <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
     </listeners>
 
+    <!-- Native Phase 3 tests (58 tests) — all methods -->
     <test name="Issues Phase 3 - Ultrasonic Save, Swipe Delete, Sort, Status, CRUD">
         <classes>
             <class name="com.egalvanic.tests.Issue_Phase3_Test"/>
+        </classes>
+    </test>
+
+    <!-- Moved from Phase 1: 14 NFPA chapter tests + 2 class change tests -->
+    <test name="Issues Phase 3 - NFPA Chapter Tests (from P1)">
+        <classes>
+            <class name="com.egalvanic.tests.Issue_Phase1_Test">
+                <methods>
+                    <include name="TC_ISS_092_verifyNFPA70BSubcategoryDropdownOpens"/>
+                    <include name="TC_ISS_093_verifyChapter28_3_2_MotorControlCleaning"/>
+                    <include name="TC_ISS_094_verifyChapter28_3_1_VisualInspections"/>
+                    <include name="TC_ISS_095_verifyChapter15_3_2_CircuitBreakers"/>
+                    <include name="TC_ISS_096_verifyChapter15_3_1_VisualInspections"/>
+                    <include name="TC_ISS_097_verifyChapter25_3_2_UPSCleaning"/>
+                    <include name="TC_ISS_098_verifyChapter25_3_1_VisualInspections"/>
+                    <include name="TC_ISS_099_verifyChapter11_3_2_TransformerCleaning"/>
+                    <include name="TC_ISS_100_verifyChapter11_3_1_VisualInspections"/>
+                    <include name="TC_ISS_101_verifyChapter12_3_2_SubstationsCleaning"/>
+                    <include name="TC_ISS_102_verifyChapter12_3_1_VisualInspections"/>
+                    <include name="TC_ISS_103_verifyChapter13_5_2_PanelboardsCleaning"/>
+                    <include name="TC_ISS_104_verifyChapter13_3_1_VisualInspections"/>
+                    <include name="TC_ISS_105_verifyChapter17_3_1_VisualInspections"/>
+                    <include name="TC_ISS_112_verifyChangingIssueClassUpdatesSubcategoryOptions"/>
+                    <include name="TC_ISS_113_verifySubcategoryClearedWhenIssueClassChanges"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+
+    <!-- Moved from Phase 2: 10 OSHA subcategory option tests -->
+    <test name="Issues Phase 3 - OSHA Subcategory Tests (from P2)">
+        <classes>
+            <class name="com.egalvanic.tests.Issue_Phase2_Test">
+                <methods>
+                    <include name="TC_ISS_120_verifyOSHASubcategoryDropdownOptions"/>
+                    <include name="TC_ISS_121_verifyClearanceInsufficientAccessOption"/>
+                    <include name="TC_ISS_122_verifyEnclosureBrokenLockingMechanismOption"/>
+                    <include name="TC_ISS_123_verifyEnclosureDamagedOption"/>
+                    <include name="TC_ISS_124_verifyEnclosureShouldBeWaterproofOption"/>
+                    <include name="TC_ISS_125_verifyEquipmentFreeOfHazardsOption"/>
+                    <include name="TC_ISS_126_verifyGroundingPermanentContinuousOption"/>
+                    <include name="TC_ISS_127_verifyLightingInadequateOption"/>
+                    <include name="TC_ISS_128_verifyMarkingLabelsInadequateOption"/>
+                    <include name="TC_ISS_129_verifyMountingShouldBeSecureOption"/>
+                </methods>
+            </class>
         </classes>
     </test>
 
