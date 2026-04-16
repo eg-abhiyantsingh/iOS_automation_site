@@ -135,15 +135,31 @@ public abstract class BasePage {
     // ================================================================
 
     /**
-     * Click element with wait and retry logic
+     * Click element with wait, retry, and coordinate tap fallback.
+     * If standard .click() fails 3 times, falls back to tapping element center via coordinates.
+     * Also dismisses keyboard first if the element is in the lower half of the screen.
      */
     protected void click(WebElement element) {
         int maxRetries = 3;
         Exception lastException = null;
-        
+
         for (int attempt = 1; attempt <= maxRetries; attempt++) {
             try {
-                waitForClickable(element, 10).click();
+                WebElement clickable = waitForClickable(element, 10);
+
+                // Dismiss keyboard if element is in lower screen half (may be occluded)
+                if (attempt == 1) {
+                    try {
+                        int elY = clickable.getLocation().getY();
+                        int screenH = driver.manage().window().getSize().height;
+                        if (elY > screenH * 0.55) {
+                            driver.executeScript("mobile: hideKeyboard");
+                            sleep(200);
+                        }
+                    } catch (Exception ignored) {}
+                }
+
+                clickable.click();
                 return; // Success
             } catch (StaleElementReferenceException e) {
                 lastException = e;
@@ -155,8 +171,21 @@ public abstract class BasePage {
                 sleep(500);
             }
         }
-        
-        throw new RuntimeException("Failed to click element after " + maxRetries + " attempts", lastException);
+
+        // Fallback: coordinate tap on element center (handles table cells, custom views)
+        try {
+            int x = element.getLocation().getX() + element.getSize().getWidth() / 2;
+            int y = element.getLocation().getY() + element.getSize().getHeight() / 2;
+            if (y > 120) { // Avoid nav bar zone
+                driver.executeScript("mobile: tap", java.util.Map.of("x", x, "y", y));
+                System.out.println("✅ Click succeeded via coordinate tap at (" + x + ", " + y + ")");
+                return;
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Coordinate tap fallback also failed");
+        }
+
+        throw new RuntimeException("Failed to click element after " + maxRetries + " attempts + coordinate fallback", lastException);
     }
 
     /**

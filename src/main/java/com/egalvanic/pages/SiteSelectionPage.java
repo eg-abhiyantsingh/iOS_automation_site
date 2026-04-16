@@ -41,7 +41,7 @@ public class SiteSelectionPage extends BasePage {
     private WebElement selectSiteTitle;
 
     // Search Bar - flexible locator for both old and new UI (case-insensitive)
-    @iOSXCUITFindBy(iOSNsPredicate = "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeSearchField') AND visible == true")
+    @iOSXCUITFindBy(iOSNsPredicate = "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeSearchField')")
     private WebElement searchBar;
 
     // Search Bar Alternative - by placeholder containing "Search"
@@ -77,11 +77,11 @@ public class SiteSelectionPage extends BasePage {
     // ================================================================
 
     // Sites Button (Quick Action) - flexible for both old and new UI
-    @iOSXCUITFindBy(iOSNsPredicate = "type == 'XCUIElementTypeButton' AND visible == true AND (name == 'building.2' OR name CONTAINS 'building' OR name CONTAINS 'site' OR label CONTAINS[c] 'sites' OR label CONTAINS[c] 'site')")
+    @iOSXCUITFindBy(iOSNsPredicate = "type == 'XCUIElementTypeButton' AND (name == 'building.2' OR name CONTAINS 'building' OR name CONTAINS 'site' OR label CONTAINS[c] 'sites' OR label CONTAINS[c] 'site')")
     private WebElement sitesButton;
     
     // Sites Button Alternative - by various building icons
-    @iOSXCUITFindBy(iOSNsPredicate = "type == 'XCUIElementTypeButton' AND visible == true AND (name CONTAINS 'building' OR name CONTAINS 'house' OR name CONTAINS 'Sites' OR label CONTAINS 'Sites')")
+    @iOSXCUITFindBy(iOSNsPredicate = "type == 'XCUIElementTypeButton' AND (name CONTAINS 'building' OR name CONTAINS 'house' OR name CONTAINS 'Sites' OR label CONTAINS 'Sites')")
     private WebElement sitesButtonAlt;
     
     // Sites Button by accessibility ID (original)
@@ -105,7 +105,7 @@ public class SiteSelectionPage extends BasePage {
     private WebElement wifiButtonWithSyncCount;
     
     // WiFi Button Alternative - find by wifi.slash image in hierarchy
-    @iOSXCUITFindBy(iOSNsPredicate = "type == 'XCUIElementTypeButton' AND visible == true AND (name CONTAINS 'wifi' OR name MATCHES '\\\\d+')")
+    @iOSXCUITFindBy(iOSNsPredicate = "type == 'XCUIElementTypeButton' AND (name CONTAINS 'wifi' OR name MATCHES '\\\\d+')")
     private WebElement wifiButtonAlt;
 
     // Locations Button
@@ -173,7 +173,7 @@ public class SiteSelectionPage extends BasePage {
     private WebElement wifiPopupButton;
     
     // WiFi Popup Button Alternative - by type and visible
-    @iOSXCUITFindBy(iOSNsPredicate = "type == 'XCUIElementTypeOther' AND visible == true")
+    @iOSXCUITFindBy(iOSNsPredicate = "type == 'XCUIElementTypeOther'")
     private List<WebElement> wifiPopupButtonAlts;
 
     // Go Offline Text
@@ -181,7 +181,7 @@ public class SiteSelectionPage extends BasePage {
     private WebElement goOfflineText;
     
     // Go Offline Button - more flexible locator
-    @iOSXCUITFindBy(iOSNsPredicate = "(label CONTAINS 'Offline' OR name CONTAINS 'Offline') AND visible == true")
+    @iOSXCUITFindBy(iOSNsPredicate = "(label CONTAINS 'Offline' OR name CONTAINS 'Offline')")
     private WebElement goOfflineButton;
 
     // Go Online Text - try multiple locator strategies
@@ -189,7 +189,7 @@ public class SiteSelectionPage extends BasePage {
     private WebElement goOnlineText;
     
     // Go Online Button - more flexible locator
-    @iOSXCUITFindBy(iOSNsPredicate = "(label CONTAINS 'Online' OR name CONTAINS 'Online') AND visible == true")
+    @iOSXCUITFindBy(iOSNsPredicate = "(label CONTAINS 'Online' OR name CONTAINS 'Online')")
     private WebElement goOnlineButton;
 
     // Sync Records Button (arrow.triangle.2.circlepath)
@@ -350,7 +350,7 @@ public class SiteSelectionPage extends BasePage {
             // Method 5: Check for Create New Site button (flexible - may be plus icon now)
             try {
                 WebElement createBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND visible == true AND " +
+                    "type == 'XCUIElementTypeButton' AND " +
                     "(name == 'Create New Site' OR name CONTAINS 'plus' OR " +
                     "label CONTAINS[c] 'new site' OR label CONTAINS[c] 'add site' OR label CONTAINS[c] 'create')"
                 ));
@@ -400,7 +400,7 @@ public class SiteSelectionPage extends BasePage {
                 // building.2 not found - try flexible search
                 try {
                     List<WebElement> dashButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeButton' AND visible == true AND " +
+                        "type == 'XCUIElementTypeButton' AND " +
                         "(name CONTAINS 'building' OR label CONTAINS[c] 'sites')"
                     ));
                     if (dashButtons.isEmpty()) {
@@ -486,7 +486,7 @@ public class SiteSelectionPage extends BasePage {
         
         // Fallback: Try SearchField type
         try {
-            List<WebElement> searchFields = driver.findElements(AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeSearchField' AND visible == true"));
+            List<WebElement> searchFields = driver.findElements(AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeSearchField'"));
             if (!searchFields.isEmpty()) {
                 System.out.println("✅ Found search bar via SearchField scan");
                 return true;
@@ -554,7 +554,7 @@ public class SiteSelectionPage extends BasePage {
         // Fallback: Look for any button with "new", "add", or "plus" in name/label
         try {
             List<WebElement> addButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND visible == true AND " +
+                "type == 'XCUIElementTypeButton' AND " +
                 "(name CONTAINS[c] 'new' OR name CONTAINS[c] 'add' OR name CONTAINS 'plus' OR " +
                 "label CONTAINS[c] 'new' OR label CONTAINS[c] 'add' OR label CONTAINS[c] 'create')"
             ));
@@ -639,7 +639,7 @@ public class SiteSelectionPage extends BasePage {
         
         // Strategy 5: Try SearchField type
         try {
-            WebElement searchField = driver.findElement(AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeSearchField' AND visible == true"));
+            WebElement searchField = driver.findElement(AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeSearchField'"));
             searchField.click();
             sleep(200);
             searchField.sendKeys(siteName);
@@ -951,7 +951,7 @@ public class SiteSelectionPage extends BasePage {
             if (!clicked) {
                 System.out.println("🔍 Searching for Sites button in all visible buttons...");
                 List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND visible == true"
+                    "type == 'XCUIElementTypeButton'"
                 ));
                 
                 for (WebElement btn : buttons) {
@@ -1043,7 +1043,7 @@ public class SiteSelectionPage extends BasePage {
         // Fallback: check for any navigation bar with dashboard-like elements
         try {
             List<WebElement> navButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND visible == true AND (name CONTAINS 'building' OR name CONTAINS 'arrow' OR name CONTAINS 'wifi' OR name == 'Wi-Fi')"
+                "type == 'XCUIElementTypeButton' AND (name CONTAINS 'building' OR name CONTAINS 'arrow' OR name CONTAINS 'wifi' OR name == 'Wi-Fi')"
             ));
             if (navButtons.size() >= 2) {
                 System.out.println("✅ Dashboard detected via navigation bar buttons (found " + navButtons.size() + ")");
@@ -2127,7 +2127,7 @@ public class SiteSelectionPage extends BasePage {
         // Fallback: search by label
         try {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "visible == true AND (label CONTAINS 'Quick Count' OR name CONTAINS 'Quick Count')"));
+                "(label CONTAINS 'Quick Count' OR name CONTAINS 'Quick Count')"));
             return !elements.isEmpty();
         } catch (Exception e) {
             return false;
@@ -2145,7 +2145,7 @@ public class SiteSelectionPage extends BasePage {
             }
             // Fallback: search by label
             WebElement btn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "visible == true AND (label CONTAINS 'Quick Count' OR name CONTAINS 'Quick Count')"));
+                "(label CONTAINS 'Quick Count' OR name CONTAINS 'Quick Count')"));
             String enabled = btn.getAttribute("enabled");
             return "true".equalsIgnoreCase(enabled);
         } catch (Exception e) {
@@ -2169,7 +2169,7 @@ public class SiteSelectionPage extends BasePage {
         // Fallback: search by label
         try {
             WebElement btn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "visible == true AND (label CONTAINS 'Quick Count' OR name CONTAINS 'Quick Count')"));
+                "(label CONTAINS 'Quick Count' OR name CONTAINS 'Quick Count')"));
             btn.click();
         } catch (Exception e) {
             System.out.println("⚠️ Fallback Quick Count click failed: " + e.getMessage());
@@ -2196,7 +2196,7 @@ public class SiteSelectionPage extends BasePage {
         // Strategy 3: Search by partial label match
         try {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "visible == true AND (label CONTAINS 'No Active' OR label CONTAINS 'active job' OR label CONTAINS 'select a job' OR label CONTAINS 'Tap to select')"
+                "(label CONTAINS 'No Active' OR label CONTAINS 'active job' OR label CONTAINS 'select a job' OR label CONTAINS 'Tap to select')"
             ));
             if (!elements.isEmpty()) {
                 System.out.println("✅ No Active Job card found via label search (found " + elements.size() + " elements)");
@@ -2209,7 +2209,7 @@ public class SiteSelectionPage extends BasePage {
         // Strategy 4: Search static texts for job-related content
         try {
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true AND (label CONTAINS 'Job' OR label CONTAINS 'job')"
+                "type == 'XCUIElementTypeStaticText' AND (label CONTAINS 'Job' OR label CONTAINS 'job')"
             ));
             for (WebElement text : texts) {
                 String label = text.getAttribute("label");
@@ -2268,7 +2268,7 @@ public class SiteSelectionPage extends BasePage {
         // Strategy 3: Find by label and click
         try {
             WebElement jobCard = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "visible == true AND (label CONTAINS 'No Active' OR label CONTAINS 'Tap to select')"
+                "(label CONTAINS 'No Active' OR label CONTAINS 'Tap to select')"
             ));
             if (jobCard != null) {
                 System.out.println("✅ Found and clicking job card via label search");
@@ -2373,7 +2373,7 @@ public class SiteSelectionPage extends BasePage {
         // Strategy 3: Search by label containing "Locations"
         try {
             WebElement locationsByLabel = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND visible == true AND label CONTAINS 'Location'"
+                "type == 'XCUIElementTypeButton' AND label CONTAINS 'Location'"
             ));
             if (locationsByLabel != null && locationsByLabel.isDisplayed()) {
                 System.out.println("✅ Found Locations by label");
@@ -2387,7 +2387,7 @@ public class SiteSelectionPage extends BasePage {
         // Strategy 4: Search all visible buttons for building.columns icon
         try {
             List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND visible == true"
+                "type == 'XCUIElementTypeButton'"
             ));
             for (WebElement btn : buttons) {
                 String name = btn.getAttribute("name");
@@ -2540,7 +2540,7 @@ public class SiteSelectionPage extends BasePage {
         try {
             // Get all visible sites in one call
             List<WebElement> sites = driver.findElements(
-                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name CONTAINS ',' AND visible == true")
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name CONTAINS ','")
             );
             if (sites.isEmpty()) {
                 return selectFirstSiteUltraFast();
@@ -2604,13 +2604,13 @@ public class SiteSelectionPage extends BasePage {
                 ExpectedConditions.presenceOfElementLocated(AppiumBy.accessibilityId("plus")),
                 // Flexible locators for new UI
                 ExpectedConditions.presenceOfElementLocated(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND visible == true AND name CONTAINS 'building'"
+                    "type == 'XCUIElementTypeButton' AND name CONTAINS 'building'"
                 )),
                 ExpectedConditions.presenceOfElementLocated(AppiumBy.iOSNsPredicateString(
-                    "label CONTAINS 'Assets' AND visible == true"
+                    "label CONTAINS 'Assets'"
                 )),
                 ExpectedConditions.presenceOfElementLocated(AppiumBy.iOSNsPredicateString(
-                    "label CONTAINS 'Connections' AND visible == true"
+                    "label CONTAINS 'Connections'"
                 ))
             ));
         } catch (Exception e) {

@@ -7795,18 +7795,18 @@ public class IssuePage extends BasePage {
             // Strategy 1: Check for keyboard element
             try {
                 WebElement keyboard = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeKeyboard' AND visible == true"));
+                    "type == 'XCUIElementTypeKeyboard'"));
                 if (keyboard.isDisplayed()) {
                     // Check for numeric keys (digits 0-9)
                     List<WebElement> numericKeys = driver.findElements(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeKey' AND visible == true AND " +
+                        "type == 'XCUIElementTypeKey' AND " +
                         "(label == '0' OR label == '1' OR label == '2' OR label == '3' OR " +
                         "label == '4' OR label == '5' OR label == '6' OR label == '7' OR " +
                         "label == '8' OR label == '9')"));
                     if (!numericKeys.isEmpty()) {
                         // Check if it's numeric-only (no letter keys like 'q', 'w', 'e')
                         List<WebElement> letterKeys = driver.findElements(AppiumBy.iOSNsPredicateString(
-                            "type == 'XCUIElementTypeKey' AND visible == true AND " +
+                            "type == 'XCUIElementTypeKey' AND " +
                             "(label == 'q' OR label == 'w' OR label == 'e' OR label == 'a' OR label == 's')"));
                         boolean isNumericOnly = letterKeys.isEmpty();
                         System.out.println("   Keyboard displayed — numeric keys: " + numericKeys.size() +
@@ -7821,7 +7821,7 @@ public class IssuePage extends BasePage {
             // Strategy 2: Check for key elements directly
             try {
                 List<WebElement> keys = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeKey' AND visible == true"));
+                    "type == 'XCUIElementTypeKey'"));
                 if (!keys.isEmpty()) {
                     System.out.println("   Keyboard keys visible: " + keys.size());
                     return true;

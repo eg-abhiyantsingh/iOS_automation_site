@@ -503,7 +503,7 @@ public class WorkOrderPage extends BasePage {
         // Green indicators are typically XCUIElementTypeImage or XCUIElementTypeOther with small size
         try {
             List<WebElement> indicators = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeImage' AND visible == true"
+                "type == 'XCUIElementTypeImage'"
             ));
             for (WebElement indicator : indicators) {
                 try {
@@ -522,7 +522,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Look for circle/dot accessibility identifiers
         try {
             List<WebElement> dots = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "visible == true AND (name CONTAINS 'circle' OR name CONTAINS 'dot' OR name CONTAINS 'indicator' OR name CONTAINS 'status')"
+                "(name CONTAINS 'circle' OR name CONTAINS 'dot' OR name CONTAINS 'indicator' OR name CONTAINS 'status')"
             ));
             for (WebElement dot : dots) {
                 try {
@@ -539,7 +539,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 3: Check for SF Symbol "circle.fill" elements
         try {
             List<WebElement> circles = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "visible == true AND name CONTAINS 'circle.fill'"
+                "name CONTAINS 'circle.fill'"
             ));
             if (!circles.isEmpty()) {
                 System.out.println("✅ Green status indicator found via circle.fill symbol");
@@ -572,7 +572,7 @@ public class WorkOrderPage extends BasePage {
         // Fallback: Look for pipe-separated numbers
         try {
             List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true AND label CONTAINS '|'"
+                "type == 'XCUIElementTypeStaticText' AND label CONTAINS '|'"
             ));
             int countIndex = 0;
             for (WebElement text : allTexts) {
@@ -597,7 +597,7 @@ public class WorkOrderPage extends BasePage {
     public boolean isAnyWorkOrderCountsDisplayed() {
         try {
             List<WebElement> countTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true AND label CONTAINS '|'"
+                "type == 'XCUIElementTypeStaticText' AND label CONTAINS '|'"
             ));
             for (WebElement text : countTexts) {
                 String label = text.getAttribute("label");
@@ -670,7 +670,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 3: Fallback — also check for "Activate" in case UI changes
         try {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "(label == 'Activate' OR label == 'Start') AND visible == true"
+                "(label == 'Activate' OR label == 'Start')"
             ));
             if (!elements.isEmpty()) {
                 System.out.println("✅ Start/Activate element found via broad search");
@@ -728,7 +728,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 3: Any element with Start or Activate label
         try {
             WebElement element = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(label == 'Start' OR label == 'Activate') AND visible == true"
+                "(label == 'Start' OR label == 'Activate')"
             ));
             element.click();
             System.out.println("✅ Tapped Start/Activate via broad search");
@@ -1103,7 +1103,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 3: Any small button in the top-right area (nav bar) that isn't "Back"
         try {
             List<WebElement> navButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND visible == true"
+                "type == 'XCUIElementTypeButton'"
             ));
             for (WebElement btn : navButtons) {
                 int x = btn.getLocation().getX();
@@ -1207,7 +1207,7 @@ public class WorkOrderPage extends BasePage {
                 int labelX = labels.get(0).getLocation().getX();
                 // The count is typically above or near the label — find numeric text near this position
                 List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND visible == true"
+                    "type == 'XCUIElementTypeStaticText'"
                 ));
                 for (WebElement text : allTexts) {
                     String label = text.getAttribute("label");
@@ -1274,7 +1274,7 @@ public class WorkOrderPage extends BasePage {
                 int labelY = labels.get(0).getLocation().getY();
                 // Value is typically on the same row, to the right, or just below
                 List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND visible == true"
+                    "type == 'XCUIElementTypeStaticText'"
                 ));
                 for (WebElement text : allTexts) {
                     String label = text.getAttribute("label");
@@ -1320,7 +1320,7 @@ public class WorkOrderPage extends BasePage {
             if (!labels.isEmpty()) {
                 int labelY = labels.get(0).getLocation().getY();
                 List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND visible == true AND (label CONTAINS 'AM' OR label CONTAINS 'PM' OR label CONTAINS ',')"
+                    "type == 'XCUIElementTypeStaticText' AND (label CONTAINS 'AM' OR label CONTAINS 'PM' OR label CONTAINS ',')"
                 ));
                 for (WebElement text : allTexts) {
                     int textY = text.getLocation().getY();
@@ -1390,7 +1390,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 4: Log all form elements for debugging on CI
         try {
             List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true"));
+                "type == 'XCUIElementTypeStaticText'"));
             System.out.println("   DEBUG: Visible static texts on New Job screen:");
             int count = 0;
             for (WebElement text : allTexts) {
@@ -1422,7 +1422,7 @@ public class WorkOrderPage extends BasePage {
                 int labelY = labels.get(0).getLocation().getY();
                 // Find buttons/text near the label
                 List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND visible == true"
+                    "type == 'XCUIElementTypeButton'"
                 ));
                 for (WebElement btn : buttons) {
                     int btnY = btn.getLocation().getY();
@@ -1475,7 +1475,7 @@ public class WorkOrderPage extends BasePage {
                 int labelY = labels.get(0).getLocation().getY();
 
                 List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND visible == true"
+                    "type == 'XCUIElementTypeButton'"
                 ));
                 WebElement bestMatch = null;
                 int bestDist = Integer.MAX_VALUE;
@@ -1594,7 +1594,7 @@ public class WorkOrderPage extends BasePage {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' "
                 + "OR type == 'XCUIElementTypeMenuItem') "
-                + "AND visible == true AND (label CONTAINS 'Full Asset' "
+                + "AND (label CONTAINS 'Full Asset' "
                 + "OR label CONTAINS 'Data Collection' OR label CONTAINS 'IR Photos')"
             ));
             for (WebElement el : elements) {
@@ -1665,7 +1665,7 @@ public class WorkOrderPage extends BasePage {
         if (options.isEmpty()) {
             try {
                 List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND visible == true"
+                    "type == 'XCUIElementTypeStaticText'"
                 ));
                 for (WebElement text : allTexts) {
                     String label = text.getAttribute("label");
@@ -1713,7 +1713,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Cell containing the action text
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             for (WebElement cell : cells) {
                 List<WebElement> texts = cell.findElements(AppiumBy.iOSNsPredicateString(
@@ -1730,7 +1730,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 3: Broad visible element search
         try {
             WebElement element = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label CONTAINS '" + actionName + "' AND visible == true"
+                "label CONTAINS '" + actionName + "'"
             ));
             element.click();
             System.out.println("✅ Selected Quick QR Action (broad): " + actionName);
@@ -1829,7 +1829,7 @@ public class WorkOrderPage extends BasePage {
             List<WebElement> allElements = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' "
                 + "OR type == 'XCUIElementTypeMenuItem') "
-                + "AND visible == true AND (label CONTAINS 'Full Asset' "
+                + "AND (label CONTAINS 'Full Asset' "
                 + "OR label CONTAINS 'Data Collection' OR label CONTAINS 'IR Photos')"
             ));
             java.util.Set<String> found = new java.util.HashSet<>();
@@ -1941,7 +1941,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 3: Any visible element with tab label
         try {
             WebElement element = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label == '" + tabName + "' AND visible == true"
+                "label == '" + tabName + "'"
             ));
             element.click();
             System.out.println("✅ Tapped tab '" + tabName + "' (broad)");
@@ -1984,7 +1984,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Look for cells in content area below tabs
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             int validCells = 0;
             for (WebElement cell : cells) {
@@ -2035,7 +2035,7 @@ public class WorkOrderPage extends BasePage {
             // Step 1: Collect floor text Y positions
             List<WebElement> floorTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND "
-                + "(label CONTAINS ' floor' OR label CONTAINS ' Floor') AND visible == true"
+                + "(label CONTAINS ' floor' OR label CONTAINS ' Floor')"
             ));
             System.out.println("  Floor count texts found: " + floorTexts.size());
 
@@ -2058,7 +2058,7 @@ public class WorkOrderPage extends BasePage {
 
             // Step 2: Get candidate building name texts (exclude known non-building patterns)
             List<WebElement> candidateTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND NOT (label CONTAINS ' floor') "
                 + "AND NOT (label CONTAINS ' room') "
                 + "AND NOT (label CONTAINS ' asset') "
@@ -2195,7 +2195,7 @@ public class WorkOrderPage extends BasePage {
         try {
             // Find cells that represent buildings (have floor count text)
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
 
             // Filter to building cells (those with floor count or significant height)
@@ -2300,7 +2300,7 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> floorTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND "
-                + "(label CONTAINS ' floor' OR label CONTAINS ' Floor') AND visible == true"
+                + "(label CONTAINS ' floor' OR label CONTAINS ' Floor')"
             ));
 
             java.util.List<WebElement> validFloorTexts = new java.util.ArrayList<>();
@@ -2350,7 +2350,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Cell-based approach (legacy)
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
 
             java.util.List<WebElement> buildingCells = new java.util.ArrayList<>();
@@ -2390,7 +2390,7 @@ public class WorkOrderPage extends BasePage {
 
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
 
             // Find the building cell
@@ -2421,7 +2421,7 @@ public class WorkOrderPage extends BasePage {
             // Look for floor entries below this building
             // Floors typically show "room" or "Room" or "Floor_" in their labels
             List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label CONTAINS ' room' OR label CONTAINS 'Room' "
                 + "OR label CONTAINS 'Floor_' OR label CONTAINS 'Floor ')"
             ));
@@ -2482,7 +2482,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Cell containing "No Location" text in children
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             for (WebElement cell : cells) {
                 List<WebElement> childTexts = cell.findElements(AppiumBy.iOSNsPredicateString(
@@ -2562,7 +2562,7 @@ public class WorkOrderPage extends BasePage {
 
                 // Look for a count text near the No Location label
                 List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND visible == true"
+                    "type == 'XCUIElementTypeStaticText'"
                 ));
                 for (WebElement text : allTexts) {
                     int textY = text.getLocation().getY();
@@ -2584,7 +2584,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Find the No Location cell and inspect all child elements
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             for (WebElement cell : cells) {
                 List<WebElement> noLocChildren = cell.findElements(AppiumBy.iOSNsPredicateString(
@@ -2630,7 +2630,7 @@ public class WorkOrderPage extends BasePage {
 
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
 
             java.util.List<WebElement> buildingCells = new java.util.ArrayList<>();
@@ -2697,7 +2697,7 @@ public class WorkOrderPage extends BasePage {
                 int rightEdge = cellX + cellW;
 
                 List<WebElement> allButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND visible == true"
+                    "type == 'XCUIElementTypeButton'"
                 ));
                 for (WebElement btn : allButtons) {
                     int btnX = btn.getLocation().getX();
@@ -2726,7 +2726,6 @@ public class WorkOrderPage extends BasePage {
                 List<WebElement> allChildren = buildingCell.findElements(
                     AppiumBy.iOSNsPredicateString(
                         "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeImage') "
-                        + "AND visible == true"
                     ));
                 for (WebElement child : allChildren) {
                     int w = child.getSize().getWidth();
@@ -2782,7 +2781,7 @@ public class WorkOrderPage extends BasePage {
 
             // Strategy 2: Look for any small circular button in bottom-right
             List<WebElement> allButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND visible == true"
+                "type == 'XCUIElementTypeButton'"
             ));
             for (WebElement btn : allButtons) {
                 int btnX = btn.getLocation().getX();
@@ -2867,7 +2866,7 @@ public class WorkOrderPage extends BasePage {
         if (floors.isEmpty()) {
             try {
                 List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeCell' AND visible == true"
+                    "type == 'XCUIElementTypeCell'"
                 ));
                 for (WebElement cell : cells) {
                     int y = cell.getLocation().getY();
@@ -3280,7 +3279,7 @@ public class WorkOrderPage extends BasePage {
     public String getAssetsInRoomEmptyStateText() {
         try {
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label CONTAINS 'add assets' OR label CONTAINS 'Tap the' "
                 + "OR label CONTAINS '+ button' OR label CONTAINS 'No Assets')"
             ));
@@ -3346,7 +3345,7 @@ public class WorkOrderPage extends BasePage {
             int screenHeight = size.getHeight();
 
             List<WebElement> allButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND visible == true"
+                "type == 'XCUIElementTypeButton'"
             ));
             for (WebElement btn : allButtons) {
                 int btnX = btn.getLocation().getX();
@@ -3402,7 +3401,7 @@ public class WorkOrderPage extends BasePage {
         try {
             // Strategy 1: Count cells with reasonable height (asset rows) below the header area
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             int count = 0;
             for (WebElement cell : cells) {
@@ -3428,7 +3427,7 @@ public class WorkOrderPage extends BasePage {
 
             // Strategy 2: Count distinct asset name texts below header
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true"
+                "type == 'XCUIElementTypeStaticText'"
             ));
             java.util.Set<Integer> rowYs = new java.util.TreeSet<>();
             for (WebElement text : texts) {
@@ -3520,7 +3519,7 @@ public class WorkOrderPage extends BasePage {
         try {
             // Collect all visible cells in the content area
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
 
             java.util.List<WebElement> assetCells = new java.util.ArrayList<>();
@@ -3573,7 +3572,7 @@ public class WorkOrderPage extends BasePage {
             // If no cells found, try extracting from visible texts directly
             if (entries.isEmpty()) {
                 List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND visible == true"
+                    "type == 'XCUIElementTypeStaticText'"
                 ));
 
                 java.util.TreeMap<Integer, java.util.Map<String, String>> rowMap = new java.util.TreeMap<>();
@@ -3628,7 +3627,7 @@ public class WorkOrderPage extends BasePage {
         try {
             // Find asset cells (filter out empty state cells)
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             java.util.List<WebElement> assetCells = new java.util.ArrayList<>();
             for (WebElement cell : cells) {
@@ -3659,7 +3658,7 @@ public class WorkOrderPage extends BasePage {
                     int targetY = Integer.parseInt(entries.get(index).get("y"));
                     // Find nearest cell or text element
                     List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeStaticText' AND visible == true"
+                        "type == 'XCUIElementTypeStaticText'"
                     ));
                     for (WebElement text : allTexts) {
                         if (Math.abs(text.getLocation().getY() - targetY) < 20) {
@@ -3762,7 +3761,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 3: Look for "Collect Data" or "Remove from Session" text as indicator
         try {
             List<WebElement> indicators = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label CONTAINS 'Collect Data' OR label CONTAINS 'Remove from Session')"
             ));
             if (!indicators.isEmpty()) {
@@ -3807,7 +3806,6 @@ public class WorkOrderPage extends BasePage {
             try {
                 List<WebElement> menuItems = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "(type == 'XCUIElementTypeMenuItem' OR type == 'XCUIElementTypeButton') "
-                    + "AND visible == true"
                 ));
                 for (WebElement item : menuItems) {
                     String label = item.getAttribute("label");
@@ -4191,7 +4189,7 @@ public class WorkOrderPage extends BasePage {
 
             // Look for progress indicators (checkmarks, fraction text like "1/1", "0/3")
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true"
+                "type == 'XCUIElementTypeStaticText'"
             ));
 
             for (WebElement text : texts) {
@@ -4277,7 +4275,6 @@ public class WorkOrderPage extends BasePage {
             List<WebElement> menuItems = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(label CONTAINS 'New Asset' OR label CONTAINS 'Link Existing' "
                 + "OR label CONTAINS 'Quick Count' OR label CONTAINS 'Photo Walkthrough') "
-                + "AND visible == true"
             ));
             if (menuItems.size() >= 2) {
                 System.out.println("✅ Add Assets popup menu found (" + menuItems.size() + " options)");
@@ -4298,7 +4295,6 @@ public class WorkOrderPage extends BasePage {
             List<WebElement> menuItems = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(label CONTAINS 'New Asset' OR label CONTAINS 'Link Existing' "
                 + "OR label CONTAINS 'Quick Count' OR label CONTAINS 'Photo Walkthrough') "
-                + "AND visible == true"
             ));
             return menuItems.size() >= 2;
         } catch (Exception e) {
@@ -4343,7 +4339,6 @@ public class WorkOrderPage extends BasePage {
             List<WebElement> menuItems = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(label CONTAINS 'New Asset' OR label CONTAINS 'Link Existing' "
                 + "OR label CONTAINS 'Quick Count' OR label CONTAINS 'Photo Walkthrough') "
-                + "AND visible == true"
             ));
             for (WebElement item : menuItems) {
                 String label = item.getAttribute("label");
@@ -4363,7 +4358,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Tapping 'New Asset' in popup...");
         try {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "(label == 'New Asset' OR label == 'Create New Asset') AND visible == true"
+                "(label == 'New Asset' OR label == 'Create New Asset')"
             ));
             if (!elements.isEmpty()) {
                 elements.get(0).click();
@@ -4374,7 +4369,7 @@ public class WorkOrderPage extends BasePage {
         // Fallback: broader search
         try {
             WebElement el = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label CONTAINS 'New Asset' AND visible == true"
+                "label CONTAINS 'New Asset'"
             ));
             el.click();
             System.out.println("✅ Tapped New Asset (broad)");
@@ -4392,7 +4387,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Tapping 'Link Existing Asset' in popup...");
         try {
             WebElement el = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label CONTAINS 'Link Existing' AND visible == true"
+                "label CONTAINS 'Link Existing'"
             ));
             el.click();
             System.out.println("✅ Tapped Link Existing Asset popup option");
@@ -4410,7 +4405,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Tapping 'Quick Count' in popup...");
         try {
             WebElement el = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label CONTAINS 'Quick Count' AND visible == true"
+                "label CONTAINS 'Quick Count'"
             ));
             el.click();
             System.out.println("✅ Tapped Quick Count popup option");
@@ -4428,7 +4423,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Tapping 'Photo Walkthrough' in popup...");
         try {
             WebElement el = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label CONTAINS 'Photo Walkthrough' AND visible == true"
+                "label CONTAINS 'Photo Walkthrough'"
             ));
             el.click();
             System.out.println("✅ Tapped Photo Walkthrough popup option");
@@ -4623,7 +4618,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 1: Look for cells in the content area (assets are list cells)
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             int contentCells = 0;
             for (WebElement cell : cells) {
@@ -4644,7 +4639,7 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> entries = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') "
-                + "AND visible == true AND (label CONTAINS 'Asset' OR label CONTAINS 'asset')"
+                + "AND (label CONTAINS 'Asset' OR label CONTAINS 'asset')"
             ));
             for (WebElement entry : entries) {
                 int y = entry.getLocation().getY();
@@ -4675,7 +4670,7 @@ public class WorkOrderPage extends BasePage {
 
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             int count = 0;
             for (WebElement cell : cells) {
@@ -4740,7 +4735,7 @@ public class WorkOrderPage extends BasePage {
         try {
             // Look for all text elements in the content area
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true"
+                "type == 'XCUIElementTypeStaticText'"
             ));
 
             String noAvailableText = null;
@@ -4844,7 +4839,7 @@ public class WorkOrderPage extends BasePage {
         // Fallback: check if New Asset options are visible (Create New Asset, Quick Count, etc.)
         try {
             List<WebElement> createOptions = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label CONTAINS 'Create New Asset' OR label CONTAINS 'Create Quick Count' "
                 + "OR label CONTAINS 'Photo Walkthrough')"
             ));
@@ -4865,7 +4860,7 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(label == 'Create New Asset' OR label CONTAINS 'Create New Asset' "
-                + "OR label == 'New Asset') AND visible == true"
+                + "OR label == 'New Asset')"
             ));
             boolean found = !elements.isEmpty();
             System.out.println(found
@@ -4884,7 +4879,7 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(label == 'Create Quick Count' OR label CONTAINS 'Create Quick Count' "
-                + "OR label == 'Quick Count' OR label CONTAINS 'Quick Count') AND visible == true"
+                + "OR label == 'Quick Count' OR label CONTAINS 'Quick Count')"
             ));
             boolean found = !elements.isEmpty();
             System.out.println(found
@@ -4904,7 +4899,6 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(label CONTAINS 'Photo Walkthrough' OR label CONTAINS 'Create Photo Walkthrough') "
-                + "AND visible == true"
             ));
             if (!elements.isEmpty()) {
                 String type = elements.get(0).getAttribute("type");
@@ -4916,7 +4910,7 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> menuItems = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeMenuItem' "
-                + "OR type == 'XCUIElementTypeStaticText') AND visible == true "
+                + "OR type == 'XCUIElementTypeStaticText') "
                 + "AND (label CONTAINS 'New Asset' OR label CONTAINS 'Link Existing' "
                 + "OR label CONTAINS 'Quick Count' OR label CONTAINS 'Photo')"
             ));
@@ -4954,7 +4948,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Tap the cell containing "Photo Walkthrough"
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             for (WebElement cell : cells) {
                 List<WebElement> children = cell.findElements(AppiumBy.iOSNsPredicateString(
@@ -4971,7 +4965,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 3: Broad search
         try {
             WebElement el = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label CONTAINS 'Photo Walkthrough' AND visible == true"
+                "label CONTAINS 'Photo Walkthrough'"
             ));
             el.click();
             System.out.println("✅ Tapped Photo Walkthrough (broad)");
@@ -5154,13 +5148,13 @@ public class WorkOrderPage extends BasePage {
         try {
             // Find the title element — search any visible element type for popup compatibility
             List<WebElement> titleElements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "label CONTAINS '" + optionTitle + "' AND visible == true"
+                "label CONTAINS '" + optionTitle + "'"
             ));
             // If full title not found, try shorter version (e.g., "Create New Asset" → "New Asset")
             if (titleElements.isEmpty() && optionTitle.startsWith("Create ")) {
                 String shortTitle = optionTitle.substring("Create ".length());
                 titleElements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "label CONTAINS '" + shortTitle + "' AND visible == true"
+                    "label CONTAINS '" + shortTitle + "'"
                 ));
                 System.out.println("  Trying shorter label '" + shortTitle + "': " + titleElements.size() + " found");
             }
@@ -5178,7 +5172,7 @@ public class WorkOrderPage extends BasePage {
 
             // Find description text near the title (just below, within 40px Y)
             List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true"
+                "type == 'XCUIElementTypeStaticText'"
             ));
             for (WebElement text : allTexts) {
                 String label = text.getAttribute("label");
@@ -5196,7 +5190,7 @@ public class WorkOrderPage extends BasePage {
             // Check for icon (image element to the left of or near the title)
             try {
                 List<WebElement> images = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeImage' AND visible == true"
+                    "type == 'XCUIElementTypeImage'"
                 ));
                 for (WebElement img : images) {
                     int imgY = img.getLocation().getY();
@@ -5213,7 +5207,6 @@ public class WorkOrderPage extends BasePage {
                     // Check for SF Symbol or colored icon in Other elements
                     List<WebElement> others = driver.findElements(AppiumBy.iOSNsPredicateString(
                         "(type == 'XCUIElementTypeOther' OR type == 'XCUIElementTypeButton') "
-                        + "AND visible == true"
                     ));
                     for (WebElement other : others) {
                         int otherY = other.getLocation().getY();
@@ -5263,7 +5256,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Tap the cell containing "Create New Asset"
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             for (WebElement cell : cells) {
                 List<WebElement> children = cell.findElements(AppiumBy.iOSNsPredicateString(
@@ -5280,7 +5273,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 3: Broad search
         try {
             WebElement el = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label CONTAINS 'Create New Asset' AND visible == true"
+                "label CONTAINS 'Create New Asset'"
             ));
             el.click();
             System.out.println("✅ Tapped Create New Asset (broad)");
@@ -5319,7 +5312,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Tap the cell containing "Create Quick Count"
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             for (WebElement cell : cells) {
                 List<WebElement> children = cell.findElements(AppiumBy.iOSNsPredicateString(
@@ -5336,7 +5329,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 3: Broad search
         try {
             WebElement el = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label CONTAINS 'Quick Count' AND visible == true"
+                "label CONTAINS 'Quick Count'"
             ));
             el.click();
             System.out.println("✅ Tapped Quick Count (broad)");
@@ -5484,7 +5477,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Getting Quick Count helper text...");
         try {
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true"
+                "type == 'XCUIElementTypeStaticText'"
             ));
             for (WebElement text : texts) {
                 String label = text.getAttribute("label");
@@ -5521,7 +5514,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Any tappable element with "Add Asset Type" text
         try {
             List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "label CONTAINS 'Add Asset Type' AND visible == true"
+                "label CONTAINS 'Add Asset Type'"
             ));
             if (!found.isEmpty()) {
                 System.out.println("✅ Add Asset Type element found (broad)");
@@ -5578,7 +5571,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Find ALL "Add Asset Type" elements, pick bottom-most (Y > 600)
         try {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "label CONTAINS 'Add Asset Type' AND visible == true"
+                "label CONTAINS 'Add Asset Type'"
             ));
             WebElement bottomElement = null;
             int maxY = 0;
@@ -5748,7 +5741,7 @@ public class WorkOrderPage extends BasePage {
         if (types.size() < 5) {
             try {
                 List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND visible == true"
+                    "type == 'XCUIElementTypeStaticText'"
                 ));
                 for (WebElement text : allTexts) {
                     String label = text.getAttribute("label");
@@ -5792,7 +5785,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Cell containing the type name
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             for (WebElement cell : cells) {
                 List<WebElement> children = cell.findElements(AppiumBy.iOSNsPredicateString(
@@ -5815,7 +5808,7 @@ public class WorkOrderPage extends BasePage {
             try { Thread.sleep(300); } catch (InterruptedException ie) { /* */ }
 
             List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "label == '" + typeName + "' AND visible == true"
+                "label == '" + typeName + "'"
             ));
             if (!found.isEmpty()) {
                 found.get(0).click();
@@ -5887,7 +5880,7 @@ public class WorkOrderPage extends BasePage {
 
         try {
             List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true"
+                "type == 'XCUIElementTypeStaticText'"
             ));
             for (WebElement text : allTexts) {
                 String label = text.getAttribute("label");
@@ -5907,7 +5900,7 @@ public class WorkOrderPage extends BasePage {
         if (subtypes.isEmpty()) {
             try {
                 List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND visible == true"
+                    "type == 'XCUIElementTypeButton'"
                 ));
                 for (WebElement btn : buttons) {
                     String label = btn.getAttribute("label");
@@ -5974,7 +5967,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Getting Quick Count location breadcrumb...");
         try {
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true"
+                "type == 'XCUIElementTypeStaticText'"
             ));
             for (WebElement text : texts) {
                 String label = text.getAttribute("label");
@@ -6034,7 +6027,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 3: Broad search at bottom of screen
         try {
             List<WebElement> all = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "label CONTAINS 'Skip' AND visible == true"
+                "label CONTAINS 'Skip'"
             ));
             for (WebElement el : all) {
                 int y = el.getLocation().getY();
@@ -6104,7 +6097,7 @@ public class WorkOrderPage extends BasePage {
             try { Thread.sleep(300); } catch (InterruptedException ie) { /* */ }
 
             List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "label CONTAINS '" + subtypeName.substring(0, 15) + "' AND visible == true"
+                "label CONTAINS '" + subtypeName.substring(0, 15) + "'"
             ));
             if (!found.isEmpty()) {
                 found.get(0).click();
@@ -6148,7 +6141,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Look for cell containing the type name
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             for (WebElement cell : cells) {
                 List<WebElement> children = cell.findElements(AppiumBy.iOSNsPredicateString(
@@ -6193,7 +6186,7 @@ public class WorkOrderPage extends BasePage {
 
             // Find numeric text near the type label (within 50px Y band)
             List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true"
+                "type == 'XCUIElementTypeStaticText'"
             ));
             for (WebElement text : allTexts) {
                 String label = text.getAttribute("label");
@@ -6236,7 +6229,7 @@ public class WorkOrderPage extends BasePage {
 
             // Find text just below the type name (subtype is below, within 20-60px)
             List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true"
+                "type == 'XCUIElementTypeStaticText'"
             ));
             for (WebElement text : allTexts) {
                 String label = text.getAttribute("label");
@@ -6293,7 +6286,7 @@ public class WorkOrderPage extends BasePage {
 
             // Strategy 2: Find any button with "+" text near type row
             List<WebElement> allBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND visible == true"
+                "type == 'XCUIElementTypeButton'"
             ));
             for (WebElement btn : allBtns) {
                 String label = btn.getAttribute("label");
@@ -6310,7 +6303,7 @@ public class WorkOrderPage extends BasePage {
 
             // Strategy 3: Use stepper if iOS renders it as a stepper control
             List<WebElement> steppers = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStepper' AND visible == true"
+                "type == 'XCUIElementTypeStepper'"
             ));
             for (WebElement stepper : steppers) {
                 int y = stepper.getLocation().getY();
@@ -6379,7 +6372,7 @@ public class WorkOrderPage extends BasePage {
 
             // Strategy 2: Broad button search
             List<WebElement> allBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND visible == true"
+                "type == 'XCUIElementTypeButton'"
             ));
             for (WebElement btn : allBtns) {
                 String label = btn.getAttribute("label");
@@ -6396,7 +6389,7 @@ public class WorkOrderPage extends BasePage {
 
             // Strategy 3: Stepper — tap the left half (- side)
             List<WebElement> steppers = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStepper' AND visible == true"
+                "type == 'XCUIElementTypeStepper'"
             ));
             for (WebElement stepper : steppers) {
                 int y = stepper.getLocation().getY();
@@ -6477,7 +6470,7 @@ public class WorkOrderPage extends BasePage {
 
             // Strategy 3: Small button on the right side of the type row
             List<WebElement> allBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND visible == true"
+                "type == 'XCUIElementTypeButton'"
             ));
             org.openqa.selenium.Dimension screenSize = driver.manage().window().getSize();
             int rightThreshold = screenSize.width * 3 / 4; // Right 25% of screen
@@ -6515,7 +6508,7 @@ public class WorkOrderPage extends BasePage {
 
             // An expanded card shows "Photosets" or "Add Photoset" below the type name
             List<WebElement> expandedContent = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label CONTAINS 'Photoset' OR label CONTAINS 'photoset')"
             ));
             for (WebElement el : expandedContent) {
@@ -6691,7 +6684,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 3: Broad search
         try {
             WebElement el = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label CONTAINS 'Add Photoset' AND visible == true"
+                "label CONTAINS 'Add Photoset'"
             ));
             el.click();
             System.out.println("✅ Tapped Add Photoset (broad)");
@@ -7015,7 +7008,7 @@ public class WorkOrderPage extends BasePage {
         // Fallback: any element with "Next" label
         try {
             List<WebElement> nextEls = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "label == 'Next' AND visible == true"
+                "label == 'Next'"
             ));
             if (!nextEls.isEmpty()) {
                 nextEls.get(0).click();
@@ -7179,7 +7172,7 @@ public class WorkOrderPage extends BasePage {
         try {
             // Strategy 1: Look for options in a picker/list/sheet
             List<WebElement> optionElements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label == 'Disconnect Switch' OR label == 'Fuse' "
                 + "OR label == 'MCC Bucket' OR label CONTAINS 'Other' "
                 + "OR label == 'Relay')"
@@ -7200,7 +7193,6 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton') "
-                + "AND visible == true"
             ));
             for (WebElement el : allTexts) {
                 String label = el.getAttribute("label");
@@ -7374,7 +7366,7 @@ public class WorkOrderPage extends BasePage {
         try {
             // Gather all visible static texts in the dropdown/picker area
             List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true"
+                "type == 'XCUIElementTypeStaticText'"
             ));
 
             // Filter to likely option labels (Y > 200, not UI chrome)
@@ -7975,7 +7967,7 @@ public class WorkOrderPage extends BasePage {
 
         try {
             List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true"
+                "type == 'XCUIElementTypeStaticText'"
             ));
             for (WebElement el : allTexts) {
                 String label = el.getAttribute("label");
@@ -8372,7 +8364,7 @@ public class WorkOrderPage extends BasePage {
         // Broad fallback
         try {
             WebElement el = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label CONTAINS 'Gallery' AND visible == true"
+                "label CONTAINS 'Gallery'"
             ));
             el.click();
             System.out.println("✅ Tapped Gallery (broad)");
@@ -8404,7 +8396,7 @@ public class WorkOrderPage extends BasePage {
 
         try {
             WebElement el = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label CONTAINS 'Camera' AND visible == true"
+                "label CONTAINS 'Camera'"
             ));
             el.click();
             System.out.println("✅ Tapped Camera (broad)");
@@ -8543,7 +8535,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Text containing "All" and "photoset"
         try {
             List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true"
+                "type == 'XCUIElementTypeStaticText'"
             ));
             for (WebElement text : allTexts) {
                 String label = text.getAttribute("label");
@@ -8622,7 +8614,7 @@ public class WorkOrderPage extends BasePage {
 
             // Strategy 2: Small button on right side of the entry row
             List<WebElement> allBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND visible == true"
+                "type == 'XCUIElementTypeButton'"
             ));
             org.openqa.selenium.Dimension screenSize = driver.manage().window().getSize();
             for (WebElement btn : allBtns) {
@@ -8683,7 +8675,7 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> countTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND "
-                + "label CONTAINS 'asset' AND visible == true"
+                + "label CONTAINS 'asset'"
             ));
             for (WebElement text : countTexts) {
                 String label = text.getAttribute("label");
@@ -8707,7 +8699,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Getting Quick Count summary text...");
         try {
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true"
+                "type == 'XCUIElementTypeStaticText'"
             ));
             for (WebElement text : texts) {
                 String label = text.getAttribute("label");
@@ -8827,7 +8819,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Activity indicator (spinner)
         try {
             List<WebElement> spinners = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeActivityIndicator' AND visible == true"
+                "type == 'XCUIElementTypeActivityIndicator'"
             ));
             if (!spinners.isEmpty()) {
                 System.out.println("✅ Activity indicator/spinner found");
@@ -8838,7 +8830,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 3: Progress-related text patterns
         try {
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label CONTAINS ' of ' OR label CONTAINS 'Progress')"
             ));
             for (WebElement text : texts) {
@@ -8862,7 +8854,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Getting creation progress text...");
         try {
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label CONTAINS 'Creating' OR label CONTAINS 'creating')"
             ));
             if (!texts.isEmpty()) {
@@ -8957,7 +8949,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Getting success dialog text...");
         try {
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label CONTAINS 'Successfully' OR label CONTAINS 'created')"
             ));
             if (!texts.isEmpty()) {
@@ -8993,7 +8985,6 @@ public class WorkOrderPage extends BasePage {
             List<WebElement> btns = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND "
                 + "(label == 'OK' OR label == 'Done' OR label == 'Dismiss') "
-                + "AND visible == true"
             ));
             if (!btns.isEmpty()) {
                 btns.get(0).click();
@@ -9037,7 +9028,7 @@ public class WorkOrderPage extends BasePage {
                     // Verify we're NOT on Add Assets screen by checking for "Existing Asset" tab
                     List<WebElement> existingTab = driver.findElements(
                         AppiumBy.iOSNsPredicateString(
-                            "label CONTAINS 'Existing Asset' AND visible == true"
+                            "label CONTAINS 'Existing Asset'"
                         ));
                     if (existingTab.isEmpty()) {
                         System.out.println("✅ New Asset form detected (title)");
@@ -9149,7 +9140,7 @@ public class WorkOrderPage extends BasePage {
         // Fallback: look for thermal/IR related content
         try {
             List<WebElement> irContent = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label CONTAINS 'FLIR' OR label CONTAINS 'Thermal' "
                 + "OR label CONTAINS 'infrared' OR label CONTAINS 'Type: ')"
             ));
@@ -9306,7 +9297,7 @@ public class WorkOrderPage extends BasePage {
             if (!labels.isEmpty()) {
                 int labelY = labels.get(0).getLocation().getY();
                 List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND visible == true"
+                    "type == 'XCUIElementTypeStaticText'"
                 ));
                 for (WebElement text : allTexts) {
                     int textY = text.getLocation().getY();
@@ -9415,7 +9406,7 @@ public class WorkOrderPage extends BasePage {
 
                 // Find job-related text below the IR header
                 List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND visible == true"
+                    "type == 'XCUIElementTypeStaticText'"
                 ));
                 for (WebElement text : allTexts) {
                     String label = text.getAttribute("label");
@@ -9433,7 +9424,7 @@ public class WorkOrderPage extends BasePage {
         // Fallback: look for any text with "Job" or "Work Order" in the lower form area
         try {
             List<WebElement> jobTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label CONTAINS 'Job' OR label CONTAINS 'Work Order')"
             ));
             for (WebElement text : jobTexts) {
@@ -9460,7 +9451,7 @@ public class WorkOrderPage extends BasePage {
         try {
             // Look for "Type:" text in the form
             List<WebElement> typeLabels = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label BEGINSWITH 'Type:' OR label BEGINSWITH 'Type :' "
                 + "OR label CONTAINS 'Type: ')"
             ));
@@ -9480,7 +9471,7 @@ public class WorkOrderPage extends BasePage {
             if (!irHeader.isEmpty()) {
                 int headerY = irHeader.get(0).getLocation().getY();
                 List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND visible == true "
+                    "type == 'XCUIElementTypeStaticText' "
                     + "AND (label CONTAINS 'FLIR' OR label CONTAINS 'FLUKE' "
                     + "OR label CONTAINS 'FOTRIC')"
                 ));
@@ -9581,7 +9572,7 @@ public class WorkOrderPage extends BasePage {
                 // Find text fields below the IR header
                 List<WebElement> fields = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeTextView' "
-                    + "OR type == 'XCUIElementTypeStaticText') AND visible == true"
+                    + "OR type == 'XCUIElementTypeStaticText')"
                 ));
                 for (WebElement field : fields) {
                     int fieldY = field.getLocation().getY();
@@ -9621,7 +9612,6 @@ public class WorkOrderPage extends BasePage {
                 // Look for adjacent text field or value
                 List<WebElement> fields = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeTextView') "
-                    + "AND visible == true"
                 ));
                 for (WebElement field : fields) {
                     int fieldY = field.getLocation().getY();
@@ -9643,7 +9633,7 @@ public class WorkOrderPage extends BasePage {
                 }
                 // Fallback: look for static text number near the label
                 List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND visible == true"
+                    "type == 'XCUIElementTypeStaticText'"
                 ));
                 for (WebElement text : allTexts) {
                     int textY = text.getLocation().getY();
@@ -9667,7 +9657,6 @@ public class WorkOrderPage extends BasePage {
                 int headerY = irHeader.get(0).getLocation().getY();
                 List<WebElement> fields = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeTextView') "
-                    + "AND visible == true"
                 ));
                 for (WebElement field : fields) {
                     int fieldY = field.getLocation().getY();
@@ -9739,7 +9728,6 @@ public class WorkOrderPage extends BasePage {
                 int headerY = irHeader.get(0).getLocation().getY();
                 List<WebElement> fields = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeTextView') "
-                    + "AND visible == true"
                 ));
                 int numericFieldCount = 0;
                 for (WebElement field : fields) {
@@ -9777,7 +9765,6 @@ public class WorkOrderPage extends BasePage {
                 int labelY = labels.get(0).getLocation().getY();
                 List<WebElement> fields = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeTextView') "
-                    + "AND visible == true"
                 ));
                 for (WebElement field : fields) {
                     int fieldY = field.getLocation().getY();
@@ -9808,7 +9795,6 @@ public class WorkOrderPage extends BasePage {
                 int headerY = irHeader.get(0).getLocation().getY();
                 List<WebElement> fields = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeTextView') "
-                    + "AND visible == true"
                 ));
                 int numericFieldCount = 0;
                 for (WebElement field : fields) {
@@ -9862,7 +9848,6 @@ public class WorkOrderPage extends BasePage {
             int headerY = irHeader.get(0).getLocation().getY();
             List<WebElement> fields = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeTextView') "
-                + "AND visible == true"
             ));
 
             int targetIndex = isFirst ? 1 : 2;
@@ -9947,7 +9932,6 @@ public class WorkOrderPage extends BasePage {
             int headerY = irHeader.get(0).getLocation().getY();
             List<WebElement> fields = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeTextView') "
-                + "AND visible == true"
             ));
 
             int targetIndex = isFirst ? 1 : 2;
@@ -10117,7 +10101,7 @@ public class WorkOrderPage extends BasePage {
             if (!irHeader.isEmpty()) {
                 int headerY = irHeader.get(0).getLocation().getY();
                 List<WebElement> allBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND visible == true"));
+                    "type == 'XCUIElementTypeButton'"));
                 for (WebElement btn : allBtns) {
                     int btnY = btn.getLocation().getY();
                     if (btnY <= headerY || btnY > headerY + 400) continue;
@@ -10173,7 +10157,7 @@ public class WorkOrderPage extends BasePage {
         try {
             // Count entries that contain "IR:" — each pair has one "IR:" entry
             List<WebElement> irEntries = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label BEGINSWITH 'IR:' OR label BEGINSWITH 'IR :' "
                 + "OR label CONTAINS 'IR: ')"
             ));
@@ -10234,7 +10218,7 @@ public class WorkOrderPage extends BasePage {
         try {
             String searchPrefix = isIR ? "IR:" : "Visual:";
             List<WebElement> entries = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label BEGINSWITH '" + searchPrefix + "' OR label CONTAINS '" + searchPrefix + " ')"
             ));
 
@@ -10299,7 +10283,7 @@ public class WorkOrderPage extends BasePage {
         try {
             // Find IR entries in the New IR Photos section to locate the pair's Y position
             List<WebElement> irEntries = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label BEGINSWITH 'IR:' OR label CONTAINS 'IR: ')"
             ));
 
@@ -10344,7 +10328,7 @@ public class WorkOrderPage extends BasePage {
 
             // Fallback: Look for any button (edit=right-most, delete=left of edit) near pair row
             List<WebElement> allButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND visible == true"
+                "type == 'XCUIElementTypeButton'"
             ));
             java.util.List<WebElement> rowButtons = new java.util.ArrayList<>();
             for (WebElement btn : allButtons) {
@@ -10403,7 +10387,7 @@ public class WorkOrderPage extends BasePage {
         try {
             // Locate the pair's Y position
             List<WebElement> irEntries = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label BEGINSWITH 'IR:' OR label CONTAINS 'IR: ')"
             ));
 
@@ -10451,7 +10435,7 @@ public class WorkOrderPage extends BasePage {
 
             // Strategy 2: Find buttons by position in the row
             List<WebElement> allButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND visible == true"
+                "type == 'XCUIElementTypeButton'"
             ));
             java.util.List<WebElement> rowButtons = new java.util.ArrayList<>();
             for (WebElement btn : allButtons) {
@@ -10509,7 +10493,6 @@ public class WorkOrderPage extends BasePage {
                 // Find buttons/texts just below the header (tab area: header+10 to header+80)
                 List<WebElement> tabElements = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') "
-                    + "AND visible == true"
                 ));
                 for (WebElement el : tabElements) {
                     int elY = el.getLocation().getY();
@@ -10626,7 +10609,7 @@ public class WorkOrderPage extends BasePage {
             if (!noPhotos.isEmpty()) {
                 int textY = noPhotos.get(0).getLocation().getY();
                 List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND visible == true"
+                    "type == 'XCUIElementTypeButton'"
                 ));
                 int photoButtonCount = 0;
                 for (WebElement btn : buttons) {
@@ -10670,7 +10653,7 @@ public class WorkOrderPage extends BasePage {
             if (!noPhotos.isEmpty()) {
                 int textY = noPhotos.get(0).getLocation().getY();
                 List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND visible == true"
+                    "type == 'XCUIElementTypeButton'"
                 ));
                 int photoButtonCount = 0;
                 for (WebElement btn : buttons) {
@@ -10736,7 +10719,6 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> fields = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeTextView') "
-                + "AND visible == true"
             ));
             // Look for "Asset Name" label to find nearby field
             List<WebElement> labels = driver.findElements(AppiumBy.iOSNsPredicateString(
@@ -10892,7 +10874,7 @@ public class WorkOrderPage extends BasePage {
 
         try {
             List<WebElement> indicators = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label CONTAINS 'optimizing' OR label CONTAINS 'Optimizing' "
                 + "OR label CONTAINS 'Screen definition' OR label CONTAINS 'Processing' "
                 + "OR label CONTAINS 'Loading')"
@@ -10906,7 +10888,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Check for activity indicator (spinner)
         try {
             List<WebElement> spinners = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeActivityIndicator' AND visible == true"
+                "type == 'XCUIElementTypeActivityIndicator'"
             ));
             if (!spinners.isEmpty()) {
                 System.out.println("✅ Activity indicator (spinner) found");
@@ -10917,7 +10899,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 3: Check for progress indicator
         try {
             List<WebElement> progress = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeProgressIndicator' AND visible == true"
+                "type == 'XCUIElementTypeProgressIndicator'"
             ));
             if (!progress.isEmpty()) {
                 System.out.println("✅ Progress indicator found");
@@ -10965,7 +10947,7 @@ public class WorkOrderPage extends BasePage {
 
             // Strategy 2: Look for circular buttons in bottom-right area above the + button
             List<WebElement> allButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND visible == true"
+                "type == 'XCUIElementTypeButton'"
             ));
             java.util.List<WebElement> bottomRightButtons = new java.util.ArrayList<>();
             for (WebElement btn : allButtons) {
@@ -11051,7 +11033,7 @@ public class WorkOrderPage extends BasePage {
 
             // Find the floor cell element
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND label CONTAINS '" + floorText.substring(0, Math.min(10, floorText.length())) + "'"
             ));
             if (cells.isEmpty()) return false;
@@ -11060,7 +11042,7 @@ public class WorkOrderPage extends BasePage {
 
             // Look for + button near the floor cell's Y position
             List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND visible == true"
+                "type == 'XCUIElementTypeButton'"
             ));
             for (WebElement btn : buttons) {
                 int btnY = btn.getLocation().getY();
@@ -11150,7 +11132,7 @@ public class WorkOrderPage extends BasePage {
                 int tabX = issuesTabs.get(0).getLocation().getX();
                 // Look for numeric text near the tab
                 List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND visible == true"
+                    "type == 'XCUIElementTypeStaticText'"
                 ));
                 for (WebElement text : allTexts) {
                     String label = text.getAttribute("label");
@@ -11208,7 +11190,7 @@ public class WorkOrderPage extends BasePage {
                     int labelX = labelElements.get(0).getLocation().getX();
                     // Find numeric text near this label (above or beside it)
                     List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeStaticText' AND visible == true"
+                        "type == 'XCUIElementTypeStaticText'"
                     ));
                     for (WebElement text : allTexts) {
                         String textLabel = text.getAttribute("label");
@@ -11262,7 +11244,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 3: Any visible element with "Manage Issues"
         try {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "label CONTAINS 'Manage Issues' AND visible == true"
+                "label CONTAINS 'Manage Issues'"
             ));
             if (!elements.isEmpty()) {
                 System.out.println("✅ Manage Issues found via broad search");
@@ -11304,7 +11286,7 @@ public class WorkOrderPage extends BasePage {
 
         try {
             WebElement element = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label CONTAINS 'Manage Issues' AND visible == true"
+                "label CONTAINS 'Manage Issues'"
             ));
             element.click();
             System.out.println("✅ Tapped Manage Issues (broad)");
@@ -11346,7 +11328,7 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> badges = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND (label == 'Open' OR label == 'In Progress' "
-                + "OR label == 'Resolved' OR label == 'Closed') AND visible == true"
+                + "OR label == 'Resolved' OR label == 'Closed')"
             ));
             // Filter to only badges in the list area (Y > 300)
             int count = 0;
@@ -11378,7 +11360,7 @@ public class WorkOrderPage extends BasePage {
         // Check for issue class tags (NEC, NFPA, OSHA, Repair, Thermal, Ultrasonic)
         try {
             List<WebElement> classTags = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true AND "
+                "type == 'XCUIElementTypeStaticText' AND "
                 + "(label CONTAINS 'NEC' OR label CONTAINS 'NFPA' OR label CONTAINS 'OSHA' "
                 + "OR label CONTAINS 'Repair' OR label CONTAINS 'Thermal' OR label CONTAINS 'Ultrasonic')"
             ));
@@ -11396,7 +11378,7 @@ public class WorkOrderPage extends BasePage {
         // Check for status badges
         try {
             List<WebElement> statusBadges = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true AND "
+                "type == 'XCUIElementTypeStaticText' AND "
                 + "(label == 'Open' OR label == 'In Progress' OR label == 'Resolved' OR label == 'Closed')"
             ));
             for (WebElement badge : statusBadges) {
@@ -11480,7 +11462,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 3: Any small circular button in bottom area
         try {
             List<WebElement> allButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND visible == true"
+                "type == 'XCUIElementTypeButton'"
             ));
             org.openqa.selenium.Dimension screenSize = driver.manage().window().getSize();
             for (WebElement btn : allButtons) {
@@ -11603,7 +11585,6 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> searchFields = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeSearchField' OR type == 'XCUIElementTypeTextField') "
-                + "AND visible == true"
             ));
             if (!searchFields.isEmpty()) {
                 System.out.println("✅ Search bar found on Link Issues");
@@ -12180,7 +12161,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 3: Broad search for "Update"
         try {
             WebElement element = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label == 'Update' AND visible == true"
+                "label == 'Update'"
             ));
             element.click();
             System.out.println("✅ Tapped Update (broad search)");
@@ -12236,7 +12217,6 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> fields = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeSearchField' OR type == 'XCUIElementTypeTextField') "
-                + "AND visible == true"
             ));
             for (WebElement field : fields) {
                 try {
@@ -12352,7 +12332,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 3: Broad search for any element containing "My Session"
         try {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "label CONTAINS 'My Session' AND visible == true"
+                "label CONTAINS 'My Session'"
             ));
             if (!elements.isEmpty()) {
                 System.out.println("✅ My Session filter found (broad search)");
@@ -12400,7 +12380,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 3: Broad search
         try {
             WebElement element = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label CONTAINS 'My Session' AND visible == true"
+                "label CONTAINS 'My Session'"
             ));
             element.click();
             System.out.println("✅ Tapped My Session filter (broad)");
@@ -12441,7 +12421,7 @@ public class WorkOrderPage extends BasePage {
                 int elY = sessionEl.getLocation().getY();
                 int elX = sessionEl.getLocation().getX();
                 List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND visible == true"
+                    "type == 'XCUIElementTypeStaticText'"
                 ));
                 for (WebElement text : allTexts) {
                     String label = text.getAttribute("label");
@@ -12528,7 +12508,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 3: Image/icon with camera or photo name near filter tabs area
         try {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "label CONTAINS 'With Photos' AND visible == true"
+                "label CONTAINS 'With Photos'"
             ));
             if (!elements.isEmpty()) {
                 System.out.println("✅ With Photos filter found (broad search)");
@@ -12576,7 +12556,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 3: Broad search
         try {
             WebElement element = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label CONTAINS 'With Photos' AND visible == true"
+                "label CONTAINS 'With Photos'"
             ));
             element.click();
             System.out.println("✅ Tapped With Photos filter (broad)");
@@ -12625,7 +12605,7 @@ public class WorkOrderPage extends BasePage {
                 int elX = photosEl.getLocation().getX();
 
                 List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND visible == true"
+                    "type == 'XCUIElementTypeStaticText'"
                 ));
                 for (WebElement text : allTexts) {
                     String label = text.getAttribute("label");
@@ -12732,7 +12712,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 3: Broad search
         try {
             WebElement element = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(label CONTAINS 'Show All' OR label CONTAINS 'See All') AND visible == true"
+                "(label CONTAINS 'Show All' OR label CONTAINS 'See All')"
             ));
             element.click();
             System.out.println("✅ Tapped Show All (broad search)");
@@ -12892,7 +12872,7 @@ public class WorkOrderPage extends BasePage {
         // Fallback: Search all visible texts for class tags in the list area
         try {
             List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true"
+                "type == 'XCUIElementTypeStaticText'"
             ));
             int matchCount = 0;
             for (WebElement text : allTexts) {
@@ -12926,7 +12906,7 @@ public class WorkOrderPage extends BasePage {
 
         try {
             List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label CONTAINS 'NEC' OR label CONTAINS 'NFPA' OR label CONTAINS 'OSHA' "
                 + "OR label CONTAINS 'Repair' OR label CONTAINS 'Thermal' "
                 + "OR label CONTAINS 'Ultrasonic')"
@@ -13050,7 +13030,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Look for text containing 📍 emoji in list area
         try {
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true AND label CONTAINS '📍'"
+                "type == 'XCUIElementTypeStaticText' AND label CONTAINS '📍'"
             ));
             for (WebElement text : texts) {
                 int y = text.getLocation().getY();
@@ -13250,7 +13230,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 3: Small circular button in bottom-right area
         try {
             List<WebElement> allButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND visible == true"
+                "type == 'XCUIElementTypeButton'"
             ));
             org.openqa.selenium.Dimension screenSize = driver.manage().window().getSize();
             for (WebElement btn : allButtons) {
@@ -13301,7 +13281,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Look for any element containing "Linked to" near the top (Y < 250)
         try {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label CONTAINS 'Linked to' OR label CONTAINS 'linked to')"
             ));
             for (WebElement el : elements) {
@@ -13349,7 +13329,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 1: Find text with "Linked to active session" and extract session name
         try {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label CONTAINS 'Linked to active session' OR label CONTAINS 'Linked to active')"
             ));
             if (!elements.isEmpty()) {
@@ -13371,7 +13351,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Look for "Job -" text near the top (session name format)
         try {
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label CONTAINS 'Job -' OR label CONTAINS 'Job —')"
             ));
             for (WebElement text : texts) {
@@ -13387,7 +13367,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 3: Find all texts in the banner area and look for date-containing text
         try {
             List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true"
+                "type == 'XCUIElementTypeStaticText'"
             ));
             for (WebElement text : allTexts) {
                 int y = text.getLocation().getY();
@@ -13683,7 +13663,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Static text near "Job name" label that contains date
         try {
             List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true"
+                "type == 'XCUIElementTypeStaticText'"
             ));
             for (WebElement text : allTexts) {
                 String label = text.getAttribute("label");
@@ -13902,7 +13882,7 @@ public class WorkOrderPage extends BasePage {
             if (!photoLabels.isEmpty()) {
                 int labelY = photoLabels.get(0).getLocation().getY();
                 List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND visible == true"
+                    "type == 'XCUIElementTypeStaticText'"
                 ));
                 for (WebElement text : allTexts) {
                     String label = text.getAttribute("label");
@@ -13921,7 +13901,7 @@ public class WorkOrderPage extends BasePage {
         try {
             String[] photoTypes = {"FLIR-SEP", "FLIR-IND", "FLUKE", "FOTRIC"};
             List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label CONTAINS 'FLIR' OR label CONTAINS 'FLUKE' "
                 + "OR label CONTAINS 'FOTRIC')"
             ));
@@ -13991,7 +13971,7 @@ public class WorkOrderPage extends BasePage {
                 // Look for tappable element to the right of the label on the same row
                 List<WebElement> nearby = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeCell' "
-                    + "OR type == 'XCUIElementTypeOther') AND visible == true"
+                    + "OR type == 'XCUIElementTypeOther')"
                 ));
                 for (WebElement el : nearby) {
                     int elY = el.getLocation().getY();
@@ -14027,7 +14007,7 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton') "
-                + "AND visible == true AND (label CONTAINS 'FLIR' OR label CONTAINS 'FLUKE' "
+                + "AND (label CONTAINS 'FLIR' OR label CONTAINS 'FLUKE' "
                 + "OR label CONTAINS 'FOTRIC')"
             ));
             for (WebElement text : allTexts) {
@@ -14087,7 +14067,7 @@ public class WorkOrderPage extends BasePage {
         if (options.isEmpty()) {
             try {
                 List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeCell' AND visible == true"
+                    "type == 'XCUIElementTypeCell'"
                 ));
                 for (WebElement cell : cells) {
                     List<WebElement> childTexts = cell.findElements(AppiumBy.iOSNsPredicateString(
@@ -14139,7 +14119,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Cell containing the Photo Type text
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             for (WebElement cell : cells) {
                 List<WebElement> texts = cell.findElements(AppiumBy.iOSNsPredicateString(
@@ -14156,7 +14136,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 3: Broad search for any element with the Photo Type label
         try {
             WebElement element = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label CONTAINS '" + photoType + "' AND visible == true"
+                "label CONTAINS '" + photoType + "'"
             ));
             element.click();
             System.out.println("✅ Selected Photo Type (broad): " + photoType);
@@ -14247,7 +14227,7 @@ public class WorkOrderPage extends BasePage {
             int visibleCount = 0;
             List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton') "
-                + "AND visible == true AND (label CONTAINS 'FLIR' OR label CONTAINS 'FLUKE' "
+                + "AND (label CONTAINS 'FLIR' OR label CONTAINS 'FLUKE' "
                 + "OR label CONTAINS 'FOTRIC')"
             ));
             java.util.Set<String> found = new java.util.HashSet<>();
@@ -14283,7 +14263,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 1: Look for text containing key phrases from the info message
         try {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label CONTAINS 'remain active' OR label CONTAINS 'explicitly close' "
                 + "OR label CONTAINS 'associated with this job' "
                 + "OR label CONTAINS 'IR photos' OR label CONTAINS 'issues and tasks')"
@@ -14297,7 +14277,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Look for longer text elements in the form area (info texts are usually multi-line)
         try {
             List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true"
+                "type == 'XCUIElementTypeStaticText'"
             ));
             for (WebElement text : allTexts) {
                 String label = text.getAttribute("label");
@@ -14312,7 +14292,7 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> textViews = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeTextView' OR type == 'XCUIElementTypeOther') "
-                + "AND visible == true AND (label CONTAINS 'active' OR label CONTAINS 'job' "
+                + "AND (label CONTAINS 'active' OR label CONTAINS 'job' "
                 + "OR value CONTAINS 'active' OR value CONTAINS 'job')"
             ));
             for (WebElement tv : textViews) {
@@ -14339,7 +14319,7 @@ public class WorkOrderPage extends BasePage {
 
         try {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label CONTAINS 'remain active' OR label CONTAINS 'explicitly close' "
                 + "OR label CONTAINS 'associated with this job' "
                 + "OR label CONTAINS 'IR photos')"
@@ -14354,7 +14334,7 @@ public class WorkOrderPage extends BasePage {
         // Fallback: look for long text about job behavior
         try {
             List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true"
+                "type == 'XCUIElementTypeStaticText'"
             ));
             for (WebElement text : allTexts) {
                 String label = text.getAttribute("label");
@@ -14453,7 +14433,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Nav bar button on the right side
         try {
             List<WebElement> navBarButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND visible == true"
+                "type == 'XCUIElementTypeButton'"
             ));
             org.openqa.selenium.Dimension screenSize = driver.manage().window().getSize();
             for (WebElement btn : navBarButtons) {
@@ -14576,7 +14556,7 @@ public class WorkOrderPage extends BasePage {
         try {
             // Look for image elements that are NOT the camera icon placeholder
             List<WebElement> images = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeImage' AND visible == true"
+                "type == 'XCUIElementTypeImage'"
             ));
             // Filter: thumbnails are typically below the heading area (Y > 200) and have reasonable size
             for (WebElement img : images) {
@@ -14629,7 +14609,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Any small button near a thumbnail
         try {
             List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND visible == true"
+                "type == 'XCUIElementTypeButton'"
             ));
             for (WebElement btn : buttons) {
                 int y = btn.getLocation().getY();
@@ -14792,7 +14772,7 @@ public class WorkOrderPage extends BasePage {
             // Look for buttons/cells in a popover or list
             List<WebElement> items = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' "
-                + "OR type == 'XCUIElementTypeCell') AND visible == true AND label != ''"
+                + "OR type == 'XCUIElementTypeCell') AND label != ''"
             ));
 
             java.util.Set<String> exclude = new java.util.HashSet<>(java.util.Arrays.asList(
@@ -15461,7 +15441,7 @@ public class WorkOrderPage extends BasePage {
             // Look for a large number near "Asset Captured" text
             // The number is typically a standalone static text with just digits
             List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true"
+                "type == 'XCUIElementTypeStaticText'"
             ));
             // Find "Asset Captured" text position, then find the number nearby (above it)
             int capturedY = -1;
@@ -15489,7 +15469,7 @@ public class WorkOrderPage extends BasePage {
         // Fallback: just find any standalone digit text in the upper portion
         try {
             List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true"
+                "type == 'XCUIElementTypeStaticText'"
             ));
             for (WebElement el : allTexts) {
                 String label = el.getAttribute("label");
@@ -15703,7 +15683,7 @@ public class WorkOrderPage extends BasePage {
             // Look for cells or text elements that represent asset entries
             // Typically formatted like "MCC 1 (1 photos)" or similar
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             if (!cells.isEmpty()) {
                 for (WebElement cell : cells) {
@@ -15730,7 +15710,7 @@ public class WorkOrderPage extends BasePage {
             // Fallback: look for text elements with photo count patterns
             if (entries.isEmpty()) {
                 List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND visible == true "
+                    "type == 'XCUIElementTypeStaticText' "
                     + "AND (label CONTAINS 'photo' OR label CONTAINS 'Photo')"
                 ));
                 for (WebElement text : texts) {
@@ -15756,7 +15736,7 @@ public class WorkOrderPage extends BasePage {
         try {
             // Look for OCPD-related text (Fuse, Disconnect Switch, etc.) in the list
             List<WebElement> ocpdTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true AND "
+                "type == 'XCUIElementTypeStaticText' AND "
                 + "(label CONTAINS 'Fuse' OR label CONTAINS 'Disconnect' "
                 + "OR label CONTAINS 'Relay' OR label CONTAINS 'MCC Bucket' "
                 + "OR label CONTAINS 'Other (OCP)')"
@@ -15770,7 +15750,7 @@ public class WorkOrderPage extends BasePage {
         // Fallback: look for indented/nested items (by X position — OCPD children have larger X)
         try {
             List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND label CONTAINS 'photo'"
             ));
             // If we have 2+ entries with different X positions, child is indented
@@ -15799,7 +15779,7 @@ public class WorkOrderPage extends BasePage {
 
         try {
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true AND "
+                "type == 'XCUIElementTypeStaticText' AND "
                 + "(label CONTAINS 'asset' OR label CONTAINS 'Asset')"
             ));
             for (WebElement el : texts) {
@@ -15813,7 +15793,7 @@ public class WorkOrderPage extends BasePage {
 
         try {
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true AND "
+                "type == 'XCUIElementTypeStaticText' AND "
                 + "(label CONTAINS 'photo' OR label CONTAINS 'Photo')"
             ));
             for (WebElement el : texts) {
@@ -15971,7 +15951,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Activity indicator + creating-related text
         try {
             boolean hasSpinner = !driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeActivityIndicator' AND visible == true"
+                "type == 'XCUIElementTypeActivityIndicator'"
             )).isEmpty();
             if (hasSpinner) {
                 System.out.println("✅ Creating screen detected (spinner)");
@@ -15991,7 +15971,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Getting creation progress count...");
         try {
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND label CONTAINS ' of '"
             ));
             for (WebElement text : texts) {
@@ -16023,7 +16003,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 1: "Created X assets with X photos"
         try {
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true AND "
+                "type == 'XCUIElementTypeStaticText' AND "
                 + "(label CONTAINS 'Created' AND label CONTAINS 'photo')"
             ));
             if (!texts.isEmpty()) {
@@ -16036,7 +16016,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Any text with "Created" + "assets"
         try {
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true AND "
+                "type == 'XCUIElementTypeStaticText' AND "
                 + "(label CONTAINS 'Created' AND label CONTAINS 'asset')"
             ));
             if (!texts.isEmpty()) {
@@ -16114,7 +16094,7 @@ public class WorkOrderPage extends BasePage {
         try {
             // Strategy 1: Exact or contains match on visible static texts
             List<WebElement> matches = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true AND "
+                "type == 'XCUIElementTypeStaticText' AND "
                 + "(label == '" + assetName + "' OR label CONTAINS '" + assetName + "')"
             ));
             for (WebElement el : matches) {
@@ -16130,7 +16110,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Search within cells
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             for (WebElement cell : cells) {
                 int y = cell.getLocation().getY();
@@ -16331,7 +16311,7 @@ public class WorkOrderPage extends BasePage {
 
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
 
             // Filter to content cells
@@ -16407,7 +16387,7 @@ public class WorkOrderPage extends BasePage {
 
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
 
             java.util.List<WebElement> contentCells = new java.util.ArrayList<>();
@@ -16594,7 +16574,6 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> fields = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeSearchField' OR type == 'XCUIElementTypeTextField') "
-                + "AND visible == true"
             ));
             for (WebElement field : fields) {
                 try {
@@ -16964,7 +16943,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Look for "Already in session" or "Linked" indicator text near the asset
         try {
             List<WebElement> entries = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             java.util.List<WebElement> assetCells = new java.util.ArrayList<>();
             for (WebElement cell : entries) {
@@ -16999,7 +16978,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 3: Check if asset is disabled/not tappable (grayed out)
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             java.util.List<WebElement> validCells = new java.util.ArrayList<>();
             for (WebElement cell : cells) {
@@ -17068,7 +17047,7 @@ public class WorkOrderPage extends BasePage {
         // Fallback: look near the Infrared Photos section
         try {
             List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND label CONTAINS 'Only'"
             ));
             for (WebElement text : allTexts) {
@@ -17107,7 +17086,7 @@ public class WorkOrderPage extends BasePage {
         // Fallback: look for visual photo note with FLIR-IND context
         try {
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label CONTAINS 'Visual Photo' OR label CONTAINS 'visual photo')"
             ));
             for (WebElement text : texts) {
@@ -17171,7 +17150,7 @@ public class WorkOrderPage extends BasePage {
 
                 // Get all text elements below the section header
                 List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND visible == true"
+                    "type == 'XCUIElementTypeStaticText'"
                 ));
 
                 java.util.List<WebElement> pairTexts = new java.util.ArrayList<>();
@@ -17246,7 +17225,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 3: Look for signal/broadcast icon near "Active" text
         try {
             List<WebElement> activeTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label CONTAINS 'Active' OR label CONTAINS 'active')"
             ));
             for (WebElement text : activeTexts) {
@@ -17282,7 +17261,7 @@ public class WorkOrderPage extends BasePage {
 
                 // Look for the job name text near the Active Job label
                 List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND visible == true"
+                    "type == 'XCUIElementTypeStaticText'"
                 ));
 
                 for (WebElement text : texts) {
@@ -17306,7 +17285,7 @@ public class WorkOrderPage extends BasePage {
         // Fallback: look for "Job -" or "Work Order -" pattern
         try {
             List<WebElement> jobTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label BEGINSWITH 'Job' OR label CONTAINS 'Job -' OR label BEGINSWITH 'Work Order' OR label CONTAINS 'Work Order -')"
             ));
             for (WebElement text : jobTexts) {
@@ -17442,7 +17421,7 @@ public class WorkOrderPage extends BasePage {
 
         try {
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label CONTAINS 'Clear' OR label CONTAINS 'Deactivate' "
                 + "OR label CONTAINS 'End')"
             ));
@@ -17470,7 +17449,7 @@ public class WorkOrderPage extends BasePage {
 
         try {
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label CONTAINS 'Are you sure' OR label CONTAINS 'are you sure' "
                 + "OR label CONTAINS 'want to clear' OR label CONTAINS 'active job')"
             ));
@@ -17484,7 +17463,7 @@ public class WorkOrderPage extends BasePage {
         // Fallback: look for long text that isn't the title
         try {
             List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true"
+                "type == 'XCUIElementTypeStaticText'"
             ));
             for (WebElement text : allTexts) {
                 String label = text.getAttribute("label");
@@ -17681,7 +17660,7 @@ public class WorkOrderPage extends BasePage {
 
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
 
             int count = 0;
@@ -17738,7 +17717,7 @@ public class WorkOrderPage extends BasePage {
 
         try {
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label CONTAINS 'Get started' OR label CONTAINS 'linking' "
                 + "OR label CONTAINS 'creating new')"
             ));
@@ -17758,7 +17737,7 @@ public class WorkOrderPage extends BasePage {
             if (!noTasks.isEmpty()) {
                 int headingY = noTasks.get(0).getLocation().getY();
                 List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND visible == true"
+                    "type == 'XCUIElementTypeStaticText'"
                 ));
                 for (WebElement text : allTexts) {
                     int y = text.getLocation().getY();
@@ -18028,7 +18007,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Counting tasks in Link Tasks list...");
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             int count = 0;
             for (WebElement cell : cells) {
@@ -18053,7 +18032,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Getting task name at index " + index + "...");
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             java.util.List<WebElement> taskCells = new java.util.ArrayList<>();
             for (WebElement cell : cells) {
@@ -18069,7 +18048,7 @@ public class WorkOrderPage extends BasePage {
 
                 // Look for the primary text (task name) inside cell's Y range
                 List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND visible == true"
+                    "type == 'XCUIElementTypeStaticText'"
                 ));
 
                 // First text element in the cell is typically the name
@@ -18100,7 +18079,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Checking if task[" + index + "] is completed...");
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             java.util.List<WebElement> taskCells = new java.util.ArrayList<>();
             for (WebElement cell : cells) {
@@ -18140,7 +18119,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Tapping task item[" + index + "]...");
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             java.util.List<WebElement> taskCells = new java.util.ArrayList<>();
             for (WebElement cell : cells) {
@@ -18169,7 +18148,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Checking if task[" + index + "] is selected...");
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             java.util.List<WebElement> taskCells = new java.util.ArrayList<>();
             for (WebElement cell : cells) {
@@ -18303,7 +18282,7 @@ public class WorkOrderPage extends BasePage {
         try {
             // Look for count indicators (numbers with color context)
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label CONTAINS 'Total' OR label CONTAINS 'Pending' "
                 + "OR label CONTAINS 'Completed' OR label CONTAINS 'total' "
                 + "OR label CONTAINS 'pending' OR label CONTAINS 'completed')"
@@ -18317,7 +18296,7 @@ public class WorkOrderPage extends BasePage {
         // Fallback: look for numeric stat elements near top of task content area
         try {
             List<WebElement> numbers = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true"
+                "type == 'XCUIElementTypeStaticText'"
             ));
             int numbersInRange = 0;
             for (WebElement num : numbers) {
@@ -18345,7 +18324,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Getting total task count...");
         try {
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label CONTAINS 'Total' OR label == 'Total')"
             ));
             if (!texts.isEmpty()) {
@@ -18354,7 +18333,7 @@ public class WorkOrderPage extends BasePage {
 
                 // Find number near this label
                 List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND visible == true"
+                    "type == 'XCUIElementTypeStaticText'"
                 ));
                 for (WebElement t : allTexts) {
                     String label = t.getAttribute("label");
@@ -18382,7 +18361,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Getting pending task count...");
         try {
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label CONTAINS 'Pending' OR label == 'Pending')"
             ));
             if (!texts.isEmpty()) {
@@ -18390,7 +18369,7 @@ public class WorkOrderPage extends BasePage {
                 int labelX = texts.get(0).getLocation().getX();
 
                 List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND visible == true"
+                    "type == 'XCUIElementTypeStaticText'"
                 ));
                 for (WebElement t : allTexts) {
                     String label = t.getAttribute("label");
@@ -18418,7 +18397,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Getting completed task count...");
         try {
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label CONTAINS 'Completed' OR label == 'Completed')"
             ));
             if (!texts.isEmpty()) {
@@ -18426,7 +18405,7 @@ public class WorkOrderPage extends BasePage {
                 int labelX = texts.get(0).getLocation().getX();
 
                 List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND visible == true"
+                    "type == 'XCUIElementTypeStaticText'"
                 ));
                 for (WebElement t : allTexts) {
                     String label = t.getAttribute("label");
@@ -18490,7 +18469,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Counting linked task cards...");
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             int count = 0;
             for (WebElement cell : cells) {
@@ -18557,7 +18536,7 @@ public class WorkOrderPage extends BasePage {
 
                 // Badge is typically overlaid on the tab icon — look for small number text nearby
                 List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND visible == true "
+                    "type == 'XCUIElementTypeStaticText' "
                     + "AND label MATCHES '^[0-9]+$'"
                 ));
                 for (WebElement text : allTexts) {
@@ -18578,7 +18557,6 @@ public class WorkOrderPage extends BasePage {
             List<WebElement> badges = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeOther') "
                 + "AND (name CONTAINS 'badge' OR name CONTAINS 'Badge' OR label MATCHES '^[0-9]+$') "
-                + "AND visible == true"
             ));
             for (WebElement badge : badges) {
                 int y = badge.getLocation().getY();
@@ -18801,7 +18779,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Checking for Simple Task option...");
         try {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "label CONTAINS 'Simple Task' AND visible == true"
+                "label CONTAINS 'Simple Task'"
             ));
             if (!elements.isEmpty()) {
                 System.out.println("✅ Simple Task option found");
@@ -18820,7 +18798,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Checking for Complex Task option...");
         try {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "label CONTAINS 'Complex Task' AND visible == true"
+                "label CONTAINS 'Complex Task'"
             ));
             if (!elements.isEmpty()) {
                 System.out.println("✅ Complex Task option found");
@@ -18862,7 +18840,7 @@ public class WorkOrderPage extends BasePage {
 
                 // Description is below the title
                 List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND visible == true"
+                    "type == 'XCUIElementTypeStaticText'"
                 ));
                 WebElement closest = null;
                 int closestDist = Integer.MAX_VALUE;
@@ -18926,7 +18904,7 @@ public class WorkOrderPage extends BasePage {
                 int complexX = complexLabels.get(0).getLocation().getX();
 
                 List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND visible == true"
+                    "type == 'XCUIElementTypeStaticText'"
                 ));
                 WebElement closest = null;
                 int closestDist = Integer.MAX_VALUE;
@@ -19040,7 +19018,7 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND "
-                + "(label == 'Cancel' OR label == 'cancel') AND visible == true"
+                + "(label == 'Cancel' OR label == 'cancel')"
             ));
             if (!buttons.isEmpty()) {
                 System.out.println("✅ Cancel button found");
@@ -19060,7 +19038,7 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND "
-                + "(label == 'Cancel' OR label == 'cancel') AND visible == true"
+                + "(label == 'Cancel' OR label == 'cancel')"
             ));
             if (!buttons.isEmpty()) {
                 buttons.get(0).click();
@@ -19100,7 +19078,6 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND label CONTAINS 'Simple Task' "
-                + "AND visible == true"
             ));
             for (WebElement text : texts) {
                 int y = text.getLocation().getY();
@@ -19137,7 +19114,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Checking for task form Cancel button...");
         try {
             List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Cancel' AND visible == true"
+                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"
             ));
             for (WebElement btn : buttons) {
                 int y = btn.getLocation().getY();
@@ -19159,7 +19136,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Tapping task form Cancel...");
         try {
             List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Cancel' AND visible == true"
+                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"
             ));
             for (WebElement btn : buttons) {
                 int y = btn.getLocation().getY();
@@ -19249,7 +19226,7 @@ public class WorkOrderPage extends BasePage {
         // Fallback: text view element
         try {
             List<WebElement> textViews = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeTextView' AND visible == true"
+                "type == 'XCUIElementTypeTextView'"
             ));
             if (!textViews.isEmpty()) {
                 System.out.println("✅ Description field found (text view)");
@@ -19374,7 +19351,7 @@ public class WorkOrderPage extends BasePage {
                 // Look for date picker or button with date value nearby
                 List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeDatePicker' "
-                    + "OR type == 'XCUIElementTypeStaticText') AND visible == true"
+                    + "OR type == 'XCUIElementTypeStaticText')"
                 ));
                 for (WebElement btn : buttons) {
                     int y = btn.getLocation().getY();
@@ -19409,7 +19386,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 3: Look for any date-like text in the SCHEDULE section
         try {
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true"
+                "type == 'XCUIElementTypeStaticText'"
             ));
             for (WebElement text : texts) {
                 String label = text.getAttribute("label");
@@ -19492,7 +19469,6 @@ public class WorkOrderPage extends BasePage {
                 int labelY = labels.get(0).getLocation().getY();
                 List<WebElement> allButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeCell') "
-                    + "AND visible == true"
                 ));
                 for (WebElement btn : allButtons) {
                     int y = btn.getLocation().getY();
@@ -19651,7 +19627,6 @@ public class WorkOrderPage extends BasePage {
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND "
                 + "(label == 'New Task' OR label CONTAINS 'Complex Task') "
-                + "AND visible == true"
             ));
             for (WebElement text : texts) {
                 int y = text.getLocation().getY();
@@ -19700,7 +19675,6 @@ public class WorkOrderPage extends BasePage {
                 // Look for a number badge near the Assets label
                 List<WebElement> badges = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeStaticText' AND label MATCHES '^[0-9]+$' "
-                    + "AND visible == true"
                 ));
                 for (WebElement badge : badges) {
                     int y = badge.getLocation().getY();
@@ -19735,7 +19709,7 @@ public class WorkOrderPage extends BasePage {
         try {
             // Look for asset cells in the list
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             int assetCells = 0;
             for (WebElement cell : cells) {
@@ -19761,7 +19735,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Selecting asset at index " + index + "...");
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             java.util.List<WebElement> assetCells = new java.util.ArrayList<>();
             for (WebElement cell : cells) {
@@ -19818,7 +19792,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 1: Look for "Type:" text
         try {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label CONTAINS 'Type:' OR label CONTAINS 'type:')"
             ));
             for (WebElement el : elements) {
@@ -19845,7 +19819,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Look for known photo type values near banner
         try {
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label CONTAINS 'FLIR' OR label CONTAINS 'FLUKE' "
                 + "OR label CONTAINS 'FOTRIC')"
             ));
@@ -19862,7 +19836,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 3: Search all texts in banner area for type-like content
         try {
             List<WebElement> bannerTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true"
+                "type == 'XCUIElementTypeStaticText'"
             ));
             for (WebElement text : bannerTexts) {
                 int y = text.getLocation().getY();
@@ -19964,7 +19938,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Getting 'others' text from task card[" + index + "]...");
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             java.util.List<WebElement> taskCells = new java.util.ArrayList<>();
             for (WebElement cell : cells) {
@@ -19980,7 +19954,7 @@ public class WorkOrderPage extends BasePage {
                 int cellH = cell.getSize().getHeight();
 
                 List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND visible == true "
+                    "type == 'XCUIElementTypeStaticText' "
                     + "AND (label CONTAINS 'other' OR label CONTAINS 'Others')"
                 ));
                 for (WebElement text : texts) {
@@ -20015,7 +19989,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Getting task card name at index " + index + "...");
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             java.util.List<WebElement> taskCells = new java.util.ArrayList<>();
             for (WebElement cell : cells) {
@@ -20036,7 +20010,7 @@ public class WorkOrderPage extends BasePage {
                 int cellY = cell.getLocation().getY();
                 int cellH = cell.getSize().getHeight();
                 List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND visible == true"
+                    "type == 'XCUIElementTypeStaticText'"
                 ));
                 for (WebElement text : texts) {
                     int textY = text.getLocation().getY();
@@ -20143,7 +20117,7 @@ public class WorkOrderPage extends BasePage {
             try {
                 List<WebElement> allItems = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' "
-                    + "OR type == 'XCUIElementTypeCell') AND visible == true "
+                    + "OR type == 'XCUIElementTypeCell') "
                     + "AND (label CONTAINS 'Grouping' OR label CONTAINS 'Location' "
                     + "OR label CONTAINS 'Parent Node' OR label CONTAINS 'parent node')"
                 ));
@@ -20222,7 +20196,7 @@ public class WorkOrderPage extends BasePage {
 
             // Fallback: look for section-like text with count patterns
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true"
+                "type == 'XCUIElementTypeStaticText'"
             ));
             int count = 0;
             for (WebElement text : texts) {
@@ -20253,7 +20227,7 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' "
-                + "OR type == 'XCUIElementTypeOther') AND visible == true "
+                + "OR type == 'XCUIElementTypeOther') "
                 + "AND label CONTAINS '" + groupName + "'"
             ));
             if (!elements.isEmpty()) {
@@ -20276,7 +20250,7 @@ public class WorkOrderPage extends BasePage {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' "
                 + "OR type == 'XCUIElementTypeOther' OR type == 'XCUIElementTypeDisclosureTriangle') "
-                + "AND visible == true AND label CONTAINS '" + groupName + "'"
+                + "AND label CONTAINS '" + groupName + "'"
             ));
             if (!elements.isEmpty()) {
                 elements.get(0).click();
@@ -20399,7 +20373,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Tapping task card at index " + index + "...");
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             java.util.List<WebElement> taskCells = new java.util.ArrayList<>();
             for (WebElement cell : cells) {
@@ -20440,7 +20414,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 1: Navigation bar with task-related title
         try {
             List<WebElement> navBars = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeNavigationBar' AND visible == true"
+                "type == 'XCUIElementTypeNavigationBar'"
             ));
             for (WebElement nav : navBars) {
                 String label = nav.getAttribute("label");
@@ -20540,7 +20514,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Tapping completion checkbox on task card[" + index + "]...");
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             java.util.List<WebElement> taskCells = new java.util.ArrayList<>();
             for (WebElement cell : cells) {
@@ -20595,7 +20569,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Checking if task card[" + index + "] is completed...");
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             java.util.List<WebElement> taskCells = new java.util.ArrayList<>();
             for (WebElement cell : cells) {
@@ -20648,7 +20622,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Checking for Completed Tasks subsection...");
         try {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true "
+                "type == 'XCUIElementTypeStaticText' "
                 + "AND (label CONTAINS 'Completed Tasks' OR label CONTAINS 'COMPLETED TASKS' "
                 + "OR label CONTAINS 'Completed')"
             ));
@@ -20897,7 +20871,7 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND "
-                + "(label == 'Issues' OR label == 'ISSUES') AND visible == true"
+                + "(label == 'Issues' OR label == 'ISSUES')"
             ));
             for (WebElement el : elements) {
                 int y = el.getLocation().getY();
@@ -20921,7 +20895,7 @@ public class WorkOrderPage extends BasePage {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND "
                 + "(label == 'Open' OR label CONTAINS 'Open Issues' "
-                + "OR label CONTAINS 'OPEN') AND visible == true"
+                + "OR label CONTAINS 'OPEN')"
             ));
             for (WebElement el : elements) {
                 int y = el.getLocation().getY();
@@ -20948,7 +20922,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Getting session issue title at index " + index + "...");
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             java.util.List<WebElement> issueCells = new java.util.ArrayList<>();
             for (WebElement cell : cells) {
@@ -20993,7 +20967,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Getting session issue status badge at index " + index + "...");
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             java.util.List<WebElement> issueCells = new java.util.ArrayList<>();
             for (WebElement cell : cells) {
@@ -21194,7 +21168,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Tapping New Issue Cancel...");
         try {
             List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Cancel' AND visible == true"
+                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"
             ));
             for (WebElement btn : buttons) {
                 int y = btn.getLocation().getY();
@@ -21219,7 +21193,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 1: Navigation bar without "Session Details"
         try {
             List<WebElement> navBars = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeNavigationBar' AND visible == true"
+                "type == 'XCUIElementTypeNavigationBar'"
             ));
             for (WebElement nav : navBars) {
                 String label = nav.getAttribute("label");
@@ -21304,7 +21278,7 @@ public class WorkOrderPage extends BasePage {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND "
                 + "(label == 'Closed' OR label CONTAINS 'Closed Issues' "
-                + "OR label CONTAINS 'CLOSED' OR label == 'Resolved') AND visible == true"
+                + "OR label CONTAINS 'CLOSED' OR label == 'Resolved')"
             ));
             for (WebElement el : elements) {
                 int y = el.getLocation().getY();
@@ -21331,7 +21305,7 @@ public class WorkOrderPage extends BasePage {
                 "type == 'XCUIElementTypeStaticText' AND "
                 + "(label == 'Open' OR label == 'Closed' OR label == 'Resolved' "
                 + "OR label == 'In Progress' OR label CONTAINS 'OPEN' "
-                + "OR label CONTAINS 'CLOSED') AND visible == true"
+                + "OR label CONTAINS 'CLOSED')"
             ));
             for (WebElement el : elements) {
                 int y = el.getLocation().getY();
@@ -21367,7 +21341,7 @@ public class WorkOrderPage extends BasePage {
             List<WebElement> headers = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND "
                 + "(label == '" + statusGroup + "' OR label CONTAINS '"
-                + statusGroup + "') AND visible == true"
+                + statusGroup + "')"
             ));
             int headerY = -1;
             for (WebElement h : headers) {
@@ -21384,7 +21358,7 @@ public class WorkOrderPage extends BasePage {
 
             // Find all cells below this header
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             int count = 0;
             for (WebElement cell : cells) {
@@ -21417,7 +21391,7 @@ public class WorkOrderPage extends BasePage {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND "
                 + "(label == 'No Attachments' OR label CONTAINS 'No Attachments' "
-                + "OR label CONTAINS 'no attachments') AND visible == true"
+                + "OR label CONTAINS 'no attachments')"
             ));
             if (!elements.isEmpty()) {
                 System.out.println("✅ Files empty state found: 'No Attachments'");
@@ -21429,7 +21403,7 @@ public class WorkOrderPage extends BasePage {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND "
                 + "(label CONTAINS 'Add documents' OR label CONTAINS 'add documents' "
-                + "OR label CONTAINS 'files to this session') AND visible == true"
+                + "OR label CONTAINS 'files to this session')"
             ));
             if (!elements.isEmpty()) {
                 System.out.println("✅ Files empty state found via description text");
@@ -21450,7 +21424,6 @@ public class WorkOrderPage extends BasePage {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND "
                 + "(label CONTAINS 'No Attachments' OR label CONTAINS 'Attachments') "
-                + "AND visible == true"
             ));
             for (WebElement el : elements) {
                 String label = el.getAttribute("label");
@@ -21480,7 +21453,7 @@ public class WorkOrderPage extends BasePage {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND "
                 + "(label CONTAINS 'Add documents' OR label CONTAINS 'files to this session' "
-                + "OR label CONTAINS 'add documents') AND visible == true"
+                + "OR label CONTAINS 'add documents')"
             ));
             if (!elements.isEmpty()) {
                 String label = elements.get(0).getAttribute("label");
@@ -21500,7 +21473,7 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND "
-                + "(label == 'Attachments' OR label CONTAINS 'Attachments') AND visible == true"
+                + "(label == 'Attachments' OR label CONTAINS 'Attachments')"
             ));
             for (WebElement el : elements) {
                 int y = el.getLocation().getY();
@@ -21521,7 +21494,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Checking document icon in empty state...");
         try {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeImage' AND visible == true"
+                "type == 'XCUIElementTypeImage'"
             ));
             // Look for an image element in the center area (empty state icon)
             for (WebElement el : elements) {
@@ -21539,7 +21512,7 @@ public class WorkOrderPage extends BasePage {
             List<WebElement> icons = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeImage' OR type == 'XCUIElementTypeOther') AND "
                 + "(label CONTAINS 'document' OR label CONTAINS 'doc' OR label CONTAINS 'file' "
-                + "OR name CONTAINS 'document' OR name CONTAINS 'doc') AND visible == true"
+                + "OR name CONTAINS 'document' OR name CONTAINS 'doc')"
             ));
             if (!icons.isEmpty()) {
                 System.out.println("✅ Document icon found via label/name");
@@ -21564,7 +21537,7 @@ public class WorkOrderPage extends BasePage {
             List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND "
                 + "(label CONTAINS 'Add File' OR label CONTAINS 'add file' "
-                + "OR label == 'Add File' OR label CONTAINS 'Add file') AND visible == true"
+                + "OR label == 'Add File' OR label CONTAINS 'Add file')"
             ));
             if (!buttons.isEmpty()) {
                 System.out.println("✅ + Add File button found");
@@ -21575,7 +21548,7 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND "
-                + "(label CONTAINS '+ Add File' OR label CONTAINS 'Add File') AND visible == true"
+                + "(label CONTAINS '+ Add File' OR label CONTAINS 'Add File')"
             ));
             if (!texts.isEmpty()) {
                 System.out.println("✅ + Add File text found");
@@ -21597,7 +21570,7 @@ public class WorkOrderPage extends BasePage {
             List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND "
                 + "(label CONTAINS 'Add File' OR label CONTAINS 'add file' "
-                + "OR label == 'Add File') AND visible == true"
+                + "OR label == 'Add File')"
             ));
             if (!buttons.isEmpty()) {
                 buttons.get(0).click();
@@ -21608,7 +21581,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Any tappable element with "Add File"
         try {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "(label CONTAINS 'Add File' OR label CONTAINS 'add file') AND visible == true"
+                "(label CONTAINS 'Add File' OR label CONTAINS 'add file')"
             ));
             if (!elements.isEmpty()) {
                 elements.get(0).click();
@@ -21629,7 +21602,7 @@ public class WorkOrderPage extends BasePage {
             List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND "
                 + "(label CONTAINS 'Browse Files' OR label CONTAINS 'Browse files' "
-                + "OR label CONTAINS 'browse files') AND visible == true"
+                + "OR label CONTAINS 'browse files')"
             ));
             if (!buttons.isEmpty()) {
                 System.out.println("✅ Browse Files button found");
@@ -21650,7 +21623,6 @@ public class WorkOrderPage extends BasePage {
             List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND "
                 + "(label CONTAINS 'Browse Files' OR label CONTAINS 'Browse files') "
-                + "AND visible == true"
             ));
             if (!buttons.isEmpty()) {
                 buttons.get(0).click();
@@ -21661,7 +21633,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Any element with browse files
         try {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "label CONTAINS 'Browse' AND visible == true"
+                "label CONTAINS 'Browse'"
             ));
             for (WebElement el : elements) {
                 String label = el.getAttribute("label");
@@ -21686,7 +21658,7 @@ public class WorkOrderPage extends BasePage {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeNavigationBar' OR type == 'XCUIElementTypeOther') AND "
                 + "(label CONTAINS 'Browse' OR label CONTAINS 'Recents' "
-                + "OR label CONTAINS 'Documents' OR name CONTAINS 'DOC') AND visible == true"
+                + "OR label CONTAINS 'Documents' OR name CONTAINS 'DOC')"
             ));
             if (!elements.isEmpty()) {
                 System.out.println("✅ File picker detected via nav bar");
@@ -21696,11 +21668,11 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Look for "Cancel" + file picker UI indicators
         try {
             List<WebElement> cancel = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Cancel' AND visible == true"
+                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"
             ));
             List<WebElement> recents = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "label CONTAINS 'Recents' OR label CONTAINS 'Browse' "
-                + "OR label CONTAINS 'iCloud' AND visible == true"
+                + "OR label CONTAINS 'iCloud'"
             ));
             if (!cancel.isEmpty() && !recents.isEmpty()) {
                 System.out.println("✅ File picker detected (Cancel + Browse/Recents)");
@@ -21719,7 +21691,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Dismissing file picker...");
         try {
             List<WebElement> cancel = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Cancel' AND visible == true"
+                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"
             ));
             if (!cancel.isEmpty()) {
                 cancel.get(0).click();
@@ -21730,7 +21702,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: tap Done if present
         try {
             List<WebElement> done = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Done' AND visible == true"
+                "type == 'XCUIElementTypeButton' AND label == 'Done'"
             ));
             if (!done.isEmpty()) {
                 done.get(0).click();
@@ -21755,7 +21727,7 @@ public class WorkOrderPage extends BasePage {
         try {
             // Look for cells that represent file entries (below the header)
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             int fileCount = 0;
             for (WebElement cell : cells) {
@@ -21778,7 +21750,7 @@ public class WorkOrderPage extends BasePage {
                 + "(label CONTAINS '.HEIC' OR label CONTAINS '.jpg' "
                 + "OR label CONTAINS '.png' OR label CONTAINS '.pdf' "
                 + "OR label CONTAINS '.doc' OR label CONTAINS 'IMG_' "
-                + "OR label == 'Unknown') AND visible == true"
+                + "OR label == 'Unknown')"
             ));
             if (!texts.isEmpty()) {
                 System.out.println("✅ File entries detected via filenames");
@@ -21797,7 +21769,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Getting file entry count...");
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             int count = 0;
             for (WebElement cell : cells) {
@@ -21824,7 +21796,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Getting filename at index " + index + "...");
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             // Collect valid file entry cells
             java.util.List<WebElement> fileCells = new java.util.ArrayList<>();
@@ -21874,7 +21846,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Getting file type at index " + index + "...");
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             java.util.List<WebElement> fileCells = new java.util.ArrayList<>();
             for (WebElement cell : cells) {
@@ -21921,7 +21893,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Getting file timestamp at index " + index + "...");
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             java.util.List<WebElement> fileCells = new java.util.ArrayList<>();
             for (WebElement cell : cells) {
@@ -21966,7 +21938,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Checking download icon at index " + index + "...");
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             java.util.List<WebElement> fileCells = new java.util.ArrayList<>();
             for (WebElement cell : cells) {
@@ -22014,7 +21986,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Tapping download icon at index " + index + "...");
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             java.util.List<WebElement> fileCells = new java.util.ArrayList<>();
             for (WebElement cell : cells) {
@@ -22062,7 +22034,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Checking share icon at index " + index + "...");
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             java.util.List<WebElement> fileCells = new java.util.ArrayList<>();
             for (WebElement cell : cells) {
@@ -22108,7 +22080,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Tapping share icon at index " + index + "...");
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             java.util.List<WebElement> fileCells = new java.util.ArrayList<>();
             for (WebElement cell : cells) {
@@ -22157,7 +22129,7 @@ public class WorkOrderPage extends BasePage {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(label CONTAINS 'AirDrop' OR label CONTAINS 'Messages' "
                 + "OR label CONTAINS 'Mail' OR label CONTAINS 'Copy' "
-                + "OR label CONTAINS 'Save to Files') AND visible == true"
+                + "OR label CONTAINS 'Save to Files')"
             ));
             if (!elements.isEmpty()) {
                 System.out.println("✅ Share sheet detected");
@@ -22167,7 +22139,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Check for the share sheet container
         try {
             List<WebElement> sheets = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCollectionView' AND visible == true"
+                "type == 'XCUIElementTypeCollectionView'"
             ));
             // Share sheet typically has a large collection view
             for (WebElement sheet : sheets) {
@@ -22191,7 +22163,7 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> close = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND "
-                + "(label == 'Close' OR label == 'Cancel') AND visible == true"
+                + "(label == 'Close' OR label == 'Cancel')"
             ));
             if (!close.isEmpty()) {
                 close.get(0).click();
@@ -22218,7 +22190,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Tapping file entry at index " + index + "...");
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             java.util.List<WebElement> fileCells = new java.util.ArrayList<>();
             for (WebElement cell : cells) {
@@ -22252,7 +22224,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 1: Look for image viewer / preview indicators
         try {
             List<WebElement> images = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeImage' AND visible == true"
+                "type == 'XCUIElementTypeImage'"
             ));
             for (WebElement img : images) {
                 int h = img.getSize().getHeight();
@@ -22266,7 +22238,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Look for preview nav bar (Done/Close button)
         try {
             List<WebElement> navBars = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeNavigationBar' AND visible == true"
+                "type == 'XCUIElementTypeNavigationBar'"
             ));
             // If we have a nav bar different from the session details one
             if (!navBars.isEmpty()) {
@@ -22301,7 +22273,7 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> done = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND "
-                + "(label == 'Done' OR label == 'Close') AND visible == true"
+                + "(label == 'Done' OR label == 'Close')"
             ));
             if (!done.isEmpty()) {
                 done.get(0).click();
@@ -22313,7 +22285,7 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> back = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND "
-                + "(label CONTAINS 'Back' OR name CONTAINS 'Back') AND visible == true"
+                + "(label CONTAINS 'Back' OR name CONTAINS 'Back')"
             ));
             if (!back.isEmpty()) {
                 back.get(0).click();
@@ -22335,7 +22307,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Checking document icon at file index " + index + "...");
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"
+                "type == 'XCUIElementTypeCell'"
             ));
             java.util.List<WebElement> fileCells = new java.util.ArrayList<>();
             for (WebElement cell : cells) {

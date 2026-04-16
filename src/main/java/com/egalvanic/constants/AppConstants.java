@@ -52,7 +52,7 @@ public class AppConstants {
     public static final int IMPLICIT_WAIT = 5; // Fast timeout
     public static final int EXPLICIT_WAIT = 10; // Fast explicit wait
     public static final int PAGE_LOAD_TIMEOUT = 45; // Increased for page loads
-    public static final int AJAX_TIMEOUT = 20; // Increased for AJAX calls
+    public static final int AJAX_TIMEOUT = 10; // Page Factory element lookup timeout
     public static final int SITE_LOAD_TIMEOUT = 90; // Increased for site loading
     public static final int WDA_LAUNCH_TIMEOUT = 240; // 4 minutes for WDA in CI
     public static final int WDA_CONNECTION_TIMEOUT = 180; // 3 minutes for WDA connection

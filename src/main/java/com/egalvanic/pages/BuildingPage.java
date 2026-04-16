@@ -2009,14 +2009,14 @@ public class BuildingPage extends BasePage {
             try {
                 // Find the "Building" label (visible on the modal sheet)
                 WebElement buildingLabel = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND label == 'Building' AND visible == true"));
+                    "type == 'XCUIElementTypeStaticText' AND label == 'Building'"));
                 int labelY = buildingLabel.getLocation().getY();
                 int labelH = buildingLabel.getSize().getHeight();
                 int labelX = buildingLabel.getLocation().getX();
 
                 // Find ONLY visible static texts (modal sheet elements, not background)
                 List<WebElement> visibleTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND visible == true"));
+                    "type == 'XCUIElementTypeStaticText'"));
                 System.out.println("   Found " + visibleTexts.size() + " visible static texts");
 
                 for (WebElement text : visibleTexts) {
@@ -3233,7 +3233,7 @@ public class BuildingPage extends BasePage {
             // Rooms typically have door icon or specific patterns
             // They are usually deeper in hierarchy (under floors)
             List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND visible == true"));
+                "type == 'XCUIElementTypeButton'"));
             
             for (WebElement btn : buttons) {
                 String label = btn.getAttribute("label");
@@ -4072,7 +4072,7 @@ public class BuildingPage extends BasePage {
         try {
             // Floor field should be a static text or disabled field
             WebElement floorField = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(label CONTAINS 'Floor' OR name CONTAINS 'Floor') AND visible == true"));
+                "(label CONTAINS 'Floor' OR name CONTAINS 'Floor')"));
             String type = floorField.getTagName();
             // If it's a StaticText, it's read-only
             if (type.contains("StaticText")) {
@@ -4509,7 +4509,7 @@ public class BuildingPage extends BasePage {
         try {
             // Usually displayed as title or first static text
             WebElement title = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true"));
+                "type == 'XCUIElementTypeStaticText'"));
             return title.getAttribute("label");
         } catch (Exception e) {
             return null;
@@ -4727,7 +4727,7 @@ public class BuildingPage extends BasePage {
         try {
             // Find asset cells/items in the list
             List<WebElement> assetCells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"));
+                "type == 'XCUIElementTypeCell'"));
             
             // Filter out non-asset cells (search bar, etc.)
             int count = 0;
@@ -4791,7 +4791,7 @@ public class BuildingPage extends BasePage {
         try {
             // Rooms typically have orange/different icon, look for room entries
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND visible == true"));
+                "type == 'XCUIElementTypeButton'"));
             
             for (WebElement el : elements) {
                 String label = el.getAttribute("label");
@@ -4852,7 +4852,7 @@ public class BuildingPage extends BasePage {
 
             // Check if rooms are visible after click - if not, floor was collapsed (already expanded before)
             List<WebElement> rooms = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND visible == true " +
+                "type == 'XCUIElementTypeButton' " +
                 "AND (label CONTAINS 'asset' OR label CONTAINS 'Asset') " +
                 "AND NOT label CONTAINS 'Floor' " +
                 "AND NOT label CONTAINS 'Building' " +
@@ -4888,7 +4888,7 @@ public class BuildingPage extends BasePage {
             // Single optimized query - rooms have "asset" in label after floor expansion
             // Exclude floors, buildings, "No Location" system button, and nav buttons
             List<WebElement> rooms = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND visible == true " +
+                "type == 'XCUIElementTypeButton' " +
                 "AND (label CONTAINS 'asset' OR label CONTAINS 'Asset') " +
                 "AND NOT label CONTAINS 'Floor' " +
                 "AND NOT label CONTAINS 'Building' " +
@@ -4899,7 +4899,7 @@ public class BuildingPage extends BasePage {
             if (rooms.isEmpty()) {
                 System.out.println("   Trying fallback query...");
                 rooms = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeCell' AND visible == true " +
+                    "type == 'XCUIElementTypeCell' " +
                     "AND NOT label CONTAINS 'Floor' " +
                     "AND NOT label CONTAINS 'Building' " +
                     "AND NOT label CONTAINS 'No Location' " +
@@ -4969,7 +4969,7 @@ public class BuildingPage extends BasePage {
             
             // Find name text field
             WebElement nameField = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeTextField' AND visible == true"));
+                "type == 'XCUIElementTypeTextField'"));
             nameField.click();
             sleep(200);
             nameField.clear();
@@ -5026,7 +5026,7 @@ public class BuildingPage extends BasePage {
             } catch (Exception e) {
                 // Select any class that's visible
                 List<WebElement> options = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND visible == true"));
+                    "type == 'XCUIElementTypeButton'"));
                 for (WebElement opt : options) {
                     String label = opt.getAttribute("label");
                     if (label != null && !label.equals("Cancel") && !label.contains("Select") && !label.isEmpty()) {
@@ -5094,7 +5094,7 @@ public class BuildingPage extends BasePage {
             // Single combined query for any "No Location" element
             java.util.List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(label CONTAINS 'No Location' OR name CONTAINS 'No Location' OR " +
-                "label CONTAINS 'Unassigned' OR label == 'No Location') AND visible == true"));
+                "label CONTAINS 'Unassigned' OR label == 'No Location')"));
             
             if (!elements.isEmpty()) {
                 System.out.println("✓ No Location found (FAST) - " + elements.size() + " elements");
@@ -5166,7 +5166,7 @@ public class BuildingPage extends BasePage {
     public boolean tapOnNoLocationFast() {
         try {
             WebElement noLocation = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(label CONTAINS 'No Location' OR name CONTAINS 'No Location') AND visible == true"));
+                "(label CONTAINS 'No Location' OR name CONTAINS 'No Location')"));
             noLocation.click();
             System.out.println("✓ Tapped No Location (FAST)");
             sleep(300);
@@ -5183,7 +5183,7 @@ public class BuildingPage extends BasePage {
     public String getNoLocationLabelFast() {
         try {
             WebElement noLocation = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(label CONTAINS 'No Location' OR name CONTAINS 'No Location') AND visible == true"));
+                "(label CONTAINS 'No Location' OR name CONTAINS 'No Location')"));
             return noLocation.getAttribute("label");
         } catch (Exception e) {
             return null;
@@ -5229,7 +5229,7 @@ public class BuildingPage extends BasePage {
         // Strategy 1: Direct label match with "No Location"
         try {
             WebElement element = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(label CONTAINS 'No Location' OR name CONTAINS 'No Location') AND visible == true"));
+                "(label CONTAINS 'No Location' OR name CONTAINS 'No Location')"));
             if (element.isDisplayed()) {
                 int y = element.getLocation().getY();
                 System.out.println("   Strategy 1: Found 'No Location' element at Y=" + y);
@@ -5247,7 +5247,7 @@ public class BuildingPage extends BasePage {
         // Strategy 2: Look for Cell with "No Location" or "Unassigned" text
         try {
             java.util.List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"));
+                "type == 'XCUIElementTypeCell'"));
             System.out.println("   Strategy 2: Found " + cells.size() + " visible cells");
             for (WebElement cell : cells) {
                 String label = cell.getAttribute("label");
@@ -5268,7 +5268,7 @@ public class BuildingPage extends BasePage {
         // Strategy 3: Look for StaticText with "No Location"
         try {
             java.util.List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true AND label CONTAINS 'No Location'"));
+                "type == 'XCUIElementTypeStaticText' AND label CONTAINS 'No Location'"));
             System.out.println("   Strategy 3: Found " + texts.size() + " 'No Location' static texts");
             for (WebElement text : texts) {
                 int y = text.getLocation().getY();
@@ -5284,7 +5284,7 @@ public class BuildingPage extends BasePage {
         // Strategy 4: Look for Button with "No Location" text
         try {
             java.util.List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND visible == true"));
+                "type == 'XCUIElementTypeButton'"));
             for (WebElement btn : buttons) {
                 String label = btn.getAttribute("label");
                 if (label != null && label.contains("No Location")) {
@@ -5302,7 +5302,7 @@ public class BuildingPage extends BasePage {
         // Strategy 5: Look for element with unassigned asset count pattern (e.g., "13 assets")
         try {
             java.util.List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "(label CONTAINS 'assets' OR label CONTAINS 'asset') AND visible == true"));
+                "(label CONTAINS 'assets' OR label CONTAINS 'asset')"));
             for (WebElement el : elements) {
                 String label = el.getAttribute("label");
                 // No Location typically shows count like "No Location, 13 assets" or standalone "13 assets"
@@ -5324,7 +5324,7 @@ public class BuildingPage extends BasePage {
         System.out.println("⚠️ No Location section not found with any strategy. Debug info:");
         try {
             java.util.List<WebElement> allElements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "visible == true AND (type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeStaticText')"));
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeStaticText')"));
             int count = 0;
             for (WebElement el : allElements) {
                 String label = el.getAttribute("label");
@@ -5432,7 +5432,7 @@ public class BuildingPage extends BasePage {
         // Strategy 1: Direct label match with "No Location"
         try {
             WebElement element = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(label CONTAINS 'No Location' OR name CONTAINS 'No Location') AND visible == true"));
+                "(label CONTAINS 'No Location' OR name CONTAINS 'No Location')"));
             if (element.isDisplayed()) {
                 int y = element.getLocation().getY();
                 if (y > safeMinY && y < safeMaxY) {
@@ -5449,7 +5449,7 @@ public class BuildingPage extends BasePage {
         // Strategy 2: Look for Cell with "No Location" or "Unassigned" text
         try {
             java.util.List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"));
+                "type == 'XCUIElementTypeCell'"));
             for (WebElement cell : cells) {
                 String label = cell.getAttribute("label");
                 if (label != null && (label.contains("No Location") || label.contains("Unassigned"))) {
@@ -5469,7 +5469,7 @@ public class BuildingPage extends BasePage {
         // Strategy 3: Look for Button with "No Location" text
         try {
             java.util.List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND visible == true"));
+                "type == 'XCUIElementTypeButton'"));
             for (WebElement btn : buttons) {
                 String label = btn.getAttribute("label");
                 if (label != null && label.contains("No Location")) {
@@ -5489,7 +5489,7 @@ public class BuildingPage extends BasePage {
         // Strategy 4: Look for StaticText with "No Location" and tap it
         try {
             java.util.List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND label CONTAINS 'No Location' AND visible == true"));
+                "type == 'XCUIElementTypeStaticText' AND label CONTAINS 'No Location'"));
             for (WebElement text : texts) {
                 int y = text.getLocation().getY();
                 if (y > safeMinY && y < safeMaxY) {
@@ -5506,7 +5506,7 @@ public class BuildingPage extends BasePage {
         // Strategy 5: Tap using coordinates if element found but not clickable
         try {
             WebElement element = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label CONTAINS 'No Location' AND visible == true"));
+                "label CONTAINS 'No Location'"));
             int x = element.getLocation().getX() + element.getSize().getWidth() / 2;
             int y = element.getLocation().getY() + element.getSize().getHeight() / 2;
             
@@ -5819,7 +5819,7 @@ public class BuildingPage extends BasePage {
         // Strategy 1: Direct "Select location" match
         try {
             WebElement locationField = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(label == 'Select location' OR label == 'Select Location' OR value == 'Select location') AND visible == true"));
+                "(label == 'Select location' OR label == 'Select Location' OR value == 'Select location')"));
             if (locationField.isDisplayed()) {
                 int y = locationField.getLocation().getY();
                 System.out.println("✓ Tapping Location field via 'Select location' match at Y=" + y);
@@ -5834,7 +5834,7 @@ public class BuildingPage extends BasePage {
         // Strategy 2: Look for Cell with Location label
         try {
             java.util.List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"));
+                "type == 'XCUIElementTypeCell'"));
             for (WebElement cell : cells) {
                 String label = cell.getAttribute("label");
                 int y = cell.getLocation().getY();
@@ -5854,7 +5854,7 @@ public class BuildingPage extends BasePage {
         // Strategy 3: Look for any element with Location in label (FIXED - dynamic Y)
         try {
             java.util.List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "(label CONTAINS 'Location' OR label CONTAINS 'location') AND visible == true AND NOT label CONTAINS 'No Location'"));
+                "(label CONTAINS 'Location' OR label CONTAINS 'location') AND NOT label CONTAINS 'No Location'"));
             for (WebElement el : elements) {
                 int y = el.getLocation().getY();
                 // Dynamic range - middle portion of screen
@@ -5874,7 +5874,7 @@ public class BuildingPage extends BasePage {
         // Strategy 4: Look for building icon or picker trigger
         try {
             WebElement picker = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(name CONTAINS 'building' OR name CONTAINS 'location' OR name CONTAINS 'picker') AND visible == true"));
+                "(name CONTAINS 'building' OR name CONTAINS 'location' OR name CONTAINS 'picker')"));
             System.out.println("✓ Tapping location picker trigger");
             picker.click();
             sleep(350);
@@ -5886,7 +5886,7 @@ public class BuildingPage extends BasePage {
         // Strategy 5: Look for Button with Location
         try {
             java.util.List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND visible == true AND (label CONTAINS 'Location' OR label CONTAINS 'Select')"));
+                "type == 'XCUIElementTypeButton' AND (label CONTAINS 'Location' OR label CONTAINS 'Select')"));
             for (WebElement btn : buttons) {
                 int y = btn.getLocation().getY();
                 if (y > 150 && y < safeMaxY) {
@@ -5922,7 +5922,7 @@ public class BuildingPage extends BasePage {
         // Strategy 1: Look for navigation bar title changes
         try {
             WebElement navTitle = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeNavigationBar' AND visible == true"));
+                "type == 'XCUIElementTypeNavigationBar'"));
             String title = navTitle.getAttribute("name");
             if (title != null && (title.contains("Location") || title.contains("Building") || 
                 title.contains("Floor") || title.contains("Room") || title.contains("Select"))) {
@@ -5936,7 +5936,7 @@ public class BuildingPage extends BasePage {
         // Strategy 2: Look for building cells or list items (FIXED - dynamic Y)
         try {
             java.util.List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' AND visible == true"));
+                "type == 'XCUIElementTypeCell'"));
             int validCellCount = 0;
             for (WebElement cell : cells) {
                 String label = cell.getAttribute("label");
@@ -5956,7 +5956,7 @@ public class BuildingPage extends BasePage {
         // Strategy 3: Look for table or collection view
         try {
             WebElement table = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(type == 'XCUIElementTypeTable' OR type == 'XCUIElementTypeCollectionView') AND visible == true"));
+                "(type == 'XCUIElementTypeTable' OR type == 'XCUIElementTypeCollectionView')"));
             if (table.isDisplayed()) {
                 System.out.println("✓ Location picker detected via Table/CollectionView");
                 return true;
@@ -5971,11 +5971,11 @@ public class BuildingPage extends BasePage {
             boolean hasCancel = false;
             try {
                 hasDone = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "label == 'Done' AND visible == true")).isDisplayed();
+                    "label == 'Done'")).isDisplayed();
             } catch (Exception e) {}
             try {
                 hasCancel = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "label == 'Cancel' AND visible == true")).isDisplayed();
+                    "label == 'Cancel'")).isDisplayed();
             } catch (Exception e) {}
             if (hasDone || hasCancel) {
                 System.out.println("✓ Location picker detected via Done/Cancel buttons");
@@ -5988,7 +5988,7 @@ public class BuildingPage extends BasePage {
         // Strategy 5: Look for building/floor/room text elements
         try {
             java.util.List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true"));
+                "type == 'XCUIElementTypeStaticText'"));
             int locationTextCount = 0;
             for (WebElement text : texts) {
                 String label = text.getAttribute("label");
@@ -6029,7 +6029,7 @@ public class BuildingPage extends BasePage {
     public boolean selectFirstBuildingInPicker() {
         try {
             java.util.List<WebElement> items = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell' OR (type == 'XCUIElementTypeButton' AND visible == true AND NOT label == 'Cancel' AND NOT label == 'Done')"));
+                "type == 'XCUIElementTypeCell' OR (type == 'XCUIElementTypeButton' AND NOT label == 'Cancel' AND NOT label == 'Done')"));
             if (!items.isEmpty()) {
                 items.get(0).click();
                 sleep(250);
@@ -6062,7 +6062,7 @@ public class BuildingPage extends BasePage {
     public String getSelectedBuildingName() {
         try {
             WebElement selected = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == true"));
+                "type == 'XCUIElementTypeStaticText'"));
             return selected.getAttribute("label");
         } catch (Exception e) {
             return "Unknown";
@@ -6212,7 +6212,7 @@ public class BuildingPage extends BasePage {
         // Strategy 1: Exact "Save Changes" label
         try {
             WebElement saveBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(label == 'Save Changes' OR name == 'Save Changes') AND visible == true"));
+                "(label == 'Save Changes' OR name == 'Save Changes')"));
             if (saveBtn.isDisplayed()) {
                 int y = saveBtn.getLocation().getY();
                 System.out.println("✓ Save Changes found via exact match at Y=" + y);
@@ -6225,7 +6225,7 @@ public class BuildingPage extends BasePage {
         // Strategy 2: Look for button containing "Save" at bottom of screen
         try {
             java.util.List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND visible == true AND label CONTAINS 'Save'"));
+                "type == 'XCUIElementTypeButton' AND label CONTAINS 'Save'"));
             for (WebElement btn : buttons) {
                 String label = btn.getAttribute("label");
                 int y = btn.getLocation().getY();
@@ -6243,7 +6243,7 @@ public class BuildingPage extends BasePage {
         // Strategy 3: Look for any visible element with "Save" (more lenient)
         try {
             java.util.List<WebElement> saveElements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "(label CONTAINS 'Save' OR name CONTAINS 'Save') AND visible == true"));
+                "(label CONTAINS 'Save' OR name CONTAINS 'Save')"));
             for (WebElement el : saveElements) {
                 String label = el.getAttribute("label");
                 String type = el.getAttribute("type");
@@ -6262,7 +6262,7 @@ public class BuildingPage extends BasePage {
         // Strategy 4: Look for Cell or Other element with Save Changes
         try {
             java.util.List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "(type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeOther') AND visible == true AND label CONTAINS 'Save'"));
+                "(type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeOther') AND label CONTAINS 'Save'"));
             for (WebElement cell : cells) {
                 int y = cell.getLocation().getY();
                 if (y > 300) {
@@ -6310,7 +6310,7 @@ public class BuildingPage extends BasePage {
         // Strategy 1: Exact "Save Changes" label
         try {
             WebElement saveBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(label == 'Save Changes' OR name == 'Save Changes') AND visible == true"));
+                "(label == 'Save Changes' OR name == 'Save Changes')"));
             int y = saveBtn.getLocation().getY();
             System.out.println("✓ Clicking Save Changes via exact match at Y=" + y);
             saveBtn.click();
@@ -6323,7 +6323,7 @@ public class BuildingPage extends BasePage {
         // Strategy 2: Look for button containing "Save" at bottom
         try {
             java.util.List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND visible == true AND label CONTAINS 'Save'"));
+                "type == 'XCUIElementTypeButton' AND label CONTAINS 'Save'"));
             for (WebElement btn : buttons) {
                 String label = btn.getAttribute("label");
                 int y = btn.getLocation().getY();
@@ -6342,7 +6342,7 @@ public class BuildingPage extends BasePage {
         // Strategy 3: Any visible Save element (below nav bar)
         try {
             java.util.List<WebElement> saveElements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "(label CONTAINS 'Save' OR name CONTAINS 'Save') AND visible == true"));
+                "(label CONTAINS 'Save' OR name CONTAINS 'Save')"));
             for (WebElement el : saveElements) {
                 int y = el.getLocation().getY();
                 if (y > 150) { // Below nav bar
@@ -6481,7 +6481,7 @@ public class BuildingPage extends BasePage {
         try {
             // Floor field is usually a static text or read-only field
             return driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(label CONTAINS 'Floor' OR name CONTAINS 'Floor') AND visible == true")).isDisplayed();
+                "(label CONTAINS 'Floor' OR name CONTAINS 'Floor')")).isDisplayed();
         } catch (Exception e) {
             // Try looking for any element with floor value
             try {
@@ -6516,7 +6516,7 @@ public class BuildingPage extends BasePage {
         try {
             // Floor field should be a static text or disabled field
             WebElement floorField = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(label CONTAINS 'Floor' OR name CONTAINS 'Floor') AND visible == true"));
+                "(label CONTAINS 'Floor' OR name CONTAINS 'Floor')"));
             String type = floorField.getTagName();
             // If it's a StaticText, it's read-only
             if (type.contains("StaticText")) {
