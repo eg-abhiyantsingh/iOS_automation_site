@@ -22,7 +22,7 @@ Deep root cause analysis of CI run 24513764702 on the developer repo (`Egalvanic
 | Assets P2 | 108 | ? | ? | ? | 365min | **CANCELLED** (365min pattern, no report) |
 | Assets P3 | 97 | 87 | 10 | 0 | 311min | 5 TIMEOUTS + 5 assertions (survived 365min!) |
 | Assets P1 | 112 | ? | ? | ? | 365min | **CANCELLED** (365min pattern, no report) |
-| Site Visit | ? | ? | ? | ? | 131min | Completed (no artifact, likely empty skeleton) |
+| Site Visit | 0 | 0 | 0 | 0 | 12min | Empty skeleton — zero tests executed, no report |
 | **Total (analyzable)** | **351** | **238** | **53** | **60** | — | — |
 
 **Still running**: Assets P4 (97), Assets P5 (112, ~146min to 365), Issues P1 (119), Issues P3 (58), Connections (94)  
