@@ -31,6 +31,10 @@ jobs:
       - name: Unzip App
         run: |
           unzip -o apps/Z-Platform-QA.zip -d apps/
+          if [ -d "apps/Z-Platform-QA.app" ] && [ ! -d "apps/Z Platform-QA.app" ]; then
+            mv "apps/Z-Platform-QA.app" "apps/Z Platform-QA.app"
+            echo "✅ Renamed Z-Platform-QA.app → Z Platform-QA.app"
+          fi
           ls -la apps/
 
       - name: Boot Simulator and Wait Until Ready
