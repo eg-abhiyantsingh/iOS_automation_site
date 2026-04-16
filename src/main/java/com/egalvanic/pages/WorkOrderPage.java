@@ -9165,6 +9165,64 @@ public class WorkOrderPage extends BasePage {
     }
 
     /**
+     * Scroll the New Asset form to bring the "Infrared Photos" section into view
+     * using mobile:scroll with predicate. This is the preferred approach because
+     * it handles any form length — unlike blind swipes which can fall short if
+     * new fields were added to the form.
+     *
+     * @return true if the Infrared Photos section is visible after scrolling
+     */
+    public boolean scrollToInfraredPhotosSection() {
+        System.out.println("📍 Scrolling to Infrared Photos via mobile:scroll...");
+
+        // Try multiple predicates — the section header label may vary
+        String[] predicates = {
+            "label == 'Infrared Photos'",
+            "label CONTAINS 'Infrared Photos'",
+            "label CONTAINS 'IR Photos'",
+            "label == 'INFRARED PHOTOS'"
+        };
+
+        for (String pred : predicates) {
+            try {
+                String fullPred = "type == 'XCUIElementTypeStaticText' AND " + pred;
+                java.util.Map<String, Object> scrollParams = new java.util.HashMap<>();
+                scrollParams.put("direction", "down");
+                scrollParams.put("predicateString", fullPred);
+                driver.executeScript("mobile: scroll", scrollParams);
+                sleep(300);
+
+                // Verify it actually scrolled to the section
+                if (isInfraredPhotosSectionDisplayed()) {
+                    System.out.println("✅ Scrolled to Infrared Photos section via mobile:scroll");
+                    return true;
+                }
+            } catch (Exception e) {
+                System.out.println("   mobile:scroll with '" + pred + "' failed: "
+                    + (e.getMessage() != null ? e.getMessage().substring(0, Math.min(80, e.getMessage().length())) : ""));
+            }
+        }
+
+        // Also try scrolling to IR-related content (FLIR, Thermal, etc.)
+        try {
+            java.util.Map<String, Object> scrollParams = new java.util.HashMap<>();
+            scrollParams.put("direction", "down");
+            scrollParams.put("predicateString",
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'FLIR' OR label CONTAINS 'Thermal' OR label CONTAINS 'IR Photo Filename')");
+            driver.executeScript("mobile: scroll", scrollParams);
+            sleep(300);
+            if (isInfraredPhotosSectionDisplayed()) {
+                System.out.println("✅ Scrolled to IR content (fallback predicate)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ mobile:scroll could not find Infrared Photos section");
+        return false;
+    }
+
+    /**
      * Check if the "Create Asset" button is displayed on the New Asset form.
      */
     public boolean isSessionCreateAssetButtonDisplayed() {
@@ -9996,19 +10054,20 @@ public class WorkOrderPage extends BasePage {
     public boolean tapAddIRPhotoPairButton() {
         System.out.println("📍 Tapping Add IR Photo Pair button...");
 
-        // Strategy 1: Direct label match
+        // Strategy 1: Direct label match (exact and partial)
         try {
             WebElement btn = driver.findElement(AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') "
                 + "AND (label == 'Add IR Photo Pair' OR label CONTAINS 'Add IR Photo Pair' "
-                + "OR label CONTAINS 'Add IR Photo')"
+                + "OR label CONTAINS 'Add IR Photo' OR label CONTAINS 'Add Photo Pair' "
+                + "OR label CONTAINS 'Add Pair')"
             ));
             btn.click();
-            System.out.println("✅ Tapped Add IR Photo Pair button");
+            System.out.println("✅ Tapped Add IR Photo Pair button (Strategy 1: label match)");
             return true;
         } catch (Exception e) { /* continue */ }
 
-        // Strategy 2: Plus button in IR section area
+        // Strategy 2: Plus button in IR section area (Y-proximity)
         try {
             List<WebElement> irHeader = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND "
@@ -10025,14 +10084,56 @@ public class WorkOrderPage extends BasePage {
                     int btnY = btn.getLocation().getY();
                     if (btnY > headerY && btnY < headerY + 300) {
                         btn.click();
-                        System.out.println("✅ Tapped Add IR Photo Pair button (IR section plus button)");
+                        System.out.println("✅ Tapped Add IR Photo Pair button (Strategy 2: IR section plus)");
                         return true;
                     }
                 }
             }
         } catch (Exception e) { /* continue */ }
 
-        System.out.println("⚠️ Could not tap Add IR Photo Pair button");
+        // Strategy 3: mobile:scroll to bring button into view, then tap
+        try {
+            String pred = "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') "
+                + "AND (label CONTAINS 'Add IR Photo' OR label CONTAINS 'Add Photo Pair' "
+                + "OR label CONTAINS 'Add Pair')";
+            java.util.Map<String, Object> scrollParams = new java.util.HashMap<>();
+            scrollParams.put("direction", "down");
+            scrollParams.put("predicateString", pred);
+            driver.executeScript("mobile: scroll", scrollParams);
+            sleep(300);
+
+            WebElement btn = driver.findElement(AppiumBy.iOSNsPredicateString(pred));
+            btn.click();
+            System.out.println("✅ Tapped Add IR Photo Pair button (Strategy 3: mobile:scroll + tap)");
+            return true;
+        } catch (Exception e) { /* continue */ }
+
+        // Strategy 4: Any button below the IR section header that isn't Cancel/Done/Back
+        try {
+            List<WebElement> irHeader = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'Infrared' OR label CONTAINS 'IR Photo')"
+            ));
+            if (!irHeader.isEmpty()) {
+                int headerY = irHeader.get(0).getLocation().getY();
+                List<WebElement> allBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND visible == true"));
+                for (WebElement btn : allBtns) {
+                    int btnY = btn.getLocation().getY();
+                    if (btnY <= headerY || btnY > headerY + 400) continue;
+                    String name = btn.getAttribute("name");
+                    if (name == null) name = "";
+                    // Skip navigation/form buttons
+                    if (name.equals("Cancel") || name.equals("Done") || name.equals("Back")
+                        || name.equals("Close") || name.contains("Create Asset")) continue;
+                    btn.click();
+                    System.out.println("✅ Tapped button below IR header: '" + name + "' (Strategy 4)");
+                    return true;
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
+        System.out.println("⚠️ Could not tap Add IR Photo Pair button (all 4 strategies failed)");
         return false;
     }
 

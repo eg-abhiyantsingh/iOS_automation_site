@@ -321,19 +321,19 @@ public class SiteVisit_phase2 extends BaseTest {
             return false;
         }
 
-        // Scroll down to Infrared Photos section
-        logStep("Scrolling down to Infrared Photos section");
-        workOrderPage.scrollNewAssetFormDown();
-        shortWait();
-        workOrderPage.scrollNewAssetFormDown();
-        shortWait();
+        // Strategy 1: Use mobile:scroll to jump directly to "Infrared Photos"
+        // This is XCUITest-native and handles any form length
+        logStep("Scrolling to Infrared Photos via mobile:scroll...");
+        boolean irVisible = workOrderPage.scrollToInfraredPhotosSection();
 
-        boolean irVisible = workOrderPage.isInfraredPhotosSectionDisplayed();
+        // Strategy 2: If mobile:scroll failed, fall back to manual swipes (up to 6)
         if (!irVisible) {
-            // Try one more scroll
-            workOrderPage.scrollNewAssetFormDown();
-            shortWait();
-            irVisible = workOrderPage.isInfraredPhotosSectionDisplayed();
+            logStep("mobile:scroll missed — falling back to manual swipes");
+            for (int i = 0; i < 6 && !irVisible; i++) {
+                workOrderPage.scrollNewAssetFormDown();
+                shortWait();
+                irVisible = workOrderPage.isInfraredPhotosSectionDisplayed();
+            }
         }
 
         logStep("Infrared Photos section visible: " + irVisible);
@@ -663,8 +663,14 @@ public class SiteVisit_phase2 extends BaseTest {
         mediumWait();
         logStep("Pair added: " + pairAdded);
 
-        // Verify New IR Photos section appears
+        // Verify New IR Photos section appears — scroll down if needed
+        // The new section may appear below the visible area after adding a pair
         boolean newIRSection = workOrderPage.isNewIRPhotosSectionDisplayed();
+        if (!newIRSection) {
+            workOrderPage.scrollNewAssetFormDown();
+            shortWait();
+            newIRSection = workOrderPage.isNewIRPhotosSectionDisplayed();
+        }
         logStep("New IR Photos section displayed: " + newIRSection);
 
         // Verify the pair shows IR and Visual filenames
@@ -740,8 +746,13 @@ public class SiteVisit_phase2 extends BaseTest {
         logStep("After pair #2: IR=" + ir3 + ", Visual=" + visual3);
         logStepWithScreenshot("After adding pair #2");
 
-        // Verify the list shows both pairs
+        // Verify the list shows both pairs — scroll to reveal if needed
         int pairCount = workOrderPage.getNewIRPhotoPairCount();
+        if (pairCount < 2) {
+            workOrderPage.scrollNewAssetFormDown();
+            shortWait();
+            pairCount = workOrderPage.getNewIRPhotoPairCount();
+        }
         logStep("Total pairs in list: " + pairCount);
 
         // Verify each pair has edit and delete icons
@@ -1086,10 +1097,15 @@ public class SiteVisit_phase2 extends BaseTest {
 
         // Step 3: Scroll down to IR Photos section and add IR photo pairs
         logStep("Scrolling down to IR Photos section");
-        workOrderPage.scrollNewAssetFormDown();
-        shortWait();
-        workOrderPage.scrollNewAssetFormDown();
-        shortWait();
+        boolean irReScroll = workOrderPage.scrollToInfraredPhotosSection();
+        if (!irReScroll) {
+            // Fallback: manual swipes
+            for (int i = 0; i < 6; i++) {
+                workOrderPage.scrollNewAssetFormDown();
+                shortWait();
+                if (workOrderPage.isInfraredPhotosSectionDisplayed()) break;
+            }
+        }
 
         logStep("Adding IR Photo pair #1");
         boolean pair1Added = workOrderPage.tapAddIRPhotoPairButton();
@@ -1099,17 +1115,13 @@ public class SiteVisit_phase2 extends BaseTest {
 
         // Step 4: Scroll down to Create Asset button
         logStep("Scrolling to Create Asset button");
-        workOrderPage.scrollNewAssetFormDown();
-        shortWait();
-
-        boolean createBtnVisible = workOrderPage.isSessionCreateAssetButtonDisplayed();
-        logStep("Create Asset button visible: " + createBtnVisible);
-
-        if (!createBtnVisible) {
+        boolean createBtnVisible = false;
+        for (int i = 0; i < 4 && !createBtnVisible; i++) {
             workOrderPage.scrollNewAssetFormDown();
             shortWait();
             createBtnVisible = workOrderPage.isSessionCreateAssetButtonDisplayed();
         }
+        logStep("Create Asset button visible: " + createBtnVisible);
 
         // Step 5: Tap Create Asset
         logStep("Tapping Create Asset button");
@@ -1337,17 +1349,17 @@ public class SiteVisit_phase2 extends BaseTest {
         mediumWait();
         workOrderPage.waitForSessionNewAssetForm();
 
-        // Scroll to IR section
-        workOrderPage.scrollNewAssetFormDown();
-        shortWait();
-        workOrderPage.scrollNewAssetFormDown();
-        shortWait();
+        // Scroll to IR section — use mobile:scroll first, then fall back to manual swipes
+        logStep("Scrolling to IR section via mobile:scroll for " + photoType);
+        boolean irVisible = workOrderPage.scrollToInfraredPhotosSection();
 
-        boolean irVisible = workOrderPage.isInfraredPhotosSectionDisplayed();
         if (!irVisible) {
-            workOrderPage.scrollNewAssetFormDown();
-            shortWait();
-            irVisible = workOrderPage.isInfraredPhotosSectionDisplayed();
+            logStep("mobile:scroll missed — falling back to manual swipes for " + photoType);
+            for (int i = 0; i < 6 && !irVisible; i++) {
+                workOrderPage.scrollNewAssetFormDown();
+                shortWait();
+                irVisible = workOrderPage.isInfraredPhotosSectionDisplayed();
+            }
         }
 
         logStep("IR section reached for " + photoType + ": " + irVisible);
