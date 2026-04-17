@@ -347,6 +347,14 @@ jobs:
             target/surefire-reports/
             reports/
 
+      - name: Extract Email Recipients
+        if: always()
+        id: email_config
+        run: |
+          EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
+          echo "EMAIL_TO=$EMAIL_TO" >> $GITHUB_OUTPUT
+          echo "Email recipients: $EMAIL_TO"
+
       - name: Send Email Notification
         if: always()
         uses: dawidd6/action-send-mail@v3
@@ -357,7 +365,7 @@ jobs:
           username: ${{ secrets.EMAIL_USERNAME }}
           password: ${{ secrets.EMAIL_PASSWORD }}
           subject: "[${{ env.TEST_STATUS || 'TIMEOUT' }}] iOS Automation Test Results - ${{ github.repository }}"
-          to: abhiyant.singh@egalvanic.com
+          to: ${{ steps.email_config.outputs.EMAIL_TO }}
           from: "iOS Automation <${{ secrets.EMAIL_USERNAME }}>"
           attachments: ${{ env.CLIENT_REPORT_PATH }}
           body: |
