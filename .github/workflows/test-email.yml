@@ -23,7 +23,7 @@ jobs:
     env:
       INPUT_EMAIL_TO: ${{ github.event.inputs.email_to }}
       INPUT_SCENARIO: ${{ github.event.inputs.test_scenario }}
-      RECIPIENT: ${{ github.event.inputs.email_to || secrets.EMAIL_TO || 'abhiyant.singh@egalvanic.com' }}
+      RECIPIENT: ${{ github.event.inputs.email_to || 'abhiyant.singh@egalvanic.com' }}
     steps:
       - name: Prepare Email
         id: summary
@@ -219,7 +219,7 @@ jobs:
           password: ${{ secrets.EMAIL_PASSWORD }}
           subject: ${{ steps.summary.outputs.SUBJECT }}
           html_body: file://email_body.html
-          to: ${{ github.event.inputs.email_to || secrets.EMAIL_TO || 'abhiyant.singh@egalvanic.com' }}
+          to: ${{ github.event.inputs.email_to || 'abhiyant.singh@egalvanic.com' }}
           from: "eGalvanic QA <${{ secrets.EMAIL_USERNAME }}>"
         continue-on-error: true
 
@@ -238,15 +238,22 @@ jobs:
           else
             echo "║  Status:  ❌ EMAIL SEND FAILED"
             echo "║"
-            echo "║  CHECKLIST:"
-            echo "║  1. EMAIL_USERNAME secret set?  → must be a Gmail address"
-            echo "║  2. EMAIL_PASSWORD secret set?  → must be Gmail App Password"
-            echo "║     (NOT your regular Gmail password)"
-            echo "║     → Google Account > Security > 2-Step Verification > App Passwords"
-            echo "║  3. EMAIL_TO secret set? (optional — falls back to abhiyant.singh@egalvanic.com)"
+            echo "║  You only need 2 secrets (Settings > Secrets > Actions):"
+            echo "║"
+            echo "║  1. EMAIL_USERNAME  → your Gmail address"
+            echo "║     Example: yourname@gmail.com"
+            echo "║"
+            echo "║  2. EMAIL_PASSWORD  → Gmail App Password (16-character code)"
+            echo "║     NOT your regular Gmail password!"
+            echo "║     Steps to get it:"
+            echo "║     a) Go to https://myaccount.google.com/security"
+            echo "║     b) Enable 2-Step Verification (if not already)"
+            echo "║     c) Go to https://myaccount.google.com/apppasswords"
+            echo "║     d) Create app password → copy the 16-character code"
+            echo "║     e) Set that as EMAIL_PASSWORD secret"
           fi
 
           echo "║"
-          echo "║  To:       ${RECIPIENT}"
-          echo "║  Scenario: ${INPUT_SCENARIO}"
+          echo "║  Recipient: abhiyant.singh@egalvanic.com (hardcoded)"
+          echo "║  Scenario:  ${INPUT_SCENARIO}"
           echo "╚════════════════════════════════════════════════════════════╝"

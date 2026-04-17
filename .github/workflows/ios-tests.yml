@@ -357,7 +357,7 @@ jobs:
           username: ${{ secrets.EMAIL_USERNAME }}
           password: ${{ secrets.EMAIL_PASSWORD }}
           subject: "[${{ env.TEST_STATUS || 'TIMEOUT' }}] iOS Automation Test Results - ${{ github.repository }}"
-          to: ${{ secrets.EMAIL_TO }}
+          to: abhiyant.singh@egalvanic.com
           from: "iOS Automation <${{ secrets.EMAIL_USERNAME }}>"
           attachments: ${{ env.CLIENT_REPORT_PATH }}
           body: |
