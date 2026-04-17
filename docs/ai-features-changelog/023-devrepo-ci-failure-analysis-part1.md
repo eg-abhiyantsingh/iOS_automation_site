@@ -9,7 +9,7 @@
 
 ## Overview
 
-Deep root cause analysis of CI run 24513764702 on the developer repo (`Egalvanic/eg-pz-mobile-iOS`). This is Part 1, covering the **7 completed jobs** — updated as jobs finish.
+Deep root cause analysis of CI run 24513764702 on the developer repo (`Egalvanic/eg-pz-mobile-iOS`). Originally Part 1, now updated with final totals across all 16 jobs. See CL 024 (Connections + Assets P5) and CL 025 (Issues P1 + final summary) for remaining modules.
 
 | Job | Tests | Passed | Failed | Skipped | Runtime | Status |
 |-----|:-----:|:------:|:------:|:-------:|:-------:|--------|
@@ -24,12 +24,14 @@ Deep root cause analysis of CI run 24513764702 on the developer repo (`Egalvanic
 | Assets P1 | 112 | ? | ? | ? | 365min | **CANCELLED** (365min pattern, no report) |
 | Connections | 93 | 59 | 5 | 29 | 143min | 3 assertions + 2 TIMEOUTS + 29 precondition skips |
 | Assets P5 | 100 | 92 | 8 | 0 | 293min | 4 TIMEOUTS + 4 assertions (survived 365min!) |
+| Issues P1 | 103 | 94 | 9 | 0 | 311min | 6 TIMEOUTS + 3 assertions (CL 025) |
 | Issues P3 | 58 | ? | ? | ? | 365min | **CANCELLED** (365min pattern, no report) |
+| Assets P4 | 97 | ? | ? | ? | 365min | **CANCELLED** (365min pattern, no report) |
 | Site Visit | 0 | 0 | 0 | 0 | 12min | Empty skeleton — zero tests executed, no report |
-| **Total (analyzable)** | **544** | **389** | **66** | **89** | — | — |
+| **FINAL TOTAL (analyzable)** | **647** | **483** | **75** | **89** | — | **74.7% pass rate** |
 
-**Still running**: Assets P4 (97), Issues P1 (119)  
-**365min kills**: Assets P6, P2, P1, Issues P3 (4 total — all no report)
+**ALL 16 JOBS COMPLETE** — see CL 025 for final summary  
+**365min kills**: Assets P6, P2, P1, P4 + Issues P3 (5 total — all no report)
 
 ---
 
