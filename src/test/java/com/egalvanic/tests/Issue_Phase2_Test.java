@@ -109,8 +109,10 @@ public final class Issue_Phase2_Test extends BaseTest {
         issuePage.tapAllTab();
         issuePage.tapFirstIssue();
         issuePage.changeIssueClassOnDetails(issueClass);
+        sleep(500); // subcategories load from server after class change
         issuePage.scrollDownOnDetailsScreen();
         issuePage.tapSubcategoryField();
+        sleep(500); // dropdown render + options populate
     }
 
     /**

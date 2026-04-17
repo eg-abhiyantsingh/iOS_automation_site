@@ -3678,7 +3678,7 @@ public class IssuePage extends BasePage {
                 int fieldY = field.getLocation().getY();
                 if (fieldY > 120) {
                     field.click();
-                    sleep(200);
+                    sleep(300);
                     System.out.println("✅ Strategy 1: Tapped Subcategory text field at Y=" + fieldY);
                     return;
                 }
@@ -3716,7 +3716,7 @@ public class IssuePage extends BasePage {
                     int pickerY = picker.getLocation().getY();
                     if (pickerY > 120) {
                         picker.click();
-                        sleep(200);
+                        sleep(300);
                         System.out.println("✅ Strategy 2: Tapped Subcategory picker button at Y=" + pickerY +
                             " (label: '" + picker.getAttribute("label") + "')");
                         return;
@@ -3774,7 +3774,7 @@ public class IssuePage extends BasePage {
                         String elLabel = bestMatch.getAttribute("label");
                         int elY = bestMatch.getLocation().getY();
                         bestMatch.click();
-                        sleep(200);
+                        sleep(300);
                         System.out.println("✅ Strategy 3: Tapped " + elType + " at Y=" + elY +
                             " (label: '" + elLabel + "')");
                         return;
@@ -3792,7 +3792,7 @@ public class IssuePage extends BasePage {
                 int labelY = subcatLabel.getLocation().getY();
                 if (labelY > 120) {
                     subcatLabel.click();
-                    sleep(200);
+                    sleep(300);
                     System.out.println("✅ Strategy 4: Tapped Subcategory label at Y=" + labelY);
                     return;
                 }
@@ -3821,7 +3821,7 @@ public class IssuePage extends BasePage {
                     tap.addAction(finger.createPointerUp(
                         org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
                     driver.perform(java.util.Arrays.asList(tap));
-                    sleep(200);
+                    sleep(300);
                     System.out.println("✅ Strategy 5: Coordinate tap at X=" + tapX + ", Y=" + tapY);
                     return;
                 }
@@ -6653,25 +6653,44 @@ public class IssuePage extends BasePage {
     public boolean isSubcategoryCategoryPresent(String categoryPrefix) {
         System.out.println("🔍 Checking for subcategory category: '" + categoryPrefix + "'");
         try {
-            // Broad type filter — popover items can be many element types
             String typeFilter = "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' OR " +
                 "type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeMenuItem' OR " +
                 "type == 'XCUIElementTypeOther')";
 
-            // Strategy 1: BEGINSWITH match
-            List<WebElement> matches = driver.findElements(AppiumBy.iOSNsPredicateString(
-                typeFilter + " AND label BEGINSWITH '" + categoryPrefix + "'"));
-            if (!matches.isEmpty()) {
-                System.out.println("   ✅ Category '" + categoryPrefix + "' found (BEGINSWITH)");
-                return true;
-            }
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(1500));
+            try {
+                for (int attempt = 0; attempt < 2; attempt++) {
+                    // Strategy 1: BEGINSWITH match
+                    List<WebElement> matches = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        typeFilter + " AND label BEGINSWITH '" + categoryPrefix + "'"));
+                    if (!matches.isEmpty()) {
+                        System.out.println("   ✅ Category '" + categoryPrefix + "' found (BEGINSWITH)");
+                        return true;
+                    }
 
-            // Strategy 2: CONTAINS match (handles labels with newlines/special formatting)
-            matches = driver.findElements(AppiumBy.iOSNsPredicateString(
-                typeFilter + " AND label CONTAINS '" + categoryPrefix + "'"));
-            if (!matches.isEmpty()) {
-                System.out.println("   ✅ Category '" + categoryPrefix + "' found (CONTAINS)");
-                return true;
+                    // Strategy 2: CONTAINS match (handles newlines/formatting)
+                    matches = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        typeFilter + " AND label CONTAINS '" + categoryPrefix + "'"));
+                    if (!matches.isEmpty()) {
+                        System.out.println("   ✅ Category '" + categoryPrefix + "' found (CONTAINS)");
+                        return true;
+                    }
+
+                    // Strategy 3: Case-insensitive search
+                    matches = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        typeFilter + " AND label CONTAINS[c] '" + categoryPrefix + "'"));
+                    if (!matches.isEmpty()) {
+                        System.out.println("   ✅ Category '" + categoryPrefix + "' found (case-insensitive)");
+                        return true;
+                    }
+
+                    if (attempt == 0) {
+                        sleep(500);
+                    }
+                }
+            } finally {
+                driver.manage().timeouts().implicitlyWait(
+                    java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
             }
 
             System.out.println("   ❌ Category '" + categoryPrefix + "' NOT found");
