@@ -1,0 +1,252 @@
+name: Test Email Delivery
+
+on:
+  workflow_dispatch:
+    inputs:
+      email_to:
+        description: 'Override recipient (leave blank to use secret/fallback)'
+        required: false
+        default: ''
+      test_scenario:
+        description: 'Simulate scenario'
+        required: true
+        default: 'full-parallel'
+        type: choice
+        options:
+          - full-parallel
+          - smoke
+
+jobs:
+  send-test-email:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      INPUT_EMAIL_TO: ${{ github.event.inputs.email_to }}
+      INPUT_SCENARIO: ${{ github.event.inputs.test_scenario }}
+      RECIPIENT: ${{ github.event.inputs.email_to || secrets.EMAIL_TO || 'abhiyant.singh@egalvanic.com' }}
+    steps:
+      - name: Prepare Email
+        id: summary
+        run: |
+          SCENARIO="${INPUT_SCENARIO}"
+          REPORT_DATE="$(date -u '+%B %d, %Y')"
+
+          if [ "$SCENARIO" = "smoke" ]; then
+            echo "STATUS=Completed" >> $GITHUB_OUTPUT
+            echo "SUBJECT=eGalvanic iOS QA — Smoke Test Report — ${REPORT_DATE}" >> $GITHUB_OUTPUT
+
+            cat > email_body.html << 'EMAILEOF'
+          <!DOCTYPE html>
+          <html>
+          <body style="margin:0;padding:0;background:#f4f4f4;font-family:'Segoe UI',Arial,sans-serif;">
+            <div style="max-width:700px;margin:0 auto;background:white;">
+              <div style="background:linear-gradient(135deg,#1a5276 0%,#2e86c1 100%);padding:30px 25px;text-align:center;">
+                <h1 style="margin:0;color:white;font-size:20px;font-weight:600;">eGalvanic iOS QA</h1>
+                <p style="margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:13px;">Smoke Test Execution Report</p>
+              </div>
+              <div style="padding:25px;">
+                <div style="background:#f8f9fa;border-radius:8px;padding:15px;margin-bottom:20px;">
+                  <table style="width:100%;font-size:13px;"><tr>
+                    <td><b>Mode:</b> Smoke CRUD</td>
+                    <td><b>Tests:</b> 17</td>
+                  </tr></table>
+                </div>
+                <div style="text-align:center;padding:15px 0;margin-bottom:20px;">
+                  <div style="display:inline-block;background:#eafaf1;border:1px solid #27ae60;border-radius:8px;padding:12px 30px;">
+                    <span style="font-size:18px;font-weight:bold;color:#27ae60;">Execution Complete</span>
+                  </div>
+                </div>
+                <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:20px;">
+                  <tr style="background:#2e86c1;color:white;">
+                    <th style="padding:10px;text-align:left;">Module</th>
+                    <th style="padding:10px;text-align:center;">Tests</th>
+                    <th style="padding:10px;text-align:center;">Status</th>
+                  </tr>
+                  <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;">Login</td><td style="text-align:center;">1</td><td style="text-align:center;color:#27ae60;">Executed</td></tr>
+                  <tr style="background:#f8f9fa;border-bottom:1px solid #eee;"><td style="padding:10px;">Site Selection</td><td style="text-align:center;">1</td><td style="text-align:center;color:#27ae60;">Executed</td></tr>
+                  <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;">Asset CRUD</td><td style="text-align:center;">4</td><td style="text-align:center;color:#27ae60;">Executed</td></tr>
+                  <tr style="background:#f8f9fa;border-bottom:1px solid #eee;"><td style="padding:10px;">Location CRUD</td><td style="text-align:center;">4</td><td style="text-align:center;color:#27ae60;">Executed</td></tr>
+                  <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;">Connection CRUD</td><td style="text-align:center;">3</td><td style="text-align:center;color:#27ae60;">Executed</td></tr>
+                  <tr style="background:#f8f9fa;"><td style="padding:10px;">Issue CRUD</td><td style="text-align:center;">4</td><td style="text-align:center;color:#27ae60;">Executed</td></tr>
+                </table>
+                <p style="text-align:center;font-size:11px;color:#aaa;margin-top:25px;">
+                  eGalvanic iOS Automation Suite | Automated QA Report
+                </p>
+              </div>
+            </div>
+          </body>
+          </html>
+          EMAILEOF
+          else
+            echo "STATUS=Completed" >> $GITHUB_OUTPUT
+            echo "SUBJECT=eGalvanic iOS QA — Full Suite Execution Report — ${REPORT_DATE}" >> $GITHUB_OUTPUT
+
+            cat > email_body.html << EMAILEOF
+          <!DOCTYPE html>
+          <html>
+          <body style="margin:0;padding:0;background:#f4f4f4;font-family:'Segoe UI',Arial,sans-serif;">
+            <div style="max-width:700px;margin:0 auto;background:white;">
+              <!-- Header -->
+              <div style="background:linear-gradient(135deg,#1a5276 0%,#2e86c1 100%);padding:30px 25px;text-align:center;">
+                <h1 style="margin:0;color:white;font-size:20px;font-weight:600;">eGalvanic iOS QA</h1>
+                <p style="margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:13px;">Full Suite Test Execution Report</p>
+              </div>
+
+              <div style="padding:25px;">
+                <!-- Run Info -->
+                <div style="background:#f8f9fa;border-radius:8px;padding:15px;margin-bottom:20px;">
+                  <table style="width:100%;font-size:13px;"><tr>
+                    <td><b>Date:</b> ${REPORT_DATE}</td>
+                    <td><b>Branch:</b> release/qa</td>
+                  </tr><tr>
+                    <td><b>Test Modules:</b> 15</td>
+                    <td><b>Total Tests:</b> ~1,190</td>
+                  </tr></table>
+                </div>
+
+                <!-- Execution Summary -->
+                <div style="text-align:center;padding:15px 0;margin-bottom:20px;">
+                  <div style="display:inline-block;background:#eafaf1;border:1px solid #27ae60;border-radius:8px;padding:12px 30px;">
+                    <span style="font-size:18px;font-weight:bold;color:#27ae60;">Execution Complete</span>
+                    <br><span style="font-size:12px;color:#666;">15 modules across 8 functional areas</span>
+                  </div>
+                </div>
+
+                <!-- Module Table -->
+                <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:5px;">
+                  <tr style="background:#2e86c1;color:white;">
+                    <th style="padding:10px;text-align:left;">Module</th>
+                    <th style="padding:10px;text-align:center;">Tests</th>
+                    <th style="padding:10px;text-align:left;">Coverage</th>
+                    <th style="padding:10px;text-align:center;">Status</th>
+                  </tr>
+                  <tr style="border-bottom:1px solid #eee;">
+                    <td style="padding:8px 10px;">Authentication</td><td style="text-align:center;">38</td>
+                    <td>Login &amp; Session</td><td style="text-align:center;color:#27ae60;">Executed</td>
+                  </tr>
+                  <tr style="background:#f8f9fa;border-bottom:1px solid #eee;">
+                    <td style="padding:8px 10px;">Site Selection</td><td style="text-align:center;">52</td>
+                    <td>Site Management</td><td style="text-align:center;color:#27ae60;">Executed</td>
+                  </tr>
+                  <!-- Asset Tests -->
+                  <tr style="background:#e8f0fe;border-bottom:1px solid #ddd;">
+                    <td colspan="4" style="padding:6px 10px;font-weight:600;color:#1a5276;font-size:12px;">ASSET MANAGEMENT (652 tests)</td>
+                  </tr>
+                  <tr style="border-bottom:1px solid #eee;">
+                    <td style="padding:8px 10px;">Asset Part 1</td><td style="text-align:center;">112</td>
+                    <td>Creation + Edit + Busway + Capacitor</td><td style="text-align:center;color:#27ae60;">Executed</td>
+                  </tr>
+                  <tr style="background:#f8f9fa;border-bottom:1px solid #eee;">
+                    <td style="padding:8px 10px;">Asset Part 2</td><td style="text-align:center;">108</td>
+                    <td>CB + DS + Fuse + Generator + Junction Box</td><td style="text-align:center;color:#27ae60;">Executed</td>
+                  </tr>
+                  <tr style="border-bottom:1px solid #eee;">
+                    <td style="padding:8px 10px;">Asset Part 3</td><td style="text-align:center;">109</td>
+                    <td>Load Center + MCC + Motor + Other</td><td style="text-align:center;color:#27ae60;">Executed</td>
+                  </tr>
+                  <tr style="background:#f8f9fa;border-bottom:1px solid #eee;">
+                    <td style="padding:8px 10px;">Asset Part 4</td><td style="text-align:center;">97</td>
+                    <td>OCP + Panelboard + PDU + Relay + SWB + Transformer</td><td style="text-align:center;color:#27ae60;">Executed</td>
+                  </tr>
+                  <tr style="border-bottom:1px solid #eee;">
+                    <td style="padding:8px 10px;">Asset Part 5</td><td style="text-align:center;">112</td>
+                    <td>UPS + Utility + VFD + Subtypes</td><td style="text-align:center;color:#27ae60;">Executed</td>
+                  </tr>
+                  <tr style="background:#f8f9fa;border-bottom:1px solid #eee;">
+                    <td style="padding:8px 10px;">Asset Part 6</td><td style="text-align:center;">114</td>
+                    <td>Subtypes + Tasks + Issues + Connections</td><td style="text-align:center;color:#27ae60;">Executed</td>
+                  </tr>
+                  <!-- Issues Tests -->
+                  <tr style="background:#e8f0fe;border-bottom:1px solid #ddd;">
+                    <td colspan="4" style="padding:6px 10px;font-weight:600;color:#1a5276;font-size:12px;">ISSUE MANAGEMENT (237 tests)</td>
+                  </tr>
+                  <tr style="border-bottom:1px solid #eee;">
+                    <td style="padding:8px 10px;">Issues Phase 1</td><td style="text-align:center;">119</td>
+                    <td>List + Filter + Search + Creation</td><td style="text-align:center;color:#27ae60;">Executed</td>
+                  </tr>
+                  <tr style="background:#f8f9fa;border-bottom:1px solid #eee;">
+                    <td style="padding:8px 10px;">Issues Phase 2</td><td style="text-align:center;">60</td>
+                    <td>OSHA + Thermal + Severity + Ultrasonic</td><td style="text-align:center;color:#27ae60;">Executed</td>
+                  </tr>
+                  <tr style="border-bottom:1px solid #eee;">
+                    <td style="padding:8px 10px;">Issues Phase 3</td><td style="text-align:center;">58</td>
+                    <td>Sort + Status + CRUD Operations</td><td style="text-align:center;color:#27ae60;">Executed</td>
+                  </tr>
+                  <!-- Other Modules -->
+                  <tr style="background:#e8f0fe;border-bottom:1px solid #ddd;">
+                    <td colspan="4" style="padding:6px 10px;font-weight:600;color:#1a5276;font-size:12px;">OTHER MODULES</td>
+                  </tr>
+                  <tr style="border-bottom:1px solid #eee;">
+                    <td style="padding:8px 10px;">Location</td><td style="text-align:center;">82</td>
+                    <td>Location Hierarchy</td><td style="text-align:center;color:#27ae60;">Executed</td>
+                  </tr>
+                  <tr style="background:#f8f9fa;border-bottom:1px solid #eee;">
+                    <td style="padding:8px 10px;">Connections</td><td style="text-align:center;">94</td>
+                    <td>Asset Connections</td><td style="text-align:center;color:#27ae60;">Executed</td>
+                  </tr>
+                  <tr style="border-bottom:1px solid #eee;">
+                    <td style="padding:8px 10px;">Offline</td><td style="text-align:center;">35</td>
+                    <td>Offline Mode</td><td style="text-align:center;color:#27ae60;">Executed</td>
+                  </tr>
+                  <tr style="background:#f8f9fa;">
+                    <td style="padding:8px 10px;">Site Visit</td><td style="text-align:center;">—</td>
+                    <td>Work Orders / Photo Walkthrough</td><td style="text-align:center;color:#27ae60;">Executed</td>
+                  </tr>
+                </table>
+
+                <div style="background:#f8f9fa;border-radius:6px;padding:12px;margin-top:15px;font-size:12px;color:#666;text-align:center;">
+                  <b>~1,190 test cases</b> executed across <b>8 functional areas</b>
+                </div>
+
+                <p style="text-align:center;font-size:11px;color:#aaa;margin-top:25px;">
+                  eGalvanic iOS Automation Suite | Automated QA Report
+                </p>
+              </div>
+            </div>
+          </body>
+          </html>
+          EMAILEOF
+          fi
+
+      - name: Send Email
+        id: send_email
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: ${{ steps.summary.outputs.SUBJECT }}
+          html_body: file://email_body.html
+          to: ${{ github.event.inputs.email_to || secrets.EMAIL_TO || 'abhiyant.singh@egalvanic.com' }}
+          from: "eGalvanic QA <${{ secrets.EMAIL_USERNAME }}>"
+        continue-on-error: true
+
+      - name: Email Diagnostic
+        if: always()
+        env:
+          EMAIL_OUTCOME: ${{ steps.send_email.outcome }}
+        run: |
+          echo "╔════════════════════════════════════════════════════════════╗"
+          echo "║    EMAIL DELIVERY DIAGNOSTIC                               ║"
+          echo "╠════════════════════════════════════════════════════════════╣"
+
+          if [ "$EMAIL_OUTCOME" = "success" ]; then
+            echo "║  Status:  ✅ EMAIL SENT SUCCESSFULLY"
+            echo "║  Check your inbox (also Spam/Promotions folders)"
+          else
+            echo "║  Status:  ❌ EMAIL SEND FAILED"
+            echo "║"
+            echo "║  CHECKLIST:"
+            echo "║  1. EMAIL_USERNAME secret set?  → must be a Gmail address"
+            echo "║  2. EMAIL_PASSWORD secret set?  → must be Gmail App Password"
+            echo "║     (NOT your regular Gmail password)"
+            echo "║     → Google Account > Security > 2-Step Verification > App Passwords"
+            echo "║  3. EMAIL_TO secret set? (optional — falls back to abhiyant.singh@egalvanic.com)"
+          fi
+
+          echo "║"
+          echo "║  To:       ${RECIPIENT}"
+          echo "║  Scenario: ${INPUT_SCENARIO}"
+          echo "╚════════════════════════════════════════════════════════════╝"
