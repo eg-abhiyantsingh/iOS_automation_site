@@ -521,6 +521,7 @@ public final class SiteSelectionTest extends BaseTest {
 
     @Test(priority = 24)
     public void TC_SS_024_verifyTappingDisabledSitesButton() {
+        skipOnCI("Offline test — WiFi toggle not available on CI simulators");
         ExtentReportManager.createTest(
                 AppConstants.MODULE_SITE_SELECTION,
                 AppConstants.FEATURE_ONLINE_OFFLINE,
@@ -601,6 +602,7 @@ public final class SiteSelectionTest extends BaseTest {
 
     @Test(priority = 27)
     public void TC_SS_027_verifyChangesCanBeMadeOffline() {
+        skipOnCI("Offline/sync test — WiFi toggle not available on CI simulators");
         ExtentReportManager.createTest(
                 AppConstants.MODULE_SITE_SELECTION,
                 AppConstants.FEATURE_OFFLINE_SYNC,
@@ -625,6 +627,7 @@ public final class SiteSelectionTest extends BaseTest {
 
     @Test(priority = 28)
     public void TC_SS_028_verifyPendingSyncIndicatorOnWiFiIcon() {
+        skipOnCI("Offline/sync test — WiFi toggle not available on CI simulators");
         ExtentReportManager.createTest(
                 AppConstants.MODULE_SITE_SELECTION,
                 AppConstants.FEATURE_OFFLINE_SYNC,
@@ -648,6 +651,7 @@ public final class SiteSelectionTest extends BaseTest {
 
     @Test(priority = 29)
     public void TC_SS_029_verifySyncRecordsOptionAppears() {
+        skipOnCI("Offline/sync test — WiFi toggle not available on CI simulators");
         ExtentReportManager.createTest(
                 AppConstants.MODULE_SITE_SELECTION,
                 AppConstants.FEATURE_OFFLINE_SYNC,
@@ -676,6 +680,7 @@ public final class SiteSelectionTest extends BaseTest {
 
     @Test(priority = 30)
     public void TC_SS_030_verifySitesButtonDisabledWithPendingSync() {
+        skipOnCI("Offline/sync test — WiFi toggle not available on CI simulators");
         ExtentReportManager.createTest(
                 AppConstants.MODULE_SITE_SELECTION,
                 AppConstants.FEATURE_OFFLINE_SYNC,
@@ -708,6 +713,7 @@ public final class SiteSelectionTest extends BaseTest {
 
     @Test(priority = 31)
     public void TC_SS_031_verifySitesButtonBadgeShowsPending() {
+        skipOnCI("Offline/sync test — WiFi toggle not available on CI simulators");
         ExtentReportManager.createTest(
                 AppConstants.MODULE_SITE_SELECTION,
                 AppConstants.FEATURE_OFFLINE_SYNC,
@@ -739,6 +745,7 @@ public final class SiteSelectionTest extends BaseTest {
 
     @Test(priority = 32)
     public void TC_SS_032_verifyTappingSyncRecordsInitiatesSync() {
+        skipOnCI("Offline/sync test — WiFi toggle not available on CI simulators");
         ExtentReportManager.createTest(
                 AppConstants.MODULE_SITE_SELECTION,
                 AppConstants.FEATURE_OFFLINE_SYNC,
@@ -1287,6 +1294,7 @@ public final class SiteSelectionTest extends BaseTest {
 
     @Test(priority = 55)
     public void TC_SS_055_verifySyncWithMultiplePendingRecords() {
+        skipOnCI("Offline/sync test — WiFi toggle not available on CI simulators");
         ExtentReportManager.createTest(
                 AppConstants.MODULE_SITE_SELECTION,
                 AppConstants.FEATURE_OFFLINE_SYNC,

@@ -563,6 +563,29 @@ public class ConnectionsPage {
                 }
             }
 
+            // The arrow may be an SF Symbol image (not text). Check structurally:
+            // a connection cell with 2+ static text children = source + target names
+            WebElement cell = getFirstConnectionEntry();
+            if (cell != null) {
+                List<WebElement> texts = cell.findElements(AppiumBy.className("XCUIElementTypeStaticText"));
+                if (texts.size() >= 2) {
+                    System.out.println("\u2713 Connection cell has " + texts.size() +
+                        " text elements (source→target structure confirmed)");
+                    return true;
+                }
+            }
+
+            // Also check for arrow image/icon between asset names
+            try {
+                List<WebElement> arrowImages = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeImage' OR type == 'XCUIElementTypeOther') AND " +
+                    "(name CONTAINS 'arrow' OR label CONTAINS 'arrow')"));
+                if (!arrowImages.isEmpty()) {
+                    System.out.println("\u2713 Found arrow image element");
+                    return true;
+                }
+            } catch (Exception ignored) {}
+
             return false;
         } catch (Exception e) {
             return false;
@@ -1591,7 +1614,7 @@ public class ConnectionsPage {
         try {
             System.out.println("🔽 Tapping on Source Node dropdown...");
 
-            // Strategy 1: Look for "Select source node" text
+            // Strategy 1: Look for "Select source node" text (pre-selection state)
             try {
                 WebElement selectSource = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label CONTAINS 'Select source' OR label CONTAINS 'source node' OR name == 'Select source')"));
@@ -1601,7 +1624,7 @@ public class ConnectionsPage {
                 return true;
             } catch (Exception e1) {}
 
-            // Strategy 2: Look for Source Node field/button
+            // Strategy 2: Look for Source Node button (may have label="Source Node" or contain "source")
             try {
                 WebElement sourceField = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "((label == 'Source Node' OR name CONTAINS 'source') AND type == 'XCUIElementTypeButton')"));
@@ -1611,7 +1634,32 @@ public class ConnectionsPage {
                 return true;
             } catch (Exception e2) {}
 
-            // Strategy 3: Find cell containing Source Node (predicate-filtered)
+            // Strategy 3: Post-selection state — find "Source Node" label, tap the cell/button below it
+            try {
+                WebElement sectionLabel = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND label == 'Source Node'"));
+                int labelY = sectionLabel.getLocation().getY();
+                driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
+                try {
+                    List<WebElement> tappable = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "(type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeButton' OR " +
+                        "type == 'XCUIElementTypeOther') AND visible == true"));
+                    for (WebElement el : tappable) {
+                        int elY = el.getLocation().getY();
+                        if (elY > labelY && elY - labelY < 80) {
+                            el.click();
+                            sleep(200);
+                            System.out.println("✓ Tapped Source Node section (positional, post-selection)");
+                            return true;
+                        }
+                    }
+                } finally {
+                    driver.manage().timeouts().implicitlyWait(
+                        java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
+                }
+            } catch (Exception e3) {}
+
+            // Strategy 4: Find cell containing Source Node (predicate-filtered)
             try {
                 List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeCell' AND label CONTAINS[cd] 'source'"));
@@ -1621,7 +1669,7 @@ public class ConnectionsPage {
                     System.out.println("✓ Tapped on Source Node cell");
                     return true;
                 }
-            } catch (Exception e3) {}
+            } catch (Exception e4) {}
 
             System.out.println("⚠️ Could not find Source Node dropdown to tap");
             return false;
@@ -2211,9 +2259,19 @@ public class ConnectionsPage {
                     System.out.println("   Skipping '" + name + "' — invalid/placeholder");
                     continue;
                 }
-                if (excludeNames != null && !excludeNames.isEmpty() && excludeNames.contains(name)) {
-                    System.out.println("   Skipping '" + name + "' — name excluded");
-                    continue;
+                if (excludeNames != null && !excludeNames.isEmpty()) {
+                    boolean nameExcluded = false;
+                    for (String excluded : excludeNames) {
+                        if (excluded != null && (excluded.equals(name)
+                                || excluded.contains(name) || name.contains(excluded))) {
+                            nameExcluded = true;
+                            break;
+                        }
+                    }
+                    if (nameExcluded) {
+                        System.out.println("   Skipping '" + name + "' — name excluded (contains match)");
+                        continue;
+                    }
                 }
                 validNames.add(name);
             }

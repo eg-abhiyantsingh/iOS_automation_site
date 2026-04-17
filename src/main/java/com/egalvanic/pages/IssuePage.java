@@ -2340,17 +2340,7 @@ public class IssuePage extends BasePage {
      * Returns true if dropdown opened successfully.
      */
     public boolean openIssueClassDropdown() {
-        try {
-            WebElement picker = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND name CONTAINS 'Issue Class'"));
-            picker.click();
-            sleep(500);
-            System.out.println("✅ Opened Issue Class dropdown");
-            return true;
-        } catch (Exception e) {
-            System.out.println("⚠️ Could not open Issue Class dropdown: " + e.getMessage());
-            return false;
-        }
+        return tryOpenIssueClassPicker();
     }
 
     /**
@@ -2560,12 +2550,63 @@ public class IssuePage extends BasePage {
      * Returns true if dropdown opened successfully.
      */
     public boolean openPriorityDropdown() {
+        // Strategy 1: button with name/label containing 'Priority'
         try {
             WebElement picker = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND name CONTAINS 'Priority'"));
+                "type == 'XCUIElementTypeButton' AND " +
+                "(name CONTAINS[c] 'priority' OR label CONTAINS[c] 'priority')"));
             picker.click();
             sleep(500);
-            System.out.println("✅ Opened Priority dropdown");
+            System.out.println("✅ Opened Priority dropdown (button match)");
+            return true;
+        } catch (Exception ignored) {}
+
+        // Strategy 2: positional — find "Priority" label, tap adjacent button
+        try {
+            WebElement label = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label CONTAINS[c] 'priority'"));
+            int labelY = label.getLocation().getY();
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
+            try {
+                List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND " +
+                    "(label CONTAINS 'None' OR label CONTAINS 'High' OR label CONTAINS 'Medium' OR " +
+                    "label CONTAINS 'Low' OR label CONTAINS 'Priority' OR label CONTAINS 'Select')"));
+                for (WebElement btn : buttons) {
+                    if (Math.abs(btn.getLocation().getY() - labelY) < 50) {
+                        btn.click();
+                        sleep(500);
+                        System.out.println("✅ Opened Priority dropdown (positional match)");
+                        return true;
+                    }
+                }
+            } finally {
+                driver.manage().timeouts().implicitlyWait(
+                    java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
+            }
+        } catch (Exception ignored) {}
+
+        // Strategy 3: coordinate tap on right side of Priority label row
+        try {
+            WebElement label = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label CONTAINS[c] 'priority'"));
+            int labelY = label.getLocation().getY();
+            int screenWidth = driver.manage().window().getSize().getWidth();
+            org.openqa.selenium.interactions.PointerInput finger =
+                new org.openqa.selenium.interactions.PointerInput(
+                    org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
+            org.openqa.selenium.interactions.Sequence tap =
+                new org.openqa.selenium.interactions.Sequence(finger, 0);
+            tap.addAction(finger.createPointerMove(java.time.Duration.ZERO,
+                org.openqa.selenium.interactions.PointerInput.Origin.viewport(),
+                screenWidth * 3 / 4, labelY + 10));
+            tap.addAction(finger.createPointerDown(
+                org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+            tap.addAction(finger.createPointerUp(
+                org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+            driver.perform(java.util.Collections.singletonList(tap));
+            sleep(500);
+            System.out.println("✅ Opened Priority dropdown (coordinate tap)");
             return true;
         } catch (Exception e) {
             System.out.println("⚠️ Could not open Priority dropdown: " + e.getMessage());

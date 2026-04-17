@@ -75,6 +75,10 @@ public final class OfflineTest extends BaseTest {
 
     @BeforeClass(alwaysRun = true)
     public void classSetup() {
+        if (isCI()) {
+            throw new org.testng.SkipException(
+                "Offline tests require real WiFi toggle — not available on CI simulators");
+        }
         System.out.println("\n📋 Offline Mode Test Suite - Starting");
         DriverManager.setNoReset(true);
     }

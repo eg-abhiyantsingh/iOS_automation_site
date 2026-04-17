@@ -27,6 +27,16 @@ public class BaseTest {
     protected static boolean skipNextSetup = false;
     protected static boolean skipNextTeardown = false;
 
+    protected static boolean isCI() {
+        return System.getenv("CI") != null || System.getenv("GITHUB_ACTIONS") != null;
+    }
+
+    protected void skipOnCI(String reason) {
+        if (isCI()) {
+            throw new org.testng.SkipException("CI skip: " + reason);
+        }
+    }
+
     // Track test start time for duration calculation
     private long testStartTime;
 

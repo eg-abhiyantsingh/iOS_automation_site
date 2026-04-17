@@ -8236,7 +8236,7 @@ public class AssetPage extends BasePage {
      * HELPER: Check if the CURRENTLY SELECTED asset class matches the target
      * This checks the asset class field VALUE, not just if any element with that name exists
      */
-    private boolean isCurrentAssetClassEqualTo(String targetClass) {
+    public boolean isCurrentAssetClassEqualTo(String targetClass) {
         // Use short timeout — this is a quick detection check, not a wait-for-element
         driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
         try {
