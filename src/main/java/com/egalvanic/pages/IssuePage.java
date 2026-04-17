@@ -3685,20 +3685,44 @@ public class IssuePage extends BasePage {
                 System.out.println("   Strategy 1: Field found at Y=" + fieldY + " but too close to nav bar");
             } catch (Exception ignored) {}
 
-            // Strategy 2: Button with subcategory attributes
+            // Strategy 2: Button with subcategory attributes OR "Select..." dropdown near label
             try {
-                WebElement picker = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND " +
-                    "(name CONTAINS 'Subcategory' OR label CONTAINS 'Type or select' OR " +
-                    "label CONTAINS 'Subcategory')"));
-                int pickerY = picker.getLocation().getY();
-                if (pickerY > 120) {
-                    picker.click();
-                    sleep(400);
-                    System.out.println("✅ Strategy 2: Tapped Subcategory picker button at Y=" + pickerY);
-                    return;
+                // First try: direct subcategory-named button
+                WebElement picker = null;
+                try {
+                    picker = driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND " +
+                        "(name CONTAINS 'Subcategory' OR label CONTAINS 'Type or select' OR " +
+                        "label CONTAINS 'Subcategory')"));
+                } catch (Exception ignored2) {}
+
+                // Second try: "Select..." button near the Subcategory label
+                if (picker == null) {
+                    WebElement subcatLbl = driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND label == 'Subcategory'"));
+                    int lblY = subcatLbl.getLocation().getY();
+                    List<WebElement> selectBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND label BEGINSWITH 'Select'"));
+                    for (WebElement btn : selectBtns) {
+                        int btnY = btn.getLocation().getY();
+                        if (btnY > lblY && btnY <= lblY + 80 && btnY > 120) {
+                            picker = btn;
+                            break;
+                        }
+                    }
                 }
-                System.out.println("   Strategy 2: Picker found at Y=" + pickerY + " but too close to nav bar");
+
+                if (picker != null) {
+                    int pickerY = picker.getLocation().getY();
+                    if (pickerY > 120) {
+                        picker.click();
+                        sleep(400);
+                        System.out.println("✅ Strategy 2: Tapped Subcategory picker button at Y=" + pickerY +
+                            " (label: '" + picker.getAttribute("label") + "')");
+                        return;
+                    }
+                    System.out.println("   Strategy 2: Picker found at Y=" + pickerY + " but too close to nav bar");
+                }
             } catch (Exception ignored) {}
 
             // Strategy 3: Find interactive elements near the Subcategory label.
@@ -3717,6 +3741,8 @@ public class IssuePage extends BasePage {
                         "type == 'XCUIElementTypeOther')"));
 
                     // Score candidates: prefer text fields/buttons, closest below label
+                    // EXCLUDE info icon buttons (label "Info") — they sit next to the label
+                    // and are NOT the dropdown. The actual dropdown is further below.
                     WebElement bestMatch = null;
                     int bestScore = Integer.MAX_VALUE;
                     for (WebElement el : elements) {
@@ -3725,10 +3751,17 @@ public class IssuePage extends BasePage {
                         // Must be: below label, within 80px, in content area, reasonable size
                         if (y >= subcatY && y <= subcatY + 80 && y > 120 && h > 10 && h < 80) {
                             String elType = el.getAttribute("type");
+                            String elLabel = el.getAttribute("label");
+                            // Skip info icon buttons — NOT the dropdown
+                            if ("Info".equalsIgnoreCase(elLabel) || "info.circle".equals(elLabel)) continue;
                             int score = y - subcatY;
                             // Strong preference for real interactive elements over Other
                             if (elType != null && !elType.equals("XCUIElementTypeOther")) {
                                 score -= 1000;
+                            }
+                            // Extra preference for "Select" buttons — these are the actual dropdowns
+                            if (elLabel != null && elLabel.startsWith("Select")) {
+                                score -= 500;
                             }
                             if (score < bestScore) {
                                 bestScore = score;
@@ -3774,7 +3807,7 @@ public class IssuePage extends BasePage {
                 int labelY = subcatLabel.getLocation().getY();
                 if (labelY > 120) {
                     int tapX = driver.manage().window().getSize().getWidth() / 2;
-                    int tapY = labelY + 30;
+                    int tapY = labelY + 50;
                     org.openqa.selenium.interactions.PointerInput finger =
                         new org.openqa.selenium.interactions.PointerInput(
                             org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
