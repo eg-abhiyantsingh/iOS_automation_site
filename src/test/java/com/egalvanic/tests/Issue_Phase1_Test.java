@@ -151,7 +151,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         logStep("Step 2: Verify Issues title is displayed");
         boolean titleDisplayed = issuePage.isIssuesTitleDisplayed();
@@ -188,7 +187,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         logStep("Step 2: Verify search bar is displayed");
         boolean searchDisplayed = issuePage.isSearchBarDisplayed();
@@ -214,7 +212,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         logStep("Step 2: Verify All tab is displayed");
         boolean allTab = issuePage.isAllTabDisplayed();
@@ -251,7 +248,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         logStep("Step 2: Verify Open tab is selected by default");
         boolean openSelected = issuePage.isOpenTabSelected();
@@ -276,7 +272,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         logStep("Step 2: Note current issue count (Open tab)");
         int openCount = issuePage.getVisibleIssueCount();
@@ -284,7 +279,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStep("Step 3: Tap All tab");
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 4: Verify All tab count");
         int allCount = issuePage.getVisibleIssueCount();
@@ -296,7 +290,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Switch back to Open tab for subsequent tests
         issuePage.tapOpenTab();
-        shortWait();
 
         logStepWithScreenshot("TC_ISS_005: All tab verified");
     }
@@ -313,11 +306,9 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         logStep("Step 2: Tap Resolved tab");
         issuePage.tapResolvedTab();
-        shortWait();
 
         logStep("Step 3: Verify Resolved tab is selected");
         boolean resolvedSelected = issuePage.isResolvedTabSelected();
@@ -333,7 +324,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStep("Step 5: Tap Closed tab");
         issuePage.tapClosedTab();
-        shortWait();
 
         logStep("Step 6: Check visible issue count under Closed");
         int closedCount = issuePage.getVisibleIssueCount();
@@ -345,7 +335,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Switch back to Open tab for subsequent tests
         issuePage.tapOpenTab();
-        shortWait();
 
         logStepWithScreenshot("TC_ISS_006: Resolved and Closed tab filters verified");
     }
@@ -362,7 +351,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         logStep("Step 2: Read counts from all tabs");
         int allCount = issuePage.getAllTabCount();
@@ -412,7 +400,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 2: Ensure issues exist in the list");
         // Switch to All tab to maximize chance of having entries
         issuePage.tapAllTab();
-        shortWait();
 
         int issueCount = issuePage.getVisibleIssueCount();
         logStep("Visible issues: " + issueCount);
@@ -428,7 +415,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Switch back to Open tab
         issuePage.tapOpenTab();
-        shortWait();
 
         logStepWithScreenshot("TC_ISS_008: Issue entry elements verified");
     }
@@ -447,7 +433,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Verify issue type icon is displayed");
         int issueCount = issuePage.getVisibleIssueCount();
@@ -457,7 +442,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Issue type icon displayed: " + iconDisplayed);
 
         issuePage.tapOpenTab();
-        shortWait();
 
         logStepWithScreenshot("TC_ISS_009: Issue type icons verified");
     }
@@ -476,7 +460,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Check for High priority badge");
         boolean highBadge = issuePage.isPriorityBadgeDisplayed("High");
@@ -488,7 +471,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         }
 
         issuePage.tapOpenTab();
-        shortWait();
 
         logStepWithScreenshot("TC_ISS_010: High priority badge check complete");
     }
@@ -507,7 +489,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Check for Medium priority badge");
         boolean mediumBadge = issuePage.isPriorityBadgeDisplayed("Medium");
@@ -519,7 +500,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         }
 
         issuePage.tapOpenTab();
-        shortWait();
 
         logStepWithScreenshot("TC_ISS_011: Medium priority badge check complete");
     }
@@ -539,7 +519,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStep("Step 2: Ensure Open tab is selected");
         issuePage.tapOpenTab();
-        shortWait();
 
         logStep("Step 3: Check for Open status badge on entries");
         int issueCount = issuePage.getVisibleIssueCount();
@@ -568,7 +547,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Verify asset name is displayed on issue entry");
         int issueCount = issuePage.getVisibleIssueCount();
@@ -579,7 +557,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("✅ Asset name displayed on issue entry");
 
         issuePage.tapOpenTab();
-        shortWait();
 
         logStepWithScreenshot("TC_ISS_013: Asset name verified");
     }
@@ -598,7 +575,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Check for truncated titles");
         int issueCount = issuePage.getVisibleIssueCount();
@@ -613,7 +589,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         }
 
         issuePage.tapOpenTab();
-        shortWait();
 
         logStepWithScreenshot("TC_ISS_014: Title truncation check complete");
     }
@@ -636,7 +611,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Note initial issue count");
         int initialCount = issuePage.getVisibleIssueCount();
@@ -644,7 +618,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStep("Step 3: Search for 'Thermal'");
         issuePage.searchIssues("Thermal");
-        mediumWait();
 
         logStep("Step 4: Verify filtered results");
         int filteredCount = issuePage.getVisibleIssueCount();
@@ -660,7 +633,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Clean up
         issuePage.clearSearch();
-        shortWait();
     }
 
     /**
@@ -677,11 +649,9 @@ public final class Issue_Phase1_Test extends BaseTest {
         assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Search for 'Busway'");
         issuePage.searchIssues("Busway");
-        mediumWait();
 
         logStep("Step 3: Verify search results");
         int filteredCount = issuePage.getVisibleIssueCount();
@@ -697,7 +667,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Clean up
         issuePage.clearSearch();
-        shortWait();
     }
 
     /**
@@ -714,11 +683,9 @@ public final class Issue_Phase1_Test extends BaseTest {
         assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Search for nonexistent text");
         issuePage.searchIssues("XYZNONEXISTENT999");
-        mediumWait();
 
         logStep("Step 3: Verify no results");
         int count = issuePage.getVisibleIssueCount();
@@ -735,7 +702,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Clean up
         issuePage.clearSearch();
-        shortWait();
     }
 
     /**
@@ -752,7 +718,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Note initial issue count");
         int initialCount = issuePage.getVisibleIssueCount();
@@ -760,14 +725,12 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStep("Step 3: Search for something specific");
         issuePage.searchIssues("Thermal");
-        mediumWait();
 
         int filteredCount = issuePage.getVisibleIssueCount();
         logStep("Filtered count: " + filteredCount);
 
         logStep("Step 4: Clear search");
         issuePage.clearSearch();
-        mediumWait();
         mediumWait(); // Extra wait for list to fully refresh after clearing search
 
         logStep("Step 5: Verify full list is restored");
@@ -777,8 +740,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         // If count hasn't fully restored, wait once more and re-check
         if (restoredCount < initialCount) {
             logStep("   Count not yet restored — waiting for list refresh...");
-            mediumWait();
-            mediumWait();
             restoredCount = issuePage.getVisibleIssueCount();
             logStep("   Restored count after extra wait: " + restoredCount);
         }
@@ -806,7 +767,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         logStep("Step 2: Verify Sort icon is present in header");
         boolean sortDisplayed = issuePage.isSortIconDisplayed();
@@ -828,11 +788,9 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         logStep("Step 2: Tap Sort icon");
         issuePage.tapSortIcon();
-        shortWait();
 
         logStep("Step 3: Verify sort options are displayed");
         boolean sortOptions = issuePage.isSortOptionsDisplayed();
@@ -847,7 +805,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Dismiss sort options
         issuePage.dismissSortOptions();
-        shortWait();
     }
 
     // ============================================================
@@ -866,11 +823,9 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         logStep("Step 2: Tap + (Add) button");
         issuePage.tapAddButton();
-        shortWait();
 
         logStep("Step 3: Verify New Issue screen is displayed");
         boolean newIssueDisplayed = issuePage.isNewIssueFormDisplayed();
@@ -881,7 +836,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Clean up: Cancel back to Issues list
         issuePage.tapCancelNewIssue();
-        shortWait();
     }
 
     /**
@@ -897,7 +851,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to New Issue form");
         boolean onForm = ensureOnNewIssueForm();
         assertTrue(onForm, "Should be on New Issue form");
-        shortWait();
 
         logStep("Step 2: Verify 'New Issue' title");
         boolean titleDisplayed = issuePage.isNewIssueFormDisplayed();
@@ -924,7 +877,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Clean up
         issuePage.tapCancelNewIssue();
-        shortWait();
     }
 
     /**
@@ -939,7 +891,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to New Issue form");
         boolean onForm = ensureOnNewIssueForm();
         assertTrue(onForm, "Should be on New Issue form");
-        shortWait();
 
         logStep("Step 2: Verify Create Issue button is disabled");
         boolean enabled = issuePage.isCreateIssueEnabled();
@@ -950,7 +901,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Clean up
         issuePage.tapCancelNewIssue();
-        shortWait();
     }
 
     /**
@@ -965,7 +915,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to New Issue form");
         boolean onForm = ensureOnNewIssueForm();
         assertTrue(onForm, "Should be on New Issue form");
-        shortWait();
 
         logStep("Step 2: Check for 'Asset is required' validation message");
         boolean assetRequired = issuePage.isAssetRequiredMessageDisplayed();
@@ -984,7 +933,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Clean up
         issuePage.tapCancelNewIssue();
-        shortWait();
     }
 
     /**
@@ -999,14 +947,12 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to New Issue form");
         boolean onForm = ensureOnNewIssueForm();
         assertTrue(onForm, "Should be on New Issue form");
-        shortWait();
 
         logStep("Step 2: Note issue count before cancel");
         // We can't easily count from New Issue form, so skip this check
 
         logStep("Step 3: Tap Cancel button");
         issuePage.tapCancelNewIssue();
-        shortWait();
 
         logStep("Step 4: Verify returned to Issues screen");
         boolean onIssues = issuePage.isIssuesScreenDisplayed();
@@ -1037,7 +983,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to New Issue form");
         boolean onForm = ensureOnNewIssueForm();
         assertTrue(onForm, "Should be on New Issue form");
-        shortWait();
 
         logStep("Step 2: Verify Issue Class dropdown is displayed");
         boolean dropdownDisplayed = issuePage.isIssueClassDropdownDisplayed();
@@ -1052,7 +997,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Clean up
         issuePage.tapCancelNewIssue();
-        shortWait();
     }
 
     /**
@@ -1068,12 +1012,10 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to New Issue form");
         boolean onForm = ensureOnNewIssueForm();
         assertTrue(onForm, "Should be on New Issue form");
-        shortWait();
 
         logStep("Step 2: Open Issue Class dropdown");
         boolean opened = issuePage.openIssueClassDropdown();
         assertTrue(opened, "Issue Class dropdown should open");
-        shortWait();
 
         logStep("Step 3: Verify dropdown options");
         String[] expectedOptions = {
@@ -1093,11 +1035,9 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Dismiss dropdown without selecting
         issuePage.dismissDropdownMenu();
-        shortWait();
 
         // Clean up
         issuePage.tapCancelNewIssue();
-        shortWait();
     }
 
     /**
@@ -1112,7 +1052,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to New Issue form");
         boolean onForm = ensureOnNewIssueForm();
         assertTrue(onForm, "Should be on New Issue form");
-        shortWait();
 
         logStep("Step 2: Select NEC Violation from Issue Class");
         String selectedValue = issuePage.selectIssueClassAndGetValue("NEC Violation");
@@ -1123,7 +1062,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Clean up
         issuePage.tapCancelNewIssue();
-        shortWait();
     }
 
     /**
@@ -1138,7 +1076,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to New Issue form");
         boolean onForm = ensureOnNewIssueForm();
         assertTrue(onForm, "Should be on New Issue form");
-        shortWait();
 
         logStep("Step 2: Select NFPA 70B Violation from Issue Class");
         String selectedValue = issuePage.selectIssueClassAndGetValue("NFPA 70B Violation");
@@ -1149,7 +1086,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Clean up
         issuePage.tapCancelNewIssue();
-        shortWait();
     }
 
     /**
@@ -1164,7 +1100,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to New Issue form");
         boolean onForm = ensureOnNewIssueForm();
         assertTrue(onForm, "Should be on New Issue form");
-        shortWait();
 
         logStep("Step 2: Select OSHA Violation from Issue Class");
         String selectedValue = issuePage.selectIssueClassAndGetValue("OSHA Violation");
@@ -1175,7 +1110,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Clean up
         issuePage.tapCancelNewIssue();
-        shortWait();
     }
 
     /**
@@ -1190,7 +1124,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to New Issue form");
         boolean onForm = ensureOnNewIssueForm();
         assertTrue(onForm, "Should be on New Issue form");
-        shortWait();
 
         logStep("Step 2: Select Repair Needed from Issue Class");
         String selectedValue = issuePage.selectIssueClassAndGetValue("Repair Needed");
@@ -1201,7 +1134,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Clean up
         issuePage.tapCancelNewIssue();
-        shortWait();
     }
 
     /**
@@ -1216,7 +1148,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to New Issue form");
         boolean onForm = ensureOnNewIssueForm();
         assertTrue(onForm, "Should be on New Issue form");
-        shortWait();
 
         logStep("Step 2: Select Thermal Anomaly from Issue Class");
         String selectedValue = issuePage.selectIssueClassAndGetValue("Thermal Anomaly");
@@ -1227,7 +1158,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Clean up
         issuePage.tapCancelNewIssue();
-        shortWait();
     }
 
     /**
@@ -1242,7 +1172,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to New Issue form");
         boolean onForm = ensureOnNewIssueForm();
         assertTrue(onForm, "Should be on New Issue form");
-        shortWait();
 
         logStep("Step 2: Select Ultrasonic Anomaly from Issue Class");
         String selectedValue = issuePage.selectIssueClassAndGetValue("Ultrasonic Anomaly");
@@ -1253,7 +1182,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Clean up
         issuePage.tapCancelNewIssue();
-        shortWait();
     }
 
     // ============================================================
@@ -1272,7 +1200,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to New Issue form");
         boolean onForm = ensureOnNewIssueForm();
         assertTrue(onForm, "Should be on New Issue form");
-        shortWait();
 
         logStep("Step 2: Verify Title field is displayed");
         boolean titleFieldDisplayed = issuePage.isTitleFieldDisplayed();
@@ -1287,7 +1214,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Clean up
         issuePage.tapCancelNewIssue();
-        shortWait();
     }
 
     /**
@@ -1302,12 +1228,10 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to New Issue form");
         boolean onForm = ensureOnNewIssueForm();
         assertTrue(onForm, "Should be on New Issue form");
-        shortWait();
 
         logStep("Step 2: Enter test title in Title field");
         String testTitle = "TestTitleEntry_" + System.currentTimeMillis();
         issuePage.enterIssueTitle(testTitle);
-        shortWait();
 
         logStep("Step 3: Verify text was entered");
         String titleValue = issuePage.getTitleFieldValue();
@@ -1318,7 +1242,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Clean up
         issuePage.tapCancelNewIssue();
-        shortWait();
     }
 
     // ============================================================
@@ -1337,7 +1260,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to New Issue form");
         boolean onForm = ensureOnNewIssueForm();
         assertTrue(onForm, "Should be on New Issue form");
-        shortWait();
 
         logStep("Step 2: Verify Priority dropdown is displayed");
         boolean priorityDisplayed = issuePage.isPriorityDropdownDisplayed();
@@ -1352,7 +1274,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Clean up
         issuePage.tapCancelNewIssue();
-        shortWait();
     }
 
     /**
@@ -1367,12 +1288,10 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to New Issue form");
         boolean onForm = ensureOnNewIssueForm();
         assertTrue(onForm, "Should be on New Issue form");
-        shortWait();
 
         logStep("Step 2: Open Priority dropdown");
         boolean opened = issuePage.openPriorityDropdown();
         assertTrue(opened, "Priority dropdown should open");
-        shortWait();
 
         logStep("Step 3: Verify priority options");
         String[] expectedOptions = {"None", "High", "Medium", "Low"};
@@ -1389,11 +1308,9 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Dismiss dropdown without selecting
         issuePage.dismissDropdownMenu();
-        shortWait();
 
         // Clean up
         issuePage.tapCancelNewIssue();
-        shortWait();
     }
 
     /**
@@ -1408,7 +1325,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to New Issue form");
         boolean onForm = ensureOnNewIssueForm();
         assertTrue(onForm, "Should be on New Issue form");
-        shortWait();
 
         logStep("Step 2: Select High priority");
         String selectedValue = issuePage.selectPriorityAndGetValue("High");
@@ -1419,7 +1335,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Clean up
         issuePage.tapCancelNewIssue();
-        shortWait();
     }
 
     /**
@@ -1434,7 +1349,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to New Issue form");
         boolean onForm = ensureOnNewIssueForm();
         assertTrue(onForm, "Should be on New Issue form");
-        shortWait();
 
         logStep("Step 2: Select Medium priority");
         String selectedValue = issuePage.selectPriorityAndGetValue("Medium");
@@ -1445,7 +1359,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Clean up
         issuePage.tapCancelNewIssue();
-        shortWait();
     }
 
     /**
@@ -1460,7 +1373,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to New Issue form");
         boolean onForm = ensureOnNewIssueForm();
         assertTrue(onForm, "Should be on New Issue form");
-        shortWait();
 
         logStep("Step 2: Select Low priority");
         String selectedValue = issuePage.selectPriorityAndGetValue("Low");
@@ -1471,7 +1383,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Clean up
         issuePage.tapCancelNewIssue();
-        shortWait();
     }
 
     // ============================================================
@@ -1490,7 +1401,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to New Issue form");
         boolean onForm = ensureOnNewIssueForm();
         assertTrue(onForm, "Should be on New Issue form");
-        mediumWait();
 
         logStep("Step 2: Verify Select Asset field is displayed");
         // isSelectAssetDisplayed() has 3s wait + scroll fallback built in
@@ -1506,7 +1416,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Clean up
         issuePage.tapCancelNewIssue();
-        shortWait();
     }
 
     /**
@@ -1521,11 +1430,9 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to New Issue form");
         boolean onForm = ensureOnNewIssueForm();
         assertTrue(onForm, "Should be on New Issue form");
-        shortWait();
 
         logStep("Step 2: Tap Select Asset");
         issuePage.tapSelectAsset();
-        shortWait();
 
         logStep("Step 3: Verify Select Asset screen is displayed");
         boolean assetScreen = issuePage.isSelectAssetScreenDisplayed();
@@ -1536,9 +1443,7 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Clean up: Cancel back
         issuePage.tapCancelAssetPicker();
-        shortWait();
         issuePage.tapCancelNewIssue();
-        shortWait();
     }
 
     /**
@@ -1553,11 +1458,9 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to New Issue form");
         boolean onForm = ensureOnNewIssueForm();
         assertTrue(onForm, "Should be on New Issue form");
-        shortWait();
 
         logStep("Step 2: Open Select Asset screen");
         issuePage.tapSelectAsset();
-        shortWait();
 
         logStep("Step 3: Verify asset list has items");
         int assetCount = issuePage.getAssetListCount();
@@ -1569,9 +1472,7 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Clean up
         issuePage.tapCancelAssetPicker();
-        shortWait();
         issuePage.tapCancelNewIssue();
-        shortWait();
     }
 
     /**
@@ -1586,11 +1487,9 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to New Issue form");
         boolean onForm = ensureOnNewIssueForm();
         assertTrue(onForm, "Should be on New Issue form");
-        shortWait();
 
         logStep("Step 2: Open Select Asset screen");
         issuePage.tapSelectAsset();
-        shortWait();
 
         logStep("Step 3: Note initial asset count");
         int initialCount = issuePage.getAssetListCount();
@@ -1598,7 +1497,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStep("Step 4: Search for 'Busway'");
         issuePage.searchAssetsInPicker("Busway");
-        mediumWait();
 
         logStep("Step 5: Verify filtered results");
         int filteredCount = issuePage.getAssetListCount();
@@ -1613,9 +1511,7 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Clean up
         issuePage.tapCancelAssetPicker();
-        shortWait();
         issuePage.tapCancelNewIssue();
-        shortWait();
     }
 
     /**
@@ -1630,16 +1526,13 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to New Issue form");
         boolean onForm = ensureOnNewIssueForm();
         assertTrue(onForm, "Should be on New Issue form");
-        shortWait();
 
         logStep("Step 2: Open Select Asset screen");
         issuePage.tapSelectAsset();
-        shortWait();
 
         logStep("Step 3: Select first available asset");
         boolean selected = issuePage.selectFirstAvailableAsset();
         logStep("Asset selection result: " + selected);
-        shortWait();
 
         logStep("Step 4: Verify returned to New Issue form");
         boolean backOnForm = issuePage.isNewIssueFormDisplayed();
@@ -1657,7 +1550,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Clean up
         issuePage.tapCancelNewIssue();
-        shortWait();
     }
 
     /**
@@ -1672,11 +1564,9 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to New Issue form");
         boolean onForm = ensureOnNewIssueForm();
         assertTrue(onForm, "Should be on New Issue form");
-        shortWait();
 
         logStep("Step 2: Open Select Asset screen");
         issuePage.tapSelectAsset();
-        shortWait();
 
         logStep("Step 3: Verify + (Add) button is displayed");
         boolean addButton = issuePage.isAddAssetButtonOnPickerDisplayed();
@@ -1691,9 +1581,7 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Clean up
         issuePage.tapCancelAssetPicker();
-        shortWait();
         issuePage.tapCancelNewIssue();
-        shortWait();
     }
 
     /**
@@ -1708,11 +1596,9 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to New Issue form");
         boolean onForm = ensureOnNewIssueForm();
         assertTrue(onForm, "Should be on New Issue form");
-        shortWait();
 
         logStep("Step 2: Open Select Asset screen");
         issuePage.tapSelectAsset();
-        shortWait();
 
         logStep("Step 3: Verify QR scan button is displayed");
         boolean qrButton = issuePage.isQRScanButtonDisplayed();
@@ -1727,9 +1613,7 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Clean up
         issuePage.tapCancelAssetPicker();
-        shortWait();
         issuePage.tapCancelNewIssue();
-        shortWait();
     }
 
     // ============================================================
@@ -1749,7 +1633,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to New Issue form");
         boolean onForm = ensureOnNewIssueForm();
         assertTrue(onForm, "Should be on New Issue form");
-        shortWait();
 
         logStep("Step 2: Verify Create Issue is initially disabled");
         boolean initiallyDisabled = !issuePage.isCreateIssueEnabled();
@@ -1757,21 +1640,16 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStep("Step 3: Fill Issue Class");
         issuePage.selectIssueClass("NEC Violation");
-        shortWait();
 
         logStep("Step 4: Fill Title");
         issuePage.enterIssueTitle("TestButtonState_" + System.currentTimeMillis());
-        shortWait();
 
         logStep("Step 5: Fill Priority");
         issuePage.selectPriority("High");
-        shortWait();
 
         logStep("Step 6: Select Asset");
         issuePage.tapSelectAsset();
-        shortWait();
         issuePage.selectFirstAvailableAsset();
-        shortWait();
 
         logStep("Step 7: Verify Create Issue is now enabled");
         boolean nowEnabled = issuePage.isCreateIssueEnabled();
@@ -1782,7 +1660,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Clean up — DO NOT create, just cancel
         issuePage.tapCancelNewIssue();
-        shortWait();
     }
 
     /**
@@ -1798,33 +1675,26 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Navigate to New Issue form");
         boolean onForm = ensureOnNewIssueForm();
         assertTrue(onForm, "Should be on New Issue form");
-        shortWait();
 
         logStep("Step 2: Fill Issue Class — NEC Violation");
         issuePage.selectIssueClass("NEC Violation");
-        shortWait();
 
         logStep("Step 3: Fill Title (dynamic)");
         createdIssueTitle = "TestIssue_" + System.currentTimeMillis();
         issuePage.enterIssueTitle(createdIssueTitle);
         logStep("   Title: " + createdIssueTitle);
-        shortWait();
 
         logStep("Step 4: Fill Priority — High");
         issuePage.selectPriority("High");
-        shortWait();
 
         logStep("Step 5: Select first available asset");
         issuePage.tapSelectAsset();
-        shortWait();
         boolean assetSelected = issuePage.selectFirstAvailableAsset();
         assertTrue(assetSelected, "Should select an asset from picker");
-        shortWait();
 
         logStep("Step 6: Tap Create Issue");
         boolean created = issuePage.tapCreateIssue();
         assertTrue(created, "Create Issue button should be tapped successfully");
-        mediumWait();
 
         logStep("Step 7: Verify returned to Issues screen");
         boolean onIssues = issuePage.isIssuesScreenDisplayed();
@@ -1833,7 +1703,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             if (stillOnForm) {
                 logStep("⚠️ Issue creation may have failed — still on form");
                 issuePage.tapCancelNewIssue();
-                shortWait();
             }
         }
         assertTrue(onIssues, "Should return to Issues screen after creating issue");
@@ -1854,11 +1723,9 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         logStep("Step 2: Switch to All tab to see all issues");
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 3: Verify issue is in the list");
         if (createdIssueTitle != null) {
@@ -1878,7 +1745,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Switch back to Open tab
         issuePage.tapOpenTab();
-        shortWait();
     }
 
     /**
@@ -1893,7 +1759,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         logStep("Step 2: Read current tab counts");
         int allCount = issuePage.getAllTabCount();
@@ -1924,15 +1789,12 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         logStep("Step 2: Switch to All tab");
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 3: Tap on first issue");
         issuePage.tapFirstIssue();
-        shortWait();
 
         logStep("Step 4: Verify Issue Details screen is displayed");
         boolean detailsDisplayed = issuePage.isIssueDetailsScreenDisplayed();
@@ -1947,7 +1809,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Close details
         issuePage.tapCloseIssueDetails();
-        shortWait();
     }
 
     /**
@@ -1962,14 +1823,11 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        shortWait();
 
         logStep("Step 3: Verify issue title");
         String title = issuePage.getIssueDetailTitle();
@@ -1987,7 +1845,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Close details
         issuePage.tapCloseIssueDetails();
-        shortWait();
     }
 
     /**
@@ -2002,19 +1859,15 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        shortWait();
 
         logStep("Step 3: Open Status dropdown");
         boolean opened = issuePage.openStatusDropdown();
         logStep("Status dropdown opened: " + opened);
-        shortWait();
 
         logStep("Step 4: Verify status options");
         String[] expectedStatuses = {"Open", "In Progress", "Resolved", "Closed"};
@@ -2030,9 +1883,7 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Dismiss dropdown and close details
         issuePage.dismissDropdownMenu();
-        shortWait();
         issuePage.tapCloseIssueDetails();
-        shortWait();
     }
 
     /**
@@ -2047,20 +1898,15 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        shortWait();
 
         logStep("Step 3: Open Status dropdown and select 'In Progress'");
         issuePage.openStatusDropdown();
-        shortWait();
         issuePage.selectStatus("In Progress");
-        shortWait();
 
         logStep("Step 4: Verify status changed");
         String newStatus = issuePage.getIssueDetailStatus();
@@ -2074,7 +1920,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStepWithScreenshot("TC_ISS_055: Status changed to In Progress");
 
         issuePage.tapCloseIssueDetails();
-        shortWait();
     }
 
     /**
@@ -2089,20 +1934,15 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        shortWait();
 
         logStep("Step 3: Open Status dropdown and select 'Resolved'");
         issuePage.openStatusDropdown();
-        shortWait();
         issuePage.selectStatus("Resolved");
-        shortWait();
 
         logStep("Step 4: Verify status changed");
         String newStatus = issuePage.getIssueDetailStatus();
@@ -2116,7 +1956,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStepWithScreenshot("TC_ISS_056: Status changed to Resolved");
 
         issuePage.tapCloseIssueDetails();
-        shortWait();
     }
 
     /**
@@ -2131,20 +1970,15 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        shortWait();
 
         logStep("Step 3: Open Status dropdown and select 'Closed'");
         issuePage.openStatusDropdown();
-        shortWait();
         issuePage.selectStatus("Closed");
-        shortWait();
 
         logStep("Step 4: Verify status changed");
         String newStatus = issuePage.getIssueDetailStatus();
@@ -2158,7 +1992,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStepWithScreenshot("TC_ISS_057: Status changed to Closed");
 
         issuePage.tapCloseIssueDetails();
-        shortWait();
     }
 
     /**
@@ -2173,14 +2006,11 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        shortWait();
 
         logStep("Step 3: Verify Priority field is displayed");
         boolean priorityDisplayed = issuePage.isPriorityDisplayedOnDetails();
@@ -2198,7 +2028,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStepWithScreenshot("TC_ISS_058: Priority on Issue Details");
 
         issuePage.tapCloseIssueDetails();
-        shortWait();
     }
 
     /**
@@ -2213,14 +2042,11 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        shortWait();
 
         logStep("Step 3: Verify Issue Class field is displayed");
         boolean classDisplayed = issuePage.isIssueClassDisplayedOnDetails();
@@ -2238,7 +2064,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStepWithScreenshot("TC_ISS_059: Issue Class on Issue Details");
 
         issuePage.tapCloseIssueDetails();
-        shortWait();
     }
 
     // ================================================================
@@ -2259,14 +2084,11 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Verify Issue Details section header is displayed");
         boolean sectionDisplayed = issuePage.isIssueDetailsSectionHeaderDisplayed();
@@ -2294,7 +2116,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStepWithScreenshot("TC_ISS_060: Issue Details section with completion %");
 
         issuePage.tapCloseIssueDetails();
-        shortWait();
     }
 
     /**
@@ -2310,14 +2131,11 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Verify 'Required fields only' toggle is displayed");
         boolean toggleDisplayed = issuePage.isRequiredFieldsToggleDisplayed();
@@ -2344,16 +2162,13 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStep("Step 5: Tap toggle to switch");
         issuePage.tapRequiredFieldsToggle();
-        shortWait();
 
         logStepWithScreenshot("TC_ISS_061: Required fields only toggle — after toggling");
 
         logStep("Step 6: Tap toggle back to original state");
         issuePage.tapRequiredFieldsToggle();
-        shortWait();
 
         issuePage.tapCloseIssueDetails();
-        shortWait();
     }
 
     // ================================================================
@@ -2373,14 +2188,11 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue (NEC Violation class)");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Verify Subcategory field is displayed");
         boolean subcatDisplayed = issuePage.isSubcategoryFieldDisplayed();
@@ -2405,7 +2217,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStepWithScreenshot("TC_ISS_062: Subcategory field for NEC Violation");
 
         issuePage.tapCloseIssueDetails();
-        shortWait();
     }
 
     /**
@@ -2421,18 +2232,14 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Tap Subcategory field to open dropdown");
         issuePage.tapSubcategoryField();
-        mediumWait();
 
         logStep("Step 4: Verify NEC subcategory options are displayed");
         // Check for some known NEC subcategory options
@@ -2458,10 +2265,8 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Dismiss dropdown
         issuePage.dismissDropdownMenu();
-        shortWait();
 
         issuePage.tapCloseIssueDetails();
-        shortWait();
     }
 
     /**
@@ -2477,22 +2282,17 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Tap Subcategory field");
         issuePage.tapSubcategoryField();
-        mediumWait();
 
         logStep("Step 4: Select 'Breaker is restricted from freely operating (NEC 240.8)'");
         issuePage.selectSubcategory("Breaker is restricted");
-        shortWait();
 
         logStep("Step 5: Verify subcategory was selected");
         String selectedValue = issuePage.getSubcategoryValue();
@@ -2525,18 +2325,14 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Tap Subcategory field to open dropdown");
         issuePage.tapSubcategoryField();
-        mediumWait();
 
         logStep("Step 4: Verify comprehensive NEC subcategory list");
         String[] expectedOptions = {
@@ -2568,10 +2364,8 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Dismiss dropdown
         issuePage.dismissDropdownMenu();
-        shortWait();
 
         issuePage.tapCloseIssueDetails();
-        shortWait();
     }
 
     /**
@@ -2587,22 +2381,17 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Tap Subcategory field");
         issuePage.tapSubcategoryField();
-        mediumWait();
 
         logStep("Step 4: Type 'Wire' to filter subcategories");
         issuePage.searchSubcategory("Wire");
-        shortWait();
 
         logStep("Step 5: Verify filtered results");
         boolean wireOptionDisplayed = issuePage.isSubcategoryOptionDisplayed("Wire");
@@ -2618,10 +2407,8 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Dismiss dropdown
         issuePage.dismissDropdownMenu();
-        shortWait();
 
         issuePage.tapCloseIssueDetails();
-        shortWait();
     }
 
     // ================================================================
@@ -2641,14 +2428,11 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Verify Description field is displayed");
         boolean descDisplayed = issuePage.isDescriptionFieldDisplayed();
@@ -2673,7 +2457,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStepWithScreenshot("TC_ISS_067: Description field");
 
         issuePage.tapCloseIssueDetails();
-        shortWait();
     }
 
     /**
@@ -2689,23 +2472,18 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Enter 'Test' in Description field");
         issuePage.enterDescription("Test");
-        shortWait();
         // Dismiss keyboard left open by enterDescription().sendKeys() —
         // without this, elements behind the keyboard (description text view,
         // nav bar close button) become inaccessible. (TC_ISS_068 fix)
         issuePage.dismissKeyboard();
-        shortWait();
 
         logStep("Step 4: Verify entered text");
         String descValue = issuePage.getDescriptionValue();
@@ -2721,7 +2499,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStepWithScreenshot("TC_ISS_068: Description with 'Test' entered");
 
         issuePage.tapCloseIssueDetails();
-        shortWait();
     }
 
     // ================================================================
@@ -2741,14 +2518,11 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Verify Proposed Resolution field is displayed");
         boolean resolutionDisplayed = issuePage.isProposedResolutionFieldDisplayed();
@@ -2773,7 +2547,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStepWithScreenshot("TC_ISS_069: Proposed Resolution field");
 
         issuePage.tapCloseIssueDetails();
-        shortWait();
     }
 
     // ================================================================
@@ -2793,18 +2566,14 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Tap Proposed Resolution and enter 'Test'");
         issuePage.enterProposedResolution("Test");
-        shortWait();
 
         logStep("Step 4: Verify entered text");
         String resValue = issuePage.getProposedResolutionValue();
@@ -2820,7 +2589,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStepWithScreenshot("TC_ISS_070: Proposed Resolution with 'Test' entered");
 
         issuePage.tapCloseIssueDetails();
-        shortWait();
     }
 
     // ================================================================
@@ -2840,14 +2608,11 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Scroll down to find Issue Photos section");
         boolean photosDisplayed = issuePage.isIssuePhotosSectionDisplayed();
@@ -2883,7 +2648,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStepWithScreenshot("TC_ISS_071: Issue Photos section");
 
         issuePage.tapCloseIssueDetails();
-        shortWait();
     }
 
     /**
@@ -2899,22 +2663,17 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Scroll to Issue Photos section");
         issuePage.isIssuePhotosSectionDisplayed();
-        shortWait();
 
         logStep("Step 4: Tap Gallery button");
         issuePage.tapGalleryButton();
-        mediumWait();
 
         logStep("Step 5: Verify photo picker is displayed");
         boolean pickerDisplayed = issuePage.isPhotoPickerDisplayed();
@@ -2929,10 +2688,8 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStep("Step 6: Dismiss photo picker");
         issuePage.dismissPhotoPicker();
-        shortWait();
 
         issuePage.tapCloseIssueDetails();
-        shortWait();
     }
 
     /**
@@ -2948,22 +2705,17 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Scroll to Issue Photos section");
         issuePage.isIssuePhotosSectionDisplayed();
-        shortWait();
 
         logStep("Step 4: Tap Camera button");
         issuePage.tapCameraButton();
-        mediumWait();
 
         logStep("Step 5: Verify camera is displayed");
         boolean cameraDisplayed = issuePage.isCameraDisplayed();
@@ -2978,7 +2730,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStep("Step 6: Dismiss camera");
         issuePage.dismissCamera();
-        shortWait();
 
         // Ensure we're back on issue details or issues screen
         if (!issuePage.isIssueDetailsScreenDisplayed()) {
@@ -2986,7 +2737,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         } else {
             issuePage.tapCloseIssueDetails();
         }
-        shortWait();
     }
 
     // ================================================================
@@ -3006,14 +2756,11 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Scroll to bottom to find Delete Issue button");
         boolean deleteDisplayed = issuePage.isDeleteIssueButtonDisplayed();
@@ -3028,10 +2775,8 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Scroll back to top before closing
         issuePage.scrollUpOnDetailsScreen();
-        shortWait();
 
         issuePage.tapCloseIssueDetails();
-        shortWait();
     }
 
     /**
@@ -3047,18 +2792,14 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Tap Delete Issue button");
         issuePage.tapDeleteIssueButton();
-        mediumWait();
 
         logStep("Step 4: Verify confirmation dialog is displayed");
         boolean confirmDisplayed = issuePage.isDeleteConfirmationDisplayed();
@@ -3073,13 +2814,11 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStep("Step 5: Cancel the deletion to preserve the issue");
         issuePage.cancelDeleteIssue();
-        shortWait();
 
         // Ensure we're still on issue details
         if (issuePage.isIssueDetailsScreenDisplayed()) {
             issuePage.tapCloseIssueDetails();
         }
-        shortWait();
     }
 
     /**
@@ -3100,41 +2839,33 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         logStep("Step 2: Create a temporary issue for deletion testing");
         logStep("   Temp issue title: " + tempIssueTitle);
         boolean created = issuePage.createQuickIssue(tempIssueTitle, null);
-        mediumWait();
 
         assertTrue(created, "Should have created temporary issue for deletion testing");
 
         logStep("Step 3: Verify temp issue is in the list");
         issuePage.tapAllTab();
-        shortWait();
         boolean issueInList = issuePage.isIssueInList(tempIssueTitle);
         logStep("Temp issue in list: " + issueInList);
         if (!issueInList) {
             // The issue may have been created and we're on a different screen
             // Try searching
             issuePage.searchIssues(tempIssueTitle);
-            shortWait();
             issueInList = issuePage.isIssueInList(tempIssueTitle);
             issuePage.clearSearch();
-            shortWait();
         }
 
         logStep("Step 4: Open the temp issue");
         issuePage.tapOnIssue(tempIssueTitle);
-        mediumWait();
 
         logStep("Step 5: Tap Delete Issue");
         issuePage.tapDeleteIssueButton();
-        mediumWait();
 
         logStep("Step 6: Confirm deletion");
         issuePage.confirmDeleteIssue();
-        mediumWait();
 
         logStep("Step 7: Verify returned to Issues list");
         boolean backOnList = issuePage.isIssuesScreenDisplayed();
@@ -3149,7 +2880,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStep("Step 8: Verify deleted issue no longer in list");
         issuePage.tapAllTab();
-        shortWait();
         boolean stillInList = issuePage.isIssueInList(tempIssueTitle);
         logStep("Deleted issue still in list: " + stillInList);
         if (!stillInList) {
@@ -3178,24 +2908,19 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Make a modification to trigger Save Changes visibility");
         // Enter some text in description to trigger "modified" state
         issuePage.enterDescription("Save test");
-        shortWait();
         // Dismiss keyboard — Save Changes button is below the keyboard area
         // and isSaveChangesButtonDisplayed() uses scrollDownOnDetailsScreen()
         // which scrolls the wrong container when the keyboard is up. (TC_ISS_077 fix)
         issuePage.dismissKeyboard();
-        shortWait();
 
         logStep("Step 4: Scroll to bottom to find Save Changes button");
         boolean saveDisplayed = issuePage.isSaveChangesButtonDisplayed();
@@ -3209,12 +2934,10 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStepWithScreenshot("TC_ISS_077: Save Changes button");
 
         issuePage.tapCloseIssueDetails();
-        shortWait();
 
         // Handle potential unsaved changes warning
         if (issuePage.isUnsavedChangesWarningDisplayed()) {
             issuePage.tapDiscardChanges();
-            shortWait();
         }
     }
 
@@ -3231,26 +2954,20 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Make a modification (add description)");
         issuePage.enterDescription("Automated test save");
-        shortWait();
         // Dismiss keyboard — tapSaveChangesButton() uses findElement/scroll
         // which hang or target wrong scroll container with keyboard open. (TC_ISS_078 fix)
         issuePage.dismissKeyboard();
-        shortWait();
 
         logStep("Step 4: Tap Save Changes");
         issuePage.tapSaveChangesButton();
-        mediumWait();
 
         logStep("Step 5: Verify save result");
         boolean successShown = issuePage.isSaveSuccessDisplayed();
@@ -3280,7 +2997,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         if (issuePage.isIssueDetailsScreenDisplayed()) {
             issuePage.tapCloseIssueDetails();
-            shortWait();
         }
     }
 
@@ -3297,26 +3013,20 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Make a modification without saving");
         issuePage.enterDescription("Unsaved change test");
-        shortWait();
         // Dismiss keyboard — tapCloseIssueDetails() looks for nav bar close button
         // which can be obstructed by the keyboard. (TC_ISS_079 fix)
         issuePage.dismissKeyboard();
-        shortWait();
 
         logStep("Step 4: Tap Close without saving");
         issuePage.tapCloseIssueDetails();
-        mediumWait();
 
         logStep("Step 5: Check for unsaved changes warning");
         boolean warningDisplayed = issuePage.isUnsavedChangesWarningDisplayed();
@@ -3328,7 +3038,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
             logStep("Step 6: Discard changes to proceed");
             issuePage.tapDiscardChanges();
-            shortWait();
         } else {
             logStep("ℹ️ No unsaved changes warning — app may auto-save or not show warning");
             logStepWithScreenshot("TC_ISS_079: No unsaved changes warning (auto-save behavior?)");
@@ -3337,7 +3046,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         // Ensure we're back on Issues list
         if (issuePage.isIssueDetailsScreenDisplayed()) {
             issuePage.tapCloseIssueDetails();
-            shortWait();
         }
     }
 
@@ -3358,7 +3066,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         logStep("Step 2: Verify Done button is displayed");
         boolean doneDisplayed = issuePage.isDoneButtonDisplayed();
@@ -3371,7 +3078,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStep("Step 3: Tap Done button");
         issuePage.tapDoneButton();
-        mediumWait();
 
         logStep("Step 4: Verify returned to dashboard/previous screen");
         boolean leftIssues = !issuePage.isIssuesScreenDisplayed();
@@ -3406,14 +3112,11 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue to go to Issue Details");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Verify Issue Details screen is displayed");
         boolean detailsDisplayed = issuePage.isIssueDetailsScreenDisplayed();
@@ -3426,7 +3129,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStep("Step 4: Tap Close button");
         issuePage.tapCloseIssueDetails();
-        mediumWait();
 
         logStep("Step 5: Verify returned to Issues list");
         boolean backOnIssues = issuePage.isIssuesScreenDisplayed();
@@ -3466,18 +3168,14 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to 'OSHA Violation'");
         issuePage.changeIssueClassOnDetails("OSHA Violation");
-        mediumWait();
 
         logStep("Step 4: Verify Issue Class changed");
         String currentClass = issuePage.getIssueClassOnDetails();
@@ -3494,7 +3192,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         if (subcatDisplayed) {
             issuePage.tapSubcategoryField();
-            mediumWait();
 
             logStep("Step 6: Verify OSHA-specific subcategory options");
             java.util.ArrayList<String> options = issuePage.getVisibleSubcategoryOptions();
@@ -3511,7 +3208,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
             // Dismiss dropdown
             issuePage.dismissDropdownMenu();
-            shortWait();
         } else {
             logStep("⚠️ Subcategory field not displayed for OSHA Violation");
         }
@@ -3537,18 +3233,14 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to 'Thermal Anomaly'");
         issuePage.changeIssueClassOnDetails("Thermal Anomaly");
-        mediumWait();
 
         logStep("Step 4: Verify Issue Class changed");
         String currentClass = issuePage.getIssueClassOnDetails();
@@ -3565,7 +3257,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         if (subcatDisplayed) {
             issuePage.tapSubcategoryField();
-            mediumWait();
 
             logStep("Step 6: Verify Thermal Anomaly specific subcategory options");
             java.util.ArrayList<String> options = issuePage.getVisibleSubcategoryOptions();
@@ -3582,7 +3273,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
             // Dismiss dropdown
             issuePage.dismissDropdownMenu();
-            shortWait();
         } else {
             logStep("ℹ️ Subcategory field not displayed for Thermal Anomaly — may not have subcategories");
         }
@@ -3594,7 +3284,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         // Handle potential unsaved changes warning
         if (issuePage.isUnsavedChangesWarningDisplayed()) {
             issuePage.tapDiscardChanges();
-            shortWait();
         }
     }
 
@@ -3615,11 +3304,9 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         logStep("Step 2: Create issue with only asset selected (minimal required field)");
         boolean created = issuePage.createMinimalIssue(null);
-        mediumWait();
 
         if (created) {
             logStep("✅ Issue created with only required fields (asset)");
@@ -3629,7 +3316,6 @@ public final class Issue_Phase1_Test extends BaseTest {
                 ensureOnIssuesScreen();
             }
             issuePage.tapAllTab();
-            shortWait();
 
             logStepWithScreenshot("TC_ISS_084: Issue created with minimal fields");
         } else {
@@ -3637,7 +3323,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
             logStep("Step 3: Try creating with asset + issue class");
             boolean createdWithClass = issuePage.createQuickIssue("MinimalTest_" + System.currentTimeMillis(), null);
-            mediumWait();
 
             if (createdWithClass) {
                 logStep("✅ Issue created with asset + issue class (minimal viable set)");
@@ -3667,14 +3352,11 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Enter 500+ character description");
         StringBuilder longText = new StringBuilder();
@@ -3688,7 +3370,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Description length: " + longDescription.length() + " characters");
 
         String readBack = issuePage.enterLongDescription(longDescription);
-        shortWait();
 
         logStep("Step 4: Verify long description was accepted");
         logStep("Read back length: " + (readBack != null ? readBack.length() : 0));
@@ -3704,12 +3385,10 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStepWithScreenshot("TC_ISS_085: Long description entered");
 
         issuePage.tapCloseIssueDetails();
-        shortWait();
 
         // Handle potential unsaved changes warning
         if (issuePage.isUnsavedChangesWarningDisplayed()) {
             issuePage.tapDiscardChanges();
-            shortWait();
         }
     }
 
@@ -3728,11 +3407,9 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         logStep("Step 2: Create issue with special characters in title: '" + specialTitle + "'");
         boolean created = issuePage.createIssueWithTitle(specialTitle, null);
-        mediumWait();
 
         if (created) {
             logStep("✅ Issue with special characters created successfully");
@@ -3742,7 +3419,6 @@ public final class Issue_Phase1_Test extends BaseTest {
                 ensureOnIssuesScreen();
             }
             issuePage.tapAllTab();
-            shortWait();
 
             // Search for the issue to verify it exists
             boolean issueFound = issuePage.isIssueInList(specialTitle);
@@ -3751,11 +3427,9 @@ public final class Issue_Phase1_Test extends BaseTest {
             if (!issueFound) {
                 // Try partial search
                 issuePage.searchIssues("Test");
-                shortWait();
                 issueFound = issuePage.isIssueInList("Test");
                 logStep("Issue found via 'Test' search: " + issueFound);
                 issuePage.clearSearch();
-                shortWait();
             }
 
             if (issueFound) {
@@ -3796,11 +3470,9 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         logStep("Step 2: Attempt to go offline (disable connectivity)");
         boolean wentOffline = issuePage.enableAirplaneMode();
-        shortWait();
 
         if (wentOffline) {
             logStep("✅ Connectivity disabled — device is offline");
@@ -3808,7 +3480,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             logStep("Step 3: Create a new issue while offline");
             String offlineTitle = "OfflineTest_" + System.currentTimeMillis();
             boolean created = issuePage.createQuickIssue(offlineTitle, null);
-            mediumWait();
 
             if (created) {
                 logStep("✅ Issue created offline: " + offlineTitle);
@@ -3852,21 +3523,17 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Attempt to go offline (disable connectivity)");
         boolean wentOffline = issuePage.enableAirplaneMode();
-        shortWait();
 
         if (wentOffline) {
             logStep("✅ Connectivity disabled — device is offline");
 
             logStep("Step 3: Open first issue and make changes");
             issuePage.tapFirstIssue();
-            mediumWait();
 
             boolean onDetails = issuePage.isIssueDetailsScreenDisplayed();
             logStep("Issue Details opened offline: " + onDetails);
@@ -3874,20 +3541,16 @@ public final class Issue_Phase1_Test extends BaseTest {
             if (onDetails) {
                 logStep("Step 4: Change status while offline");
                 issuePage.openStatusDropdown();
-                shortWait();
                 issuePage.selectStatus("In Progress");
-                shortWait();
 
                 logStep("Step 5: Save changes offline");
                 issuePage.tapSaveChangesButton();
-                mediumWait();
 
                 logStep("✅ Issue edited offline — changes saved locally");
                 logStepWithScreenshot("TC_ISS_088: Offline issue editing");
 
                 if (issuePage.isIssueDetailsScreenDisplayed()) {
                     issuePage.tapCloseIssueDetails();
-                    shortWait();
                 }
             } else {
                 logStep("⚠️ Could not open Issue Details offline");
@@ -3909,7 +3572,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         // Handle potential unsaved changes warning
         if (issuePage.isUnsavedChangesWarningDisplayed()) {
             issuePage.tapDiscardChanges();
-            shortWait();
         }
 
         // Ensure back on Issues screen
@@ -3936,7 +3598,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         // First close Issues if we're on it, to get a clean navigation timing
         if (issuePage.isIssuesScreenDisplayed()) {
             issuePage.tapDoneButton();
-            mediumWait();
         }
 
         logStep("Step 2: Navigate to Issues screen and measure load time");
@@ -3944,7 +3605,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         boolean navigated = issuePage.navigateToIssuesScreen();
         // Wait for the list to render (issues visible)
-        shortWait();
 
         boolean hasIssues = issuePage.hasIssuesInList();
         boolean screenReady = issuePage.isIssuesScreenDisplayed();
@@ -3998,10 +3658,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Verify issues exist in the list for scrolling test");
         boolean hasIssues = issuePage.hasIssuesInList();
@@ -4053,18 +3711,14 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
         issuePage.changeIssueClassOnDetails("NFPA 70B Violation");
-        mediumWait();
 
         logStep("Step 4: Verify Issue Class changed");
         String currentClass = issuePage.getIssueClassOnDetails();
@@ -4112,22 +3766,17 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
         issuePage.changeIssueClassOnDetails("NFPA 70B Violation");
-        mediumWait();
 
         logStep("Step 4: Tap Subcategory field to open dropdown");
         issuePage.tapSubcategoryField();
-        mediumWait();
 
         logStep("Step 5: Verify dropdown opened with chapter options");
         // Check for any "Chapter" text in the options
@@ -4152,7 +3801,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStepWithScreenshot("TC_ISS_092: NFPA 70B subcategory dropdown");
 
         issuePage.dismissDropdownMenu();
-        shortWait();
 
         logStep("Step 6: Revert Issue Class to NEC Violation");
         issuePage.quickDismissIssueDetails();
@@ -4170,22 +3818,17 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
         issuePage.changeIssueClassOnDetails("NFPA 70B Violation");
-        mediumWait();
 
         logStep("Step 4: Open Subcategory dropdown");
         issuePage.tapSubcategoryField();
-        mediumWait();
 
         logStep("Step 5: Look for 'Chapter 28.3.2 Motor Control Equipment Cleaning'");
         boolean found = issuePage.isNFPA70BChapterOptionPresent("28.3.2");
@@ -4214,22 +3857,17 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
         issuePage.changeIssueClassOnDetails("NFPA 70B Violation");
-        mediumWait();
 
         logStep("Step 4: Open Subcategory dropdown");
         issuePage.tapSubcategoryField();
-        mediumWait();
 
         logStep("Step 5: Look for 'Chapter 28.3.1 Visual Inspections'");
         boolean found = issuePage.isNFPA70BChapterOptionPresent("28.3.1");
@@ -4258,22 +3896,17 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
         issuePage.changeIssueClassOnDetails("NFPA 70B Violation");
-        mediumWait();
 
         logStep("Step 4: Open Subcategory dropdown");
         issuePage.tapSubcategoryField();
-        mediumWait();
 
         logStep("Step 5: Look for 'Chapter 15.3.2 Circuit Breakers Low- and Medium Voltage'");
         boolean found = issuePage.isNFPA70BChapterOptionPresent("15.3.2");
@@ -4302,22 +3935,17 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
         issuePage.changeIssueClassOnDetails("NFPA 70B Violation");
-        mediumWait();
 
         logStep("Step 4: Open Subcategory dropdown");
         issuePage.tapSubcategoryField();
-        mediumWait();
 
         logStep("Step 5: Look for 'Chapter 15.3.1 Visual Inspections'");
         boolean found = issuePage.isNFPA70BChapterOptionPresent("15.3.1");
@@ -4346,22 +3974,17 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
         issuePage.changeIssueClassOnDetails("NFPA 70B Violation");
-        mediumWait();
 
         logStep("Step 4: Open Subcategory dropdown");
         issuePage.tapSubcategoryField();
-        mediumWait();
 
         logStep("Step 5: Look for 'Chapter 25.3.2 UPS Cleaning'");
         boolean found = issuePage.isNFPA70BChapterOptionPresent("25.3.2");
@@ -4390,22 +4013,17 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
         issuePage.changeIssueClassOnDetails("NFPA 70B Violation");
-        mediumWait();
 
         logStep("Step 4: Open Subcategory dropdown");
         issuePage.tapSubcategoryField();
-        mediumWait();
 
         logStep("Step 5: Look for 'Chapter 25.3.1 Visual Inspections'");
         boolean found = issuePage.isNFPA70BChapterOptionPresent("25.3.1");
@@ -4434,22 +4052,17 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
         issuePage.changeIssueClassOnDetails("NFPA 70B Violation");
-        mediumWait();
 
         logStep("Step 4: Open Subcategory dropdown");
         issuePage.tapSubcategoryField();
-        mediumWait();
 
         logStep("Step 5: Look for 'Chapter 11.3.2 Power and Distribution Transformer Cleaning'");
         boolean found = issuePage.isNFPA70BChapterOptionPresent("11.3.2");
@@ -4465,7 +4078,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStepWithScreenshot("TC_ISS_099: Chapter 11.3.2 option");
 
         issuePage.dismissDropdownMenu();
-        shortWait();
 
         logStep("Step 6: Revert Issue Class to NEC Violation");
         issuePage.quickDismissIssueDetails();
@@ -4487,22 +4099,17 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
         issuePage.changeIssueClassOnDetails("NFPA 70B Violation");
-        mediumWait();
 
         logStep("Step 4: Open Subcategory dropdown");
         issuePage.tapSubcategoryField();
-        mediumWait();
 
         logStep("Step 5: Look for 'Chapter 11.3.1 Visual Inspections'");
         boolean found = issuePage.isNFPA70BChapterOptionPresent("11.3.1");
@@ -4531,22 +4138,17 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
         issuePage.changeIssueClassOnDetails("NFPA 70B Violation");
-        mediumWait();
 
         logStep("Step 4: Open Subcategory dropdown");
         issuePage.tapSubcategoryField();
-        mediumWait();
 
         logStep("Step 5: Look for 'Chapter 12.3.2 Substations and Switchgear Cleaning'");
         boolean found = issuePage.isNFPA70BChapterOptionPresent("12.3.2");
@@ -4575,22 +4177,17 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
         issuePage.changeIssueClassOnDetails("NFPA 70B Violation");
-        mediumWait();
 
         logStep("Step 4: Open Subcategory dropdown");
         issuePage.tapSubcategoryField();
-        mediumWait();
 
         logStep("Step 5: Look for 'Chapter 12.3.1 Visual Inspections'");
         boolean found = issuePage.isNFPA70BChapterOptionPresent("12.3.1");
@@ -4619,22 +4216,17 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
         issuePage.changeIssueClassOnDetails("NFPA 70B Violation");
-        mediumWait();
 
         logStep("Step 4: Open Subcategory dropdown");
         issuePage.tapSubcategoryField();
-        mediumWait();
 
         logStep("Step 5: Look for 'Chapter 13.5.2 Panelboards and Switchboards Cleaning'");
         boolean found = issuePage.isNFPA70BChapterOptionPresent("13.5.2");
@@ -4663,22 +4255,17 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
         issuePage.changeIssueClassOnDetails("NFPA 70B Violation");
-        mediumWait();
 
         logStep("Step 4: Open Subcategory dropdown");
         issuePage.tapSubcategoryField();
-        mediumWait();
 
         logStep("Step 5: Look for 'Chapter 13.3.1 Visual Inspections'");
         boolean found = issuePage.isNFPA70BChapterOptionPresent("13.3.1");
@@ -4707,22 +4294,17 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
         issuePage.changeIssueClassOnDetails("NFPA 70B Violation");
-        mediumWait();
 
         logStep("Step 4: Open Subcategory dropdown");
         issuePage.tapSubcategoryField();
-        mediumWait();
 
         logStep("Step 5: Look for 'Chapter 17.3.1 Visual Inspections'");
         boolean found = issuePage.isNFPA70BChapterOptionPresent("17.3.1");
@@ -4756,22 +4338,17 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
         issuePage.changeIssueClassOnDetails("NFPA 70B Violation");
-        mediumWait();
 
         logStep("Step 4: Open Subcategory dropdown");
         issuePage.tapSubcategoryField();
-        mediumWait();
 
         logStep("Step 5: Select 'Chapter 15.3.2 Circuit Breakers Low- and Medium Voltage'");
         String selectedValue = issuePage.selectSubcategoryAndGetValue("15.3.2");
@@ -4811,22 +4388,17 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
         issuePage.changeIssueClassOnDetails("NFPA 70B Violation");
-        mediumWait();
 
         logStep("Step 4: Open Subcategory dropdown");
         issuePage.tapSubcategoryField();
-        mediumWait();
 
         logStep("Step 5: Type 'Visual' to filter subcategories");
         int matchCount = issuePage.searchSubcategoryAndCountResults("Visual");
@@ -4856,9 +4428,7 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStepWithScreenshot("TC_ISS_107: Subcategory filtered by 'Visual'");
 
         issuePage.clearSubcategorySearch();
-        shortWait();
         issuePage.dismissDropdownMenu();
-        shortWait();
 
         issuePage.quickDismissIssueDetails();
     }
@@ -4876,22 +4446,17 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to 'NFPA 70B Violation'");
         issuePage.changeIssueClassOnDetails("NFPA 70B Violation");
-        mediumWait();
 
         logStep("Step 4: Open Subcategory dropdown");
         issuePage.tapSubcategoryField();
-        mediumWait();
 
         logStep("Step 5: Type '15.3' to filter by chapter number");
         int matchCount = issuePage.searchSubcategoryAndCountResults("15.3");
@@ -4921,9 +4486,7 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStepWithScreenshot("TC_ISS_108: Subcategory filtered by '15.3'");
 
         issuePage.clearSubcategorySearch();
-        shortWait();
         issuePage.dismissDropdownMenu();
-        shortWait();
 
         issuePage.quickDismissIssueDetails();
     }
@@ -4946,10 +4509,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
@@ -4978,7 +4539,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Current Issue Class: '" + currentClass + "'");
         if (!currentClass.contains("NEC")) {
             issuePage.changeIssueClassOnDetails("NEC Violation");
-            mediumWait();
         }
 
         logStep("Step 6: Fill Subcategory (required field) and check completion");
@@ -5025,21 +4585,17 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Ensure Issue Class is NEC Violation (has required Subcategory)");
         String currentClass = issuePage.getIssueClassOnDetails();
         logStep("Current Issue Class: '" + currentClass + "'");
         if (!currentClass.contains("NEC")) {
             issuePage.changeIssueClassOnDetails("NEC Violation");
-            mediumWait();
         }
 
         logStep("Step 4: Clear subcategory if it has a value (so we get 0%)");
@@ -5048,12 +4604,10 @@ public final class Issue_Phase1_Test extends BaseTest {
         if (!subcatValue.isEmpty() && !subcatValue.contains("Type or select") && !subcatValue.contains("Select")) {
             boolean cleared = issuePage.clearSubcategoryValue();
             logStep("Cleared subcategory: " + cleared);
-            shortWait();
         }
 
         logStep("Step 5: Scroll up to see completion section header");
         issuePage.scrollUpOnDetailsScreen();
-        shortWait();
 
         logStep("Step 6: Check completion percentage — expect 0%");
         String pct = issuePage.getIssueDetailsCompletionPercentage();
@@ -5085,11 +4639,9 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStepWithScreenshot("TC_ISS_110: Incomplete percentage with orange dot indicator");
 
         issuePage.tapCloseIssueDetails();
-        shortWait();
 
         if (issuePage.isUnsavedChangesWarningDisplayed()) {
             issuePage.tapDiscardChanges();
-            shortWait();
         }
     }
 
@@ -5106,30 +4658,24 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Ensure Issue Class is NEC Violation");
         String currentClass = issuePage.getIssueClassOnDetails();
         if (!currentClass.contains("NEC")) {
             issuePage.changeIssueClassOnDetails("NEC Violation");
-            mediumWait();
         }
 
         logStep("Step 4: Fill Subcategory field");
         String completionAfter = issuePage.fillSubcategoryAndGetCompletion("Breaker is restricted");
         logStep("Completion after filling: '" + completionAfter + "'");
-        mediumWait();
 
         logStep("Step 5: Scroll down to Subcategory field area");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
 
         logStep("Step 6: Check for green checkmark on Subcategory");
         boolean checkmark = issuePage.isSubcategoryCheckmarkDisplayed();
@@ -5142,7 +4688,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStep("Step 7: Verify completion indicator is green");
         issuePage.scrollUpOnDetailsScreen();
-        shortWait();
         boolean greenIndicator = issuePage.isCompletionIndicatorGreen();
         logStep("Green completion indicator: " + greenIndicator);
         if (greenIndicator) {
@@ -5152,11 +4697,9 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStepWithScreenshot("TC_ISS_111: Green checkmark on filled subcategory");
 
         issuePage.tapCloseIssueDetails();
-        shortWait();
 
         if (issuePage.isUnsavedChangesWarningDisplayed()) {
             issuePage.tapDiscardChanges();
-            shortWait();
         }
     }
 
@@ -5178,28 +4721,22 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Ensure Issue Class is NEC Violation first");
         String currentClass = issuePage.getIssueClassOnDetails();
         logStep("Current Issue Class: '" + currentClass + "'");
         if (!currentClass.contains("NEC")) {
             issuePage.changeIssueClassOnDetails("NEC Violation");
-            mediumWait();
         }
 
         logStep("Step 4: Open Subcategory and record NEC options");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         issuePage.tapSubcategoryField();
-        shortWait();
         java.util.ArrayList<String> necOptions = issuePage.getVisibleSubcategoryOptions();
         logStep("NEC Violation subcategory options count: " + necOptions.size());
         for (String opt : necOptions) {
@@ -5210,15 +4747,11 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStep("Step 5: Change Issue Class to NFPA 70B Violation");
         issuePage.scrollUpOnDetailsScreen();
-        shortWait();
         issuePage.changeIssueClassOnDetails("NFPA 70B Violation");
-        mediumWait();
 
         logStep("Step 6: Open Subcategory and record NFPA 70B options");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         issuePage.tapSubcategoryField();
-        shortWait();
         java.util.ArrayList<String> nfpaOptions = issuePage.getVisibleSubcategoryOptions();
         logStep("NFPA 70B subcategory options count: " + nfpaOptions.size());
         for (String opt : nfpaOptions) {
@@ -5256,29 +4789,23 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Ensure Issue Class is NEC Violation");
         String currentClass = issuePage.getIssueClassOnDetails();
         if (!currentClass.contains("NEC")) {
             issuePage.changeIssueClassOnDetails("NEC Violation");
-            mediumWait();
         }
 
         logStep("Step 4: Fill Subcategory with a value");
         issuePage.fillSubcategoryAndGetCompletion("Breaker is restricted");
-        mediumWait();
 
         logStep("Step 5: Verify Subcategory is now filled");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         String filledValue = issuePage.getSubcategoryValue();
         logStep("Subcategory value before class change: '" + filledValue + "'");
         boolean wasFilled = !filledValue.isEmpty() && !filledValue.contains("Type or select");
@@ -5286,13 +4813,10 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStep("Step 6: Change Issue Class to NFPA 70B Violation");
         issuePage.scrollUpOnDetailsScreen();
-        shortWait();
         issuePage.changeIssueClassOnDetails("NFPA 70B Violation");
-        mediumWait();
 
         logStep("Step 7: Check if Subcategory was cleared");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         boolean subcatEmpty = issuePage.isSubcategoryEmpty();
         String afterValue = issuePage.getSubcategoryValue();
         logStep("Subcategory value after class change: '" + afterValue + "'");
@@ -5326,24 +4850,18 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to OSHA Violation");
         issuePage.changeIssueClassOnDetails("OSHA Violation");
-        mediumWait();
 
         logStep("Step 4: Scroll down and open Subcategory dropdown");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         issuePage.tapSubcategoryField();
-        shortWait();
 
         logStep("Step 5: Collect OSHA subcategory options");
         java.util.ArrayList<String> oshaOptions = issuePage.getVisibleSubcategoryOptions();
@@ -5359,7 +4877,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         }
 
         issuePage.dismissDropdownMenu();
-        shortWait();
 
         logStepWithScreenshot("TC_ISS_114: OSHA Violation subcategory options");
         issuePage.quickDismissIssueDetails();
@@ -5378,24 +4895,18 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to Repair Needed");
         issuePage.changeIssueClassOnDetails("Repair Needed");
-        mediumWait();
 
         logStep("Step 4: Scroll down and open Subcategory dropdown");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         issuePage.tapSubcategoryField();
-        shortWait();
 
         logStep("Step 5: Collect Repair Needed subcategory options");
         java.util.ArrayList<String> repairOptions = issuePage.getVisibleSubcategoryOptions();
@@ -5411,7 +4922,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         }
 
         issuePage.dismissDropdownMenu();
-        shortWait();
 
         logStepWithScreenshot("TC_ISS_115: Repair Needed subcategory options");
         issuePage.quickDismissIssueDetails();
@@ -5430,24 +4940,18 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to Thermal Anomaly");
         issuePage.changeIssueClassOnDetails("Thermal Anomaly");
-        mediumWait();
 
         logStep("Step 4: Scroll down and open Subcategory dropdown");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         issuePage.tapSubcategoryField();
-        shortWait();
 
         logStep("Step 5: Collect Thermal Anomaly subcategory options");
         java.util.ArrayList<String> thermalOptions = issuePage.getVisibleSubcategoryOptions();
@@ -5463,7 +4967,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         }
 
         issuePage.dismissDropdownMenu();
-        shortWait();
 
         logStepWithScreenshot("TC_ISS_116: Thermal Anomaly subcategory options");
         issuePage.quickDismissIssueDetails();
@@ -5482,24 +4985,18 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to Ultrasonic Anomaly");
         issuePage.changeIssueClassOnDetails("Ultrasonic Anomaly");
-        mediumWait();
 
         logStep("Step 4: Scroll down and open Subcategory dropdown");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         issuePage.tapSubcategoryField();
-        shortWait();
 
         logStep("Step 5: Collect Ultrasonic Anomaly subcategory options");
         java.util.ArrayList<String> ultrasonicOptions = issuePage.getVisibleSubcategoryOptions();
@@ -5515,7 +5012,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         }
 
         issuePage.dismissDropdownMenu();
-        shortWait();
 
         logStepWithScreenshot("TC_ISS_117: Ultrasonic Anomaly subcategory options");
         issuePage.quickDismissIssueDetails();
@@ -5539,29 +5035,23 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Ensure Issue Class is NEC Violation");
         String currentClass = issuePage.getIssueClassOnDetails();
         if (!currentClass.contains("NEC")) {
             issuePage.changeIssueClassOnDetails("NEC Violation");
-            mediumWait();
         }
 
         logStep("Step 4: Fill Subcategory with a value");
         issuePage.fillSubcategoryAndGetCompletion("Breaker is restricted");
-        mediumWait();
 
         logStep("Step 5: Verify Subcategory is filled");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         String filledValue = issuePage.getSubcategoryValue();
         logStep("Subcategory value before clearing: '" + filledValue + "'");
         boolean wasFilled = !filledValue.isEmpty() && !filledValue.contains("Type or select");
@@ -5570,7 +5060,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 6: Tap clear/X button to clear subcategory");
         boolean cleared = issuePage.clearSubcategoryValue();
         logStep("Clear action result: " + cleared);
-        shortWait();
 
         logStep("Step 7: Verify subcategory is now empty");
         boolean isEmpty = issuePage.isSubcategoryEmpty();
@@ -5586,7 +5075,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStep("Step 8: Verify completion drops back to 0%");
         issuePage.scrollUpOnDetailsScreen();
-        shortWait();
         String pctAfterClear = issuePage.getIssueDetailsCompletionPercentage();
         logStep("Completion after clearing: '" + pctAfterClear + "'");
         if (pctAfterClear.contains("0%")) {
@@ -5615,22 +5103,17 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to OSHA Violation");
         issuePage.changeIssueClassOnDetails("OSHA Violation");
-        mediumWait();
 
         logStep("Step 4: Scroll down to Subcategory field");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
 
         logStep("Step 5: Verify Subcategory field is displayed");
         boolean fieldDisplayed = issuePage.isSubcategoryFieldDisplayed();
@@ -5650,7 +5133,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStep("Step 7: Open Subcategory and verify OSHA options");
         issuePage.tapSubcategoryField();
-        shortWait();
         java.util.ArrayList<String> oshaOptions = issuePage.getVisibleSubcategoryOptions();
         logStep("OSHA subcategory options: " + oshaOptions.size());
         for (String opt : oshaOptions) {
@@ -5661,7 +5143,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         if (!oshaOptions.isEmpty()) {
             String firstOption = oshaOptions.get(0);
             issuePage.selectSubcategory(firstOption);
-            shortWait();
 
             String selectedValue = issuePage.getSubcategoryValue();
             logStep("Selected OSHA subcategory: '" + selectedValue + "'");

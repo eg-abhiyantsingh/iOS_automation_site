@@ -99,6 +99,32 @@ public final class Issue_Phase2_Test extends BaseTest {
         return false;
     }
 
+    /**
+     * Common setup: navigate to Issues, open first issue, change to target class,
+     * scroll down, and open Subcategory dropdown. Used by OSHA/NFPA subcategory tests.
+     */
+    private void openIssueWithClassAndSubcategory(String issueClass) {
+        boolean onIssues = ensureOnIssuesScreen();
+        assertTrue(onIssues, "Should be on Issues screen");
+        issuePage.tapAllTab();
+        issuePage.tapFirstIssue();
+        issuePage.changeIssueClassOnDetails(issueClass);
+        issuePage.scrollDownOnDetailsScreen();
+        issuePage.tapSubcategoryField();
+    }
+
+    /**
+     * Common setup: navigate to Issues, open first issue, change to target class.
+     * Used by Thermal Anomaly, Repair Needed, Ultrasonic tests.
+     */
+    private void openIssueWithClass(String issueClass) {
+        boolean onIssues = ensureOnIssuesScreen();
+        assertTrue(onIssues, "Should be on Issues screen");
+        issuePage.tapAllTab();
+        issuePage.tapFirstIssue();
+        issuePage.changeIssueClassOnDetails(issueClass);
+    }
+
     // ================================================================
     // OSHA SUBCATEGORY OPTIONS (TC_ISS_120-129)
     // ================================================================
@@ -116,27 +142,7 @@ public final class Issue_Phase2_Test extends BaseTest {
             "TC_ISS_120 - Verify OSHA subcategory dropdown options");
                 loginAndSelectSite();
       
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to OSHA Violation");
-        issuePage.changeIssueClassOnDetails("OSHA Violation");
-        mediumWait();
-
-        logStep("Step 4: Scroll down and open Subcategory dropdown");
-        issuePage.scrollDownOnDetailsScreen();
-        shortWait();
-        issuePage.tapSubcategoryField();
-        mediumWait();
+        openIssueWithClassAndSubcategory("OSHA Violation");
 
         logStep("Step 5: Verify all 9 OSHA category prefixes are present");
         String[] oshaCategories = {
@@ -176,27 +182,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_OSHA_SUBCATEGORY,
             "TC_ISS_121 - Verify Clearance - Insufficient Access option");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to OSHA Violation");
-        issuePage.changeIssueClassOnDetails("OSHA Violation");
-        mediumWait();
-
-        logStep("Step 4: Scroll down and open Subcategory dropdown");
-        issuePage.scrollDownOnDetailsScreen();
-        shortWait();
-        issuePage.tapSubcategoryField();
-        mediumWait();
+        openIssueWithClassAndSubcategory("OSHA Violation");
 
         logStep("Step 5: Check for 'Clearance - Insufficient Access' option");
         boolean found = issuePage.isSpecificSubcategoryOptionPresent("Clearance - Insufficient Access");
@@ -222,27 +208,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_OSHA_SUBCATEGORY,
             "TC_ISS_122 - Verify Enclosure - Broken locking mechanism option");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to OSHA Violation");
-        issuePage.changeIssueClassOnDetails("OSHA Violation");
-        mediumWait();
-
-        logStep("Step 4: Scroll down and open Subcategory dropdown");
-        issuePage.scrollDownOnDetailsScreen();
-        shortWait();
-        issuePage.tapSubcategoryField();
-        mediumWait();
+        openIssueWithClassAndSubcategory("OSHA Violation");
 
         logStep("Step 5: Check for 'Enclosure - Broken locking mechanism' option");
         boolean found = issuePage.isSpecificSubcategoryOptionPresent("Enclosure - Broken locking mechanism");
@@ -270,27 +236,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_OSHA_SUBCATEGORY,
             "TC_ISS_123 - Verify Enclosure - Damaged option");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to OSHA Violation");
-        issuePage.changeIssueClassOnDetails("OSHA Violation");
-        mediumWait();
-
-        logStep("Step 4: Scroll down and open Subcategory dropdown");
-        issuePage.scrollDownOnDetailsScreen();
-        shortWait();
-        issuePage.tapSubcategoryField();
-        mediumWait();
+        openIssueWithClassAndSubcategory("OSHA Violation");
 
         logStep("Step 5: Check for 'Enclosure - Damaged' option");
         boolean found = issuePage.isSpecificSubcategoryOptionPresent("Enclosure - Damaged");
@@ -316,27 +262,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_OSHA_SUBCATEGORY,
             "TC_ISS_124 - Verify Enclosure - Should be waterproof option");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to OSHA Violation");
-        issuePage.changeIssueClassOnDetails("OSHA Violation");
-        mediumWait();
-
-        logStep("Step 4: Scroll down and open Subcategory dropdown");
-        issuePage.scrollDownOnDetailsScreen();
-        shortWait();
-        issuePage.tapSubcategoryField();
-        mediumWait();
+        openIssueWithClassAndSubcategory("OSHA Violation");
 
         logStep("Step 5: Check for 'Enclosure - Should be waterproof' option");
         boolean found = issuePage.isSpecificSubcategoryOptionPresent("Enclosure - Should be waterproof");
@@ -364,27 +290,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_OSHA_SUBCATEGORY,
             "TC_ISS_125 - Verify Equipment - Free of Hazards option");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to OSHA Violation");
-        issuePage.changeIssueClassOnDetails("OSHA Violation");
-        mediumWait();
-
-        logStep("Step 4: Scroll down and open Subcategory dropdown");
-        issuePage.scrollDownOnDetailsScreen();
-        shortWait();
-        issuePage.tapSubcategoryField();
-        mediumWait();
+        openIssueWithClassAndSubcategory("OSHA Violation");
 
         logStep("Step 5: Check for 'Equipment - Free of Hazards' option");
         boolean found = issuePage.isSpecificSubcategoryOptionPresent("Equipment - Free of Hazards");
@@ -412,27 +318,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_OSHA_SUBCATEGORY,
             "TC_ISS_126 - Verify Grounding - Must be permanent & continuous option");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to OSHA Violation");
-        issuePage.changeIssueClassOnDetails("OSHA Violation");
-        mediumWait();
-
-        logStep("Step 4: Scroll down and open Subcategory dropdown");
-        issuePage.scrollDownOnDetailsScreen();
-        shortWait();
-        issuePage.tapSubcategoryField();
-        mediumWait();
+        openIssueWithClassAndSubcategory("OSHA Violation");
 
         logStep("Step 5: Check for 'Grounding - Must be permanent & continuous' option");
         // Note: '&' in iOS label may render as '&' or '&amp;' — check with partial match first
@@ -465,27 +351,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_OSHA_SUBCATEGORY,
             "TC_ISS_127 - Verify Lighting - Inadequate around equipment option");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to OSHA Violation");
-        issuePage.changeIssueClassOnDetails("OSHA Violation");
-        mediumWait();
-
-        logStep("Step 4: Scroll down and open Subcategory dropdown");
-        issuePage.scrollDownOnDetailsScreen();
-        shortWait();
-        issuePage.tapSubcategoryField();
-        mediumWait();
+        openIssueWithClassAndSubcategory("OSHA Violation");
 
         logStep("Step 5: Check for 'Lighting - Inadequate around equipment' option");
         boolean found = issuePage.isSpecificSubcategoryOptionPresent("Lighting - Inadequate around equipment");
@@ -518,27 +384,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_OSHA_SUBCATEGORY,
             "TC_ISS_128 - Verify Marking/Labels - Inadequate or missing information option");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to OSHA Violation");
-        issuePage.changeIssueClassOnDetails("OSHA Violation");
-        mediumWait();
-
-        logStep("Step 4: Scroll down and open Subcategory dropdown");
-        issuePage.scrollDownOnDetailsScreen();
-        shortWait();
-        issuePage.tapSubcategoryField();
-        mediumWait();
+        openIssueWithClassAndSubcategory("OSHA Violation");
 
         logStep("Step 5: Check for 'Marking/Labels' option");
         // Note: This option has a long label. Check with partial match first.
@@ -577,27 +423,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_OSHA_SUBCATEGORY,
             "TC_ISS_129 - Verify Mounting - Should be secure option");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to OSHA Violation");
-        issuePage.changeIssueClassOnDetails("OSHA Violation");
-        mediumWait();
-
-        logStep("Step 4: Scroll down and open Subcategory dropdown");
-        issuePage.scrollDownOnDetailsScreen();
-        shortWait();
-        issuePage.tapSubcategoryField();
-        mediumWait();
+        openIssueWithClassAndSubcategory("OSHA Violation");
 
         logStep("Step 5: Check for 'Mounting - Should be secure' option");
         boolean found = issuePage.isSpecificSubcategoryOptionPresent("Mounting - Should be secure");
@@ -634,27 +460,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_OSHA_SUBCATEGORY,
             "TC_ISS_130 - Verify Noise - Excessive option");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to OSHA Violation");
-        issuePage.changeIssueClassOnDetails("OSHA Violation");
-        mediumWait();
-
-        logStep("Step 4: Scroll down and open Subcategory dropdown");
-        issuePage.scrollDownOnDetailsScreen();
-        shortWait();
-        issuePage.tapSubcategoryField();
-        mediumWait();
+        openIssueWithClassAndSubcategory("OSHA Violation");
 
         logStep("Step 5: Check for 'Noise - Excessive' option");
         boolean found = issuePage.isSpecificSubcategoryOptionPresent("Noise - Excessive");
@@ -676,7 +482,6 @@ public final class Issue_Phase2_Test extends BaseTest {
         logStepWithScreenshot("TC_ISS_130: Noise - Excessive option");
 
         issuePage.dismissDropdownMenu();
-        shortWait();
 
         issuePage.quickDismissIssueDetails();
     }
@@ -691,27 +496,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_OSHA_SUBCATEGORY,
             "TC_ISS_131 - Verify Wire - Exposed option");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to OSHA Violation");
-        issuePage.changeIssueClassOnDetails("OSHA Violation");
-        mediumWait();
-
-        logStep("Step 4: Scroll down and open Subcategory dropdown");
-        issuePage.scrollDownOnDetailsScreen();
-        shortWait();
-        issuePage.tapSubcategoryField();
-        mediumWait();
+        openIssueWithClassAndSubcategory("OSHA Violation");
 
         logStep("Step 5: Check for 'Wire - Exposed' option");
         boolean found = issuePage.isSpecificSubcategoryOptionPresent("Wire - Exposed");
@@ -743,31 +528,10 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_OSHA_SUBCATEGORY,
             "TC_ISS_132 - Verify selecting OSHA subcategory");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to OSHA Violation");
-        issuePage.changeIssueClassOnDetails("OSHA Violation");
-        mediumWait();
-
-        logStep("Step 4: Scroll down and open Subcategory dropdown");
-        issuePage.scrollDownOnDetailsScreen();
-        shortWait();
-        issuePage.tapSubcategoryField();
-        mediumWait();
+        openIssueWithClassAndSubcategory("OSHA Violation");
 
         logStep("Step 5: Select 'Enclosure - Damaged' option");
         issuePage.selectSubcategory("Enclosure - Damaged");
-        mediumWait();
 
         logStep("Step 6: Verify Subcategory field shows 'Enclosure - Damaged'");
         String selectedValue = issuePage.getSubcategoryValue();
@@ -793,7 +557,6 @@ public final class Issue_Phase2_Test extends BaseTest {
 
         logStep("Step 8: Verify completion updates");
         issuePage.scrollUpOnDetailsScreen();
-        shortWait();
         String pct = issuePage.getIssueDetailsCompletionPercentage();
         logStep("Completion percentage after selection: '" + pct + "'");
         if (pct.contains("100%")) {
@@ -818,31 +581,10 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_OSHA_SUBCATEGORY,
             "TC_ISS_133 - Verify OSHA subcategory search");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to OSHA Violation");
-        issuePage.changeIssueClassOnDetails("OSHA Violation");
-        mediumWait();
-
-        logStep("Step 4: Scroll down and open Subcategory dropdown");
-        issuePage.scrollDownOnDetailsScreen();
-        shortWait();
-        issuePage.tapSubcategoryField();
-        mediumWait();
+        openIssueWithClassAndSubcategory("OSHA Violation");
 
         logStep("Step 5: Type 'Enclosure' in search field");
         issuePage.searchSubcategory("Enclosure");
-        mediumWait();
 
         logStep("Step 6: Collect filtered results");
         java.util.ArrayList<String> filteredOptions = issuePage.getVisibleSubcategoryOptions();
@@ -898,25 +640,19 @@ public final class Issue_Phase2_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: First collect NEC Violation subcategory options");
         String currentClass = issuePage.getIssueClassOnDetails();
         if (!currentClass.contains("NEC")) {
             issuePage.changeIssueClassOnDetails("NEC Violation");
-            mediumWait();
         }
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         issuePage.tapSubcategoryField();
-        mediumWait();
         java.util.ArrayList<String> necOptions = issuePage.getVisibleSubcategoryOptions();
         logStep("NEC subcategory options count: " + necOptions.size());
         for (String opt : necOptions) {
@@ -927,13 +663,9 @@ public final class Issue_Phase2_Test extends BaseTest {
 
         logStep("Step 4: Now collect OSHA Violation subcategory options");
         issuePage.scrollUpOnDetailsScreen();
-        shortWait();
         issuePage.changeIssueClassOnDetails("OSHA Violation");
-        mediumWait();
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         issuePage.tapSubcategoryField();
-        mediumWait();
         java.util.ArrayList<String> oshaOptions = issuePage.getVisibleSubcategoryOptions();
         logStep("OSHA subcategory options count: " + oshaOptions.size());
         for (String opt : oshaOptions) {
@@ -995,22 +727,16 @@ public final class Issue_Phase2_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: First collect NFPA 70B Violation subcategory options");
         issuePage.changeIssueClassOnDetails("NFPA 70B Violation");
-        mediumWait();
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         issuePage.tapSubcategoryField();
-        mediumWait();
         java.util.ArrayList<String> nfpaOptions = issuePage.getVisibleSubcategoryOptions();
         logStep("NFPA 70B subcategory options count: " + nfpaOptions.size());
         for (String opt : nfpaOptions) {
@@ -1021,13 +747,9 @@ public final class Issue_Phase2_Test extends BaseTest {
 
         logStep("Step 4: Now collect OSHA Violation subcategory options");
         issuePage.scrollUpOnDetailsScreen();
-        shortWait();
         issuePage.changeIssueClassOnDetails("OSHA Violation");
-        mediumWait();
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         issuePage.tapSubcategoryField();
-        mediumWait();
         java.util.ArrayList<String> oshaOptions = issuePage.getVisibleSubcategoryOptions();
         logStep("OSHA subcategory options count: " + oshaOptions.size());
         for (String opt : oshaOptions) {
@@ -1083,27 +805,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_OSHA_SUBCATEGORY,
             "TC_ISS_136 - Verify all OSHA subcategory count");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to OSHA Violation");
-        issuePage.changeIssueClassOnDetails("OSHA Violation");
-        mediumWait();
-
-        logStep("Step 4: Scroll down and open Subcategory dropdown");
-        issuePage.scrollDownOnDetailsScreen();
-        shortWait();
-        issuePage.tapSubcategoryField();
-        mediumWait();
+        openIssueWithClassAndSubcategory("OSHA Violation");
 
         logStep("Step 5: Count all OSHA subcategory options (including off-screen)");
         int totalCount = issuePage.countAllSubcategoryOptions();
@@ -1121,7 +823,6 @@ public final class Issue_Phase2_Test extends BaseTest {
         logStepWithScreenshot("TC_ISS_136: OSHA subcategory total count");
 
         issuePage.dismissDropdownMenu();
-        shortWait();
 
         issuePage.quickDismissIssueDetails();
     }
@@ -1142,25 +843,10 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_REPAIR_NEEDED,
             "TC_ISS_137 - Verify Repair Needed has no Subcategory field");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to Repair Needed");
-        issuePage.changeIssueClassOnDetails("Repair Needed");
-        mediumWait();
+        openIssueWithClass("Repair Needed");
 
         logStep("Step 4: Scroll down to Issue Details section area");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
 
         logStep("Step 5: Check if Subcategory field is displayed");
         boolean subcatDisplayed = issuePage.isSubcategoryFieldDisplayed();
@@ -1174,7 +860,6 @@ public final class Issue_Phase2_Test extends BaseTest {
 
         logStep("Step 6: Check completion percentage");
         issuePage.scrollUpOnDetailsScreen();
-        shortWait();
         String pct = issuePage.getIssueDetailsCompletionPercentage();
         logStep("Completion percentage: '" + pct + "'");
         if (pct.isEmpty()) {
@@ -1214,21 +899,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_REPAIR_NEEDED,
             "TC_ISS_138 - Verify Repair Needed Issue Details section empty");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to Repair Needed");
-        issuePage.changeIssueClassOnDetails("Repair Needed");
-        mediumWait();
+        openIssueWithClass("Repair Needed");
 
         logStep("Step 4: Check if Issue Details section header exists");
         boolean headerDisplayed = issuePage.isIssueDetailsSectionHeaderDisplayed();
@@ -1259,7 +930,6 @@ public final class Issue_Phase2_Test extends BaseTest {
 
         logStep("Step 7: Verify NO Subcategory field");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         boolean subcatDisplayed = issuePage.isSubcategoryFieldDisplayed();
         logStep("Subcategory field displayed: " + subcatDisplayed);
         if (!subcatDisplayed) {
@@ -1290,25 +960,10 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_REPAIR_NEEDED,
             "TC_ISS_139 - Verify Description field for Repair Needed");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to Repair Needed");
-        issuePage.changeIssueClassOnDetails("Repair Needed");
-        mediumWait();
+        openIssueWithClass("Repair Needed");
 
         logStep("Step 4: Scroll down to find Description field");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
 
         logStep("Step 5: Verify Description field is displayed");
         boolean descDisplayed = issuePage.isDescriptionFieldDisplayed();
@@ -1318,7 +973,6 @@ public final class Issue_Phase2_Test extends BaseTest {
         } else {
             // Try additional scroll
             issuePage.scrollDownOnDetailsScreen();
-            shortWait();
             descDisplayed = issuePage.isDescriptionFieldDisplayed();
             logStep("Description field after extra scroll: " + descDisplayed);
         }
@@ -1337,7 +991,6 @@ public final class Issue_Phase2_Test extends BaseTest {
         logStep("Step 7: Test entering description text");
         String testDescription = "Repair test description " + System.currentTimeMillis();
         issuePage.enterDescription(testDescription);
-        shortWait();
 
         String enteredValue = issuePage.getDescriptionValue();
         logStep("Entered description value: '" + enteredValue + "'");
@@ -1351,9 +1004,7 @@ public final class Issue_Phase2_Test extends BaseTest {
 
         logStep("Step 8: Confirm Subcategory is NOT present (double-check from TC_ISS_137)");
         issuePage.scrollUpOnDetailsScreen();
-        shortWait();
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         boolean subcatPresent = issuePage.isSubcategoryFieldDisplayed();
         logStep("Subcategory present: " + subcatPresent);
         if (!subcatPresent) {
@@ -1379,27 +1030,11 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_REPAIR_NEEDED,
             "TC_ISS_140 - Verify Proposed Resolution for Repair Needed");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to Repair Needed");
-        issuePage.changeIssueClassOnDetails("Repair Needed");
-        mediumWait();
+        openIssueWithClass("Repair Needed");
 
         logStep("Step 4: Scroll down to find Proposed Resolution");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
 
         logStep("Step 5: Verify Proposed Resolution field is displayed");
         boolean propResDisplayed = issuePage.isProposedResolutionFieldDisplayed();
@@ -1436,27 +1071,11 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_REPAIR_NEEDED,
             "TC_ISS_141 - Verify Save Changes available for Repair Needed");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to Repair Needed");
-        issuePage.changeIssueClassOnDetails("Repair Needed");
-        mediumWait();
+        openIssueWithClass("Repair Needed");
 
         logStep("Step 4: Scroll down to find Save Changes button");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
 
         logStep("Step 5: Verify Save Changes button is displayed");
         boolean saveDisplayed = issuePage.isSaveChangesButtonDisplayed();
@@ -1466,7 +1085,6 @@ public final class Issue_Phase2_Test extends BaseTest {
         } else {
             // Try one more scroll
             issuePage.scrollDownOnDetailsScreen();
-            shortWait();
             saveDisplayed = issuePage.isSaveChangesButtonDisplayed();
             logStep("Save Changes after extra scroll: " + saveDisplayed);
         }
@@ -1489,12 +1107,10 @@ public final class Issue_Phase2_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         String tempTitle = "TempRepairTest_" + System.currentTimeMillis();
         logStep("Step 2: Create a Repair Needed issue: '" + tempTitle + "'");
         boolean created = issuePage.createRepairNeededIssue(tempTitle, null);
-        mediumWait();
 
         logStep("Step 3: Verify issue was created");
         if (created) {
@@ -1506,40 +1122,30 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStep("Step 4: Verify issue appears in the list");
-        shortWait();
         issuePage.tapAllTab();
-        shortWait();
         // Search for the created issue
         issuePage.searchIssues(tempTitle);
-        mediumWait();
 
         logStepWithScreenshot("TC_ISS_142: Repair Needed issue created without subcategory");
 
         logStep("Step 5: Clean up — delete the temporary issue");
         issuePage.clearSearch();
-        shortWait();
 
         // Try to find and delete the temp issue
         try {
             issuePage.tapOnIssue(tempTitle);
-            mediumWait();
             issuePage.scrollDownOnDetailsScreen();
             issuePage.scrollDownOnDetailsScreen();
-            shortWait();
             if (issuePage.isDeleteIssueButtonDisplayed()) {
                 issuePage.tapDeleteIssueButton();
-                shortWait();
                 if (issuePage.isDeleteConfirmationDisplayed()) {
                     issuePage.confirmDeleteIssue();
-                    mediumWait();
                     logStep("✅ Temporary Repair Needed issue cleaned up");
                 }
             } else {
                 issuePage.tapCloseIssueDetails();
-                shortWait();
                 if (issuePage.isUnsavedChangesWarningDisplayed()) {
                     issuePage.tapDiscardChanges();
-                    shortWait();
                 }
             }
         } catch (Exception e) {
@@ -1561,40 +1167,29 @@ public final class Issue_Phase2_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Check NEC Violation — should have Subcategory");
         issuePage.changeIssueClassOnDetails("NEC Violation");
-        mediumWait();
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         boolean necHasSubcat = issuePage.isSubcategoryFieldDisplayed();
         logStep("NEC Violation has Subcategory: " + necHasSubcat);
 
         logStep("Step 4: Check OSHA Violation — should have Subcategory");
         issuePage.scrollUpOnDetailsScreen();
-        shortWait();
         issuePage.changeIssueClassOnDetails("OSHA Violation");
-        mediumWait();
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         boolean oshaHasSubcat = issuePage.isSubcategoryFieldDisplayed();
         logStep("OSHA Violation has Subcategory: " + oshaHasSubcat);
 
         logStep("Step 5: Check Repair Needed — should NOT have Subcategory");
         issuePage.scrollUpOnDetailsScreen();
-        shortWait();
         issuePage.changeIssueClassOnDetails("Repair Needed");
-        mediumWait();
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         boolean repairHasSubcat = issuePage.isSubcategoryFieldDisplayed();
         logStep("Repair Needed has Subcategory: " + repairHasSubcat);
 
@@ -1633,25 +1228,10 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_THERMAL_ANOMALY,
             "TC_ISS_144 - Verify Thermal Anomaly has unique Issue Details fields");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to Thermal Anomaly");
-        issuePage.changeIssueClassOnDetails("Thermal Anomaly");
-        mediumWait();
+        openIssueWithClass("Thermal Anomaly");
 
         logStep("Step 4: Scroll down to Issue Details section");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
 
         logStep("Step 5: Check for all 7 Thermal Anomaly specialized fields");
         java.util.LinkedHashMap<String, Boolean> fieldStatus = issuePage.getThermalAnomalyFieldsStatus();
@@ -1696,21 +1276,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_THERMAL_ANOMALY,
             "TC_ISS_145 - Verify 3 required fields for Thermal Anomaly");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to Thermal Anomaly");
-        issuePage.changeIssueClassOnDetails("Thermal Anomaly");
-        mediumWait();
+        openIssueWithClass("Thermal Anomaly");
 
         logStep("Step 4: Check completion percentage");
         String pct = issuePage.getIssueDetailsCompletionPercentage();
@@ -1750,25 +1316,10 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SEVERITY,
             "TC_ISS_146 - Verify Severity field is required");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to Thermal Anomaly");
-        issuePage.changeIssueClassOnDetails("Thermal Anomaly");
-        mediumWait();
+        openIssueWithClass("Thermal Anomaly");
 
         logStep("Step 4: Scroll down to Severity field");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
 
         logStep("Step 5: Verify Severity field is displayed");
         boolean severityDisplayed = issuePage.isSeverityFieldDisplayed();
@@ -1778,7 +1329,6 @@ public final class Issue_Phase2_Test extends BaseTest {
         } else {
             logStep("⚠️ Severity field not found — trying additional scroll");
             issuePage.scrollDownOnDetailsScreen();
-            shortWait();
             severityDisplayed = issuePage.isSeverityFieldDisplayed();
             logStep("Severity after extra scroll: " + severityDisplayed);
         }
@@ -1819,27 +1369,11 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SEVERITY,
             "TC_ISS_147 - Verify Severity dropdown options");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to Thermal Anomaly");
-        issuePage.changeIssueClassOnDetails("Thermal Anomaly");
-        mediumWait();
+        openIssueWithClass("Thermal Anomaly");
 
         logStep("Step 4: Scroll down and tap Severity field");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         issuePage.tapSeverityField();
-        mediumWait();
 
         logStep("Step 5: Check for all 4 severity options");
         java.util.ArrayList<String> severityOptions = issuePage.getSeverityDropdownOptions();
@@ -1885,31 +1419,14 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SEVERITY,
             "TC_ISS_148 - Verify selecting Nominal severity");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to Thermal Anomaly");
-        issuePage.changeIssueClassOnDetails("Thermal Anomaly");
-        mediumWait();
+        openIssueWithClass("Thermal Anomaly");
 
         logStep("Step 4: Scroll down and tap Severity field");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         issuePage.tapSeverityField();
-        mediumWait();
 
         logStep("Step 5: Select 'Nominal'");
         issuePage.selectSeverity("Nominal");
-        mediumWait();
 
         logStep("Step 6: Verify Severity value shows 'Nominal'");
         String severityValue = issuePage.getSeverityValue();
@@ -1934,7 +1451,6 @@ public final class Issue_Phase2_Test extends BaseTest {
 
         logStep("Step 8: Check completion update");
         issuePage.scrollUpOnDetailsScreen();
-        shortWait();
         String pct = issuePage.getIssueDetailsCompletionPercentage();
         logStep("Completion after selecting Nominal: '" + pct + "'");
         String reqCount = issuePage.getRequiredFieldsToggleCount();
@@ -1958,31 +1474,14 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SEVERITY,
             "TC_ISS_149 - Verify selecting Intermediate severity");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to Thermal Anomaly");
-        issuePage.changeIssueClassOnDetails("Thermal Anomaly");
-        mediumWait();
+        openIssueWithClass("Thermal Anomaly");
 
         logStep("Step 4: Scroll down and tap Severity field");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         issuePage.tapSeverityField();
-        mediumWait();
 
         logStep("Step 5: Select 'Intermediate'");
         issuePage.selectSeverity("Intermediate");
-        mediumWait();
 
         logStep("Step 6: Verify Severity value shows 'Intermediate'");
         String severityValue = issuePage.getSeverityValue();
@@ -2041,31 +1540,14 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SEVERITY,
             "TC_ISS_150 - Verify selecting Serious severity");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to Thermal Anomaly");
-        issuePage.changeIssueClassOnDetails("Thermal Anomaly");
-        mediumWait();
+        openIssueWithClass("Thermal Anomaly");
 
         logStep("Step 4: Scroll down and tap Severity field");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         issuePage.tapSeverityField();
-        mediumWait();
 
         logStep("Step 5: Select 'Serious'");
         issuePage.selectSeverity("Serious");
-        mediumWait();
 
         logStep("Step 6: Verify Severity value shows 'Serious'");
         String severityValue = issuePage.getSeverityValue();
@@ -2093,31 +1575,14 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SEVERITY,
             "TC_ISS_151 - Verify selecting Critical severity");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to Thermal Anomaly");
-        issuePage.changeIssueClassOnDetails("Thermal Anomaly");
-        mediumWait();
+        openIssueWithClass("Thermal Anomaly");
 
         logStep("Step 4: Scroll down and tap Severity field");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         issuePage.tapSeverityField();
-        mediumWait();
 
         logStep("Step 5: Select 'Critical'");
         issuePage.selectSeverity("Critical");
-        mediumWait();
 
         logStep("Step 6: Verify Severity value shows 'Critical'");
         String severityValue = issuePage.getSeverityValue();
@@ -2145,25 +1610,10 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_THERMAL_ANOMALY,
             "TC_ISS_152 - Verify Severity Criteria field is optional");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to Thermal Anomaly");
-        issuePage.changeIssueClassOnDetails("Thermal Anomaly");
-        mediumWait();
+        openIssueWithClass("Thermal Anomaly");
 
         logStep("Step 4: Scroll down to find Severity Criteria field");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
 
         logStep("Step 5: Verify Severity Criteria field is displayed");
         boolean criteriaDisplayed = issuePage.isThermalFieldPresent("Severity Criteria");
@@ -2172,7 +1622,6 @@ public final class Issue_Phase2_Test extends BaseTest {
             logStep("✅ Severity Criteria field is visible");
         } else {
             issuePage.scrollDownOnDetailsScreen();
-            shortWait();
             criteriaDisplayed = issuePage.isThermalFieldPresent("Severity Criteria");
             logStep("After extra scroll: " + criteriaDisplayed);
         }
@@ -2207,27 +1656,11 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_THERMAL_ANOMALY,
             "TC_ISS_153 - Verify Severity Criteria dropdown options");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to Thermal Anomaly");
-        issuePage.changeIssueClassOnDetails("Thermal Anomaly");
-        mediumWait();
+        openIssueWithClass("Thermal Anomaly");
 
         logStep("Step 4: Scroll down and tap Severity Criteria field");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         issuePage.tapSeverityCriteriaField();
-        mediumWait();
 
         logStep("Step 5: Check for all 3 Severity Criteria options");
         java.util.ArrayList<String> criteriaOptions = issuePage.getSeverityCriteriaDropdownOptions();
@@ -2257,31 +1690,14 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_THERMAL_ANOMALY,
             "TC_ISS_154 - Verify selecting Similar severity criteria");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to Thermal Anomaly");
-        issuePage.changeIssueClassOnDetails("Thermal Anomaly");
-        mediumWait();
+        openIssueWithClass("Thermal Anomaly");
 
         logStep("Step 4: Scroll down and tap Severity Criteria field");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         issuePage.tapSeverityCriteriaField();
-        mediumWait();
 
         logStep("Step 5: Select 'Similar'");
         issuePage.selectSeverityCriteria("Similar");
-        mediumWait();
 
         logStep("Step 6: Verify Severity Criteria value shows 'Similar'");
         String value = issuePage.getSeverityCriteriaValue();
@@ -2309,31 +1725,14 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_THERMAL_ANOMALY,
             "TC_ISS_155 - Verify selecting Ambient severity criteria");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to Thermal Anomaly");
-        issuePage.changeIssueClassOnDetails("Thermal Anomaly");
-        mediumWait();
+        openIssueWithClass("Thermal Anomaly");
 
         logStep("Step 4: Scroll down and tap Severity Criteria field");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         issuePage.tapSeverityCriteriaField();
-        mediumWait();
 
         logStep("Step 5: Select 'Ambient'");
         issuePage.selectSeverityCriteria("Ambient");
-        mediumWait();
 
         logStep("Step 6: Verify Severity Criteria value shows 'Ambient'");
         String value = issuePage.getSeverityCriteriaValue();
@@ -2371,31 +1770,14 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_THERMAL_ANOMALY,
             "TC_ISS_156 - Verify selecting Indirect severity criteria");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to Thermal Anomaly");
-        issuePage.changeIssueClassOnDetails("Thermal Anomaly");
-        mediumWait();
+        openIssueWithClass("Thermal Anomaly");
 
         logStep("Step 4: Scroll down and tap Severity Criteria field");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         issuePage.tapSeverityCriteriaField();
-        mediumWait();
 
         logStep("Step 5: Select 'Indirect'");
         issuePage.selectSeverityCriteria("Indirect");
-        mediumWait();
 
         logStep("Step 6: Verify Severity Criteria value shows 'Indirect'");
         String value = issuePage.getSeverityCriteriaValue();
@@ -2427,25 +1809,10 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_THERMAL_ANOMALY,
             "TC_ISS_157 - Verify Position field is optional text input");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to Thermal Anomaly");
-        issuePage.changeIssueClassOnDetails("Thermal Anomaly");
-        mediumWait();
+        openIssueWithClass("Thermal Anomaly");
 
         logStep("Step 4: Scroll down to find Position field");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
 
         logStep("Step 5: Verify Position field is displayed");
         boolean positionDisplayed = issuePage.isThermalFieldPresent("Position");
@@ -2454,7 +1821,6 @@ public final class Issue_Phase2_Test extends BaseTest {
             logStep("✅ Position field is visible");
         } else {
             issuePage.scrollDownOnDetailsScreen();
-            shortWait();
             positionDisplayed = issuePage.isThermalFieldPresent("Position");
             logStep("After extra scroll: " + positionDisplayed);
         }
@@ -2492,29 +1858,13 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_THERMAL_ANOMALY,
             "TC_ISS_158 - Verify entering Position text");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to Thermal Anomaly");
-        issuePage.changeIssueClassOnDetails("Thermal Anomaly");
-        mediumWait();
+        openIssueWithClass("Thermal Anomaly");
 
         logStep("Step 4: Scroll down to Position field");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
 
         logStep("Step 5: Enter 'Test' in Position field");
         issuePage.enterPosition("Test");
-        shortWait();
 
         logStep("Step 6: Verify Position field shows 'Test'");
         String positionValue = issuePage.getPositionValue();
@@ -2545,23 +1895,18 @@ public final class Issue_Phase2_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to Thermal Anomaly");
         boolean classChanged = issuePage.changeIssueClassOnDetails("Thermal Anomaly");
-        mediumWait();
         assertTrue(classChanged, "Issue Class should be changed to Thermal Anomaly");
 
         logStep("Step 4: Scroll down to Problem Temp field");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
 
         logStep("Step 5: Verify Problem Temp field is displayed");
         boolean problemTempVisible = issuePage.isThermalFieldPresent("Problem Temp");
@@ -2610,27 +1955,21 @@ public final class Issue_Phase2_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to Thermal Anomaly");
         boolean classChanged = issuePage.changeIssueClassOnDetails("Thermal Anomaly");
-        mediumWait();
         assertTrue(classChanged, "Issue Class should be changed to Thermal Anomaly");
 
         logStep("Step 4: Scroll down to Problem Temp field");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
 
         logStep("Step 5: Enter '12' in Problem Temp field");
         issuePage.enterProblemTemp("12");
-        shortWait();
 
         logStep("Step 6: Verify Problem Temp shows '12'");
         String problemTempValue = issuePage.getProblemTempValue();
@@ -2671,28 +2010,22 @@ public final class Issue_Phase2_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to Thermal Anomaly");
         boolean classChanged = issuePage.changeIssueClassOnDetails("Thermal Anomaly");
-        mediumWait();
         assertTrue(classChanged, "Issue Class should be changed to Thermal Anomaly");
 
         logStep("Step 4: Scroll down to Problem Temp field");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
 
         logStep("Step 5: Tap Problem Temp field to focus it");
         // Enter an empty string to just focus the field and trigger the keyboard
         issuePage.enterProblemTemp("");
-        shortWait();
 
         logStep("Step 6: Verify numeric keyboard is displayed");
         boolean numericKeyboard = issuePage.isNumericKeyboardDisplayed();
@@ -2721,23 +2054,18 @@ public final class Issue_Phase2_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to Thermal Anomaly");
         boolean classChanged = issuePage.changeIssueClassOnDetails("Thermal Anomaly");
-        mediumWait();
         assertTrue(classChanged, "Issue Class should be changed to Thermal Anomaly");
 
         logStep("Step 4: Scroll down to Reference Temp field");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
 
         logStep("Step 5: Verify Reference Temp field is displayed");
         boolean refTempVisible = issuePage.isThermalFieldPresent("Reference Temp");
@@ -2786,27 +2114,21 @@ public final class Issue_Phase2_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to Thermal Anomaly");
         boolean classChanged = issuePage.changeIssueClassOnDetails("Thermal Anomaly");
-        mediumWait();
         assertTrue(classChanged, "Issue Class should be changed to Thermal Anomaly");
 
         logStep("Step 4: Scroll down to Reference Temp field");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
 
         logStep("Step 5: Enter '12' in Reference Temp field");
         issuePage.enterReferenceTemp("12");
-        shortWait();
 
         logStep("Step 6: Verify Reference Temp shows '12'");
         String refTempValue = issuePage.getReferenceTempValue();
@@ -2848,26 +2170,20 @@ public final class Issue_Phase2_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to Thermal Anomaly");
         boolean classChanged = issuePage.changeIssueClassOnDetails("Thermal Anomaly");
-        mediumWait();
         assertTrue(classChanged, "Issue Class should be changed to Thermal Anomaly");
 
         logStep("Step 4: Scroll down to Current Draw section");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         // Current Draw may be further down — scroll again
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
 
         logStep("Step 5: Verify Current Draw section is displayed");
         boolean currentDrawVisible = issuePage.isCurrentDrawSectionDisplayed();
@@ -2922,29 +2238,22 @@ public final class Issue_Phase2_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to Thermal Anomaly");
         boolean classChanged = issuePage.changeIssueClassOnDetails("Thermal Anomaly");
-        mediumWait();
         assertTrue(classChanged, "Issue Class should be changed to Thermal Anomaly");
 
         logStep("Step 4: Scroll down to Current Draw section");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
 
         logStep("Step 5: Enter Current Draw values — A=1, B=8100, C=55, N=55");
         issuePage.enterCurrentDrawPhaseValues("1", "8100", "55", "55");
-        shortWait();
 
         logStep("Step 6: Verify entered values");
         java.util.LinkedHashMap<String, String> values = issuePage.getCurrentDrawPhaseValues();
@@ -2993,27 +2302,21 @@ public final class Issue_Phase2_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to Thermal Anomaly");
         boolean classChanged = issuePage.changeIssueClassOnDetails("Thermal Anomaly");
-        mediumWait();
         assertTrue(classChanged, "Issue Class should be changed to Thermal Anomaly");
 
         logStep("Step 4: Fill required fields only (Severity, Problem Temp, Reference Temp)");
         issuePage.fillRequiredThermalFields("Nominal", "50", "25");
-        shortWait();
 
         logStep("Step 5: Verify required fields toggle shows 3/3 (all required fields filled)");
         issuePage.scrollUpOnDetailsScreen();
-        shortWait();
         String reqCount = issuePage.getRequiredFieldsToggleCount();
         logStep("Required fields count: '" + reqCount + "'");
 
@@ -3054,28 +2357,21 @@ public final class Issue_Phase2_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to Thermal Anomaly");
         boolean classChanged = issuePage.changeIssueClassOnDetails("Thermal Anomaly");
-        mediumWait();
         assertTrue(classChanged, "Issue Class should be changed to Thermal Anomaly");
 
         logStep("Step 4: Scroll down to Voltage Drop section");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         // Voltage Drop is below Current Draw — may need one more scroll
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
 
         logStep("Step 5: Verify Voltage Drop section is displayed");
         boolean voltageDropVisible = issuePage.isVoltageDropSectionDisplayed();
@@ -3131,31 +2427,23 @@ public final class Issue_Phase2_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to Thermal Anomaly");
         boolean classChanged = issuePage.changeIssueClassOnDetails("Thermal Anomaly");
-        mediumWait();
         assertTrue(classChanged, "Issue Class should be changed to Thermal Anomaly");
 
         logStep("Step 4: Scroll down to Voltage Drop section");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
 
         logStep("Step 5: Enter Voltage Drop values — A=44, B=55444, C=44, N=55");
         issuePage.enterVoltageDropPhaseValues("44", "55444", "44", "55");
-        shortWait();
 
         logStep("Step 6: Verify entered values");
         java.util.LinkedHashMap<String, String> values = issuePage.getVoltageDropPhaseValues();
@@ -3204,27 +2492,21 @@ public final class Issue_Phase2_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to Thermal Anomaly");
         boolean classChanged = issuePage.changeIssueClassOnDetails("Thermal Anomaly");
-        mediumWait();
         assertTrue(classChanged, "Issue Class should be changed to Thermal Anomaly");
 
         logStep("Step 4: Fill required fields only (Severity, Problem Temp, Reference Temp)");
         issuePage.fillRequiredThermalFields("Nominal", "50", "25");
-        shortWait();
 
         logStep("Step 5: Scroll down to verify Voltage Drop section exists but is empty");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
 
         boolean voltageDropVisible = issuePage.isVoltageDropSectionDisplayed();
         logStep("Voltage Drop section visible: " + voltageDropVisible);
@@ -3247,7 +2529,6 @@ public final class Issue_Phase2_Test extends BaseTest {
 
         logStep("Step 6: Verify required fields toggle shows 3/3 (all required fields filled)");
         issuePage.scrollUpOnDetailsScreen();
-        shortWait();
         String reqCount = issuePage.getRequiredFieldsToggleCount();
         logStep("Required fields count: '" + reqCount + "'");
 
@@ -3287,35 +2568,27 @@ public final class Issue_Phase2_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to Thermal Anomaly");
         boolean classChanged = issuePage.changeIssueClassOnDetails("Thermal Anomaly");
-        mediumWait();
         assertTrue(classChanged, "Issue Class should be changed to Thermal Anomaly");
 
         logStep("Step 4: Verify all fields visible before toggle");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         java.util.ArrayList<String> fieldsBeforeToggle = issuePage.getVisibleThermalFieldLabels();
         logStep("Fields before toggle: " + fieldsBeforeToggle);
 
         logStep("Step 5: Scroll up and toggle ON 'Required fields only'");
         issuePage.scrollUpOnDetailsScreen();
-        shortWait();
         issuePage.tapRequiredFieldsToggle();
-        mediumWait();
 
         logStep("Step 6: Verify only required fields are shown");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         java.util.ArrayList<String> fieldsAfterToggle = issuePage.getVisibleThermalFieldLabels();
         logStep("Fields after toggle ON: " + fieldsAfterToggle);
 
@@ -3355,7 +2628,6 @@ public final class Issue_Phase2_Test extends BaseTest {
 
         // Toggle OFF to restore and revert
         issuePage.scrollUpOnDetailsScreen();
-        shortWait();
         issuePage.tapRequiredFieldsToggle();
         issuePage.quickDismissIssueDetails();
     }
@@ -3373,27 +2645,21 @@ public final class Issue_Phase2_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         logStep("Step 3: Change Issue Class to Thermal Anomaly");
         boolean classChanged = issuePage.changeIssueClassOnDetails("Thermal Anomaly");
-        mediumWait();
         assertTrue(classChanged, "Issue Class should be changed to Thermal Anomaly");
 
         logStep("Step 4: Fill all 3 required fields");
         issuePage.fillRequiredThermalFields("Intermediate", "12", "12");
-        shortWait();
 
         logStep("Step 5: Scroll up and check required fields count");
         issuePage.scrollUpOnDetailsScreen();
-        shortWait();
         String reqCount = issuePage.getRequiredFieldsToggleCount();
         logStep("Required fields count: '" + reqCount + "'");
 
@@ -3420,41 +2686,22 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_REQUIRED_FIELDS_TOGGLE,
             "TC_ISS_172 - Verify toggling Required fields only OFF");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to Thermal Anomaly");
-        issuePage.changeIssueClassOnDetails("Thermal Anomaly");
-        mediumWait();
+        openIssueWithClass("Thermal Anomaly");
 
         logStep("Step 4: Toggle ON 'Required fields only'");
         issuePage.tapRequiredFieldsToggle();
-        mediumWait();
 
         logStep("Step 5: Verify fields are filtered (toggle ON)");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         java.util.ArrayList<String> fieldsWhenOn = issuePage.getVisibleThermalFieldLabels();
         logStep("Fields when toggle ON: " + fieldsWhenOn);
 
         logStep("Step 6: Toggle OFF 'Required fields only'");
         issuePage.scrollUpOnDetailsScreen();
-        shortWait();
         issuePage.tapRequiredFieldsToggle();
-        mediumWait();
 
         logStep("Step 7: Verify all fields are visible again (toggle OFF)");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         java.util.ArrayList<String> fieldsWhenOff = issuePage.getVisibleThermalFieldLabels();
         logStep("Fields when toggle OFF: " + fieldsWhenOff);
 
@@ -3467,7 +2714,6 @@ public final class Issue_Phase2_Test extends BaseTest {
 
         // May need to scroll further for Current Draw and Voltage Drop
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         java.util.ArrayList<String> moreFields = issuePage.getVisibleThermalFieldLabels();
         boolean hasCurrentDraw = moreFields.contains("Current Draw") || fieldsWhenOff.contains("Current Draw");
         boolean hasVoltageDrop = moreFields.contains("Voltage Drop") || fieldsWhenOff.contains("Voltage Drop");
@@ -3503,43 +2749,22 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_THERMAL_ANOMALY,
             "TC_ISS_173 - Verify 100% completion for Thermal Anomaly");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to Thermal Anomaly");
-        issuePage.changeIssueClassOnDetails("Thermal Anomaly");
-        mediumWait();
+        openIssueWithClass("Thermal Anomaly");
 
         logStep("Step 4: Fill Severity (Intermediate)");
         issuePage.tapSeverityField();
-        shortWait();
         issuePage.selectSeverity("Intermediate");
-        shortWait();
 
         logStep("Step 5: Fill Problem Temp (12)");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         issuePage.enterProblemTemp("12");
-        shortWait();
 
         logStep("Step 6: Fill Reference Temp (12)");
         issuePage.enterReferenceTemp("12");
-        shortWait();
         issuePage.dismissKeyboard();
-        shortWait();
 
         logStep("Step 7: Scroll up and verify completion percentage");
         issuePage.scrollUpOnDetailsScreen();
-        shortWait();
 
         String completionPct = issuePage.getIssueDetailsCompletionPercentage();
         logStep("Completion percentage: '" + completionPct + "'");
@@ -3586,27 +2811,11 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SEVERITY,
             "TC_ISS_174 - Verify clearing Severity selection");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to Thermal Anomaly");
-        issuePage.changeIssueClassOnDetails("Thermal Anomaly");
-        mediumWait();
+        openIssueWithClass("Thermal Anomaly");
 
         logStep("Step 4: Select Severity (Intermediate)");
         issuePage.tapSeverityField();
-        shortWait();
         issuePage.selectSeverity("Intermediate");
-        shortWait();
 
         logStep("Step 5: Verify Severity is selected");
         String severityBefore = issuePage.getSeverityValue();
@@ -3617,7 +2826,6 @@ public final class Issue_Phase2_Test extends BaseTest {
 
         logStep("Step 6: Tap X button to clear Severity");
         boolean cleared = issuePage.clearSeveritySelection();
-        shortWait();
         logStep("Clear action result: " + cleared);
 
         logStep("Step 7: Verify Severity is cleared");
@@ -3657,31 +2865,14 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_THERMAL_ANOMALY,
             "TC_ISS_175 - Verify clearing Severity Criteria selection");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to Thermal Anomaly");
-        issuePage.changeIssueClassOnDetails("Thermal Anomaly");
-        mediumWait();
+        openIssueWithClass("Thermal Anomaly");
 
         logStep("Step 4: Scroll down to Severity Criteria");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
 
         logStep("Step 5: Select Severity Criteria (Similar)");
         issuePage.tapSeverityCriteriaField();
-        shortWait();
         issuePage.selectSeverityCriteria("Similar");
-        shortWait();
 
         logStep("Step 6: Verify Severity Criteria is selected");
         String critBefore = issuePage.getSeverityCriteriaValue();
@@ -3689,7 +2880,6 @@ public final class Issue_Phase2_Test extends BaseTest {
 
         logStep("Step 7: Tap X button to clear Severity Criteria");
         boolean cleared = issuePage.clearSeverityCriteriaSelection();
-        shortWait();
         logStep("Clear action result: " + cleared);
 
         logStep("Step 8: Verify Severity Criteria is cleared");
@@ -3723,19 +2913,15 @@ public final class Issue_Phase2_Test extends BaseTest {
         logStep("Step 1: Ensure on Issues screen");
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
 
         issuePage.tapAllTab();
-        shortWait();
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
-        mediumWait();
 
         // === NEC Violation ===
         logStep("Step 3: Verify NEC Violation has Subcategory (default class)");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         boolean necHasSubcategory = issuePage.isSubcategoryFieldDisplayed();
         boolean necHasSeverity = issuePage.isThermalFieldPresent("Severity");
         boolean necHasProblemTemp = issuePage.isThermalFieldPresent("Problem Temp");
@@ -3745,13 +2931,10 @@ public final class Issue_Phase2_Test extends BaseTest {
         // === Switch to Thermal Anomaly ===
         logStep("Step 4: Change to Thermal Anomaly");
         issuePage.scrollUpOnDetailsScreen();
-        shortWait();
         issuePage.changeIssueClassOnDetails("Thermal Anomaly");
-        mediumWait();
 
         logStep("Step 5: Verify Thermal Anomaly has specialized fields, NOT Subcategory");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         boolean thermalHasSubcategory = issuePage.isSubcategoryFieldDisplayed();
         boolean thermalHasSeverity = issuePage.isThermalFieldPresent("Severity");
         boolean thermalHasProblemTemp = issuePage.isThermalFieldPresent("Problem Temp");
@@ -3759,7 +2942,6 @@ public final class Issue_Phase2_Test extends BaseTest {
 
         // Scroll further for table sections
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         boolean thermalHasCurrentDraw = issuePage.isCurrentDrawSectionDisplayed();
         boolean thermalHasVoltageDrop = issuePage.isVoltageDropSectionDisplayed();
 
@@ -3807,25 +2989,10 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ULTRASONIC_ANOMALY,
             "TC_ISS_177 - Verify Ultrasonic Anomaly has no required fields");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to Ultrasonic Anomaly");
-        issuePage.changeIssueClassOnDetails("Ultrasonic Anomaly");
-        mediumWait();
+        openIssueWithClass("Ultrasonic Anomaly");
 
         logStep("Step 4: Verify 'No required fields' message");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         boolean noRequiredMsg = issuePage.isNoRequiredFieldsMessageDisplayed();
         logStep("No required fields message: " + noRequiredMsg);
 
@@ -3847,7 +3014,6 @@ public final class Issue_Phase2_Test extends BaseTest {
 
         logStep("Step 6: Verify no completion percentage");
         issuePage.scrollUpOnDetailsScreen();
-        shortWait();
         String completionPct = issuePage.getIssueDetailsCompletionPercentage();
         logStep("Completion percentage: '" + completionPct + "'");
 
@@ -3879,21 +3045,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ULTRASONIC_ANOMALY,
             "TC_ISS_178 - Verify Ultrasonic Anomaly Issue Details section");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to Ultrasonic Anomaly");
-        issuePage.changeIssueClassOnDetails("Ultrasonic Anomaly");
-        mediumWait();
+        openIssueWithClass("Ultrasonic Anomaly");
 
         logStep("Step 4: Verify Issue Details section header exists");
         boolean headerExists = issuePage.isIssueDetailsSectionHeaderDisplayed();
@@ -3907,7 +3059,6 @@ public final class Issue_Phase2_Test extends BaseTest {
 
         logStep("Step 5: Verify 'No required fields' message is displayed");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
         boolean noRequiredMsg = issuePage.isNoRequiredFieldsMessageDisplayed();
         logStep("No required fields message: " + noRequiredMsg);
 
@@ -3929,7 +3080,6 @@ public final class Issue_Phase2_Test extends BaseTest {
 
         logStep("Step 7: Verify no required fields toggle");
         issuePage.scrollUpOnDetailsScreen();
-        shortWait();
         boolean hasToggle = issuePage.isRequiredFieldsToggleDisplayed();
         logStep("Required fields toggle: " + hasToggle);
 
@@ -3953,25 +3103,10 @@ public final class Issue_Phase2_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ULTRASONIC_ANOMALY,
             "TC_ISS_179 - Verify Description field for Ultrasonic Anomaly");
 
-        logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
-        shortWait();
-
-        issuePage.tapAllTab();
-        shortWait();
-
-        logStep("Step 2: Open first issue");
-        issuePage.tapFirstIssue();
-        mediumWait();
-
-        logStep("Step 3: Change Issue Class to Ultrasonic Anomaly");
-        issuePage.changeIssueClassOnDetails("Ultrasonic Anomaly");
-        mediumWait();
+        openIssueWithClass("Ultrasonic Anomaly");
 
         logStep("Step 4: Scroll down to Description section");
         issuePage.scrollDownOnDetailsScreen();
-        shortWait();
 
         logStep("Step 5: Verify Description field is displayed");
         boolean descriptionVisible = issuePage.isDescriptionFieldDisplayed();
@@ -3982,7 +3117,6 @@ public final class Issue_Phase2_Test extends BaseTest {
         } else {
             // Try scrolling more — Description may be further down
             issuePage.scrollDownOnDetailsScreen();
-            shortWait();
             descriptionVisible = issuePage.isDescriptionFieldDisplayed();
             logStep("Description after additional scroll: " + descriptionVisible);
         }
@@ -4001,7 +3135,6 @@ public final class Issue_Phase2_Test extends BaseTest {
 
         logStep("Step 7: Verify can enter description text");
         issuePage.enterDescription("Test ultrasonic description");
-        shortWait();
 
         String descValue = issuePage.getDescriptionValue();
         logStep("Description value: '" + descValue + "'");

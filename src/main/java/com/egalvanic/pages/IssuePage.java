@@ -3678,7 +3678,7 @@ public class IssuePage extends BasePage {
                 int fieldY = field.getLocation().getY();
                 if (fieldY > 120) {
                     field.click();
-                    sleep(400);
+                    sleep(200);
                     System.out.println("✅ Strategy 1: Tapped Subcategory text field at Y=" + fieldY);
                     return;
                 }
@@ -3716,7 +3716,7 @@ public class IssuePage extends BasePage {
                     int pickerY = picker.getLocation().getY();
                     if (pickerY > 120) {
                         picker.click();
-                        sleep(400);
+                        sleep(200);
                         System.out.println("✅ Strategy 2: Tapped Subcategory picker button at Y=" + pickerY +
                             " (label: '" + picker.getAttribute("label") + "')");
                         return;
@@ -3774,7 +3774,7 @@ public class IssuePage extends BasePage {
                         String elLabel = bestMatch.getAttribute("label");
                         int elY = bestMatch.getLocation().getY();
                         bestMatch.click();
-                        sleep(400);
+                        sleep(200);
                         System.out.println("✅ Strategy 3: Tapped " + elType + " at Y=" + elY +
                             " (label: '" + elLabel + "')");
                         return;
@@ -3792,7 +3792,7 @@ public class IssuePage extends BasePage {
                 int labelY = subcatLabel.getLocation().getY();
                 if (labelY > 120) {
                     subcatLabel.click();
-                    sleep(400);
+                    sleep(200);
                     System.out.println("✅ Strategy 4: Tapped Subcategory label at Y=" + labelY);
                     return;
                 }
@@ -3821,7 +3821,7 @@ public class IssuePage extends BasePage {
                     tap.addAction(finger.createPointerUp(
                         org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
                     driver.perform(java.util.Arrays.asList(tap));
-                    sleep(400);
+                    sleep(200);
                     System.out.println("✅ Strategy 5: Coordinate tap at X=" + tapX + ", Y=" + tapY);
                     return;
                 }
@@ -5456,7 +5456,7 @@ public class IssuePage extends BasePage {
                     "(name CONTAINS[c] 'issue class' OR label CONTAINS[c] 'issue class')"));
                 System.out.println("   Found Issue Class picker: '" + picker.getAttribute("label") + "'");
                 picker.click();
-                sleep(500);
+                sleep(300);
                 System.out.println("   Opened Issue Class picker (button)");
                 return true;
             } finally {
@@ -5484,7 +5484,7 @@ public class IssuePage extends BasePage {
                     int y = btn.getLocation().getY();
                     if (Math.abs(y - labelY) < 50) {
                         btn.click();
-                        sleep(500);
+                        sleep(300);
                         System.out.println("   Opened Issue Class picker (positional match)");
                         return true;
                     }
@@ -5518,7 +5518,7 @@ public class IssuePage extends BasePage {
             tap.addAction(finger.createPointerUp(
                 org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
             driver.perform(java.util.Collections.singletonList(tap));
-            sleep(500);
+            sleep(300);
             System.out.println("   Opened Issue Class picker (coordinate tap at Y=" + labelY + ")");
             return true;
         } catch (Exception e3) {
@@ -5542,7 +5542,7 @@ public class IssuePage extends BasePage {
         // Dismiss keyboard first — a lingering keyboard (e.g. from Position or temp fields)
         // can block the Issue Class picker on CI machines
         dismissKeyboard();
-        sleep(200);
+        sleep(100);
 
         try {
             boolean pickerOpened = tryOpenIssueClassPicker();
@@ -5552,7 +5552,7 @@ public class IssuePage extends BasePage {
             if (!pickerOpened) {
                 System.out.println("   Issue Class not found — scrolling to top and retrying...");
                 scrollToTopOfDetails();
-                sleep(500);
+                sleep(300);
                 pickerOpened = tryOpenIssueClassPicker();
             }
 
@@ -5572,7 +5572,7 @@ public class IssuePage extends BasePage {
                         typeFilter + " AND label == '" + newClass + "'"));
                     if (!options.isEmpty()) {
                         options.get(0).click();
-                        sleep(500);
+                        sleep(300);
                         selected = true;
                         System.out.println("✅ Selected Issue Class: " + newClass);
                         break;
@@ -5585,7 +5585,7 @@ public class IssuePage extends BasePage {
                         typeFilter + " AND label CONTAINS[c] '" + newClass + "'"));
                     if (!options.isEmpty()) {
                         options.get(0).click();
-                        sleep(500);
+                        sleep(300);
                         selected = true;
                         System.out.println("✅ Selected Issue Class: " + newClass + " (contains match)");
                         break;
@@ -5594,7 +5594,7 @@ public class IssuePage extends BasePage {
 
                 if (!selected && attempt < 2) {
                     System.out.println("   Retry " + attempt + "/2: menu items not loaded yet, waiting...");
-                    sleep(400);
+                    sleep(300);
                 }
             }
             if (!selected) {
