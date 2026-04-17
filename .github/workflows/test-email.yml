@@ -32,7 +32,7 @@ jobs:
       - name: Extract Email Recipients
         id: email_config
         run: |
-          EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
+          EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
           echo "EMAIL_TO=$EMAIL_TO" >> $GITHUB_OUTPUT
           echo "Email recipients: $EMAIL_TO"
 
