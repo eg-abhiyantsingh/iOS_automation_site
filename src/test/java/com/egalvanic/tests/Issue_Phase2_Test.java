@@ -163,23 +163,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_120: OSHA subcategory dropdown categories");
-
-        issuePage.dismissDropdownMenu();
-        shortWait();
-
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -225,23 +209,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_121: Clearance - Insufficient Access option");
-
-        issuePage.dismissDropdownMenu();
-        shortWait();
-
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -289,23 +257,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_122: Enclosure - Broken locking mechanism option");
-
-        issuePage.dismissDropdownMenu();
-        shortWait();
-
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -351,23 +303,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_123: Enclosure - Damaged option");
-
-        issuePage.dismissDropdownMenu();
-        shortWait();
-
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -415,23 +351,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_124: Enclosure - Should be waterproof option");
-
-        issuePage.dismissDropdownMenu();
-        shortWait();
-
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -479,23 +399,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_125: Equipment - Free of Hazards option");
-
-        issuePage.dismissDropdownMenu();
-        shortWait();
-
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -548,23 +452,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_126: Grounding - Must be permanent & continuous option");
-
-        issuePage.dismissDropdownMenu();
-        shortWait();
-
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -617,23 +505,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_127: Lighting - Inadequate around equipment option");
-
-        issuePage.dismissDropdownMenu();
-        shortWait();
-
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -692,23 +564,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_128: Marking/Labels - Inadequate or missing information option");
-
-        issuePage.dismissDropdownMenu();
-        shortWait();
-
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -761,23 +617,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_129: Mounting - Should be secure option");
-
-        issuePage.dismissDropdownMenu();
-        shortWait();
-
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     // ================================================================
@@ -890,23 +730,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_131: Wire - Exposed option");
-
-        issuePage.dismissDropdownMenu();
-        shortWait();
-
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -1057,25 +881,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_133: OSHA subcategory search filter for 'Enclosure'");
-
-        issuePage.clearSubcategorySearch();
-        shortWait();
-        issuePage.dismissDropdownMenu();
-        shortWait();
-
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -1394,18 +1200,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_137: Repair Needed has no Subcategory field");
-
-        // Revert to NEC Violation
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -1481,20 +1276,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_138: Repair Needed Issue Details section empty");
-
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -1579,20 +1361,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_139: Description field for Repair Needed");
-
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     // ================================================================
@@ -1653,20 +1422,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_140: Proposed Resolution for Repair Needed");
-
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -1716,22 +1472,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_141: Save Changes available for Repair Needed");
-
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -1873,20 +1614,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_143: Repair Needed vs violation classes comparison");
-
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     // ================================================================
@@ -1954,20 +1682,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_144: Thermal Anomaly unique Issue Details fields");
-
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -2021,18 +1736,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_145: 3 required fields for Thermal Anomaly");
-
-        // Revert to NEC Violation
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -2167,23 +1871,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_147: Severity dropdown options");
-
-        issuePage.dismissDropdownMenu();
-        shortWait();
-
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -2256,18 +1944,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_148: Nominal severity selected");
-
-        // Revert to NEC Violation
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -2455,20 +2132,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_151: Critical severity selected");
-
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -2530,20 +2194,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_152: Severity Criteria field is optional");
-
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -2594,23 +2245,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_153: Severity Criteria dropdown options");
-
-        issuePage.dismissDropdownMenu();
-        shortWait();
-
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -2775,20 +2410,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_156: Indirect severity criteria selected");
-
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     // ================================================================
@@ -2857,20 +2479,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_157: Position field is optional text input");
-
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -2920,20 +2529,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_158: Position text entered");
-
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -2997,20 +2593,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_159: Problem Temp required field verification");
-
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -3072,22 +2655,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_160: Problem Temp number entry");
-
-        // Revert to NEC Violation
-        issuePage.dismissKeyboard();
-        shortWait();
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -3137,22 +2705,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_161: Problem Temp numeric keyboard");
-
-        // Dismiss keyboard and revert
-        issuePage.dismissKeyboard();
-        shortWait();
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -3216,20 +2769,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_162: Reference Temp required field verification");
-
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -3291,22 +2831,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_163: Reference Temp number entry");
-
-        // Revert to NEC Violation
-        issuePage.dismissKeyboard();
-        shortWait();
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -3381,20 +2906,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_164: Current Draw table structure");
-
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -3845,17 +3357,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         issuePage.scrollUpOnDetailsScreen();
         shortWait();
         issuePage.tapRequiredFieldsToggle();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -3988,20 +3490,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_172: Required fields toggle OFF — all fields restored");
-
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -4084,18 +3573,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_173: 100% completion for Thermal Anomaly");
-
-        // Revert to NEC Violation
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -4316,20 +3794,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_176: Thermal Anomaly vs NEC comparison");
-
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -4402,18 +3867,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_177: Ultrasonic Anomaly — no required fields");
-
-        // Revert to NEC Violation
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -4486,18 +3940,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_178: Ultrasonic Anomaly Issue Details section");
-
-        // Revert to NEC Violation
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -4572,21 +4015,6 @@ public final class Issue_Phase2_Test extends BaseTest {
         }
 
         logStepWithScreenshot("TC_ISS_179: Ultrasonic Anomaly Description field");
-
-        // Revert to NEC Violation
-        issuePage.dismissKeyboard();
-        shortWait();
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 }
