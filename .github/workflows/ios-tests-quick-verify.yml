@@ -1109,5 +1109,5 @@ jobs:
             echo "║  Note: Gmail requires an App Password (not regular password)"
             echo "║  Go to: Google Account > Security > 2-Step Verification > App Passwords"
           fi
-          echo "║  To:     abhiyant.singh@egalvanic.com"
+          echo "║  To:     ${{ steps.email_config.outputs.EMAIL_TO }}"
           echo "╚════════════════════════════════════════════════════════════╝"

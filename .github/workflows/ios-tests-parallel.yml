@@ -3040,7 +3040,7 @@ jobs:
             echo "║  1. EMAIL_USERNAME must be a Gmail address"
             echo "║  2. EMAIL_PASSWORD must be a Gmail App Password (NOT regular password)"
             echo "║     → Google Account > Security > 2-Step Verification > App Passwords"
-            echo "║  3. EMAIL_TO should be set (falls back to abhiyant.singh@egalvanic.com)"
+            echo "║  3. EMAIL_TO is read from AppConstants.java"
           fi
           echo "║  To:     ${{ steps.email_config.outputs.EMAIL_TO }}"
           echo "╚════════════════════════════════════════════════════════════╝"

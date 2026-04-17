@@ -23,8 +23,19 @@ jobs:
     env:
       INPUT_EMAIL_TO: ${{ github.event.inputs.email_to }}
       INPUT_SCENARIO: ${{ github.event.inputs.test_scenario }}
-      RECIPIENT: ${{ github.event.inputs.email_to || 'abhiyant.singh@egalvanic.com' }}
     steps:
+      - name: Checkout Code (for email config)
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: src/main/java/com/egalvanic/constants/AppConstants.java
+
+      - name: Extract Email Recipients
+        id: email_config
+        run: |
+          EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
+          echo "EMAIL_TO=$EMAIL_TO" >> $GITHUB_OUTPUT
+          echo "Email recipients: $EMAIL_TO"
+
       - name: Prepare Email
         id: summary
         run: |
@@ -219,7 +230,7 @@ jobs:
           password: ${{ secrets.EMAIL_PASSWORD }}
           subject: ${{ steps.summary.outputs.SUBJECT }}
           html_body: file://email_body.html
-          to: ${{ github.event.inputs.email_to || 'abhiyant.singh@egalvanic.com' }}
+          to: ${{ github.event.inputs.email_to || steps.email_config.outputs.EMAIL_TO }}
           from: "eGalvanic QA <${{ secrets.EMAIL_USERNAME }}>"
         continue-on-error: true
 
@@ -254,6 +265,6 @@ jobs:
           fi
 
           echo "║"
-          echo "║  Recipient: abhiyant.singh@egalvanic.com (hardcoded)"
+          echo "║  Recipient: ${{ steps.email_config.outputs.EMAIL_TO }} (from AppConstants.java)"
           echo "║  Scenario:  ${INPUT_SCENARIO}"
           echo "╚════════════════════════════════════════════════════════════╝"
