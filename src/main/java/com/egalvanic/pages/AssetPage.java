@@ -6095,6 +6095,29 @@ public class AssetPage extends BasePage {
         }
     }
 
+    // Nav bar zone = Y < 150. After mobile:scroll, elements can land behind it.
+    // This does a precise nudge to bring the element to ~Y=200.
+    private boolean nudgeIfBehindNavBar(int elementY) {
+        if (elementY >= 150) return false;
+        try {
+            int nudge = 220 - elementY;
+            if (nudge < 60) nudge = 60;
+            int screenWidth = driver.manage().window().getSize().width;
+            System.out.println("   ⚠️ Element at Y=" + elementY + " behind nav bar, nudging " + nudge + "px down...");
+            driver.executeScript("mobile: dragFromToForDuration", Map.of(
+                "fromX", screenWidth - 20,
+                "fromY", 400,
+                "toX", screenWidth - 20,
+                "toY", 400 + nudge,
+                "duration", 0.15
+            ));
+            sleep(200);
+        } catch (Exception e) {
+            System.out.println("   ⚠️ Nudge failed: " + (e.getMessage() != null ? e.getMessage().substring(0, Math.min(60, e.getMessage().length())) : ""));
+        }
+        return true;
+    }
+
     public boolean isCreateAssetButtonDisplayed() {
         return isElementDisplayed(createAssetButton);
     }
@@ -6942,41 +6965,51 @@ public class AssetPage extends BasePage {
      * Check if Edit Asset Details screen is displayed
      */
     public boolean isEditAssetScreenDisplayed() {
-        // Check for Save Changes button (primary edit mode indicator)
         try {
-            WebElement saveBtn = driver.findElement(
-                AppiumBy.iOSNsPredicateString("name CONTAINS 'Save' OR label CONTAINS 'Save'")
-            );
-            if (saveBtn.isDisplayed()) {
-                System.out.println("   ✅ Edit screen detected (Save Changes visible)");
-                return true;
-            }
-        } catch (Exception e) {}
-        
-        // Check for Asset Class dropdown with specific class names (ATS, UPS, etc.)
-        String[] assetClasses = {"ATS", "UPS", "PDU", "Generator", "Busway", "Capacitor"};
-        for (String className : assetClasses) {
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(1500));
             try {
-                WebElement classEl = driver.findElement(AppiumBy.accessibilityId(className));
-                if (classEl.isDisplayed()) {
-                    System.out.println("   ✅ Edit screen detected (Asset class " + className + " visible)");
-                    return true;
+                // Check for Save Changes button (primary edit mode indicator)
+                try {
+                    WebElement saveBtn = driver.findElement(
+                        AppiumBy.iOSNsPredicateString("name CONTAINS 'Save' OR label CONTAINS 'Save'")
+                    );
+                    if (saveBtn.isDisplayed()) {
+                        System.out.println("   ✅ Edit screen detected (Save Changes visible)");
+                        return true;
+                    }
+                } catch (Exception e) {}
+
+                // Check for Asset Class dropdown with specific class names
+                String[] assetClasses = {"ATS", "UPS", "PDU", "Generator", "Busway", "Capacitor"};
+                for (String className : assetClasses) {
+                    try {
+                        WebElement classEl = driver.findElement(AppiumBy.accessibilityId(className));
+                        if (classEl.isDisplayed()) {
+                            System.out.println("   ✅ Edit screen detected (Asset class " + className + " visible)");
+                            return true;
+                        }
+                    } catch (Exception e) {}
                 }
-            } catch (Exception e) {}
-        }
-        
-        // Check for Core Attributes label
-        try {
-            List<WebElement> coreAttr = driver.findElements(
-                AppiumBy.iOSNsPredicateString("name CONTAINS 'Core Attributes' OR label CONTAINS 'Core Attributes'")
-            );
-            if (!coreAttr.isEmpty()) {
-                System.out.println("   ✅ Edit screen detected (Core Attributes visible)");
-                return true;
+
+                // Check for Core Attributes label
+                try {
+                    List<WebElement> coreAttr = driver.findElements(
+                        AppiumBy.iOSNsPredicateString("name CONTAINS 'Core Attributes' OR label CONTAINS 'Core Attributes'")
+                    );
+                    if (!coreAttr.isEmpty()) {
+                        System.out.println("   ✅ Edit screen detected (Core Attributes visible)");
+                        return true;
+                    }
+                } catch (Exception e) {}
+
+                return false;
+            } finally {
+                driver.manage().timeouts().implicitlyWait(
+                    java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
             }
-        } catch (Exception e) {}
-        
-        return false;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     /**
@@ -7568,6 +7601,16 @@ public class AssetPage extends BasePage {
                     WebElement lbl = labels.get(0);
                     int labelY = lbl.getLocation().getY();
                     System.out.println("   🔍 Label '" + fieldName + "' at Y=" + labelY);
+
+                    if (nudgeIfBehindNavBar(labelY)) {
+                        labels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeStaticText' AND " +
+                            "(name CONTAINS[c] '" + fieldName + "' OR label CONTAINS[c] '" + fieldName + "')"));
+                        if (labels.isEmpty()) continue;
+                        lbl = labels.get(0);
+                        labelY = lbl.getLocation().getY();
+                        System.out.println("   🔍 After nudge: Label at Y=" + labelY);
+                    }
 
                     // Find dropdown button near the label within 80px
                     // IMPORTANT: Filter out location breadcrumb buttons (e.g., "Trim067938, Room_xxx, ATS")
@@ -9513,6 +9556,15 @@ public class AssetPage extends BasePage {
                     WebElement label = labels.get(0);
                     int labelY = label.getLocation().getY();
                     System.out.println("   🔍 Strategy 3: Label Y=" + labelY);
+
+                    if (nudgeIfBehindNavBar(labelY)) {
+                        labels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeStaticText' AND (name CONTAINS[c] '" + fieldName + "' OR label CONTAINS[c] '" + fieldName + "')"));
+                        if (labels.isEmpty()) break;
+                        label = labels.get(0);
+                        labelY = label.getLocation().getY();
+                        System.out.println("   🔍 Strategy 3 after nudge: Label Y=" + labelY);
+                    }
 
                     // Find TextField OR TextView - must be BELOW or same row (not above!)
                     List<WebElement> inputFields = driver.findElements(

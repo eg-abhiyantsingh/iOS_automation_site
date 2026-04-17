@@ -2965,10 +2965,18 @@ public class IssuePage extends BasePage {
      */
     public boolean isIssueDetailsScreenDisplayed() {
         try {
-            WebElement title = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeNavigationBar') AND " +
-                "(label == 'Issue Details' OR name == 'Issue Details')"));
-            return title.isDisplayed();
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(1500));
+            try {
+                WebElement title = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeNavigationBar') AND " +
+                    "(label == 'Issue Details' OR name == 'Issue Details')"));
+                return title.isDisplayed();
+            } catch (Exception e) {
+                return false;
+            } finally {
+                driver.manage().timeouts().implicitlyWait(
+                    java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
+            }
         } catch (Exception e) {
             return false;
         }
@@ -5069,44 +5077,50 @@ public class IssuePage extends BasePage {
      */
     public boolean isUnsavedChangesWarningDisplayed() {
         try {
-            // Strategy 1: Alert dialog
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(1000));
             try {
-                WebElement alert = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeAlert'"));
-                System.out.println("   Unsaved changes alert found");
-                return alert.isDisplayed();
-            } catch (Exception ignored) {}
+                // Strategy 1: Alert dialog
+                try {
+                    WebElement alert = driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeAlert'"));
+                    System.out.println("   Unsaved changes alert found");
+                    return alert.isDisplayed();
+                } catch (Exception ignored) {}
 
-            // Strategy 2: Look for warning text
-            try {
-                WebElement warningText = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND " +
-                    "(label CONTAINS 'unsaved' OR label CONTAINS 'Unsaved' OR " +
-                    "label CONTAINS 'discard' OR label CONTAINS 'Discard' OR " +
-                    "label CONTAINS 'save changes' OR label CONTAINS 'Save changes' OR " +
-                    "label CONTAINS 'changes' OR label CONTAINS 'Changes')"));
-                System.out.println("   Warning text: " + warningText.getAttribute("label"));
-                return true;
-            } catch (Exception ignored) {}
+                // Strategy 2: Look for warning text
+                try {
+                    WebElement warningText = driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND " +
+                        "(label CONTAINS 'unsaved' OR label CONTAINS 'Unsaved' OR " +
+                        "label CONTAINS 'discard' OR label CONTAINS 'Discard' OR " +
+                        "label CONTAINS 'save changes' OR label CONTAINS 'Save changes' OR " +
+                        "label CONTAINS 'changes' OR label CONTAINS 'Changes')"));
+                    System.out.println("   Warning text: " + warningText.getAttribute("label"));
+                    return true;
+                } catch (Exception ignored) {}
 
-            // Strategy 3: Check for Discard button (strong indicator of unsaved warning)
-            try {
-                WebElement discardBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND " +
-                    "(label == 'Discard' OR label == 'Discard Changes' OR " +
-                    "label CONTAINS 'Don\\'t Save')"));
-                System.out.println("   Discard button found — unsaved changes warning");
-                return true;
-            } catch (Exception ignored) {}
+                // Strategy 3: Check for Discard button (strong indicator of unsaved warning)
+                try {
+                    WebElement discardBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND " +
+                        "(label == 'Discard' OR label == 'Discard Changes' OR " +
+                        "label CONTAINS 'Don\\'t Save')"));
+                    System.out.println("   Discard button found — unsaved changes warning");
+                    return true;
+                } catch (Exception ignored) {}
 
-            // Strategy 4: Action sheet
-            try {
-                WebElement sheet = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeSheet' OR type == 'XCUIElementTypeActionSheet'"));
-                return sheet.isDisplayed();
-            } catch (Exception ignored) {}
+                // Strategy 4: Action sheet
+                try {
+                    WebElement sheet = driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeSheet' OR type == 'XCUIElementTypeActionSheet'"));
+                    return sheet.isDisplayed();
+                } catch (Exception ignored) {}
 
-            return false;
+                return false;
+            } finally {
+                driver.manage().timeouts().implicitlyWait(
+                    java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
+            }
         } catch (Exception e) {
             return false;
         }
@@ -5402,14 +5416,20 @@ public class IssuePage extends BasePage {
         // Strategy 1: Tap the Issue Class picker button
         // The button label format is "Issue Class, <current value>" on iOS SwiftUI pickers
         try {
-            WebElement picker = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND " +
-                "(name CONTAINS[c] 'issue class' OR label CONTAINS[c] 'issue class')"));
-            System.out.println("   Found Issue Class picker: '" + picker.getAttribute("label") + "'");
-            picker.click();
-            sleep(500);
-            System.out.println("   Opened Issue Class picker (button)");
-            return true;
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(1500));
+            try {
+                WebElement picker = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND " +
+                    "(name CONTAINS[c] 'issue class' OR label CONTAINS[c] 'issue class')"));
+                System.out.println("   Found Issue Class picker: '" + picker.getAttribute("label") + "'");
+                picker.click();
+                sleep(500);
+                System.out.println("   Opened Issue Class picker (button)");
+                return true;
+            } finally {
+                driver.manage().timeouts().implicitlyWait(
+                    java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
+            }
         } catch (Exception ignored) {}
 
         // Strategy 2: Find button near the "Issue Class" label (positional)
@@ -5447,6 +5467,7 @@ public class IssuePage extends BasePage {
         // Strategy 3: Tap by coordinate — if label found, tap the same row on the right
         // half of the screen where the picker value usually sits
         try {
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(1500));
             WebElement label = driver.findElement(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND label CONTAINS[c] 'issue class'"));
             int labelY = label.getLocation().getY();
@@ -5469,6 +5490,9 @@ public class IssuePage extends BasePage {
             return true;
         } catch (Exception e3) {
             System.out.println("   Strategy 3 (coordinate) failed: " + e3.getMessage());
+        } finally {
+            driver.manage().timeouts().implicitlyWait(
+                java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
         }
 
         return false;
@@ -5505,12 +5529,10 @@ public class IssuePage extends BasePage {
             }
 
             // Select the new class — broad type filter for popover menu items
-            // Retry up to 3 times: picker menu items may not be loaded yet if a previous
-            // dropdown (e.g. subcategory) was just dismissed and animation is still in progress
             boolean selected = false;
             String typeFilter = "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' OR " +
                 "type == 'XCUIElementTypeMenuItem' OR type == 'XCUIElementTypeOther')";
-            for (int attempt = 1; attempt <= 3 && !selected; attempt++) {
+            for (int attempt = 1; attempt <= 2 && !selected; attempt++) {
                 // Try exact match first
                 try {
                     List<WebElement> options = driver.findElements(AppiumBy.iOSNsPredicateString(
@@ -5537,20 +5559,21 @@ public class IssuePage extends BasePage {
                     }
                 } catch (Exception e2) {}
 
-                if (!selected && attempt < 3) {
-                    System.out.println("   Retry " + attempt + "/3: menu items not loaded yet, waiting...");
-                    sleep(800);
+                if (!selected && attempt < 2) {
+                    System.out.println("   Retry " + attempt + "/2: menu items not loaded yet, waiting...");
+                    sleep(400);
                 }
             }
             if (!selected) {
-                System.out.println("⚠️ Could not select class '" + newClass + "' after 3 attempts");
+                System.out.println("⚠️ Could not select class '" + newClass + "' after 2 attempts");
             }
 
             if (!selected) return false;
 
             // Verify the class change actually took effect by checking the picker button value
-            sleep(300);
+            sleep(200);
             try {
+                driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(1500));
                 WebElement picker = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeButton' AND " +
                     "(name CONTAINS 'Issue Class' OR label CONTAINS 'Issue Class')"));
@@ -5566,6 +5589,9 @@ public class IssuePage extends BasePage {
             } catch (Exception verifyEx) {
                 // Verification step failed but selection was performed
                 return true;
+            } finally {
+                driver.manage().timeouts().implicitlyWait(
+                    java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
             }
         } catch (Exception e) {
             System.out.println("⚠️ Error changing Issue Class: " + e.getMessage());
@@ -10834,5 +10860,28 @@ public class IssuePage extends BasePage {
      */
     public void resetDetailsScrollCount() {
         detailsScrollDownDepth = 0;
+    }
+
+    /**
+     * Fast dismiss: close Issue Details and discard any unsaved changes.
+     * Skips the slow "revert to NEC" step — the app restarts between tests anyway.
+     */
+    public void quickDismissIssueDetails() {
+        try {
+            dismissKeyboard();
+            sleep(100);
+        } catch (Exception ignored) {}
+        try {
+            dismissDropdownMenu();
+            sleep(100);
+        } catch (Exception ignored) {}
+
+        tapCloseIssueDetails();
+        sleep(300);
+
+        if (isUnsavedChangesWarningDisplayed()) {
+            tapDiscardChanges();
+            sleep(200);
+        }
     }
 }

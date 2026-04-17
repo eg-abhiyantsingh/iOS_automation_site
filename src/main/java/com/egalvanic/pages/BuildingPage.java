@@ -590,26 +590,32 @@ public class BuildingPage extends BasePage {
      */
     public boolean isLocationsScreenDisplayed() {
         try {
-            // Quick check: navigation bar
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(1500));
             try {
-                WebElement navBar = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeNavigationBar' AND (name == 'Locations' OR label == 'Locations')"));
-                if (navBar.isDisplayed()) {
-                    System.out.println("✓ Locations screen detected (navigation bar)");
-                    return true;
-                }
-            } catch (Exception ignored) {}
-            
-            // Quick check: building entries
-            try {
-                List<WebElement> buildings = driver.findElements(AppiumBy.iOSNsPredicateString("label CONTAINS 'floor'"));
-                if (!buildings.isEmpty()) {
-                    System.out.println("✓ Locations screen detected (buildings found)");
-                    return true;
-                }
-            } catch (Exception ignored) {}
-            
-            return false;
+                // Quick check: navigation bar
+                try {
+                    WebElement navBar = driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeNavigationBar' AND (name == 'Locations' OR label == 'Locations')"));
+                    if (navBar.isDisplayed()) {
+                        System.out.println("✓ Locations screen detected (navigation bar)");
+                        return true;
+                    }
+                } catch (Exception ignored) {}
+
+                // Quick check: building entries
+                try {
+                    List<WebElement> buildings = driver.findElements(AppiumBy.iOSNsPredicateString("label CONTAINS 'floor'"));
+                    if (!buildings.isEmpty()) {
+                        System.out.println("✓ Locations screen detected (buildings found)");
+                        return true;
+                    }
+                } catch (Exception ignored) {}
+
+                return false;
+            } finally {
+                driver.manage().timeouts().implicitlyWait(
+                    java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
+            }
         } catch (Exception e) {
             return false;
         }
@@ -620,11 +626,16 @@ public class BuildingPage extends BasePage {
      */
     public boolean areBuildingEntriesDisplayed() {
         try {
-            // Just check if at least one building exists (don't fetch all 300+)
-            WebElement firstBuilding = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label CONTAINS 'floor'"));
-            System.out.println("✅ Building entries displayed");
-            return true;
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(1500));
+            try {
+                WebElement firstBuilding = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND label CONTAINS 'floor'"));
+                System.out.println("✅ Building entries displayed");
+                return true;
+            } finally {
+                driver.manage().timeouts().implicitlyWait(
+                    java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
+            }
         } catch (Exception e) {
             return false;
         }
@@ -965,42 +976,46 @@ public class BuildingPage extends BasePage {
     public boolean isContextMenuDisplayed() {
         try {
             System.out.println("🔍 Checking for context menu...");
-
-            // Strategy 1: Look for context menu container (Sheet/Menu/Alert) — most reliable
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(1500));
             try {
-                List<WebElement> menus = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeMenu' OR type == 'XCUIElementTypeSheet' OR type == 'XCUIElementTypeAlert'"));
-                if (!menus.isEmpty()) {
-                    System.out.println("   Found menu/sheet/alert container");
-                    return true;
-                }
-            } catch (Exception ignored) {}
+                // Strategy 1: Look for context menu container (Sheet/Menu/Alert) — most reliable
+                try {
+                    List<WebElement> menus = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeMenu' OR type == 'XCUIElementTypeSheet' OR type == 'XCUIElementTypeAlert'"));
+                    if (!menus.isEmpty()) {
+                        System.out.println("   Found menu/sheet/alert container");
+                        return true;
+                    }
+                } catch (Exception ignored) {}
 
-            // Strategy 2: Context menus have BOTH Edit AND Delete — check both to avoid
-            // false positives from normal UI elements that happen to contain "Edit"
-            try {
-                boolean hasEdit = !driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeMenuItem') AND label CONTAINS 'Edit'")).isEmpty();
-                boolean hasDelete = !driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeMenuItem') AND label CONTAINS 'Delete'")).isEmpty();
-                if (hasEdit && hasDelete) {
-                    System.out.println("   Found both Edit and Delete buttons (context menu)");
-                    return true;
-                }
-            } catch (Exception ignored) {}
+                // Strategy 2: Context menus have BOTH Edit AND Delete
+                try {
+                    boolean hasEdit = !driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeMenuItem') AND label CONTAINS 'Edit'")).isEmpty();
+                    boolean hasDelete = !driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeMenuItem') AND label CONTAINS 'Delete'")).isEmpty();
+                    if (hasEdit && hasDelete) {
+                        System.out.println("   Found both Edit and Delete buttons (context menu)");
+                        return true;
+                    }
+                } catch (Exception ignored) {}
 
-            // Strategy 3: Look for trash/pencil icons (common context menu icons)
-            try {
-                WebElement icon = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "name CONTAINS 'trash' OR name CONTAINS 'pencil' OR name CONTAINS 'square.and.pencil'"));
-                if (icon.isDisplayed()) {
-                    System.out.println("   Found context menu icon");
-                    return true;
-                }
-            } catch (Exception ignored) {}
+                // Strategy 3: Look for trash/pencil icons (common context menu icons)
+                try {
+                    WebElement icon = driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "name CONTAINS 'trash' OR name CONTAINS 'pencil' OR name CONTAINS 'square.and.pencil'"));
+                    if (icon.isDisplayed()) {
+                        System.out.println("   Found context menu icon");
+                        return true;
+                    }
+                } catch (Exception ignored) {}
 
-            System.out.println("   No context menu detected");
-            return false;
+                System.out.println("   No context menu detected");
+                return false;
+            } finally {
+                driver.manage().timeouts().implicitlyWait(
+                    java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
+            }
         } catch (Exception e) {
             System.out.println("⚠️ Error checking context menu: " + e.getMessage());
             return false;

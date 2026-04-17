@@ -2507,8 +2507,7 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStepWithScreenshot("TC_ISS_064: NEC subcategory selected");
 
-        issuePage.tapCloseIssueDetails();
-        shortWait();
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -3519,18 +3518,7 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStepWithScreenshot("TC_ISS_082: OSHA Violation subcategories");
 
-        logStep("Step 7: Revert Issue Class back to NEC Violation");
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        // Handle potential unsaved changes warning
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -5070,16 +5058,7 @@ public final class Issue_Phase1_Test extends BaseTest {
         issuePage.dismissDropdownMenu();
         shortWait();
 
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -5144,16 +5123,7 @@ public final class Issue_Phase1_Test extends BaseTest {
         issuePage.dismissDropdownMenu();
         shortWait();
 
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     // ================================================================
@@ -5232,13 +5202,7 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStepWithScreenshot("TC_ISS_109: Completion percentage after filling required fields");
 
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     // ================================================================
@@ -5909,13 +5873,7 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStepWithScreenshot("TC_ISS_118: Subcategory cleared via X button");
 
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**

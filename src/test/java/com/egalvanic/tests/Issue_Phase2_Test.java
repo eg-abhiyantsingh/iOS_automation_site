@@ -838,19 +838,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         issuePage.dismissDropdownMenu();
         shortWait();
 
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -992,17 +980,7 @@ public final class Issue_Phase2_Test extends BaseTest {
 
         logStepWithScreenshot("TC_ISS_132: OSHA subcategory selected with checkmark");
 
-        // Revert to NEC Violation
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -1194,19 +1172,7 @@ public final class Issue_Phase2_Test extends BaseTest {
 
         logStepWithScreenshot("TC_ISS_134: OSHA vs NEC subcategory comparison");
 
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -1296,19 +1262,7 @@ public final class Issue_Phase2_Test extends BaseTest {
 
         logStepWithScreenshot("TC_ISS_135: OSHA vs NFPA subcategory comparison");
 
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -1363,19 +1317,7 @@ public final class Issue_Phase2_Test extends BaseTest {
         issuePage.dismissDropdownMenu();
         shortWait();
 
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     // ================================================================
@@ -2160,19 +2102,7 @@ public final class Issue_Phase2_Test extends BaseTest {
 
         logStepWithScreenshot("TC_ISS_146: Severity field is required");
 
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -2418,19 +2348,7 @@ public final class Issue_Phase2_Test extends BaseTest {
 
         logStepWithScreenshot("TC_ISS_149: Intermediate severity selected with clear option");
 
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     // ================================================================
@@ -2486,19 +2404,7 @@ public final class Issue_Phase2_Test extends BaseTest {
 
         logStepWithScreenshot("TC_ISS_150: Serious severity selected");
 
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -2756,19 +2662,7 @@ public final class Issue_Phase2_Test extends BaseTest {
 
         logStepWithScreenshot("TC_ISS_154: Similar severity criteria selected");
 
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -2830,19 +2724,7 @@ public final class Issue_Phase2_Test extends BaseTest {
 
         logStepWithScreenshot("TC_ISS_155: Ambient severity criteria with clear option");
 
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -3582,19 +3464,7 @@ public final class Issue_Phase2_Test extends BaseTest {
 
         logStepWithScreenshot("TC_ISS_165: Current Draw values entered");
 
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -3655,19 +3525,7 @@ public final class Issue_Phase2_Test extends BaseTest {
 
         logStepWithScreenshot("TC_ISS_166: Current Draw optional verification");
 
-        // Revert to NEC Violation (scroll up first since we may have scrolled down)
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -3745,19 +3603,7 @@ public final class Issue_Phase2_Test extends BaseTest {
 
         logStepWithScreenshot("TC_ISS_167: Voltage Drop table structure");
 
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -3829,19 +3675,7 @@ public final class Issue_Phase2_Test extends BaseTest {
 
         logStepWithScreenshot("TC_ISS_168: Voltage Drop values entered");
 
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -3925,19 +3759,7 @@ public final class Issue_Phase2_Test extends BaseTest {
 
         logStepWithScreenshot("TC_ISS_169: Voltage Drop optional verification");
 
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -4083,17 +3905,7 @@ public final class Issue_Phase2_Test extends BaseTest {
 
         logStepWithScreenshot("TC_ISS_171: Required fields 3/3 complete");
 
-        // Revert to NEC Violation
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -4355,17 +4167,7 @@ public final class Issue_Phase2_Test extends BaseTest {
 
         logStepWithScreenshot("TC_ISS_174: Severity cleared");
 
-        // Revert to NEC Violation
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**
@@ -4427,19 +4229,7 @@ public final class Issue_Phase2_Test extends BaseTest {
 
         logStepWithScreenshot("TC_ISS_175: Severity Criteria cleared");
 
-        // Revert to NEC Violation
-        issuePage.scrollUpOnDetailsScreen();
-        shortWait();
-        issuePage.changeIssueClassOnDetails("NEC Violation");
-        shortWait();
-
-        issuePage.tapCloseIssueDetails();
-        shortWait();
-
-        if (issuePage.isUnsavedChangesWarningDisplayed()) {
-            issuePage.tapDiscardChanges();
-            shortWait();
-        }
+        issuePage.quickDismissIssueDetails();
     }
 
     /**

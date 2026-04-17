@@ -208,40 +208,46 @@ public class ConnectionsPage {
      */
     public boolean isConnectionsScreenDisplayed() {
         try {
-            // Strategy 1: Check navigation bar title
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(1500));
             try {
-                WebElement navBar = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeNavigationBar' AND (name == 'Connections' OR label == 'Connections')"));
-                if (navBar.isDisplayed()) {
-                    System.out.println("✓ Connections screen detected (nav bar)");
-                    return true;
-                }
-            } catch (Exception e1) {}
-            
-            // Strategy 2: Check for StaticText 'Connections' as title
-            try {
-                List<WebElement> titles = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND label == 'Connections'"));
-                for (WebElement title : titles) {
-                    int y = title.getLocation().getY();
-                    if (y < 150) {
-                        System.out.println("✓ Connections screen detected (title text)");
+                // Strategy 1: Check navigation bar title
+                try {
+                    WebElement navBar = driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeNavigationBar' AND (name == 'Connections' OR label == 'Connections')"));
+                    if (navBar.isDisplayed()) {
+                        System.out.println("✓ Connections screen detected (nav bar)");
                         return true;
                     }
-                }
-            } catch (Exception e2) {}
-            
-            // Strategy 3: Check for connection list entries (arrows)
-            try {
-                List<WebElement> arrows = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "label CONTAINS '→'"));
-                if (!arrows.isEmpty()) {
-                    System.out.println("✓ Connections screen detected (connection entries with →)");
-                    return true;
-                }
-            } catch (Exception e3) {}
-            
-            return false;
+                } catch (Exception e1) {}
+
+                // Strategy 2: Check for StaticText 'Connections' as title
+                try {
+                    List<WebElement> titles = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND label == 'Connections'"));
+                    for (WebElement title : titles) {
+                        int y = title.getLocation().getY();
+                        if (y < 150) {
+                            System.out.println("✓ Connections screen detected (title text)");
+                            return true;
+                        }
+                    }
+                } catch (Exception e2) {}
+
+                // Strategy 3: Check for connection list entries (arrows)
+                try {
+                    List<WebElement> arrows = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "label CONTAINS '→'"));
+                    if (!arrows.isEmpty()) {
+                        System.out.println("✓ Connections screen detected (connection entries with →)");
+                        return true;
+                    }
+                } catch (Exception e3) {}
+
+                return false;
+            } finally {
+                driver.manage().timeouts().implicitlyWait(
+                    java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
+            }
         } catch (Exception e) {
             return false;
         }
@@ -4462,50 +4468,56 @@ public class ConnectionsPage {
      */
     public boolean isConnectionDetailsScreenDisplayed() {
         try {
-            // Check for navigation bar with connection-related title
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(1500));
             try {
-                WebElement navBar = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeNavigationBar'"));
-                String name = navBar.getAttribute("name");
-                if (name != null && (name.contains("Connection") || name.contains("Details") || name.contains("→"))) {
-                    System.out.println("✓ Connection Details screen detected (nav bar)");
-                    return true;
-                }
-            } catch (Exception e1) {}
-            
-            // Check for Source Node and Target Node labels on screen
-            try {
-                boolean hasSource = false;
-                boolean hasTarget = false;
-                
-                List<WebElement> labels = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText'"));
-                
-                for (WebElement label : labels) {
-                    String text = label.getAttribute("label");
-                    if (text != null) {
-                        if (text.contains("Source")) hasSource = true;
-                        if (text.contains("Target")) hasTarget = true;
+                // Check for navigation bar with connection-related title
+                try {
+                    WebElement navBar = driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeNavigationBar'"));
+                    String name = navBar.getAttribute("name");
+                    if (name != null && (name.contains("Connection") || name.contains("Details") || name.contains("→"))) {
+                        System.out.println("✓ Connection Details screen detected (nav bar)");
+                        return true;
                     }
-                }
-                
-                if (hasSource && hasTarget) {
-                    System.out.println("✓ Connection Details screen detected (Source/Target labels)");
-                    return true;
-                }
-            } catch (Exception e2) {}
-            
-            // Check for Back button to Connections
-            try {
-                WebElement backBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label == 'Connections' OR label == 'Back') AND type == 'XCUIElementTypeButton'"));
-                if (backBtn.isDisplayed()) {
-                    System.out.println("✓ Connection Details screen detected (Back to Connections)");
-                    return true;
-                }
-            } catch (Exception e3) {}
-            
-            return false;
+                } catch (Exception e1) {}
+
+                // Check for Source Node and Target Node labels on screen
+                try {
+                    boolean hasSource = false;
+                    boolean hasTarget = false;
+
+                    List<WebElement> labels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText'"));
+
+                    for (WebElement label : labels) {
+                        String text = label.getAttribute("label");
+                        if (text != null) {
+                            if (text.contains("Source")) hasSource = true;
+                            if (text.contains("Target")) hasTarget = true;
+                        }
+                    }
+
+                    if (hasSource && hasTarget) {
+                        System.out.println("✓ Connection Details screen detected (Source/Target labels)");
+                        return true;
+                    }
+                } catch (Exception e2) {}
+
+                // Check for Back button to Connections
+                try {
+                    WebElement backBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "(label == 'Connections' OR label == 'Back') AND type == 'XCUIElementTypeButton'"));
+                    if (backBtn.isDisplayed()) {
+                        System.out.println("✓ Connection Details screen detected (Back to Connections)");
+                        return true;
+                    }
+                } catch (Exception e3) {}
+
+                return false;
+            } finally {
+                driver.manage().timeouts().implicitlyWait(
+                    java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
+            }
         } catch (Exception e) {
             return false;
         }
