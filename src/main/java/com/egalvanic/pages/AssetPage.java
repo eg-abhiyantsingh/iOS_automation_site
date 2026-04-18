@@ -6893,7 +6893,7 @@ public class AssetPage extends BasePage {
         if (!onEditScreen) {
             try {
                 List<WebElement> classButtons = driver.findElements(
-                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND (name == 'MCC' OR name == 'ATS' OR name == 'UPS' OR name == 'PDU' OR name == 'Generator' OR name == 'Busway' OR name CONTAINS 'Select asset' OR name CONTAINS 'Disconnect')")
+                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND (name == 'MCC' OR name == 'ATS' OR name == 'UPS' OR name == 'PDU' OR name == 'Generator' OR name == 'Busway' OR name == 'Fuse' OR name == 'Motor' OR name == 'Loadcenter' OR name == 'Panelboard' OR name == 'Relay' OR name == 'Transformer' OR name == 'VFD' OR name == 'Utility' OR name CONTAINS 'Select asset' OR name CONTAINS 'Disconnect' OR name CONTAINS 'Circuit Breaker' OR name CONTAINS 'Junction Box' OR name CONTAINS 'Switchboard' OR name CONTAINS 'MCC Bucket')")
                 );
                 if (!classButtons.isEmpty()) {
                     onEditScreen = true;
@@ -6979,8 +6979,33 @@ public class AssetPage extends BasePage {
                     }
                 } catch (Exception e) {}
 
-                // Check for Asset Class dropdown with specific class names
-                String[] assetClasses = {"ATS", "UPS", "PDU", "Generator", "Busway", "Capacitor"};
+                // Check for "Asset Details" nav bar title (always present on edit screen)
+                try {
+                    WebElement navBar = driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeNavigationBar' AND (name CONTAINS 'Asset' OR label CONTAINS 'Asset')"));
+                    if (navBar.isDisplayed()) {
+                        System.out.println("   ✅ Edit screen detected (Asset Details nav bar)");
+                        return true;
+                    }
+                } catch (Exception e) {}
+
+                // Check for "Close" button + any text field (edit screen has editable fields)
+                try {
+                    WebElement closeBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND (label == 'Close' OR label == 'Done')"));
+                    if (closeBtn.isDisplayed()) {
+                        System.out.println("   ✅ Edit screen detected (Close/Done button)");
+                        return true;
+                    }
+                } catch (Exception e) {}
+
+                // Check for Asset Class dropdown with ALL class names
+                String[] assetClasses = {
+                    "ATS", "UPS", "PDU", "Generator", "Busway", "Capacitor",
+                    "Circuit Breaker", "Disconnect Switch", "Fuse", "Junction Box",
+                    "Loadcenter", "MCC", "MCC Bucket", "Motor", "Other", "Other (OCP)",
+                    "Panelboard", "Relay", "Switchboard", "Transformer", "VFD", "Utility"
+                };
                 for (String className : assetClasses) {
                     try {
                         WebElement classEl = driver.findElement(AppiumBy.accessibilityId(className));

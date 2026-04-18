@@ -183,6 +183,11 @@ public class BaseTest {
         // Skip waiting for welcome page if already logged in
         waitForAppReadyFast();
 
+        // Handle "Session Expired" screen — app auth token expires after ~2-3 hours
+        // of CI testing. Without this, ALL subsequent tests fail because the app is
+        // stuck on the re-login screen and no test can navigate to its target.
+        handleSessionExpiredIfNeeded();
+
         testStartTime = System.currentTimeMillis();
         System.out.println("✅ Test setup complete  [" + timestamp() + "]\n");
     }
@@ -233,6 +238,96 @@ public class BaseTest {
             });
         } catch (Exception e) {
             System.out.println("⚠️ Fast app check timeout, continuing...");
+        }
+    }
+
+    /**
+     * Detect and handle "Session Expired" screen.
+     * After ~2-3 hours of CI testing, the app's auth token expires.
+     * On the next app restart, the app shows "Session Expired — Please sign in again."
+     * This screen has email (pre-filled) + password (empty) + Sign In button.
+     *
+     * Without this handler, the Session Expired screen is misidentified as the Welcome page
+     * (both have XCUIElementTypeTextField), causing the company code to be typed into the
+     * email field, "Continue" to fail, and the recovery to abort — making ALL subsequent
+     * tests fail with "Should be on [screen]" assertions.
+     */
+    private void handleSessionExpiredIfNeeded() {
+        try {
+            io.appium.java_client.ios.IOSDriver d = DriverManager.getDriver();
+            if (d == null) return;
+
+            // Fast check: look for "Session Expired" text (unique to this screen)
+            d.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
+            try {
+                org.openqa.selenium.WebElement expiredText = d.findElement(
+                    io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND label CONTAINS 'Session Expired'"));
+                if (expiredText == null || !expiredText.isDisplayed()) return;
+            } catch (Exception e) {
+                // No "Session Expired" text — not on this screen, nothing to do
+                return;
+            } finally {
+                d.manage().timeouts().implicitlyWait(
+                    java.time.Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
+            }
+
+            System.out.println("🔒 SESSION EXPIRED detected — re-authenticating...");
+
+            // The email is pre-filled. Just enter password and tap Sign In.
+            try {
+                // Find and fill the password field
+                org.openqa.selenium.WebElement passwordField = d.findElement(
+                    io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeSecureTextField'"));
+                passwordField.click();
+                Thread.sleep(200);
+                passwordField.clear();
+                passwordField.sendKeys(AppConstants.VALID_PASSWORD);
+                Thread.sleep(200);
+
+                // Tap Sign In
+                org.openqa.selenium.WebElement signIn = d.findElement(
+                    io.appium.java_client.AppiumBy.accessibilityId("Sign In"));
+                signIn.click();
+                System.out.println("🔑 Password entered, Sign In tapped");
+                Thread.sleep(2000);
+
+                // Handle "Save Password?" popup if it appears
+                try {
+                    d.switchTo().alert().dismiss();
+                    System.out.println("🔑 Save Password popup dismissed");
+                } catch (Exception ignored) {}
+                try { Thread.sleep(300); } catch (InterruptedException ignored) {}
+                try {
+                    org.openqa.selenium.WebElement notNow = d.findElement(
+                        io.appium.java_client.AppiumBy.accessibilityId("Not Now"));
+                    notNow.click();
+                    System.out.println("🔑 'Not Now' clicked for password save");
+                } catch (Exception ignored) {}
+
+                Thread.sleep(1000);
+
+                // After re-login, we might be on Site Selection or Dashboard
+                // Check for Site Selection and select site if needed
+                try {
+                    java.util.List<org.openqa.selenium.WebElement> siteEntries = d.findElements(
+                        io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeCell'"));
+                    if (!siteEntries.isEmpty()) {
+                        siteEntries.get(0).click();
+                        Thread.sleep(1500);
+                        System.out.println("🔑 Site selected after re-authentication");
+                    }
+                } catch (Exception ignored) {}
+
+                System.out.println("✅ Session re-authenticated successfully");
+
+            } catch (Exception loginEx) {
+                System.out.println("⚠️ Session Expired re-login failed: " + loginEx.getMessage());
+            }
+        } catch (Exception e) {
+            // Silently ignore — driver might not be ready
         }
     }
 

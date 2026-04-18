@@ -73,7 +73,11 @@ public class WelcomePage extends BasePage {
      * Check if page is loaded
      */
     public boolean isPageLoaded() {
-        return isElementDisplayed(companyCodeField) || isElementDisplayed(companyCodeFieldWithPlaceholder);
+        // Must also check Continue button to distinguish from Session Expired screen,
+        // which also has a XCUIElementTypeTextField (email field) but no "Continue" button.
+        boolean hasTextField = isElementDisplayed(companyCodeField) || isElementDisplayed(companyCodeFieldWithPlaceholder);
+        if (!hasTextField) return false;
+        return isElementDisplayed(continueButton);
     }
 
     /**
