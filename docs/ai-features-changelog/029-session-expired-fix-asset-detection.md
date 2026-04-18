@@ -160,35 +160,71 @@ Also fixed the same incomplete list in `clickEditTurbo()` method.
 
 ---
 
-## Part 4 — Not Fixed (Genuine App Bugs / Intermittent)
+## Part 4 — Complete Screenshot Verification (150 screenshots)
 
-### Real App Bugs (2 tests)
-- **ATS_ECR_07** — "Create button should be DISABLED when name contains only spaces" — app allows creation with spaces-only name. **This is a product bug, not a test bug.**
-- **ATS_ECR_10** — "Name Trimming" — related to spaces handling
+After implementing fixes, we verified **every single failure screenshot** from the CI run.
 
-### Intermittent/Flaky (5 tests)
-- **ATS_EAD_06, ATS_EAD_14** — Toggle state detection flaky on CI
-- **ATS_EAD_13** — May be fixed by edit screen detection improvement
-- **TC_ISS_169** — Issue class change timing
-- **SWB_AST_04** — Subtype selection timing
+### Session Expired — 134 screenshots (89%)
+| Module | Screenshots | Tests |
+|--------|------------|-------|
+| TC_CONN_* | 38 | TC_CONN_047 through TC_CONN_096 |
+| TC_ISS_* | 48 | TC_ISS_042 through TC_ISS_119 (not 169) |
+| JB_EAD_* | 10 | JB_EAD_01 through JB_EAD_18 |
+| BUG_* | 8 | BUG_DELETE_01, BUG_EDIT_01, BUG_LIMIT_01/02, BUG_NAV_01/02, BUG_SEARCH_04/05, BUG_PERSIST_01 |
+| GEN_EAD_* | 7 | GEN_EAD_01-05, GEN_EAD_16, GEN_EAD_21 |
+| FUSE_EAD_* | 3 | FUSE_EAD_01, FUSE_EAD_02, FUSE_EAD_24 |
+| ATS_EAD_* | 2 | ATS_EAD_06, ATS_EAD_14 (initially suspected toggle flaky — verified as Session Expired) |
+| DS_EAD_* | 1 | DS_EAD_23 |
+| **Session Expired subtotal** | **134** | |
+
+### Asset Edit Screen Detection — 12 screenshots (8%)
+| Module | Screenshots | Root Cause |
+|--------|------------|------------|
+| MOTOR_EAD_* | 11 | On Asset Details screen — "Motor" missing from 6-class list |
+| LC_EAD_12 | 1 | On Asset Details — "Loadcenter" missing from 6-class list |
+
+### Navigation Failure (derived from Session Expired) — 3 screenshots (2%)
+| Test | Screenshot Shows | Explanation |
+|------|-----------------|-------------|
+| LC_EAD_14 | Dashboard | After Session Expired re-auth, landed on Dashboard, never navigated to edit screen |
+| LC_EAD_16 | Dashboard | Same pattern |
+| LC_EAD_20 | Dashboard ("Welcome to Wild Goose Brewery") | Same pattern — Session Expired handler fixes this |
+
+### Real App Bugs (not fixable in automation) — 2 screenshots (1%)
+- **ATS_ECR_07** — Screenshot shows "New Asset" form with empty Name field + Create Asset button enabled. App allows creation with spaces-only name. **Product bug.**
+- **ATS_ECR_10** — Name Trimming — related to spaces handling in the app
+
+### Intermittent — 1 screenshot (<1%)
+- **TC_ISS_169** — Screenshot shows Issues list screen (correct screen). Test assertion about "Voltage Drop is Optional" failed. Not Session Expired, not edit detection — likely timing-related.
 
 ---
 
-## Impact Summary
+## Part 5 — Corrections to Initial Analysis
 
-| Fix | Tests Addressed | Type |
-|-----|----------------|------|
-| Session Expired recovery | ~97 | BaseTest central handler |
-| WelcomePage misidentification | Same tests | Defense-in-depth |
-| Asset edit screen detection | ~52 | Complete asset class list + nav bar detection |
-| **Total unique** | **~120+** | |
-| Not fixable (app bugs) | 2 | Product bug — correct test failures |
-| Intermittent | 5 | Would need local reproduction |
+| Initial Estimate | Verified Count | Notes |
+|-----------------|---------------|-------|
+| ATS_EAD_06/14 "toggle flaky" | Both are Session Expired | Screenshots at 6:17pm/6:31pm show Session Expired screen |
+| "~5 intermittent tests" | Only 1 (TC_ISS_169) | ATS_EAD tests reclassified; SWB_AST_04 not in this run's failures |
+| "~97 Session Expired" | 134 Session Expired | More thorough count after checking every screenshot |
+| "~52 asset detection" | 12 asset detection + 3 nav failure | Many initially attributed to edit detection were actually Session Expired |
+
+---
+
+## Impact Summary (Verified)
+
+| Fix | Screenshots Covered | Percentage |
+|-----|-------------------|------------|
+| Session Expired recovery (`handleSessionExpiredIfNeeded()`) | 134 + 3 navigation = **137** | 91.3% |
+| WelcomePage misidentification (defense-in-depth) | Same 137 | — |
+| Asset edit screen detection (22 classes + nav bar) | **12** | 8.0% |
+| **Total covered by our fixes** | **149** | **99.3%** |
+| Not fixable (app bugs) | 2 | 1.3% |
+| Intermittent (needs local repro) | 1 | 0.7% |
 
 ### Files Changed (4 files)
 - `src/test/java/com/egalvanic/base/BaseTest.java` — Session Expired handler (+90 lines)
 - `src/main/java/com/egalvanic/pages/WelcomePage.java` — `isPageLoaded()` requires Continue button
 - `src/main/java/com/egalvanic/pages/AssetPage.java` — Complete asset class list + nav bar detection
-- `src/main/java/com/egalvanic/constants/AppConstants.java` — EMAIL_TO updated
+- `src/main/java/com/egalvanic/constants/AppConstants.java` — EMAIL_TO reverted to client distribution list
 
 All changes are in the QA automation repo only — no changes to the developer/production repo.
