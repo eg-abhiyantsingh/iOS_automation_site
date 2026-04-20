@@ -948,21 +948,22 @@ public class LocationTest extends BaseTest {
         boolean backToList = buildingPage.waitForEditBuildingScreenToDisappear();
         assertTrue(backToList, "Should return to building list after save");
 
-        // Verify updated building exists in list
-        boolean updatedBuildingVisible = buildingPage.isBuildingDisplayed(updatedName) ||
-                                         buildingPage.isBuildingDisplayed(originalName + "_Updated");
-        
-        if (!updatedBuildingVisible) {
-            // Search for partial match
-            org.openqa.selenium.WebElement buildingEntry = buildingPage.findBuildingByName(originalName);
-            if (buildingEntry != null) {
-                String actualLabel = buildingEntry.getAttribute("label");
-                logStep("Found building with label: " + actualLabel);
-                updatedBuildingVisible = actualLabel != null && actualLabel.contains("Updated");
+        // Use short implicit wait for verification — avoid 420s timeout on slow CI
+        // when searching for names that may not exist (the OR fallback searches waste time)
+        IOSDriver d = DriverManager.getDriver();
+        d.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(3));
+        try {
+            boolean updatedBuildingVisible = buildingPage.isBuildingDisplayed(updatedName);
+
+            if (!updatedBuildingVisible) {
+                // Fallback: maybe app appended "_Updated"
+                updatedBuildingVisible = buildingPage.isBuildingDisplayed(originalName + "_Updated");
             }
+
+            assertTrue(updatedBuildingVisible, "Updated building name should appear in the list");
+        } finally {
+            d.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
         }
-        
-        assertTrue(updatedBuildingVisible, "Updated building name should appear in the list");
 
         logStepWithScreenshot("TC_EB_002: Building Name update verification complete");
 

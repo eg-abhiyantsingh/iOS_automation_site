@@ -4698,17 +4698,19 @@ public final class Connections_Test extends BaseTest {
                 try {
                     if (attempt > 0) {
                         sleep(500);
-                        // Re-find alert on retry in case of stale reference
+                        // Re-find alert on retry — it may have been auto-dismissed by autoAcceptAlerts
                         try {
                             alertElement = driver.findElement(AppiumBy.iOSNsPredicateString(
                                 "type == 'XCUIElementTypeAlert'"));
                         } catch (Exception ignored) {
-                            alertElement = null;
+                            // Alert gone — autoAcceptAlerts likely already confirmed the delete
+                            logStep("Alert no longer present — autoAcceptAlerts may have handled it");
+                            deleted = true;
+                            break;
                         }
                     }
                     WebElement deleteBtn;
                     if (alertElement != null) {
-                        // Scoped search within the alert (more reliable)
                         deleteBtn = alertElement.findElement(AppiumBy.iOSNsPredicateString(
                             "label == 'Delete' AND type == 'XCUIElementTypeButton'"));
                     } else {
@@ -4716,11 +4718,20 @@ public final class Connections_Test extends BaseTest {
                             "label == 'Delete' AND type == 'XCUIElementTypeButton'"));
                     }
                     deleteBtn.click();
-                    sleep(1500); // Wait for deletion + list refresh on CI
+                    sleep(1500);
                     deleted = true;
                     logStep("\u2705 Tapped Delete — connection deletion confirmed via dialog");
                 } catch (Exception e) {
                     if (attempt == 2) {
+                        // After 3 retries, check if the alert disappeared (autoAcceptAlerts race)
+                        try {
+                            driver.findElement(AppiumBy.iOSNsPredicateString(
+                                "type == 'XCUIElementTypeAlert'"));
+                        } catch (Exception alertGone) {
+                            logStep("Alert dismissed (autoAcceptAlerts handled it) — proceeding to verify");
+                            deleted = true;
+                            break;
+                        }
                         logWarning("Could not tap Delete on dialog: " + e.getMessage());
                         throw new AssertionError("Failed to tap Delete button on dialog: " + e.getMessage());
                     }
