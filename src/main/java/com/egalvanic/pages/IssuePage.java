@@ -1422,7 +1422,8 @@ public class IssuePage extends BasePage {
         }
 
         // Attempt 2: Multiple scroll-down attempts (Asset is in ASSIGNMENT section at bottom of form)
-        for (int scrollAttempt = 1; scrollAttempt <= 3; scrollAttempt++) {
+        // NEC Violation / OSHA forms have extra subcategory fields, requiring 5+ scrolls
+        for (int scrollAttempt = 1; scrollAttempt <= 6; scrollAttempt++) {
             try {
                 scrollDownOnDetailsScreen();
                 sleep(300);
@@ -1432,11 +1433,27 @@ public class IssuePage extends BasePage {
                 System.out.println("✅ Opened Select Asset picker (after scroll " + scrollAttempt + ")");
                 return;
             } catch (Exception e) {
-                System.out.println("   Select Asset not found after scroll " + scrollAttempt + "/3");
+                System.out.println("   Select Asset not found after scroll " + scrollAttempt + "/6");
             }
         }
 
-        // Attempt 3: iOS native scroll to the element by predicate
+        // Attempt 3: Scroll to "Assignment" section label first, then find Select Asset nearby
+        try {
+            Map<String, Object> scrollParams = new HashMap<>();
+            scrollParams.put("direction", "down");
+            scrollParams.put("predicateString", "label CONTAINS 'Assignment' OR label CONTAINS 'Asset'");
+            driver.executeScript("mobile: scroll", scrollParams);
+            sleep(300);
+            WebElement selectAsset = driver.findElement(AppiumBy.iOSNsPredicateString(predicate));
+            selectAsset.click();
+            sleep(500);
+            System.out.println("✅ Opened Select Asset picker (after scroll to Assignment section)");
+            return;
+        } catch (Exception e) {
+            System.out.println("   mobile:scroll to Assignment failed: " + e.getMessage());
+        }
+
+        // Attempt 4: iOS native scroll directly to "Select Asset"
         try {
             Map<String, Object> scrollParams = new HashMap<>();
             scrollParams.put("direction", "down");
@@ -1452,20 +1469,22 @@ public class IssuePage extends BasePage {
             System.out.println("   mobile:scroll by predicate failed: " + e.getMessage());
         }
 
-        // Attempt 4: Try alternative labels — the button text may differ on some app versions
+        // Attempt 5: Try alternative labels — the button text may differ on some app versions
         String altPredicate =
-            "(label CONTAINS 'Asset' AND label CONTAINS 'Select') AND " +
+            "(label CONTAINS 'Asset' OR label CONTAINS 'asset') AND " +
             "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeCell' OR " +
             "type == 'XCUIElementTypeOther' OR type == 'XCUIElementTypeStaticText')";
         try {
-            WebElement selectAsset = driver.findElement(AppiumBy.iOSNsPredicateString(altPredicate));
-            // Only tap if it's in the form area (not the nav bar)
-            int elY = selectAsset.getLocation().getY();
-            if (elY > 120) {
-                selectAsset.click();
-                sleep(500);
-                System.out.println("✅ Opened Select Asset picker (alternative label match at Y=" + elY + ")");
-                return;
+            List<WebElement> candidates = driver.findElements(AppiumBy.iOSNsPredicateString(altPredicate));
+            for (WebElement candidate : candidates) {
+                int elY = candidate.getLocation().getY();
+                String lbl = candidate.getAttribute("label");
+                if (elY > 120 && lbl != null && (lbl.contains("Select") || lbl.contains("select") || lbl.contains("Choose"))) {
+                    candidate.click();
+                    sleep(500);
+                    System.out.println("✅ Opened Select Asset picker (alt label: '" + lbl + "' at Y=" + elY + ")");
+                    return;
+                }
             }
         } catch (Exception e) {
             // Fall through to final warning

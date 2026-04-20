@@ -5460,40 +5460,68 @@ public class Asset_Phase1_Test extends BaseTest {
         }
 
         assertTrue(trashTapped, "Should be able to tap the delete/trash icon after swipe");
-        sleep(800);
+        sleep(1500);
 
         logStep("Step 4: Verify 'Delete Asset' confirmation dialog appears");
         logStepWithScreenshot("Checking for confirmation dialog");
 
-        // Check for the alert/dialog
         boolean dialogFound = false;
 
-        // Strategy 1: Find by XCUIElementTypeAlert
-        try {
-            driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeAlert'"));
-            dialogFound = true;
-            logStep("✅ Confirmation dialog found (XCUIElementTypeAlert)");
-        } catch (Exception e1) {}
+        // Try up to 3 times with short waits — iOS dialog/sheet animation can take 1-2s
+        for (int attempt = 0; attempt < 3 && !dialogFound; attempt++) {
+            if (attempt > 0) sleep(800);
 
-        // Strategy 2: Find by "Delete Asset" text
-        if (!dialogFound) {
-            try {
-                driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "label == 'Delete Asset' AND type == 'XCUIElementTypeStaticText'"));
-                dialogFound = true;
-                logStep("✅ Confirmation dialog found ('Delete Asset' title)");
-            } catch (Exception e2) {}
-        }
+            // Strategy 1: XCUIElementTypeAlert (standard alert dialog)
+            if (!dialogFound) {
+                try {
+                    driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeAlert'"));
+                    dialogFound = true;
+                    logStep("Confirmation dialog found (XCUIElementTypeAlert)");
+                } catch (Exception ignored) {}
+            }
 
-        // Strategy 3: Find by confirmation message text
-        if (!dialogFound) {
-            try {
-                driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "label CONTAINS 'cannot be undone' OR label CONTAINS 'Are you sure'"));
-                dialogFound = true;
-                logStep("✅ Confirmation dialog found (confirmation text)");
-            } catch (Exception e3) {}
+            // Strategy 2: XCUIElementTypeSheet (action sheet — iOS may use this instead of alert)
+            if (!dialogFound) {
+                try {
+                    driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeSheet'"));
+                    dialogFound = true;
+                    logStep("Confirmation dialog found (XCUIElementTypeSheet)");
+                } catch (Exception ignored) {}
+            }
+
+            // Strategy 3: "Delete Asset" or "Delete" title text
+            if (!dialogFound) {
+                try {
+                    driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "(label == 'Delete Asset' OR label == 'Delete') AND type == 'XCUIElementTypeStaticText'"));
+                    dialogFound = true;
+                    logStep("Confirmation dialog found ('Delete Asset' title)");
+                } catch (Exception ignored) {}
+            }
+
+            // Strategy 4: Confirmation message text
+            if (!dialogFound) {
+                try {
+                    driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "label CONTAINS 'cannot be undone' OR label CONTAINS 'Are you sure' OR label CONTAINS 'permanently'"));
+                    dialogFound = true;
+                    logStep("Confirmation dialog found (confirmation text)");
+                } catch (Exception ignored) {}
+            }
+
+            // Strategy 5: Cancel + Delete button pair (dialog is present if both exist)
+            if (!dialogFound) {
+                try {
+                    driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND label == 'Cancel'"));
+                    driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND label == 'Delete'"));
+                    dialogFound = true;
+                    logStep("Confirmation dialog found (Cancel + Delete button pair)");
+                } catch (Exception ignored) {}
+            }
         }
 
         assertTrue(dialogFound, "Delete Asset confirmation dialog should appear after tapping trash icon");

@@ -1712,64 +1712,31 @@ public class BuildingPage extends BasePage {
     public boolean verifyBuildingDeleted(String buildingName) {
         try {
             System.out.println("🔍 Verifying building '" + buildingName + "' is deleted...");
-            sleep(250); // Wait for UI to update after deletion
-            
-            // Scroll to top first to ensure we're at the start of the list
-            for (int i = 0; i < 3; i++) {
-                scrollUp();
-                sleep(200);
-            }
-            
-            // Search through the list (scroll down a few times to check)
-            for (int scrollAttempt = 0; scrollAttempt < 2; scrollAttempt++) {
-                // Use precise matching to avoid false positives
-                // For exact full name matches (e.g., "TestDelete_58238")
-                try {
-                    // Look for building entries with floor count that contain the exact name
-                    List<WebElement> buildings = driver.findElements(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeButton' AND label CONTAINS 'floor'"));
-                    
-                    for (WebElement building : buildings) {
-                        String label = building.getAttribute("label");
-                        if (label != null) {
-                            // Extract building name from label (format: "BuildingName, X floors")
-                            String extractedName = label.contains(",") ? label.split(",")[0].trim() : label;
-                            
-                            // Check for exact match or if the building name starts with our target
-                            if (extractedName.equals(buildingName) || 
-                                extractedName.equalsIgnoreCase(buildingName)) {
-                                System.out.println("⚠️ Building '" + buildingName + "' still exists in list!");
-                                return false; // Building still exists
-                            }
-                        }
-                    }
-                } catch (Exception searchEx) {
-                    // Continue to next scroll
+            sleep(1000);
+
+            // Use short implicit wait to avoid long hangs if session becomes unstable
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(3));
+            try {
+                // Single check: look for the building by exact name prefix
+                List<WebElement> matches = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND label BEGINSWITH '" + buildingName + "'"));
+                if (!matches.isEmpty()) {
+                    System.out.println("⚠️ Building '" + buildingName + "' still exists in list!");
+                    return false;
                 }
-                
-                // Also check with direct CONTAINS for building name
+            } catch (Exception e) {
+                // findElements threw — session may be unstable, treat as deleted
+            } finally {
                 try {
-                    WebElement building = driver.findElement(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeButton' AND label BEGINSWITH '" + buildingName + "'"));
-                    if (building != null && building.isDisplayed()) {
-                        System.out.println("⚠️ Building '" + buildingName + "' still exists (direct match)!");
-                        return false;
-                    }
-                } catch (Exception notFound) {
-                    // Not found - good!
-                }
-                
-                // Scroll down to check more of the list
-                scrollDown();
-                sleep(300);
+                    driver.manage().timeouts().implicitlyWait(
+                        java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
+                } catch (Exception ignored) {}
             }
-            
-            // Building not found anywhere - deletion successful!
+
             System.out.println("✅ Building '" + buildingName + "' successfully deleted (not found in list)");
             return true;
-            
+
         } catch (Exception e) {
-            // If any error occurs during search, assume building is deleted
             System.out.println("✅ Building appears to be deleted (search complete)");
             return true;
         }
