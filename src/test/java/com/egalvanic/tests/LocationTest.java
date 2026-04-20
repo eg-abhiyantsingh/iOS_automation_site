@@ -5,6 +5,7 @@ import com.egalvanic.constants.AppConstants;
 import com.egalvanic.pages.BuildingPage;
 import com.egalvanic.utils.DriverManager;
 import com.egalvanic.utils.ExtentReportManager;
+import io.appium.java_client.ios.IOSDriver;
 import org.openqa.selenium.WebElement;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
