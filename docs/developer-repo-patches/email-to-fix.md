@@ -2,7 +2,16 @@
 
 **Problem**: Both developer repo workflows use `${{ secrets.EMAIL_TO }}` but the secret was never configured, so emails never send.
 
-**Solution**: Replace `secrets.EMAIL_TO` with a step that reads EMAIL_TO from `AppConstants.java` (your QA code). This way you only maintain email addresses in ONE place — `AppConstants.java` in the QA automation repo.
+**Confirmed failing runs**:
+- `release/qa` smoke-login run #24667540029 (2026-04-20) — `Error: At least one of 'to', 'cc' or 'bcc' must be specified`
+- Previous: release/prod full smoke (2026-04-19)
+
+**Fastest fix (no code change)**: Set the `EMAIL_TO` secret directly on the dev repo:
+1. Go to https://github.com/Egalvanic/eg-pz-mobile-iOS/settings/secrets/actions
+2. New repository secret → Name: `EMAIL_TO` → Value: `abhiyantsinghsuas18@gmail.com, abhiyant.singh@egalvanic.com`
+3. Save. Next run will pick it up — all branches, no YAML change needed.
+
+**Long-term fix (below)**: Replace `secrets.EMAIL_TO` with a step that reads EMAIL_TO from `AppConstants.java` (your QA code). This way you only maintain email addresses in ONE place — `AppConstants.java` in the QA automation repo.
 
 ---
 
