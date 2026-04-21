@@ -856,3 +856,74 @@ jobs:
         if: always()
         run: |
           xcrun simctl shutdown "${{ env.SIMULATOR_UDID }}" 2>/dev/null || true
+
+      # ============================================================
+      # STEP 11: Send Email Report
+      # Reads EMAIL_TO directly from AppConstants.java — no secrets needed
+      # ============================================================
+      - name: Extract Email Recipients
+        if: always()
+        id: email_config
+        run: |
+          APPCONST="qa-automation/src/main/java/com/egalvanic/constants/AppConstants.java"
+          if [ -f "$APPCONST" ]; then
+            EMAIL_TO=$(grep 'public static final String EMAIL_TO' "$APPCONST" | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
+            echo "EMAIL_TO=$EMAIL_TO" >> $GITHUB_OUTPUT
+            echo "Email will be sent to: $EMAIL_TO"
+          else
+            echo "EMAIL_TO=abhiyant.singh@egalvanic.com" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Prepare Email Summary
+        if: always()
+        id: email_summary
+        run: |
+          RESULTS_XML="qa-automation/target/surefire-reports/testng-results.xml"
+          if [ -n "$SMOKE_PASSED" ]; then
+            PASSED="$SMOKE_PASSED"
+            FAILED="$SMOKE_FAILED"
+            SKIPPED="$SMOKE_SKIPPED"
+          elif [ -f "$RESULTS_XML" ]; then
+            PASSED=$(sed -n 's/.*passed="\([^"]*\)".*/\1/p' "$RESULTS_XML" | head -1)
+            FAILED=$(sed -n 's/.*failed="\([^"]*\)".*/\1/p' "$RESULTS_XML" | head -1)
+            SKIPPED=$(sed -n 's/.*skipped="\([^"]*\)".*/\1/p' "$RESULTS_XML" | head -1)
+          else
+            PASSED="0"
+            FAILED="unknown"
+            SKIPPED="0"
+          fi
+          echo "PASSED=${PASSED:-0}" >> $GITHUB_OUTPUT
+          echo "FAILED=${FAILED:-0}" >> $GITHUB_OUTPUT
+          echo "SKIPPED=${SKIPPED:-0}" >> $GITHUB_OUTPUT
+
+      - name: Send Email Report
+        if: always()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          to: ${{ steps.email_config.outputs.EMAIL_TO }}
+          from: iOS Automation <${{ secrets.EMAIL_USERNAME }}>
+          subject: iOS Automation - ${{ github.event.inputs.test_suite }} (${{ github.ref_name }}) - ${{ steps.email_summary.outputs.PASSED }} Passed / ${{ steps.email_summary.outputs.FAILED }} Failed
+          body: |
+            iOS Automation Test Results
+            ============================
+
+            Repository: ${{ github.repository }}
+            Branch: ${{ github.ref_name }}
+            Test Suite: ${{ github.event.inputs.test_suite }}
+            Triggered by: ${{ github.actor }}
+
+            Test Summary:
+            - Passed: ${{ steps.email_summary.outputs.PASSED }}
+            - Failed: ${{ steps.email_summary.outputs.FAILED }}
+            - Skipped: ${{ steps.email_summary.outputs.SKIPPED }}
+
+            Workflow Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            The Client Report is attached to this email.
+          attachments: qa-automation/reports/client/*.html
+        continue-on-error: true
