@@ -1,0 +1,188 @@
+name: Send Email for Dev Repo Smoke Run
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Sends the smoke-test result email for a dev repo CI run, WITHOUT requiring
+# any changes to Egalvanic/eg-pz-mobile-iOS.
+#
+# How it works:
+#   1. You paste a dev repo run ID/URL when dispatching this workflow
+#   2. It reads run metadata + artifacts from dev repo via GitHub API
+#   3. Parses testng-results.xml for pass/fail counts
+#   4. Reads EMAIL_TO directly from AppConstants.java line 210
+#   5. Sends the email with the Client Report HTML attached
+#
+# Required secrets in THIS repo (Settings > Secrets and variables > Actions):
+#   - EMAIL_USERNAME        your gmail address
+#   - EMAIL_PASSWORD        gmail app password (16-char)
+#   - DEV_REPO_TOKEN        fine-grained PAT with read access to the dev repo
+#                            (Actions: Read, Contents: Read)
+# ═══════════════════════════════════════════════════════════════════════════
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_url_or_id:
+        description: 'Dev repo run URL or ID (e.g. 24673078422)'
+        required: true
+      dev_repo:
+        description: 'Dev repo (owner/name)'
+        required: false
+        default: 'Egalvanic/eg-pz-mobile-iOS'
+
+jobs:
+  send-email:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      INPUT_RUN: ${{ github.event.inputs.run_url_or_id }}
+      INPUT_DEV_REPO: ${{ github.event.inputs.dev_repo }}
+    steps:
+      - name: Checkout AppConstants.java for EMAIL_TO
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: src/main/java/com/egalvanic/constants/AppConstants.java
+
+      - name: Parse run ID from input
+        id: parse
+        run: |
+          RUN_ID=$(echo "$INPUT_RUN" | grep -oE '[0-9]{8,}' | tail -1)
+          if [ -z "$RUN_ID" ]; then
+            echo "ERROR: Could not extract run ID from input" >&2
+            exit 1
+          fi
+          # Validate dev_repo format: owner/repo with only safe characters
+          if ! echo "$INPUT_DEV_REPO" | grep -qE '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$'; then
+            echo "ERROR: dev_repo must be in owner/repo format" >&2
+            exit 1
+          fi
+          echo "RUN_ID=$RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "DEV_REPO=$INPUT_DEV_REPO" >> "$GITHUB_OUTPUT"
+          echo "Run ID: $RUN_ID  |  Dev Repo: $INPUT_DEV_REPO"
+
+      - name: Extract EMAIL_TO from AppConstants.java (line 210)
+        id: email_config
+        run: |
+          EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
+          echo "EMAIL_TO=$EMAIL_TO" >> "$GITHUB_OUTPUT"
+          echo "Recipients: $EMAIL_TO"
+
+      - name: Fetch run metadata from dev repo
+        id: run_info
+        env:
+          GH_TOKEN: ${{ secrets.DEV_REPO_TOKEN }}
+          RUN_ID: ${{ steps.parse.outputs.RUN_ID }}
+          DEV_REPO: ${{ steps.parse.outputs.DEV_REPO }}
+        run: |
+          gh api "repos/$DEV_REPO/actions/runs/$RUN_ID" > run.json
+
+          CONCLUSION=$(jq -r '.conclusion // "in_progress"' run.json)
+          BRANCH=$(jq -r '.head_branch' run.json)
+          ACTOR=$(jq -r '.actor.login' run.json)
+          URL=$(jq -r '.html_url' run.json)
+          NAME=$(jq -r '.name' run.json)
+
+          {
+            echo "CONCLUSION=$CONCLUSION"
+            echo "BRANCH=$BRANCH"
+            echo "ACTOR=$ACTOR"
+            echo "URL=$URL"
+            echo "NAME=$NAME"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "Branch: $BRANCH  |  Conclusion: $CONCLUSION  |  Actor: $ACTOR"
+
+      - name: Download artifacts from dev repo run
+        env:
+          GH_TOKEN: ${{ secrets.DEV_REPO_TOKEN }}
+          RUN_ID: ${{ steps.parse.outputs.RUN_ID }}
+          DEV_REPO: ${{ steps.parse.outputs.DEV_REPO }}
+        run: |
+          mkdir -p artifacts
+          cd artifacts
+          gh run download "$RUN_ID" --repo "$DEV_REPO" 2>&1 || echo "WARN: some artifacts unavailable"
+
+          echo "Downloaded files (first 30):"
+          find . -type f | head -30
+
+      - name: Parse test counts from TestNG XML
+        id: counts
+        run: |
+          cd artifacts
+          XML=$(find . -name "testng-results.xml" | head -1)
+
+          if [ -f "$XML" ]; then
+            PASSED=$(sed -n 's/.*passed="\([^"]*\)".*/\1/p' "$XML" | head -1)
+            FAILED=$(sed -n 's/.*failed="\([^"]*\)".*/\1/p' "$XML" | head -1)
+            SKIPPED=$(sed -n 's/.*skipped="\([^"]*\)".*/\1/p' "$XML" | head -1)
+            echo "From $XML → Passed=$PASSED, Failed=$FAILED, Skipped=$SKIPPED"
+          else
+            echo "No testng-results.xml found — values will be blank"
+            PASSED=""
+            FAILED=""
+            SKIPPED=""
+          fi
+
+          {
+            echo "PASSED=${PASSED:-0}"
+            echo "FAILED=${FAILED:-0}"
+            echo "SKIPPED=${SKIPPED:-0}"
+          } >> "$GITHUB_OUTPUT"
+
+          REPORT=$(find . -path "*/client/Client_Report*.html" 2>/dev/null | sort | tail -1)
+          if [ -z "$REPORT" ]; then
+            REPORT=$(find . -name "Client_Report*.html" 2>/dev/null | head -1)
+          fi
+          echo "REPORT=$REPORT" >> "$GITHUB_OUTPUT"
+          echo "Report file: $REPORT"
+
+      - name: Send Email Report
+        id: send_email
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          to: ${{ steps.email_config.outputs.EMAIL_TO }}
+          from: iOS Automation <${{ secrets.EMAIL_USERNAME }}>
+          subject: iOS Automation — ${{ steps.run_info.outputs.NAME }} (${{ steps.run_info.outputs.BRANCH }}) — ${{ steps.counts.outputs.PASSED }} Passed / ${{ steps.counts.outputs.FAILED }} Failed
+          body: |
+            iOS Automation Test Results
+            ============================
+
+            Repository:    ${{ steps.parse.outputs.DEV_REPO }}
+            Branch:        ${{ steps.run_info.outputs.BRANCH }}
+            Workflow:      ${{ steps.run_info.outputs.NAME }}
+            Triggered by:  ${{ steps.run_info.outputs.ACTOR }}
+            Conclusion:    ${{ steps.run_info.outputs.CONCLUSION }}
+
+            Test Summary:
+              - Passed:   ${{ steps.counts.outputs.PASSED }}
+              - Failed:   ${{ steps.counts.outputs.FAILED }}
+              - Skipped:  ${{ steps.counts.outputs.SKIPPED }}
+
+            Dev Repo Run: ${{ steps.run_info.outputs.URL }}
+
+            The Client Report is attached.
+          attachments: ${{ steps.counts.outputs.REPORT }}
+
+      - name: Diagnostic Summary
+        if: always()
+        env:
+          OUTCOME: ${{ steps.send_email.outcome }}
+          EMAIL_TO_USED: ${{ steps.email_config.outputs.EMAIL_TO }}
+          RUN_ID: ${{ steps.parse.outputs.RUN_ID }}
+          DEV_REPO: ${{ steps.parse.outputs.DEV_REPO }}
+          BRANCH: ${{ steps.run_info.outputs.BRANCH }}
+        run: |
+          echo "╔════════════════════════════════════════════════════════════╗"
+          echo "║    EMAIL FOR DEV REPO RUN                                  ║"
+          echo "╠════════════════════════════════════════════════════════════╣"
+          echo "║  Dev Repo:  $DEV_REPO"
+          echo "║  Run ID:    $RUN_ID"
+          echo "║  Branch:    $BRANCH"
+          echo "║  Outcome:   $OUTCOME"
+          echo "║  To:        $EMAIL_TO_USED"
+          echo "║  Source:    AppConstants.java line 210 (no secrets for EMAIL_TO)"
+          echo "╚════════════════════════════════════════════════════════════╝"
