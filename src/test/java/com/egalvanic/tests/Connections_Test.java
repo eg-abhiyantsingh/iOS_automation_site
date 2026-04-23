@@ -66,6 +66,31 @@ public final class Connections_Test extends BaseTest {
         buildingPage = new BuildingPage();
     }
 
+    /**
+     * Dismiss any picker, sheet, dropdown, or detail screen left open by a failed test.
+     * Prevents state from one test's failure from cascading into the next test.
+     * Safe to call always — every underlying method is internally try/caught.
+     */
+    @org.testng.annotations.AfterMethod(alwaysRun = true)
+    public void dismissAnyOpenDialogOrScreen() {
+        try {
+            if (connectionsPage == null) return;
+            if (connectionsPage.isConnectionsScreenDisplayed()) return;
+            // Close Connection details / edit / new connection screens
+            try { connectionsPage.goBackFromConnectionDetails(); } catch (Exception ignored) {}
+            // Close any lingering dropdowns
+            try { connectionsPage.dismissSourceNodeDropdown(); } catch (Exception ignored) {}
+            try { connectionsPage.dismissTargetNodeDropdown(); } catch (Exception ignored) {}
+            try { connectionsPage.dismissConnectionTypeDropdown(); } catch (Exception ignored) {}
+            // Close options menu
+            try { connectionsPage.dismissOptionsMenu(); } catch (Exception ignored) {}
+            // Generic cancel button (handles New Connection form, Edit form, confirmation dialogs)
+            try { connectionsPage.tapOnCancelButton(); } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+            // Never let cleanup throw — it would mask the real test failure
+        }
+    }
+
     // ============================================================
     // HELPER METHODS
     // ============================================================
@@ -140,7 +165,17 @@ public final class Connections_Test extends BaseTest {
             System.out.println("✓ Already on Connections screen");
             return true;
         }
-        
+
+        // Dismiss any modal/screen left open by a prior test before attempting navigation.
+        // Tab bar is hidden under Connection Details / Edit screens — without this,
+        // the Connections tab tap can't register.
+        try { connectionsPage.goBackFromConnectionDetails(); } catch (Exception ignored) {}
+        try { connectionsPage.tapOnCancelButton(); } catch (Exception ignored) {}
+        if (connectionsPage.isConnectionsScreenDisplayed()) {
+            System.out.println("✓ Recovered to Connections screen after dismissing open screen");
+            return true;
+        }
+
         System.out.println("⚡ TURBO: Fast navigation to Connections...");
         
         // Retry up to 3 times with progressive waits

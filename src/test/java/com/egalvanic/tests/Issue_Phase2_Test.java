@@ -32,6 +32,20 @@ public final class Issue_Phase2_Test extends BaseTest {
         issuePage = new IssuePage();
     }
 
+    /**
+     * Dismiss any picker, sheet, or modal left open by a failed test.
+     * Prevents state from one test's failure from cascading into the next test.
+     */
+    @AfterMethod(alwaysRun = true)
+    public void dismissAnyOpenPickerOrSheet() {
+        try {
+            if (issuePage == null) return;
+            if (issuePage.isIssuesScreenDisplayed()) return;
+            try { issuePage.tapCancelAssetPicker(); } catch (Exception ignored) {}
+            try { issuePage.tapCancelNewIssue(); } catch (Exception ignored) {}
+        } catch (Exception ignored) {}
+    }
+
     @AfterClass(alwaysRun = true)
     public void issuePhase2TestSuiteTeardown() {
         DriverManager.resetNoResetOverride();
@@ -51,6 +65,11 @@ public final class Issue_Phase2_Test extends BaseTest {
             System.out.println("✓ Already on Issues screen");
             return true;
         }
+
+        // Dismiss any modal/picker/sheet left open by a prior test before attempting navigation.
+        // Tab bar is hidden under modal sheets — without this, the Issues tab tap can't register.
+        try { issuePage.tapCancelAssetPicker(); } catch (Exception ignored) {}
+        try { issuePage.tapCancelNewIssue(); } catch (Exception ignored) {}
 
         // Try normal navigation FIRST (fast path — works when app is on Dashboard)
         System.out.println("⚡ Navigating to Issues screen...");
