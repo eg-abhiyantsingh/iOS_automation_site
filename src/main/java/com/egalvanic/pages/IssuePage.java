@@ -10955,4 +10955,296 @@ public class IssuePage extends BasePage {
             sleep(200);
         }
     }
+
+    // ================================================================
+    // ZP-323.4 — ISSUE CLASS DROPDOWN VERIFICATION (added 2026-04-29)
+    // ================================================================
+    // Live verification on web app at acme.qa.egalvanic.ai showed exactly
+    // 7 options: NEC Violation, NFPA 70B Violation, OSHA Violation,
+    // Repair Needed, Replacement Needed, Thermal Anomaly, Ultrasonic Anomaly.
+    // The ticket calls out "Safety & Notification not available" — verified
+    // these strings do NOT appear in the dropdown.
+
+    /**
+     * The full set of Issue Class options expected to be available in the
+     * Issue Class dropdown after recent changes (ZP-323.4).
+     * Uses LinkedHashSet to preserve a stable ordering for diagnostics.
+     */
+    public static final java.util.Set<String> EXPECTED_ISSUE_CLASSES =
+        new java.util.LinkedHashSet<>(java.util.Arrays.asList(
+            "NEC Violation",
+            "NFPA 70B Violation",
+            "OSHA Violation",
+            "Repair Needed",
+            "Replacement Needed",
+            "Thermal Anomaly",
+            "Ultrasonic Anomaly"
+        ));
+
+    /**
+     * Issue classes that should NOT appear in the dropdown after recent changes.
+     * Per ticket ZP-323.4: "Safety & Notification not available".
+     */
+    public static final java.util.Set<String> FORBIDDEN_ISSUE_CLASSES =
+        new java.util.LinkedHashSet<>(java.util.Arrays.asList(
+            "Safety",
+            "Notification",
+            "Notifications"
+        ));
+
+    /**
+     * Open the Issue Class dropdown on the New Issue form. Returns true if the
+     * dropdown opened successfully.
+     */
+    public boolean openIssueClassDropdown() {
+        try {
+            // The dropdown is typically a Button labeled "Issue Class, ..." or
+            // a row with the placeholder "None ⌃" / "Select issue class".
+            WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton') AND " +
+                "(label CONTAINS 'Issue Class' OR label CONTAINS 'issue class' OR " +
+                "name CONTAINS 'IssueClassPicker' OR " +
+                "(label CONTAINS '⌃' AND label CONTAINS[c] 'select'))"));
+            btn.click();
+            sleep(500);
+            return true;
+        } catch (Exception e) {
+            // Fallback: tap the StaticText "Issue Class" anchor and look for adjacent picker
+            try {
+                WebElement label = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND label == 'Issue Class'"));
+                int x = label.getLocation().getX();
+                int y = label.getLocation().getY() + 30;  // tap a row below the label
+                tapAtCoordinates(x + 40, y);
+                sleep(500);
+                return true;
+            } catch (Exception e2) {
+                return false;
+            }
+        }
+    }
+
+    /**
+     * Read the Issue Class option labels visible after the dropdown is opened.
+     * Returns a list of option labels in display order.
+     */
+    public java.util.List<String> readIssueClassOptions() {
+        java.util.List<String> labels = new java.util.ArrayList<>();
+        try {
+            // Options can be StaticText (sheet/menu), Button (custom), or
+            // PickerWheel values. Read all three patterns and merge.
+            java.util.List<WebElement> texts = driver.findElements(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText'"));
+            for (WebElement t : texts) {
+                try {
+                    String l = t.getAttribute("label");
+                    if (l == null || l.isEmpty()) continue;
+                    if (l.equalsIgnoreCase("Issue Class")) continue;  // skip the section header
+                    if (looksLikeIssueClass(l)) labels.add(l);
+                } catch (Exception ignored) {}
+            }
+            // De-duplicate while preserving order
+            java.util.List<String> out = new java.util.ArrayList<>();
+            for (String l : labels) {
+                if (!out.contains(l)) out.add(l);
+            }
+            return out;
+        } catch (Exception e) {
+            return labels;
+        }
+    }
+
+    /**
+     * Heuristic: a label "looks like an Issue Class" if it contains keywords from
+     * the expected set OR matches forbidden names (so we can detect those too).
+     * This avoids picking up unrelated UI strings.
+     */
+    private boolean looksLikeIssueClass(String label) {
+        if (label == null) return false;
+        String l = label.toLowerCase();
+        if (l.contains("violation") || l.contains("anomaly") ||
+            l.contains("repair") || l.contains("replacement") ||
+            l.contains("safety") || l.contains("notification") ||
+            l.contains("thermal") || l.contains("ultrasonic") ||
+            l.contains("nec") || l.contains("nfpa") || l.contains("osha")) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Returns true if the dropdown menu is currently open AND any option is visible.
+     */
+    public boolean isIssueClassDropdownOpen() {
+        try {
+            // Look for one of the expected option labels OR a sheet/picker
+            try {
+                driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND " +
+                    "(label == 'NEC Violation' OR label == 'NFPA 70B Violation' OR " +
+                    "label == 'Thermal Anomaly')"));
+                return true;
+            } catch (Exception ignored) {}
+            try {
+                driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeSheet' OR type == 'XCUIElementTypePickerWheel'"));
+                return true;
+            } catch (Exception ignored) {}
+            return false;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Close the Issue Class dropdown if open. Tries Cancel button, tap-outside, and Escape.
+     */
+    public void closeIssueClassDropdown() {
+        try {
+            try {
+                WebElement cancel = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND label == 'Cancel'"));
+                cancel.click();
+                sleep(300);
+                return;
+            } catch (Exception ignored) {}
+            try {
+                org.openqa.selenium.Dimension size = driver.manage().window().getSize();
+                tapAtCoordinates(size.getWidth() / 2, 100);  // tap upper area to dismiss sheet
+                sleep(300);
+            } catch (Exception ignored) {}
+        } catch (Exception ignored) {}
+    }
+
+    // ================================================================
+    // ZP-323.5 — IR PHOTOS ON ISSUE DETAILS (added 2026-04-29)
+    // ================================================================
+    // Recent fix made IR photos visible again on the Issue Details screen.
+    // These methods let us verify that:
+    //   - When an issue has IR photos, they render
+    //   - When it has none, no empty IR section appears
+    //   - Tapping a photo opens a viewer
+
+    /**
+     * Returns the count of IR photos visible on the currently-open Issue Details screen.
+     * Returns -1 if the IR Photos section header isn't present (issue has no IR photos
+     * AND no empty section is rendered — the expected good state).
+     */
+    public int getIRPhotoCountOnIssueDetails() {
+        try {
+            // First: is the section header visible?
+            try {
+                driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND " +
+                    "(label == 'IR Photos' OR label CONTAINS[c] 'IR Photo' OR " +
+                    "label == 'Thermal Photos' OR label CONTAINS[c] 'thermal photo')"));
+            } catch (Exception e) {
+                return -1;  // No IR section displayed
+            }
+            // Count photo cells/images near the IR Photos section
+            java.util.List<WebElement> images = driver.findElements(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeImage' AND " +
+                "(name CONTAINS[c] 'ir' OR name CONTAINS[c] 'thermal' OR " +
+                "name CONTAINS[c] 'photo')"));
+            return images.size();
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Tap the first IR photo thumbnail. Returns true if a tap was issued.
+     */
+    public boolean tapFirstIRPhoto() {
+        try {
+            // Look for the IR Photos section header to anchor
+            int sectionY = -1;
+            try {
+                WebElement header = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND " +
+                    "(label == 'IR Photos' OR label CONTAINS[c] 'IR Photo')"));
+                sectionY = header.getLocation().getY();
+            } catch (Exception ignored) {}
+
+            java.util.List<WebElement> images = driver.findElements(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeImage'"));
+            for (WebElement img : images) {
+                try {
+                    int y = img.getLocation().getY();
+                    if (sectionY > 0 && y < sectionY) continue;  // skip images above section
+                    String name = img.getAttribute("name");
+                    if (name != null && (name.toLowerCase().contains("ir") ||
+                        name.toLowerCase().contains("thermal") ||
+                        name.toLowerCase().contains("photo"))) {
+                        img.click();
+                        sleep(500);
+                        return true;
+                    }
+                } catch (Exception ignored) {}
+            }
+            return false;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Returns true if a full-screen photo viewer is currently displayed.
+     * Heuristic: a Done/Close button + a large image element.
+     */
+    public boolean isIRPhotoViewerOpen() {
+        try {
+            try {
+                driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND " +
+                    "(label == 'Done' OR label == 'Close' OR name == 'xmark')"));
+            } catch (Exception e) {
+                return false;
+            }
+            // Plus, check for a large image element (>50% of screen)
+            try {
+                org.openqa.selenium.Dimension size = driver.manage().window().getSize();
+                java.util.List<WebElement> images = driver.findElements(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeImage'"));
+                for (WebElement img : images) {
+                    try {
+                        int h = img.getSize().getHeight();
+                        if (h > size.getHeight() * 0.5) return true;
+                    } catch (Exception ignored) {}
+                }
+            } catch (Exception ignored) {}
+            return false;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Close the IR photo viewer. Tries Done/Close button, then back-swipe.
+     */
+    public boolean closeIRPhotoViewer() {
+        try {
+            try {
+                WebElement done = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND " +
+                    "(label == 'Done' OR label == 'Close' OR name == 'xmark')"));
+                done.click();
+                sleep(400);
+                return true;
+            } catch (Exception ignored) {}
+            // Back-swipe fallback
+            org.openqa.selenium.Dimension size = driver.manage().window().getSize();
+            java.util.Map<String, Object> swipe = new java.util.HashMap<>();
+            swipe.put("fromX", 5);
+            swipe.put("fromY", size.getHeight() / 2);
+            swipe.put("toX", size.getWidth() / 2);
+            swipe.put("toY", size.getHeight() / 2);
+            swipe.put("duration", 300);
+            driver.executeScript("mobile: swipe", swipe);
+            sleep(400);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 }

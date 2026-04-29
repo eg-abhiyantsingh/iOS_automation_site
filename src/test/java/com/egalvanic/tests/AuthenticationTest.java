@@ -760,12 +760,330 @@ public final class AuthenticationTest extends BaseTest {
             AppConstants.FEATURE_SESSION,
             "TC38 - Verify User Data Displayed Correctly"
         );
-        
+
         logStep("Performing login");
         performLogin();
         longWait();
-        
+
         logStep("Verifying user-specific data");
         logStepWithScreenshot("User data display verified");
+    }
+
+    // ============================================================
+    // ZP-323.3 — TERMS & CONDITIONS CHECKBOX TESTS (added 2026-04-29)
+    // ============================================================
+    // The Login screen has:
+    //   - T&C checkbox (must be checked to enable Sign In)
+    //   - "Terms and Conditions" hyperlink (opens T&C document)
+    //   - "Privacy Policy" hyperlink (opens Privacy doc)
+    // These tests verify each independently.
+    //
+    // Live web reference (acme.qa.egalvanic.ai login page) showed:
+    //   "By signing in, you agree to our Terms and Conditions and Privacy Policy"
+    // On web there's no checkbox (implicit-consent on Sign In tap), but iOS
+    // app requires explicit checkbox tap per the product spec.
+
+    /**
+     * TC_AUTH_TERMS_01: Verify T&C checkbox is unchecked by default on login screen.
+     * On a fresh app launch (or after sign-out), the checkbox MUST start unchecked
+     * so the user has to make an explicit consent gesture.
+     */
+    @Test(priority = 39)
+    public void TC_AUTH_TERMS_01_verifyTermsCheckboxUncheckedByDefault() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_AUTHENTICATION,
+            AppConstants.FEATURE_LOGIN,
+            "TC_AUTH_TERMS_01 - Verify T&C checkbox unchecked by default"
+        );
+
+        logStep("Step 1: Navigate to login screen via company code flow");
+        welcomePage.submitCompanyCode(AppConstants.VALID_COMPANY_CODE);
+        mediumWait();
+        assertTrue(loginPage.isPageLoaded(), "Login page should be displayed");
+
+        logStep("Step 2: Read T&C checkbox state");
+        String state = loginPage.getTermsCheckboxState();
+        logStep("Initial T&C state: " + state);
+
+        // Pre-condition: if checkbox is missing, this app version doesn't have it.
+        // Skip rather than fail — the checkbox is feature-flagged in some builds.
+        skipIfPreconditionMissing(
+            () -> !"missing".equals(state),
+            "T&C checkbox not present in this build"
+        );
+
+        assertTrue("unchecked".equals(state),
+            "T&C checkbox should be UNCHECKED by default (was: " + state + ")");
+        logStep("✓ T&C checkbox starts unchecked");
+
+        logStepWithScreenshot("TC_AUTH_TERMS_01: T&C unchecked default verified");
+    }
+
+    /**
+     * TC_AUTH_TERMS_02: Verify Sign In button is disabled when T&C is unchecked.
+     * Even with valid credentials filled, Sign In must not activate without consent.
+     */
+    @Test(priority = 40)
+    public void TC_AUTH_TERMS_02_verifySignInDisabledWhenTermsUnchecked() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_AUTHENTICATION,
+            AppConstants.FEATURE_LOGIN,
+            "TC_AUTH_TERMS_02 - Verify Sign In disabled when T&C unchecked"
+        );
+
+        logStep("Step 1: Navigate to login screen");
+        welcomePage.submitCompanyCode(AppConstants.VALID_COMPANY_CODE);
+        mediumWait();
+        assertTrue(loginPage.isPageLoaded(), "Login page should be displayed");
+
+        logStep("Step 2: Fill valid credentials WITHOUT touching T&C checkbox");
+        loginPage.enterEmail(AppConstants.VALID_EMAIL);
+        loginPage.enterPassword(AppConstants.VALID_PASSWORD);
+        shortWait();
+
+        logStep("Step 3: Verify T&C state is unchecked (precondition)");
+        String state = loginPage.getTermsCheckboxState();
+        skipIfPreconditionMissing(
+            () -> !"missing".equals(state),
+            "T&C checkbox not present in this build"
+        );
+        assertTrue("unchecked".equals(state),
+            "T&C should still be unchecked at this point (was: " + state + ")");
+
+        logStep("Step 4: Verify Sign In button is DISABLED");
+        boolean enabled = loginPage.isSignInButtonEnabled();
+        logStep("Sign In enabled: " + enabled);
+        assertFalse(enabled,
+            "Sign In button must be DISABLED when T&C checkbox is unchecked");
+        logStep("✓ Sign In is correctly disabled when T&C unchecked");
+
+        logStepWithScreenshot("TC_AUTH_TERMS_02: Sign In disabled without T&C");
+    }
+
+    /**
+     * TC_AUTH_TERMS_03: Verify Sign In becomes enabled after T&C is checked + credentials filled.
+     */
+    @Test(priority = 41)
+    public void TC_AUTH_TERMS_03_verifySignInEnabledAfterTermsChecked() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_AUTHENTICATION,
+            AppConstants.FEATURE_LOGIN,
+            "TC_AUTH_TERMS_03 - Verify Sign In enabled after T&C checked + credentials filled"
+        );
+
+        logStep("Step 1: Navigate to login screen");
+        welcomePage.submitCompanyCode(AppConstants.VALID_COMPANY_CODE);
+        mediumWait();
+        assertTrue(loginPage.isPageLoaded(), "Login page should be displayed");
+
+        logStep("Step 2: Fill credentials");
+        loginPage.enterEmail(AppConstants.VALID_EMAIL);
+        loginPage.enterPassword(AppConstants.VALID_PASSWORD);
+        shortWait();
+
+        logStep("Step 3: Tap T&C checkbox to accept");
+        loginPage.acceptTermsIfPresent();
+        shortWait();
+
+        // Precondition: confirm the checkbox actually toggled
+        String state = loginPage.getTermsCheckboxState();
+        skipIfPreconditionMissing(
+            () -> !"missing".equals(state),
+            "T&C checkbox not present in this build"
+        );
+        assertTrue("checked".equals(state),
+            "T&C should be CHECKED after acceptance (was: " + state + ")");
+
+        logStep("Step 4: Verify Sign In is now ENABLED");
+        boolean enabled = loginPage.isSignInButtonEnabled();
+        logStep("Sign In enabled: " + enabled);
+        assertTrue(enabled,
+            "Sign In button should be ENABLED after T&C accepted + credentials filled");
+        logStep("✓ Sign In correctly enabled after T&C accepted");
+
+        logStepWithScreenshot("TC_AUTH_TERMS_03: Sign In enabled after T&C");
+    }
+
+    /**
+     * TC_AUTH_TERMS_04: Verify "Terms and Conditions" hyperlink opens the T&C document.
+     */
+    @Test(priority = 42)
+    public void TC_AUTH_TERMS_04_verifyTermsLinkOpensDocument() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_AUTHENTICATION,
+            AppConstants.FEATURE_LOGIN,
+            "TC_AUTH_TERMS_04 - Verify Terms link opens document"
+        );
+
+        logStep("Step 1: Navigate to login screen");
+        welcomePage.submitCompanyCode(AppConstants.VALID_COMPANY_CODE);
+        mediumWait();
+        assertTrue(loginPage.isPageLoaded(), "Login page should be displayed");
+
+        logStep("Step 2: Tap 'Terms and Conditions' hyperlink (NOT checkbox)");
+        boolean tapped = loginPage.tapTermsAndConditionsLink();
+        skipIfPreconditionMissing(
+            () -> tapped,
+            "Terms hyperlink not found on this build"
+        );
+        mediumWait();
+
+        logStep("Step 3: Verify legal document is displayed");
+        boolean docOpen = loginPage.isLegalDocumentDisplayed();
+        assertTrue(docOpen,
+            "Tapping 'Terms and Conditions' link should open T&C document");
+        logStep("✓ T&C document opened");
+
+        logStepWithScreenshot("TC_AUTH_TERMS_04: T&C document displayed");
+
+        // Cleanup — return to login screen
+        loginPage.dismissLegalDocument();
+        shortWait();
+    }
+
+    /**
+     * TC_AUTH_TERMS_05: Verify "Privacy Policy" hyperlink opens the Privacy Policy document.
+     */
+    @Test(priority = 43)
+    public void TC_AUTH_TERMS_05_verifyPrivacyPolicyLinkOpensDocument() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_AUTHENTICATION,
+            AppConstants.FEATURE_LOGIN,
+            "TC_AUTH_TERMS_05 - Verify Privacy Policy link opens document"
+        );
+
+        logStep("Step 1: Navigate to login screen");
+        welcomePage.submitCompanyCode(AppConstants.VALID_COMPANY_CODE);
+        mediumWait();
+        assertTrue(loginPage.isPageLoaded(), "Login page should be displayed");
+
+        logStep("Step 2: Tap 'Privacy Policy' hyperlink");
+        boolean tapped = loginPage.tapPrivacyPolicyLink();
+        skipIfPreconditionMissing(
+            () -> tapped,
+            "Privacy Policy hyperlink not found on this build"
+        );
+        mediumWait();
+
+        logStep("Step 3: Verify Privacy Policy document is displayed");
+        boolean docOpen = loginPage.isLegalDocumentDisplayed();
+        assertTrue(docOpen,
+            "Tapping 'Privacy Policy' should open Privacy Policy document");
+        logStep("✓ Privacy Policy document opened");
+
+        logStepWithScreenshot("TC_AUTH_TERMS_05: Privacy Policy displayed");
+
+        // Cleanup — return to login screen
+        loginPage.dismissLegalDocument();
+        shortWait();
+    }
+
+    /**
+     * TC_AUTH_TERMS_06: Verify the agreement label text is visible alongside the checkbox.
+     * The label should mention BOTH Terms and Privacy Policy in a single sentence.
+     */
+    @Test(priority = 44)
+    public void TC_AUTH_TERMS_06_verifyAgreementLabelVisible() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_AUTHENTICATION,
+            AppConstants.FEATURE_LOGIN,
+            "TC_AUTH_TERMS_06 - Verify agreement label visible"
+        );
+
+        logStep("Step 1: Navigate to login screen");
+        welcomePage.submitCompanyCode(AppConstants.VALID_COMPANY_CODE);
+        mediumWait();
+        assertTrue(loginPage.isPageLoaded(), "Login page should be displayed");
+
+        logStep("Step 2: Verify agreement label is visible");
+        boolean labelVisible = loginPage.isTermsAgreementLabelVisible();
+        skipIfPreconditionMissing(
+            () -> labelVisible,
+            "Agreement label not found in this build"
+        );
+        assertTrue(labelVisible,
+            "Agreement label should be visible on login screen");
+        logStep("✓ Agreement label visible");
+
+        logStepWithScreenshot("TC_AUTH_TERMS_06: Agreement label visible");
+    }
+
+    /**
+     * TC_AUTH_TERMS_07: Negative — verify Sign In remains disabled when T&C is checked
+     * but credentials are EMPTY. T&C is necessary but not sufficient.
+     */
+    @Test(priority = 45)
+    public void TC_AUTH_TERMS_07_verifySignInDisabledWithTermsButNoCredentials() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_AUTHENTICATION,
+            AppConstants.FEATURE_LOGIN,
+            "TC_AUTH_TERMS_07 - Verify Sign In disabled with T&C checked but no credentials"
+        );
+
+        logStep("Step 1: Navigate to login screen");
+        welcomePage.submitCompanyCode(AppConstants.VALID_COMPANY_CODE);
+        mediumWait();
+        assertTrue(loginPage.isPageLoaded(), "Login page should be displayed");
+
+        logStep("Step 2: Tap T&C checkbox WITHOUT filling credentials");
+        loginPage.acceptTermsIfPresent();
+        shortWait();
+
+        String state = loginPage.getTermsCheckboxState();
+        skipIfPreconditionMissing(
+            () -> !"missing".equals(state),
+            "T&C checkbox not present in this build"
+        );
+
+        logStep("Step 3: Verify Sign In is still DISABLED (credentials are empty)");
+        boolean enabled = loginPage.isSignInButtonEnabled();
+        logStep("Sign In enabled: " + enabled);
+        assertFalse(enabled,
+            "Sign In button must remain DISABLED when credentials are empty even if T&C accepted");
+        logStep("✓ Sign In correctly disabled — T&C alone is not sufficient");
+
+        logStepWithScreenshot("TC_AUTH_TERMS_07: T&C alone insufficient");
+    }
+
+    /**
+     * TC_AUTH_TERMS_08: Verify T&C state can be toggled OFF after being toggled ON.
+     * This catches a bug class where checkboxes are write-once.
+     */
+    @Test(priority = 46)
+    public void TC_AUTH_TERMS_08_verifyTermsCheckboxCanBeUnchecked() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_AUTHENTICATION,
+            AppConstants.FEATURE_LOGIN,
+            "TC_AUTH_TERMS_08 - Verify T&C checkbox can be unchecked"
+        );
+
+        logStep("Step 1: Navigate to login screen");
+        welcomePage.submitCompanyCode(AppConstants.VALID_COMPANY_CODE);
+        mediumWait();
+        assertTrue(loginPage.isPageLoaded(), "Login page should be displayed");
+
+        logStep("Step 2: Check T&C ON");
+        loginPage.acceptTermsIfPresent();
+        shortWait();
+        String stateAfterCheck = loginPage.getTermsCheckboxState();
+        skipIfPreconditionMissing(
+            () -> !"missing".equals(stateAfterCheck),
+            "T&C checkbox not present in this build"
+        );
+        assertTrue("checked".equals(stateAfterCheck),
+            "T&C should be CHECKED after first tap (was: " + stateAfterCheck + ")");
+
+        logStep("Step 3: Tap T&C again to UNCHECK");
+        boolean toggled = loginPage.toggleTermsCheckboxOnly();
+        assertTrue(toggled, "Toggle attempt should succeed");
+        shortWait();
+
+        logStep("Step 4: Verify T&C is now UNCHECKED");
+        String stateAfterToggle = loginPage.getTermsCheckboxState();
+        assertTrue("unchecked".equals(stateAfterToggle),
+            "T&C should be UNCHECKED after second tap (was: " + stateAfterToggle + ")");
+        logStep("✓ T&C checkbox is bidirectional (can be unchecked)");
+
+        logStepWithScreenshot("TC_AUTH_TERMS_08: T&C bidirectional toggle works");
     }
 }

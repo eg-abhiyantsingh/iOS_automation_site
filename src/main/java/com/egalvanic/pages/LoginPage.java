@@ -775,7 +775,211 @@ public void clickShowPassword() {
         
         // METHOD 10: Skip - navigate().back() is too slow
         // Removed for performance
-        
+
         return false; // No popup found
+    }
+
+    // ================================================================
+    // ZP-323.3 — T&C / PRIVACY POLICY VERIFICATION (added 2026-04-29)
+    // ================================================================
+    // Existing acceptTermsIfPresent() handles the "tap to accept" flow
+    // for normal login. The methods below let us VERIFY T&C state without
+    // changing it, and explicitly tap the T&C / Privacy Policy hyperlinks
+    // (not the checkbox) to confirm document navigation.
+
+    /**
+     * Returns the current state of the T&C checkbox without changing it.
+     * Returns:
+     *   "checked"   — checkbox is on/checked
+     *   "unchecked" — checkbox is off/unchecked
+     *   "missing"   — checkbox not present in current screen state
+     * Heuristic: SwiftUI Switch's `value` attribute is "1"/"0"; custom
+     * checkboxes use `name` containing "checkmark" or `value="checked"`.
+     */
+    public String getTermsCheckboxState() {
+        try {
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(2));
+        } catch (Exception ignored) {}
+        try {
+            // Strategy A: SwiftUI Switch element
+            try {
+                WebElement sw = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeSwitch'"));
+                String v = sw.getAttribute("value");
+                if ("1".equals(v) || "true".equalsIgnoreCase(v)) return "checked";
+                if ("0".equals(v) || "false".equalsIgnoreCase(v)) return "unchecked";
+            } catch (Exception ignored) {}
+
+            // Strategy B: Custom checkbox button — name contains "checkmark.square" or "square"
+            try {
+                WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND " +
+                    "(name CONTAINS 'checkmark' OR name CONTAINS 'checkbox' OR name CONTAINS 'square')"));
+                String name = btn.getAttribute("name");
+                if (name != null && name.contains("checkmark")) return "checked";
+                if (name != null && (name.contains("square") && !name.contains("checkmark"))) return "unchecked";
+            } catch (Exception ignored) {}
+
+            // Strategy C: Image element with checkmark/square name
+            try {
+                WebElement img = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeImage' AND " +
+                    "(name CONTAINS 'checkmark' OR name CONTAINS 'square')"));
+                String name = img.getAttribute("name");
+                if (name != null && name.contains("checkmark")) return "checked";
+                return "unchecked";
+            } catch (Exception ignored) {}
+
+            return "missing";
+        } finally {
+            restoreImplicitWait();
+        }
+    }
+
+    /**
+     * Tap the "Terms and Conditions" hyperlink (NOT the checkbox).
+     * Should navigate to the T&C document/web view.
+     * Returns true if a tap was issued; false if the hyperlink wasn't found.
+     */
+    public boolean tapTermsAndConditionsLink() {
+        try {
+            // Hyperlink usually a Link or Button with exact "Terms" text
+            WebElement link = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeLink' OR type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND " +
+                "(label == 'Terms and Conditions' OR label == 'Terms & Conditions' OR " +
+                "label CONTAINS 'Terms' AND NOT label CONTAINS 'Privacy')"));
+            link.click();
+            sleep(500);
+            System.out.println("✅ Tapped Terms & Conditions hyperlink");
+            return true;
+        } catch (Exception e) {
+            System.out.println("⚠️ Terms & Conditions hyperlink not found: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Tap the "Privacy Policy" hyperlink.
+     * Should navigate to the Privacy Policy document/web view.
+     * Returns true if tap issued.
+     */
+    public boolean tapPrivacyPolicyLink() {
+        try {
+            WebElement link = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeLink' OR type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND " +
+                "(label == 'Privacy Policy' OR label CONTAINS 'Privacy Policy')"));
+            link.click();
+            sleep(500);
+            System.out.println("✅ Tapped Privacy Policy hyperlink");
+            return true;
+        } catch (Exception e) {
+            System.out.println("⚠️ Privacy Policy hyperlink not found: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Detect that we navigated AWAY from the login screen to a document/web view.
+     * The T&C and Privacy Policy documents typically open as a WKWebView (XCUIElementTypeWebView)
+     * OR as a presented modal containing long static text. We check for either.
+     */
+    public boolean isLegalDocumentDisplayed() {
+        try {
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(3));
+        } catch (Exception ignored) {}
+        try {
+            // Strategy A: WebView present
+            try {
+                driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeWebView'"));
+                return true;
+            } catch (Exception ignored) {}
+            // Strategy B: a Done/Close button + long body text (modal sheet pattern)
+            try {
+                driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeButton') AND (label == 'Done' OR label == 'Close')"));
+                // Plus must NOT see Sign In button (we're not on login screen anymore)
+                List<WebElement> signIns = driver.findElements(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND label == 'Sign In'"));
+                return signIns.isEmpty();
+            } catch (Exception ignored) {}
+            return false;
+        } finally {
+            restoreImplicitWait();
+        }
+    }
+
+    /**
+     * Dismiss the legal document overlay (back to login screen).
+     * Tries Done button, Close button, and back-swipe gesture in that order.
+     */
+    public boolean dismissLegalDocument() {
+        try {
+            try {
+                WebElement done = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND (label == 'Done' OR label == 'Close')"));
+                done.click();
+                sleep(500);
+                return true;
+            } catch (Exception ignored) {}
+            // Fallback — back swipe from left edge
+            org.openqa.selenium.Dimension size = driver.manage().window().getSize();
+            java.util.Map<String, Object> swipe = new java.util.HashMap<>();
+            swipe.put("fromX", 5);
+            swipe.put("fromY", size.height / 2);
+            swipe.put("toX", size.width / 2);
+            swipe.put("toY", size.height / 2);
+            swipe.put("duration", 300);
+            driver.executeScript("mobile: swipe", swipe);
+            sleep(500);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Check if the T&C row label is visible. The label usually says
+     * "I agree to the Terms and Conditions and Privacy Policy" or similar.
+     */
+    public boolean isTermsAgreementLabelVisible() {
+        try {
+            WebElement label = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "(label CONTAINS[c] 'I agree' OR label CONTAINS[c] 'terms' OR label CONTAINS[c] 'agree to')"));
+            return label.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Toggle the T&C checkbox without filling other fields. Use to test that
+     * Sign In remains disabled until T&C is checked AND credentials are valid.
+     */
+    public boolean toggleTermsCheckboxOnly() {
+        // Reuse the existing acceptTermsIfPresent() multi-strategy logic.
+        // It's idempotent on the "accept" path; for toggling off we need to
+        // re-tap. The simplest reliable approach is one tap regardless of state.
+        try {
+            try {
+                WebElement sw = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeSwitch'"));
+                sw.click();
+                sleep(300);
+                return true;
+            } catch (Exception ignored) {}
+            try {
+                WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND " +
+                    "(name CONTAINS 'checkmark' OR name CONTAINS 'square' OR name CONTAINS 'agree')"));
+                btn.click();
+                sleep(300);
+                return true;
+            } catch (Exception ignored) {}
+            return false;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }
