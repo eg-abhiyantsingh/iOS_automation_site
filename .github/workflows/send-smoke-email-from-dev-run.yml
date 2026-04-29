@@ -37,10 +37,12 @@ jobs:
       INPUT_RUN: ${{ github.event.inputs.run_url_or_id }}
       INPUT_DEV_REPO: ${{ github.event.inputs.dev_repo }}
     steps:
-      - name: Checkout AppConstants.java for EMAIL_TO
+      - name: Checkout AppConstants.java + report generator script
         uses: actions/checkout@v4
         with:
-          sparse-checkout: src/main/java/com/egalvanic/constants/AppConstants.java
+          sparse-checkout: |
+            src/main/java/com/egalvanic/constants/AppConstants.java
+            scripts/generate_consolidated_report.py
 
       - name: Parse run ID from input
         id: parse
@@ -104,36 +106,60 @@ jobs:
           echo "Downloaded files (first 30):"
           find . -type f | head -30
 
-      - name: Parse test counts from TestNG XML
+      - name: Parse test counts from TestNG XML (across all suites)
         id: counts
         run: |
-          cd artifacts
-          XML=$(find . -name "testng-results.xml" | head -1)
-
-          if [ -f "$XML" ]; then
-            PASSED=$(sed -n 's/.*passed="\([^"]*\)".*/\1/p' "$XML" | head -1)
-            FAILED=$(sed -n 's/.*failed="\([^"]*\)".*/\1/p' "$XML" | head -1)
-            SKIPPED=$(sed -n 's/.*skipped="\([^"]*\)".*/\1/p' "$XML" | head -1)
-            echo "From $XML → Passed=$PASSED, Failed=$FAILED, Skipped=$SKIPPED"
-          else
-            echo "No testng-results.xml found — values will be blank"
-            PASSED=""
-            FAILED=""
-            SKIPPED=""
-          fi
+          # Aggregate counts across every testng-results.xml in the artifacts tree.
+          # Single-suite parsing was wrong for parallel runs because it picked
+          # ONE suite's numbers as if they were the whole run.
+          PASSED=0; FAILED=0; SKIPPED=0; TOTAL=0
+          for XML in $(find artifacts -name "testng-results.xml"); do
+            P=$(sed -n 's/.*passed="\([^"]*\)".*/\1/p' "$XML" | head -1)
+            F=$(sed -n 's/.*failed="\([^"]*\)".*/\1/p' "$XML" | head -1)
+            S=$(sed -n 's/.*skipped="\([^"]*\)".*/\1/p' "$XML" | head -1)
+            T=$(sed -n 's/.*total="\([^"]*\)".*/\1/p' "$XML" | head -1)
+            PASSED=$((PASSED + ${P:-0}))
+            FAILED=$((FAILED + ${F:-0}))
+            SKIPPED=$((SKIPPED + ${S:-0}))
+            TOTAL=$((TOTAL + ${T:-0}))
+            echo "  $XML → P=${P:-0} F=${F:-0} S=${S:-0} T=${T:-0}"
+          done
 
           {
-            echo "PASSED=${PASSED:-0}"
-            echo "FAILED=${FAILED:-0}"
-            echo "SKIPPED=${SKIPPED:-0}"
+            echo "PASSED=$PASSED"
+            echo "FAILED=$FAILED"
+            echo "SKIPPED=$SKIPPED"
+            echo "TOTAL=$TOTAL"
           } >> "$GITHUB_OUTPUT"
 
-          REPORT=$(find . -path "*/client/Client_Report*.html" 2>/dev/null | sort | tail -1)
-          if [ -z "$REPORT" ]; then
-            REPORT=$(find . -name "Client_Report*.html" 2>/dev/null | head -1)
-          fi
-          echo "REPORT=$REPORT" >> "$GITHUB_OUTPUT"
-          echo "Report file: $REPORT"
+          echo "AGGREGATE: $PASSED passed, $FAILED failed, $SKIPPED skipped (of $TOTAL total)"
+
+      - name: Generate Consolidated HTML Report
+        id: gen_report
+        env:
+          RUN_ID: ${{ steps.parse.outputs.RUN_ID }}
+          DEV_REPO: ${{ steps.parse.outputs.DEV_REPO }}
+          BRANCH: ${{ steps.run_info.outputs.BRANCH }}
+        run: |
+          # Generate a single consolidated HTML report from all artifact subfolders
+          mkdir -p output
+          OUT="output/Consolidated_Client_Report.html"
+          python3 scripts/generate_consolidated_report.py \
+            --artifacts-dir artifacts \
+            --output "$OUT" \
+            --run-id "$RUN_ID" \
+            --branch "$BRANCH" \
+            --repo "$DEV_REPO"
+          echo "REPORT_PATH=$OUT" >> "$GITHUB_OUTPUT"
+          ls -la "$OUT"
+
+      - name: Upload Consolidated Report as Artifact (downloadable from Actions UI)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Consolidated_Client_Report
+          path: output/Consolidated_Client_Report.html
+          retention-days: 90
+          if-no-files-found: error
 
       - name: Send Email Report
         id: send_email
@@ -157,15 +183,20 @@ jobs:
             Triggered by:  ${{ steps.run_info.outputs.ACTOR }}
             Conclusion:    ${{ steps.run_info.outputs.CONCLUSION }}
 
-            Test Summary:
+            Test Summary (aggregated across all suites):
               - Passed:   ${{ steps.counts.outputs.PASSED }}
               - Failed:   ${{ steps.counts.outputs.FAILED }}
               - Skipped:  ${{ steps.counts.outputs.SKIPPED }}
+              - Total:    ${{ steps.counts.outputs.TOTAL }}
 
-            Dev Repo Run: ${{ steps.run_info.outputs.URL }}
+            Dev Repo Run:        ${{ steps.run_info.outputs.URL }}
+            This Workflow Run:   ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-            The Client Report is attached.
-          attachments: ${{ steps.counts.outputs.REPORT }}
+            Download the consolidated HTML report:
+              ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts
+
+            The consolidated report is also attached to this email.
+          attachments: ${{ steps.gen_report.outputs.REPORT_PATH }}
 
       - name: Diagnostic Summary
         if: always()
@@ -175,14 +206,23 @@ jobs:
           RUN_ID: ${{ steps.parse.outputs.RUN_ID }}
           DEV_REPO: ${{ steps.parse.outputs.DEV_REPO }}
           BRANCH: ${{ steps.run_info.outputs.BRANCH }}
+          PASSED: ${{ steps.counts.outputs.PASSED }}
+          FAILED: ${{ steps.counts.outputs.FAILED }}
+          THIS_RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          echo "╔════════════════════════════════════════════════════════════╗"
-          echo "║    EMAIL FOR DEV REPO RUN                                  ║"
-          echo "╠════════════════════════════════════════════════════════════╣"
-          echo "║  Dev Repo:  $DEV_REPO"
-          echo "║  Run ID:    $RUN_ID"
-          echo "║  Branch:    $BRANCH"
-          echo "║  Outcome:   $OUTCOME"
-          echo "║  To:        $EMAIL_TO_USED"
-          echo "║  Source:    AppConstants.java line 210 (no secrets for EMAIL_TO)"
-          echo "╚════════════════════════════════════════════════════════════╝"
+          echo "╔══════════════════════════════════════════════════════════════════════╗"
+          echo "║    EMAIL + CONSOLIDATED REPORT FOR DEV REPO RUN                      ║"
+          echo "╠══════════════════════════════════════════════════════════════════════╣"
+          echo "║  Dev Repo:        $DEV_REPO"
+          echo "║  Source Run ID:   $RUN_ID"
+          echo "║  Branch:          $BRANCH"
+          echo "║  Aggregate:       $PASSED passed, $FAILED failed"
+          echo "║"
+          echo "║  Email outcome:   $OUTCOME"
+          echo "║  Email to:        $EMAIL_TO_USED"
+          echo "║  Source of email: AppConstants.java line 210"
+          echo "║"
+          echo "║  📥 Download consolidated HTML report from this run's Artifacts:"
+          echo "║     $THIS_RUN"
+          echo "║     (scroll to bottom → 'Consolidated_Client_Report' artifact)"
+          echo "╚══════════════════════════════════════════════════════════════════════╝"
