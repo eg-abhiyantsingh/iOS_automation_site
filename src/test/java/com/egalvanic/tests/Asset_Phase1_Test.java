@@ -1162,14 +1162,26 @@ public class Asset_Phase1_Test extends BaseTest {
         logStep("Enabling Required fields only toggle");
         assetPage.enableRequiredFieldsOnly();
 
+        // Wait up to 5s for toggle UI to reflect ON state.
+        // Previously this assertion fired immediately after the tap; in CI
+        // the simulator's render cycle could lag the JS read by ~300-500ms
+        // so the test would see OFF, then re-tap (flipping to OFF), then
+        // assert and fail. Polling fixes the cascade.
         logStep("Verifying toggle is ON");
-        boolean toggleOn = assetPage.isRequiredFieldsToggleOn();
-        
+        boolean toggleOn = waitForCondition(
+            () -> assetPage.isRequiredFieldsToggleOn(),
+            5, "Required fields toggle to settle ON"
+        );
+
         if (!toggleOn) {
+            // Toggle never settled ON — try one corrective tap, then poll again
             assetPage.toggleRequiredFieldsOnly();
-            toggleOn = assetPage.isRequiredFieldsToggleOn();
+            toggleOn = waitForCondition(
+                () -> assetPage.isRequiredFieldsToggleOn(),
+                3, "Required fields toggle to settle ON after retry"
+            );
         }
-        
+
         assertTrue(toggleOn, "Toggle should be ON after enabling");
 
         logStepWithScreenshot("Required fields only toggle enabled");
@@ -1310,18 +1322,28 @@ public class Asset_Phase1_Test extends BaseTest {
 
         logStep("Enabling Required fields toggle first");
         assetPage.enableRequiredFieldsOnly();
-        
-        boolean toggleOn = assetPage.isRequiredFieldsToggleOn();
+
+        boolean toggleOn = waitForCondition(
+            () -> assetPage.isRequiredFieldsToggleOn(),
+            5, "Required fields toggle to settle ON before disable test"
+        );
         if (!toggleOn) {
             assetPage.toggleRequiredFieldsOnly();
+            toggleOn = waitForCondition(
+                () -> assetPage.isRequiredFieldsToggleOn(),
+                3, "Required fields toggle to settle ON after retry"
+            );
         }
-        assertTrue(assetPage.isRequiredFieldsToggleOn(), "Toggle should be ON");
+        assertTrue(toggleOn, "Toggle should be ON");
 
         logStep("Disabling Required fields toggle");
         assetPage.disableRequiredFieldsOnly();
 
         logStep("Verifying toggle is OFF");
-        boolean toggleOff = !assetPage.isRequiredFieldsToggleOn();
+        boolean toggleOff = waitForCondition(
+            () -> !assetPage.isRequiredFieldsToggleOn(),
+            5, "Required fields toggle to settle OFF"
+        );
         assertTrue(toggleOff, "Toggle should be OFF after disabling");
 
         logStepWithScreenshot("Required fields toggle disabled");

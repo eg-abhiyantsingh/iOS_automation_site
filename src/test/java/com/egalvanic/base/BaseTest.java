@@ -1050,4 +1050,105 @@ public class BaseTest {
         skipNextTeardown = true;
         System.out.println("🔗 Test will chain to next dependent test");
     }
+
+    // ================================================================
+    // RELIABILITY HELPERS — prevent flaky CI failures from timing
+    // ================================================================
+    // These were added 2026-04-29 to address the pattern where tests
+    // pass in real-life manual runs but fail in CI due to:
+    //   1. UI state checked too soon after a tap (toggle, button visibility)
+    //   2. Element appearing intermittently due to simulator slowness
+    //   3. Test data (e.g. "at least one Resolved issue") not yet in app state
+    // See docs/ai-features-changelog/038-test-reliability-improvements.md
+
+    /**
+     * Poll a condition until it returns true OR timeout is reached.
+     * Use this AFTER an action that triggers a UI state change (tap, swipe)
+     * INSTEAD of `sleep(N)` followed by an immediate assertion.
+     *
+     * Example — fixes the "Toggle should be ON after enabling" cascade:
+     *   assetPage.enableRequiredFieldsOnly();
+     *   boolean toggleOn = waitForCondition(
+     *       () -> assetPage.isRequiredFieldsToggleOn(),
+     *       5, "Required fields toggle to be ON"
+     *   );
+     *   assertTrue(toggleOn, "Toggle should be ON after enabling");
+     *
+     * @param condition         the predicate to evaluate (typically a page-object getter)
+     * @param timeoutSec        maximum seconds to wait for condition to become true
+     * @param description       short label for log output (e.g. "toggle to be ON")
+     * @return true if condition became true within timeout, false if it never did
+     */
+    protected boolean waitForCondition(java.util.function.Supplier<Boolean> condition,
+                                       int timeoutSec, String description) {
+        long deadline = System.currentTimeMillis() + (timeoutSec * 1000L);
+        int attempt = 0;
+        while (System.currentTimeMillis() < deadline) {
+            attempt++;
+            try {
+                if (Boolean.TRUE.equals(condition.get())) {
+                    if (attempt > 1) {
+                        System.out.println("✓ Condition met on attempt " + attempt + ": " + description);
+                    }
+                    return true;
+                }
+            } catch (Exception ignored) {
+                // Element may not exist yet — keep polling
+            }
+            sleep(250);
+        }
+        System.out.println("⚠️ Condition NOT met within " + timeoutSec + "s: " + description);
+        return false;
+    }
+
+    /**
+     * Retry a non-idempotent action up to N times if it throws or returns false.
+     * Use for actions that occasionally fail due to UI race conditions
+     * (e.g. tap-on-element where the element was being re-rendered).
+     *
+     * @param action     a Runnable that may throw on transient failure
+     * @param maxRetries total number of attempts before giving up
+     * @param backoffMs  pause between retries
+     * @return true if any attempt succeeded, false if all failed
+     */
+    protected boolean retryAction(Runnable action, int maxRetries, int backoffMs) {
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                action.run();
+                return true;
+            } catch (Exception e) {
+                System.out.println("⚠️ Action attempt " + attempt + "/" + maxRetries + " failed: " + e.getMessage());
+                if (attempt < maxRetries) sleep(backoffMs);
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Skip a test cleanly when its required preconditions are not met.
+     * Prefer this over silent assertion failures for data-dependent tests.
+     *
+     * Example — TC_ISS_210 needs at least one Resolved issue:
+     *   skipIfPreconditionMissing(
+     *       () -> issuePage.getResolvedIssueCount() > 0,
+     *       "no Resolved issue exists in current site — cannot test swipe-on-resolved"
+     *   );
+     *
+     * @param precondition  predicate that returns true when test data is ready
+     * @param reason        human-readable reason for the skip (shown in report)
+     */
+    protected void skipIfPreconditionMissing(java.util.function.Supplier<Boolean> precondition,
+                                             String reason) {
+        try {
+            if (!Boolean.TRUE.equals(precondition.get())) {
+                System.out.println("⊘ Skipping — precondition not met: " + reason);
+                throw new org.testng.SkipException("Precondition: " + reason);
+            }
+        } catch (org.testng.SkipException re) {
+            throw re;  // re-throw — TestNG handles it
+        } catch (Exception e) {
+            System.out.println("⊘ Skipping — precondition check failed: " + e.getMessage());
+            throw new org.testng.SkipException("Precondition check error: " + reason);
+        }
+    }
 }
