@@ -8611,4 +8611,131 @@ public class ConnectionsPage {
         }
     }
 
+    // ================================================================
+    // CORE ATTRIBUTES (ZP-323.1 — added 2026-04-29)
+    // ================================================================
+    // The New Connection form has a CORE ATTRIBUTES section below BASIC INFO.
+    // Behavior verified on web app at acme.qa.egalvanic.ai:
+    //   - Section header: "CORE ATTRIBUTES"
+    //   - Placeholder when no type selected: "Select a connection type to view attributes"
+    //   - After Connection Type selected: dynamic field list per type
+    //     (Busway → length/gauge; Cable → length/conductor count; etc.)
+
+    /**
+     * Check if the CORE ATTRIBUTES section header is visible on the New Connection form.
+     */
+    public boolean isCoreAttributesSectionVisible() {
+        try {
+            WebElement section = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "(label == 'CORE ATTRIBUTES' OR label == 'Core Attributes' OR " +
+                "label CONTAINS[c] 'core attribute')"));
+            return section.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Read the placeholder text shown when no Connection Type has been selected yet.
+     * Expected: "Select a connection type to view attributes" (or similar).
+     * Returns empty string if placeholder isn't found (e.g. after type was already chosen).
+     */
+    public String getCoreAttributesPlaceholder() {
+        try {
+            WebElement placeholder = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "(label CONTAINS[c] 'select a connection type' OR " +
+                "label CONTAINS[c] 'no attributes' OR " +
+                "label CONTAINS[c] 'view attributes')"));
+            return placeholder.getAttribute("label");
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /**
+     * After selecting a Connection Type, return the labels of edge property fields
+     * that appeared in the CORE ATTRIBUTES section. Empty list if none rendered.
+     * Filters for input/dropdown fields by Y-position (below the section header).
+     */
+    public java.util.List<String> getCoreAttributeFieldLabels() {
+        java.util.List<String> labels = new java.util.ArrayList<>();
+        try {
+            // Find the section header Y to anchor — fields are below this Y
+            int sectionY = -1;
+            try {
+                WebElement header = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND label == 'CORE ATTRIBUTES'"));
+                sectionY = header.getLocation().y;
+            } catch (Exception ignored) {}
+
+            // Collect all StaticText labels visible on the screen below section header
+            java.util.List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText'"));
+            for (WebElement t : texts) {
+                try {
+                    int y = t.getLocation().y;
+                    if (sectionY > 0 && y <= sectionY + 10) continue;  // skip section header itself
+                    String lbl = t.getAttribute("label");
+                    if (lbl == null || lbl.isEmpty()) continue;
+                    // Filter out unrelated UI like nav buttons, section headers
+                    if (lbl.equalsIgnoreCase("CORE ATTRIBUTES")) continue;
+                    if (lbl.equalsIgnoreCase("BASIC INFO")) continue;
+                    if (lbl.equalsIgnoreCase("Cancel")) continue;
+                    if (lbl.equalsIgnoreCase("Create")) continue;
+                    if (lbl.equalsIgnoreCase("Add Connection")) continue;
+                    if (lbl.equalsIgnoreCase("New Connection")) continue;
+                    labels.add(lbl);
+                } catch (Exception ignored) {}
+            }
+        } catch (Exception ignored) {}
+        return labels;
+    }
+
+    /**
+     * Tap the CORE ATTRIBUTES section header to expand or collapse the section.
+     * iOS forms commonly use chevron-style accordions — tapping toggles state.
+     */
+    public boolean tapCoreAttributesSectionHeader() {
+        try {
+            WebElement header = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "(label == 'CORE ATTRIBUTES' OR label == 'Core Attributes')"));
+            header.click();
+            sleep(300);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    // ================================================================
+    // EDGE PROPERTIES IN CONNECTION TYPE (ZP-323.2 — added 2026-04-29)
+    // ================================================================
+    // Each Connection Type has its own edge properties (the attributes that
+    // describe the connection itself, not the nodes). Selecting a different
+    // type should swap the edge property fields.
+
+    /**
+     * Select a connection type and wait up to 3s for the edge property fields to
+     * render in the CORE ATTRIBUTES section. Returns true if at least one new
+     * field appeared after selection.
+     *
+     * Reuses the pre-existing selectConnectionType() and getConnectionTypeOptions()
+     * helpers from earlier in this file.
+     */
+    public boolean selectConnectionTypeAndWaitForEdgeProperties(String type) {
+        int countBefore = getCoreAttributeFieldLabels().size();
+        boolean selected = selectConnectionType(type);
+        if (!selected) return false;
+        long deadline = System.currentTimeMillis() + 3000L;
+        while (System.currentTimeMillis() < deadline) {
+            int countNow = getCoreAttributeFieldLabels().size();
+            if (countNow > countBefore) return true;
+            sleep(200);
+        }
+        return false;
+    }
+
 }

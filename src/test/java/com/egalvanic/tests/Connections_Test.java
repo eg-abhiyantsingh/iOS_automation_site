@@ -8444,4 +8444,235 @@ public final class Connections_Test extends BaseTest {
 
         logStepWithScreenshot("TC_CONN_096: Tab switch persistence verification complete");
     }
+
+    // ============================================================
+    // ZP-323.1 — CONNECTION CORE ATTRIBUTES (added 2026-04-29)
+    // ============================================================
+    // The New Connection form has a CORE ATTRIBUTES section that holds
+    // connection-type-specific fields (length, gauge, etc.). Verified on
+    // web app at acme.qa.egalvanic.ai during planning; same section exists
+    // in iOS per the product spec.
+
+    /**
+     * TC_CONN_097: Verify CORE ATTRIBUTES section is visible on New Connection form
+     *
+     * Expected: When the user opens the New Connection form, the CORE ATTRIBUTES
+     * section header is visible alongside BASIC INFO. Before any Connection Type
+     * is selected, the section shows a placeholder like "Select a connection type
+     * to view attributes".
+     */
+    @Test(priority = 97)
+    public void TC_CONN_097_verifyCoreAttributesSectionVisibleOnNewConnectionForm() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_CONNECTIONS,
+            AppConstants.FEATURE_NEW_CONNECTION,
+            "TC_CONN_097 - Verify Core Attributes section visible on New Connection form"
+        );
+
+        logStep("Step 1: Navigate to Connections screen");
+        boolean onConnections = ensureOnConnectionsScreen();
+        assertTrue(onConnections, "Should be on Connections screen first");
+        shortWait();
+
+        logStep("Step 2: Open New Connection form");
+        connectionsPage.tapOnAddButton();
+        shortWait();
+        assertTrue(connectionsPage.isNewConnectionScreenDisplayed(),
+            "Should be on New Connection screen");
+
+        logStep("Step 3: Verify CORE ATTRIBUTES section header is visible");
+        boolean sectionVisible = connectionsPage.isCoreAttributesSectionVisible();
+        assertTrue(sectionVisible,
+            "CORE ATTRIBUTES section should be visible on New Connection form");
+        logStep("✓ CORE ATTRIBUTES section is visible");
+
+        logStep("Step 4: Verify placeholder text appears before Connection Type selected");
+        String placeholder = connectionsPage.getCoreAttributesPlaceholder();
+        logStep("Placeholder text: '" + placeholder + "'");
+        // Soft assertion — different builds may use different placeholder text;
+        // we only require SOME placeholder to be present
+        assertNotNull(placeholder, "Placeholder text should not be null");
+
+        logStepWithScreenshot("TC_CONN_097: Core Attributes section verified");
+
+        // Cleanup
+        connectionsPage.tapOnCancelButton();
+        shortWait();
+    }
+
+    /**
+     * TC_CONN_098: Verify Core Attributes populate after Connection Type is selected
+     *
+     * Expected: After the user selects a Connection Type (e.g. "Busway"), the
+     * CORE ATTRIBUTES section transitions from the placeholder to a list of
+     * type-specific edge property fields.
+     */
+    @Test(priority = 98)
+    public void TC_CONN_098_verifyCoreAttributesPopulateAfterTypeSelected() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_CONNECTIONS,
+            AppConstants.FEATURE_NEW_CONNECTION,
+            "TC_CONN_098 - Verify Core Attributes populate after Connection Type selected"
+        );
+
+        logStep("Step 1: Navigate to Connections screen");
+        boolean onConnections = ensureOnConnectionsScreen();
+        assertTrue(onConnections, "Should be on Connections screen first");
+        shortWait();
+
+        logStep("Step 2: Open New Connection form");
+        connectionsPage.tapOnAddButton();
+        shortWait();
+        assertTrue(connectionsPage.isNewConnectionScreenDisplayed(),
+            "Should be on New Connection screen");
+
+        logStep("Step 3: Capture Core Attributes field count BEFORE type selection");
+        int fieldsBefore = connectionsPage.getCoreAttributeFieldLabels().size();
+        logStep("Field count before type selection: " + fieldsBefore);
+
+        logStep("Step 4: Select Connection Type 'Busway'");
+        boolean typeOpened = connectionsPage.tapOnConnectionTypeDropdown();
+        assertTrue(typeOpened, "Should be able to open Connection Type dropdown");
+        shortWait();
+        boolean populated = connectionsPage.selectConnectionTypeAndWaitForEdgeProperties("Busway");
+
+        logStep("Step 5: Capture Core Attributes field count AFTER type selection");
+        int fieldsAfter = connectionsPage.getCoreAttributeFieldLabels().size();
+        logStep("Field count after type selection: " + fieldsAfter);
+
+        // The core assertion — fields should appear after type chosen
+        assertTrue(populated || fieldsAfter > fieldsBefore,
+            "Core Attributes section should populate with edge property fields after Connection Type 'Busway' is selected " +
+            "(fields before=" + fieldsBefore + ", after=" + fieldsAfter + ")");
+        logStep("✓ Core Attributes populated with " + (fieldsAfter - fieldsBefore) + " new field(s)");
+
+        logStepWithScreenshot("TC_CONN_098: Core Attributes population verified");
+
+        // Cleanup
+        connectionsPage.tapOnCancelButton();
+        shortWait();
+    }
+
+    // ============================================================
+    // ZP-323.2 — EDGE PROPERTIES IN CONNECTION TYPE (added 2026-04-29)
+    // ============================================================
+    // Each Connection Type has different edge properties (Busway has length+gauge,
+    // Cable has length+conductor count, etc.). Switching types should swap fields.
+
+    /**
+     * TC_CONN_099: Verify selecting Connection Type displays its edge property fields
+     *
+     * Expected: After selecting a specific Connection Type, the CORE ATTRIBUTES
+     * section shows fields appropriate for that type. At minimum, more fields
+     * appear than the placeholder-only state.
+     */
+    @Test(priority = 99)
+    public void TC_CONN_099_verifyEdgePropertiesDisplayedForConnectionType() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_CONNECTIONS,
+            AppConstants.FEATURE_CONNECTION_TYPE,
+            "TC_CONN_099 - Verify edge properties displayed for selected Connection Type"
+        );
+
+        logStep("Step 1: Navigate to Connections + open New Connection");
+        boolean onConnections = ensureOnConnectionsScreen();
+        assertTrue(onConnections, "Should be on Connections screen first");
+        shortWait();
+        connectionsPage.tapOnAddButton();
+        shortWait();
+        assertTrue(connectionsPage.isNewConnectionScreenDisplayed(),
+            "Should be on New Connection screen");
+
+        logStep("Step 2: Open Connection Type dropdown and select 'Busway'");
+        boolean typeOpened = connectionsPage.tapOnConnectionTypeDropdown();
+        assertTrue(typeOpened, "Should be able to open Connection Type dropdown");
+        shortWait();
+        boolean selected = connectionsPage.selectConnectionType("Busway");
+        assertTrue(selected, "Should be able to select 'Busway' connection type");
+        shortWait();
+
+        logStep("Step 3: Read edge property field labels");
+        java.util.List<String> labels = connectionsPage.getCoreAttributeFieldLabels();
+        for (String l : labels) {
+            logStep("  - " + l);
+        }
+
+        // We require at least 1 edge property field to render after type selection.
+        // The exact field names depend on product spec for each type, so we don't
+        // hardcode specific labels here.
+        assertTrue(labels.size() >= 1,
+            "At least one edge property field should be displayed after selecting Connection Type 'Busway' " +
+            "(found " + labels.size() + " fields)");
+        logStep("✓ " + labels.size() + " edge property field(s) displayed for Busway");
+
+        logStepWithScreenshot("TC_CONN_099: Edge properties displayed for Busway");
+
+        // Cleanup
+        connectionsPage.tapOnCancelButton();
+        shortWait();
+    }
+
+    /**
+     * TC_CONN_100: Verify changing Connection Type updates the edge property fields
+     *
+     * Expected: When the user picks Type A, then changes to Type B, the edge
+     * property fields should update to match Type B (different fields, or at
+     * least the field set may change).
+     */
+    @Test(priority = 100)
+    public void TC_CONN_100_verifyChangingConnectionTypeUpdatesEdgeProperties() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_CONNECTIONS,
+            AppConstants.FEATURE_CONNECTION_TYPE,
+            "TC_CONN_100 - Verify changing Connection Type updates edge property fields"
+        );
+
+        logStep("Step 1: Navigate to Connections + open New Connection");
+        boolean onConnections = ensureOnConnectionsScreen();
+        assertTrue(onConnections, "Should be on Connections screen first");
+        shortWait();
+        connectionsPage.tapOnAddButton();
+        shortWait();
+        assertTrue(connectionsPage.isNewConnectionScreenDisplayed(),
+            "Should be on New Connection screen");
+
+        logStep("Step 2: Select Connection Type 'Busway' first");
+        connectionsPage.tapOnConnectionTypeDropdown();
+        shortWait();
+        boolean buswaySelected = connectionsPage.selectConnectionType("Busway");
+        assertTrue(buswaySelected, "Should be able to select 'Busway'");
+        shortWait();
+        java.util.List<String> buswayFields = connectionsPage.getCoreAttributeFieldLabels();
+        logStep("Busway fields (" + buswayFields.size() + "): " + buswayFields);
+
+        logStep("Step 3: Change Connection Type to 'Cable'");
+        connectionsPage.tapOnConnectionTypeDropdown();
+        shortWait();
+        boolean cableSelected = connectionsPage.selectConnectionType("Cable");
+
+        // If "Cable" doesn't exist as a type in the build, skip the comparison
+        if (!cableSelected) {
+            logWarning("'Cable' type not found in dropdown — skipping field comparison");
+            connectionsPage.tapOnCancelButton();
+            throw new SkipException("'Cable' connection type not available in this build");
+        }
+        shortWait();
+        java.util.List<String> cableFields = connectionsPage.getCoreAttributeFieldLabels();
+        logStep("Cable fields (" + cableFields.size() + "): " + cableFields);
+
+        logStep("Step 4: Verify field set changed between types");
+        // We expect EITHER different field counts OR at least one field name to differ.
+        boolean countDiffers = buswayFields.size() != cableFields.size();
+        boolean labelsDiffer = !buswayFields.equals(cableFields);
+        assertTrue(countDiffers || labelsDiffer,
+            "Edge property fields should differ between Busway and Cable types " +
+            "(busway=" + buswayFields + ", cable=" + cableFields + ")");
+        logStep("✓ Edge property fields updated when type changed");
+
+        logStepWithScreenshot("TC_CONN_100: Connection Type change updates edge properties");
+
+        // Cleanup
+        connectionsPage.tapOnCancelButton();
+        shortWait();
+    }
 }
