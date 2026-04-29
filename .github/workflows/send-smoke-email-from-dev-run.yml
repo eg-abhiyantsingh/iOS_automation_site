@@ -153,13 +153,91 @@ jobs:
           echo "REPORT_PATH=$OUT" >> "$GITHUB_OUTPUT"
           ls -la "$OUT"
 
-      - name: Upload Consolidated Report as Artifact (downloadable from Actions UI)
+      - name: Generate PDF version of Consolidated Report
+        id: gen_pdf
+        run: |
+          # Use Chromium headless (pre-installed on ubuntu-latest) to convert HTML → PDF.
+          # The classic --print-to-pdf path produces a PDF that matches what you'd see
+          # if you opened the HTML in Chrome and hit Cmd+P → Save as PDF.
+          OUT="output/Consolidated_Client_Report.pdf"
+          # Pick whichever Chromium binary exists on the runner
+          if command -v google-chrome >/dev/null 2>&1; then BROWSER=google-chrome
+          elif command -v chromium-browser >/dev/null 2>&1; then BROWSER=chromium-browser
+          elif command -v chromium >/dev/null 2>&1; then BROWSER=chromium
+          else
+            echo "WARN: no Chromium binary found — installing chromium-browser..."
+            sudo apt-get update -qq && sudo apt-get install -y -qq chromium-browser
+            BROWSER=chromium-browser
+          fi
+          echo "Using $BROWSER"
+          # The --no-sandbox flag is required when running headless Chrome as root
+          # in a CI container; --disable-gpu is conventional for headless contexts.
+          "$BROWSER" \
+            --headless --no-sandbox --disable-gpu \
+            --print-to-pdf="$OUT" \
+            --print-to-pdf-no-header \
+            "file://$(pwd)/output/Consolidated_Client_Report.html"
+          ls -la "$OUT"
+          echo "PDF_PATH=$OUT" >> "$GITHUB_OUTPUT"
+
+      - name: Upload Consolidated Reports as Artifacts (downloadable from Actions UI)
         uses: actions/upload-artifact@v4
         with:
           name: Consolidated_Client_Report
-          path: output/Consolidated_Client_Report.html
+          # Both HTML and PDF go in the same artifact so a single download
+          # gives the user both formats.
+          path: |
+            output/Consolidated_Client_Report.html
+            output/Consolidated_Client_Report.pdf
           retention-days: 90
           if-no-files-found: error
+
+      - name: Render GitHub Step Summary (inline test totals on run page)
+        env:
+          PASSED: ${{ steps.counts.outputs.PASSED }}
+          FAILED: ${{ steps.counts.outputs.FAILED }}
+          SKIPPED: ${{ steps.counts.outputs.SKIPPED }}
+          TOTAL: ${{ steps.counts.outputs.TOTAL }}
+          DEV_REPO: ${{ steps.parse.outputs.DEV_REPO }}
+          RUN_ID: ${{ steps.parse.outputs.RUN_ID }}
+          BRANCH: ${{ steps.run_info.outputs.BRANCH }}
+          DEV_RUN_URL: ${{ steps.run_info.outputs.URL }}
+        run: |
+          # Compute pass-rate
+          if [ "${TOTAL:-0}" -gt 0 ]; then
+            PCT=$(awk -v p="$PASSED" -v t="$TOTAL" 'BEGIN { printf "%.1f", (p/t)*100 }')
+          else
+            PCT="0.0"
+          fi
+
+          # Status emoji based on FAILED count
+          if [ "${FAILED:-0}" -eq 0 ] && [ "${TOTAL:-0}" -gt 0 ]; then
+            EMOJI="✅"; STATUS="ALL PASSED"
+          elif [ "${FAILED:-0}" -gt 0 ]; then
+            EMOJI="❌"; STATUS="FAILURES"
+          else
+            EMOJI="⚠️"; STATUS="NO TESTS RECORDED"
+          fi
+
+          # Write to GitHub's special "Step Summary" — renders as markdown
+          # at the TOP of the run page, no clicks required to see headline numbers.
+          cat >> "$GITHUB_STEP_SUMMARY" << EOF
+          # ${EMOJI} iOS Automation — ${STATUS}
+
+          **Source run:** [\`${DEV_REPO}\` #${RUN_ID}](${DEV_RUN_URL})
+          **Branch:** \`${BRANCH}\`
+          **Pass rate:** **${PCT}%**
+
+          | Total | Passed | Failed | Skipped |
+          |------:|-------:|-------:|--------:|
+          | ${TOTAL} | ${PASSED} | ${FAILED} | ${SKIPPED} |
+
+          ## 📥 Download the consolidated report
+
+          Scroll to the bottom of this page → **Artifacts** section → click **\`Consolidated_Client_Report\`** to download both **HTML** (browser-friendly, interactive) and **PDF** (email/print-friendly).
+
+          The same report is attached to the email sent to recipients listed in [\`AppConstants.java\` line 210](https://github.com/eg-abhiyantsingh/iOS_automation_site/blob/main/src/main/java/com/egalvanic/constants/AppConstants.java#L210).
+          EOF
 
       - name: Send Email Report
         id: send_email
@@ -192,11 +270,13 @@ jobs:
             Dev Repo Run:        ${{ steps.run_info.outputs.URL }}
             This Workflow Run:   ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-            Download the consolidated HTML report:
+            Download the consolidated report (HTML + PDF):
               ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts
 
-            The consolidated report is also attached to this email.
-          attachments: ${{ steps.gen_report.outputs.REPORT_PATH }}
+            Both formats are attached: HTML (interactive, click suites to expand) and PDF (print/share-friendly).
+          attachments: |
+            ${{ steps.gen_report.outputs.REPORT_PATH }}
+            ${{ steps.gen_pdf.outputs.PDF_PATH }}
 
       - name: Diagnostic Summary
         if: always()
