@@ -39,7 +39,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-
+          cache: 'maven'
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -301,7 +301,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-
+          cache: 'maven'
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -450,7 +450,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-
+          cache: 'maven'
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -585,7 +585,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-
+          cache: 'maven'
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -713,6 +713,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+          cache: 'maven'
       - uses: actions/setup-node@v4
         with:
           node-version: '18'
@@ -808,6 +809,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+          cache: 'maven'
       - uses: actions/setup-node@v4
         with:
           node-version: '18'
@@ -903,6 +905,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+          cache: 'maven'
       - uses: actions/setup-node@v4
         with:
           node-version: '18'
