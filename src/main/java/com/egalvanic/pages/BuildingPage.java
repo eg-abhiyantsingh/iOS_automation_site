@@ -6684,41 +6684,91 @@ public class BuildingPage extends BasePage {
     }
 
     // ================================================================
-    // ZP-323.9 — LONG PRESS BUILDING / ROOM PHOTO (added 2026-04-30)
+    // ZP-323.9 — LONG PRESS BUILDING / FLOOR / ROOM ROW (added 2026-04-30)
+    //
+    // iOS evidence 2026-04-30 (user screenshot v1.31 — Locations screen):
+    //   Long-pressing a Building/Floor/Room row on the Locations tree opens
+    //   a SwiftUI context menu with two items:
+    //     - "Edit <Type>"   (with pencil icon)
+    //     - "Delete <Type>" (red text + trash icon)
+    //   Type ∈ {Building, Floor, Room}.
+    //   Tapping "Edit Room" opens "Edit Room" sheet (Cancel | Edit Room | Save).
+    //
+    // The "Photo" naming in earlier method names was a misread of the spec —
+    // the gesture target is the ROW (B1, F1, R1), not a photo thumbnail.
+    // Method names kept for back-compat; behavior now matches real iOS UI.
     // ================================================================
 
     /**
-     * Long press a building photo thumbnail to open the photo viewer with options.
-     * Returns true if gesture issued.
+     * Long-press a building row (e.g. "B1") on the Locations screen to open
+     * the Edit/Delete context menu. Falls back to a building image if no
+     * label match is found.
      */
     public boolean longPressOnBuildingPhoto() {
+        return longPressOnLocationRow("Building");
+    }
+
+    /** Long-press a room row (e.g. "R1") on the Locations screen. */
+    public boolean longPressOnRoomPhoto() {
+        return longPressOnLocationRow("Room");
+    }
+
+    /**
+     * Generic long-press for a Building/Floor/Room row.
+     * Targets the first visible row of the requested type by looking for
+     * a static text whose label matches the type's first-letter pattern
+     * (B*, F*, R*) — matching the v1.31 layout.
+     */
+    private boolean longPressOnLocationRow(String type) {
+        String letter = type.equalsIgnoreCase("Building") ? "B"
+                      : type.equalsIgnoreCase("Floor")    ? "F"
+                      : "R";
         try {
-            // Look for an Image associated with a building (cover photo, gallery thumbnail)
-            WebElement img = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeImage' AND " +
-                "(name CONTAINS[c] 'building' OR name CONTAINS[c] 'cover' OR name CONTAINS[c] 'photo')"));
-            int x = img.getLocation().getX() + img.getSize().getWidth() / 2;
-            int y = img.getLocation().getY() + img.getSize().getHeight() / 2;
-            performLongPress(x, y, 1500);
+            WebElement row = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "label BEGINSWITH '" + letter + "' AND " +
+                "label MATCHES '" + letter + "[0-9]+'"));
+            int x = row.getLocation().getX() + row.getSize().getWidth() / 2;
+            int y = row.getLocation().getY() + row.getSize().getHeight() / 2;
+            performLongPress(x, y, 1200);
             return true;
         } catch (Exception e) {
-            return false;
+            // Fallback: any image labeled for the type
+            try {
+                WebElement img = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeImage' AND name CONTAINS[c] '" + type.toLowerCase() + "'"));
+                int x = img.getLocation().getX() + img.getSize().getWidth() / 2;
+                int y = img.getLocation().getY() + img.getSize().getHeight() / 2;
+                performLongPress(x, y, 1200);
+                return true;
+            } catch (Exception e2) {
+                return false;
+            }
         }
     }
 
-    /** Long press a room photo thumbnail. */
-    public boolean longPressOnRoomPhoto() {
+    /** Tap the "Edit <Building|Floor|Room>" item in the long-press context menu. */
+    public boolean tapEditFromContextMenu(String type) {
         try {
-            WebElement img = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeImage' AND " +
-                "(name CONTAINS[c] 'room' OR name CONTAINS[c] 'photo')"));
-            int x = img.getLocation().getX() + img.getSize().getWidth() / 2;
-            int y = img.getLocation().getY() + img.getSize().getHeight() / 2;
-            performLongPress(x, y, 1500);
+            WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' OR " +
+                "type == 'XCUIElementTypeMenuItem' OR type == 'XCUIElementTypeCell') AND " +
+                "label == 'Edit " + type + "'"));
+            btn.click();
+            try { Thread.sleep(500); } catch (InterruptedException ignored) {}
             return true;
-        } catch (Exception e) {
-            return false;
-        }
+        } catch (Exception e) { return false; }
+    }
+
+    /** True when the "Edit <Type>" sheet (Cancel | Edit <Type> | Save header) is up. */
+    public boolean isEditLocationSheetVisible(String type) {
+        try {
+            driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label == 'Edit " + type + "'"));
+            driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == 'Save'"));
+            return true;
+        } catch (Exception e) { return false; }
     }
 
     /** Helper to perform a long press at given coordinates. */
@@ -6740,13 +6790,17 @@ public class BuildingPage extends BasePage {
         } catch (Exception ignored) {}
     }
 
-    /** Returns true if photo viewer / context menu is visible after long-press. */
+    /**
+     * Returns true if the long-press context menu is visible.
+     * iOS v1.31 menu items: "Edit Building" / "Edit Floor" / "Edit Room"
+     * and "Delete Building" / "Delete Floor" / "Delete Room".
+     */
     public boolean isPhotoViewerOrMenuVisible() {
         try {
             driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND " +
-                "(label == 'Save' OR label == 'Share' OR label == 'Delete' OR " +
-                "label == 'Done' OR label == 'Close')"));
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' OR " +
+                "type == 'XCUIElementTypeMenuItem' OR type == 'XCUIElementTypeCell') AND " +
+                "(label BEGINSWITH 'Edit ' OR label BEGINSWITH 'Delete ')"));
             return true;
         } catch (Exception e) { return false; }
     }

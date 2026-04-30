@@ -2852,22 +2852,30 @@ public class SiteSelectionPage extends BasePage {
         }
     }
 
-    /** Returns true if a context menu is visible (Edit/Delete options). */
+    /**
+     * Returns true if the long-press context menu is visible.
+     * iOS evidence 2026-04-30 (v1.31 — same SwiftUI pattern as Building/Floor/Room
+     * long-press on the Locations screen): menu shows "Edit Site" + "Delete Site".
+     * Items can render as Buttons, MenuItems, or Cells across iOS versions.
+     */
     public boolean isSiteContextMenuVisible() {
         try {
             driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND " +
-                "(label == 'Edit' OR label == 'Edit Site')"));
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' OR " +
+                "type == 'XCUIElementTypeMenuItem' OR type == 'XCUIElementTypeCell') AND " +
+                "(label == 'Edit Site' OR label == 'Delete Site' OR " +
+                "label == 'Edit' OR label == 'Delete')"));
             return true;
         } catch (Exception e) { return false; }
     }
 
-    /** Tap the "Edit" option in the context menu. */
+    /** Tap the "Edit Site" option in the long-press context menu. */
     public boolean tapEditSiteFromContextMenu() {
         try {
             WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND " +
-                "(label == 'Edit' OR label == 'Edit Site')"));
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' OR " +
+                "type == 'XCUIElementTypeMenuItem' OR type == 'XCUIElementTypeCell') AND " +
+                "(label == 'Edit Site' OR label == 'Edit')"));
             btn.click();
             try { Thread.sleep(500); } catch (InterruptedException ignored) {}
             return true;
