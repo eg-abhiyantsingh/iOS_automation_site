@@ -21,6 +21,11 @@ import static org.testng.Assert.fail;
  * Load Center (28) + MCC (26) + MCC Bucket (12) + Motor (30) + Other (13)
  */
 public class Asset_Phase3_Test extends BaseTest {
+    private static String cachedLoadcenterP3AssetName = null;
+    private static String cachedMCCP3AssetName = null;
+    private static String cachedMCCBucketP3AssetName = null;
+    private static String cachedMotorP3AssetName = null;
+    private static String cachedOtherP3AssetName = null;
 
     @BeforeClass(alwaysRun = true)
     public void classSetup() {
@@ -50,23 +55,7 @@ public class Asset_Phase3_Test extends BaseTest {
      * Navigate to Loadcenter Edit Asset Details screen
      */
     private void navigateToLoadcenterEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("📝 Navigating to Loadcenter Edit Asset screen...");
-        
-        // TURBO: Go directly to Asset List
-        System.out.println("📦 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        // Select first available asset (no search needed)
-        System.out.println("🔍 Selecting first asset...");
-        assetPage.selectFirstAsset();
-        shortWait();
-        
-        // Click Edit
-        System.out.println("✏️ Clicking Edit...");
-        assetPage.clickEditTurbo();
-        
-        System.out.println("✅ On Loadcenter Edit Asset screen (Total: " + (System.currentTimeMillis() - start) + "ms)");
+        cachedLoadcenterP3AssetName = assetPage.openSharedAssetForEditOrFallback(cachedLoadcenterP3AssetName);
     }
 
     // Loadcenter fields that are DROPDOWNS (Select... buttons), not text fields
@@ -1326,23 +1315,7 @@ public class Asset_Phase3_Test extends BaseTest {
      * Navigate to MCC Edit Asset Details screen
      */
     private void navigateToMCCEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("📝 Navigating to MCC Edit Asset screen...");
-        
-        // TURBO: Go directly to Asset List
-        System.out.println("📦 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        // Select first available asset (no search needed)
-        System.out.println("🔍 Selecting first asset...");
-        assetPage.selectFirstAsset();
-        shortWait();
-        
-        // Click Edit
-        System.out.println("✏️ Clicking Edit...");
-        assetPage.clickEditTurbo();
-        
-        System.out.println("✅ On MCC Edit Asset screen (Total: " + (System.currentTimeMillis() - start) + "ms)");
+        cachedMCCP3AssetName = assetPage.openSharedAssetForEditOrFallback(cachedMCCP3AssetName);
     }
 
     /**
@@ -2505,23 +2478,7 @@ public class Asset_Phase3_Test extends BaseTest {
      * Navigate to MCC Bucket Edit Asset Details screen
      */
     private void navigateToMCCBucketEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("📝 Navigating to MCC Bucket Edit Asset screen...");
-        
-        // TURBO: Go directly to Asset List
-        System.out.println("📦 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        // Select first available asset (no search needed)
-        System.out.println("🔍 Selecting first asset...");
-        assetPage.selectFirstAsset();
-        shortWait();
-        
-        // Click Edit
-        System.out.println("✏️ Clicking Edit...");
-        assetPage.clickEditTurbo();
-        
-        System.out.println("✅ On MCC Bucket Edit Asset screen (Total: " + (System.currentTimeMillis() - start) + "ms)");
+        cachedMCCBucketP3AssetName = assetPage.openSharedAssetForEditOrFallback(cachedMCCBucketP3AssetName);
     }
 
     // ============================================================
@@ -2959,23 +2916,7 @@ public class Asset_Phase3_Test extends BaseTest {
 
     // Helper method to navigate to Motor Edit screen
     private void navigateToMotorEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("📝 Navigating to Motor Edit Asset screen...");
-        
-        // TURBO: Go directly to Asset List
-        System.out.println("📦 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        // Select first available asset (no search needed)
-        System.out.println("🔍 Selecting first asset...");
-        assetPage.selectFirstAsset();
-        shortWait();
-        
-        // Click Edit
-        System.out.println("✏️ Clicking Edit...");
-        assetPage.clickEditTurbo();
-        
-        System.out.println("✅ On Motor Edit Asset screen (Total: " + (System.currentTimeMillis() - start) + "ms)");
+        cachedMotorP3AssetName = assetPage.openSharedAssetForEditOrFallback(cachedMotorP3AssetName);
     }
 
     // Helper method to fill a Motor field
@@ -4292,23 +4233,7 @@ public class Asset_Phase3_Test extends BaseTest {
 
     // Helper method to navigate to Other Edit screen
     private void navigateToOtherEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("📝 Navigating to Other Edit Asset screen...");
-        
-        // TURBO: Go directly to Asset List
-        System.out.println("📦 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        // Select first available asset (no search needed)
-        System.out.println("🔍 Selecting first asset...");
-        assetPage.selectFirstAsset();
-        shortWait();
-        
-        // Click Edit
-        System.out.println("✏️ Clicking Edit...");
-        assetPage.clickEditTurbo();
-        
-        System.out.println("✅ On Other Edit Asset screen (Total: " + (System.currentTimeMillis() - start) + "ms)");
+        cachedOtherP3AssetName = assetPage.openSharedAssetForEditOrFallback(cachedOtherP3AssetName);
     }
 
     // Helper method to fill an Other field

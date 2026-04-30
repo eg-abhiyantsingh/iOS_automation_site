@@ -21,6 +21,13 @@ import static org.testng.Assert.fail;
  * UPS (15) + Utility (9) + VFD (8) + ATS Subtype (13) + Busway Subtype (11) + Capacitor Subtype (6) + CB Subtype (14) + Default (9) + DS Subtype (16) + Fuse Subtype (11)
  */
 public class Asset_Phase5_Test extends BaseTest {
+    private static String cachedUPSAssetName = null;
+    private static String cachedUtilityAssetName = null;
+    private static String cachedATSP5AssetName = null;
+    private static String cachedBuswayP5AssetName = null;
+    private static String cachedCapP5AssetName = null;
+    private static String cachedCBP5AssetName = null;
+    private static String cachedDefaultP5AssetName = null;
 
     @BeforeClass(alwaysRun = true)
     public void classSetup() {
@@ -42,23 +49,7 @@ public class Asset_Phase5_Test extends BaseTest {
 
     // Helper method to navigate to UPS Edit Asset Details screen
     private void navigateToUPSEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("\ud83d\udcdd Navigating to UPS Edit Asset screen...");
-        
-        // TURBO: Go directly to Asset List
-        System.out.println("\ud83d\udce6 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        // Select first available asset (no search needed)
-        System.out.println("\ud83d\udd0d Selecting first asset...");
-        assetPage.selectFirstAsset();
-        shortWait();
-        
-        // Click Edit
-        System.out.println("\u270f\ufe0f Clicking Edit...");
-        assetPage.clickEditTurbo();
-        
-        System.out.println("\u2705 On UPS Edit Asset screen (Total: " + (System.currentTimeMillis() - start) + "ms)");
+        cachedUPSAssetName = assetPage.openSharedAssetForEditOrFallback(cachedUPSAssetName);
     }
 
     // Helper method to fill a UPS field
@@ -674,23 +665,7 @@ public class Asset_Phase5_Test extends BaseTest {
 
     // Helper method to navigate to Utility Edit screen
     private void navigateToUtilityEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("\ud83d\udcdd Navigating to Utility Edit Asset screen...");
-        
-        // TURBO: Go directly to Asset List
-        System.out.println("\ud83d\udce6 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        // Select first available asset (no search needed)
-        System.out.println("\ud83d\udd0d Selecting first asset...");
-        assetPage.selectFirstAsset();
-        shortWait();
-        
-        // Click Edit
-        System.out.println("\u270f\ufe0f Clicking Edit...");
-        assetPage.clickEditTurbo();
-        
-        System.out.println("\u2705 On Utility Edit Asset screen (Total: " + (System.currentTimeMillis() - start) + "ms)");
+        cachedUtilityAssetName = assetPage.openSharedAssetForEditOrFallback(cachedUtilityAssetName);
     }
 
     // Helper method to fill a Utility field
@@ -1106,14 +1081,7 @@ public class Asset_Phase5_Test extends BaseTest {
      * Navigate to VFD Edit Asset screen
      */
     private void navigateToVFDEditScreen() {
-        System.out.println("📝 Navigating to VFD Edit Asset screen...");
-        assetPage.navigateToAssetList();
-        shortWait();
-        assetPage.selectFirstAsset();
-        shortWait();
-        assetPage.clickEdit();
-        longWait();
-        System.out.println("✅ On VFD Edit Asset screen");
+        cachedVFDAssetName = assetPage.openSharedAssetForEditOrFallback(cachedVFDAssetName);
     }
 
     // ============================================================
@@ -1426,22 +1394,7 @@ public class Asset_Phase5_Test extends BaseTest {
      * Navigate to ATS Edit Asset screen
      */
     private void navigateToATSEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("📝 Navigating to ATS Edit Asset screen...");
-        
-        System.out.println("📦 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        System.out.println("🔍 Selecting first asset...");
-        assetPage.selectFirstAsset();
-        sleep(1500);
-        
-        System.out.println("✏️ Clicking Edit...");
-        assetPage.clickEditTurbo();
-        sleep(2000);
-        
-        long elapsed = System.currentTimeMillis() - start;
-        System.out.println("✅ On ATS Edit Asset screen (Total: " + elapsed + "ms)");
+        cachedATSP5AssetName = assetPage.openSharedAssetForEditOrFallback(cachedATSP5AssetName);
     }
 
     // ============================================================
@@ -2013,22 +1966,7 @@ public class Asset_Phase5_Test extends BaseTest {
      * Navigate to Busway Edit Asset screen
      */
     private void navigateToBuswayEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("📝 Navigating to Busway Edit Asset screen...");
-        
-        System.out.println("📦 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        System.out.println("🔍 Selecting first asset...");
-        assetPage.selectFirstAsset();
-        sleep(1500);
-        
-        System.out.println("✏️ Clicking Edit...");
-        assetPage.clickEditTurbo();
-        sleep(2000);
-        
-        long elapsed = System.currentTimeMillis() - start;
-        System.out.println("✅ On Busway Edit Asset screen (Total: " + elapsed + "ms)");
+        cachedBuswayP5AssetName = assetPage.openSharedAssetForEditOrFallback(cachedBuswayP5AssetName);
     }
 
     // ============================================================
@@ -2507,22 +2445,7 @@ public class Asset_Phase5_Test extends BaseTest {
      * Navigate to Capacitor Edit Asset screen
      */
     private void navigateToCapacitorEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("📝 Navigating to Capacitor Edit Asset screen...");
-        
-        System.out.println("📦 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        System.out.println("🔍 Selecting first asset...");
-        assetPage.selectFirstAsset();
-        sleep(1500);
-        
-        System.out.println("✏️ Clicking Edit...");
-        assetPage.clickEditTurbo();
-        sleep(2000);
-        
-        long elapsed = System.currentTimeMillis() - start;
-        System.out.println("✅ On Capacitor Edit Asset screen (Total: " + elapsed + "ms)");
+        cachedCapP5AssetName = assetPage.openSharedAssetForEditOrFallback(cachedCapP5AssetName);
     }
 
     // ============================================================
@@ -2775,22 +2698,7 @@ public class Asset_Phase5_Test extends BaseTest {
     // ============================================================
 
     private void navigateToCircuitBreakerEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("📝 Navigating to Circuit Breaker Edit Asset screen...");
-        
-        System.out.println("📦 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        System.out.println("🔍 Selecting first asset...");
-        assetPage.selectFirstAsset();
-        sleep(1500);
-        
-        System.out.println("✏️ Clicking Edit...");
-        assetPage.clickEditTurbo();
-        sleep(2000);
-        
-        long elapsed = System.currentTimeMillis() - start;
-        System.out.println("✅ On Circuit Breaker Edit Asset screen (Total: " + elapsed + "ms)");
+        cachedCBP5AssetName = assetPage.openSharedAssetForEditOrFallback(cachedCBP5AssetName);
     }
 
     // ============================================================
@@ -3483,22 +3391,7 @@ public class Asset_Phase5_Test extends BaseTest {
     // ============================================================
 
     private void navigateToDefaultEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("📝 Navigating to Default Edit Asset screen...");
-        
-        System.out.println("📦 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        System.out.println("🔍 Selecting first asset...");
-        assetPage.selectFirstAsset();
-        sleep(1500);
-        
-        System.out.println("✏️ Clicking Edit...");
-        assetPage.clickEditTurbo();
-        sleep(2000);
-        
-        long elapsed = System.currentTimeMillis() - start;
-        System.out.println("✅ On Default Edit Asset screen (Total: " + elapsed + "ms)");
+        cachedDefaultP5AssetName = assetPage.openSharedAssetForEditOrFallback(cachedDefaultP5AssetName);
     }
 
     /**
@@ -3907,19 +3800,19 @@ public class Asset_Phase5_Test extends BaseTest {
      * OPTIMIZED: Generic navigation to Edit Asset screen
      * Replaces sleep(1500) + sleep(2000) with shortWait() for 3.2 second savings per call
      */
+    /**
+     * Per-asset-type cache for the shared-asset optimization (2026-04-30).
+     * Tests 2..N for a given type re-open the SAME asset by name; the
+     * test body's changeAssetClassTo*() then no-ops via fast-path.
+     */
+    private static final java.util.Map<String, String> p5SharedAssetCache = new java.util.HashMap<>();
+
     private void navigateToEditAssetScreen(String assetTypeName) {
-        long start = System.currentTimeMillis();
-        System.out.println("📝 Navigating to " + assetTypeName + " Edit Asset screen...");
-        System.out.println("📦 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        System.out.println("🔍 Selecting first asset...");
-        assetPage.selectFirstAsset();
-        shortWait();  // OPTIMIZED: was sleep(1500)
-        System.out.println("✏️ Clicking Edit...");
-        assetPage.clickEditTurbo();
-        shortWait();  // OPTIMIZED: was sleep(2000)
-        long elapsed = System.currentTimeMillis() - start;
-        System.out.println("✅ On " + assetTypeName + " Edit Asset screen (Total: " + elapsed + "ms)");
+        String cached = p5SharedAssetCache.get(assetTypeName);
+        String result = assetPage.openSharedAssetForEditOrFallback(cached);
+        if (result != null && !result.isEmpty()) {
+            p5SharedAssetCache.put(assetTypeName, result);
+        }
     }
 
     private void navigateToDisconnectSwitchEditScreen() {

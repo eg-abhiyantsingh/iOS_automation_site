@@ -3174,6 +3174,50 @@ public class AssetPage extends BasePage {
     }
 
     /**
+     * Shared-asset helper used by every navigateTo*EditScreen() in the
+     * Asset_Phase*_Test classes.
+     *
+     * Behaviour:
+     *   1. Navigate to the asset list (turbo).
+     *   2. If {@code cachedName} is non-null, try to search-open it via
+     *      {@link #openAssetByNameForEdit(String)}. On success, return the
+     *      same name (fast path — caller's cache stays warm).
+     *   3. On cache-miss or fast-path failure: pick the first asset, click
+     *      Edit, return the captured name. The caller must assign the
+     *      return value back to its cache so test 2 can hit the fast path.
+     *
+     * Why this exists: every Edit Asset test would otherwise pick a fresh
+     * "first asset" and run changeAssetClassTo*() to convert it. The class
+     * picker is slow (~5-10s). By locking onto ONE asset per section and
+     * leveraging changeAssetClassTo*() 's existing fast-path
+     * (isCurrentAssetClassEqualTo), tests 2..N skip the picker entirely.
+     *
+     * Estimated savings: ~5-10s per test from the second test in each
+     * section onward.
+     *
+     * @param cachedName the name remembered from the last call in the same
+     *                   section, or null on the first call
+     * @return the name to cache for the next call (same as {@code cachedName}
+     *         on a hit, or the freshly-selected first asset's name on a miss)
+     */
+    public String openSharedAssetForEditOrFallback(String cachedName) {
+        navigateToAssetListTurbo();
+        if (cachedName != null && !cachedName.isEmpty()) {
+            if (openAssetByNameForEdit(cachedName)) {
+                return cachedName;
+            }
+            System.out.println("⚠️ Shared asset '" + cachedName + "' not found — falling back to first-asset");
+        }
+        String name = selectFirstAsset();
+        sleep(200);
+        clickEditTurbo();
+        if (name != null && !name.isEmpty()) {
+            System.out.println("📌 Cached shared asset: '" + name + "'");
+        }
+        return name;
+    }
+
+    /**
      * Search the asset list for {@code assetName}, open it, and click Edit.
      *
      * Designed for the shared-asset optimization in *_EAD_* test classes:

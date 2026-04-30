@@ -21,6 +21,11 @@ import static org.testng.Assert.fail;
  * Circuit Breaker (24) + Disconnect Switch (23) + Fuse (24) + Generator (20) + Junction Box (17)
  */
 public class Asset_Phase2_Test extends BaseTest {
+    private static String cachedCBAssetName = null;
+    private static String cachedDSAssetName = null;
+    private static String cachedFuseAssetName = null;
+    private static String cachedGeneratorP2AssetName = null;
+    private static String cachedJunctionBoxP2AssetName = null;
 
     @BeforeClass(alwaysRun = true)
     public void classSetup() {
@@ -45,34 +50,8 @@ public class Asset_Phase2_Test extends BaseTest {
      * Uses SMART NAVIGATION - detects current state and takes shortest path
      */
     private void navigateToEditAssetScreenAndChangeToCircuitBreaker() {
-        long startTime = System.currentTimeMillis();
-        System.out.println("📝 Navigating to Edit Asset screen (Circuit Breaker)...");
-        
-        // Go to Asset List DIRECTLY (fastest path with noReset=true)
-        System.out.println("📦 Going to Asset List...");
-        long t1 = System.currentTimeMillis();
-        assetPage.navigateToAssetListTurbo();
-        System.out.println("   ⏱️ Asset List: " + (System.currentTimeMillis() - t1) + "ms");
-        
-        // Click first asset
-        System.out.println("👆 Clicking first asset...");
-        long t2 = System.currentTimeMillis();
-        assetPage.selectFirstAsset();
-        System.out.println("   ⏱️ Select asset: " + (System.currentTimeMillis() - t2) + "ms");
-        
-        // Click Edit
-        System.out.println("✏️ Clicking Edit...");
-        long t3 = System.currentTimeMillis();
-        assetPage.clickEditTurbo();
-        System.out.println("   ⏱️ Click Edit: " + (System.currentTimeMillis() - t3) + "ms");
-        
-        // Change to Circuit Breaker
-        System.out.println("🔄 Changing to Circuit Breaker...");
-        long t4 = System.currentTimeMillis();
+        cachedCBAssetName = assetPage.openSharedAssetForEditOrFallback(cachedCBAssetName);
         assetPage.changeAssetClassToCircuitBreaker();
-        System.out.println("   ⏱️ Change class: " + (System.currentTimeMillis() - t4) + "ms");
-        
-        System.out.println("✅ On Edit Asset screen with Circuit Breaker class (Total: " + (System.currentTimeMillis() - startTime) + "ms)");
     }
 
     // ============================================================
@@ -865,34 +844,8 @@ public class Asset_Phase2_Test extends BaseTest {
      * Uses SMART NAVIGATION - detects current state and takes shortest path
      */
     private void navigateToEditAssetScreenAndChangeToDisconnectSwitch() {
-        long startTime = System.currentTimeMillis();
-        System.out.println("📝 Navigating to Edit Asset screen (Disconnect Switch)...");
-        
-        // Go to Asset List DIRECTLY (fastest path with noReset=true)
-        System.out.println("📦 Going to Asset List...");
-        long t1 = System.currentTimeMillis();
-        assetPage.navigateToAssetListTurbo();
-        System.out.println("   ⏱️ Asset List: " + (System.currentTimeMillis() - t1) + "ms");
-        
-        // Click first asset
-        System.out.println("👆 Clicking first asset...");
-        long t2 = System.currentTimeMillis();
-        assetPage.selectFirstAsset();
-        System.out.println("   ⏱️ Select asset: " + (System.currentTimeMillis() - t2) + "ms");
-        
-        // Click Edit
-        System.out.println("✏️ Clicking Edit...");
-        long t3 = System.currentTimeMillis();
-        assetPage.clickEditTurbo();
-        System.out.println("   ⏱️ Click Edit: " + (System.currentTimeMillis() - t3) + "ms");
-        
-        // Change to Disconnect Switch
-        System.out.println("🔄 Changing to Disconnect Switch...");
-        long t4 = System.currentTimeMillis();
+        cachedDSAssetName = assetPage.openSharedAssetForEditOrFallback(cachedDSAssetName);
         assetPage.changeAssetClassToDisconnectSwitch();
-        System.out.println("   ⏱️ Change class: " + (System.currentTimeMillis() - t4) + "ms");
-        
-        System.out.println("✅ On Edit Asset screen with Disconnect Switch class (Total: " + (System.currentTimeMillis() - startTime) + "ms)");
     }
 
     // ============================================================
@@ -1616,34 +1569,8 @@ public class Asset_Phase2_Test extends BaseTest {
      * Uses SMART NAVIGATION - detects current state and takes shortest path
      */
     private void navigateToEditAssetScreenAndChangeToFuse() {
-        long startTime = System.currentTimeMillis();
-        System.out.println("📝 Navigating to Edit Asset screen (Fuse)...");
-        
-        // Go to Asset List DIRECTLY (fastest path with noReset=true)
-        System.out.println("📦 Going to Asset List...");
-        long t1 = System.currentTimeMillis();
-        assetPage.navigateToAssetListTurbo();
-        System.out.println("   ⏱️ Asset List: " + (System.currentTimeMillis() - t1) + "ms");
-        
-        // Click first asset
-        System.out.println("👆 Clicking first asset...");
-        long t2 = System.currentTimeMillis();
-        assetPage.selectFirstAsset();
-        System.out.println("   ⏱️ Select asset: " + (System.currentTimeMillis() - t2) + "ms");
-        
-        // Click Edit
-        System.out.println("✏️ Clicking Edit...");
-        long t3 = System.currentTimeMillis();
-        assetPage.clickEditTurbo();
-        System.out.println("   ⏱️ Click Edit: " + (System.currentTimeMillis() - t3) + "ms");
-        
-        // Change to Fuse
-        System.out.println("🔄 Changing to Fuse...");
-        long t4 = System.currentTimeMillis();
+        cachedFuseAssetName = assetPage.openSharedAssetForEditOrFallback(cachedFuseAssetName);
         assetPage.changeAssetClassToFuse();
-        System.out.println("   ⏱️ Change class: " + (System.currentTimeMillis() - t4) + "ms");
-        
-        System.out.println("✅ On Edit Asset screen with Fuse class (Total: " + (System.currentTimeMillis() - startTime) + "ms)");
     }
 
     // ============================================================
@@ -2402,23 +2329,7 @@ public class Asset_Phase2_Test extends BaseTest {
      * Creates a Generator asset first if needed, then opens edit screen
      */
     private void navigateToGeneratorEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("📝 Navigating to Generator Edit Asset screen...");
-        
-        // TURBO: Go directly to Asset List
-        System.out.println("📦 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        // Select first available asset (no search needed)
-        System.out.println("� Selecting first asset...");
-        assetPage.selectFirstAsset();
-        shortWait();
-        
-        // Click Edit
-        System.out.println("✏️ Clicking Edit...");
-        assetPage.clickEditTurbo();
-        
-        System.out.println("✅ On Generator Edit Asset screen (Total: " + (System.currentTimeMillis() - start) + "ms)");
+        cachedGeneratorP2AssetName = assetPage.openSharedAssetForEditOrFallback(cachedGeneratorP2AssetName);
     }
 
     /**
@@ -3358,23 +3269,7 @@ public class Asset_Phase2_Test extends BaseTest {
      * Navigate to Junction Box Edit Asset Details screen
      */
     private void navigateToJunctionBoxEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("📝 Navigating to Junction Box Edit Asset screen...");
-        
-        // TURBO: Go directly to Asset List
-        System.out.println("📦 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        // Select first available asset (no search needed)
-        System.out.println("🔍 Selecting first asset...");
-        assetPage.selectFirstAsset();
-        shortWait();
-        
-        // Click Edit
-        System.out.println("✏️ Clicking Edit...");
-        assetPage.clickEditTurbo();
-        
-        System.out.println("✅ On Junction Box Edit Asset screen (Total: " + (System.currentTimeMillis() - start) + "ms)");
+        cachedJunctionBoxP2AssetName = assetPage.openSharedAssetForEditOrFallback(cachedJunctionBoxP2AssetName);
     }
 
     /**

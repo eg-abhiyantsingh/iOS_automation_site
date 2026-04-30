@@ -21,6 +21,10 @@ import static org.testng.Assert.fail;
  * ATS Create (19) + ATS Edit (19) + Busway (4) + Capacitor (26) + Bug Regression (44)
  */
 public class Asset_Phase1_Test extends BaseTest {
+    private static String cachedATSAssetName = null;
+    private static String cachedBuswayAssetName = null;
+    private static String cachedCapacitorAssetName = null;
+    private static String cachedBugAssetName = null;
 
     @BeforeClass(alwaysRun = true)
     public void classSetup() {
@@ -935,22 +939,7 @@ public class Asset_Phase1_Test extends BaseTest {
      * TURBO VERSION - same fast approach as CAP_EAD tests
      */
     private void navigateToEditAssetScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("📝 Navigating to Edit Asset screen...");
-        
-        // TURBO: Go directly to Asset List
-        System.out.println("📦 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        // Select first asset
-        System.out.println("👆 Clicking first asset...");
-        assetPage.selectFirstAsset();
-        
-        // Click Edit
-        System.out.println("✏️ Clicking Edit...");
-        assetPage.clickEditTurbo();
-        
-        System.out.println("✅ On Edit Asset screen (Total: " + (System.currentTimeMillis() - start) + "ms)");
+        cachedATSAssetName = assetPage.openSharedAssetForEditOrFallback(cachedATSAssetName);
     }
 
     // ============================================================
@@ -1771,30 +1760,8 @@ public class Asset_Phase1_Test extends BaseTest {
      * Uses SMART NAVIGATION - detects current state and takes shortest path
      */
     private void navigateToEditAssetScreenAndChangeToBusway() {
-        long startTime = System.currentTimeMillis();
-        System.out.println("📝 Navigating to Edit Asset screen...");
-        
-        // TURBO: Go directly to Asset List
-        System.out.println("📦 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        // Select first asset
-        System.out.println("👆 Clicking first asset...");
-        assetPage.selectFirstAsset();
-        
-        // Click Edit
-        System.out.println("✏️ Clicking Edit...");
-        assetPage.clickEditTurbo();
-        
-        // Change to Busway
-        System.out.println("🔄 Changing to Busway...");
+        cachedBuswayAssetName = assetPage.openSharedAssetForEditOrFallback(cachedBuswayAssetName);
         assetPage.changeAssetClassToBusway();
-        
-        // Step 6: Scroll to Core Attributes
-        assetPage.scrollFormDown();
-        shortWait();
-        
-        System.out.println("✅ On Edit Asset screen with Busway class");
     }
 
     // ============================================================
@@ -1957,37 +1924,8 @@ public class Asset_Phase1_Test extends BaseTest {
      * Simple flow: Login if needed → Asset List → Click Asset → Edit → Capacitor
      */
     private void navigateToEditAssetScreenAndChangeToCapacitor() {
-        long startTime = System.currentTimeMillis();
-        System.out.println("📝 Navigating to Edit Asset screen...");
-        
-        // Step 1: SKIP login check if app is already on dashboard/asset list (noReset=true)
-        // This saves time - don't check for login screens unnecessarily
-        
-        // Step 2: Go to Asset List DIRECTLY (fastest path)
-        System.out.println("📦 Going to Asset List...");
-        long t1 = System.currentTimeMillis();
-        assetPage.navigateToAssetListTurbo();
-        System.out.println("   ⏱️ Asset List: " + (System.currentTimeMillis() - t1) + "ms");
-        
-        // Step 3: Click first asset
-        System.out.println("👆 Clicking first asset...");
-        long t2 = System.currentTimeMillis();
-        assetPage.selectFirstAsset();
-        System.out.println("   ⏱️ Select asset: " + (System.currentTimeMillis() - t2) + "ms");
-        
-        // Step 4: Click Edit
-        System.out.println("✏️ Clicking Edit...");
-        long t3 = System.currentTimeMillis();
-        assetPage.clickEditTurbo();
-        System.out.println("   ⏱️ Click Edit: " + (System.currentTimeMillis() - t3) + "ms");
-        
-        // Step 5: Change to Capacitor
-        System.out.println("🔄 Changing to Capacitor...");
-        long t4 = System.currentTimeMillis();
+        cachedCapacitorAssetName = assetPage.openSharedAssetForEditOrFallback(cachedCapacitorAssetName);
         assetPage.changeAssetClassToCapacitor();
-        System.out.println("   ⏱️ Change class: " + (System.currentTimeMillis() - t4) + "ms");
-        
-        System.out.println("✅ On Edit Asset screen with Capacitor class (Total: " + (System.currentTimeMillis() - startTime) + "ms)");
     }
 
     // ============================================================
@@ -2981,15 +2919,7 @@ public class Asset_Phase1_Test extends BaseTest {
     }
 
     private void navigateToEditAssetScreenForBugTests() {
-        long start = System.currentTimeMillis();
-        System.out.println("📝 Navigating to Edit Asset screen...");
-        assetPage.navigateToAssetListTurbo();
-        sleep(500);
-        assetPage.selectFirstAsset();
-        sleep(1000);
-        assetPage.clickEditTurbo();
-        sleep(1000);
-        System.out.println("✅ On Edit Asset screen (Total: " + (System.currentTimeMillis() - start) + "ms)");
+        cachedBugAssetName = assetPage.openSharedAssetForEditOrFallback(cachedBugAssetName);
     }
 
     private String createTestAsset(String assetName) {

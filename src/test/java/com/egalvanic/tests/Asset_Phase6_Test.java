@@ -40,19 +40,21 @@ public class Asset_Phase6_Test extends BaseTest {
      * OPTIMIZED: Generic navigation to Edit Asset screen
      * Replaces sleep(1500) + sleep(2000) with shortWait() for 3.2 second savings per call
      */
+    /**
+     * Per-asset-type cache for the shared-asset optimization (2026-04-30).
+     * Key: assetTypeName ("Generator", "Panelboard", etc.)
+     * Value: the asset name remembered from a previous navigateToEditAssetScreen call.
+     * On test 2..N for a given type, we re-open the SAME asset by name —
+     * the changeAssetClassTo*() in each test body then no-ops via fast-path.
+     */
+    private static final java.util.Map<String, String> sharedAssetCache = new java.util.HashMap<>();
+
     private void navigateToEditAssetScreen(String assetTypeName) {
-        long start = System.currentTimeMillis();
-        System.out.println("📝 Navigating to " + assetTypeName + " Edit Asset screen...");
-        System.out.println("📦 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        System.out.println("🔍 Selecting first asset...");
-        assetPage.selectFirstAsset();
-        shortWait();  // OPTIMIZED: was sleep(1500)
-        System.out.println("✏️ Clicking Edit...");
-        assetPage.clickEditTurbo();
-        shortWait();  // OPTIMIZED: was sleep(2000)
-        long elapsed = System.currentTimeMillis() - start;
-        System.out.println("✅ On " + assetTypeName + " Edit Asset screen (Total: " + elapsed + "ms)");
+        String cached = sharedAssetCache.get(assetTypeName);
+        String result = assetPage.openSharedAssetForEditOrFallback(cached);
+        if (result != null && !result.isEmpty()) {
+            sharedAssetCache.put(assetTypeName, result);
+        }
     }
 
 

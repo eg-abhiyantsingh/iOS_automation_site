@@ -62,55 +62,8 @@ public class Asset_Phase4_Test extends BaseTest {
     // - NO validation indicators
     // ================================================================================
 
-    // Helper method to navigate to Other (OCP) Edit screen
-    //
-    // Shared-asset optimization (2026-04-30):
-    //   Test 1 (cache miss):  picks the first asset, opens Edit. The test body
-    //                          then calls changeAssetClassToOtherOCP() which
-    //                          actually changes the class. We cache the name.
-    //   Test 2..N (cache hit): searches by cached name, opens THE SAME asset.
-    //                          Asset is already OCP class, so the test body's
-    //                          changeAssetClassToOtherOCP() hits its fast-path
-    //                          (isCurrentAssetClassEqualTo) and no-ops.
-    //
-    // Result: every test after the first skips the slow class-picker open +
-    // tap + Done flow. Estimated savings: ~5-10s per test × 12 tests = 60-120s
-    // saved per Asset_Phase4 OCP-section run.
-    //
-    // Graceful degradation: if anything in the fast path fails (asset deleted,
-    // search broken, etc.) we fall through to the legacy first-asset flow.
     private void navigateToOtherOCPEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("📝 Navigating to Other (OCP) Edit Asset screen...");
-
-        System.out.println("📦 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-
-        // Fast path: re-open the cached shared asset
-        if (cachedOCPAssetName != null) {
-            if (assetPage.openAssetByNameForEdit(cachedOCPAssetName)) {
-                System.out.println("✅ On Other (OCP) Edit Asset screen via shared asset '"
-                    + cachedOCPAssetName + "' (Total: " + (System.currentTimeMillis() - start) + "ms)");
-                return;
-            }
-            System.out.println("⚠️ Shared OCP asset '" + cachedOCPAssetName + "' not found — falling back");
-            cachedOCPAssetName = null;
-        }
-
-        // Legacy path: pick the first asset, open Edit, capture its name for next tests
-        System.out.println("🔍 Selecting first asset...");
-        String firstAssetName = assetPage.selectFirstAsset();
-        shortWait();
-
-        System.out.println("✏️ Clicking Edit...");
-        assetPage.clickEditTurbo();
-
-        if (firstAssetName != null && !firstAssetName.isEmpty()) {
-            cachedOCPAssetName = firstAssetName;
-            System.out.println("📌 Cached OCP shared asset: '" + firstAssetName + "'");
-        }
-
-        System.out.println("✅ On Other (OCP) Edit Asset screen (Total: " + (System.currentTimeMillis() - start) + "ms)");
+        cachedOCPAssetName = assetPage.openSharedAssetForEditOrFallback(cachedOCPAssetName);
     }
 
     // ============================================================
@@ -574,23 +527,7 @@ public class Asset_Phase4_Test extends BaseTest {
 
     // Helper method to navigate to Panelboard Edit screen
     private void navigateToPanelboardEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("\ud83d\udcdd Navigating to Panelboard Edit Asset screen...");
-        
-        // TURBO: Go directly to Asset List
-        System.out.println("\ud83d\udce6 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        // Select first available asset (no search needed)
-        System.out.println("\ud83d\udd0d Selecting first asset...");
-        assetPage.selectFirstAsset();
-        shortWait();
-        
-        // Click Edit
-        System.out.println("\u270f\ufe0f Clicking Edit...");
-        assetPage.clickEditTurbo();
-        
-        System.out.println("\u2705 On Panelboard Edit Asset screen (Total: " + (System.currentTimeMillis() - start) + "ms)");
+        cachedPanelboardAssetName = assetPage.openSharedAssetForEditOrFallback(cachedPanelboardAssetName);
     }
 
     // Helper method to fill a Panelboard field (text field only)
@@ -1216,23 +1153,7 @@ public class Asset_Phase4_Test extends BaseTest {
 
     // Helper method to navigate to PDU Edit screen
     private void navigateToPDUEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("\ud83d\udcdd Navigating to PDU Edit Asset screen...");
-        
-        // TURBO: Go directly to Asset List
-        System.out.println("\ud83d\udce6 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        // Select first available asset (no search needed)
-        System.out.println("\ud83d\udd0d Selecting first asset...");
-        assetPage.selectFirstAsset();
-        shortWait();
-        
-        // Click Edit
-        System.out.println("\u270f\ufe0f Clicking Edit...");
-        assetPage.clickEditTurbo();
-        
-        System.out.println("\u2705 On PDU Edit Asset screen (Total: " + (System.currentTimeMillis() - start) + "ms)");
+        cachedPDUAssetName = assetPage.openSharedAssetForEditOrFallback(cachedPDUAssetName);
     }
 
     // Helper method to fill a PDU field
@@ -1866,23 +1787,7 @@ public class Asset_Phase4_Test extends BaseTest {
 
     // Helper method to navigate to Relay Edit screen
     private void navigateToRelayEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("\ud83d\udcdd Navigating to Relay Edit Asset screen...");
-        
-        // TURBO: Go directly to Asset List
-        System.out.println("\ud83d\udce6 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        // Select first available asset (no search needed)
-        System.out.println("\ud83d\udd0d Selecting first asset...");
-        assetPage.selectFirstAsset();
-        shortWait();
-        
-        // Click Edit
-        System.out.println("\u270f\ufe0f Clicking Edit...");
-        assetPage.clickEditTurbo();
-        
-        System.out.println("\u2705 On Relay Edit Asset screen (Total: " + (System.currentTimeMillis() - start) + "ms)");
+        cachedRelayAssetName = assetPage.openSharedAssetForEditOrFallback(cachedRelayAssetName);
     }
 
     // Helper method to fill a Relay field (text field only)
@@ -2531,23 +2436,7 @@ public class Asset_Phase4_Test extends BaseTest {
 
     // Helper method to navigate to Switchboard Edit screen
     private void navigateToSwitchboardEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("\ud83d\udcdd Navigating to Switchboard Edit Asset screen...");
-        
-        // TURBO: Go directly to Asset List
-        System.out.println("\ud83d\udce6 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        // Select first available asset (no search needed)
-        System.out.println("\ud83d\udd0d Selecting first asset...");
-        assetPage.selectFirstAsset();
-        shortWait();
-        
-        // Click Edit
-        System.out.println("\u270f\ufe0f Clicking Edit...");
-        assetPage.clickEditTurbo();
-        
-        System.out.println("\u2705 On Switchboard Edit Asset screen (Total: " + (System.currentTimeMillis() - start) + "ms)");
+        cachedSwitchboardAssetName = assetPage.openSharedAssetForEditOrFallback(cachedSwitchboardAssetName);
     }
 
     // Helper method to fill a Switchboard field
@@ -3305,23 +3194,7 @@ public class Asset_Phase4_Test extends BaseTest {
 
     // Helper method to navigate to Transformer Edit screen
     private void navigateToTransformerEditScreen() {
-        long start = System.currentTimeMillis();
-        System.out.println("\ud83d\udcdd Navigating to Transformer Edit Asset screen...");
-        
-        // TURBO: Go directly to Asset List
-        System.out.println("\ud83d\udce6 Going to Asset List...");
-        assetPage.navigateToAssetListTurbo();
-        
-        // Select first available asset (no search needed)
-        System.out.println("\ud83d\udd0d Selecting first asset...");
-        assetPage.selectFirstAsset();
-        shortWait();
-        
-        // Click Edit
-        System.out.println("\u270f\ufe0f Clicking Edit...");
-        assetPage.clickEditTurbo();
-        
-        System.out.println("\u2705 On Transformer Edit Asset screen (Total: " + (System.currentTimeMillis() - start) + "ms)");
+        cachedTransformerAssetName = assetPage.openSharedAssetForEditOrFallback(cachedTransformerAssetName);
     }
 
     // Helper method to fill a Transformer field
