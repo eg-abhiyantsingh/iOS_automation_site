@@ -4,6 +4,7 @@ import com.egalvanic.constants.AppConstants;
 import io.appium.java_client.ios.IOSDriver;
 import io.appium.java_client.appmanagement.ApplicationState;
 import io.appium.java_client.ios.options.XCUITestOptions;
+import org.openqa.selenium.remote.http.ClientConfig;
 
 import java.net.URL;
 import java.time.Duration;
@@ -157,7 +158,22 @@ public class DriverManager {
                     System.out.println("📱 WDA Local Port: " + wdaLocalPort);
                 }
 
-                IOSDriver newDriver = new IOSDriver(appiumServer, options);
+                // ========== HTTP CLIENT TIMEOUT (CRITICAL FOR HUNG-SESSION RECOVERY) ==========
+                // Without this, when the iOS WDA bridge dies mid-test, every Appium HTTP
+                // request blocks indefinitely on Unsafe.park — TestNG's suite time-out
+                // (420s = 7 min per test) is the only thing that catches it. Forensics
+                // on run #24876293380 showed 16 tests hung this way, wasting 112+ min
+                // total on dead-session probes.
+                //
+                // readTimeout(90s) caps every Appium command at 90 seconds. Healthy
+                // calls return in <1s; the only impact is on dead sessions, which
+                // now fail-fast in 90s instead of 420s. Failed tests still run their
+                // teardown, get screenshots, and the next test starts cleanly.
+                ClientConfig httpConfig = ClientConfig.defaultConfig()
+                        .baseUrl(appiumServer)
+                        .connectionTimeout(Duration.ofSeconds(60))
+                        .readTimeout(Duration.ofSeconds(90));
+                IOSDriver newDriver = new IOSDriver(httpConfig, options);
                 newDriver.manage().timeouts().implicitlyWait(Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
 
                 driver = newDriver;
