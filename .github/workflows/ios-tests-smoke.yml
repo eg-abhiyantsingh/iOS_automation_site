@@ -94,6 +94,16 @@ jobs:
         uses: actions/checkout@v4
 
       # ============================================================
+      # Assertion Coverage Gate (added 2026-04-30, see changelog 045)
+      # Fails the workflow if any NEW @Test method lacks an assertion.
+      # Existing 375 grandfathered tests are listed in
+      # scripts/assertion-baseline.txt and allowed.
+      # The baseline is shrink-only — never grow without review.
+      # ============================================================
+      - name: Assertion Coverage Check (no NEW pass-anyway tests)
+        run: python3 scripts/check_assertion_coverage.py --strict
+
+      # ============================================================
       # Branch-Based S3 Environment Detection
       # Maps git branch → S3 drift environment (dev/qa/staging/prod/bces-iq)
       # Manual override via workflow_dispatch target_environment input
