@@ -3174,6 +3174,43 @@ public class AssetPage extends BasePage {
     }
 
     /**
+     * Search the asset list for {@code assetName}, open it, and click Edit.
+     *
+     * Designed for the shared-asset optimization in *_EAD_* test classes:
+     * once a class has selected its "test asset" (e.g. an OCP-class asset),
+     * subsequent tests can re-open the SAME asset by name instead of picking
+     * the first asset and re-running changeAssetClassTo*() each time.
+     * The change-class fast-path then no-ops (asset already at desired class).
+     *
+     * @return true if the Edit Asset screen is visible after the click,
+     *         false if any step failed — caller should fall back to the
+     *         legacy selectFirstAsset() + clickEditTurbo() flow.
+     */
+    public boolean openAssetByNameForEdit(String assetName) {
+        if (assetName == null || assetName.isEmpty()) return false;
+        try {
+            searchAsset(assetName);
+            if (!selectAssetByName(assetName)) {
+                System.out.println("   shared-asset: name not found in list, fallback path");
+                return false;
+            }
+            sleep(400);
+            clickEditTurbo();
+            sleep(400);
+            // Verify we landed on Edit screen
+            if (isEditAssetScreenDisplayed() || isSaveChangesButtonVisible()) {
+                System.out.println("✅ shared-asset: opened '" + assetName + "' for edit (fast path)");
+                return true;
+            }
+            System.out.println("   shared-asset: opened '" + assetName + "' but Edit screen not visible");
+            return false;
+        } catch (Exception e) {
+            System.out.println("   shared-asset: openAssetByNameForEdit failed: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Clear search field and select first asset from the list
      * Useful as a fallback when searching for a specific asset type fails
      */

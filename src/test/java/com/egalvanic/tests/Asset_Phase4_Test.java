@@ -22,6 +22,20 @@ import static org.testng.Assert.fail;
  */
 public class Asset_Phase4_Test extends BaseTest {
 
+    /**
+     * Shared-asset optimization (added 2026-04-30):
+     * Each *_EAD_* section caches the name of the asset it converted to the
+     * desired class on first use. Subsequent tests in the same section open
+     * the SAME asset by name instead of picking "first asset" and re-running
+     * the (slow) class picker every test. The changeAssetClassTo*() calls
+     * stay in place — they hit their fast-path (already-at-class) and no-op.
+     *
+     * Static so all tests in this class instance share the cache. Stays null
+     * if a test in the section fails before caching, then the next test
+     * pays the full legacy cost again — graceful degradation.
+     */
+    private static String cachedOCPAssetName = null;
+
     @BeforeClass(alwaysRun = true)
     public void classSetup() {
         System.out.println("\n\ud83d\udccb Asset Phase 4 Test Suite \u2014 Starting (97 tests)");
@@ -49,23 +63,53 @@ public class Asset_Phase4_Test extends BaseTest {
     // ================================================================================
 
     // Helper method to navigate to Other (OCP) Edit screen
+    //
+    // Shared-asset optimization (2026-04-30):
+    //   Test 1 (cache miss):  picks the first asset, opens Edit. The test body
+    //                          then calls changeAssetClassToOtherOCP() which
+    //                          actually changes the class. We cache the name.
+    //   Test 2..N (cache hit): searches by cached name, opens THE SAME asset.
+    //                          Asset is already OCP class, so the test body's
+    //                          changeAssetClassToOtherOCP() hits its fast-path
+    //                          (isCurrentAssetClassEqualTo) and no-ops.
+    //
+    // Result: every test after the first skips the slow class-picker open +
+    // tap + Done flow. Estimated savings: ~5-10s per test × 12 tests = 60-120s
+    // saved per Asset_Phase4 OCP-section run.
+    //
+    // Graceful degradation: if anything in the fast path fails (asset deleted,
+    // search broken, etc.) we fall through to the legacy first-asset flow.
     private void navigateToOtherOCPEditScreen() {
         long start = System.currentTimeMillis();
         System.out.println("📝 Navigating to Other (OCP) Edit Asset screen...");
-        
-        // TURBO: Go directly to Asset List
+
         System.out.println("📦 Going to Asset List...");
         assetPage.navigateToAssetListTurbo();
-        
-        // Select first available asset (no search needed)
+
+        // Fast path: re-open the cached shared asset
+        if (cachedOCPAssetName != null) {
+            if (assetPage.openAssetByNameForEdit(cachedOCPAssetName)) {
+                System.out.println("✅ On Other (OCP) Edit Asset screen via shared asset '"
+                    + cachedOCPAssetName + "' (Total: " + (System.currentTimeMillis() - start) + "ms)");
+                return;
+            }
+            System.out.println("⚠️ Shared OCP asset '" + cachedOCPAssetName + "' not found — falling back");
+            cachedOCPAssetName = null;
+        }
+
+        // Legacy path: pick the first asset, open Edit, capture its name for next tests
         System.out.println("🔍 Selecting first asset...");
-        assetPage.selectFirstAsset();
+        String firstAssetName = assetPage.selectFirstAsset();
         shortWait();
-        
-        // Click Edit
+
         System.out.println("✏️ Clicking Edit...");
         assetPage.clickEditTurbo();
-        
+
+        if (firstAssetName != null && !firstAssetName.isEmpty()) {
+            cachedOCPAssetName = firstAssetName;
+            System.out.println("📌 Cached OCP shared asset: '" + firstAssetName + "'");
+        }
+
         System.out.println("✅ On Other (OCP) Edit Asset screen (Total: " + (System.currentTimeMillis() - start) + "ms)");
     }
 
