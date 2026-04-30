@@ -10755,13 +10755,17 @@ public class AssetPage extends BasePage {
     // ZP-323.6 — SUGGESTED SHORTCUTS (added 2026-04-30)
     // ================================================================
 
-    /** Returns true if the "Suggested Shortcuts" section is visible on Asset Edit/Create. */
+    /**
+     * Returns true if the "Suggested Shortcut (Optional)" section is visible on Asset Edit/Create.
+     * Web verification 2026-04-30: label is exactly "Suggested Shortcut (Optional)" (singular, not plural).
+     */
     public boolean isSuggestedShortcutsSectionVisible() {
         try {
             WebElement el = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND " +
-                "(label CONTAINS[c] 'suggested shortcut' OR label == 'Suggested Shortcuts (Optional)' OR " +
-                "label == 'Suggested Shortcuts')"));
+                "(label == 'Suggested Shortcut (Optional)' OR " +
+                "label == 'Suggested Shortcuts (Optional)' OR " +
+                "label CONTAINS[c] 'suggested shortcut')"));
             return el.isDisplayed();
         } catch (Exception e) { return false; }
     }
@@ -10798,13 +10802,44 @@ public class AssetPage extends BasePage {
     // ZP-323.7 — CONDITION OF MAINTENANCE (COM) CALCULATION (added 2026-04-30)
     // ================================================================
 
-    /** Returns true if the COM (Condition of Maintenance) badge/label is visible on Asset Details. */
+    /**
+     * Returns true if the COM (Condition of Maintenance) badge/label is visible on Asset Details.
+     * Web verification 2026-04-30: label is "Condition of Maintenance (COM)" or "Condition of Maintenance".
+     * Asset Edit form has it with a "?" help button + Calculator button + value buttons (1/2/3).
+     */
     public boolean isCOMVisibleOnAssetDetails() {
         try {
             driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND " +
-                "(label CONTAINS[c] 'condition of maintenance' OR label CONTAINS[c] 'COM')"));
+                "(label == 'Condition of Maintenance (COM)' OR " +
+                "label == 'Condition of Maintenance' OR " +
+                "label CONTAINS[c] 'condition of maintenance')"));
             return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /**
+     * Tap the COM "?" help button to open the explanation popup (Asset Edit form).
+     * Verified on web 2026-04-30 — there's a "?" button next to "Condition of Maintenance" label.
+     */
+    public boolean tapCOMHelpButton() {
+        try {
+            WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == '?'"));
+            btn.click(); sleep(400); return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /**
+     * Tap one of the COM value buttons (1, 2, or 3) on the Asset Edit form.
+     * Web verification: buttons render as "1" / "2" / "3" with one in pressed state.
+     */
+    public boolean tapCOMValue(int value) {
+        if (value < 1 || value > 5) return false;
+        try {
+            WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == '" + value + "'"));
+            btn.click(); sleep(300); return true;
         } catch (Exception e) { return false; }
     }
 
@@ -10873,7 +10908,15 @@ public class AssetPage extends BasePage {
     // ZP-323.11 — DETAILED CREATE ASSET FLOW (added 2026-04-30)
     // ================================================================
 
-    /** On Create Asset entry screen, tap the "Detailed" flow option (vs. Quick). */
+    /**
+     * On Create Asset entry screen, tap the "Detailed" flow option (vs. Quick).
+     *
+     * Note (2026-04-30): On the WEB app, there is no separate Quick/Detailed
+     * toggle — the "Add Asset" modal opens with all sections expanded by default
+     * (BASIC INFO, CORE ATTRIBUTES, COMMERCIAL, NOTES). The Quick/Detailed split
+     * may be iOS-only. This method may return false on web — that's OK because
+     * tests use skipIfPreconditionMissing().
+     */
     public boolean tapDetailedCreateFlow() {
         try {
             WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
@@ -10883,15 +10926,19 @@ public class AssetPage extends BasePage {
         } catch (Exception e) { return false; }
     }
 
-    /** Verify we are on the Detailed Create form. */
+    /**
+     * Verify we are on the Detailed Create form. Web reference (2026-04-30):
+     * the modal has section headers BASIC INFO, CORE ATTRIBUTES, COMMERCIAL, NOTES.
+     */
     public boolean isOnDetailedCreateForm() {
         try {
-            // Expect the form to show multiple section headers like Basic Information,
-            // Location, Asset Class, Photos, etc., that the Quick form doesn't have.
             int headers = driver.findElements(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND " +
-                "(label == 'Basic Information' OR label == 'Photos' OR label == 'Suggested Shortcuts' OR " +
-                "label == 'Core Attributes' OR label == 'Tasks')")).size();
+                "(label == 'BASIC INFO' OR label == 'Basic Information' OR " +
+                "label == 'CORE ATTRIBUTES' OR label == 'Core Attributes' OR " +
+                "label == 'COMMERCIAL' OR label == 'Commercial' OR " +
+                "label == 'NOTES' OR label == 'Notes' OR " +
+                "label == 'Asset Photos' OR label CONTAINS[c] 'suggested shortcut')")).size();
             return headers >= 2;
         } catch (Exception e) { return false; }
     }
@@ -10900,32 +10947,47 @@ public class AssetPage extends BasePage {
     // ZP-323.12 — COPY TO / COPY FROM (added 2026-04-30)
     // ================================================================
 
-    /** Open the asset's overflow menu to surface Copy options. */
+    /**
+     * Tap the "Copy Details" button on the Add/Edit Asset form.
+     * Web verification 2026-04-30: button is labeled "Copy Details" (top of modal).
+     * Tapping it opens a menu with two items:
+     *   - "Copy Details From…" (active when creating)
+     *   - "Copy Details To… Save this asset first" (disabled until saved)
+     */
     public boolean openAssetOverflowMenu() {
         try {
             WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND " +
-                "(name CONTAINS 'ellipsis' OR label == 'More' OR label CONTAINS[c] 'options')"));
+                "(label == 'Copy Details' OR " +
+                "name CONTAINS 'ellipsis' OR label == 'More' OR label CONTAINS[c] 'options')"));
             btn.click(); sleep(400); return true;
         } catch (Exception e) { return false; }
     }
 
-    /** Tap "Copy From" — should open a picker for source asset. */
+    /**
+     * Tap "Copy Details From…" to start picking a source asset to copy from.
+     * Web label: "Copy Details From…" (with ellipsis character).
+     */
     public boolean tapCopyFrom() {
         try {
             WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND " +
-                "(label == 'Copy From' OR label == 'Copy from')"));
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' OR " +
+                "type == 'XCUIElementTypeMenuItem') AND " +
+                "(label CONTAINS[c] 'Copy Details From' OR label == 'Copy From' OR label == 'Copy from')"));
             btn.click(); sleep(500); return true;
         } catch (Exception e) { return false; }
     }
 
-    /** Tap "Copy To" — should open multi-select target picker. */
+    /**
+     * Tap "Copy Details To…" to start picking target assets to copy to.
+     * Web note: option is disabled until the current asset is saved.
+     */
     public boolean tapCopyTo() {
         try {
             WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND " +
-                "(label == 'Copy To' OR label == 'Copy to')"));
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' OR " +
+                "type == 'XCUIElementTypeMenuItem') AND " +
+                "(label CONTAINS[c] 'Copy Details To' OR label == 'Copy To' OR label == 'Copy to')"));
             btn.click(); sleep(500); return true;
         } catch (Exception e) { return false; }
     }
@@ -10936,7 +10998,7 @@ public class AssetPage extends BasePage {
             driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND " +
                 "(label CONTAINS[c] 'select source' OR label CONTAINS[c] 'copy from' OR " +
-                "label == 'Source Asset')"));
+                "label CONTAINS[c] 'copy details' OR label == 'Source Asset')"));
             return true;
         } catch (Exception e) { return false; }
     }

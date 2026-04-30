@@ -22359,15 +22359,38 @@ public class WorkOrderPage extends BasePage {
     // ZP-323.14 — IR PHOTO UPLOAD IN WORK ORDER (added 2026-04-30)
     // ================================================================
 
-    /** Tap "Add IR Photo" button on Work Order screen. */
+    /**
+     * Tap the IR-photo upload button on the Work Order detail screen.
+     *
+     * Web verification 2026-04-30: Work Order detail has a tab "IR Photos"
+     * which contains a button labeled "Upload IR Photos". The iOS app likely
+     * uses the same or close to it. We also accept "Add IR Photo" / "Take IR
+     * Photo" for cross-build variation.
+     *
+     * Note: this method assumes the user is already on the IR Photos tab.
+     * Use tapIRPhotosTab() first if needed.
+     */
     public boolean tapAddIRPhoto() {
         try {
             WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND " +
-                "(label CONTAINS[c] 'IR Photo' OR label CONTAINS[c] 'Add IR' OR " +
+                "(label == 'Upload IR Photos' OR label == 'Upload IR Photo' OR " +
+                "label CONTAINS[c] 'IR Photo' OR label CONTAINS[c] 'Add IR' OR " +
                 "label == 'Take IR Photo' OR name CONTAINS[c] 'thermal')"));
             btn.click();
             try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /** Tap the "IR Photos" tab on the Work Order detail screen. */
+    public boolean tapIRPhotosTab() {
+        try {
+            WebElement tab = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeOther') AND " +
+                "(label == 'IR Photos' OR label CONTAINS[c] 'IR Photo')"));
+            tab.click();
+            try { Thread.sleep(400); } catch (InterruptedException ignored) {}
             return true;
         } catch (Exception e) { return false; }
     }
@@ -22408,12 +22431,20 @@ public class WorkOrderPage extends BasePage {
     // ZP-323.15 — SCHEDULE WORK ORDER DETAILS (added 2026-04-30)
     // ================================================================
 
-    /** Tap the Schedule field/section to open the date picker. */
+    /**
+     * Tap the Schedule field/section to open the date picker.
+     *
+     * Web verification 2026-04-30: Work Order header has a "Schedule" label with
+     * "Schedule not set" placeholder text when no date is set. The iOS app likely
+     * shows the same.
+     */
     public boolean tapScheduleField() {
         try {
             WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeCell') AND " +
-                "(label CONTAINS[c] 'schedule' OR label CONTAINS[c] 'scheduled date' OR " +
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeCell' OR " +
+                "type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeOther') AND " +
+                "(label == 'Schedule not set' OR label == 'Schedule' OR " +
+                "label CONTAINS[c] 'schedule' OR label CONTAINS[c] 'scheduled date' OR " +
                 "label CONTAINS[c] 'pick a date')"));
             btn.click();
             try { Thread.sleep(500); } catch (InterruptedException ignored) {}

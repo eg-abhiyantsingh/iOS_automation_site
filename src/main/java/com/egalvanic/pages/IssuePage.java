@@ -11129,25 +11129,36 @@ public class IssuePage extends BasePage {
 
     /**
      * Returns the count of IR photos visible on the currently-open Issue Details screen.
+     *
+     * Web verification 2026-04-30 — on the Issue Details "Photos" tab, the heading is
+     *   "Infrared Photos (N)"     (heading level 6)
+     * with empty state text:
+     *   "No IR photos linked to this issue"
+     *
+     * The iOS app very likely uses one of these labels. We accept several variants
+     * (Infrared Photos / IR Photos / Thermal Photos) for cross-build resilience.
+     *
      * Returns -1 if the IR Photos section header isn't present (issue has no IR photos
-     * AND no empty section is rendered — the expected good state).
+     * AND no empty section is rendered — the expected good state in the post-fix build).
+     * Returns 0 if section header IS present but no photo elements found (the bug case).
      */
     public int getIRPhotoCountOnIssueDetails() {
         try {
-            // First: is the section header visible?
+            // Section header detection — accept multiple wording variants
             try {
                 driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeStaticText' AND " +
-                    "(label == 'IR Photos' OR label CONTAINS[c] 'IR Photo' OR " +
+                    "(label == 'Infrared Photos' OR label CONTAINS[c] 'infrared photo' OR " +
+                    "label == 'IR Photos' OR label CONTAINS[c] 'IR Photo' OR " +
                     "label == 'Thermal Photos' OR label CONTAINS[c] 'thermal photo')"));
             } catch (Exception e) {
-                return -1;  // No IR section displayed
+                return -1;  // No IR section displayed (good state for issue without IR photos)
             }
             // Count photo cells/images near the IR Photos section
             java.util.List<WebElement> images = driver.findElements(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeImage' AND " +
                 "(name CONTAINS[c] 'ir' OR name CONTAINS[c] 'thermal' OR " +
-                "name CONTAINS[c] 'photo')"));
+                "name CONTAINS[c] 'infrared' OR name CONTAINS[c] 'photo')"));
             return images.size();
         } catch (Exception e) {
             return 0;
