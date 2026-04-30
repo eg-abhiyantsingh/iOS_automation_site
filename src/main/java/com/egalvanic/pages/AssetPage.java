@@ -10869,38 +10869,77 @@ public class AssetPage extends BasePage {
     }
 
     // ================================================================
-    // ZP-323.10 — ASSET LISTENING (auto-assign to task) (added 2026-04-30)
+    // ZP-323.10 — ASSET LISTENING (Task auto-link) (added 2026-04-30)
+    //
+    // iOS evidence 2026-04-30 (user screenshots v1.31):
+    //   The Listen feature lives on the **Task Details** screen, NOT on the
+    //   Asset list. It appears below the "Linked Assets" card as a small pill
+    //   button with two states:
+    //     - Inactive: "Listen for Assets"   (gray pill, headphones icon)
+    //     - Active:   "Listening for Assets" (orange pill, headphones icon)
+    //   Precondition: parent Issue/Task must be in OPEN status.
+    //   Tapping toggles between the two states. The feature presumably
+    //   auto-links nearby assets (BLE / continuous QR scan) into the Task's
+    //   Linked Assets list.
     // ================================================================
 
-    /** Tap the "Listen" button on an asset to start listening / auto-assign to current task. */
+    /**
+     * Tap the "Listen for Assets" button on the Task Details screen.
+     * Precondition: Task is open. If the button is missing, the parent
+     * issue/task is likely closed/resolved — caller should
+     * skipIfPreconditionMissing().
+     */
     public boolean tapListenAsset() {
         try {
             WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND " +
-                "(label == 'Listen' OR label CONTAINS[c] 'start listening' OR " +
-                "name CONTAINS[c] 'listen')"));
-            btn.click(); sleep(400); return true;
+                "(label == 'Listen for Assets' OR label == 'Listening for Assets' OR " +
+                "label CONTAINS[c] 'listen for asset' OR label CONTAINS[c] 'listening for asset' OR " +
+                "label == 'Listen' OR label == 'Stop Listening')"));
+            btn.click(); sleep(500); return true;
         } catch (Exception e) { return false; }
     }
 
-    /** Check if "Listening" indicator is currently shown (recording-style badge). */
+    /**
+     * Returns true when the active state pill "Listening for Assets" is shown
+     * (orange-filled in iOS v1.31). Indicates the listen scan is running.
+     */
     public boolean isListeningIndicatorActive() {
         try {
             driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeImage') AND " +
-                "(label CONTAINS[c] 'listening' OR name CONTAINS[c] 'listen.recording' OR " +
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND " +
+                "(label == 'Listening for Assets' OR label CONTAINS[c] 'listening for asset' OR " +
                 "label == '● Listening')"));
             return true;
         } catch (Exception e) { return false; }
     }
 
-    /** Stop listening if it's active. Safe no-op if not. */
+    /**
+     * Returns true when the inactive state pill "Listen for Assets" is shown
+     * (gray in iOS v1.31). Useful as a precondition probe before tapping.
+     */
+    public boolean isListenForAssetsButtonAvailable() {
+        try {
+            driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(label == 'Listen for Assets' OR label == 'Listening for Assets')"));
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /**
+     * Stop listening if active. iOS v1.31: tapping the active "Listening for
+     * Assets" pill toggles it back to "Listen for Assets". A dedicated
+     * "Stop Listening" button does not appear in the screenshots.
+     */
     public void stopListeningIfActive() {
         try {
-            WebElement stop = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND " +
-                "(label == 'Stop' OR label == 'Stop Listening')"));
-            stop.click(); sleep(300);
+            if (isListeningIndicatorActive()) {
+                WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND " +
+                    "(label == 'Listening for Assets' OR label == 'Stop' OR label == 'Stop Listening')"));
+                btn.click(); sleep(400);
+            }
         } catch (Exception ignored) {}
     }
 
