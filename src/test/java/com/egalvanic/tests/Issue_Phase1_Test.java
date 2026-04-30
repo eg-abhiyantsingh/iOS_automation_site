@@ -5328,8 +5328,7 @@ public final class Issue_Phase1_Test extends BaseTest {
         assertTrue(onForm, "Should be on New Issue form");
 
         logStep("Step 2: Select 'Replacement Needed' from Issue Class dropdown");
-        boolean selected = issuePage.selectIssueClass("Replacement Needed");
-        assertTrue(selected, "Should be able to select 'Replacement Needed'");
+        issuePage.selectIssueClass("Replacement Needed");
         shortWait();
 
         logStep("Step 3: Verify Issue Class field shows 'Replacement Needed'");
@@ -5419,7 +5418,7 @@ public final class Issue_Phase1_Test extends BaseTest {
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
         issuePage.tapAllTab();
-        boolean opened = issuePage.tapFirstIssue();
+        issuePage.tapFirstIssue(); boolean opened = issuePage.isIssueDetailsScreenDisplayed();
         skipIfPreconditionMissing(
             () -> opened,
             "No issues exist in this site to verify IR photo state"
@@ -5459,7 +5458,7 @@ public final class Issue_Phase1_Test extends BaseTest {
         issuePage.tapAllTab();
 
         // Try the first issue. If no IR photos, skip the test cleanly.
-        boolean opened = issuePage.tapFirstIssue();
+        issuePage.tapFirstIssue(); boolean opened = issuePage.isIssueDetailsScreenDisplayed();
         skipIfPreconditionMissing(
             () -> opened,
             "No issues exist to find an IR photo"
@@ -5501,7 +5500,7 @@ public final class Issue_Phase1_Test extends BaseTest {
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
         issuePage.tapAllTab();
-        boolean opened = issuePage.tapFirstIssue();
+        issuePage.tapFirstIssue(); boolean opened = issuePage.isIssueDetailsScreenDisplayed();
         skipIfPreconditionMissing(
             () -> opened,
             "No issues exist to test"
@@ -5546,7 +5545,7 @@ public final class Issue_Phase1_Test extends BaseTest {
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
         issuePage.tapAllTab();
-        if (issuePage.tapFirstIssue()) {
+        issuePage.tapFirstIssue(); if (issuePage.isIssueDetailsScreenDisplayed()) {
             mediumWait();
             int count = issuePage.getIRPhotoCountOnIssueDetails();
             if (count >= 1) {
@@ -5580,7 +5579,7 @@ public final class Issue_Phase1_Test extends BaseTest {
         boolean onIssues = ensureOnIssuesScreen();
         assertTrue(onIssues, "Should be on Issues screen");
         issuePage.tapAllTab();
-        boolean opened = issuePage.tapFirstIssue();
+        issuePage.tapFirstIssue(); boolean opened = issuePage.isIssueDetailsScreenDisplayed();
         skipIfPreconditionMissing(
             () -> opened,
             "No issues exist"

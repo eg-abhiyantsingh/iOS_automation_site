@@ -2790,4 +2790,118 @@ public class SiteSelectionPage extends BasePage {
         }
     }
 
+    /** Tap the "Sites" button on the dashboard to navigate to site list. */
+    public boolean tapDashboardSitesButton() {
+        try {
+            WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(label == 'Sites' OR label == 'Select Site' OR label CONTAINS[c] 'change site')"));
+            btn.click();
+            try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** Returns the name of the first visible site cell, or empty string. */
+    public String getFirstSiteName() {
+        try {
+            WebElement first = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell'"));
+            String n = first.getAttribute("name");
+            if (n == null || n.isEmpty()) n = first.getAttribute("label");
+            return n == null ? "" : n;
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    // ================================================================
+    // ZP-323.8 — EDIT SITE VIA LONG PRESS (added 2026-04-30)
+    // ================================================================
+
+    /**
+     * Long-press a site row in the Site Selection list to open its context menu.
+     * Returns true if the long-press gesture was issued (doesn't validate menu opened).
+     */
+    public boolean longPressOnSite(String siteName) {
+        try {
+            WebElement row = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeStaticText') AND " +
+                "label CONTAINS[c] '" + siteName.replace("'", "\\'") + "'"));
+            int x = row.getLocation().getX() + row.getSize().getWidth() / 2;
+            int y = row.getLocation().getY() + row.getSize().getHeight() / 2;
+
+            org.openqa.selenium.interactions.PointerInput finger =
+                new org.openqa.selenium.interactions.PointerInput(
+                    org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
+            org.openqa.selenium.interactions.Sequence longPress =
+                new org.openqa.selenium.interactions.Sequence(finger, 1);
+            longPress.addAction(finger.createPointerMove(java.time.Duration.ofMillis(0),
+                org.openqa.selenium.interactions.PointerInput.Origin.viewport(), x, y));
+            longPress.addAction(finger.createPointerDown(0));
+            longPress.addAction(new org.openqa.selenium.interactions.Pause(finger,
+                java.time.Duration.ofMillis(1000)));
+            longPress.addAction(finger.createPointerUp(0));
+            driver.perform(java.util.Collections.singletonList(longPress));
+            try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** Returns true if a context menu is visible (Edit/Delete options). */
+    public boolean isSiteContextMenuVisible() {
+        try {
+            driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(label == 'Edit' OR label == 'Edit Site')"));
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /** Tap the "Edit" option in the context menu. */
+    public boolean tapEditSiteFromContextMenu() {
+        try {
+            WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(label == 'Edit' OR label == 'Edit Site')"));
+            btn.click();
+            try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /** Verify we are on the Edit Site screen. */
+    public boolean isEditSiteScreenDisplayed() {
+        try {
+            driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "(label == 'Edit Site' OR label CONTAINS[c] 'edit site')"));
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /** Dismiss any open context menu (tap outside). */
+    public void dismissSiteContextMenu() {
+        try {
+            org.openqa.selenium.Dimension size = driver.manage().window().getSize();
+            // tap top of screen to dismiss
+            org.openqa.selenium.interactions.PointerInput finger =
+                new org.openqa.selenium.interactions.PointerInput(
+                    org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
+            org.openqa.selenium.interactions.Sequence tap =
+                new org.openqa.selenium.interactions.Sequence(finger, 1);
+            tap.addAction(finger.createPointerMove(java.time.Duration.ofMillis(0),
+                org.openqa.selenium.interactions.PointerInput.Origin.viewport(),
+                size.getWidth() / 2, 50));
+            tap.addAction(finger.createPointerDown(0));
+            tap.addAction(finger.createPointerUp(0));
+            driver.perform(java.util.Collections.singletonList(tap));
+            try { Thread.sleep(300); } catch (InterruptedException ignored) {}
+        } catch (Exception ignored) {}
+    }
+
 }

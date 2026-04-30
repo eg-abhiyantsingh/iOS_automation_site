@@ -22354,4 +22354,101 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 File type at " + index + " is Unknown: " + isUnknown);
         return isUnknown;
     }
+
+    // ================================================================
+    // ZP-323.14 — IR PHOTO UPLOAD IN WORK ORDER (added 2026-04-30)
+    // ================================================================
+
+    /** Tap "Add IR Photo" button on Work Order screen. */
+    public boolean tapAddIRPhoto() {
+        try {
+            WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(label CONTAINS[c] 'IR Photo' OR label CONTAINS[c] 'Add IR' OR " +
+                "label == 'Take IR Photo' OR name CONTAINS[c] 'thermal')"));
+            btn.click();
+            try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /** Detect if the IR camera selector dialog is shown (FLIR-IND / FLUKE / FOTRIC). */
+    public boolean isIRCameraSelectorDisplayed() {
+        try {
+            driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "(label CONTAINS[c] 'FLIR' OR label CONTAINS[c] 'FLUKE' OR label CONTAINS[c] 'FOTRIC' OR " +
+                "label CONTAINS[c] 'Select camera')"));
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /** Select an IR camera vendor (FLIR-IND, FLIR-SEP, FLUKE, FOTRIC). */
+    public boolean selectIRCamera(String vendor) {
+        try {
+            WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND " +
+                "label CONTAINS[c] '" + vendor.replace("'", "\\'") + "'"));
+            btn.click();
+            try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /** Get count of IR photos currently attached to the work order. */
+    public int getIRPhotoCountInWorkOrder() {
+        try {
+            return driver.findElements(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeImage' AND " +
+                "(name CONTAINS[c] 'ir' OR name CONTAINS[c] 'thermal')")).size();
+        } catch (Exception e) { return 0; }
+    }
+
+    // ================================================================
+    // ZP-323.15 — SCHEDULE WORK ORDER DETAILS (added 2026-04-30)
+    // ================================================================
+
+    /** Tap the Schedule field/section to open the date picker. */
+    public boolean tapScheduleField() {
+        try {
+            WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeCell') AND " +
+                "(label CONTAINS[c] 'schedule' OR label CONTAINS[c] 'scheduled date' OR " +
+                "label CONTAINS[c] 'pick a date')"));
+            btn.click();
+            try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /** Detect if the iOS native date picker is currently displayed. */
+    public boolean isDatePickerDisplayed() {
+        try {
+            driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeDatePicker' OR type == 'XCUIElementTypePicker'"));
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /** Read the currently displayed scheduled date string. Returns "" if none. */
+    public String getScheduledDateValue() {
+        try {
+            WebElement el = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton') AND " +
+                "(label CONTAINS[c] 'scheduled' OR label CONTAINS[c] 'due')"));
+            String v = el.getAttribute("label");
+            return v == null ? "" : v;
+        } catch (Exception e) { return ""; }
+    }
+
+    /** Confirm/Done the date picker. */
+    public boolean confirmDatePicker() {
+        try {
+            WebElement done = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND (label == 'Done' OR label == 'Confirm' OR label == 'Save')"));
+            done.click();
+            try { Thread.sleep(400); } catch (InterruptedException ignored) {}
+            return true;
+        } catch (Exception e) { return false; }
+    }
 }

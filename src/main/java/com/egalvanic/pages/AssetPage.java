@@ -10751,4 +10751,262 @@ public class AssetPage extends BasePage {
         driver.perform(Collections.singletonList(tap));
     }
 
+    // ================================================================
+    // ZP-323.6 — SUGGESTED SHORTCUTS (added 2026-04-30)
+    // ================================================================
+
+    /** Returns true if the "Suggested Shortcuts" section is visible on Asset Edit/Create. */
+    public boolean isSuggestedShortcutsSectionVisible() {
+        try {
+            WebElement el = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "(label CONTAINS[c] 'suggested shortcut' OR label == 'Suggested Shortcuts (Optional)' OR " +
+                "label == 'Suggested Shortcuts')"));
+            return el.isDisplayed();
+        } catch (Exception e) { return false; }
+    }
+
+    /** Tap the Suggested Shortcuts dropdown/button to open the picker. */
+    public boolean tapSuggestedShortcuts() {
+        try {
+            WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label CONTAINS[c] 'shortcut'"));
+            btn.click(); sleep(400); return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /** Returns the placeholder/value of the Suggested Shortcuts field. */
+    public String getSuggestedShortcutsValue() {
+        try {
+            WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label CONTAINS[c] 'shortcut'"));
+            String l = btn.getAttribute("label");
+            return l == null ? "" : l;
+        } catch (Exception e) { return ""; }
+    }
+
+    /** Check whether the "No shortcuts available" placeholder text is shown. */
+    public boolean isNoShortcutsPlaceholderShown() {
+        try {
+            driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label CONTAINS[c] 'No shortcuts'"));
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    // ================================================================
+    // ZP-323.7 — CONDITION OF MAINTENANCE (COM) CALCULATION (added 2026-04-30)
+    // ================================================================
+
+    /** Returns true if the COM (Condition of Maintenance) badge/label is visible on Asset Details. */
+    public boolean isCOMVisibleOnAssetDetails() {
+        try {
+            driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "(label CONTAINS[c] 'condition of maintenance' OR label CONTAINS[c] 'COM')"));
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /**
+     * Read the numeric COM value (e.g., "1", "0.85", "75%"). Returns null if not parseable.
+     * The web app showed an integer (e.g. "1") next to the COM label.
+     */
+    public String getCOMValue() {
+        try {
+            WebElement label = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "(label CONTAINS[c] 'condition of maintenance' OR label CONTAINS[c] 'COM')"));
+            int labelY = label.getLocation().getY();
+            // COM value typically appears near the label — scan for a numeric StaticText nearby
+            java.util.List<WebElement> texts = driver.findElements(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText'"));
+            for (WebElement t : texts) {
+                try {
+                    int dy = Math.abs(t.getLocation().getY() - labelY);
+                    if (dy > 60) continue;
+                    String v = t.getAttribute("label");
+                    if (v != null && v.matches("\\d+(\\.\\d+)?%?")) return v;
+                } catch (Exception ignored) {}
+            }
+            return null;
+        } catch (Exception e) { return null; }
+    }
+
+    // ================================================================
+    // ZP-323.10 — ASSET LISTENING (auto-assign to task) (added 2026-04-30)
+    // ================================================================
+
+    /** Tap the "Listen" button on an asset to start listening / auto-assign to current task. */
+    public boolean tapListenAsset() {
+        try {
+            WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(label == 'Listen' OR label CONTAINS[c] 'start listening' OR " +
+                "name CONTAINS[c] 'listen')"));
+            btn.click(); sleep(400); return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /** Check if "Listening" indicator is currently shown (recording-style badge). */
+    public boolean isListeningIndicatorActive() {
+        try {
+            driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeImage') AND " +
+                "(label CONTAINS[c] 'listening' OR name CONTAINS[c] 'listen.recording' OR " +
+                "label == '● Listening')"));
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /** Stop listening if it's active. Safe no-op if not. */
+    public void stopListeningIfActive() {
+        try {
+            WebElement stop = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(label == 'Stop' OR label == 'Stop Listening')"));
+            stop.click(); sleep(300);
+        } catch (Exception ignored) {}
+    }
+
+    // ================================================================
+    // ZP-323.11 — DETAILED CREATE ASSET FLOW (added 2026-04-30)
+    // ================================================================
+
+    /** On Create Asset entry screen, tap the "Detailed" flow option (vs. Quick). */
+    public boolean tapDetailedCreateFlow() {
+        try {
+            WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(label == 'Detailed' OR label == 'Detailed Flow' OR label CONTAINS[c] 'detailed')"));
+            btn.click(); sleep(500); return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /** Verify we are on the Detailed Create form. */
+    public boolean isOnDetailedCreateForm() {
+        try {
+            // Expect the form to show multiple section headers like Basic Information,
+            // Location, Asset Class, Photos, etc., that the Quick form doesn't have.
+            int headers = driver.findElements(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "(label == 'Basic Information' OR label == 'Photos' OR label == 'Suggested Shortcuts' OR " +
+                "label == 'Core Attributes' OR label == 'Tasks')")).size();
+            return headers >= 2;
+        } catch (Exception e) { return false; }
+    }
+
+    // ================================================================
+    // ZP-323.12 — COPY TO / COPY FROM (added 2026-04-30)
+    // ================================================================
+
+    /** Open the asset's overflow menu to surface Copy options. */
+    public boolean openAssetOverflowMenu() {
+        try {
+            WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(name CONTAINS 'ellipsis' OR label == 'More' OR label CONTAINS[c] 'options')"));
+            btn.click(); sleep(400); return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /** Tap "Copy From" — should open a picker for source asset. */
+    public boolean tapCopyFrom() {
+        try {
+            WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND " +
+                "(label == 'Copy From' OR label == 'Copy from')"));
+            btn.click(); sleep(500); return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /** Tap "Copy To" — should open multi-select target picker. */
+    public boolean tapCopyTo() {
+        try {
+            WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND " +
+                "(label == 'Copy To' OR label == 'Copy to')"));
+            btn.click(); sleep(500); return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /** Check if the source-asset picker for Copy From is currently displayed. */
+    public boolean isCopySourcePickerDisplayed() {
+        try {
+            driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "(label CONTAINS[c] 'select source' OR label CONTAINS[c] 'copy from' OR " +
+                "label == 'Source Asset')"));
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    // ================================================================
+    // ZP-323.13 — AI EXTRACTION (added 2026-04-30)
+    // ================================================================
+
+    /** Tap the "Extract" / "AI Extract" button (typically next to Take Photo). */
+    public boolean tapAIExtractButton() {
+        try {
+            WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(label CONTAINS[c] 'extract' OR label CONTAINS[c] 'AI' OR " +
+                "name CONTAINS 'sparkles')"));
+            btn.click(); sleep(500); return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /** Check if AI processing indicator is shown after tapping Extract. */
+    public boolean isAIExtractionInProgress() {
+        try {
+            driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeActivityIndicator' OR type == 'XCUIElementTypeStaticText') AND " +
+                "(label CONTAINS[c] 'extracting' OR label CONTAINS[c] 'analyzing' OR " +
+                "label CONTAINS[c] 'processing')"));
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /** Tap the "+" button to start creating a new asset. */
+    public boolean tapAddAssetButton() {
+        try {
+            WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(name == 'plus' OR name CONTAINS 'plus' OR label == 'Add' OR label == 'Create')"));
+            btn.click(); sleep(500); return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /** Cancel any in-progress Create / Edit Asset flow. Tap Cancel, dismiss any unsaved-changes prompt. */
+    public void cancelAssetCreation() {
+        try {
+            try {
+                WebElement cancel = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND " +
+                    "(label == 'Cancel' OR label == 'Close' OR label == 'Discard')"));
+                cancel.click();
+                sleep(400);
+            } catch (Exception ignored) {}
+            // Possible unsaved-changes prompt — tap Discard if shown
+            try {
+                WebElement discard = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND " +
+                    "(label == 'Discard' OR label == 'Discard Changes' OR label == 'Yes')"));
+                discard.click();
+                sleep(300);
+            } catch (Exception ignored) {}
+        } catch (Exception ignored) {}
+    }
+
+    /** Check if AI extraction returned suggestions (review screen visible). */
+    public boolean areAIExtractionSuggestionsDisplayed() {
+        try {
+            driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "(label CONTAINS[c] 'AI suggestion' OR label CONTAINS[c] 'extracted value' OR " +
+                "label CONTAINS[c] 'review extraction' OR label CONTAINS[c] 'apply extraction')"));
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
 }

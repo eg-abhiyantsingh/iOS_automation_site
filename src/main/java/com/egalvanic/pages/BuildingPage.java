@@ -6682,4 +6682,95 @@ public class BuildingPage extends BasePage {
             return false;
         }
     }
+
+    // ================================================================
+    // ZP-323.9 — LONG PRESS BUILDING / ROOM PHOTO (added 2026-04-30)
+    // ================================================================
+
+    /**
+     * Long press a building photo thumbnail to open the photo viewer with options.
+     * Returns true if gesture issued.
+     */
+    public boolean longPressOnBuildingPhoto() {
+        try {
+            // Look for an Image associated with a building (cover photo, gallery thumbnail)
+            WebElement img = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeImage' AND " +
+                "(name CONTAINS[c] 'building' OR name CONTAINS[c] 'cover' OR name CONTAINS[c] 'photo')"));
+            int x = img.getLocation().getX() + img.getSize().getWidth() / 2;
+            int y = img.getLocation().getY() + img.getSize().getHeight() / 2;
+            performLongPress(x, y, 1500);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** Long press a room photo thumbnail. */
+    public boolean longPressOnRoomPhoto() {
+        try {
+            WebElement img = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeImage' AND " +
+                "(name CONTAINS[c] 'room' OR name CONTAINS[c] 'photo')"));
+            int x = img.getLocation().getX() + img.getSize().getWidth() / 2;
+            int y = img.getLocation().getY() + img.getSize().getHeight() / 2;
+            performLongPress(x, y, 1500);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** Helper to perform a long press at given coordinates. */
+    private void performLongPress(int x, int y, int durationMs) {
+        try {
+            org.openqa.selenium.interactions.PointerInput finger =
+                new org.openqa.selenium.interactions.PointerInput(
+                    org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
+            org.openqa.selenium.interactions.Sequence press =
+                new org.openqa.selenium.interactions.Sequence(finger, 1);
+            press.addAction(finger.createPointerMove(java.time.Duration.ofMillis(0),
+                org.openqa.selenium.interactions.PointerInput.Origin.viewport(), x, y));
+            press.addAction(finger.createPointerDown(0));
+            press.addAction(new org.openqa.selenium.interactions.Pause(finger,
+                java.time.Duration.ofMillis(durationMs)));
+            press.addAction(finger.createPointerUp(0));
+            driver.perform(java.util.Collections.singletonList(press));
+            try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+        } catch (Exception ignored) {}
+    }
+
+    /** Returns true if photo viewer / context menu is visible after long-press. */
+    public boolean isPhotoViewerOrMenuVisible() {
+        try {
+            driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(label == 'Save' OR label == 'Share' OR label == 'Delete' OR " +
+                "label == 'Done' OR label == 'Close')"));
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /** Dismiss the photo viewer/menu. */
+    public void dismissPhotoViewerOrMenu() {
+        try {
+            try {
+                WebElement done = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND (label == 'Done' OR label == 'Close' OR label == 'Cancel')"));
+                done.click();
+                Thread.sleep(400);
+                return;
+            } catch (Exception ignored) {}
+            // back-swipe fallback
+            org.openqa.selenium.Dimension size = driver.manage().window().getSize();
+            java.util.Map<String, Object> swipe = new java.util.HashMap<>();
+            swipe.put("fromX", 5);
+            swipe.put("fromY", size.getHeight() / 2);
+            swipe.put("toX", size.getWidth() / 2);
+            swipe.put("toY", size.getHeight() / 2);
+            swipe.put("duration", 300);
+            driver.executeScript("mobile: swipe", swipe);
+            Thread.sleep(400);
+        } catch (Exception ignored) {}
+    }
 }
