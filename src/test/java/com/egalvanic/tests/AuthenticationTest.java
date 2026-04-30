@@ -788,7 +788,7 @@ public final class AuthenticationTest extends BaseTest {
      * On a fresh app launch (or after sign-out), the checkbox MUST start unchecked
      * so the user has to make an explicit consent gesture.
      */
-    @Test(priority = 39)
+    @Test(priority = 39, enabled = false, description = "DISABLED 2026-04-30: T&C checkbox removed from app per product decision")
     public void TC_AUTH_TERMS_01_verifyTermsCheckboxUncheckedByDefault() {
         ExtentReportManager.createTest(
             AppConstants.MODULE_AUTHENTICATION,
@@ -823,7 +823,7 @@ public final class AuthenticationTest extends BaseTest {
      * TC_AUTH_TERMS_02: Verify Sign In button is disabled when T&C is unchecked.
      * Even with valid credentials filled, Sign In must not activate without consent.
      */
-    @Test(priority = 40)
+    @Test(priority = 40, enabled = false, description = "DISABLED 2026-04-30: T&C checkbox removed from app per product decision")
     public void TC_AUTH_TERMS_02_verifySignInDisabledWhenTermsUnchecked() {
         ExtentReportManager.createTest(
             AppConstants.MODULE_AUTHENTICATION,
@@ -863,7 +863,7 @@ public final class AuthenticationTest extends BaseTest {
     /**
      * TC_AUTH_TERMS_03: Verify Sign In becomes enabled after T&C is checked + credentials filled.
      */
-    @Test(priority = 41)
+    @Test(priority = 41, enabled = false, description = "DISABLED 2026-04-30: T&C checkbox removed from app per product decision")
     public void TC_AUTH_TERMS_03_verifySignInEnabledAfterTermsChecked() {
         ExtentReportManager.createTest(
             AppConstants.MODULE_AUTHENTICATION,
@@ -907,7 +907,7 @@ public final class AuthenticationTest extends BaseTest {
     /**
      * TC_AUTH_TERMS_04: Verify "Terms and Conditions" hyperlink opens the T&C document.
      */
-    @Test(priority = 42)
+    @Test(priority = 42, enabled = false, description = "DISABLED 2026-04-30: T&C checkbox removed from app per product decision")
     public void TC_AUTH_TERMS_04_verifyTermsLinkOpensDocument() {
         ExtentReportManager.createTest(
             AppConstants.MODULE_AUTHENTICATION,
@@ -944,7 +944,7 @@ public final class AuthenticationTest extends BaseTest {
     /**
      * TC_AUTH_TERMS_05: Verify "Privacy Policy" hyperlink opens the Privacy Policy document.
      */
-    @Test(priority = 43)
+    @Test(priority = 43, enabled = false, description = "DISABLED 2026-04-30: T&C checkbox removed from app per product decision")
     public void TC_AUTH_TERMS_05_verifyPrivacyPolicyLinkOpensDocument() {
         ExtentReportManager.createTest(
             AppConstants.MODULE_AUTHENTICATION,
@@ -982,7 +982,7 @@ public final class AuthenticationTest extends BaseTest {
      * TC_AUTH_TERMS_06: Verify the agreement label text is visible alongside the checkbox.
      * The label should mention BOTH Terms and Privacy Policy in a single sentence.
      */
-    @Test(priority = 44)
+    @Test(priority = 44, enabled = false, description = "DISABLED 2026-04-30: T&C checkbox removed from app per product decision")
     public void TC_AUTH_TERMS_06_verifyAgreementLabelVisible() {
         ExtentReportManager.createTest(
             AppConstants.MODULE_AUTHENTICATION,
@@ -1012,7 +1012,7 @@ public final class AuthenticationTest extends BaseTest {
      * TC_AUTH_TERMS_07: Negative — verify Sign In remains disabled when T&C is checked
      * but credentials are EMPTY. T&C is necessary but not sufficient.
      */
-    @Test(priority = 45)
+    @Test(priority = 45, enabled = false, description = "DISABLED 2026-04-30: T&C checkbox removed from app per product decision")
     public void TC_AUTH_TERMS_07_verifySignInDisabledWithTermsButNoCredentials() {
         ExtentReportManager.createTest(
             AppConstants.MODULE_AUTHENTICATION,
@@ -1049,7 +1049,7 @@ public final class AuthenticationTest extends BaseTest {
      * TC_AUTH_TERMS_08: Verify T&C state can be toggled OFF after being toggled ON.
      * This catches a bug class where checkboxes are write-once.
      */
-    @Test(priority = 46)
+    @Test(priority = 46, enabled = false, description = "DISABLED 2026-04-30: T&C checkbox removed from app per product decision")
     public void TC_AUTH_TERMS_08_verifyTermsCheckboxCanBeUnchecked() {
         ExtentReportManager.createTest(
             AppConstants.MODULE_AUTHENTICATION,
