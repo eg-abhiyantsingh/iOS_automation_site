@@ -82,18 +82,64 @@ def find_method_body(src: str, body_start: int) -> str:
     return src[body_start : i - 1]
 
 
+METHOD_DEF_RE = re.compile(
+    r"(?:public|private|protected)\s+(?:static\s+)?(?:final\s+)?\w[\w<>\[\]]*\s+(\w+)\s*\([^)]*\)\s*(?:throws\s+\w+(?:\s*,\s*\w+)*\s*)?\{",
+    re.MULTILINE,
+)
+
+
+def collect_methods_with_assertions(src: str) -> set[str]:
+    """Return the set of method names in this file whose body contains an assertion.
+
+    This lets us treat helper-delegated assertions (e.g. checkBucketPolicy(...))
+    the same as direct assertions in the test method itself.
+    """
+    asserting: set[str] = set()
+    for m in METHOD_DEF_RE.finditer(src):
+        name = m.group(1)
+        body = find_method_body(src, m.end())
+        if any(pat in body for pat in ASSERTION_PATTERNS):
+            asserting.add(name)
+    return asserting
+
+
+def body_calls_asserting_helper(body: str, asserting_methods: set[str]) -> bool:
+    """Check if the test body calls any helper that itself contains assertions."""
+    for helper in asserting_methods:
+        # Match `helper(`, `this.helper(`, `obj.helper(` — all standard Java call shapes
+        # We use a simple substring check; false positives are acceptable here
+        # (they only suppress false alarms, not introduce real ones)
+        if helper + "(" in body:
+            return True
+    return False
+
+
 def scan_repo() -> list[tuple[str, str]]:
-    """Return list of (filename, methodName) for all @Test methods that have NO assertion."""
+    """Return list of (filename, methodName) for all @Test methods that genuinely have NO failing condition.
+
+    A test is considered safe (NOT vacuous) if EITHER:
+      - Its body contains a direct assertion / fail / throw / SkipException, OR
+      - Its body calls another method (in the same file) whose body contains one of the above.
+    """
     findings: list[tuple[str, str]] = []
     test_files = sorted(glob.glob(str(REPO_ROOT / TESTS_GLOB)))
     for path in test_files:
         with open(path, encoding="utf-8") as f:
             src = f.read()
+
+        # Build the per-file set of methods that contain assertions
+        asserting_methods = collect_methods_with_assertions(src)
+
         for match in TEST_METHOD_RE.finditer(src):
             method_name = match.group(1)
             body = find_method_body(src, match.end())
-            if not any(pat in body for pat in ASSERTION_PATTERNS):
-                findings.append((os.path.basename(path), method_name))
+            has_direct_assertion = any(pat in body for pat in ASSERTION_PATTERNS)
+            if has_direct_assertion:
+                continue
+            # Allow helper-delegated assertions
+            if body_calls_asserting_helper(body, asserting_methods - {method_name}):
+                continue
+            findings.append((os.path.basename(path), method_name))
     return findings
 
 
