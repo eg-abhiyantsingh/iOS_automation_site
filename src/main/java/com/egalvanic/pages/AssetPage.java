@@ -10948,47 +10948,63 @@ public class AssetPage extends BasePage {
     // ================================================================
 
     /**
-     * Tap the "Copy Details" button on the Add/Edit Asset form.
-     * Web verification 2026-04-30: button is labeled "Copy Details" (top of modal).
-     * Tapping it opens a menu with two items:
-     *   - "Copy Details From…" (active when creating)
-     *   - "Copy Details To… Save this asset first" (disabled until saved)
+     * Open the ⋯ three-dot overflow menu in the Asset Details header (top-right).
+     * iOS evidence 2026-04-30 (user screenshot v1.31): the Copy From / Copy To
+     * options live inside this overflow menu, NOT as a top-level "Copy Details"
+     * button. Header layout: "Close | Asset Details | ⋯".
      */
     public boolean openAssetOverflowMenu() {
         try {
             WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND " +
-                "(label == 'Copy Details' OR " +
-                "name CONTAINS 'ellipsis' OR label == 'More' OR label CONTAINS[c] 'options')"));
-            btn.click(); sleep(400); return true;
+                "(name == 'ellipsis' OR name == 'ellipsis.circle' OR " +
+                "name CONTAINS 'ellipsis' OR " +
+                "label == 'More' OR label CONTAINS[c] 'more options' OR " +
+                "label == 'Copy Details')"));
+            btn.click(); sleep(500); return true;
         } catch (Exception e) { return false; }
     }
 
     /**
-     * Tap "Copy Details From…" to start picking a source asset to copy from.
-     * Web label: "Copy Details From…" (with ellipsis character).
+     * Tap "Copy From" inside the ⋯ overflow menu.
+     * Caller must invoke openAssetOverflowMenu() first.
      */
     public boolean tapCopyFrom() {
         try {
+            if (!isOverflowMenuOpen()) openAssetOverflowMenu();
             WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' OR " +
-                "type == 'XCUIElementTypeMenuItem') AND " +
-                "(label CONTAINS[c] 'Copy Details From' OR label == 'Copy From' OR label == 'Copy from')"));
+                "type == 'XCUIElementTypeMenuItem' OR type == 'XCUIElementTypeCell') AND " +
+                "(label CONTAINS[c] 'Copy From' OR label CONTAINS[c] 'Copy Details From' OR " +
+                "label == 'Copy from')"));
             btn.click(); sleep(500); return true;
         } catch (Exception e) { return false; }
     }
 
     /**
-     * Tap "Copy Details To…" to start picking target assets to copy to.
-     * Web note: option is disabled until the current asset is saved.
+     * Tap "Copy To" inside the ⋯ overflow menu.
+     * Caller must invoke openAssetOverflowMenu() first (or this auto-opens it).
      */
     public boolean tapCopyTo() {
         try {
+            if (!isOverflowMenuOpen()) openAssetOverflowMenu();
             WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' OR " +
-                "type == 'XCUIElementTypeMenuItem') AND " +
-                "(label CONTAINS[c] 'Copy Details To' OR label == 'Copy To' OR label == 'Copy to')"));
+                "type == 'XCUIElementTypeMenuItem' OR type == 'XCUIElementTypeCell') AND " +
+                "(label CONTAINS[c] 'Copy To' OR label CONTAINS[c] 'Copy Details To' OR " +
+                "label == 'Copy to')"));
             btn.click(); sleep(500); return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /** Quick probe — is the overflow menu / popover currently displayed? */
+    private boolean isOverflowMenuOpen() {
+        try {
+            driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' OR " +
+                "type == 'XCUIElementTypeMenuItem' OR type == 'XCUIElementTypeCell') AND " +
+                "(label CONTAINS[c] 'Copy From' OR label CONTAINS[c] 'Copy To')"));
+            return true;
         } catch (Exception e) { return false; }
     }
 
@@ -11007,14 +11023,21 @@ public class AssetPage extends BasePage {
     // ZP-323.13 — AI EXTRACTION (added 2026-04-30)
     // ================================================================
 
-    /** Tap the "Extract" / "AI Extract" button (typically next to Take Photo). */
+    /**
+     * Tap the AI Extract sparkles ✨ button on the right of the "Core Attributes"
+     * section header in Asset Details.
+     * iOS evidence 2026-04-30 (user screenshot v1.31): blue square button with
+     * SF Symbol "sparkles" — sits to the right of "Core Attributes" + "100%" badge.
+     */
     public boolean tapAIExtractButton() {
         try {
             WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND " +
-                "(label CONTAINS[c] 'extract' OR label CONTAINS[c] 'AI' OR " +
-                "name CONTAINS 'sparkles')"));
-            btn.click(); sleep(500); return true;
+                "(name == 'sparkles' OR name CONTAINS 'sparkles' OR " +
+                "name CONTAINS 'wand.and.stars' OR " +
+                "label CONTAINS[c] 'extract' OR label CONTAINS[c] 'AI Extract' OR " +
+                "label CONTAINS[c] 'auto fill' OR label CONTAINS[c] 'autofill')"));
+            btn.click(); sleep(800); return true;
         } catch (Exception e) { return false; }
     }
 
