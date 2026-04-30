@@ -232,6 +232,7 @@ jobs:
 
             if [ -n "$SESSION_ID" ]; then
               echo "✅ WDA warm-up OK"
+              WDA_SUCCESS=true
               sleep 10
               curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true
               sleep 5
@@ -2427,6 +2428,7 @@ jobs:
 
             if [ -n "$SESSION_ID" ]; then
               echo "✅ WDA warm-up OK"
+              WDA_SUCCESS=true
               sleep 10
               curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true
               sleep 5
