@@ -10992,37 +10992,10 @@ public class IssuePage extends BasePage {
             "Notifications"
         ));
 
-    /**
-     * Open the Issue Class dropdown on the New Issue form. Returns true if the
-     * dropdown opened successfully.
-     */
-    public boolean openIssueClassDropdown() {
-        try {
-            // The dropdown is typically a Button labeled "Issue Class, ..." or
-            // a row with the placeholder "None ⌃" / "Select issue class".
-            WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                "(type == 'XCUIElementTypeButton') AND " +
-                "(label CONTAINS 'Issue Class' OR label CONTAINS 'issue class' OR " +
-                "name CONTAINS 'IssueClassPicker' OR " +
-                "(label CONTAINS '⌃' AND label CONTAINS[c] 'select'))"));
-            btn.click();
-            sleep(500);
-            return true;
-        } catch (Exception e) {
-            // Fallback: tap the StaticText "Issue Class" anchor and look for adjacent picker
-            try {
-                WebElement label = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND label == 'Issue Class'"));
-                int x = label.getLocation().getX();
-                int y = label.getLocation().getY() + 30;  // tap a row below the label
-                tapAtCoordinates(x + 40, y);
-                sleep(500);
-                return true;
-            } catch (Exception e2) {
-                return false;
-            }
-        }
-    }
+    // openIssueClassDropdown() is already defined earlier in this file (line 2361)
+    // — delegates to tryOpenIssueClassPicker(). We reuse that one rather than
+    // duplicating the implementation here. This comment preserves the section
+    // structure for the ZP-323.4 work.
 
     /**
      * Read the Issue Class option labels visible after the dropdown is opened.
@@ -11109,8 +11082,19 @@ public class IssuePage extends BasePage {
                 return;
             } catch (Exception ignored) {}
             try {
+                // Tap upper area to dismiss sheet — using W3C Actions (no helper needed)
                 org.openqa.selenium.Dimension size = driver.manage().window().getSize();
-                tapAtCoordinates(size.getWidth() / 2, 100);  // tap upper area to dismiss sheet
+                org.openqa.selenium.interactions.PointerInput finger =
+                    new org.openqa.selenium.interactions.PointerInput(
+                        org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
+                org.openqa.selenium.interactions.Sequence tap =
+                    new org.openqa.selenium.interactions.Sequence(finger, 1);
+                tap.addAction(finger.createPointerMove(java.time.Duration.ofMillis(0),
+                    org.openqa.selenium.interactions.PointerInput.Origin.viewport(),
+                    size.getWidth() / 2, 100));
+                tap.addAction(finger.createPointerDown(0));
+                tap.addAction(finger.createPointerUp(0));
+                driver.perform(java.util.Collections.singletonList(tap));
                 sleep(300);
             } catch (Exception ignored) {}
         } catch (Exception ignored) {}
