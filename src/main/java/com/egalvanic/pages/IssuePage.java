@@ -10101,11 +10101,22 @@ public class IssuePage extends BasePage {
     }
 
     /**
-     * Swipe left on the first issue entry in the list.
+     * Swipe left on the first issue entry in the list to REVEAL action buttons
+     * (Delete + Resolve) without auto-triggering the trailing-most action.
+     *
+     * iOS swipe-action UX:
+     *   - Half swipe (~50% of cell width)  → reveals BOTH buttons; user can tap
+     *   - Full swipe (>~80% of cell width) → auto-triggers the trailing action
+     *                                        (Resolve, in green) — DESTRUCTIVE!
+     *
+     * Previous implementation used endX = cellX + 20 (near-full swipe). That
+     * was auto-resolving issues instead of revealing Delete. Fixed 2026-04-30
+     * after user supplied a screenshot showing the correct two-button reveal.
+     *
      * @return true if swipe was performed
      */
     public boolean swipeLeftOnFirstIssue() {
-        System.out.println("👈 Swiping left on first issue...");
+        System.out.println("👈 Swiping left on first issue (HALF swipe to reveal Delete+Resolve)...");
         try {
             WebElement cell = getFirstIssueEntry();
             if (cell == null) {
@@ -10118,13 +10129,16 @@ public class IssuePage extends BasePage {
             int cellWidth = cell.getSize().getWidth();
             int cellHeight = cell.getSize().getHeight();
 
+            // Start 20px from the right edge (well inside the cell)
             int startX = cellX + cellWidth - 20;
             int centerY = cellY + cellHeight / 2;
-            int endX = cellX + 20; // Swipe further left for more reliable button reveal
+            // Stop at the cell midpoint — keeps both Delete and Resolve buttons
+            // visible without auto-triggering Resolve.
+            int endX = cellX + cellWidth / 2;
 
             boolean swiped = performSwipeLeft(startX, centerY, endX, centerY);
             if (swiped) {
-                sleep(600); // Extra wait for iOS swipe animation to fully reveal action buttons
+                sleep(600); // wait for iOS swipe animation to settle with buttons visible
             }
             return swiped;
         } catch (Exception e) {
@@ -10135,11 +10149,14 @@ public class IssuePage extends BasePage {
 
     /**
      * Swipe left on an issue entry by its index (0-based) in the visible list.
+     * Uses the same HALF-swipe distance as swipeLeftOnFirstIssue() to avoid
+     * auto-triggering the trailing-most action (Resolve).
+     *
      * @param index 0-based index of the issue entry
      * @return true if swipe was performed
      */
     public boolean swipeLeftOnIssueAtIndex(int index) {
-        System.out.println("👈 Swiping left on issue at index: " + index);
+        System.out.println("👈 Swiping left on issue at index: " + index + " (HALF swipe)");
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeCell'"));
@@ -10156,7 +10173,8 @@ public class IssuePage extends BasePage {
 
             int startX = cellX + cellWidth - 20;
             int centerY = cellY + cellHeight / 2;
-            int endX = cellX + 50;
+            // Half-swipe — see swipeLeftOnFirstIssue() comment for rationale.
+            int endX = cellX + cellWidth / 2;
 
             return performSwipeLeft(startX, centerY, endX, centerY);
         } catch (Exception e) {
