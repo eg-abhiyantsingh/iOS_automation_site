@@ -35,6 +35,11 @@ public class Asset_Phase4_Test extends BaseTest {
      * pays the full legacy cost again — graceful degradation.
      */
     private static String cachedOCPAssetName = null;
+    private static String cachedPanelboardAssetName = null;
+    private static String cachedPDUAssetName = null;
+    private static String cachedRelayAssetName = null;
+    private static String cachedSwitchboardAssetName = null;
+    private static String cachedTransformerAssetName = null;
 
     @BeforeClass(alwaysRun = true)
     public void classSetup() {

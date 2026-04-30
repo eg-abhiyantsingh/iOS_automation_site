@@ -1762,6 +1762,10 @@ public class Asset_Phase1_Test extends BaseTest {
     private void navigateToEditAssetScreenAndChangeToBusway() {
         cachedBuswayAssetName = assetPage.openSharedAssetForEditOrFallback(cachedBuswayAssetName);
         assetPage.changeAssetClassToBusway();
+        // Restored 2026-04-30: bulk refactor (commit 85739b2) had dropped these.
+        // Busway tests verify the Core Attributes section, which lives below the fold.
+        assetPage.scrollFormDown();
+        shortWait();
     }
 
     // ============================================================

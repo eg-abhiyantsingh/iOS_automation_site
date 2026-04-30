@@ -21,6 +21,7 @@ import static org.testng.Assert.fail;
  * UPS (15) + Utility (9) + VFD (8) + ATS Subtype (13) + Busway Subtype (11) + Capacitor Subtype (6) + CB Subtype (14) + Default (9) + DS Subtype (16) + Fuse Subtype (11)
  */
 public class Asset_Phase5_Test extends BaseTest {
+    private static String cachedVFDAssetName = null;
     private static String cachedUPSAssetName = null;
     private static String cachedUtilityAssetName = null;
     private static String cachedATSP5AssetName = null;
