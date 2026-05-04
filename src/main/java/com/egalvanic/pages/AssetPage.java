@@ -7646,29 +7646,55 @@ public class AssetPage extends BasePage {
      */
     public void fillFieldAuto(String fieldName, String value) {
         System.out.println("📝 Auto-filling field: " + fieldName + " = " + value);
-        
-        // First check if this is a dropdown by looking for a button with the field name
+
+        // ============================================================
+        // FIX 2026-05-04 (debug session 061 follow-up):
+        // Same root cause as selectDropdownOption — dropdown triggers
+        // in v1.31 are XCUIElementTypeStaticText "Select..." not Button.
+        // Detection logic was searching only Buttons → always fell
+        // through to fillTextField, even for dropdown fields.
+        //
+        // Detection strategy: look for a "Select..." StaticText near
+        // a label containing fieldName. If found, it's a dropdown.
+        // ============================================================
         try {
+            // Find label for this field
+            List<WebElement> labels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "(name CONTAINS[c] '" + fieldName + "' OR label CONTAINS[c] '" + fieldName + "')"));
+            for (WebElement lbl : labels) {
+                int labelY = lbl.getLocation().getY();
+                if (labelY < 60 || labelY > 1900) continue;
+                // Look for Select... StaticText within 80px below label
+                List<WebElement> selects = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND " +
+                    "(name BEGINSWITH 'Select' OR label BEGINSWITH 'Select')"));
+                for (WebElement s : selects) {
+                    int sy = s.getLocation().getY();
+                    if (sy >= labelY - 5 && sy <= labelY + 80) {
+                        System.out.println("   🔽 Found dropdown trigger near label, using selectDropdownOption");
+                        selectDropdownOption(fieldName, value);
+                        return;
+                    }
+                }
+            }
+            // Legacy: button-based detection (for forms that still use Button-style dropdowns)
             List<WebElement> buttons = driver.findElements(AppiumBy.className("XCUIElementTypeButton"));
             for (WebElement btn : buttons) {
                 String name = btn.getAttribute("name");
                 String label = btn.getAttribute("label");
-                
-                // Case-insensitive check
                 if ((name != null && name.toLowerCase().contains(fieldName.toLowerCase())) ||
                     (label != null && label.toLowerCase().contains(fieldName.toLowerCase()))) {
-                    
                     int y = btn.getLocation().getY();
                     if (y > 100 && y < 800) {
-                        // Found a dropdown button, use dropdown method
-                        System.out.println("   🔽 Found dropdown button, using selectDropdownOption");
+                        System.out.println("   🔽 Found dropdown button (legacy), using selectDropdownOption");
                         selectDropdownOption(fieldName, value);
                         return;
                     }
                 }
             }
         } catch (Exception e) {}
-        
+
         // Not a dropdown, try as text field
         System.out.println("   📝 No dropdown found, trying text field");
         fillTextField(fieldName, value);
