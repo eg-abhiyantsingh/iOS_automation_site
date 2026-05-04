@@ -303,18 +303,26 @@ public class ZP323_NewFeatures_Test extends BaseTest {
     public void TC_ZP323_09_01_verifyLongPressBuildingPhotoOpensViewer() {
         ExtentReportManager.createTest(AppConstants.MODULE_BUILDING, AppConstants.FEATURE_BUILDING_LIST,
             "TC_ZP323_09_01 - Verify long press building photo opens viewer/menu");
-        logStep("Step 1: Navigate to Locations / Buildings");
-        // We rely on the user-driven preconditions: app is on Buildings list with photos
+        logStep("Step 1: Navigate to Locations screen");
+        // Updated 2026-05-04 (changelog 063): from a fresh login the app is
+        // on the Dashboard, not Locations. Previous test trusted that the
+        // user had navigated there manually — always SKIPped for IDE runs.
+        boolean onLocations = buildingPage.navigateToLocationsScreen();
+        skipIfPreconditionMissing(() -> onLocations,
+            "Cannot reach Locations screen (Locations tile missing or navigation broken)");
+        mediumWait();
+
+        logStep("Step 2: Long-press a building row");
         skipIfPreconditionMissing(
             () -> {
                 try { return buildingPage.longPressOnBuildingPhoto(); }
                 catch (Exception e) { return false; }
             },
-            "No building photo found to long-press (test data missing)"
+            "No building row (B1, B2, ...) found on Locations screen (test data missing)"
         );
         mediumWait();
 
-        logStep("Step 2: Verify viewer/menu visible");
+        logStep("Step 3: Verify viewer/menu visible");
         boolean visible = buildingPage.isPhotoViewerOrMenuVisible();
         assertTrue(visible, "Photo viewer or context menu should appear after long-press");
         logStepWithScreenshot("TC_ZP323_09_01: Viewer visible");
@@ -326,17 +334,29 @@ public class ZP323_NewFeatures_Test extends BaseTest {
     public void TC_ZP323_09_02_verifyLongPressRoomPhotoOpensViewer() {
         ExtentReportManager.createTest(AppConstants.MODULE_ROOM, AppConstants.FEATURE_ROOM_LIST,
             "TC_ZP323_09_02 - Verify long press room photo opens viewer/menu");
-        logStep("Step 1: Try long-pressing a room photo");
+        logStep("Step 1: Navigate to Locations screen");
+        // Updated 2026-05-04 (changelog 063) — see TC_ZP323_09_01.
+        boolean onLocations = buildingPage.navigateToLocationsScreen();
+        skipIfPreconditionMissing(() -> onLocations,
+            "Cannot reach Locations screen");
+        mediumWait();
+
+        logStep("Step 2: Long-press a room row");
+        // The Locations tree may show rooms only after expanding building → floor.
+        // For now we try the long-press directly; if rooms aren't visible the
+        // test skips honestly. Future improvement: programmatically expand the
+        // first building + floor before this step (existing expandBuilding(name)
+        // method needs a building name we don't know upfront).
         skipIfPreconditionMissing(
             () -> {
                 try { return buildingPage.longPressOnRoomPhoto(); }
                 catch (Exception e) { return false; }
             },
-            "No room photo found"
+            "No room row (R1, R2, ...) found — test data may not have rooms or expansion failed"
         );
         mediumWait();
 
-        logStep("Step 2: Verify viewer visible");
+        logStep("Step 4: Verify viewer visible");
         boolean visible = buildingPage.isPhotoViewerOrMenuVisible();
         assertTrue(visible, "Photo viewer should appear after long-press");
         logStepWithScreenshot("TC_ZP323_09_02: Viewer visible");
@@ -348,13 +368,17 @@ public class ZP323_NewFeatures_Test extends BaseTest {
     public void TC_ZP323_09_03_verifyPhotoViewerHasActionOptions() {
         ExtentReportManager.createTest(AppConstants.MODULE_BUILDING, AppConstants.FEATURE_BUILDING_LIST,
             "TC_ZP323_09_03 - Verify photo viewer has Save/Share/Delete actions");
-        logStep("Step 1: Long press building photo");
+        logStep("Step 1: Navigate to Locations + long press building");
+        boolean onLocations = buildingPage.navigateToLocationsScreen();
+        skipIfPreconditionMissing(() -> onLocations,
+            "Cannot reach Locations screen");
+        mediumWait();
         skipIfPreconditionMissing(
             () -> {
                 try { return buildingPage.longPressOnBuildingPhoto(); }
                 catch (Exception e) { return false; }
             },
-            "No building photo for long-press"
+            "No building row found for long-press"
         );
         mediumWait();
         skipIfPreconditionMissing(
