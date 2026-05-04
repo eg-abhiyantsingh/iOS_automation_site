@@ -2894,6 +2894,21 @@ public class IssuePage extends BasePage {
     public void tapOnIssue(String title) {
         System.out.println("📋 Tapping on issue: " + title);
         resetDetailsScrollCount();
+
+        // Fast-fail (changelog 064): cap implicit wait to 1s.
+        // 13 strategies × 5s = 65s per miss. Memory note: ~134 calls to
+        // tapOnIssue("Abhiyant") in test code where that issue doesn't
+        // exist → cumulative ~145 min wasted on implicit waits across
+        // issue test suites. Cap reduces to ~13s × 134 calls = 29 min.
+        java.time.Duration originalWait;
+        try {
+            originalWait = driver.manage().timeouts().getImplicitWaitTimeout();
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(1));
+        } catch (Exception e) {
+            originalWait = java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT);
+        }
+
+        try {
         try {
             // Strategy 1: tap cell containing the title
             WebElement issue = driver.findElement(AppiumBy.iOSNsPredicateString(
@@ -2967,6 +2982,9 @@ public class IssuePage extends BasePage {
         }
 
         System.out.println("⚠️ Could not tap on any issue (tried '" + title + "' and fallbacks)");
+        } finally {
+            try { driver.manage().timeouts().implicitlyWait(originalWait); } catch (Exception ignored) {}
+        }
     }
 
     // ================================================================
