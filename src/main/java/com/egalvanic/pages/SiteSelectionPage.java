@@ -2912,4 +2912,309 @@ public class SiteSelectionPage extends BasePage {
         } catch (Exception ignored) {}
     }
 
+    // ================================================================
+    // OFFLINE / SYNC / MULTI-SITE HELPERS (added 2026-05-01)
+    //
+    // These helpers support the 40 UC offline-sync test cases (UC1–UC40).
+    // They build on top of existing offline primitives in this class:
+    //   goOffline() / goOnline()
+    //   getPendingSyncCount() / hasPendingSyncRecords()
+    //   waitForSyncToComplete() / syncPendingRecords()
+    //   selectSiteByName() / selectSiteByIndex()
+    //   clickSitesButton()
+    // ================================================================
+
+    /**
+     * Switch from the current active site to a different site by name.
+     * Sequence: dashboard → tap Sites button → pick target on Sites screen.
+     *
+     * @return true if the target site was selected; false if either the
+     *         Sites screen could not be opened or the site name was not found.
+     */
+    public boolean switchToSite(String targetSiteName) {
+        try {
+            System.out.println("🔄 Switching to site: " + targetSiteName);
+            clickSitesButton();
+            sleep(1500);
+            return selectSiteByName(targetSiteName);
+        } catch (Exception e) {
+            System.out.println("⚠️ switchToSite('" + targetSiteName + "') failed: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Switch to the Nth site in the Sites list, regardless of name.
+     * Useful when you don't care which two sites you're switching between —
+     * just that they're different (e.g. UC3 multi-site coexistence).
+     */
+    public String switchToSiteByIndex(int index) {
+        try {
+            System.out.println("🔄 Switching to site at index " + index);
+            clickSitesButton();
+            sleep(1500);
+            return selectSiteByIndex(index);
+        } catch (Exception e) {
+            System.out.println("⚠️ switchToSiteByIndex(" + index + ") failed: " + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Read the active site name from the dashboard header.
+     * iOS dashboard typically shows the site name as a static text near the top.
+     * Returns null if no site name is visible (e.g., on Sites selection screen).
+     */
+    public String getCurrentSiteName() {
+        try {
+            // Dashboard headers typically have the site name as a prominent static text
+            // near the top (Y < 200). Try multiple strategies.
+            java.util.List<org.openqa.selenium.WebElement> headers = driver.findElements(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText'"));
+            for (org.openqa.selenium.WebElement el : headers) {
+                int y = el.getLocation().getY();
+                if (y < 0 || y > 200) continue;
+                String text = el.getAttribute("name");
+                if (text == null || text.isEmpty()) continue;
+                // Skip system labels, dates, status bar
+                String lower = text.toLowerCase();
+                if (lower.contains("am") || lower.contains("pm")) continue;  // time
+                if (lower.equals("sites") || lower.equals("dashboard")) continue;
+                if (lower.matches("\\d+:\\d+.*")) continue;  // time
+                if (text.length() > 60) continue;  // probably a paragraph
+                return text;
+            }
+        } catch (Exception ignored) {}
+        return null;
+    }
+
+    /**
+     * Navigate to Settings from the dashboard via the bottom tab bar.
+     * Multi-strategy: bottom tab "Settings" → gear icon → accessibilityId → coord tap.
+     * Returns true if Settings screen is now displayed.
+     */
+    public boolean tapSettingsTab() {
+        try {
+            // Strategy 1: bottom tab bar
+            java.util.List<org.openqa.selenium.WebElement> btns = driver.findElements(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND label == 'Settings'"));
+            for (org.openqa.selenium.WebElement b : btns) {
+                if (b.getLocation().getY() > 600) {
+                    b.click(); sleep(800);
+                    if (isSettingsScreenDisplayed()) return true;
+                }
+            }
+            if (!btns.isEmpty()) {
+                btns.get(0).click(); sleep(800);
+                if (isSettingsScreenDisplayed()) return true;
+            }
+        } catch (Exception ignored) {}
+        // Strategy 2: gear icon
+        try {
+            org.openqa.selenium.WebElement gear = driver.findElement(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND " +
+                    "(name CONTAINS 'gear' OR name == 'gearshape.fill')"));
+            gear.click(); sleep(800);
+            return isSettingsScreenDisplayed();
+        } catch (Exception ignored) {}
+        return false;
+    }
+
+    /** Quick probe — is the Settings screen currently visible? */
+    public boolean isSettingsScreenDisplayed() {
+        try {
+            driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "(label == 'Settings' OR label == 'Sync & Network' OR " +
+                "label == 'Account' OR label == 'Diagnostics')"));
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /**
+     * Tap Logout in Settings → Account section.
+     * @return true if logout button was tapped (does not guarantee logout completed).
+     *         Caller should verify the result (e.g., re-login screen visible)
+     *         OR check {@link #isLogoutBlocked()} for guard-rail tests like UC29.
+     */
+    public boolean tapLogout() {
+        try {
+            // Scroll to find Logout — it's at the bottom of Settings
+            for (int i = 0; i < 5; i++) {
+                try {
+                    org.openqa.selenium.WebElement logout = driver.findElement(
+                        io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeButton' AND " +
+                            "(label == 'Logout' OR label == 'Log Out' OR " +
+                            "label == 'Sign Out' OR label CONTAINS[c] 'logout')"));
+                    logout.click(); sleep(800);
+                    return true;
+                } catch (Exception e) {
+                    // Scroll down inside Settings to find it
+                    java.util.Map<String, Object> swipe = new java.util.HashMap<>();
+                    swipe.put("direction", "down");
+                    swipe.put("velocity", 1500);
+                    try { driver.executeScript("mobile: swipe", swipe); } catch (Exception ignored) {}
+                    sleep(300);
+                }
+            }
+            return false;
+        } catch (Exception e) { return false; }
+    }
+
+    /**
+     * UC29 helper — is the Logout button currently disabled / blocked?
+     * Determined by:
+     *  - Logout button has enabled=false attribute, OR
+     *  - Tapping Logout produces a confirmation/blocking dialog with
+     *    "Sync in progress" / "cannot logout" message
+     */
+    public boolean isLogoutBlocked() {
+        try {
+            org.openqa.selenium.WebElement logout = driver.findElement(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND " +
+                    "(label == 'Logout' OR label == 'Log Out' OR label CONTAINS[c] 'logout')"));
+            String enabled = logout.getAttribute("enabled");
+            if ("false".equalsIgnoreCase(enabled)) return true;
+        } catch (Exception ignored) {}
+        // Or check for a blocking dialog after attempting logout
+        try {
+            driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "(label CONTAINS[c] 'sync in progress' OR label CONTAINS[c] 'cannot logout' OR " +
+                "label CONTAINS[c] 'wait for sync')"));
+            return true;
+        } catch (Exception ignored) {}
+        return false;
+    }
+
+    /**
+     * UC28 helper — tap "Clear Image Cache" in Settings → Diagnostics.
+     * Returns true if the action button was tapped (cache clear initiated).
+     */
+    public boolean clearImageCache() {
+        try {
+            // Scroll if needed to find the diagnostics section
+            for (int i = 0; i < 5; i++) {
+                try {
+                    org.openqa.selenium.WebElement btn = driver.findElement(
+                        io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                            "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeCell') AND " +
+                            "(label CONTAINS[c] 'clear image cache' OR " +
+                            "label CONTAINS[c] 'clear cache' OR " +
+                            "label CONTAINS[c] 'image cache')"));
+                    btn.click(); sleep(800);
+                    return true;
+                } catch (Exception e) {
+                    java.util.Map<String, Object> swipe = new java.util.HashMap<>();
+                    swipe.put("direction", "down");
+                    swipe.put("velocity", 1500);
+                    try { driver.executeScript("mobile: swipe", swipe); } catch (Exception ignored) {}
+                    sleep(300);
+                }
+            }
+            return false;
+        } catch (Exception e) { return false; }
+    }
+
+    /**
+     * Open Sync Queue Analyzer screen (Settings → Sync & Network → Sync Queue Analyzer).
+     * Returns true if the screen with Pending/History tabs is now visible.
+     */
+    public boolean openSyncQueueAnalyzer() {
+        try {
+            for (int i = 0; i < 5; i++) {
+                try {
+                    org.openqa.selenium.WebElement entry = driver.findElement(
+                        io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                            "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeCell' OR " +
+                            "type == 'XCUIElementTypeStaticText') AND " +
+                            "(label CONTAINS[c] 'sync queue' OR label CONTAINS[c] 'queue analyzer')"));
+                    entry.click(); sleep(800);
+                    // Verify by looking for Pending / History tabs
+                    try {
+                        driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeStaticText' AND " +
+                            "(label == 'Pending' OR label == 'History')"));
+                        return true;
+                    } catch (Exception e2) {
+                        return false;
+                    }
+                } catch (Exception e) {
+                    java.util.Map<String, Object> swipe = new java.util.HashMap<>();
+                    swipe.put("direction", "down");
+                    swipe.put("velocity", 1500);
+                    try { driver.executeScript("mobile: swipe", swipe); } catch (Exception ignored) {}
+                    sleep(300);
+                }
+            }
+            return false;
+        } catch (Exception e) { return false; }
+    }
+
+    /**
+     * Count items in the Sync Queue Analyzer's current tab.
+     * Counts XCUIElementTypeCell entries below the tab control.
+     * Returns -1 if the analyzer screen is not visible.
+     */
+    public int getSyncQueueItemCount() {
+        try {
+            // Verify we're on the analyzer
+            driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "(label == 'Pending' OR label == 'History')"));
+            java.util.List<org.openqa.selenium.WebElement> cells = driver.findElements(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeCell'"));
+            return cells.size();
+        } catch (Exception e) { return -1; }
+    }
+
+    /**
+     * UC23 helper — Export queue as JSON via Sync Queue Analyzer.
+     * Looks for an "Export" / "Export JSON" button and taps it.
+     * Returns true if export was triggered (does not validate the file content
+     * — that requires accessing the device file system out of band).
+     */
+    public boolean exportQueueAsJson() {
+        try {
+            org.openqa.selenium.WebElement btn = driver.findElement(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND " +
+                    "(label == 'Export' OR label CONTAINS[c] 'export json' OR " +
+                    "label CONTAINS[c] 'export queue')"));
+            btn.click(); sleep(800);
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /**
+     * Returns true if site switching is currently blocked due to in-progress sync.
+     * Used by UC32. Blocking can manifest as:
+     *  - Sites button has enabled=false
+     *  - Tapping Sites button shows a "Sync in progress, please wait" dialog
+     */
+    public boolean isSiteSwitchBlockedDuringSync() {
+        try {
+            if (!isSitesButtonEnabled()) return true;
+            // Try clicking and check for blocking dialog
+            clickSitesButton();
+            sleep(700);
+            try {
+                driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND " +
+                    "(label CONTAINS[c] 'sync in progress' OR " +
+                    "label CONTAINS[c] 'please wait' OR " +
+                    "label CONTAINS[c] 'cannot switch')"));
+                return true;
+            } catch (Exception e) {
+                return false;
+            }
+        } catch (Exception e) { return false; }
+    }
+
 }
