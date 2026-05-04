@@ -736,9 +736,34 @@ public class BuildingPage extends BasePage {
      * Find building by name in the list
      */
     public WebElement findBuildingByName(String buildingName) {
+        // ============================================================
+        // FAST-FAIL OPTIMIZATION 2026-05-04 (debug 064):
+        //
+        // This method has 5 fallback strategies, each issuing
+        // driver.findElements() that respects the GLOBAL implicit wait
+        // (AppConstants.IMPLICIT_WAIT = 5s). On a building-not-visible
+        // case, every strategy times out → 5 × 5s = 25s per call.
+        //
+        // expandBuilding() calls this every 5 iterations of a 50-iteration
+        // scroll loop = 10 calls × 25s = 250s = ~4 minutes wasted.
+        // Combined with test setup, this blows past the 7-min TestNG cap
+        // in CI for tests like TC_FL_001, TC_EF_001, TC_DF_001, etc.
+        //
+        // Cap implicit wait to 1s for the duration of this method —
+        // strategies return faster on miss, total cost ~5s per call max.
+        // Reduces expandBuilding's slow-path from ~4 min → ~1 min.
+        // ============================================================
+        java.time.Duration originalWait = null;
+        try {
+            originalWait = driver.manage().timeouts().getImplicitWaitTimeout();
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(1));
+        } catch (Exception e) {
+            originalWait = java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT);
+        }
+
         try {
             System.out.println("🔍 Looking for building: " + buildingName);
-            
+
             // Strategy 1: Look for building entry with floor count (most reliable)
             // Building entries have format: "BuildingName, X floors" or "BuildingName, X floor"
             try {
@@ -824,6 +849,11 @@ public class BuildingPage extends BasePage {
         } catch (Exception e) {
             System.out.println("⚠️ Error finding building: " + e.getMessage());
             return null;
+        } finally {
+            // Restore the global implicit wait (capped to 1s above for fast-fail)
+            try {
+                driver.manage().timeouts().implicitlyWait(originalWait);
+            } catch (Exception ignored) {}
         }
     }
 
