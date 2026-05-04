@@ -7680,6 +7680,27 @@ public class AssetPage extends BasePage {
     public void selectDropdownOption(String fieldName, String optionValue) {
         System.out.println("📋 Selecting '" + optionValue + "' for dropdown '" + fieldName + "'...");
 
+        // ============================================================
+        // FAST-FAIL PRECONDITION (added 2026-05-04 per debug session)
+        //
+        // Forensics on LC_EAD_22 (run 2026-05-04 12:33-12:43): the test
+        // wasted ~10 minutes scrolling through the Assets LIST screen looking
+        // for "Ampere Rating" / "Manufacturer" / "Voltage" labels — because
+        // the asset-class picker had auto-dismissed and the screen reverted
+        // to the Assets list. Each missing-field probe ran the full
+        // 3-attempt loop × multiple-strategy scroll-and-retry, costing
+        // 30–90s per field × 3 fields ≈ 2–4 minutes of pure waste per test.
+        //
+        // This precondition fails fast in ~1s when not on Edit screen,
+        // letting the test report a meaningful failure quickly rather than
+        // hitting the 7-min TestNG suite-timeout cap.
+        // ============================================================
+        if (!isEditAssetScreenDisplayed() && !isSaveChangesButtonVisible()) {
+            System.out.println("⚠️ FAST-FAIL: Not on Edit Asset screen — aborting selectDropdownOption('"
+                + fieldName + "'). Caller's screen-state assumption is broken.");
+            return;
+        }
+
         boolean dropdownFound = false;
 
         // STRATEGY 1: Use mobile:scroll to scroll the label into view (handles ANY distance)
@@ -9561,7 +9582,19 @@ public class AssetPage extends BasePage {
      */
     public boolean editTextField(String fieldName, String value) {
         System.out.println("📝 Editing field: " + fieldName);
-        
+
+        // ============================================================
+        // FAST-FAIL PRECONDITION (added 2026-05-04 per debug session)
+        // Same root cause as selectDropdownOption — abort early when the
+        // caller is on the wrong screen instead of running through 5
+        // fallback strategies × 5s implicit wait = 25s waste per call.
+        // ============================================================
+        if (!isEditAssetScreenDisplayed() && !isSaveChangesButtonVisible()) {
+            System.out.println("⚠️ FAST-FAIL: Not on Edit Asset screen — aborting editTextField('"
+                + fieldName + "'). Caller's screen-state assumption is broken.");
+            return false;
+        }
+
         // Try to find and edit the field, scroll if needed (max 5 scrolls)
         for (int scrollAttempt = 0; scrollAttempt < 2; scrollAttempt++) {
             
