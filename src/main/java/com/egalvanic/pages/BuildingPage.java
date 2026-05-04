@@ -3134,6 +3134,16 @@ public class BuildingPage extends BasePage {
      * @return WebElement or null
      */
     public WebElement findFloorByName(String floorName) {
+        // Fast-fail (changelog 064): cap implicit wait to 1s for the duration
+        // of this method. 4 strategies × 5s = 20s per miss → ~5s after fix.
+        java.time.Duration originalWait;
+        try {
+            originalWait = driver.manage().timeouts().getImplicitWaitTimeout();
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(1));
+        } catch (Exception e) {
+            originalWait = java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT);
+        }
+
         try {
             System.out.println("🔍 Looking for floor: " + floorName);
             
@@ -3225,6 +3235,8 @@ public class BuildingPage extends BasePage {
         } catch (Exception e) {
             System.out.println("⚠️ Error finding floor: " + e.getMessage());
             return null;
+        } finally {
+            try { driver.manage().timeouts().implicitlyWait(originalWait); } catch (Exception ignored) {}
         }
     }
 
@@ -3286,6 +3298,15 @@ public class BuildingPage extends BasePage {
     }
 
     public WebElement findRoomByName(String roomName) {
+        // Fast-fail (changelog 064): cap implicit wait to 1s.
+        java.time.Duration originalWait;
+        try {
+            originalWait = driver.manage().timeouts().getImplicitWaitTimeout();
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(1));
+        } catch (Exception e) {
+            originalWait = java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT);
+        }
+
         try {
             System.out.println("🔍 Looking for room: " + roomName);
             
@@ -3349,6 +3370,8 @@ public class BuildingPage extends BasePage {
         } catch (Exception e) {
             System.out.println("⚠️ Error finding room: " + e.getMessage());
             return null;
+        } finally {
+            try { driver.manage().timeouts().implicitlyWait(originalWait); } catch (Exception ignored) {}
         }
     }
 

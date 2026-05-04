@@ -3112,7 +3112,18 @@ public class AssetPage extends BasePage {
 
     public boolean selectAssetByName(String assetName) {
         System.out.println("📦 Looking for asset: " + assetName);
-        
+
+        // Fast-fail (changelog 064): cap implicit wait to 1s for the duration
+        // of this method. 4 strategies × 5s = 20s per miss → ~5s after fix.
+        java.time.Duration originalWait;
+        try {
+            originalWait = driver.manage().timeouts().getImplicitWaitTimeout();
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(1));
+        } catch (Exception e) {
+            originalWait = java.time.Duration.ofSeconds(AppConstants.IMPLICIT_WAIT);
+        }
+
+        try {
         // Strategy 1: Find by accessibility ID
         try {
             WebElement asset = driver.findElement(AppiumBy.accessibilityId(assetName));
@@ -3171,6 +3182,9 @@ public class AssetPage extends BasePage {
         
         System.out.println("⚠️ Could not find asset: " + assetName);
         return false;
+        } finally {
+            try { driver.manage().timeouts().implicitlyWait(originalWait); } catch (Exception ignored) {}
+        }
     }
 
     /**
