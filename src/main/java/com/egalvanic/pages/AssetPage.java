@@ -7739,16 +7739,39 @@ public class AssetPage extends BasePage {
                         System.out.println("   🔍 After nudge: Label at Y=" + labelY);
                     }
 
-                    // Find dropdown button near the label within 80px
-                    // IMPORTANT: Filter out location breadcrumb buttons (e.g., "Trim067938, Room_xxx, ATS")
-                    // which contain ", " and are NOT dropdown buttons. Real dropdown buttons are named
-                    // "Select..." (unselected) or a short value like "22 kA" (already selected).
+                    // Find dropdown trigger near the label within 80px.
+                    //
+                    // ============================================================
+                    // ROOT-CAUSE FIX 2026-05-04 (debug sessions 059 → 061):
+                    //
+                    // The original code searched only XCUIElementTypeButton elements.
+                    // Live DOM dump from /tmp/loadcenter_debug/ proved this is wrong
+                    // for the current iOS app (Z Platform-QA v1.31): every dropdown
+                    // trigger in Loadcenter / Disconnect Switch / Manufacturer / etc.
+                    // forms is rendered as XCUIElementTypeStaticText, e.g.:
+                    //
+                    //   <XCUIElementTypeStaticText name="Select..." label="Select..."
+                    //     enabled="true" accessible="true" x="44" y="1493" .../>
+                    //
+                    // No wrapping Button. The historical "search Buttons only" code
+                    // missed every dropdown, ran the 3-attempt × scroll-and-nudge
+                    // retry storm, then gave up after 30–90s per field.
+                    //
+                    // 20 tests in CI Run #25204536847 hit the 7-min TestNG cap because
+                    // of this. Fix: include XCUIElementTypeStaticText in the search.
+                    //
+                    // Filter out breadcrumb buttons (3+ comma-separated segments,
+                    // e.g. "Trim067938, Room_xxx, ATS"). Manufacturer values like
+                    // "Square D, Inc." (2 segments) are kept.
+                    // ============================================================
                     List<WebElement> allBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeButton'"
+                        "type == 'XCUIElementTypeButton' OR " +
+                        "(type == 'XCUIElementTypeStaticText' AND " +
+                        "(name BEGINSWITH 'Select' OR label BEGINSWITH 'Select'))"
                     ));
-                    WebElement selectBtn = null;    // Priority 1: "Select..." buttons
+                    WebElement selectBtn = null;    // Priority 1: "Select..." trigger (unselected)
                     int selectDist = Integer.MAX_VALUE;
-                    WebElement valueBtn = null;     // Priority 2: short-named non-breadcrumb buttons
+                    WebElement valueBtn = null;     // Priority 2: short-named non-breadcrumb (filled)
                     int valueDist = Integer.MAX_VALUE;
 
                     for (WebElement btn : allBtns) {
@@ -7759,7 +7782,8 @@ public class AssetPage extends BasePage {
                         if (btnName == null) btnName = "";
                         int dist = Math.abs(btnY - labelY);
 
-                        // Priority 1: "Select..." button (unselected dropdown state)
+                        // Priority 1: "Select..." trigger (unselected dropdown state) —
+                        // matches both Button (legacy) and StaticText (current iOS DOM).
                         if (btnName.startsWith("Select")) {
                             if (dist < selectDist) {
                                 selectDist = dist;
@@ -7768,18 +7792,9 @@ public class AssetPage extends BasePage {
                             continue;
                         }
 
-                        // Skip location breadcrumb buttons.
-                        // (Fixed 2026-05-04 per debug session 059):
-                        //   The previous filter `btnName.contains(", ")` rejected ALL
-                        //   buttons containing a comma+space — which incorrectly excluded
-                        //   legitimate dropdown values like "Square D, Inc." and "ABB, Inc."
-                        //   Real breadcrumbs follow the shape "AssetName, Room, AssetType"
-                        //   with 3+ segments (≥2 separators). One-comma manufacturer names
-                        //   like "Square D, Inc." have only 2 segments and must NOT be skipped.
+                        // Skip location breadcrumb buttons (3+ segments).
                         if (btnName.split(", ").length >= 3) continue;
-                        // Skip very long names (breadcrumbs are verbose)
                         if (btnName.length() > 50) continue;
-                        // Skip known tab bar / nav buttons
                         if (btnName.equals("house") || btnName.equals("Back") || btnName.equals("Close") ||
                             btnName.equals("Search") || btnName.equals("plus")) continue;
 
