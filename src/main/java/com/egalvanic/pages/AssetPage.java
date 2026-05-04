@@ -7795,8 +7795,18 @@ public class AssetPage extends BasePage {
                         // Skip location breadcrumb buttons (3+ segments).
                         if (btnName.split(", ").length >= 3) continue;
                         if (btnName.length() > 50) continue;
+                        // Skip nav bar / system buttons that masquerade as dropdowns when
+                        // a label has scrolled off-screen and the search window
+                        // accidentally overlaps the top nav area.
+                        // (Added 2026-05-04 per debug session 061: "More" was being
+                        //  picked as the dropdown for Voltage when label scrolled to
+                        //  Y=36 and the ⋯ button at Y=61 was 25px away.)
                         if (btnName.equals("house") || btnName.equals("Back") || btnName.equals("Close") ||
-                            btnName.equals("Search") || btnName.equals("plus")) continue;
+                            btnName.equals("Search") || btnName.equals("plus") ||
+                            btnName.equals("More") || btnName.equals("ellipsis") ||
+                            btnName.equals("ellipsis.circle") || btnName.equals("WO") ||
+                            btnName.equals("Cancel") || btnName.equals("Save") ||
+                            btnName.equals("Done")) continue;
 
                         // Priority 2: short-named button (dropdown with value already set)
                         if (dist < valueDist) {
