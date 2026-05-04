@@ -7739,6 +7739,29 @@ public class AssetPage extends BasePage {
                         System.out.println("   🔍 After nudge: Label at Y=" + labelY);
                     }
 
+                    // ============================================================
+                    // POST-NUDGE OFF-SCREEN GUARD (added 2026-05-04, debug 061):
+                    //
+                    // nudgeIfBehindNavBar can fail to bring the label into the
+                    // visible body — e.g., when label originally at Y=-881,
+                    // nudge of 1101px exceeds screen drag capacity. Label ends
+                    // up at Y=-165 (still off-screen) or Y=36 (in nav bar zone).
+                    //
+                    // Searching for a "dropdown near the label" in those cases
+                    // matches nav buttons (More / ⋯ / WO) at Y=61 and clicks
+                    // the wrong thing.
+                    //
+                    // Guard: if label is outside the visible body [120, 1900],
+                    // skip this attempt and let the outer scroll-and-retry loop
+                    // try again with fresh scroll.
+                    // ============================================================
+                    if (labelY < 120 || labelY > 1900) {
+                        System.out.println("   ⚠️ Label '" + fieldName + "' at Y=" + labelY
+                            + " is outside visible body [120, 1900] — skipping search, retrying scroll");
+                        // Fall through to the outer attempt loop's manual scroll.
+                        continue;
+                    }
+
                     // Find dropdown trigger near the label within 80px.
                     //
                     // ============================================================
