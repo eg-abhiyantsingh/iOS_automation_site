@@ -7768,8 +7768,15 @@ public class AssetPage extends BasePage {
                             continue;
                         }
 
-                        // Skip location breadcrumb buttons (contain ", " with path segments)
-                        if (btnName.contains(", ")) continue;
+                        // Skip location breadcrumb buttons.
+                        // (Fixed 2026-05-04 per debug session 059):
+                        //   The previous filter `btnName.contains(", ")` rejected ALL
+                        //   buttons containing a comma+space — which incorrectly excluded
+                        //   legitimate dropdown values like "Square D, Inc." and "ABB, Inc."
+                        //   Real breadcrumbs follow the shape "AssetName, Room, AssetType"
+                        //   with 3+ segments (≥2 separators). One-comma manufacturer names
+                        //   like "Square D, Inc." have only 2 segments and must NOT be skipped.
+                        if (btnName.split(", ").length >= 3) continue;
                         // Skip very long names (breadcrumbs are verbose)
                         if (btnName.length() > 50) continue;
                         // Skip known tab bar / nav buttons
