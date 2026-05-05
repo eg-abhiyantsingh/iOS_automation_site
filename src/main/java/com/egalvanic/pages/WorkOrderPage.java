@@ -22513,17 +22513,24 @@ public class WorkOrderPage extends BasePage {
     }
 
     /**
-     * Start a Work Order session via the canonical Dashboard flow:
-     *   1. Tap the "Tap to select a work order" card on Dashboard
-     *   2. Popup list of WOs appears (with radio circles)
-     *   3. Tap a WO row (matching woNameSubstring, or first available if null)
-     *   4. "Start Work Order Session?" confirmation dialog appears
-     *   5. Tap "Start Session"
-     *   6. Dashboard updates: "Active Work Order: <name>" with End button
+     * Start a Work Order session via the canonical Dashboard flow.
      *
-     * Returns true if isWorkOrderActive() is true at the end.
+     * Handles BOTH UI variants of the WO selection screen:
+     *   - Variant A: modal popup with radio circles + 'Start Session' dialog
+     *   - Variant B: dedicated Work Orders screen with inline 'Start' buttons
+     *     next to each WO (no confirmation dialog)
      *
-     * @param woNameSubstring optional — if null, tap the first WO in the popup
+     * Steps:
+     *   1. Tap Dashboard 'Tap to select a work order' card
+     *   2. Either popup appears (Variant A) or we navigate to WO list (Variant B)
+     *   3. Find a WO row matching woNameSubstring (or first available)
+     *   4a. Variant A: tap the row → 'Start Session' dialog → tap Start Session
+     *   4b. Variant B: tap the inline 'Start' button next to the row
+     *   5. After activation, auto-navigate BACK to Dashboard (Back button)
+     *      so the caller can proceed with Dashboard-based navigation
+     *   6. Verify isWorkOrderActive()
+     *
+     * @param woNameSubstring optional — if null, use the first available WO
      */
     public boolean startWorkOrderSessionFromDashboard(String woNameSubstring) {
         System.out.println("📍 Starting WO session from Dashboard"
@@ -22536,50 +22543,146 @@ public class WorkOrderPage extends BasePage {
                 "type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeCell') AND " +
                 "(label CONTAINS[c] 'Tap to select' OR label CONTAINS[c] 'No Active Work Order')"));
             System.out.println("   ↳ Step 1: tapping Dashboard 'Tap to select' card");
-            card.click(); sleep(800);
+            card.click(); sleep(1000);
         } catch (Exception e) {
             System.out.println("   ↳ Step 1 FAILED: card not visible — " + e.getClass().getSimpleName());
             return false;
         }
 
-        // Step 2: pick a WO from the popup
-        try {
-            String predicate;
-            if (woNameSubstring != null && !woNameSubstring.isEmpty()) {
-                predicate = "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' OR " +
-                    "type == 'XCUIElementTypeCell') AND label CONTAINS[c] '" +
-                    woNameSubstring.replace("'", "\\'") + "'";
-            } else {
-                // First WO labeled "Job -" or "Work Order -" in the popup
-                predicate = "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeCell') AND " +
-                    "(label BEGINSWITH 'Job -' OR label BEGINSWITH 'Work Order -' OR " +
-                    "label CONTAINS[c] 'Job - ' OR label CONTAINS[c] 'Work Order - ')";
-            }
-            WebElement woRow = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(predicate));
-            System.out.println("   ↳ Step 2: tapping WO row '" + woRow.getAttribute("label") + "'");
-            woRow.click(); sleep(800);
-        } catch (Exception e) {
-            System.out.println("   ↳ Step 2 FAILED: no WO matching popup — " + e.getClass().getSimpleName());
+        // Step 2-4: try Variant B first (inline Start button next to a WO row).
+        // Variant B is what the user's simulator uses — see screenshot at 6:47 PM.
+        boolean activated = tryInlineStartVariant(woNameSubstring);
+
+        // Fallback to Variant A (popup-with-Start-Session-dialog) if Variant B
+        // didn't find a Start button — older app versions may use this UI.
+        if (!activated) {
+            System.out.println("   ↳ Variant B (inline Start) not found, trying Variant A (dialog)");
+            activated = tryDialogVariant(woNameSubstring);
+        }
+
+        if (!activated) {
+            System.out.println("   ↳ Both variants FAILED");
             return false;
         }
 
-        // Step 3: tap "Start Session" in the confirmation dialog
-        try {
-            WebElement startBtn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND " +
-                "(label == 'Start Session' OR label CONTAINS[c] 'Start Session')"));
-            System.out.println("   ↳ Step 3: tapping 'Start Session' in dialog");
-            startBtn.click(); sleep(1200);
-        } catch (Exception e) {
-            System.out.println("   ↳ Step 3 FAILED: 'Start Session' dialog button not visible — "
-                + e.getClass().getSimpleName());
-            return false;
-        }
+        // Step 5: navigate back to Dashboard so caller can proceed
+        sleep(800);
+        navigateBackToDashboard();
+        sleep(500);
 
-        // Step 4: verify activation took effect
         boolean active = isWorkOrderActive();
         System.out.println("   ↳ Final: isWorkOrderActive=" + active);
         return active;
+    }
+
+    /**
+     * Variant B: inline 'Start' button next to a WO row (current simulator UI).
+     * The WO list shows each WO with a green dot, the WO name, and a 'Start'
+     * button on the right. Tapping Start activates that WO directly.
+     */
+    private boolean tryInlineStartVariant(String woNameSubstring) {
+        try {
+            // Find the target WO row's Y position
+            String rowPredicate;
+            if (woNameSubstring != null && !woNameSubstring.isEmpty()) {
+                rowPredicate = "type == 'XCUIElementTypeStaticText' AND label CONTAINS[c] '" +
+                    woNameSubstring.replace("'", "\\'") + "'";
+            } else {
+                rowPredicate = "type == 'XCUIElementTypeStaticText' AND " +
+                    "(label BEGINSWITH 'Job -' OR label BEGINSWITH 'Work Order -')";
+            }
+            WebElement targetRow = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(rowPredicate));
+            int rowY = targetRow.getRect().getY();
+            String rowLabel = targetRow.getAttribute("label");
+            System.out.println("   ↳ Variant B: target WO row at Y=" + rowY + ": '" + rowLabel + "'");
+
+            // Find a 'Start' button at roughly the same Y (within ±60px)
+            java.util.List<WebElement> startBtns = driver.findElements(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND label == 'Start'"));
+            for (WebElement btn : startBtns) {
+                try {
+                    int btnY = btn.getRect().getY();
+                    if (Math.abs(btnY - rowY) <= 60) {
+                        System.out.println("   ↳ Variant B: tapping 'Start' button at Y=" + btnY
+                            + " (paired with row at Y=" + rowY + ")");
+                        btn.click(); sleep(1200);
+                        // Some flows still show a 'Start Session' dialog after — handle it
+                        try {
+                            WebElement confirmBtn = driver.findElement(
+                                io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                                    "type == 'XCUIElementTypeButton' AND label == 'Start Session'"));
+                            System.out.println("   ↳ Variant B: confirming 'Start Session' dialog");
+                            confirmBtn.click(); sleep(1200);
+                        } catch (Exception ignored) { /* no dialog, direct activation */ }
+                        return isWorkOrderActive();
+                    }
+                } catch (Exception ignored) { /* skip stale */ }
+            }
+            // Fallback: tap any visible 'Start' button (first one)
+            if (!startBtns.isEmpty()) {
+                System.out.println("   ↳ Variant B: tapping first 'Start' button (no Y-pairing)");
+                startBtns.get(0).click(); sleep(1200);
+                try {
+                    WebElement confirmBtn = driver.findElement(
+                        io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeButton' AND label == 'Start Session'"));
+                    confirmBtn.click(); sleep(1200);
+                } catch (Exception ignored) { /* no dialog */ }
+                return isWorkOrderActive();
+            }
+        } catch (Exception ignored) { /* fall through to dialog variant */ }
+        return false;
+    }
+
+    /**
+     * Variant A: modal popup with WO rows + 'Start Session' confirmation dialog.
+     * Older app versions use this UI.
+     */
+    private boolean tryDialogVariant(String woNameSubstring) {
+        try {
+            String predicate;
+            if (woNameSubstring != null && !woNameSubstring.isEmpty()) {
+                predicate = "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeCell') AND " +
+                    "label CONTAINS[c] '" + woNameSubstring.replace("'", "\\'") + "'";
+            } else {
+                predicate = "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeCell') AND " +
+                    "(label BEGINSWITH 'Job -' OR label BEGINSWITH 'Work Order -')";
+            }
+            WebElement woRow = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(predicate));
+            System.out.println("   ↳ Variant A: tapping WO row '" + woRow.getAttribute("label") + "'");
+            woRow.click(); sleep(1000);
+
+            WebElement startBtn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == 'Start Session'"));
+            System.out.println("   ↳ Variant A: tapping 'Start Session' in dialog");
+            startBtn.click(); sleep(1200);
+            return isWorkOrderActive();
+        } catch (Exception e) { return false; }
+    }
+
+    /**
+     * Navigate back to Dashboard from any screen. Best-effort — taps the
+     * 'Back' nav button repeatedly until Dashboard indicators are visible
+     * (e.g., 'Welcome to' or 'Quick Actions' label).
+     */
+    private void navigateBackToDashboard() {
+        for (int i = 0; i < 4; i++) {
+            // Already on Dashboard?
+            try {
+                driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND " +
+                    "(label CONTAINS[c] 'Welcome to' OR label == 'Quick Actions')"));
+                System.out.println("   ↳ Back to Dashboard after " + i + " back-taps");
+                return;
+            } catch (Exception ignored) { /* not on dashboard, continue */ }
+            // Tap Back nav button
+            try {
+                WebElement back = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND label == 'Back'"));
+                back.click(); sleep(500);
+            } catch (Exception ignored) { return; /* no Back button — give up */ }
+        }
     }
 
     /**
