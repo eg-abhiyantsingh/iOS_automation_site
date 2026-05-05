@@ -23261,54 +23261,215 @@ public class WorkOrderPage extends BasePage {
     }
 
     /**
-     * From iOS Photos picker, select a photo. Tries in priority order:
-     *   1. Photo with "IR" in label (newly added test asset like IR.jpg)
-     *   2. Photo with "thermal" / "infrared" / "flir" in name
-     *   3. First photo labeled "Photo, ..." (default sim photos)
+     * Select a photo from iOS PHPickerViewController using 8 fallback
+     * strategies — designed to handle every known PHPicker quirk on
+     * iOS 14 through iOS 26.
      *
-     * Then attempts to confirm the selection via multiple paths because
-     * iOS PHPickerViewController behavior varies:
-     *   - Single-select mode: photo tap auto-dismisses picker
-     *   - Multi-select mode: photo tap checks the photo, requires Add tap
-     *   - iOS 26 variant: button labeled 'Add (1)' or 'Done'
+     * Why 8 strategies? Per user 2026-05-05: "i think you are not able
+     * to select photo". The previous single-strategy `element.click()`
+     * approach can silently fail for several reasons:
      *
-     * Returns false if photo couldn't be selected OR picker didn't dismiss.
-     * Logs diagnostic info on failure.
+     *   1. iOS PHPicker is a SEPARATE process — click may not propagate
+     *   2. The element we matched is an overlay, not the actual photo
+     *   3. iOS 26 added animations that delay tap registration
+     *   4. Multi-select mode requires Add button after photo tap
+     *   5. Some pickers use Cell, others use Image, others use Other
+     *
+     * Strategies (in priority order — fastest-most-specific first):
+     *   1. Standard element.click() on matched photo (legacy path)
+     *   2. mobile:tap with center coordinates of element
+     *   3. mobile:tapWithNumberOfTaps using elementId (more reliable
+     *      than click for native iOS — uses XCUITest tap API directly)
+     *   4. W3C Actions touch sequence (down → wait 100ms → up)
+     *   5. Tap the IMAGE child of the cell, not the cell itself
+     *   6. mobile:tap with absolute screen coordinates from element rect
+     *   7. Try by accessibility ID instead of label
+     *   8. mobile:tap on hard-coded first-photo coordinates (last resort)
+     *
+     * After a successful tap, runs confirmPhotoPickerSelection() (5
+     * button labels) and verifies isPhotoPickerVisible() returns false
+     * (the real success signal — picker dismissed).
+     *
+     * Returns true ONLY if picker dismissed; false if all strategies
+     * failed. Logs which strategy fired so failure logs show the path.
      */
     public boolean selectFirstPhotoFromPicker() {
+        // Snapshot screen size for coordinate-based strategies
+        org.openqa.selenium.Dimension screen;
+        try { screen = driver.manage().window().getSize(); }
+        catch (Exception e) { screen = new org.openqa.selenium.Dimension(390, 844); }
+        System.out.println("   ↳ Screen: " + screen.width + "x" + screen.height);
+
+        // Capture pre-tap screenshot for visual evidence
+        savePickerScreenshot("before_tap");
+
+        // Find the target photo by 3-priority predicate (IR / thermal / first)
         WebElement target = findPickerPhoto();
         if (target == null) {
-            System.out.println("⚠️ Photo picker: no photo found by any predicate");
+            System.out.println("⚠️ Photo picker: NO photo matched any of 3 priority predicates");
             dumpPickerState();
+            dumpPageSource();
             return false;
         }
 
-        String chosenLabel = "";
-        try { chosenLabel = target.getAttribute("label"); } catch (Exception ignored) { /* */ }
-        System.out.println("   ↳ Selected photo: '" + chosenLabel + "'");
+        String chosenLabel = safeAttr(target, "label");
+        org.openqa.selenium.Rectangle rect;
+        try { rect = target.getRect(); } catch (Exception e) { rect = null; }
+        System.out.println("   ↳ Photo found: label='" + chosenLabel + "' rect="
+            + (rect == null ? "null" : rect));
+
+        // Attempt strategies until picker dismisses
+        if (tryPhotoStrategy("S1 standard click", () -> target.click(), 600)) return true;
+        if (tryPhotoStrategy("S2 mobile:tap center", () -> mobileTapElement(target), 600)) return true;
+        if (tryPhotoStrategy("S3 tapWithNumberOfTaps", () -> tapWithNumberOfTaps(target, 1, 1), 600)) return true;
+        if (tryPhotoStrategy("S4 W3C touch sequence", () -> w3cTapElement(target), 600)) return true;
+        if (tryPhotoStrategy("S5 tap image child", () -> tapImageChildOfCell(target), 600)) return true;
+        if (rect != null) {
+            int cx = rect.getX() + rect.getWidth() / 2;
+            int cy = rect.getY() + rect.getHeight() / 2;
+            if (tryPhotoStrategy("S6 mobile:tap abs coords (" + cx + "," + cy + ")",
+                () -> mobileTapAt(cx, cy), 600)) return true;
+        }
+        if (tryPhotoStrategy("S7 accessibility-id retry",
+            () -> tapByAccessibilityId(chosenLabel), 600)) return true;
+        // S8: tap top-left first photo grid cell — typical PHPicker layout
+        if (tryPhotoStrategy("S8 tap first-photo coords (60, 200)",
+            () -> mobileTapAt(60, 200), 600)) return true;
+
+        // All 8 strategies failed — full diagnostics + screenshot
+        System.out.println("⚠️ All 8 photo-tap strategies failed. Full diagnostics:");
+        savePickerScreenshot("all_strategies_failed");
+        dumpPickerState();
+        dumpPageSource();
+        return false;
+    }
+
+    /**
+     * Run a single photo-selection strategy: execute action, run confirm
+     * sequence, check picker dismissed.
+     *
+     * @return true if picker dismissed after this strategy, false otherwise
+     */
+    private boolean tryPhotoStrategy(String name, Runnable action, long postWaitMs) {
         try {
-            target.click();
+            System.out.println("   ↳ " + name);
+            action.run();
+            try { Thread.sleep(postWaitMs); } catch (InterruptedException ignored) { /* */ }
+            // Try multi-select Add button (no-op if single-select auto-dismissed)
+            confirmPhotoPickerSelection();
+            try { Thread.sleep(500); } catch (InterruptedException ignored) { /* */ }
+            if (!isPhotoPickerVisible()) {
+                System.out.println("   ✅ " + name + " — picker dismissed");
+                return true;
+            }
+            System.out.println("   ✗ " + name + " — picker still visible, trying next");
         } catch (Exception e) {
-            System.out.println("⚠️ Photo tap threw: " + e.getClass().getSimpleName());
-            return false;
+            System.out.println("   ✗ " + name + " threw " + e.getClass().getSimpleName()
+                + ": " + (e.getMessage() != null ? e.getMessage().substring(0,
+                    Math.min(60, e.getMessage().length())) : ""));
         }
-        sleep(800);
+        return false;
+    }
 
-        // After tap: try to confirm selection via Add/Done button. iOS PHPicker
-        // single-select mode auto-dismisses; multi-select needs Add (with count).
-        boolean confirmed = confirmPhotoPickerSelection();
-        sleep(600);
+    /** Strategy 2: mobile:tap at element center using its rect. */
+    private void mobileTapElement(WebElement el) {
+        org.openqa.selenium.Rectangle r = el.getRect();
+        java.util.Map<String, Object> args = new java.util.HashMap<>();
+        args.put("x", r.getX() + r.getWidth() / 2);
+        args.put("y", r.getY() + r.getHeight() / 2);
+        driver.executeScript("mobile: tap", args);
+    }
 
-        // Check if picker is gone — that's the real success indicator.
-        boolean stillInPicker = isPhotoPickerVisible();
-        if (stillInPicker) {
-            System.out.println("⚠️ Picker still visible after tap+confirm. Diagnostic dump:");
-            dumpPickerState();
-            // Last resort: try Cancel-then-retry, or assume failure
-            return false;
+    /** Strategy 3: mobile:tapWithNumberOfTaps — XCUITest-native tap API. */
+    private void tapWithNumberOfTaps(WebElement el, int numTaps, int numTouches) {
+        java.util.Map<String, Object> params = new java.util.HashMap<>();
+        // Get element ID via WebElement.getId() — this is the W3C reference
+        // that mobile:tapWithNumberOfTaps accepts as elementId
+        params.put("elementId", ((org.openqa.selenium.remote.RemoteWebElement) el).getId());
+        params.put("numberOfTaps", numTaps);
+        params.put("numberOfTouches", numTouches);
+        driver.executeScript("mobile: tapWithNumberOfTaps", params);
+    }
+
+    /** Strategy 4: W3C Actions touch down/up sequence at element center. */
+    private void w3cTapElement(WebElement el) {
+        org.openqa.selenium.Rectangle r = el.getRect();
+        int cx = r.getX() + r.getWidth() / 2;
+        int cy = r.getY() + r.getHeight() / 2;
+        org.openqa.selenium.interactions.PointerInput finger =
+            new org.openqa.selenium.interactions.PointerInput(
+                org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
+        org.openqa.selenium.interactions.Sequence tap =
+            new org.openqa.selenium.interactions.Sequence(finger, 0);
+        tap.addAction(finger.createPointerMove(java.time.Duration.ZERO,
+            org.openqa.selenium.interactions.PointerInput.Origin.viewport(), cx, cy));
+        tap.addAction(finger.createPointerDown(
+            org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+        tap.addAction(new org.openqa.selenium.interactions.Pause(finger,
+            java.time.Duration.ofMillis(100)));
+        tap.addAction(finger.createPointerUp(
+            org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+        driver.perform(java.util.Arrays.asList(tap));
+    }
+
+    /** Strategy 5: tap the XCUIElementTypeImage child of a Cell. */
+    private void tapImageChildOfCell(WebElement cell) {
+        try {
+            WebElement image = cell.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeImage'"));
+            image.click();
+        } catch (Exception e) {
+            // Cell has no Image child — try cell.click() directly as fallback
+            cell.click();
         }
-        System.out.println("   ↳ Picker dismissed (confirmed=" + confirmed + ")");
-        return true;
+    }
+
+    /** Strategy 6: mobile:tap with absolute screen coordinates. */
+    private void mobileTapAt(int x, int y) {
+        java.util.Map<String, Object> args = new java.util.HashMap<>();
+        args.put("x", x);
+        args.put("y", y);
+        driver.executeScript("mobile: tap", args);
+    }
+
+    /** Strategy 7: re-find by accessibility ID and click. */
+    private void tapByAccessibilityId(String id) {
+        if (id == null || id.isEmpty()) throw new RuntimeException("Empty accessibility id");
+        WebElement el = driver.findElement(io.appium.java_client.AppiumBy.accessibilityId(id));
+        el.click();
+    }
+
+    private String safeAttr(WebElement el, String attr) {
+        try { String v = el.getAttribute(attr); return v == null ? "" : v; }
+        catch (Exception e) { return ""; }
+    }
+
+    /** Save screenshot to /tmp with a label so user can review during debug. */
+    private void savePickerScreenshot(String label) {
+        try {
+            byte[] png = ((org.openqa.selenium.TakesScreenshot) driver)
+                .getScreenshotAs(org.openqa.selenium.OutputType.BYTES);
+            String ts = String.valueOf(System.currentTimeMillis());
+            java.io.File out = new java.io.File("/tmp/picker_" + label + "_" + ts + ".png");
+            java.nio.file.Files.write(out.toPath(), png);
+            System.out.println("   📸 Screenshot saved: " + out.getAbsolutePath());
+        } catch (Exception e) {
+            System.out.println("   ⚠️ Screenshot save failed: " + e.getClass().getSimpleName());
+        }
+    }
+
+    /** Dump full XCUI page source to /tmp for offline inspection. */
+    private void dumpPageSource() {
+        try {
+            String src = driver.getPageSource();
+            String ts = String.valueOf(System.currentTimeMillis());
+            java.io.File out = new java.io.File("/tmp/picker_pagesource_" + ts + ".xml");
+            java.nio.file.Files.write(out.toPath(), src.getBytes());
+            System.out.println("   📄 Page source dumped: " + out.getAbsolutePath()
+                + " (" + src.length() + " chars)");
+        } catch (Exception e) {
+            System.out.println("   ⚠️ Page source dump failed: " + e.getClass().getSimpleName());
+        }
     }
 
     /** Find a photo in the picker by IR/thermal/first-Photo priority. */
