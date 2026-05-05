@@ -22383,12 +22383,19 @@ public class WorkOrderPage extends BasePage {
         } catch (Exception e) { return false; }
     }
 
-    /** Tap the "IR Photos" tab on the Work Order detail screen. */
+    /**
+     * Tap the IR tab on the Work Order detail screen.
+     *
+     * The actual tab label in app v1.31 is simply "IR" — part of the bottom
+     * tab bar: Details / Assets / Tasks / Issues / IR / Files. Older app
+     * versions used "IR Photos" / "IR Photo".
+     */
     public boolean tapIRPhotosTab() {
         try {
             WebElement tab = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeOther') AND " +
-                "(label == 'IR Photos' OR label CONTAINS[c] 'IR Photo')"));
+                "(label == 'IR' OR label == 'IR Photos' OR label CONTAINS[c] 'IR Photo')"));
+            System.out.println("   ↳ Tapping IR tab: '" + tab.getAttribute("label") + "'");
             tab.click();
             try { Thread.sleep(400); } catch (InterruptedException ignored) {}
             return true;
