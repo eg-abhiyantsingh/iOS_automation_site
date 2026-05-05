@@ -824,8 +824,8 @@ public class ZP323_NewFeatures_Test extends BaseTest {
             "Infrared Photos section not visible on this asset"
         );
 
-        logStep("Step 7: Enter IR Photo Filename (FLIR-IND: Visual not required)");
-        String name = "IR_" + System.currentTimeMillis();
+        logStep("Step 7: Enter IR Photo Filename = 'IR' (static, per user spec)");
+        String name = "IR";
         skipIfPreconditionMissing(() -> workOrderPage.enterIRPhotoFilename(name),
             "IR Photo Filename text field not found");
 
