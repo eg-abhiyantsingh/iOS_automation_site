@@ -22492,47 +22492,55 @@ public class WorkOrderPage extends BasePage {
     public boolean tapWORowInIRSection(String woNameSubstring) {
         scrollToInfraredPhotosSection();
 
-        // Strategy 1: Camera-type row (existing IR pair on this asset)
+        // Strategy 1 (highest priority): explicit "Add IR Photo Pair" button.
+        // This is the canonical entry — leads directly to the empty add-form
+        // with IR + Visual filename text fields visible. Try this BEFORE
+        // tapping any data row, since data-row taps lead to view mode (no
+        // editable filename fields).
+        try {
+            WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(label == 'Add IR Photo Pair' OR label CONTAINS[c] 'IR Photo Pair' OR " +
+                "label CONTAINS[c] 'Add Photo Pair')"));
+            System.out.println("   ↳ Tapping explicit Add IR Photo Pair button");
+            btn.click(); sleep(700);
+            return true;
+        } catch (Exception ignored) { /* fall through */ }
+
+        // Strategy 2: Camera-type row (FLIR / FLUKE / FOTRIC) — existing pair.
+        // Tapping leads to view/edit-of-existing, may also expose "Add Another".
         try {
             WebElement row = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeOther' OR " +
                 "type == 'XCUIElementTypeStaticText') AND " +
                 "label CONTAINS '" + woNameSubstring.replace("'", "\\'") + "'"));
+            System.out.println("   ↳ Tapping camera-type row: '" + row.getAttribute("label") + "'");
             row.click(); sleep(700);
             return true;
         } catch (Exception ignored) { /* fall through */ }
 
-        // Strategy 2: Job-style row (any existing IR pair, even non-FLIR)
+        // Strategy 3: Job-style row (existing pair with VIS/IR/Visual prefix
+        // or job/sync date label). Same caveat as Strategy 2 — leads to view.
         try {
             WebElement row = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeOther') AND " +
                 "(label CONTAINS[c] 'Job -' OR label CONTAINS[c] 'Work Order' OR " +
-                "label CONTAINS[c] 'sync')"));
+                "label CONTAINS[c] 'sync' OR label BEGINSWITH 'VIS' OR " +
+                "label BEGINSWITH 'IR:')"));
+            System.out.println("   ↳ Tapping job/pair row: '" + row.getAttribute("label") + "'");
             row.click(); sleep(700);
             return true;
         } catch (Exception ignored) { /* fall through */ }
 
-        // Strategy 3: Empty-section case — tap the "Add IR Photo Pair" / "+" button
-        try {
-            WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND " +
-                "(label == 'Add IR Photo Pair' OR label CONTAINS[c] 'Add IR Photo' OR " +
-                "label == '+' OR label CONTAINS[c] 'Add Photo Pair')"));
-            btn.click(); sleep(700);
-            return true;
-        } catch (Exception ignored) { /* fall through */ }
-
-        // Strategy 4 (last-resort): tap directly on/just-below the Infrared Photos
-        // header. Some iOS section headers are tappable and open the add flow.
+        // Strategy 4 (last-resort): Y-proximity tap. Restricted to Cells only
+        // (not Other/Button generic) to avoid grabbing unrelated chrome.
         try {
             WebElement header = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND label CONTAINS[c] 'Infrared Photos'"));
             int hY = header.getRect().getY();
-            // Find any button/cell within 250px below the header
             java.util.List<WebElement> all = driver.findElements(
                 io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeCell' OR " +
-                    "type == 'XCUIElementTypeOther'"));
+                    "type == 'XCUIElementTypeCell'"));
             for (WebElement el : all) {
                 try {
                     int y = el.getRect().getY();
@@ -22541,7 +22549,7 @@ public class WorkOrderPage extends BasePage {
                         String l = el.getAttribute("label");
                         if (l != null && !l.isEmpty()
                             && !l.equalsIgnoreCase("Infrared Photos")) {
-                            System.out.println("   ↳ Trying tappable below header: '" + l + "'");
+                            System.out.println("   ↳ Y-proximity Cell tap: '" + l + "'");
                             el.click(); sleep(700);
                             return true;
                         }
@@ -22638,30 +22646,21 @@ public class WorkOrderPage extends BasePage {
     }
 
     /**
-     * Try to reveal the Add IR Photo Pair form by tapping any "+" / "Add Pair"
-     * button on the current screen. Returns true if a button was tapped.
+     * Try to reveal the Add IR Photo Pair form by tapping a button explicitly
+     * labeled with "Photo Pair" or similar. STRICT match only — never falls
+     * back to generic "+" / "add" / "plus" because those match too many
+     * unrelated buttons (Add Photo, Add Document, Add Connection, etc.) and
+     * cause us to navigate to Asset Edit or other unrelated screens.
      */
     private boolean revealAddIRPairForm() {
-        // Try standard labels first
         try {
             WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND " +
-                "(label == 'Add IR Photo Pair' OR label CONTAINS[c] 'Add IR Photo Pair' OR " +
-                "label == 'Add Pair' OR label CONTAINS[c] 'Add Photo Pair' OR " +
-                "label == 'Add Another' OR label CONTAINS[c] 'Add Another' OR " +
-                "label == 'New Pair' OR label CONTAINS[c] 'New Pair')"));
+                "(label == 'Add IR Photo Pair' OR label CONTAINS[c] 'IR Photo Pair' OR " +
+                "label CONTAINS[c] 'Photo Pair' OR label CONTAINS[c] 'Add Another Pair')"));
             btn.click(); sleep(600);
             return true;
-        } catch (Exception ignored) { /* fall through */ }
-        // Try icon-only "+" button
-        try {
-            WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND " +
-                "(label == '+' OR label == 'plus' OR name CONTAINS[c] 'plus' OR " +
-                "name CONTAINS[c] 'add')"));
-            btn.click(); sleep(600);
-            return true;
-        } catch (Exception ignored) { /* fall through */ }
+        } catch (Exception ignored) { /* no Add Pair button on this screen */ }
         return false;
     }
 
@@ -22684,11 +22683,31 @@ public class WorkOrderPage extends BasePage {
 
         // Try entering IR Photo Filename
         if (!enterIRPhotoFilename(matchingFilename)) {
-            System.out.println("⚠️ IR Photo Filename field not found. Dumping all text fields:");
+            System.out.println("⚠️ IR Photo Filename field not found. Diagnostic dump:");
+            // Dump StaticText labels first — tells us what screen we're on
+            try {
+                java.util.List<WebElement> labels = driver.findElements(
+                    io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText'"));
+                System.out.println("   --- Visible StaticText labels (top 15) ---");
+                int dumped = 0;
+                for (WebElement el : labels) {
+                    try {
+                        String l = el.getAttribute("label");
+                        if (l != null && !l.isEmpty()) {
+                            System.out.println("   [Y=" + el.getRect().getY() + "] '" + l + "'");
+                            if (++dumped >= 15) break;
+                        }
+                    } catch (Exception ignored) { /* skip stale */ }
+                }
+            } catch (Exception ignored) { /* dump best-effort */ }
+
+            // Then dump text fields
             try {
                 java.util.List<WebElement> fields = driver.findElements(
                     io.appium.java_client.AppiumBy.iOSNsPredicateString(
                         "type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeSecureTextField'"));
+                System.out.println("   --- Text fields ---");
                 for (WebElement f : fields) {
                     try {
                         System.out.println("   field label='" + f.getAttribute("label")
@@ -22698,7 +22717,7 @@ public class WorkOrderPage extends BasePage {
                     } catch (Exception ignored) { /* skip stale */ }
                 }
                 if (fields.isEmpty()) {
-                    System.out.println("   (no text fields visible — likely on view-mode of existing pair)");
+                    System.out.println("   (no text fields visible)");
                 }
             } catch (Exception ignored) { /* dump best-effort */ }
             return false;
