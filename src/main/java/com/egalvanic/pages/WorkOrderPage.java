@@ -22481,10 +22481,18 @@ public class WorkOrderPage extends BasePage {
      * ("Job - Apr 29, 6:48 pm sync"). This opens edit mode for that WO's
      * IR photo pair on this asset.
      *
+     * Tries 3 strategies in order:
+     *   1. Match the camera-type substring (FLIR / FLUKE / FOTRIC)
+     *   2. Match a Job-row label ("Job -", "Work Order")
+     *   3. Match an "Add IR Photo Pair" / "+" button (empty-section case)
+     *
      * Auto-scrolls to the Infrared Photos section first if not already visible.
+     * Logs the IR-section DOM if no entry point is found, for debugging.
      */
     public boolean tapWORowInIRSection(String woNameSubstring) {
         scrollToInfraredPhotosSection();
+
+        // Strategy 1: Camera-type row (existing IR pair on this asset)
         try {
             WebElement row = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeOther' OR " +
@@ -22492,7 +22500,53 @@ public class WorkOrderPage extends BasePage {
                 "label CONTAINS '" + woNameSubstring.replace("'", "\\'") + "'"));
             row.click(); sleep(700);
             return true;
-        } catch (Exception e) { return false; }
+        } catch (Exception ignored) { /* fall through */ }
+
+        // Strategy 2: Job-style row (any existing IR pair, even non-FLIR)
+        try {
+            WebElement row = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeOther') AND " +
+                "(label CONTAINS[c] 'Job -' OR label CONTAINS[c] 'Work Order' OR " +
+                "label CONTAINS[c] 'sync')"));
+            row.click(); sleep(700);
+            return true;
+        } catch (Exception ignored) { /* fall through */ }
+
+        // Strategy 3: Empty-section case — tap the "Add IR Photo Pair" / "+" button
+        try {
+            WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(label == 'Add IR Photo Pair' OR label CONTAINS[c] 'Add IR Photo' OR " +
+                "label == '+' OR label CONTAINS[c] 'Add Photo Pair')"));
+            btn.click(); sleep(700);
+            return true;
+        } catch (Exception ignored) { /* fall through */ }
+
+        // Diagnostics: dump labels of buttons/text in the IR section's Y range
+        try {
+            System.out.println("⚠️ IR section entry point NOT found. Dumping nearby elements:");
+            java.util.List<WebElement> els = driver.findElements(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText'"));
+            for (WebElement el : els) {
+                try {
+                    String t = el.getAttribute("type");
+                    String l = el.getAttribute("label");
+                    String n = el.getAttribute("name");
+                    org.openqa.selenium.Rectangle r = el.getRect();
+                    if (l != null && (l.toLowerCase().contains("ir") ||
+                                      l.toLowerCase().contains("infrared") ||
+                                      l.toLowerCase().contains("flir") ||
+                                      l.toLowerCase().contains("photo") ||
+                                      l.toLowerCase().contains("add"))) {
+                        System.out.println("   " + t + " label='" + l + "' name='" + n
+                            + "' rect=" + r);
+                    }
+                } catch (Exception ignored) { /* skip stale */ }
+            }
+        } catch (Exception ignored) { /* dump best-effort */ }
+
+        return false;
     }
 
     /**
