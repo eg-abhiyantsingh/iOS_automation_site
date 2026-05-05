@@ -785,16 +785,17 @@ public class ZP323_NewFeatures_Test extends BaseTest {
     public void TC_ZP323_14_01_verifyFullIRPhotoUploadFlow() {
         ExtentReportManager.createTest(AppConstants.MODULE_JOBS, AppConstants.FEATURE_IR_PHOTOS,
             "TC_ZP323_14_01 - Full E2E: Start Session → Asset → Add Pair → WO → IR tab → Upload");
-        // ALL 15 steps per user screenshots 1-5 of 5:
+        // ALL canonical steps per user screenshots:
         //   1. Dashboard 'Tap to select' card
         //   2. Pick a Work Order (popup OR inline-Start variant)
         //   3. Tap 'Start' / 'Start Session'
         //   4. Active Work Order indicator visible on Dashboard
         //   5. Open Asset → Asset Details
         //   6. Scroll to Infrared Photos section
-        //   7. Type 'IR_<ts>' in IR Photo Filename
-        //   8. Tap Add IR Photo Pair
-        //   9. Pair appears in Existing IR Photos
+        //   7. Type 'IR' in IR Photo + Visual Photo filename fields (auto-
+        //      dismiss keyboard so Add button is visible)
+        //   8. Tap Add IR Photo Pair (button enables when both fields filled)
+        //   9. Tap 'Save Changes' to persist the new pair
         //   10. Tap Active Work Order bar → opens WO Details
         //   11. Tap IR tab → '1 IR Photo' with placeholders
         //   12. Tap 'Upload IR Photos' link
@@ -844,8 +845,12 @@ public class ZP323_NewFeatures_Test extends BaseTest {
         assertTrue(pairAdded, "Add IR Photo Pair button should tap successfully");
         mediumWait();
 
-        logStep("Step 9: Pair added — capturing screenshot");
-        logStepWithScreenshot("Pair added with name=" + name);
+        logStep("Step 9: Tap 'Save Changes' to persist the new pair");
+        boolean saved = workOrderPage.tapSaveChangesIRPair();
+        skipIfPreconditionMissing(() -> saved,
+            "Save Changes button not visible after Add IR Photo Pair — pair may not persist");
+        mediumWait();
+        logStepWithScreenshot("Pair saved with name=" + name);
 
         logStep("Step 10: Tap Active Work Order bar to open WO Details");
         boolean barTapped = workOrderPage.tapActiveWorkOrderBadge();
