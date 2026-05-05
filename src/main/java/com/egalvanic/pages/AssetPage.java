@@ -11342,4 +11342,83 @@ public class AssetPage extends BasePage {
         } catch (Exception e) { return false; }
     }
 
+    // ================================================================
+    // ZP-323.13 AI EXTRACTION — REAL FLOW (added 2026-05-05 per user screenshots)
+    //
+    // Real flow on iOS v1.31:
+    //   1. Open Asset Details → Asset Photos card
+    //   2. Tap "Nameplate" tab (siblings: Profile, Nameplate, Panel)
+    //   3. Tap Gallery (or Camera) to upload a nameplate photo
+    //   4. Pick photo from iOS Photos library
+    //   5. Once nameplate photo is uploaded, the sparkles button on
+    //      "Core Attributes" header becomes meaningful
+    //   6. Tap the sparkles button → AI extracts data → populates
+    //      Voltage / Manufacturer / Catalog Number / etc.
+    //
+    // The sparkles button BY ITSELF (no nameplate uploaded) may not
+    // produce useful results — extraction needs the photo as input.
+    // ================================================================
+
+    /** Tap the "Nameplate" tab inside Asset Photos. Returns true if tab is now active. */
+    public boolean tapNameplatePhotoTab() {
+        try {
+            WebElement tab = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND " +
+                "(label BEGINSWITH 'Nameplate' OR name BEGINSWITH 'Nameplate')"));
+            tab.click(); sleep(500);
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /** Tap Gallery to open the iOS Photos picker (for nameplate / general photo upload). */
+    public boolean tapGalleryButton() {
+        try {
+            WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == 'Gallery'"));
+            btn.click(); sleep(800);
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /** Tap Camera button (alternative to Gallery for taking a new photo). */
+    public boolean tapCameraButton() {
+        try {
+            WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == 'Camera'"));
+            btn.click(); sleep(800);
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /**
+     * Get the count of nameplate photos currently uploaded.
+     * Reads from "Nameplate (N)" tab label.
+     * Returns -1 if tab not visible.
+     */
+    public int getNameplatePhotoCount() {
+        try {
+            WebElement tab = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND " +
+                "label BEGINSWITH 'Nameplate'"));
+            String label = tab.getAttribute("label");
+            if (label == null) return -1;
+            // Extract digits from "Nameplate (N)" or "Nameplate N"
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("(\\d+)").matcher(label);
+            if (m.find()) return Integer.parseInt(m.group(1));
+        } catch (Exception ignored) {}
+        return -1;
+    }
+
+    /**
+     * Convenience for tests: navigate Asset Details → Nameplate tab → Gallery picker.
+     * Picking the actual photo afterwards is handled via the iOS Photos app's
+     * native selection UI (not part of our app's DOM).
+     * Returns true if the picker is now showing.
+     */
+    public boolean openNameplateGalleryPicker() {
+        if (!tapNameplatePhotoTab()) return false;
+        sleep(400);
+        return tapGalleryButton();
+    }
+
 }

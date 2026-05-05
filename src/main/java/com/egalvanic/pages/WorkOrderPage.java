@@ -22428,6 +22428,175 @@ public class WorkOrderPage extends BasePage {
     }
 
     // ================================================================
+    // ZP-323.14 IR PHOTO UPLOAD — REAL FLOW (added 2026-05-05 per user screenshots)
+    //
+    // Real flow on iOS v1.31:
+    //   1. Work Order MUST be active first ("Active Work Order" green badge)
+    //   2. Open Asset Details for an asset (e.g., Meter 1)
+    //   3. Scroll to "Infrared Photos" card on Asset Details
+    //   4. Tap the WO row showing the IR Photo Type (e.g., FLIR-SEP)
+    //   5. Edit mode opens with two text fields:
+    //        - IR Photo Filename
+    //        - Visual Photo Filename
+    //      User confirmed: BOTH names should be the same string.
+    //   6. Tap "Add IR Photo Pair" button — pending pair appears
+    //   7. Tap "Save Changes"
+    //   8. Navigate to IR tab in Work Order → "1 IR Photo" with placeholders
+    //   9. Tap "Upload IR Photos" → menu: "From Photos" / "From Files"
+    //   10. Pick photos → thumbnails update with actual thermal images
+    //
+    // Precondition that's easy to forget: WO must be active. Without
+    // that, the Add IR Photo Pair button won't appear/work.
+    // ================================================================
+
+    /** Returns true if the green "Active Work Order" badge is visible. */
+    public boolean isWorkOrderActive() {
+        try {
+            driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "(label CONTAINS[c] 'Active Work Order' OR label == 'Active')"));
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /**
+     * Activate the current work order if it's not already active.
+     * Looks for an Activate button OR taps the inactive-state pill.
+     */
+    public boolean activateWorkOrderIfNeeded() {
+        if (isWorkOrderActive()) return true;
+        try {
+            WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(label == 'Activate' OR label == 'Activate Work Order' OR " +
+                "label CONTAINS[c] 'activate work order')"));
+            btn.click(); sleep(800);
+            return isWorkOrderActive();
+        } catch (Exception e) { return false; }
+    }
+
+    /**
+     * On Asset Details, tap the WO row inside the "Infrared Photos" section.
+     * Each row shows the IR Photo Type (e.g., FLIR-SEP) and the WO label
+     * ("Job - Apr 29, 6:48 pm sync"). This opens edit mode for that WO's
+     * IR photo pair on this asset.
+     */
+    public boolean tapWORowInIRSection(String woNameSubstring) {
+        try {
+            WebElement row = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeOther' OR " +
+                "type == 'XCUIElementTypeStaticText') AND " +
+                "label CONTAINS '" + woNameSubstring.replace("'", "\\'") + "'"));
+            row.click(); sleep(700);
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /**
+     * Enter the IR Photo Filename. Per user spec: this should match the
+     * Visual Photo Filename (same string for both).
+     */
+    public boolean enterIRPhotoFilename(String name) {
+        try {
+            WebElement field = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeTextField' AND " +
+                "(value == 'Enter ir photo filename' OR placeholderValue == 'Enter ir photo filename' OR " +
+                "label CONTAINS[c] 'IR Photo Filename')"));
+            field.click(); sleep(200);
+            field.clear(); sleep(200);
+            field.sendKeys(name);
+            sleep(200);
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /** Enter the Visual Photo Filename. Should match IR Photo Filename. */
+    public boolean enterVisualPhotoFilename(String name) {
+        try {
+            WebElement field = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeTextField' AND " +
+                "(value == 'Enter visual photo filename' OR placeholderValue == 'Enter visual photo filename' OR " +
+                "label CONTAINS[c] 'Visual Photo Filename')"));
+            field.click(); sleep(200);
+            field.clear(); sleep(200);
+            field.sendKeys(name);
+            sleep(200);
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /**
+     * Convenience: enter the SAME filename for both IR and Visual fields,
+     * then tap "Add IR Photo Pair". Per user spec: names must match.
+     */
+    public boolean addIRPhotoPair(String matchingFilename) {
+        if (!enterIRPhotoFilename(matchingFilename)) return false;
+        if (!enterVisualPhotoFilename(matchingFilename)) return false;
+        try {
+            WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(label == 'Add IR Photo Pair' OR label CONTAINS[c] 'Add IR Photo Pair')"));
+            btn.click(); sleep(600);
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /** Returns true if a "Pending" IR photo pair badge is visible after Add. */
+    public boolean isIRPhotoPairPending() {
+        try {
+            driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label == 'Pending'"));
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /** Tap "Save Changes" button at bottom of edit modal. */
+    public boolean tapSaveChangesIRPair() {
+        try {
+            WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == 'Save Changes'"));
+            btn.click(); sleep(800);
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /**
+     * On the Work Order's IR tab, tap the "Upload IR Photos" header link
+     * to open the From-Photos / From-Files picker.
+     */
+    public boolean tapUploadIRPhotosLink() {
+        try {
+            WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND " +
+                "label == 'Upload IR Photos'"));
+            btn.click(); sleep(600);
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /** From the upload menu, choose "From Photos" (iOS Photos library). */
+    public boolean tapFromPhotosOption() {
+        try {
+            WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' OR " +
+                "type == 'XCUIElementTypeMenuItem') AND label == 'From Photos'"));
+            btn.click(); sleep(800);
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /** From the upload menu, choose "From Files" (iOS Files app). */
+    public boolean tapFromFilesOption() {
+        try {
+            WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' OR " +
+                "type == 'XCUIElementTypeMenuItem') AND label == 'From Files'"));
+            btn.click(); sleep(800);
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    // ================================================================
     // ZP-323.15 — SCHEDULE WORK ORDER DETAILS (added 2026-04-30)
     // ================================================================
 
