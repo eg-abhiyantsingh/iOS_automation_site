@@ -22596,8 +22596,9 @@ public class WorkOrderPage extends BasePage {
         try {
             WebElement field = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeTextField' AND " +
-                "(value == 'Enter ir photo filename' OR placeholderValue == 'Enter ir photo filename' OR " +
-                "label CONTAINS[c] 'IR Photo Filename')"));
+                "(value CONTAINS[c] 'ir photo' OR placeholderValue CONTAINS[c] 'ir photo' OR " +
+                "label CONTAINS[c] 'IR Photo Filename' OR label CONTAINS[c] 'IR Filename' OR " +
+                "name CONTAINS[c] 'ir filename' OR name CONTAINS[c] 'ir photo')"));
             field.click(); sleep(200);
             field.clear(); sleep(200);
             field.sendKeys(name);
@@ -22611,8 +22612,9 @@ public class WorkOrderPage extends BasePage {
         try {
             WebElement field = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeTextField' AND " +
-                "(value == 'Enter visual photo filename' OR placeholderValue == 'Enter visual photo filename' OR " +
-                "label CONTAINS[c] 'Visual Photo Filename')"));
+                "(value CONTAINS[c] 'visual photo' OR placeholderValue CONTAINS[c] 'visual photo' OR " +
+                "label CONTAINS[c] 'Visual Photo Filename' OR label CONTAINS[c] 'Visual Filename' OR " +
+                "name CONTAINS[c] 'visual filename' OR name CONTAINS[c] 'visual photo')"));
             field.click(); sleep(200);
             field.clear(); sleep(200);
             field.sendKeys(name);
@@ -22622,16 +22624,93 @@ public class WorkOrderPage extends BasePage {
     }
 
     /**
-     * Convenience: enter the SAME filename for both IR and Visual fields,
-     * then tap "Add IR Photo Pair". Per user spec: names must match.
+     * Returns true if both the IR and Visual filename text fields are
+     * currently visible on screen (we're in the add-pair form).
      */
-    public boolean addIRPhotoPair(String matchingFilename) {
-        if (!enterIRPhotoFilename(matchingFilename)) return false;
-        if (!enterVisualPhotoFilename(matchingFilename)) return false;
+    private boolean areIRPairFieldsVisible() {
+        try {
+            int found = driver.findElements(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeTextField' AND " +
+                "(value CONTAINS[c] 'photo' OR placeholderValue CONTAINS[c] 'photo' OR " +
+                "label CONTAINS[c] 'Filename' OR label CONTAINS[c] 'Photo')")).size();
+            return found >= 2;
+        } catch (Exception e) { return false; }
+    }
+
+    /**
+     * Try to reveal the Add IR Photo Pair form by tapping any "+" / "Add Pair"
+     * button on the current screen. Returns true if a button was tapped.
+     */
+    private boolean revealAddIRPairForm() {
+        // Try standard labels first
         try {
             WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND " +
-                "(label == 'Add IR Photo Pair' OR label CONTAINS[c] 'Add IR Photo Pair')"));
+                "(label == 'Add IR Photo Pair' OR label CONTAINS[c] 'Add IR Photo Pair' OR " +
+                "label == 'Add Pair' OR label CONTAINS[c] 'Add Photo Pair' OR " +
+                "label == 'Add Another' OR label CONTAINS[c] 'Add Another' OR " +
+                "label == 'New Pair' OR label CONTAINS[c] 'New Pair')"));
+            btn.click(); sleep(600);
+            return true;
+        } catch (Exception ignored) { /* fall through */ }
+        // Try icon-only "+" button
+        try {
+            WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(label == '+' OR label == 'plus' OR name CONTAINS[c] 'plus' OR " +
+                "name CONTAINS[c] 'add')"));
+            btn.click(); sleep(600);
+            return true;
+        } catch (Exception ignored) { /* fall through */ }
+        return false;
+    }
+
+    /**
+     * Convenience: enter the SAME filename for both IR and Visual fields,
+     * then tap "Add IR Photo Pair". Per user spec: names must match.
+     *
+     * If fields aren't visible (e.g., we tapped an existing pair and landed
+     * on view mode), tries to tap "Add IR Photo Pair" / "+" to reveal the
+     * form first. Dumps DOM and returns false if form still can't be found.
+     */
+    public boolean addIRPhotoPair(String matchingFilename) {
+        // If fields aren't visible, try to reveal the form
+        if (!areIRPairFieldsVisible()) {
+            System.out.println("   IR/Visual fields not visible — trying to reveal Add form");
+            if (revealAddIRPairForm()) {
+                sleep(500);
+            }
+        }
+
+        // Try entering IR Photo Filename
+        if (!enterIRPhotoFilename(matchingFilename)) {
+            System.out.println("⚠️ IR Photo Filename field not found. Dumping all text fields:");
+            try {
+                java.util.List<WebElement> fields = driver.findElements(
+                    io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeSecureTextField'"));
+                for (WebElement f : fields) {
+                    try {
+                        System.out.println("   field label='" + f.getAttribute("label")
+                            + "' value='" + f.getAttribute("value")
+                            + "' name='" + f.getAttribute("name")
+                            + "' rect=" + f.getRect());
+                    } catch (Exception ignored) { /* skip stale */ }
+                }
+                if (fields.isEmpty()) {
+                    System.out.println("   (no text fields visible — likely on view-mode of existing pair)");
+                }
+            } catch (Exception ignored) { /* dump best-effort */ }
+            return false;
+        }
+        if (!enterVisualPhotoFilename(matchingFilename)) return false;
+
+        // Tap the Add IR Photo Pair confirmation button
+        try {
+            WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(label == 'Add IR Photo Pair' OR label CONTAINS[c] 'Add IR Photo Pair' OR " +
+                "label == 'Add Pair' OR label == 'Add')"));
             btn.click(); sleep(600);
             return true;
         } catch (Exception e) { return false; }
