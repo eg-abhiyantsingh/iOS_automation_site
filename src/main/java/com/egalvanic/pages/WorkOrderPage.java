@@ -22471,19 +22471,54 @@ public class WorkOrderPage extends BasePage {
     }
 
     /**
-     * Activate the current work order if it's not already active.
-     * Looks for an Activate button OR taps the inactive-state pill.
+     * Ensure a Work Order is active. Handles three starting states:
+     *   1. Already active → return true immediately
+     *   2. On Dashboard with "No Active Work Order" card → tap card to open
+     *      WO list → tap Start/Activate on first available WO
+     *   3. On WO list directly → tap Start/Activate on first available WO
+     *
+     * Logs each step so the failure log shows which path was taken.
+     * Returns true if a WO is active by the end.
      */
     public boolean activateWorkOrderIfNeeded() {
-        if (isWorkOrderActive()) return true;
+        if (isWorkOrderActive()) {
+            System.out.println("   ↳ WO already active, skipping activation");
+            return true;
+        }
+
+        // Step A: if we're on Dashboard, tap the No-Active card to reach WO list
+        try {
+            WebElement card = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeOther' OR " +
+                "type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeCell') AND " +
+                "(label CONTAINS[c] 'No Active' OR label CONTAINS[c] 'Tap to select')"));
+            System.out.println("   ↳ Tapping No-Active card to open WO list");
+            card.click(); sleep(800);
+            waitForWorkOrdersScreen();
+        } catch (Exception ignored) {
+            System.out.println("   ↳ No-Active card not visible (probably already on WO list)");
+        }
+
+        // Step B: try existing canonical Activate button (in WO detail context)
         try {
             WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND " +
                 "(label == 'Activate' OR label == 'Activate Work Order' OR " +
                 "label CONTAINS[c] 'activate work order')"));
+            System.out.println("   ↳ Tapping Activate button");
             btn.click(); sleep(800);
-            return isWorkOrderActive();
-        } catch (Exception e) { return false; }
+            if (isWorkOrderActive()) return true;
+        } catch (Exception ignored) { /* fall through to Start-on-list */ }
+
+        // Step C: tap a "Start" button on the WO list (canonical helper)
+        try {
+            if (tapActivateButton()) {
+                sleep(1200);
+                return isWorkOrderActive();
+            }
+        } catch (Exception ignored) { /* fall through */ }
+
+        return isWorkOrderActive();
     }
 
     /**
