@@ -770,14 +770,25 @@ public class ZP323_NewFeatures_Test extends BaseTest {
             "No active Work Order detected — IR Photo flow requires an active WO"
         );
 
-        logStep("Step 2: Try the legacy Add IR Photo button OR the WO-row entry point");
-        boolean entered = workOrderPage.tapAddIRPhoto() ||
-                          workOrderPage.tapWORowInIRSection("FLIR");
+        logStep("Step 2: Navigate to Asset Details (where Infrared Photos section lives)");
+        assetPage.navigateToAssetList();
+        shortWait();
+        assetPage.selectFirstAsset();
+        shortWait();
+
+        logStep("Step 3: Scroll to Infrared Photos section");
+        boolean sectionVisible = workOrderPage.scrollToInfraredPhotosSection();
+        skipIfPreconditionMissing(() -> sectionVisible,
+            "Infrared Photos section not present on this asset — IR pair flow not applicable");
+
+        logStep("Step 4: Tap WO row in IR section (FLIR) OR legacy Add IR Photo button");
+        boolean entered = workOrderPage.tapWORowInIRSection("FLIR") ||
+                          workOrderPage.tapAddIRPhoto();
         skipIfPreconditionMissing(() -> entered,
-            "Could not enter IR Photo flow — neither Add IR Photo button nor WO row found");
+            "Could not enter IR Photo flow — no FLIR WO row visible inside Infrared Photos");
         mediumWait();
 
-        logStep("Step 3: IR photo count is queryable post-entry");
+        logStep("Step 5: IR photo count is queryable post-entry");
         int countAfter = workOrderPage.getIRPhotoCountInWorkOrder();
         assertTrue(countAfter >= 0,
             "IR photo count should be queryable (non-negative) after entering IR flow");
@@ -794,7 +805,15 @@ public class ZP323_NewFeatures_Test extends BaseTest {
             "No active Work Order — IR pair flow requires an active WO"
         );
 
-        logStep("Step 2: Enter IR Photo flow via WO row (FLIR-SEP)");
+        logStep("Step 2: Open Asset Details, scroll to Infrared Photos, tap FLIR WO row");
+        assetPage.navigateToAssetList();
+        shortWait();
+        assetPage.selectFirstAsset();
+        shortWait();
+        skipIfPreconditionMissing(
+            () -> workOrderPage.scrollToInfraredPhotosSection(),
+            "Infrared Photos section not present on this asset"
+        );
         boolean entered = workOrderPage.tapWORowInIRSection("FLIR") ||
                           workOrderPage.tapAddIRPhoto();
         skipIfPreconditionMissing(() -> entered, "IR Photo entry point not reachable");
@@ -819,24 +838,34 @@ public class ZP323_NewFeatures_Test extends BaseTest {
     public void TC_ZP323_14_03_verifyUploadIRPhotosMenuExposed() {
         ExtentReportManager.createTest(AppConstants.MODULE_JOBS, AppConstants.FEATURE_IR_PHOTOS,
             "TC_ZP323_14_03 - Upload IR Photos menu (From Photos / From Files) is exposed");
-        logStep("Step 1: Read IR photo count baseline (should not throw)");
-        int count = workOrderPage.getIRPhotoCountInWorkOrder();
-        assertTrue(count >= 0, "IR photo count should be a non-negative integer");
-        logStep("Current IR photo count: " + count);
-
-        logStep("Step 2: Verify Work Order is active before attempting upload");
+        logStep("Step 1: Verify Work Order is active before attempting upload");
         skipIfPreconditionMissing(
             () -> workOrderPage.isWorkOrderActive() || workOrderPage.activateWorkOrderIfNeeded(),
             "Upload requires active Work Order"
         );
 
-        logStep("Step 3: Tap 'Upload IR Photos' link to expose source-picker menu");
+        logStep("Step 2: Open Asset Details and scroll to Infrared Photos section");
+        assetPage.navigateToAssetList();
+        shortWait();
+        assetPage.selectFirstAsset();
+        shortWait();
+        skipIfPreconditionMissing(
+            () -> workOrderPage.scrollToInfraredPhotosSection(),
+            "Infrared Photos section not present on this asset"
+        );
+
+        logStep("Step 3: Read IR photo count baseline (should not throw)");
+        int count = workOrderPage.getIRPhotoCountInWorkOrder();
+        assertTrue(count >= 0, "IR photo count should be a non-negative integer");
+        logStep("Current IR photo count: " + count);
+
+        logStep("Step 4: Tap 'Upload IR Photos' link to expose source-picker menu");
         boolean uploadTapped = workOrderPage.tapUploadIRPhotosLink();
         skipIfPreconditionMissing(() -> uploadTapped,
             "Upload IR Photos link not visible — no IR pair likely present yet");
         mediumWait();
 
-        logStep("Step 4: Menu must expose at least one source — From Photos OR From Files");
+        logStep("Step 5: Menu must expose at least one source — From Photos OR From Files");
         boolean fromPhotos = workOrderPage.tapFromPhotosOption();
         boolean fromFiles = !fromPhotos && workOrderPage.tapFromFilesOption();
         assertTrue(fromPhotos || fromFiles,

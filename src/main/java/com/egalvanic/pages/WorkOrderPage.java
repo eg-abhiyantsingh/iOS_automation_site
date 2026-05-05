@@ -22480,8 +22480,11 @@ public class WorkOrderPage extends BasePage {
      * Each row shows the IR Photo Type (e.g., FLIR-SEP) and the WO label
      * ("Job - Apr 29, 6:48 pm sync"). This opens edit mode for that WO's
      * IR photo pair on this asset.
+     *
+     * Auto-scrolls to the Infrared Photos section first if not already visible.
      */
     public boolean tapWORowInIRSection(String woNameSubstring) {
+        scrollToInfraredPhotosSection();
         try {
             WebElement row = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeOther' OR " +
