@@ -23015,6 +23015,62 @@ public class WorkOrderPage extends BasePage {
         } catch (Exception e) { return false; }
     }
 
+    /**
+     * Tap the Active Work Order bar on Dashboard (the bar showing "Active
+     * Work Order: <name>" with the End button — see screenshot 3 of 5).
+     * Tapping the bar opens the WO Session Details / detail view.
+     */
+    public boolean tapActiveWorkOrderBadge() {
+        // Strategy 1: tap the WO bar by its content (job name + 'Active Work Order')
+        try {
+            WebElement bar = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeOther' OR " +
+                "type == 'XCUIElementTypeCell') AND " +
+                "(label CONTAINS[c] 'Active Work Order' AND " +
+                " NOT (label CONTAINS[c] 'No Active' OR label CONTAINS[c] 'Tap to select'))"));
+            System.out.println("   ↳ Tapping Active WO bar: '" + bar.getAttribute("label") + "'");
+            bar.click(); sleep(800);
+            return true;
+        } catch (Exception ignored) { /* fall through */ }
+        // Strategy 2: tap the small WO badge button in the top-right of Dashboard
+        try {
+            WebElement badge = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(label == 'WO' OR name CONTAINS[c] 'WO badge' OR " +
+                "name CONTAINS[c] 'wo_badge')"));
+            System.out.println("   ↳ Tapping WO badge button");
+            badge.click(); sleep(800);
+            return true;
+        } catch (Exception ignored) { /* fall through */ }
+        return false;
+    }
+
+    /**
+     * From iOS Photos picker, select the first available photo.
+     * The picker shows a grid of asset cells with names like "Photo, ..."
+     * or by accessibility id starting with "PXG".
+     */
+    public boolean selectFirstPhotoFromPicker() {
+        try {
+            // Try native iOS photo picker cells (PHPickerViewController)
+            WebElement firstPhoto = driver.findElement(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeImage') AND " +
+                    "(label BEGINSWITH 'Photo,' OR label BEGINSWITH 'Image,' OR " +
+                    "name CONTAINS[c] 'PXG' OR name CONTAINS[c] 'photo cell')"));
+            System.out.println("   ↳ Tapping first photo: '" + firstPhoto.getAttribute("label") + "'");
+            firstPhoto.click(); sleep(600);
+            // Confirm via Add/Done button if present
+            try {
+                WebElement add = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND " +
+                    "(label == 'Add' OR label == 'Done' OR label == 'Choose')"));
+                add.click(); sleep(800);
+            } catch (Exception ignored) { /* picker may auto-close on single-tap */ }
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
     // ================================================================
     // ZP-323.15 — SCHEDULE WORK ORDER DETAILS (added 2026-04-30)
     // ================================================================
