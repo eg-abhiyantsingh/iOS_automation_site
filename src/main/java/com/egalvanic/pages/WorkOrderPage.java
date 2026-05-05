@@ -23186,97 +23186,139 @@ public class WorkOrderPage extends BasePage {
     /**
      * Wait for the IR Photo upload to complete on the WO IR tab.
      *
-     * Polls every 1s up to maxWaitMs for one of the success indicators:
-     *   - Photo count text increased ('1 IR Photo' / 'N IR Photos')
-     *   - Thermal image thumbnail visible (XCUIElementTypeImage with non-empty name)
-     *   - Upload progress indicator disappeared (no 'Uploading...' / 'No Image')
+     * IMPORTANT: 'N IR Photo' count text is NOT a reliable indicator —
+     * the count appears as soon as a pair is created (Step 9), even with
+     * placeholder thumbnails. The actual upload completion is signalled
+     * by:
+     *   1. 'No Image' placeholder text disappearing
+     *   2. Thermal image element appearing with non-empty content/name
      *
-     * Returns true if upload completed within timeout, false on timeout.
-     * Designed for CI/CD where photo upload may take 5-30s depending on
-     * simulator vs real device + photo size.
+     * Both must be observed AFTER tapping the photo, not in the initial
+     * pre-upload state.
+     *
+     * Returns true on success, false on timeout. Designed for CI/CD
+     * where upload may take 5-30s depending on sim vs real device.
      */
     public boolean waitForIRPhotoUploadComplete(long maxWaitMs) {
+        // Snapshot the pre-upload state so we know what to wait FOR change
+        int placeholdersBefore = countNoImagePlaceholders();
+        int realImagesBefore = countThermalImages();
+        System.out.println("   ↳ Pre-upload state: " + placeholdersBefore
+            + " 'No Image' placeholders, " + realImagesBefore + " thermal images");
+
         long deadline = System.currentTimeMillis() + maxWaitMs;
         int pollCount = 0;
         while (System.currentTimeMillis() < deadline) {
             pollCount++;
-            // Indicator A: count text "N IR Photo(s)" with N >= 1
-            try {
-                java.util.List<WebElement> counts = driver.findElements(
-                    io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeStaticText' AND " +
-                        "(label MATCHES '\\\\d+ IR Photo.*' OR label CONTAINS[c] 'IR Photo')"));
-                for (WebElement el : counts) {
-                    try {
-                        String label = el.getAttribute("label");
-                        if (label != null && label.matches("\\d+ IR Photo.*")
-                            && !label.startsWith("0 ")) {
-                            System.out.println("   ↳ Upload complete (poll " + pollCount
-                                + "): label='" + label + "'");
-                            return true;
-                        }
-                    } catch (Exception ignored) { /* skip stale */ }
-                }
-            } catch (Exception ignored) { /* try next indicator */ }
 
-            // Indicator B: 'No Image' placeholder gone
-            try {
-                java.util.List<WebElement> placeholders = driver.findElements(
-                    io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeStaticText' AND label == 'No Image'"));
-                if (placeholders.isEmpty() && pollCount >= 3) {
-                    // After 3 polls (~3s), if no 'No Image' placeholder remains, upload succeeded
-                    System.out.println("   ↳ Upload complete (poll " + pollCount
-                        + "): 'No Image' placeholders gone");
-                    return true;
-                }
-            } catch (Exception ignored) { /* try next indicator */ }
+            int placeholdersNow = countNoImagePlaceholders();
+            int realImagesNow = countThermalImages();
 
-            // Indicator C: thermal image thumbnail with non-empty name
-            try {
-                java.util.List<WebElement> images = driver.findElements(
-                    io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeImage' AND " +
-                        "(name CONTAINS[c] 'thermal' OR name CONTAINS[c] 'ir_' OR " +
-                        "name CONTAINS[c] 'flir' OR label CONTAINS[c] 'thumbnail')"));
-                if (!images.isEmpty()) {
-                    System.out.println("   ↳ Upload complete (poll " + pollCount
-                        + "): thumbnail found");
-                    return true;
-                }
-            } catch (Exception ignored) { /* continue polling */ }
+            // Success A: 'No Image' count decreased (placeholder replaced by real photo)
+            if (placeholdersBefore > 0 && placeholdersNow < placeholdersBefore) {
+                System.out.println("   ↳ Upload complete (poll " + pollCount
+                    + "): placeholders " + placeholdersBefore + " → " + placeholdersNow);
+                return true;
+            }
+
+            // Success B: thermal image count increased
+            if (realImagesNow > realImagesBefore) {
+                System.out.println("   ↳ Upload complete (poll " + pollCount
+                    + "): thermal images " + realImagesBefore + " → " + realImagesNow);
+                return true;
+            }
+
+            // Success C: had no placeholders to begin with AND now we see images
+            if (placeholdersBefore == 0 && realImagesNow > 0 && pollCount >= 3) {
+                System.out.println("   ↳ Upload complete (poll " + pollCount
+                    + "): " + realImagesNow + " thermal image(s) present");
+                return true;
+            }
 
             try { Thread.sleep(1000); } catch (InterruptedException ignored) { /* */ }
         }
         System.out.println("   ↳ Upload wait TIMEOUT after " + maxWaitMs + "ms ("
-            + pollCount + " polls)");
+            + pollCount + " polls). placeholders=" + countNoImagePlaceholders()
+            + " thermalImages=" + countThermalImages());
         return false;
     }
 
+    private int countNoImagePlaceholders() {
+        try {
+            return driver.findElements(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label == 'No Image'")).size();
+        } catch (Exception e) { return 0; }
+    }
+
+    private int countThermalImages() {
+        try {
+            return driver.findElements(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeImage' AND " +
+                "(name CONTAINS[c] 'thermal' OR name CONTAINS[c] 'ir_' OR " +
+                "name CONTAINS[c] 'flir' OR name CONTAINS[c] '.jpg' OR " +
+                "name CONTAINS[c] '.png' OR label CONTAINS[c] 'thumbnail')")).size();
+        } catch (Exception e) { return 0; }
+    }
+
     /**
-     * From iOS Photos picker, select the first available photo.
+     * From iOS Photos picker, select a photo. Tries in priority order:
+     *   1. Photo with "IR" in label (newly added test asset like IR.jpg)
+     *   2. Photo with "thermal" / "infrared" / "flir" in name
+     *   3. First photo labeled "Photo, ..." (default sim photos)
+     *
      * The picker shows a grid of asset cells with names like "Photo, ..."
      * or by accessibility id starting with "PXG".
      */
     public boolean selectFirstPhotoFromPicker() {
+        // Priority 1: IR-named photo (most-recently-added IR.jpg)
         try {
-            // Try native iOS photo picker cells (PHPickerViewController)
+            WebElement irPhoto = driver.findElement(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeImage') AND " +
+                    "(label CONTAINS[c] 'IR.' OR label BEGINSWITH[c] 'IR ' OR " +
+                    "name CONTAINS[c] 'IR.jpg' OR name CONTAINS[c] 'IR.png')"));
+            System.out.println("   ↳ Tapping IR photo: '" + irPhoto.getAttribute("label") + "'");
+            irPhoto.click(); sleep(600);
+            confirmPhotoPickerSelection();
+            return true;
+        } catch (Exception ignored) { /* fall through */ }
+
+        // Priority 2: thermal/infrared/flir-named photo
+        try {
+            WebElement thermal = driver.findElement(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeImage') AND " +
+                    "(name CONTAINS[c] 'thermal' OR name CONTAINS[c] 'infrared' OR " +
+                    "name CONTAINS[c] 'flir')"));
+            System.out.println("   ↳ Tapping thermal photo: '" + thermal.getAttribute("label") + "'");
+            thermal.click(); sleep(600);
+            confirmPhotoPickerSelection();
+            return true;
+        } catch (Exception ignored) { /* fall through */ }
+
+        // Priority 3: any first photo (default sim photos)
+        try {
             WebElement firstPhoto = driver.findElement(
                 io.appium.java_client.AppiumBy.iOSNsPredicateString(
                     "(type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeImage') AND " +
                     "(label BEGINSWITH 'Photo,' OR label BEGINSWITH 'Image,' OR " +
                     "name CONTAINS[c] 'PXG' OR name CONTAINS[c] 'photo cell')"));
-            System.out.println("   ↳ Tapping first photo: '" + firstPhoto.getAttribute("label") + "'");
+            System.out.println("   ↳ Tapping first photo (no IR/thermal preferred match): '"
+                + firstPhoto.getAttribute("label") + "'");
             firstPhoto.click(); sleep(600);
-            // Confirm via Add/Done button if present
-            try {
-                WebElement add = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND " +
-                    "(label == 'Add' OR label == 'Done' OR label == 'Choose')"));
-                add.click(); sleep(800);
-            } catch (Exception ignored) { /* picker may auto-close on single-tap */ }
+            confirmPhotoPickerSelection();
             return true;
         } catch (Exception e) { return false; }
+    }
+
+    /** Confirm photo picker selection via Add/Done/Choose button if visible. */
+    private void confirmPhotoPickerSelection() {
+        try {
+            WebElement add = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(label == 'Add' OR label == 'Done' OR label == 'Choose')"));
+            add.click(); sleep(800);
+        } catch (Exception ignored) { /* picker may auto-close on single-tap */ }
     }
 
     // ================================================================
