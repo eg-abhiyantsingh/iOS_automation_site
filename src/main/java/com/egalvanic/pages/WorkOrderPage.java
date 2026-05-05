@@ -22684,42 +22684,81 @@ public class WorkOrderPage extends BasePage {
         // Try entering IR Photo Filename
         if (!enterIRPhotoFilename(matchingFilename)) {
             System.out.println("⚠️ IR Photo Filename field not found. Diagnostic dump:");
-            // Dump StaticText labels first — tells us what screen we're on
+
+            // 1. Dump StaticText labels — tells us what screen we're on
+            System.out.println("   --- Visible StaticText labels (top 20) ---");
             try {
                 java.util.List<WebElement> labels = driver.findElements(
                     io.appium.java_client.AppiumBy.iOSNsPredicateString(
                         "type == 'XCUIElementTypeStaticText'"));
-                System.out.println("   --- Visible StaticText labels (top 15) ---");
+                System.out.println("   (found " + labels.size() + " StaticText elements)");
                 int dumped = 0;
                 for (WebElement el : labels) {
                     try {
                         String l = el.getAttribute("label");
                         if (l != null && !l.isEmpty()) {
                             System.out.println("   [Y=" + el.getRect().getY() + "] '" + l + "'");
-                            if (++dumped >= 15) break;
+                            if (++dumped >= 20) break;
                         }
-                    } catch (Exception ignored) { /* skip stale */ }
+                    } catch (Exception eStale) { /* skip stale */ }
                 }
-            } catch (Exception ignored) { /* dump best-effort */ }
+            } catch (Exception e) {
+                System.out.println("   StaticText dump FAILED: " + e.getClass().getSimpleName()
+                    + ": " + (e.getMessage() != null
+                        ? e.getMessage().substring(0, Math.min(120, e.getMessage().length()))
+                        : ""));
+            }
 
-            // Then dump text fields
+            // 2. Dump Button labels — finds the Add button regardless of name
+            System.out.println("   --- Visible Buttons ---");
+            try {
+                java.util.List<WebElement> btns = driver.findElements(
+                    io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton'"));
+                System.out.println("   (found " + btns.size() + " Buttons)");
+                int dumped = 0;
+                for (WebElement el : btns) {
+                    try {
+                        String l = el.getAttribute("label");
+                        String n = el.getAttribute("name");
+                        if ((l != null && !l.isEmpty()) || (n != null && !n.isEmpty())) {
+                            System.out.println("   [Y=" + el.getRect().getY() + "] label='"
+                                + (l == null ? "" : l) + "' name='" + (n == null ? "" : n) + "'");
+                            if (++dumped >= 25) break;
+                        }
+                    } catch (Exception eStale) { /* skip stale */ }
+                }
+            } catch (Exception e) {
+                System.out.println("   Button dump FAILED: " + e.getClass().getSimpleName()
+                    + ": " + (e.getMessage() != null
+                        ? e.getMessage().substring(0, Math.min(120, e.getMessage().length()))
+                        : ""));
+            }
+
+            // 3. Dump text fields with full attributes
+            System.out.println("   --- Text fields ---");
             try {
                 java.util.List<WebElement> fields = driver.findElements(
                     io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeSecureTextField'"));
-                System.out.println("   --- Text fields ---");
+                        "type == 'XCUIElementTypeTextField' OR " +
+                        "type == 'XCUIElementTypeSecureTextField' OR " +
+                        "type == 'XCUIElementTypeTextView'"));
+                System.out.println("   (found " + fields.size() + " text fields)");
                 for (WebElement f : fields) {
                     try {
-                        System.out.println("   field label='" + f.getAttribute("label")
+                        System.out.println("   [Y=" + f.getRect().getY() + "] type="
+                            + f.getAttribute("type") + " label='" + f.getAttribute("label")
                             + "' value='" + f.getAttribute("value")
-                            + "' name='" + f.getAttribute("name")
-                            + "' rect=" + f.getRect());
-                    } catch (Exception ignored) { /* skip stale */ }
+                            + "' placeholderValue='" + f.getAttribute("placeholderValue")
+                            + "' name='" + f.getAttribute("name") + "'");
+                    } catch (Exception eStale) { /* skip stale */ }
                 }
-                if (fields.isEmpty()) {
-                    System.out.println("   (no text fields visible)");
-                }
-            } catch (Exception ignored) { /* dump best-effort */ }
+            } catch (Exception e) {
+                System.out.println("   TextField dump FAILED: " + e.getClass().getSimpleName()
+                    + ": " + (e.getMessage() != null
+                        ? e.getMessage().substring(0, Math.min(120, e.getMessage().length()))
+                        : ""));
+            }
             return false;
         }
         if (!enterVisualPhotoFilename(matchingFilename)) return false;
