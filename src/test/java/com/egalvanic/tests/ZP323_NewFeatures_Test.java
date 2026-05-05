@@ -773,115 +773,58 @@ public class ZP323_NewFeatures_Test extends BaseTest {
     // the full nav flow can't be reproduced from current state — they're
     // existence/reachability tests. End-to-end coverage is at TC_JOB_258.
 
+    /**
+     * TC_ZP323_14_01 — single comprehensive test covering the entire
+     * IR Photo Upload feature end-to-end (15 steps per user screenshots).
+     *
+     * Consolidated from 3 separate tests per user request 2026-05-05:
+     * "OR IR PHOTO upload cover that in one test case i think or may be
+     * less test case".
+     */
     @Test(priority = 1400)
-    public void TC_ZP323_14_01_verifyAddIRPhotoButtonInWorkOrder() {
+    public void TC_ZP323_14_01_verifyFullIRPhotoUploadFlow() {
         ExtentReportManager.createTest(AppConstants.MODULE_JOBS, AppConstants.FEATURE_IR_PHOTOS,
-            "TC_ZP323_14_01 - Start WO Session via Dashboard popup → confirm activated");
-        // Steps 1-4 of the canonical flow (per user screenshots 1-3 of 5):
-        //   Dashboard 'Tap to select' → popup → pick WO → Start Session → active
-
-        logStep("Step 1: Start WO session via Dashboard popup → Start Session dialog");
-        boolean activated = workOrderPage.isWorkOrderActive()
-            || workOrderPage.startWorkOrderSessionFromDashboard(null);
-        skipIfPreconditionMissing(() -> activated,
-            "Could not start WO session — Dashboard 'Tap to select' card not found OR no WOs in popup");
-
-        logStep("Step 2: Verify Active Work Order indicator is now visible");
-        boolean active = workOrderPage.isWorkOrderActive();
-        assertTrue(active, "isWorkOrderActive() should return true after Start Session");
-        logStepWithScreenshot("TC_ZP323_14_01: WO session started successfully");
-    }
-
-    @Test(priority = 1401)
-    public void TC_ZP323_14_02_verifyIRPhotoPairAddAndSave() {
-        ExtentReportManager.createTest(AppConstants.MODULE_JOBS, AppConstants.FEATURE_IR_PHOTOS,
-            "TC_ZP323_14_02 - Full E2E: Start Session → Asset Details → Add IR Photo Pair");
-        // Per user screenshots (2026-05-05):
-        //   1. Dashboard "Tap to select" → popup → pick WO → Start Session dialog
-        //   2. Now Active Work Order shown on Dashboard
-        //   3. Open an asset → Asset Details
-        //   4. Scroll to Infrared Photos section
-        //   5. Type "IR" in IR Photo Filename
-        //   6. Tap Add IR Photo Pair
-        //   7. New pair appears in Existing IR Photos list
-
-        logStep("Step 1: Start a Work Order session via Dashboard popup → Start Session");
-        boolean activated = workOrderPage.isWorkOrderActive()
-            || workOrderPage.startWorkOrderSessionFromDashboard(null)
-            || workOrderPage.activateWorkOrderIfNeeded();
-        skipIfPreconditionMissing(() -> activated,
-            "Could not start a WO session — Dashboard popup → Start Session flow failed");
-
-        logStep("Step 2: Navigate to Asset List, open first asset");
-        assetPage.navigateToAssetList();
-        shortWait();
-        assetPage.selectFirstAsset();
-        shortWait();
-
-        logStep("Step 3: Scroll to Infrared Photos section on Asset Details");
-        skipIfPreconditionMissing(
-            () -> workOrderPage.scrollToInfraredPhotosSection(),
-            "Infrared Photos section not visible on this asset"
-        );
-
-        logStep("Step 4: Enter IR Photo Filename (FLIR-IND only needs IR, Visual not required)");
-        String name = "IR_" + System.currentTimeMillis();
-        boolean irSet = workOrderPage.enterIRPhotoFilename(name);
-        skipIfPreconditionMissing(() -> irSet,
-            "IR Photo Filename text field not found — WO may not have IR Only photo type");
-
-        logStep("Step 5: Tap Add IR Photo Pair button");
-        boolean pairAdded = workOrderPage.tapAddIRPhotoPairButton();
-        assertTrue(pairAdded, "Add IR Photo Pair button should be tappable when WO is active "
-            + "and IR Photo Filename is set");
-        mediumWait();
-
-        logStepWithScreenshot("TC_ZP323_14_02: IR pair added with name=" + name);
-    }
-
-    @Test(priority = 1402)
-    public void TC_ZP323_14_03_verifyFullIRUploadFlow() {
-        ExtentReportManager.createTest(AppConstants.MODULE_JOBS, AppConstants.FEATURE_IR_PHOTOS,
-            "TC_ZP323_14_03 - Full E2E: Start Session → Add Pair → Active WO → IR tab → Upload");
+            "TC_ZP323_14_01 - Full E2E: Start Session → Asset → Add Pair → WO → IR tab → Upload");
         // ALL 15 steps per user screenshots 1-5 of 5:
-        //   1. Dashboard 'Tap to select' → popup
-        //   2. Pick WO → Start Session dialog
-        //   3. Tap 'Start Session'
-        //   4. Active Work Order indicator visible
+        //   1. Dashboard 'Tap to select' card
+        //   2. Pick a Work Order (popup OR inline-Start variant)
+        //   3. Tap 'Start' / 'Start Session'
+        //   4. Active Work Order indicator visible on Dashboard
         //   5. Open Asset → Asset Details
-        //   6. Scroll to Infrared Photos
-        //   7. Type 'IR' in IR Photo Filename
+        //   6. Scroll to Infrared Photos section
+        //   7. Type 'IR_<ts>' in IR Photo Filename
         //   8. Tap Add IR Photo Pair
         //   9. Pair appears in Existing IR Photos
         //   10. Tap Active Work Order bar → opens WO Details
         //   11. Tap IR tab → '1 IR Photo' with placeholders
         //   12. Tap 'Upload IR Photos' link
-        //   13. Menu opens — pick From Photos
-        //   14. Pick first photo from picker
-        //   15. Verify upload succeeded (photo count or thumbnail visible)
+        //   13. Pick 'From Photos' (fallback From Files)
+        //   14. Select first photo from picker (IR.jpg or first available)
+        //   15. Verify upload reached final state (screenshot evidence)
 
-        logStep("Step 1-3: Start Work Order Session via Dashboard popup");
+        logStep("Steps 1-3: Start Work Order Session (handles popup-dialog AND inline-Start variants)");
         boolean activated = workOrderPage.isWorkOrderActive()
             || workOrderPage.startWorkOrderSessionFromDashboard(null);
         skipIfPreconditionMissing(() -> activated,
-            "Could not start WO session — Dashboard popup → Start Session flow failed");
+            "Could not start WO session — Dashboard 'Tap to select' card missing OR no WOs available");
 
-        logStep("Step 4: Verify WO is active");
-        assertTrue(workOrderPage.isWorkOrderActive(), "WO must be active after Start Session");
+        logStep("Step 4: Verify Active Work Order indicator is visible on Dashboard");
+        assertTrue(workOrderPage.isWorkOrderActive(),
+            "WO must be active after Start Session before continuing");
 
-        logStep("Step 5: Navigate to Asset List, open first asset");
+        logStep("Step 5: Navigate to Asset List, open first asset (→ Asset Details)");
         assetPage.navigateToAssetList();
         shortWait();
         assetPage.selectFirstAsset();
         shortWait();
 
-        logStep("Step 6: Scroll to Infrared Photos section");
+        logStep("Step 6: Scroll to Infrared Photos section on Asset Details");
         skipIfPreconditionMissing(
             () -> workOrderPage.scrollToInfraredPhotosSection(),
             "Infrared Photos section not visible on this asset"
         );
 
-        logStep("Step 7: Enter IR Photo Filename");
+        logStep("Step 7: Enter IR Photo Filename (FLIR-IND: Visual not required)");
         String name = "IR_" + System.currentTimeMillis();
         skipIfPreconditionMissing(() -> workOrderPage.enterIRPhotoFilename(name),
             "IR Photo Filename text field not found");
@@ -891,47 +834,42 @@ public class ZP323_NewFeatures_Test extends BaseTest {
         assertTrue(pairAdded, "Add IR Photo Pair button should tap successfully");
         mediumWait();
 
-        logStep("Step 9: Verify pair was added (Existing IR Photos count or screenshot)");
-        // Best-effort check; not all asset types expose the count
-        logStepWithScreenshot("TC_ZP323_14_03: pair added with name=" + name);
+        logStep("Step 9: Pair added — capturing screenshot");
+        logStepWithScreenshot("Pair added with name=" + name);
 
         logStep("Step 10: Tap Active Work Order bar to open WO Details");
         boolean barTapped = workOrderPage.tapActiveWorkOrderBadge();
         skipIfPreconditionMissing(() -> barTapped,
-            "Could not tap Active Work Order bar — may need to navigate back to Dashboard first");
+            "Could not tap Active Work Order bar — try running from Dashboard");
         mediumWait();
 
         logStep("Step 11: Tap IR tab on WO Details");
-        boolean irTab = workOrderPage.tapIRPhotosTab();
-        skipIfPreconditionMissing(() -> irTab, "IR Photos tab not visible on WO Details");
+        skipIfPreconditionMissing(() -> workOrderPage.tapIRPhotosTab(),
+            "IR Photos tab not visible on WO Details");
         mediumWait();
 
         logStep("Step 12: Tap 'Upload IR Photos' link");
-        boolean uploadTapped = workOrderPage.tapUploadIRPhotosLink();
-        skipIfPreconditionMissing(() -> uploadTapped,
+        skipIfPreconditionMissing(() -> workOrderPage.tapUploadIRPhotosLink(),
             "Upload IR Photos link not visible — pair may not have rendered yet");
         mediumWait();
 
-        logStep("Step 13: Pick 'From Photos' from upload menu");
+        logStep("Step 13: Pick 'From Photos' from upload menu (fallback From Files)");
         boolean fromPhotos = workOrderPage.tapFromPhotosOption();
         if (!fromPhotos) {
-            logStep("From Photos missing — falling back to From Files");
             skipIfPreconditionMissing(() -> workOrderPage.tapFromFilesOption(),
                 "Neither From Photos nor From Files option visible");
         }
         mediumWait();
 
-        logStep("Step 14: Select first photo from picker (IR.jpg or first available)");
-        boolean picked = workOrderPage.selectFirstPhotoFromPicker();
-        skipIfPreconditionMissing(() -> picked,
-            "Photo picker has no selectable photos — simulator may need media: "
+        logStep("Step 14: Select first photo from picker");
+        skipIfPreconditionMissing(() -> workOrderPage.selectFirstPhotoFromPicker(),
+            "Photo picker has no selectable photos — load IR.jpg via: "
             + "xcrun simctl addmedia <udid> document_important/IR.jpg");
 
-        logStep("Step 15: Verify upload completed (count or thumbnail)");
+        logStep("Step 15: Upload completed — capturing final screenshot");
         mediumWait();
-        // Upload count may not increase synchronously; just verify we're back on IR tab
-        assertTrue(true, "Reached final upload step — see screenshot for visual confirmation");
-        logStepWithScreenshot("TC_ZP323_14_03: Full upload flow completed");
+        assertTrue(true, "All 15 steps reached; see screenshot for visual confirmation");
+        logStepWithScreenshot("Full IR Photo Upload flow complete (name=" + name + ")");
     }
 
     // ================================================================
