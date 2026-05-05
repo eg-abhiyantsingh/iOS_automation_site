@@ -824,10 +824,20 @@ public class ZP323_NewFeatures_Test extends BaseTest {
             "Infrared Photos section not visible on this asset"
         );
 
-        logStep("Step 7: Enter IR Photo Filename = 'IR' (static, per user spec)");
+        logStep("Step 7a: Enter IR Photo Filename = 'IR' (static, per user spec)");
         String name = "IR";
         skipIfPreconditionMissing(() -> workOrderPage.enterIRPhotoFilename(name),
             "IR Photo Filename text field not found");
+
+        logStep("Step 7b: Enter Visual Photo Filename = 'IR' (FLIR-SEP requires both, "
+            + "FLIR-IND will silently skip — user spec: same as IR)");
+        // For FLIR-SEP: Visual is REQUIRED — Add IR Photo Pair button stays
+        // disabled until both fields are filled.
+        // For FLIR-IND: Visual is "Not required" — field is disabled. The
+        // setter returns false but we still proceed (Add button enables on IR alone).
+        boolean visualSet = workOrderPage.enterVisualPhotoFilename(name);
+        logStep("Visual filename set: " + visualSet
+            + (visualSet ? " (FLIR-SEP path)" : " (FLIR-IND path — Visual not required)"));
 
         logStep("Step 8: Tap Add IR Photo Pair button");
         boolean pairAdded = workOrderPage.tapAddIRPhotoPairButton();
