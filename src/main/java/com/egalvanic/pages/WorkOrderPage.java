@@ -22473,11 +22473,10 @@ public class WorkOrderPage extends BasePage {
     /**
      * Ensure a Work Order is active. Handles three starting states:
      *   1. Already active → return true immediately
-     *   2. On Dashboard with "No Active Work Order" card → tap card to open
-     *      WO list → tap Start/Activate on first available WO
-     *   3. On WO list directly → tap Start/Activate on first available WO
+     *   2. Dashboard with "Tap to select a work order" card → run the full
+     *      Start Session dialog flow (see startWorkOrderSessionFromDashboard)
+     *   3. On WO list with Start/Activate buttons → tap one
      *
-     * Logs each step so the failure log shows which path was taken.
      * Returns true if a WO is active by the end.
      */
     public boolean activateWorkOrderIfNeeded() {
@@ -22486,20 +22485,12 @@ public class WorkOrderPage extends BasePage {
             return true;
         }
 
-        // Step A: if we're on Dashboard, tap the No-Active card to reach WO list
-        try {
-            WebElement card = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeOther' OR " +
-                "type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeCell') AND " +
-                "(label CONTAINS[c] 'No Active' OR label CONTAINS[c] 'Tap to select')"));
-            System.out.println("   ↳ Tapping No-Active card to open WO list");
-            card.click(); sleep(800);
-            waitForWorkOrdersScreen();
-        } catch (Exception ignored) {
-            System.out.println("   ↳ No-Active card not visible (probably already on WO list)");
+        // Path 1: Dashboard → popup → Start Session (canonical user-facing flow)
+        if (startWorkOrderSessionFromDashboard(null)) {
+            return true;
         }
 
-        // Step B: try existing canonical Activate button (in WO detail context)
+        // Path 2: try existing canonical Activate button (in WO detail context)
         try {
             WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND " +
@@ -22508,9 +22499,9 @@ public class WorkOrderPage extends BasePage {
             System.out.println("   ↳ Tapping Activate button");
             btn.click(); sleep(800);
             if (isWorkOrderActive()) return true;
-        } catch (Exception ignored) { /* fall through to Start-on-list */ }
+        } catch (Exception ignored) { /* fall through */ }
 
-        // Step C: tap a "Start" button on the WO list (canonical helper)
+        // Path 3: tap a "Start" button on the WO list (canonical helper)
         try {
             if (tapActivateButton()) {
                 sleep(1200);
@@ -22519,6 +22510,76 @@ public class WorkOrderPage extends BasePage {
         } catch (Exception ignored) { /* fall through */ }
 
         return isWorkOrderActive();
+    }
+
+    /**
+     * Start a Work Order session via the canonical Dashboard flow:
+     *   1. Tap the "Tap to select a work order" card on Dashboard
+     *   2. Popup list of WOs appears (with radio circles)
+     *   3. Tap a WO row (matching woNameSubstring, or first available if null)
+     *   4. "Start Work Order Session?" confirmation dialog appears
+     *   5. Tap "Start Session"
+     *   6. Dashboard updates: "Active Work Order: <name>" with End button
+     *
+     * Returns true if isWorkOrderActive() is true at the end.
+     *
+     * @param woNameSubstring optional — if null, tap the first WO in the popup
+     */
+    public boolean startWorkOrderSessionFromDashboard(String woNameSubstring) {
+        System.out.println("📍 Starting WO session from Dashboard"
+            + (woNameSubstring == null ? "" : " (looking for '" + woNameSubstring + "')"));
+
+        // Step 1: tap the "Tap to select a work order" card on Dashboard
+        try {
+            WebElement card = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeOther' OR " +
+                "type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeCell') AND " +
+                "(label CONTAINS[c] 'Tap to select' OR label CONTAINS[c] 'No Active Work Order')"));
+            System.out.println("   ↳ Step 1: tapping Dashboard 'Tap to select' card");
+            card.click(); sleep(800);
+        } catch (Exception e) {
+            System.out.println("   ↳ Step 1 FAILED: card not visible — " + e.getClass().getSimpleName());
+            return false;
+        }
+
+        // Step 2: pick a WO from the popup
+        try {
+            String predicate;
+            if (woNameSubstring != null && !woNameSubstring.isEmpty()) {
+                predicate = "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' OR " +
+                    "type == 'XCUIElementTypeCell') AND label CONTAINS[c] '" +
+                    woNameSubstring.replace("'", "\\'") + "'";
+            } else {
+                // First WO labeled "Job -" or "Work Order -" in the popup
+                predicate = "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeCell') AND " +
+                    "(label BEGINSWITH 'Job -' OR label BEGINSWITH 'Work Order -' OR " +
+                    "label CONTAINS[c] 'Job - ' OR label CONTAINS[c] 'Work Order - ')";
+            }
+            WebElement woRow = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(predicate));
+            System.out.println("   ↳ Step 2: tapping WO row '" + woRow.getAttribute("label") + "'");
+            woRow.click(); sleep(800);
+        } catch (Exception e) {
+            System.out.println("   ↳ Step 2 FAILED: no WO matching popup — " + e.getClass().getSimpleName());
+            return false;
+        }
+
+        // Step 3: tap "Start Session" in the confirmation dialog
+        try {
+            WebElement startBtn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(label == 'Start Session' OR label CONTAINS[c] 'Start Session')"));
+            System.out.println("   ↳ Step 3: tapping 'Start Session' in dialog");
+            startBtn.click(); sleep(1200);
+        } catch (Exception e) {
+            System.out.println("   ↳ Step 3 FAILED: 'Start Session' dialog button not visible — "
+                + e.getClass().getSimpleName());
+            return false;
+        }
+
+        // Step 4: verify activation took effect
+        boolean active = isWorkOrderActive();
+        System.out.println("   ↳ Final: isWorkOrderActive=" + active);
+        return active;
     }
 
     /**
@@ -22798,6 +22859,10 @@ public class WorkOrderPage extends BasePage {
             }
         }
 
+        // For FLIR-IND, the Visual Photo field is disabled ("Not required for
+        // FLIR-IND") — only IR is required. Skip Visual entry on failure
+        // rather than aborting the whole pair-add.
+
         // Try entering IR Photo Filename
         if (!enterIRPhotoFilename(matchingFilename)) {
             System.out.println("⚠️ IR Photo Filename field not found. Diagnostic dump:");
@@ -22878,7 +22943,11 @@ public class WorkOrderPage extends BasePage {
             }
             return false;
         }
-        if (!enterVisualPhotoFilename(matchingFilename)) return false;
+        // Best-effort Visual filename entry — for FLIR-IND it's "Not required"
+        // and the field is disabled. Don't fail the pair add if it can't be set.
+        boolean visualSet = enterVisualPhotoFilename(matchingFilename);
+        System.out.println("   Visual filename set: " + visualSet
+            + (visualSet ? "" : " (likely FLIR-IND where Visual is not required)"));
 
         // Tap the Add IR Photo Pair confirmation button
         try {

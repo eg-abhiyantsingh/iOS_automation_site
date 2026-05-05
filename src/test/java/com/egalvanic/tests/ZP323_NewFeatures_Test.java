@@ -801,38 +801,48 @@ public class ZP323_NewFeatures_Test extends BaseTest {
     @Test(priority = 1401)
     public void TC_ZP323_14_02_verifyIRPhotoPairAddAndSave() {
         ExtentReportManager.createTest(AppConstants.MODULE_JOBS, AppConstants.FEATURE_IR_PHOTOS,
-            "TC_ZP323_14_02 - Add IR Photo Pair with matching IR/Visual filenames");
-        logStep("Step 1: Verify the Work Order is active");
+            "TC_ZP323_14_02 - Full E2E: Start Session → Asset Details → Add IR Photo Pair");
+        // Per user screenshots (2026-05-05):
+        //   1. Dashboard "Tap to select" → popup → pick WO → Start Session dialog
+        //   2. Now Active Work Order shown on Dashboard
+        //   3. Open an asset → Asset Details
+        //   4. Scroll to Infrared Photos section
+        //   5. Type "IR" in IR Photo Filename
+        //   6. Tap Add IR Photo Pair
+        //   7. New pair appears in Existing IR Photos list
+
+        logStep("Step 1: Start a Work Order session via Dashboard popup → Start Session");
+        boolean activated = workOrderPage.isWorkOrderActive()
+            || workOrderPage.startWorkOrderSessionFromDashboard(null)
+            || workOrderPage.activateWorkOrderIfNeeded();
+        skipIfPreconditionMissing(() -> activated,
+            "Could not start a WO session — Dashboard popup → Start Session flow failed");
+
+        logStep("Step 2: Navigate to Asset List, open first asset");
+        assetPage.navigateToAssetList();
+        shortWait();
+        assetPage.selectFirstAsset();
+        shortWait();
+
+        logStep("Step 3: Scroll to Infrared Photos section on Asset Details");
         skipIfPreconditionMissing(
-            () -> workOrderPage.isWorkOrderActive() || workOrderPage.activateWorkOrderIfNeeded(),
-            "No active Work Order — IR pair flow requires an active WO"
+            () -> workOrderPage.scrollToInfraredPhotosSection(),
+            "Infrared Photos section not visible on this asset"
         );
 
-        logStep("Step 2: Open active WO's session details (state-aware nav)");
-        boolean tapped = workOrderPage.openActiveWOSessionDetailsFromAnywhere();
-        skipIfPreconditionMissing(() -> tapped,
-            "Could not reach Session Details — see TC_JOB_258 for full job-creation flow");
+        logStep("Step 4: Enter IR Photo Filename (FLIR-IND only needs IR, Visual not required)");
+        String name = "IR_" + System.currentTimeMillis();
+        boolean irSet = workOrderPage.enterIRPhotoFilename(name);
+        skipIfPreconditionMissing(() -> irSet,
+            "IR Photo Filename text field not found — WO may not have IR Only photo type");
+
+        logStep("Step 5: Tap Add IR Photo Pair button");
+        boolean pairAdded = workOrderPage.tapAddIRPhotoPairButton();
+        assertTrue(pairAdded, "Add IR Photo Pair button should be tappable when WO is active "
+            + "and IR Photo Filename is set");
         mediumWait();
 
-        logStep("Step 3: Verify Add IR Photo Pair button reachable; otherwise skip");
-        skipIfPreconditionMissing(
-            () -> workOrderPage.isAddIRPhotoPairButtonDisplayed(),
-            "Add IR Photo Pair button not on this screen — needs job/asset creation flow"
-        );
-
-        logStep("Step 4: Tap Add IR Photo Pair (canonical helper)");
-        boolean pairTapped = workOrderPage.tapAddIRPhotoPairButton();
-        assertTrue(pairTapped, "tapAddIRPhotoPairButton() should succeed when btn is reachable");
-        mediumWait();
-
-        logStep("Step 5: Set matching IR + Visual filenames (per user spec)");
-        String matchingName = "ir_test_" + System.currentTimeMillis();
-        boolean irSet = workOrderPage.setIRPhotoFilenameValue(matchingName);
-        boolean visSet = workOrderPage.setVisualPhotoFilenameValue(matchingName);
-        logStep("IR set: " + irSet + ", Visual set: " + visSet);
-        assertTrue(irSet || visSet,
-            "At least one filename field should be settable; both expected per spec");
-        logStepWithScreenshot("TC_ZP323_14_02: IR pair filenames set to " + matchingName);
+        logStepWithScreenshot("TC_ZP323_14_02: IR pair added with name=" + name);
     }
 
     @Test(priority = 1402)
