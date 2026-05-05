@@ -22476,6 +22476,74 @@ public class WorkOrderPage extends BasePage {
     }
 
     /**
+     * Open the active Work Order's Session Details from ANY starting screen.
+     *
+     * Handles three common states:
+     *   1. Dashboard with active job card — taps the card directly
+     *   2. Dashboard with no active job — taps "No Active Job" / "Tap to select"
+     *      to open Work Orders list, then calls tapActiveWorkOrder
+     *   3. Already on Work Orders list / Session Details — calls tapActiveWorkOrder
+     *
+     * Returns true if Session Details was reached. Logs each attempted strategy
+     * so the next failure log shows clearly which state we were in.
+     */
+    public boolean openActiveWOSessionDetailsFromAnywhere() {
+        // Strategy 1: directly tap an active-job indicator if visible (dashboard
+        // active card OR work-orders-list active row both expose "Active" /
+        // "Stop" / a job-name label inside a tappable cell)
+        try {
+            WebElement el = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeCell' OR " +
+                "type == 'XCUIElementTypeOther') AND " +
+                "(label CONTAINS[c] 'Active Work Order' OR label CONTAINS[c] 'Active Job' OR " +
+                "label == 'Stop' OR label == 'Active' OR label CONTAINS[c] 'ACTIVE')"));
+            System.out.println("   ↳ Strategy 1: tapping active indicator '"
+                + el.getAttribute("label") + "'");
+            el.click(); sleep(800);
+            // If the tap opened Session Details, we're done
+            if (isOnSessionDetailsScreen()) return true;
+        } catch (Exception ignored) { /* fall through */ }
+
+        // Strategy 2: navigate from Dashboard → Work Orders list via No-Active card
+        try {
+            WebElement card = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "(label CONTAINS[c] 'No Active' OR label CONTAINS[c] 'Tap to select' OR " +
+                "label CONTAINS[c] 'select a job')"));
+            System.out.println("   ↳ Strategy 2: tapping No-Active card to reach WO list");
+            card.click(); sleep(800);
+            waitForWorkOrdersScreen();
+            // Then tap the active WO from the list
+            if (tapActiveWorkOrder()) {
+                sleep(600);
+                return isOnSessionDetailsScreen();
+            }
+        } catch (Exception ignored) { /* fall through */ }
+
+        // Strategy 3: assume we're on WO list already
+        try {
+            System.out.println("   ↳ Strategy 3: assuming on WO list, calling tapActiveWorkOrder");
+            if (tapActiveWorkOrder()) {
+                sleep(600);
+                return isOnSessionDetailsScreen();
+            }
+        } catch (Exception ignored) { /* fall through */ }
+
+        return false;
+    }
+
+    /** Lightweight check: are we on Session Details (post-WO-tap)? */
+    private boolean isOnSessionDetailsScreen() {
+        try {
+            driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "(label CONTAINS[c] 'Session Details' OR label CONTAINS[c] 'Locations' OR " +
+                "label CONTAINS[c] 'Tasks' OR label CONTAINS[c] 'Assets' OR " +
+                "label CONTAINS[c] 'Work Order Details')"));
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /**
      * On Asset Details, tap the WO row inside the "Infrared Photos" section.
      * Each row shows the IR Photo Type (e.g., FLIR-SEP) and the WO label
      * ("Job - Apr 29, 6:48 pm sync"). This opens edit mode for that WO's

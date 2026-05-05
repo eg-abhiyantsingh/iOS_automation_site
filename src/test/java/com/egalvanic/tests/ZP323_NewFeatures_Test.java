@@ -783,10 +783,10 @@ public class ZP323_NewFeatures_Test extends BaseTest {
             "No active Work Order detected — IR Photo flow requires an active WO"
         );
 
-        logStep("Step 2: Open the active Work Order's session details");
-        boolean tapped = workOrderPage.tapActiveWorkOrder();
+        logStep("Step 2: Open the active Work Order's session details (state-aware)");
+        boolean tapped = workOrderPage.openActiveWOSessionDetailsFromAnywhere();
         skipIfPreconditionMissing(() -> tapped,
-            "Could not tap active Work Order — IR pair entry requires WO context");
+            "Could not reach Session Details — try running from WO list or after creating a job (TC_JOB_258)");
         mediumWait();
 
         logStep("Step 3: Verify Add IR Photo Pair button is reachable from this state");
@@ -808,9 +808,10 @@ public class ZP323_NewFeatures_Test extends BaseTest {
             "No active Work Order — IR pair flow requires an active WO"
         );
 
-        logStep("Step 2: Open active WO's session details");
-        boolean tapped = workOrderPage.tapActiveWorkOrder();
-        skipIfPreconditionMissing(() -> tapped, "Could not open active WO");
+        logStep("Step 2: Open active WO's session details (state-aware nav)");
+        boolean tapped = workOrderPage.openActiveWOSessionDetailsFromAnywhere();
+        skipIfPreconditionMissing(() -> tapped,
+            "Could not reach Session Details — see TC_JOB_258 for full job-creation flow");
         mediumWait();
 
         logStep("Step 3: Verify Add IR Photo Pair button reachable; otherwise skip");
@@ -844,9 +845,10 @@ public class ZP323_NewFeatures_Test extends BaseTest {
             "Upload requires active Work Order"
         );
 
-        logStep("Step 2: Open active WO's session details");
-        boolean tapped = workOrderPage.tapActiveWorkOrder();
-        skipIfPreconditionMissing(() -> tapped, "Could not open active WO");
+        logStep("Step 2: Open active WO's session details (state-aware nav)");
+        boolean tapped = workOrderPage.openActiveWOSessionDetailsFromAnywhere();
+        skipIfPreconditionMissing(() -> tapped,
+            "Could not reach Session Details — see TC_JOB_258 for full job-creation flow");
         mediumWait();
 
         logStep("Step 3: Tap 'Upload IR Photos' link if exposed");
