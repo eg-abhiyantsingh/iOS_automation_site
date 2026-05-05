@@ -23266,59 +23266,142 @@ public class WorkOrderPage extends BasePage {
      *   2. Photo with "thermal" / "infrared" / "flir" in name
      *   3. First photo labeled "Photo, ..." (default sim photos)
      *
-     * The picker shows a grid of asset cells with names like "Photo, ..."
-     * or by accessibility id starting with "PXG".
+     * Then attempts to confirm the selection via multiple paths because
+     * iOS PHPickerViewController behavior varies:
+     *   - Single-select mode: photo tap auto-dismisses picker
+     *   - Multi-select mode: photo tap checks the photo, requires Add tap
+     *   - iOS 26 variant: button labeled 'Add (1)' or 'Done'
+     *
+     * Returns false if photo couldn't be selected OR picker didn't dismiss.
+     * Logs diagnostic info on failure.
      */
     public boolean selectFirstPhotoFromPicker() {
-        // Priority 1: IR-named photo (most-recently-added IR.jpg)
-        try {
-            WebElement irPhoto = driver.findElement(
-                io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                    "(type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeImage') AND " +
-                    "(label CONTAINS[c] 'IR.' OR label BEGINSWITH[c] 'IR ' OR " +
-                    "name CONTAINS[c] 'IR.jpg' OR name CONTAINS[c] 'IR.png')"));
-            System.out.println("   ↳ Tapping IR photo: '" + irPhoto.getAttribute("label") + "'");
-            irPhoto.click(); sleep(600);
-            confirmPhotoPickerSelection();
-            return true;
-        } catch (Exception ignored) { /* fall through */ }
+        WebElement target = findPickerPhoto();
+        if (target == null) {
+            System.out.println("⚠️ Photo picker: no photo found by any predicate");
+            dumpPickerState();
+            return false;
+        }
 
-        // Priority 2: thermal/infrared/flir-named photo
+        String chosenLabel = "";
+        try { chosenLabel = target.getAttribute("label"); } catch (Exception ignored) { /* */ }
+        System.out.println("   ↳ Selected photo: '" + chosenLabel + "'");
         try {
-            WebElement thermal = driver.findElement(
-                io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                    "(type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeImage') AND " +
-                    "(name CONTAINS[c] 'thermal' OR name CONTAINS[c] 'infrared' OR " +
-                    "name CONTAINS[c] 'flir')"));
-            System.out.println("   ↳ Tapping thermal photo: '" + thermal.getAttribute("label") + "'");
-            thermal.click(); sleep(600);
-            confirmPhotoPickerSelection();
-            return true;
-        } catch (Exception ignored) { /* fall through */ }
+            target.click();
+        } catch (Exception e) {
+            System.out.println("⚠️ Photo tap threw: " + e.getClass().getSimpleName());
+            return false;
+        }
+        sleep(800);
 
-        // Priority 3: any first photo (default sim photos)
+        // After tap: try to confirm selection via Add/Done button. iOS PHPicker
+        // single-select mode auto-dismisses; multi-select needs Add (with count).
+        boolean confirmed = confirmPhotoPickerSelection();
+        sleep(600);
+
+        // Check if picker is gone — that's the real success indicator.
+        boolean stillInPicker = isPhotoPickerVisible();
+        if (stillInPicker) {
+            System.out.println("⚠️ Picker still visible after tap+confirm. Diagnostic dump:");
+            dumpPickerState();
+            // Last resort: try Cancel-then-retry, or assume failure
+            return false;
+        }
+        System.out.println("   ↳ Picker dismissed (confirmed=" + confirmed + ")");
+        return true;
+    }
+
+    /** Find a photo in the picker by IR/thermal/first-Photo priority. */
+    private WebElement findPickerPhoto() {
+        String[] predicates = {
+            // Priority 1: IR-named photo (matches IR.jpg)
+            "(type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeImage') AND " +
+                "(label CONTAINS[c] 'IR.' OR label BEGINSWITH[c] 'IR ' OR " +
+                "name CONTAINS[c] 'IR.jpg' OR name CONTAINS[c] 'IR.png')",
+            // Priority 2: thermal/infrared/flir-named
+            "(type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeImage') AND " +
+                "(name CONTAINS[c] 'thermal' OR name CONTAINS[c] 'infrared' OR " +
+                "name CONTAINS[c] 'flir')",
+            // Priority 3: any first photo
+            "(type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeImage') AND " +
+                "(label BEGINSWITH 'Photo,' OR label BEGINSWITH 'Image,' OR " +
+                "name CONTAINS[c] 'PXG' OR name CONTAINS[c] 'photo cell')"
+        };
+        for (int i = 0; i < predicates.length; i++) {
+            try {
+                WebElement el = driver.findElement(
+                    io.appium.java_client.AppiumBy.iOSNsPredicateString(predicates[i]));
+                System.out.println("   ↳ Photo found via priority " + (i + 1));
+                return el;
+            } catch (Exception ignored) { /* try next */ }
+        }
+        return null;
+    }
+
+    /**
+     * Try ALL known confirmation button labels for iOS PHPicker.
+     * Returns true if a button was tapped, false if none found (which is
+     * fine — single-select picker auto-dismisses on photo tap).
+     */
+    private boolean confirmPhotoPickerSelection() {
+        String[] labels = { "Add", "Done", "Choose", "Select", "Use" };
+        for (String label : labels) {
+            try {
+                WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND " +
+                    "(label == '" + label + "' OR label BEGINSWITH '" + label + " (')"));
+                System.out.println("   ↳ Tapping picker confirm: '" + btn.getAttribute("label") + "'");
+                btn.click(); sleep(800);
+                return true;
+            } catch (Exception ignored) { /* try next label */ }
+        }
+        return false;
+    }
+
+    /** Returns true if the iOS Photos picker UI is still on screen. */
+    private boolean isPhotoPickerVisible() {
         try {
-            WebElement firstPhoto = driver.findElement(
-                io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                    "(type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeImage') AND " +
-                    "(label BEGINSWITH 'Photo,' OR label BEGINSWITH 'Image,' OR " +
-                    "name CONTAINS[c] 'PXG' OR name CONTAINS[c] 'photo cell')"));
-            System.out.println("   ↳ Tapping first photo (no IR/thermal preferred match): '"
-                + firstPhoto.getAttribute("label") + "'");
-            firstPhoto.click(); sleep(600);
-            confirmPhotoPickerSelection();
+            driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeNavigationBar' OR type == 'XCUIElementTypeStaticText') AND " +
+                "(label == 'Photos' OR label == 'All Photos' OR label == 'Recents' OR " +
+                "label CONTAINS[c] 'Select Photos')"));
             return true;
         } catch (Exception e) { return false; }
     }
 
-    /** Confirm photo picker selection via Add/Done/Choose button if visible. */
-    private void confirmPhotoPickerSelection() {
+    /** Dump picker DOM state when selection or dismissal fails. */
+    private void dumpPickerState() {
         try {
-            WebElement add = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND " +
-                "(label == 'Add' OR label == 'Done' OR label == 'Choose')"));
-            add.click(); sleep(800);
-        } catch (Exception ignored) { /* picker may auto-close on single-tap */ }
+            System.out.println("   --- Picker buttons ---");
+            java.util.List<WebElement> btns = driver.findElements(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton'"));
+            int dumped = 0;
+            for (WebElement b : btns) {
+                try {
+                    String l = b.getAttribute("label");
+                    if (l != null && !l.isEmpty()) {
+                        System.out.println("   button: '" + l + "'");
+                        if (++dumped >= 15) break;
+                    }
+                } catch (Exception ignored) { /* skip */ }
+            }
+            System.out.println("   --- Top StaticTexts ---");
+            java.util.List<WebElement> txts = driver.findElements(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText'"));
+            int dumpedT = 0;
+            for (WebElement t : txts) {
+                try {
+                    String l = t.getAttribute("label");
+                    int y = t.getRect().getY();
+                    if (l != null && !l.isEmpty() && y < 300) {
+                        System.out.println("   [Y=" + y + "] '" + l + "'");
+                        if (++dumpedT >= 10) break;
+                    }
+                } catch (Exception ignored) { /* skip */ }
+            }
+        } catch (Exception ignored) { /* dump best-effort */ }
     }
 
     // ================================================================
