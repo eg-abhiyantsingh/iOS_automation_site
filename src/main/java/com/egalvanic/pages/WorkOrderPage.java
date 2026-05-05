@@ -23126,6 +23126,27 @@ public class WorkOrderPage extends BasePage {
     }
 
     /**
+     * Tap the 'Site' tab in the iOS bottom tab bar to return to the Dashboard
+     * from any other tab (Assets, Connections, SLD, Settings). Idempotent —
+     * does nothing if the tab can't be found.
+     *
+     * Per user instruction 2026-05-05: after Save Changes lands on Asset list,
+     * we must tap Site tab to reach Dashboard before tapping the Active WO bar.
+     */
+    public boolean tapSiteTab() {
+        try {
+            WebElement siteTab = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "label == 'Site' AND type == 'XCUIElementTypeButton'"));
+            System.out.println("   ↳ Tapping 'Site' tab in bottom nav");
+            siteTab.click(); sleep(600);
+            return true;
+        } catch (Exception e) {
+            System.out.println("   ↳ Site tab not found: " + e.getClass().getSimpleName());
+            return false;
+        }
+    }
+
+    /**
      * Tap the Active Work Order bar on Dashboard (the bar showing "Active
      * Work Order: <name>" with the End button — see screenshot 3 of 5).
      * Tapping the bar opens the WO Session Details / detail view.

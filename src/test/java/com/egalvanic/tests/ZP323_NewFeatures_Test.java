@@ -852,6 +852,12 @@ public class ZP323_NewFeatures_Test extends BaseTest {
         mediumWait();
         logStepWithScreenshot("Pair saved with name=" + name);
 
+        logStep("Step 9b: Tap 'Site' tab in bottom nav to return to Dashboard");
+        // After Save Changes the app lands on the Asset list (not Dashboard),
+        // so we must tap the Site tab before the active-WO bar is reachable.
+        workOrderPage.tapSiteTab();
+        shortWait();
+
         logStep("Step 10: Tap Active Work Order bar to open WO Details");
         boolean barTapped = workOrderPage.tapActiveWorkOrderBadge();
         skipIfPreconditionMissing(() -> barTapped,
