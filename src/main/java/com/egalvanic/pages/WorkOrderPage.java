@@ -22522,27 +22522,66 @@ public class WorkOrderPage extends BasePage {
             return true;
         } catch (Exception ignored) { /* fall through */ }
 
-        // Diagnostics: dump labels of buttons/text in the IR section's Y range
+        // Strategy 4 (last-resort): tap directly on/just-below the Infrared Photos
+        // header. Some iOS section headers are tappable and open the add flow.
         try {
-            System.out.println("⚠️ IR section entry point NOT found. Dumping nearby elements:");
-            java.util.List<WebElement> els = driver.findElements(
+            WebElement header = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label CONTAINS[c] 'Infrared Photos'"));
+            int hY = header.getRect().getY();
+            // Find any button/cell within 250px below the header
+            java.util.List<WebElement> all = driver.findElements(
                 io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText'"));
+                    "type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeCell' OR " +
+                    "type == 'XCUIElementTypeOther'"));
+            for (WebElement el : all) {
+                try {
+                    int y = el.getRect().getY();
+                    int h = el.getRect().getHeight();
+                    if (y > hY && y < hY + 250 && h > 30) {
+                        String l = el.getAttribute("label");
+                        if (l != null && !l.isEmpty()
+                            && !l.equalsIgnoreCase("Infrared Photos")) {
+                            System.out.println("   ↳ Trying tappable below header: '" + l + "'");
+                            el.click(); sleep(700);
+                            return true;
+                        }
+                    }
+                } catch (Exception ignored) { /* skip stale */ }
+            }
+        } catch (Exception ignored) { /* fall through to dump */ }
+
+        // Diagnostics: dump EVERYTHING in the section's Y-range (no filter)
+        try {
+            System.out.println("⚠️ IR section entry point NOT found. Full DOM dump of section Y-range:");
+            int headerY = -1;
+            try {
+                WebElement hdr = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND label CONTAINS[c] 'Infrared Photos'"));
+                headerY = hdr.getRect().getY();
+                System.out.println("   Header 'Infrared Photos' at Y=" + headerY);
+            } catch (Exception ignored) { /* no header */ }
+
+            java.util.List<WebElement> els = driver.findElements(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString("type != 'NONEXISTENT'"));
+            int dumped = 0;
             for (WebElement el : els) {
                 try {
                     String t = el.getAttribute("type");
                     String l = el.getAttribute("label");
                     String n = el.getAttribute("name");
                     org.openqa.selenium.Rectangle r = el.getRect();
-                    if (l != null && (l.toLowerCase().contains("ir") ||
-                                      l.toLowerCase().contains("infrared") ||
-                                      l.toLowerCase().contains("flir") ||
-                                      l.toLowerCase().contains("photo") ||
-                                      l.toLowerCase().contains("add"))) {
-                        System.out.println("   " + t + " label='" + l + "' name='" + n
-                            + "' rect=" + r);
+                    // Only dump elements within (headerY, headerY+400) — the section's likely range
+                    if (headerY > 0 && r.getY() > headerY && r.getY() < headerY + 400) {
+                        System.out.println("   [Y=" + r.getY() + "] " + t
+                            + " label='" + (l == null ? "" : l) + "' name='"
+                            + (n == null ? "" : n) + "' rect=" + r);
+                        dumped++;
+                        if (dumped >= 30) { System.out.println("   ... (truncated)"); break; }
                     }
                 } catch (Exception ignored) { /* skip stale */ }
+            }
+            if (dumped == 0) {
+                System.out.println("   (No elements found in section Y-range — section may be empty)");
             }
         } catch (Exception ignored) { /* dump best-effort */ }
 
