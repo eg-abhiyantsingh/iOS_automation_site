@@ -23184,6 +23184,76 @@ public class WorkOrderPage extends BasePage {
     }
 
     /**
+     * Wait for the IR Photo upload to complete on the WO IR tab.
+     *
+     * Polls every 1s up to maxWaitMs for one of the success indicators:
+     *   - Photo count text increased ('1 IR Photo' / 'N IR Photos')
+     *   - Thermal image thumbnail visible (XCUIElementTypeImage with non-empty name)
+     *   - Upload progress indicator disappeared (no 'Uploading...' / 'No Image')
+     *
+     * Returns true if upload completed within timeout, false on timeout.
+     * Designed for CI/CD where photo upload may take 5-30s depending on
+     * simulator vs real device + photo size.
+     */
+    public boolean waitForIRPhotoUploadComplete(long maxWaitMs) {
+        long deadline = System.currentTimeMillis() + maxWaitMs;
+        int pollCount = 0;
+        while (System.currentTimeMillis() < deadline) {
+            pollCount++;
+            // Indicator A: count text "N IR Photo(s)" with N >= 1
+            try {
+                java.util.List<WebElement> counts = driver.findElements(
+                    io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND " +
+                        "(label MATCHES '\\\\d+ IR Photo.*' OR label CONTAINS[c] 'IR Photo')"));
+                for (WebElement el : counts) {
+                    try {
+                        String label = el.getAttribute("label");
+                        if (label != null && label.matches("\\d+ IR Photo.*")
+                            && !label.startsWith("0 ")) {
+                            System.out.println("   ↳ Upload complete (poll " + pollCount
+                                + "): label='" + label + "'");
+                            return true;
+                        }
+                    } catch (Exception ignored) { /* skip stale */ }
+                }
+            } catch (Exception ignored) { /* try next indicator */ }
+
+            // Indicator B: 'No Image' placeholder gone
+            try {
+                java.util.List<WebElement> placeholders = driver.findElements(
+                    io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND label == 'No Image'"));
+                if (placeholders.isEmpty() && pollCount >= 3) {
+                    // After 3 polls (~3s), if no 'No Image' placeholder remains, upload succeeded
+                    System.out.println("   ↳ Upload complete (poll " + pollCount
+                        + "): 'No Image' placeholders gone");
+                    return true;
+                }
+            } catch (Exception ignored) { /* try next indicator */ }
+
+            // Indicator C: thermal image thumbnail with non-empty name
+            try {
+                java.util.List<WebElement> images = driver.findElements(
+                    io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeImage' AND " +
+                        "(name CONTAINS[c] 'thermal' OR name CONTAINS[c] 'ir_' OR " +
+                        "name CONTAINS[c] 'flir' OR label CONTAINS[c] 'thumbnail')"));
+                if (!images.isEmpty()) {
+                    System.out.println("   ↳ Upload complete (poll " + pollCount
+                        + "): thumbnail found");
+                    return true;
+                }
+            } catch (Exception ignored) { /* continue polling */ }
+
+            try { Thread.sleep(1000); } catch (InterruptedException ignored) { /* */ }
+        }
+        System.out.println("   ↳ Upload wait TIMEOUT after " + maxWaitMs + "ms ("
+            + pollCount + " polls)");
+        return false;
+    }
+
+    /**
      * From iOS Photos picker, select the first available photo.
      * The picker shows a grid of asset cells with names like "Photo, ..."
      * or by accessibility id starting with "PXG".

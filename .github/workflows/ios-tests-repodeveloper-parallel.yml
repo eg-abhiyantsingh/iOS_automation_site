@@ -391,6 +391,20 @@ jobs:
           xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/$APP_FILE"
           echo "✅ App installed: $APP_FILE"
 
+      - name: Pre-load IR test media into Simulator photo library
+        # Required for TC_ZP323_14_01 (IR Photo Upload E2E). Without this,
+        # Step 14 (selectFirstPhotoFromPicker) skips with no selectable photo.
+        run: |
+          set +e
+          for img in document_important/IR.jpg document_important/image_extraction.webp; do
+            if [ -f "$img" ]; then
+              xcrun simctl addmedia "${{ env.SIMULATOR_UDID }}" "$img" \
+                && echo "✅ Loaded $img into sim photo library" \
+                || echo "⚠️ Could not load $img (sim may not be ready)"
+            fi
+          done
+          set -e
+
       - name: Pre-build WebDriverAgent
         run: |
           WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
@@ -678,6 +692,20 @@ jobs:
           xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/$APP_FILE"
           echo "✅ App installed: $APP_FILE"
 
+      - name: Pre-load IR test media into Simulator photo library
+        # Required for TC_ZP323_14_01 (IR Photo Upload E2E). Without this,
+        # Step 14 (selectFirstPhotoFromPicker) skips with no selectable photo.
+        run: |
+          set +e
+          for img in document_important/IR.jpg document_important/image_extraction.webp; do
+            if [ -f "$img" ]; then
+              xcrun simctl addmedia "${{ env.SIMULATOR_UDID }}" "$img" \
+                && echo "✅ Loaded $img into sim photo library" \
+                || echo "⚠️ Could not load $img (sim may not be ready)"
+            fi
+          done
+          set -e
+
       - name: Pre-build WebDriverAgent
         run: |
           WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
@@ -913,6 +941,20 @@ jobs:
           APP_FILE=$(ls apps/ | grep ".app" | head -1)
           xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/$APP_FILE"
           echo "✅ App installed: $APP_FILE"
+
+      - name: Pre-load IR test media into Simulator photo library
+        # Required for TC_ZP323_14_01 (IR Photo Upload E2E). Without this,
+        # Step 14 (selectFirstPhotoFromPicker) skips with no selectable photo.
+        run: |
+          set +e
+          for img in document_important/IR.jpg document_important/image_extraction.webp; do
+            if [ -f "$img" ]; then
+              xcrun simctl addmedia "${{ env.SIMULATOR_UDID }}" "$img" \
+                && echo "✅ Loaded $img into sim photo library" \
+                || echo "⚠️ Could not load $img (sim may not be ready)"
+            fi
+          done
+          set -e
 
       - name: Pre-build WebDriverAgent
         run: |

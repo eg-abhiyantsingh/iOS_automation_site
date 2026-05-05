@@ -887,9 +887,12 @@ public class ZP323_NewFeatures_Test extends BaseTest {
             "Photo picker has no selectable photos — load IR.jpg via: "
             + "xcrun simctl addmedia <udid> document_important/IR.jpg");
 
-        logStep("Step 15: Upload completed — capturing final screenshot");
-        mediumWait();
-        assertTrue(true, "All 15 steps reached; see screenshot for visual confirmation");
+        logStep("Step 15: Wait for upload to complete (poll 30s for thumbnail/count update)");
+        boolean uploaded = workOrderPage.waitForIRPhotoUploadComplete(30_000L);
+        assertTrue(uploaded,
+            "IR photo upload did not complete within 30s — check sim photo library "
+            + "is loaded (xcrun simctl addmedia <udid> document_important/IR.jpg) "
+            + "and that network sync is reachable");
         logStepWithScreenshot("Full IR Photo Upload flow complete (name=" + name + ")");
     }
 
