@@ -22449,12 +22449,23 @@ public class WorkOrderPage extends BasePage {
     // that, the Add IR Photo Pair button won't appear/work.
     // ================================================================
 
-    /** Returns true if the green "Active Work Order" badge is visible. */
+    /**
+     * Returns true if the green "Active Work Order" badge is visible.
+     *
+     * IMPORTANT: must exclude "No Active Work Order" — that's the
+     * empty-state card on Dashboard when no WO is active. Naive
+     * `CONTAINS 'Active Work Order'` matches both labels because "No
+     * Active Work Order" contains "Active Work Order" as a substring.
+     * We require the label NOT to start with "No " and NOT to contain
+     * "Tap to select" (the no-active card always has both).
+     */
     public boolean isWorkOrderActive() {
         try {
             driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND " +
-                "(label CONTAINS[c] 'Active Work Order' OR label == 'Active')"));
+                "((label CONTAINS[c] 'Active Work Order' AND " +
+                "  NOT (label CONTAINS[c] 'No Active' OR label CONTAINS[c] 'Tap to select')) " +
+                " OR label == 'Active' OR label ==[c] 'ACTIVE')"));
             return true;
         } catch (Exception e) { return false; }
     }
@@ -22489,14 +22500,17 @@ public class WorkOrderPage extends BasePage {
      */
     public boolean openActiveWOSessionDetailsFromAnywhere() {
         // Strategy 1: directly tap an active-job indicator if visible (dashboard
-        // active card OR work-orders-list active row both expose "Active" /
-        // "Stop" / a job-name label inside a tappable cell)
+        // active card OR work-orders-list active row). MUST exclude "No Active
+        // Work Order" — that's the empty-state Dashboard card and tapping it
+        // navigates to a WO list with no entries to open.
         try {
             WebElement el = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeCell' OR " +
                 "type == 'XCUIElementTypeOther') AND " +
-                "(label CONTAINS[c] 'Active Work Order' OR label CONTAINS[c] 'Active Job' OR " +
-                "label == 'Stop' OR label == 'Active' OR label CONTAINS[c] 'ACTIVE')"));
+                "((label CONTAINS[c] 'Active Work Order' AND " +
+                "  NOT (label CONTAINS[c] 'No Active' OR label CONTAINS[c] 'Tap to select')) " +
+                " OR (label CONTAINS[c] 'Active Job' AND NOT label CONTAINS[c] 'No Active') " +
+                " OR label == 'Stop' OR label == 'Active' OR label ==[c] 'ACTIVE')"));
             System.out.println("   ↳ Strategy 1: tapping active indicator '"
                 + el.getAttribute("label") + "'");
             el.click(); sleep(800);
