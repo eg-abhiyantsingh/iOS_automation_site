@@ -22879,7 +22879,9 @@ public class WorkOrderPage extends BasePage {
 
     /**
      * Enter the IR Photo Filename. Per user spec: this should match the
-     * Visual Photo Filename (same string for both).
+     * Visual Photo Filename (same string for both). Auto-dismisses the iOS
+     * keyboard at the end so subsequent actions (Add IR Photo Pair button)
+     * aren't blocked by it.
      */
     public boolean enterIRPhotoFilename(String name) {
         try {
@@ -22892,11 +22894,15 @@ public class WorkOrderPage extends BasePage {
             field.clear(); sleep(200);
             field.sendKeys(name);
             sleep(200);
+            dismissKeyboard(); sleep(300);
             return true;
         } catch (Exception e) { return false; }
     }
 
-    /** Enter the Visual Photo Filename. Should match IR Photo Filename. */
+    /**
+     * Enter the Visual Photo Filename. Should match IR Photo Filename.
+     * Auto-dismisses the iOS keyboard at the end.
+     */
     public boolean enterVisualPhotoFilename(String name) {
         try {
             WebElement field = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
@@ -22908,6 +22914,7 @@ public class WorkOrderPage extends BasePage {
             field.clear(); sleep(200);
             field.sendKeys(name);
             sleep(200);
+            dismissKeyboard(); sleep(300);
             return true;
         } catch (Exception e) { return false; }
     }
