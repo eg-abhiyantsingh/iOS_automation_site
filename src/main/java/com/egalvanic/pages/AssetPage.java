@@ -2933,10 +2933,20 @@ public class AssetPage extends BasePage {
      * Dashboard has: Assets tab, Locations tab, building icon, possibly job selector
      */
     public boolean isDashboardDisplayed() {
+        // Fast-fail cap (changelog 070): 2 element lookups × 5s default
+        // implicit wait = up to 10s per call on miss. 32 callers across
+        // tests × ~10s avg miss = ~5.3 min wasted. Cap to 1s on miss.
+        java.time.Duration originalWait;
+        try {
+            originalWait = driver.manage().timeouts().getImplicitWaitTimeout();
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(1));
+        } catch (Exception e) {
+            originalWait = java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT);
+        }
         try {
             // Dashboard specific: Has tab bar with Assets/Locations AND building.2 icon
             // This distinguishes it from Site Selection page
-            
+
             // Check for Assets tab/button (bottom tab bar)
             boolean hasAssetsTab = false;
             try {
@@ -2947,24 +2957,28 @@ public class AssetPage extends BasePage {
                 );
                 hasAssetsTab = !assetsElements.isEmpty();
             } catch (Exception e) {}
-            
+
             // Check for building.2 icon (dashboard indicator)
             boolean hasBuildingIcon = false;
             try {
                 driver.findElement(AppiumBy.accessibilityId("building.2"));
                 hasBuildingIcon = true;
             } catch (Exception e) {}
-            
+
             // Dashboard = has Assets tab OR building icon
             boolean isDashboard = hasAssetsTab || hasBuildingIcon;
-            
+
             if (isDashboard) {
                 System.out.println("   Dashboard detected (Assets tab: " + hasAssetsTab + ", Building icon: " + hasBuildingIcon + ")");
             }
-            
+
             return isDashboard;
         } catch (Exception e) {
             return false;
+        } finally {
+            try {
+                driver.manage().timeouts().implicitlyWait(originalWait);
+            } catch (Exception ignored) { /* best-effort restore */ }
         }
     }
     
@@ -3301,16 +3315,28 @@ public class AssetPage extends BasePage {
 
     public String selectFirstAsset() {
         System.out.println("📦 Selecting first asset...");
-        
-        // Wait for list to fully load
-        sleep(500);
-        
+
+        // Fast-fail cap (changelog 070): 7 fallback strategies × 5s default
+        // implicit wait = up to 35s per call on miss. 53 callers across asset
+        // suites × ~20s avg miss = ~17 min wasted. Cap to 1s on miss.
+        java.time.Duration originalWait;
+        try {
+            originalWait = driver.manage().timeouts().getImplicitWaitTimeout();
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(1));
+        } catch (Exception e) {
+            originalWait = java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT);
+        }
+
+        try {
+            // Wait for list to fully load
+            sleep(500);
+
         // =====================================================================
         // IMPORTANT: Must click on STATIC TEXT (asset name), NOT on Button/Cell!
         // Clicking on XCUIElementTypeButton or XCUIElementTypeCell does NOT navigate.
         // Only clicking on XCUIElementTypeStaticText (asset name text) works!
         // =====================================================================
-        
+
         // STRATEGY 1 (PREFERRED): Click on StaticText that is the asset name
         // Asset name is typically the first text in each cell (y position 139-650 range)
         try {
@@ -3535,9 +3561,15 @@ public class AssetPage extends BasePage {
             System.out.println("   Coordinate tap failed: " + e.getMessage());
         }
         
-        System.out.println("⚠️ Could not select any asset");
-        return null;
+            System.out.println("⚠️ Could not select any asset");
+            return null;
+        } finally {
+            try {
+                driver.manage().timeouts().implicitlyWait(originalWait);
+            } catch (Exception ignored) { /* best-effort restore */ }
+        }
     }
+
     public boolean isCreateAssetFormDisplayed() {
         return isElementDisplayed(assetNameField) || isElementDisplayed(selectAssetClassButton);
     }
@@ -11419,6 +11451,127 @@ public class AssetPage extends BasePage {
         if (!tapNameplatePhotoTab()) return false;
         sleep(400);
         return tapGalleryButton();
+    }
+
+    // ================================================================
+    // PICKER-CLOSE 4TH-BUG RECOVERY (changelog 070, 2026-05-08)
+    //
+    // The bug (documented in changelog 062): after a dropdown picker
+    // dismisses, the app sometimes navigates back to READ-ONLY Asset
+    // Details instead of staying on Edit. Tests then fail when they
+    // try to tap "Save Changes" — that button only exists on Edit.
+    //
+    // Affects: 12+ tests across assets-p3/p4/issues-p1 that were
+    // documented as "PASS→FAIL regressions" in changelog 065.
+    // ================================================================
+
+    /**
+     * Detect if the picker-close 4th-bug just happened: we're now on
+     * READ-ONLY Asset Details when the test expected to still be on Edit.
+     *
+     * @return true if we're on read-only Asset Details (the bug fired)
+     */
+    public boolean didPickerCloseExitEditMode() {
+        // We're on read-only Asset Details if:
+        //   1. Asset Details screen is displayed (header/breadcrumb visible)
+        //   2. AND Edit screen indicators are NOT visible (no Save Changes,
+        //      no text inputs in edit mode)
+        boolean onAssetDetails = isAssetDetailDisplayed();
+        boolean onEditScreen = isEditAssetScreenDisplayed();
+        return onAssetDetails && !onEditScreen;
+    }
+
+    /**
+     * Recover from the picker-close 4th-bug. Called after a picker selection
+     * to ensure we're back on the Edit screen so the test can proceed.
+     *
+     * @return true if recovery succeeded (now on Edit), false if not
+     */
+    public boolean recoverFromPickerCloseBug() {
+        if (!didPickerCloseExitEditMode()) {
+            // No bug fired — already on Edit, nothing to do
+            return true;
+        }
+        System.out.println("⚠️ Picker-close 4th-bug detected — recovering by re-tapping Edit");
+        try {
+            clickEditTurbo();
+            sleep(800);
+            boolean recovered = isEditAssetScreenDisplayed();
+            System.out.println(recovered
+                ? "✅ Recovered to Edit screen"
+                : "❌ Recovery failed — still not on Edit");
+            return recovered;
+        } catch (Exception e) {
+            System.out.println("❌ Recovery threw " + e.getClass().getSimpleName());
+            return false;
+        }
+    }
+
+    /**
+     * Wrapper that runs an action (typically a picker selection) and
+     * automatically recovers from the picker-close 4th-bug if it fires.
+     *
+     * Per team design decision (2026-05-08): when recovery fires, the
+     * dropdown change is NOT trusted to have persisted — we re-apply
+     * it via the {@code reapply} callback. Slower but guaranteed
+     * correct: if the change didn't save (which we can't reliably
+     * verify), this version still produces the right end state.
+     *
+     * Usage:
+     *   assetPage.withPickerCloseRecovery(
+     *       () -> selectDropdownOption("Manufacturer", "Eaton"),  // action
+     *       () -> selectDropdownOption("Manufacturer", "Eaton")   // reapply (often same)
+     *   );
+     *
+     * @param action  the picker interaction to perform first
+     * @param reapply the action to re-run after recovery (often the same
+     *                lambda as action). Pass null to disable re-apply.
+     * @return true if final state is on Edit (action completed and any
+     *         recovery succeeded). false if we couldn't recover.
+     */
+    public boolean withPickerCloseRecovery(Runnable action, Runnable reapply) {
+        try {
+            action.run();
+        } catch (Exception e) {
+            System.out.println("⚠️ Picker action threw: " + e.getClass().getSimpleName());
+        }
+        sleep(400); // Let any navigation animation settle
+
+        if (!didPickerCloseExitEditMode()) {
+            // No bug fired — change is on Edit screen as expected
+            return true;
+        }
+
+        // Bug fired. Re-tap Edit to get back to edit mode.
+        if (!recoverFromPickerCloseBug()) {
+            return false;
+        }
+
+        // Per design decision: re-apply the change. The previous
+        // change may or may not have persisted; re-applying is the
+        // safe choice.
+        if (reapply != null) {
+            System.out.println("   ↳ Re-applying change after recovery (per team decision)");
+            try {
+                reapply.run();
+                sleep(400);
+            } catch (Exception e) {
+                System.out.println("⚠️ Re-apply threw: " + e.getClass().getSimpleName());
+                return false;
+            }
+            // If re-apply ALSO triggered the bug, we'd recurse forever.
+            // Bail out with a clear log instead of looping.
+            if (didPickerCloseExitEditMode()) {
+                System.out.println("⚠️ Re-apply ALSO triggered picker-close — manual fix needed");
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** Convenience overload: action and reapply are the same lambda. */
+    public boolean withPickerCloseRecovery(Runnable action) {
+        return withPickerCloseRecovery(action, action);
     }
 
 }
