@@ -234,20 +234,27 @@ public class IssuePage extends BasePage {
         try {
             driver.manage().timeouts().implicitlyWait(Duration.ofMillis(1500));
 
-            // Strategy 1: Navigation bar with "Issues" title
+            // Strategy 1: Navigation bar with "Issues"/"Problèmes" title.
+            // Locale-agnostic per changelog 071 — dev-repo CI run 25904342238
+            // was French-locale, failing 50 Issues P2 tests because the actual
+            // label was 'Problèmes' not 'Issues'.
             try {
                 WebElement navBar = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeNavigationBar' AND (name == 'Issues' OR label == 'Issues')"));
+                    "type == 'XCUIElementTypeNavigationBar' AND " +
+                    "(name == 'Issues' OR label == 'Issues' OR " +
+                    " name == 'Problèmes' OR label == 'Problèmes' OR " +
+                    " name == 'Problemes' OR label == 'Problemes')"));
                 if (navBar.isDisplayed()) {
                     System.out.println("✓ Issues screen detected (nav bar)");
                     return true;
                 }
             } catch (Exception e1) {}
 
-            // Strategy 2: Large "Issues" title text near top of screen
+            // Strategy 2: Large title text near top of screen
             try {
                 List<WebElement> titles = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND label == 'Issues'"));
+                    "type == 'XCUIElementTypeStaticText' AND " +
+                    "(label == 'Issues' OR label == 'Problèmes' OR label == 'Problemes')"));
                 for (WebElement title : titles) {
                     int y = title.getLocation().getY();
                     if (y < 200) {

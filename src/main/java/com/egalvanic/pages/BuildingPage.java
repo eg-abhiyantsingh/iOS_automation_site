@@ -586,25 +586,34 @@ public class BuildingPage extends BasePage {
     }
 
     /**
-     * Check if Locations screen (Building List) is displayed
+     * Check if Locations screen (Building List) is displayed.
+     *
+     * Locale-agnostic (changelog 071, 2026-05-08): matches both English
+     * 'Locations' AND French 'Emplacements'. Dev-repo CI run 25904342238
+     * was failing 78 location tests because simulator locale was French.
+     * Apply same i18n pattern to any future screen-detection helpers.
      */
     public boolean isLocationsScreenDisplayed() {
         try {
             driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(1500));
             try {
-                // Quick check: navigation bar
+                // Quick check: navigation bar (English OR French label)
                 try {
                     WebElement navBar = driver.findElement(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeNavigationBar' AND (name == 'Locations' OR label == 'Locations')"));
+                        "type == 'XCUIElementTypeNavigationBar' AND " +
+                        "(name == 'Locations' OR label == 'Locations' OR " +
+                        " name == 'Emplacements' OR label == 'Emplacements')"));
                     if (navBar.isDisplayed()) {
                         System.out.println("✓ Locations screen detected (navigation bar)");
                         return true;
                     }
                 } catch (Exception ignored) {}
 
-                // Quick check: building entries
+                // Quick check: building entries (matches 'floor' EN + 'étage' FR)
                 try {
-                    List<WebElement> buildings = driver.findElements(AppiumBy.iOSNsPredicateString("label CONTAINS 'floor'"));
+                    List<WebElement> buildings = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "label CONTAINS[c] 'floor' OR label CONTAINS[c] 'étage' OR " +
+                        "label CONTAINS[c] 'etage'"));
                     if (!buildings.isEmpty()) {
                         System.out.println("✓ Locations screen detected (buildings found)");
                         return true;

@@ -113,13 +113,16 @@ public class ConnectionsPage {
         try {
             System.out.println("🔗 Tapping on Connections tab...");
 
-            // Wait for tab bar to load (after fresh driver start, DOM needs time)
+            // Wait for tab bar to load (after fresh driver start, DOM needs time).
+            // Locale-agnostic per changelog 071: matches both English 'Connections'
+            // AND French 'Connexions'.
             try {
                 org.openqa.selenium.support.ui.WebDriverWait wait =
                     new org.openqa.selenium.support.ui.WebDriverWait(driver, java.time.Duration.ofSeconds(5));
                 WebElement tab = wait.until(org.openqa.selenium.support.ui.ExpectedConditions.presenceOfElementLocated(
                     AppiumBy.iOSNsPredicateString(
-                        "label CONTAINS 'Connections' AND (type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText')")));
+                        "(label CONTAINS 'Connections' OR label CONTAINS 'Connexions') " +
+                        "AND (type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText')")));
                 tab.click();
                 sleep(300);
                 System.out.println("✓ Tapped Connections tab (waited for DOM)");
@@ -210,20 +213,25 @@ public class ConnectionsPage {
         try {
             driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(1500));
             try {
-                // Strategy 1: Check navigation bar title
+                // Strategy 1: Check navigation bar title (English OR French)
+                // Locale-agnostic per changelog 071 — dev-repo CI run
+                // 25904342238 was French-locale, failing 94 connection tests.
                 try {
                     WebElement navBar = driver.findElement(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeNavigationBar' AND (name == 'Connections' OR label == 'Connections')"));
+                        "type == 'XCUIElementTypeNavigationBar' AND " +
+                        "(name == 'Connections' OR label == 'Connections' OR " +
+                        " name == 'Connexions' OR label == 'Connexions')"));
                     if (navBar.isDisplayed()) {
                         System.out.println("✓ Connections screen detected (nav bar)");
                         return true;
                     }
                 } catch (Exception e1) {}
 
-                // Strategy 2: Check for StaticText 'Connections' as title
+                // Strategy 2: Check for StaticText 'Connections'/'Connexions' as title
                 try {
                     List<WebElement> titles = driver.findElements(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeStaticText' AND label == 'Connections'"));
+                        "type == 'XCUIElementTypeStaticText' AND " +
+                        "(label == 'Connections' OR label == 'Connexions')"));
                     for (WebElement title : titles) {
                         int y = title.getLocation().getY();
                         if (y < 150) {
