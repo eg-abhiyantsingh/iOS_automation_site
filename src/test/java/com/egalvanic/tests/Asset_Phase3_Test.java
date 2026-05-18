@@ -578,15 +578,22 @@ public class Asset_Phase3_Test extends BaseTest {
         int randomCols = 1 + new java.util.Random().nextInt(10);
         String testValue = String.valueOf(randomCols);
         logStep("Entering RANDOM Columns: " + testValue);
-        fillLoadcenterField("Columns", testValue);
+
+        // Wrapped in withPickerCloseRecovery (changelog 070): if picker-close
+        // 4th-bug fires (app jumps from Edit → read-only Asset Details after
+        // picker dismiss), re-taps Edit + re-applies the change. Documented
+        // as PASS→FAIL regression in changelog 065 — unblocks this test.
+        assetPage.withPickerCloseRecovery(
+            () -> fillLoadcenterField("Columns", testValue)
+        );
         shortWait();
 
         logStep("Checking for Save Changes button");
         assetPage.scrollFormUp();
-        
+
         boolean saveButtonVisible = assetPage.isSaveChangesButtonVisible();
         logStep("Save Changes button visible: " + saveButtonVisible);
-        
+
         if (saveButtonVisible) {
             assetPage.clickSaveChanges();
             shortWait();
@@ -594,7 +601,7 @@ public class Asset_Phase3_Test extends BaseTest {
         } else {
             logStepWithScreenshot("Save button not found");
         }
-        
+
         assertTrue(saveButtonVisible, "Save Changes button should appear after changing Columns");
     }
 

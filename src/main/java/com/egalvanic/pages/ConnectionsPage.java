@@ -58,39 +58,43 @@ public class ConnectionsPage {
      */
     public boolean isConnectionsTabDisplayed() {
         try {
-            // Strategy 1: Look for Connections button in tab bar
+            // Strategy 1: Look for Connections/Connexions button in tab bar
+            // Locale-agnostic per changelog 072 — French sim labels tab 'Connexions'.
             try {
                 WebElement connectionsTab = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND (label CONTAINS 'Connections' OR label CONTAINS 'connections')"));
+                    "type == 'XCUIElementTypeButton' AND " +
+                    "(label CONTAINS[c] 'Connection' OR label CONTAINS[c] 'Connexion')"));
                 if (connectionsTab.isDisplayed()) {
                     System.out.println("✓ Connections tab found via Button");
                     return true;
                 }
             } catch (Exception e1) {}
-            
-            // Strategy 2: Look for StaticText with Connections
+
+            // Strategy 2: Look for StaticText with Connections/Connexions
             try {
                 WebElement connectionsText = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND label == 'Connections'"));
+                    "type == 'XCUIElementTypeStaticText' AND " +
+                    "(label == 'Connections' OR label == 'Connexions')"));
                 if (connectionsText.isDisplayed()) {
                     System.out.println("✓ Connections tab found via StaticText");
                     return true;
                 }
             } catch (Exception e2) {}
-            
+
             // Strategy 3: Look for link icon (chain/connection icon) in tab bar
             try {
                 List<WebElement> tabButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeButton'"));
                 int screenHeight = driver.manage().window().getSize().height;
                 int tabBarY = (int)(screenHeight * 0.9);
-                
+
                 for (WebElement btn : tabButtons) {
                     int y = btn.getLocation().getY();
                     if (y > tabBarY) {
                         String label = btn.getAttribute("label");
                         String name = btn.getAttribute("name");
-                        if ((label != null && label.toLowerCase().contains("connection")) ||
+                        if ((label != null && (label.toLowerCase().contains("connection")
+                                || label.toLowerCase().contains("connexion"))) ||
                             (name != null && (name.contains("link") || name.contains("chain")))) {
                             System.out.println("✓ Connections tab found in tab bar");
                             return true;

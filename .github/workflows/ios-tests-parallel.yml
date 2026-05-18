@@ -2135,36 +2135,19 @@ jobs:
           npm install -g appium@next > /dev/null 2>&1
           appium driver install xcuitest > /dev/null 2>&1
           echo "Appium $(appium --version) ready"
-      - name: Download App from S3
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: us-east-1
+      - name: Unzip App (use local apps/Z-Platform-QA.zip, no S3 dependency)
+        # Changelog 072: AWS S3 credentials returned 403 Forbidden on run
+        # 26038190344. The Offline job was the only one using S3 — every other
+        # job in this workflow unzips the committed apps/Z-Platform-QA.zip.
+        # Aligning Offline to the same pattern removes the S3 single-point-of-
+        # failure and makes the job work without external credentials.
         run: |
-          mkdir -p apps
-          TARGET_ENV="${{ github.event.inputs.target_environment || 'auto' }}"
-          BRANCH="${{ github.ref_name }}"
-          if [ "$TARGET_ENV" = "auto" ] || [ "$TARGET_ENV" = "" ]; then
-            case "$BRANCH" in
-              main|develop|dev) TARGET_ENV="dev" ;;
-              qa) TARGET_ENV="qa" ;;
-              staging|stage) TARGET_ENV="staging" ;;
-              prod|production) TARGET_ENV="prod" ;;
-              bces-iq) TARGET_ENV="bces-iq" ;;
-              *) TARGET_ENV="qa" ;;
-            esac
-          fi
-          S3_BUCKET="egalvanic-ios-builds"
-          S3_KEY="${TARGET_ENV}/Z Platform-QA.app.zip"
-          echo "📥 Downloading from s3://${S3_BUCKET}/${S3_KEY}"
-          aws s3 cp "s3://${S3_BUCKET}/${S3_KEY}" apps/app.zip
-          cd apps && unzip -q app.zip && rm app.zip
-          cd ..
+          unzip -o apps/Z-Platform-QA.zip -d apps/
           if [ -d "apps/Z-Platform-QA.app" ] && [ ! -d "apps/Z Platform-QA.app" ]; then
             mv "apps/Z-Platform-QA.app" "apps/Z Platform-QA.app"
-            echo "✅ Renamed Z-Platform-QA.app → Z Platform-QA.app"
           fi
-          echo "✅ App downloaded for env: ${TARGET_ENV}"
+          ls -la apps/
+          echo "✅ App unzipped from local apps/Z-Platform-QA.zip"
       - name: Boot Simulator
         run: |
           UDID=""

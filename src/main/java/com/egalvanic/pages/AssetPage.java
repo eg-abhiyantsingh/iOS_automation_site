@@ -2987,6 +2987,16 @@ public class AssetPage extends BasePage {
      * Asset List has: plus button, list of asset cells, "Assets" in nav
      */
     public boolean isAssetListDisplayed() {
+        // Fast-fail cap (changelog 072): 2 lookups × 5s default × 15 callers
+        // = ~2.5 min wasted per run. Cap to 1s on miss.
+        // Also locale-aware: matches both 'Assets' (EN) and 'Actifs' (FR).
+        java.time.Duration originalWait;
+        try {
+            originalWait = driver.manage().timeouts().getImplicitWaitTimeout();
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(1));
+        } catch (Exception e) {
+            originalWait = java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT);
+        }
         try {
             // Asset list specific: Has plus button for adding new assets
             try {
@@ -2996,28 +3006,33 @@ public class AssetPage extends BasePage {
                     return true;
                 }
             } catch (Exception e) {}
-            
+
             // Alternative: Check for asset cells with specific pattern
             try {
                 List<WebElement> cells = driver.findElements(AppiumBy.className("XCUIElementTypeCell"));
                 if (cells.size() > 0) {
-                    // Check if nav bar says something about assets
+                    // Check if nav bar says something about assets (EN or FR)
                     List<WebElement> navBars = driver.findElements(
                         AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeNavigationBar'")
                     );
                     for (WebElement nav : navBars) {
                         String name = nav.getAttribute("name");
-                        if (name != null && (name.contains("Asset") || name.contains("asset"))) {
+                        if (name != null && (name.contains("Asset") || name.contains("asset")
+                            || name.contains("Actif") || name.contains("actif"))) {
                             System.out.println("   Asset List detected (nav bar: " + name + ")");
                             return true;
                         }
                     }
                 }
             } catch (Exception e) {}
-            
+
             return false;
         } catch (Exception e) {
             return false;
+        } finally {
+            try {
+                driver.manage().timeouts().implicitlyWait(originalWait);
+            } catch (Exception ignored) { /* best-effort restore */ }
         }
     }
     
@@ -3026,34 +3041,54 @@ public class AssetPage extends BasePage {
      * Asset Detail has: "Asset Details" nav title, Edit button (NOT Save Changes)
      */
     public boolean isAssetDetailDisplayed() {
+        // Fast-fail cap (changelog 072): 2 lookups × 5s × 6 callers = ~1 min
+        // wasted per run. Cap to 1s on miss. Also accepts French nav title.
+        java.time.Duration originalWait;
         try {
-            // Must have "Asset Details" in nav bar
+            originalWait = driver.manage().timeouts().getImplicitWaitTimeout();
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(1));
+        } catch (Exception e) {
+            originalWait = java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT);
+        }
+        try {
+            // Must have "Asset Details" (EN) or "Détails de l'actif" (FR) in nav bar
             boolean hasAssetDetailsNav = false;
             try {
                 List<WebElement> navBars = driver.findElements(
                     AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeNavigationBar' AND name == 'Asset Details'"
+                        "type == 'XCUIElementTypeNavigationBar' AND " +
+                        "(name == 'Asset Details' OR " +
+                        " name CONTAINS[c] 'Détails' OR name CONTAINS[c] 'Detail' OR " +
+                        " name CONTAINS[c] 'actif')"
                     )
                 );
                 hasAssetDetailsNav = !navBars.isEmpty();
             } catch (Exception e) {}
-            
-            // Must have Edit button (view mode, not edit mode)
+
+            // Must have Edit / Modifier button (view mode)
             boolean hasEditButton = false;
             try {
-                WebElement editBtn = driver.findElement(AppiumBy.accessibilityId("Edit"));
-                hasEditButton = editBtn.isDisplayed();
+                List<WebElement> editBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND " +
+                    "(label == 'Edit' OR name == 'Edit' OR " +
+                    " label == 'Modifier' OR name == 'Modifier')"
+                ));
+                hasEditButton = !editBtns.isEmpty();
             } catch (Exception e) {}
-            
+
             boolean isAssetDetail = hasAssetDetailsNav && hasEditButton;
-            
+
             if (isAssetDetail) {
                 System.out.println("   Asset Detail detected (nav: " + hasAssetDetailsNav + ", Edit btn: " + hasEditButton + ")");
             }
-            
+
             return isAssetDetail;
         } catch (Exception e) {
             return false;
+        } finally {
+            try {
+                driver.manage().timeouts().implicitlyWait(originalWait);
+            } catch (Exception ignored) { /* best-effort restore */ }
         }
     }
 
