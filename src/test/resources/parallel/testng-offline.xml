@@ -1,15 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<suite time-out="420000" name="Offline Mode Test Suite" verbose="0">
+<suite time-out="420000" name="Offline Mode + Sync Test Suite" verbose="0">
 
     <!-- Custom Listener for Clean Console Output -->
     <listeners>
         <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
     </listeners>
 
+    <!--
+        Changelog 074 (2026-05-19): Added OfflineSyncMultiSite_Test (40 UCs).
+        Per user: "offline test case are more important sync should work
+        correctly". The class was orphaned — implemented in 914 LoC but not
+        wired to any TestNG suite or workflow. Many UCs use
+        skipIfPreconditionMissing scaffolding, so runtime impact is modest
+        when backend hooks aren't available.
+    -->
     <test name="Offline Mode Tests">
         <classes>
             <class name="com.egalvanic.tests.OfflineTest"/>
+            <class name="com.egalvanic.tests.OfflineSyncMultiSite_Test"/>
         </classes>
     </test>
 </suite>

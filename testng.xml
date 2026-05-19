@@ -79,6 +79,7 @@
     <test name="Offline Mode Tests">
         <classes>
             <class name="com.egalvanic.tests.OfflineTest"/>
+            <class name="com.egalvanic.tests.OfflineSyncMultiSite_Test"/>
         </classes>
     </test>
 </suite>
