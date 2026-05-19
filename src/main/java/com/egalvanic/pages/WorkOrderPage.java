@@ -22568,7 +22568,55 @@ public class WorkOrderPage extends BasePage {
         }
 
         if (!activated) {
-            System.out.println("   ↳ Both variants FAILED");
+            System.out.println("   ↳ Both variants FAILED — diagnostic dump:");
+            // Changelog 075 (2026-05-19): save screenshot + DOM dump when both
+            // variants fail, so the next iteration knows what was on screen.
+            try {
+                byte[] png = ((org.openqa.selenium.TakesScreenshot) driver)
+                    .getScreenshotAs(org.openqa.selenium.OutputType.BYTES);
+                String ts = String.valueOf(System.currentTimeMillis());
+                java.io.File out = new java.io.File("/tmp/wo_variants_failed_" + ts + ".png");
+                java.nio.file.Files.write(out.toPath(), png);
+                System.out.println("   📸 Screenshot: " + out.getAbsolutePath());
+            } catch (Exception ignored) { /* dump best-effort */ }
+            // Dump visible buttons + StaticTexts so we know what tap targets exist
+            try {
+                java.util.List<WebElement> btns = driver.findElements(
+                    io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton'"));
+                System.out.println("   --- Visible Buttons (top 15) ---");
+                int n = 0;
+                for (WebElement b : btns) {
+                    try {
+                        String l = b.getAttribute("label");
+                        String name = b.getAttribute("name");
+                        if ((l != null && !l.isEmpty()) || (name != null && !name.isEmpty())) {
+                            int y = b.getRect().getY();
+                            System.out.println("   [Y=" + y + "] label='"
+                                + (l == null ? "" : l) + "' name='"
+                                + (name == null ? "" : name) + "'");
+                            if (++n >= 15) break;
+                        }
+                    } catch (Exception ignored) { /* skip stale */ }
+                }
+                java.util.List<WebElement> texts = driver.findElements(
+                    io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText'"));
+                System.out.println("   --- Top StaticTexts (top 10) ---");
+                n = 0;
+                for (WebElement t : texts) {
+                    try {
+                        String l = t.getAttribute("label");
+                        if (l != null && !l.isEmpty()) {
+                            int y = t.getRect().getY();
+                            if (y < 400) {
+                                System.out.println("   [Y=" + y + "] '" + l + "'");
+                                if (++n >= 10) break;
+                            }
+                        }
+                    } catch (Exception ignored) { /* skip stale */ }
+                }
+            } catch (Exception ignored) { /* dump best-effort */ }
             return false;
         }
 
