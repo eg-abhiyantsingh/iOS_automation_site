@@ -105,9 +105,15 @@ public final class Connections_Test extends BaseTest {
                 System.out.println("✓ Already on Dashboard");
                 return true;
             }
-            
-            // Try navigating to Dashboard
-            // This may require login if not authenticated
+
+            // Changelog 076: try the universal navigateToDashboardFromAnyScreen
+            // helper first — handles Schedule, Site Selection, mid-stack
+            // screen states left by previous tests.
+            if (siteSelectionPage.navigateToDashboardFromAnyScreen()) {
+                return true;
+            }
+
+            // Fallback: login-based recovery if we're on Welcome/Login
             return navigateWithLoginIfNeeded();
         } catch (Exception e) {
             System.out.println("⚠️ Error ensuring on Dashboard: " + e.getMessage());

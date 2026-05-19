@@ -77,6 +77,14 @@ public final class Issue_Phase1_Test extends BaseTest {
         try { issuePage.tapCancelAssetPicker(); } catch (Exception ignored) {}
         try { issuePage.tapCancelNewIssue(); } catch (Exception ignored) {}
 
+        // Changelog 076: ensure we're on Dashboard first via the universal
+        // helper that handles Schedule / Site Selection / mid-stack states.
+        try {
+            if (!siteSelectionPage.isDashboardDisplayed()) {
+                siteSelectionPage.navigateToDashboardFromAnyScreen();
+            }
+        } catch (Exception ignored) { /* fall through to normal nav */ }
+
         // Try normal navigation FIRST (fast path — works when app is on Dashboard)
         System.out.println("⚡ Navigating to Issues screen...");
         try {

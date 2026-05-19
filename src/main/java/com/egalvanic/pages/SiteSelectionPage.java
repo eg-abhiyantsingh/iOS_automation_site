@@ -3217,4 +3217,108 @@ public class SiteSelectionPage extends BasePage {
         } catch (Exception e) { return false; }
     }
 
+    /**
+     * Navigate to Dashboard from ANY current screen state. Changelog 076.
+     *
+     * Handles common state-pollution scenarios in local serial test runs:
+     *   - Already on Dashboard → return true immediately
+     *   - On Schedule screen (post-login, pre-site) → tap "View Sites" → select first site
+     *   - On Site Selection → select first site → wait for Dashboard
+     *   - On Asset Details / Edit / Connection Details → tap Back / Close repeatedly
+     *   - On Connections / Issues / Locations screens → tap "Site" bottom tab
+     *   - App not running → caller should launch via simctl first
+     *
+     * Per-strategy logging so failures show the path taken.
+     *
+     * @return true if Dashboard reached, false if all strategies exhausted
+     */
+    public boolean navigateToDashboardFromAnyScreen() {
+        System.out.println("🧭 Navigating to Dashboard from any screen...");
+        // Strategy 1: already on Dashboard
+        try {
+            WebElement d = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "(label CONTAINS[c] 'Welcome to' OR label == 'Quick Actions' OR " +
+                " label CONTAINS[c] 'Bienvenue sur')"));
+            if (d.isDisplayed()) {
+                System.out.println("   ↳ Already on Dashboard");
+                return true;
+            }
+        } catch (Exception ignored) { /* try next */ }
+
+        // Strategy 2: tap "Site" bottom tab if visible
+        try {
+            WebElement siteTab = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == 'Site'"));
+            System.out.println("   ↳ Tapping 'Site' bottom tab");
+            siteTab.click();
+            try { Thread.sleep(800); } catch (InterruptedException ignored) { /* */ }
+            if (isOnDashboardQuick()) return true;
+        } catch (Exception ignored) { /* try next */ }
+
+        // Strategy 3: on Schedule screen → tap "View Sites" → select first site
+        if (isScheduleScreenDisplayed()) {
+            System.out.println("   ↳ On Schedule screen — tapping View Sites");
+            try {
+                clickViewSites();
+                try { Thread.sleep(1000); } catch (InterruptedException ignored) { /* */ }
+            } catch (Exception ignored) { /* */ }
+            try {
+                String site = selectFirstSiteFast();
+                if (site != null) {
+                    System.out.println("   ↳ Selected first site: " + site);
+                    try { Thread.sleep(2500); } catch (InterruptedException ignored) { /* */ }
+                    if (isOnDashboardQuick()) return true;
+                }
+            } catch (Exception ignored) { /* */ }
+        }
+
+        // Strategy 4: on Site Selection → select first site directly
+        try {
+            String site = selectFirstSiteFast();
+            if (site != null) {
+                System.out.println("   ↳ Selected first site (from Site Selection): " + site);
+                try { Thread.sleep(2500); } catch (InterruptedException ignored) { /* */ }
+                if (isOnDashboardQuick()) return true;
+            }
+        } catch (Exception ignored) { /* */ }
+
+        // Strategy 5: tap Back / Close button up to 5 times
+        for (int i = 0; i < 5; i++) {
+            try {
+                WebElement back = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND " +
+                    "(label == 'Back' OR label == 'Close' OR label == 'Cancel' OR " +
+                    " label == 'Done' OR name == 'BackButton' OR name == 'Cancel')"));
+                System.out.println("   ↳ Back-stack pop attempt " + (i+1) + " via '"
+                    + back.getAttribute("label") + "'");
+                back.click();
+                try { Thread.sleep(500); } catch (InterruptedException ignored) { /* */ }
+                if (isOnDashboardQuick()) return true;
+                // Maybe re-routed to Site tab now
+                try {
+                    WebElement siteTab = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND label == 'Site'"));
+                    siteTab.click();
+                    try { Thread.sleep(600); } catch (InterruptedException ignored) { /* */ }
+                    if (isOnDashboardQuick()) return true;
+                } catch (Exception ignored) { /* */ }
+            } catch (Exception ignored) { break; /* no Back button */ }
+        }
+
+        System.out.println("   ⚠️ All Dashboard-nav strategies exhausted");
+        return false;
+    }
+
+    /** Fast check: are we on Dashboard? Used by navigateToDashboardFromAnyScreen. */
+    private boolean isOnDashboardQuick() {
+        try {
+            driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "(label CONTAINS[c] 'Welcome to' OR label == 'Quick Actions')"));
+            System.out.println("   ✅ Dashboard detected");
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
 }
