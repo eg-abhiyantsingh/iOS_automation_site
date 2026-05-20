@@ -54,16 +54,26 @@ public class AssetPage extends BasePage {
     // CREATE/EDIT ASSET FORM ELEMENTS
     // ================================================================
 
-    @iOSXCUITFindBy(iOSNsPredicate = "type == 'XCUIElementTypeTextField' AND value == 'Enter name'")
+    // i18n: English "Enter name", French "Entrez nom"
+    @iOSXCUITFindBy(iOSNsPredicate = "type == 'XCUIElementTypeTextField' AND (value == 'Enter name' OR value == 'Entrez nom' OR value CONTAINS 'Entrez nom')")
     private WebElement assetNameField;
 
     @iOSXCUITFindBy(iOSNsPredicate = "type == 'XCUIElementTypeTextField'")
     private List<WebElement> allTextFields;
 
-    @iOSXCUITFindBy(accessibility = "Select asset class")
+    // i18n: English "Select asset class", French "Sélectionnez la classe d'actif"
+    @iOSXCUITFindBy(iOSNsPredicate = "label == 'Select asset class' OR name == 'Select asset class' OR " +
+            "label CONTAINS[c] 'asset class' OR " +
+            "label CONTAINS[c] 'Sélectionnez la classe d''actif' OR " +
+            "label CONTAINS[c] 'Selectionnez la classe d''actif' OR " +
+            "label CONTAINS[c] 'classe d''actif'")
     private WebElement selectAssetClassButton;
 
-    @iOSXCUITFindBy(accessibility = "Select location")
+    // i18n: English "Select location", French "Sélectionnez l'emplacement"
+    @iOSXCUITFindBy(iOSNsPredicate = "label == 'Select location' OR name == 'Select location' OR " +
+            "label CONTAINS[c] 'Sélectionnez l''emplacement' OR " +
+            "label CONTAINS[c] 'Selectionnez l''emplacement' OR " +
+            "label CONTAINS[c] 'emplacement'")
     private WebElement selectLocationButton;
 
     @iOSXCUITFindBy(iOSNsPredicate = "type == 'XCUIElementTypeButton' AND name CONTAINS 'asset subtype'")
@@ -3606,7 +3616,20 @@ public class AssetPage extends BasePage {
     }
 
     public boolean isCreateAssetFormDisplayed() {
-        return isElementDisplayed(assetNameField) || isElementDisplayed(selectAssetClassButton);
+        if (isElementDisplayed(assetNameField) || isElementDisplayed(selectAssetClassButton)) {
+            return true;
+        }
+        // i18n fallback: detect by the screen title ("New Asset" / "Nouvel actif")
+        // or by the form's unique header text ("Asset Details" / "Détails de l'actif").
+        try {
+            driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "label == 'New Asset' OR label == 'Nouvel actif' OR " +
+                "name == 'New Asset' OR name == 'Nouvel actif' OR " +
+                "label CONTAINS[c] 'Asset Details' OR label CONTAINS[c] 'Détails de l''actif' OR " +
+                "label CONTAINS[c] 'Details de l''actif'"));
+            return true;
+        } catch (Exception ignored) { /* not found */ }
+        return false;
     }
 
     public boolean isAssetNameFieldDisplayed() {
@@ -3704,7 +3727,23 @@ public class AssetPage extends BasePage {
     }
 
     public boolean isSelectAssetClassDisplayed() {
-        return isElementDisplayed(selectAssetClassButton);
+        if (isElementDisplayed(selectAssetClassButton)) {
+            return true;
+        }
+        // i18n fallback. iOS uses the typographic right-single-quote (U+2019, '),
+        // NOT the ASCII apostrophe — so 'd'actif' matches but 'd'actif' does not.
+        // Match on shorter substring "classe" to avoid the apostrophe issue entirely.
+        try {
+            driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "label CONTAINS[c] 'asset class' OR " +
+                "label CONTAINS[c] 'Sélectionnez la classe' OR " +
+                "label CONTAINS[c] 'Selectionnez la classe' OR " +
+                "label CONTAINS[c] 'classe' OR " +
+                "name CONTAINS[c] 'asset class' OR " +
+                "name CONTAINS[c] 'classe'"));
+            return true;
+        } catch (Exception ignored) {}
+        return false;
     }
 
     public void clickSelectAssetClass() {
@@ -3880,7 +3919,20 @@ public class AssetPage extends BasePage {
     }
 
     public boolean isSelectLocationDisplayed() {
-        return isElementDisplayed(selectLocationButton);
+        if (isElementDisplayed(selectLocationButton)) {
+            return true;
+        }
+        // i18n fallback. iOS uses the typographic right-single-quote (U+2019) — match
+        // on shorter substring "emplacement" to avoid the apostrophe issue entirely.
+        try {
+            driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "label CONTAINS[c] 'Select location' OR " +
+                "label CONTAINS[c] 'emplacement' OR " +
+                "name CONTAINS[c] 'Select location' OR " +
+                "name CONTAINS[c] 'emplacement'"));
+            return true;
+        } catch (Exception ignored) {}
+        return false;
     }
 
     // ================================================================
