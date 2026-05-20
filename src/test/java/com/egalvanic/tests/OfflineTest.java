@@ -1371,12 +1371,12 @@ public final class OfflineTest extends BaseTest {
         // lives — all 3 scroll strategies in tapSelectAsset() fail silently, the asset
         // is never picked, and Create Issue stays disabled. (TC_OFF_014 fix)
         logStep("Dismissing keyboard before asset selection");
-        try {
-            d.executeScript("mobile: hideKeyboard");
-            shortWait();
-        } catch (Exception e) {
-            logWarning("Could not dismiss keyboard: " + e.getMessage());
-        }
+        // Use multi-strategy dismissKeyboard helper, NOT direct mobile:hideKeyboard.
+        // The Appium hideKeyboard endpoint returns "Did not know how to dismiss the
+        // keyboard" on iOS 26.2 + iPhone 17 Pro for many keyboard configurations;
+        // the helper falls back to Done/Return key tap + safe-area tap.
+        issuePage.dismissKeyboard();
+        shortWait();
         logStep("Selecting asset for issue");
         issuePage.tapSelectAsset();
         mediumWait();
