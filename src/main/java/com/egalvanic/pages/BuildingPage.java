@@ -110,8 +110,12 @@ public class BuildingPage extends BasePage {
      */
     public boolean isNewBuildingScreenDisplayed() {
         try {
+            // i18n: English "New Building", French "Nouveau bâtiment"/"Nouveau batiment"
             return driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label == 'New Building' AND type == 'XCUIElementTypeStaticText'")).isDisplayed();
+                "(label == 'New Building' OR " +
+                " label == 'Nouveau bâtiment' OR label == 'Nouveau batiment' OR " +
+                " label CONTAINS 'Nouveau bâtiment' OR label CONTAINS 'Nouveau batiment') AND " +
+                "type == 'XCUIElementTypeStaticText'")).isDisplayed();
         } catch (Exception e) {
             return false;
         }
@@ -147,7 +151,15 @@ public class BuildingPage extends BasePage {
         try {
             return driver.findElement(AppiumBy.accessibilityId(CANCEL_BUTTON)).isDisplayed();
         } catch (Exception e) {
-            return false;
+            // i18n fallback: French "Annuler"
+            try {
+                return driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "(label == 'Cancel' OR label == 'Annuler' OR " +
+                    " name == 'Cancel' OR name == 'Annuler') AND " +
+                    "type == 'XCUIElementTypeButton'")).isDisplayed();
+            } catch (Exception e2) {
+                return false;
+            }
         }
     }
 
@@ -158,7 +170,15 @@ public class BuildingPage extends BasePage {
         try {
             return driver.findElement(AppiumBy.accessibilityId(SAVE_BUTTON)).isDisplayed();
         } catch (Exception e) {
-            return false;
+            // i18n fallback: French "Enregistrer"/"Sauvegarder"
+            try {
+                return driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "(label == 'Save' OR label == 'Enregistrer' OR label == 'Sauvegarder' OR " +
+                    " name == 'Save' OR name == 'Enregistrer' OR name == 'Sauvegarder') AND " +
+                    "type == 'XCUIElementTypeButton'")).isDisplayed();
+            } catch (Exception e2) {
+                return false;
+            }
         }
     }
 
@@ -526,11 +546,15 @@ public class BuildingPage extends BasePage {
     public boolean navigateToLocationsScreen() {
         try {
             System.out.println("📍 Navigating to Locations screen from Dashboard...");
-            
-            // Strategy 1: Find button with label containing "Locations"
+            // i18n: English "Locations", French "Emplacements"
+            String labelMatch = "(label CONTAINS 'Locations' OR label CONTAINS 'Emplacements' OR " +
+                                " label == 'Locations' OR label == 'Emplacements' OR " +
+                                " name == 'Locations' OR name == 'Emplacements')";
+
+            // Strategy 1: Find button with label containing "Locations"/"Emplacements"
             try {
                 WebElement locationsBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND label CONTAINS 'Locations'"));
+                    "type == 'XCUIElementTypeButton' AND " + labelMatch));
                 System.out.println("   Strategy 1: Found Locations button");
                 locationsBtn.click();
                 sleep(250);
@@ -539,11 +563,12 @@ public class BuildingPage extends BasePage {
                     return true;
                 }
             } catch (Exception e1) {}
-            
-            // Strategy 2: Find StaticText "Locations"
+
+            // Strategy 2: Find StaticText "Locations"/"Emplacements"
             try {
                 WebElement locationsText = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND label == 'Locations'"));
+                    "type == 'XCUIElementTypeStaticText' AND " +
+                    "(label == 'Locations' OR label == 'Emplacements')"));
                 locationsText.click();
                 sleep(250);
                 if (isLocationsScreenDisplayed() || areBuildingEntriesDisplayed()) {
@@ -551,20 +576,27 @@ public class BuildingPage extends BasePage {
                     return true;
                 }
             } catch (Exception e2) {}
-            
-            // Strategy 3: accessibilityId
+
+            // Strategy 3: accessibilityId (English + French)
             try {
-                driver.findElement(AppiumBy.accessibilityId("Locations")).click();
-                sleep(250);
-                if (isLocationsScreenDisplayed() || areBuildingEntriesDisplayed()) {
-                    System.out.println("✅ Navigated to Locations screen");
-                    return true;
+                List<WebElement> els = new java.util.ArrayList<>();
+                els.addAll(driver.findElements(AppiumBy.accessibilityId("Locations")));
+                els.addAll(driver.findElements(AppiumBy.accessibilityId("Emplacements")));
+                for (WebElement el : els) {
+                    try {
+                        el.click();
+                        sleep(250);
+                        if (isLocationsScreenDisplayed() || areBuildingEntriesDisplayed()) {
+                            System.out.println("✅ Navigated to Locations screen (accessibilityId)");
+                            return true;
+                        }
+                    } catch (Exception ignored) {}
                 }
             } catch (Exception e3) {}
-            
-            // Strategy 4: Any element with Locations label
+
+            // Strategy 4: Any element with Locations/Emplacements label
             try {
-                List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString("label CONTAINS 'Locations'"));
+                List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(labelMatch));
                 for (WebElement el : elements) {
                     try {
                         el.click();
@@ -576,7 +608,27 @@ public class BuildingPage extends BasePage {
                     } catch (Exception ignored) {}
                 }
             } catch (Exception e4) {}
-            
+
+            // Strategy 5: Coordinate tap on the StaticText label
+            // SwiftUI Quick Action cards wrap the icon+label in a parent View — the
+            // label has location, the parent button often doesn't expose its label.
+            try {
+                WebElement label = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND " +
+                    "(label == 'Locations' OR label == 'Emplacements')"));
+                int x = label.getLocation().getX() + label.getSize().getWidth() / 2;
+                int y = label.getLocation().getY() - 30; // tap the icon above the label
+                java.util.Map<String, Object> tapArgs = new java.util.HashMap<>();
+                tapArgs.put("x", x);
+                tapArgs.put("y", y);
+                driver.executeScript("mobile: tap", tapArgs);
+                sleep(800);
+                if (isLocationsScreenDisplayed() || areBuildingEntriesDisplayed()) {
+                    System.out.println("✅ Navigated to Locations screen (coordinate tap)");
+                    return true;
+                }
+            } catch (Exception e5) {}
+
             System.out.println("⚠️ All strategies failed to navigate to Locations");
             return false;
         } catch (Exception e) {
