@@ -2910,7 +2910,7 @@ public class IssuePage extends BasePage {
         java.time.Duration originalWait;
         try {
             originalWait = driver.manage().timeouts().getImplicitWaitTimeout();
-            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(1));
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(3));
         } catch (Exception e) {
             originalWait = java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT);
         }

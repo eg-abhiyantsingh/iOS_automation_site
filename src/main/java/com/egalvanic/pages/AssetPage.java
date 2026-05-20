@@ -2939,7 +2939,7 @@ public class AssetPage extends BasePage {
         java.time.Duration originalWait;
         try {
             originalWait = driver.manage().timeouts().getImplicitWaitTimeout();
-            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(1));
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(3));
         } catch (Exception e) {
             originalWait = java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT);
         }
@@ -2993,7 +2993,7 @@ public class AssetPage extends BasePage {
         java.time.Duration originalWait;
         try {
             originalWait = driver.manage().timeouts().getImplicitWaitTimeout();
-            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(1));
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(3));
         } catch (Exception e) {
             originalWait = java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT);
         }
@@ -3046,7 +3046,7 @@ public class AssetPage extends BasePage {
         java.time.Duration originalWait;
         try {
             originalWait = driver.manage().timeouts().getImplicitWaitTimeout();
-            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(1));
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(3));
         } catch (Exception e) {
             originalWait = java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT);
         }
@@ -3167,7 +3167,7 @@ public class AssetPage extends BasePage {
         java.time.Duration originalWait;
         try {
             originalWait = driver.manage().timeouts().getImplicitWaitTimeout();
-            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(1));
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(3));
         } catch (Exception e) {
             originalWait = java.time.Duration.ofSeconds(AppConstants.IMPLICIT_WAIT);
         }
@@ -3357,7 +3357,7 @@ public class AssetPage extends BasePage {
         java.time.Duration originalWait;
         try {
             originalWait = driver.manage().timeouts().getImplicitWaitTimeout();
-            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(1));
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(3));
         } catch (Exception e) {
             originalWait = java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT);
         }
@@ -8734,7 +8734,7 @@ public class AssetPage extends BasePage {
         int screenHeight = driver.manage().window().getSize().height;
         for (int i = 0; i < 8; i++) {
             try {
-                driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(1));
+                driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(3));
                 List<WebElement> texts = driver.findElements(
                     AppiumBy.iOSNsPredicateString(
                         "type == 'XCUIElementTypeStaticText' AND label == '" + className + "'")
