@@ -1159,37 +1159,54 @@ public class ConnectionsPage {
      */
     public boolean isNewConnectionScreenDisplayed() {
         try {
-            // Strategy 1: Check navigation bar title
+            // Strategy 1: Check navigation bar title (English + French)
             try {
                 WebElement navBar = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeNavigationBar' AND (name == 'New Connection' OR label == 'New Connection')"));
+                    "type == 'XCUIElementTypeNavigationBar' AND " +
+                    "(name == 'New Connection' OR label == 'New Connection' OR " +
+                    " name == 'Nouvelle connexion' OR label == 'Nouvelle connexion')"));
                 if (navBar.isDisplayed()) {
                     System.out.println("✓ New Connection screen detected (nav bar)");
                     return true;
                 }
             } catch (Exception e1) {}
 
-            // Strategy 2: Check for StaticText 'New Connection'
+            // Strategy 2: Check for StaticText title (English + French)
             try {
                 WebElement title = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND label == 'New Connection'"));
+                    "type == 'XCUIElementTypeStaticText' AND " +
+                    "(label == 'New Connection' OR label == 'Nouvelle connexion')"));
                 if (title.isDisplayed()) {
                     System.out.println("✓ New Connection screen detected (title)");
                     return true;
                 }
             } catch (Exception e2) {}
 
-            // Strategy 3: Check for Create button + Source Node field
+            // Strategy 3: Check for Create button + Source Node field (English + French)
             try {
                 WebElement createBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label == 'Create' OR name == 'Create')"));
+                    "(label == 'Create' OR name == 'Create' OR label == 'Créer' OR name == 'Créer')"));
                 WebElement sourceNode = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label CONTAINS 'Source' OR label CONTAINS 'source')"));
+                    "(label CONTAINS[c] 'Source' OR label CONTAINS[c] 'source' OR " +
+                    " label CONTAINS[c] 'Nœud source' OR label CONTAINS[c] 'Noeud source')"));
                 if (createBtn.isDisplayed() && sourceNode.isDisplayed()) {
                     System.out.println("✓ New Connection screen detected (Create + Source Node)");
                     return true;
                 }
             } catch (Exception e3) {}
+
+            // Strategy 4: Section header 'Connection Details' (English + French)
+            try {
+                WebElement section = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND " +
+                    "(label CONTAINS[c] 'Connection Details' OR " +
+                    " label CONTAINS[c] 'Détails de la connexion' OR " +
+                    " label CONTAINS[c] 'Details de la connexion')"));
+                if (section.isDisplayed()) {
+                    System.out.println("✓ New Connection screen detected (section header)");
+                    return true;
+                }
+            } catch (Exception e4) {}
 
             return false;
         } catch (Exception e) {
