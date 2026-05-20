@@ -109,16 +109,31 @@ public class BuildingPage extends BasePage {
      * Check if New Building screen is displayed
      */
     public boolean isNewBuildingScreenDisplayed() {
+        // Strategy 1: Title text/label "New Building" / "Nouveau bâtiment".
+        // Accept any element type — title may render as StaticText OR be the
+        // NavigationBar name attribute.
         try {
-            // i18n: English "New Building", French "Nouveau bâtiment"/"Nouveau batiment"
-            return driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(label == 'New Building' OR " +
-                " label == 'Nouveau bâtiment' OR label == 'Nouveau batiment' OR " +
-                " label CONTAINS 'Nouveau bâtiment' OR label CONTAINS 'Nouveau batiment') AND " +
-                "type == 'XCUIElementTypeStaticText'")).isDisplayed();
-        } catch (Exception e) {
-            return false;
-        }
+            driver.findElement(AppiumBy.iOSNsPredicateString(
+                "label == 'New Building' OR label == 'Nouveau bâtiment' OR " +
+                "label == 'Nouveau batiment' OR " +
+                "label CONTAINS 'Nouveau bâtiment' OR label CONTAINS 'Nouveau batiment' OR " +
+                "name == 'New Building' OR name == 'Nouveau bâtiment' OR " +
+                "name == 'Nouveau batiment'"));
+            return true;
+        } catch (Exception ignored) {}
+
+        // Strategy 2: Form-field placeholder/header text unique to the New
+        // Building form (English/French).
+        try {
+            driver.findElement(AppiumBy.iOSNsPredicateString(
+                "label CONTAINS[c] 'Building Name' OR label CONTAINS[c] 'Building Info' OR " +
+                "label CONTAINS[c] 'Nom du bâtiment' OR label CONTAINS[c] 'Nom du batiment' OR " +
+                "label CONTAINS[c] 'Informations du bâtiment' OR " +
+                "label CONTAINS[c] 'Informations du batiment'"));
+            return true;
+        } catch (Exception ignored) {}
+
+        return false;
     }
 
     /**
@@ -246,8 +261,14 @@ public class BuildingPage extends BasePage {
      */
     public boolean isNewBuildingTitleDisplayed() {
         try {
-            return driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label == 'New Building' AND type == 'XCUIElementTypeStaticText'")).isDisplayed();
+            // i18n: English "New Building", French "Nouveau bâtiment"/"Nouveau batiment".
+            // Accept StaticText OR NavigationBar (title may render either way).
+            driver.findElement(AppiumBy.iOSNsPredicateString(
+                "(label == 'New Building' OR label == 'Nouveau bâtiment' OR " +
+                " label == 'Nouveau batiment' OR " +
+                " name == 'New Building' OR name == 'Nouveau bâtiment' OR " +
+                " name == 'Nouveau batiment')"));
+            return true;
         } catch (Exception e) {
             return false;
         }

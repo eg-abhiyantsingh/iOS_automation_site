@@ -4,7 +4,9 @@ import com.egalvanic.utils.DriverManager;
 import io.appium.java_client.AppiumBy;
 import io.appium.java_client.ios.IOSDriver;
 import org.openqa.selenium.WebElement;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
@@ -1101,6 +1103,49 @@ public class ConnectionsPage {
                     }
                 }
             } catch (Exception e3) {}
+
+            // Strategy 4: SwiftUI custom view — Add button may render as
+            // XCUIElementTypeOther or XCUIElementTypeImage with name 'plus' /
+            // accessibility 'plus.circle.fill' etc. Search ALL element types
+            // in the top header region.
+            try {
+                List<WebElement> candidates = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "(name == 'plus' OR name CONTAINS 'plus' OR name == 'add' OR " +
+                    " label == '+' OR label CONTAINS[c] 'add')"));
+                for (WebElement el : candidates) {
+                    int y = el.getLocation().getY();
+                    if (y < 200) {
+                        int cx = el.getLocation().getX() + el.getSize().getWidth() / 2;
+                        int cy = y + el.getSize().getHeight() / 2;
+                        Map<String, Object> tapArgs = new HashMap<>();
+                        tapArgs.put("x", cx);
+                        tapArgs.put("y", cy);
+                        driver.executeScript("mobile: tap", tapArgs);
+                        sleep(500);
+                        if (isNewConnectionScreenDisplayed()) {
+                            System.out.println("✓ Tapped Add via coordinate tap (type=" +
+                                el.getAttribute("type") + ", x=" + cx + ", y=" + cy + ")");
+                            return true;
+                        }
+                    }
+                }
+            } catch (Exception e4) {}
+
+            // Strategy 5: Top-right header coordinate tap (Add is typically at top-right).
+            try {
+                int screenWidth = driver.manage().window().getSize().getWidth();
+                int tapX = (int)(screenWidth * 0.92);
+                int tapY = 70;
+                Map<String, Object> tapArgs = new HashMap<>();
+                tapArgs.put("x", tapX);
+                tapArgs.put("y", tapY);
+                driver.executeScript("mobile: tap", tapArgs);
+                sleep(800);
+                if (isNewConnectionScreenDisplayed()) {
+                    System.out.println("✓ Tapped Add via top-right coordinate (x=" + tapX + ", y=" + tapY + ")");
+                    return true;
+                }
+            } catch (Exception e5) {}
 
             System.out.println("⚠️ Could not tap Add button");
             return false;
