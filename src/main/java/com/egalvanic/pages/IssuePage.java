@@ -1933,15 +1933,22 @@ public class IssuePage extends BasePage {
      * Tap Cancel on New Issue form
      */
     public void tapCancelNewIssue() {
-        System.out.println("❌ Tapping Cancel...");
+        // Use findElements (plural) — silent no-op if no Cancel button present.
+        // Avoids the noisy "❌ Tapping Cancel..." / Selenium-error dump every test
+        // when there's nothing to cancel. i18n: English "Cancel", French "Annuler".
+        List<WebElement> cancelButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
+            "(label == 'Cancel' OR label == 'Annuler' OR " +
+            " name == 'Cancel' OR name == 'Annuler') AND " +
+            "type == 'XCUIElementTypeButton'"));
+        if (cancelButtons.isEmpty()) {
+            return;
+        }
         try {
-            WebElement cancel = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label == 'Cancel' AND type == 'XCUIElementTypeButton'"));
-            cancel.click();
+            cancelButtons.get(0).click();
             sleep(300);
             System.out.println("✅ Cancelled New Issue");
         } catch (Exception e) {
-            System.out.println("⚠️ Could not cancel: " + e.getMessage());
+            // Element was present in DOM but became stale/non-interactable — silent
         }
     }
 
@@ -2932,15 +2939,21 @@ public class IssuePage extends BasePage {
      * Cancel/go back from asset picker screen
      */
     public void tapCancelAssetPicker() {
-        System.out.println("❌ Cancelling asset picker...");
+        // Silent no-op if no Cancel button present (asset picker not open).
+        // i18n: English "Cancel", French "Annuler".
+        List<WebElement> cancelButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
+            "(label == 'Cancel' OR label == 'Annuler' OR " +
+            " name == 'Cancel' OR name == 'Annuler') AND " +
+            "type == 'XCUIElementTypeButton'"));
+        if (cancelButtons.isEmpty()) {
+            return;
+        }
         try {
-            WebElement cancel = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label == 'Cancel' AND type == 'XCUIElementTypeButton'"));
-            cancel.click();
+            cancelButtons.get(0).click();
             sleep(300);
             System.out.println("✅ Cancelled asset picker");
         } catch (Exception e) {
-            System.out.println("⚠️ Could not cancel asset picker: " + e.getMessage());
+            // Stale/non-interactable — silent
         }
     }
 

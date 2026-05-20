@@ -176,20 +176,24 @@ public class SiteSelectionPage extends BasePage {
     @iOSXCUITFindBy(iOSNsPredicate = "type == 'XCUIElementTypeOther'")
     private List<WebElement> wifiPopupButtonAlts;
 
-    // Go Offline Text
-    @iOSXCUITFindBy(iOSNsPredicate = "label == 'Go Offline'")
+    // Go Offline Text — i18n: English "Go Offline", French "Se déconnecter"
+    @iOSXCUITFindBy(iOSNsPredicate = "label == 'Go Offline' OR label == 'Se déconnecter' OR label == 'Se deconnecter'")
     private WebElement goOfflineText;
-    
-    // Go Offline Button - more flexible locator
-    @iOSXCUITFindBy(iOSNsPredicate = "(label CONTAINS 'Offline' OR name CONTAINS 'Offline')")
+
+    // Go Offline Button - more flexible locator (English + French)
+    @iOSXCUITFindBy(iOSNsPredicate = "label CONTAINS 'Offline' OR name CONTAINS 'Offline' OR " +
+            "label CONTAINS 'déconnecter' OR name CONTAINS 'déconnecter' OR " +
+            "label CONTAINS 'deconnecter' OR name CONTAINS 'deconnecter'")
     private WebElement goOfflineButton;
 
-    // Go Online Text - try multiple locator strategies
-    @iOSXCUITFindBy(iOSNsPredicate = "label == 'Go Online' OR name == 'Go Online'")
+    // Go Online Text — i18n: English "Go Online", French "Se connecter"
+    @iOSXCUITFindBy(iOSNsPredicate = "label == 'Go Online' OR name == 'Go Online' OR " +
+            "label == 'Se connecter' OR name == 'Se connecter'")
     private WebElement goOnlineText;
-    
-    // Go Online Button - more flexible locator
-    @iOSXCUITFindBy(iOSNsPredicate = "(label CONTAINS 'Online' OR name CONTAINS 'Online')")
+
+    // Go Online Button - more flexible locator (English + French)
+    @iOSXCUITFindBy(iOSNsPredicate = "label CONTAINS 'Online' OR name CONTAINS 'Online' OR " +
+            "label CONTAINS 'Se connecter' OR name CONTAINS 'Se connecter'")
     private WebElement goOnlineButton;
 
     // Sync Records Button (arrow.triangle.2.circlepath)
@@ -1741,7 +1745,11 @@ public class SiteSelectionPage extends BasePage {
             List<WebElement> els = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "label == 'Go Offline' OR name == 'Go Offline' OR " +
                 "label CONTAINS[c] 'offline' OR name CONTAINS[c] 'offline' OR " +
-                "value CONTAINS[c] 'offline'"));
+                "value CONTAINS[c] 'offline' OR " +
+                // i18n: French "Se déconnecter"
+                "label == 'Se déconnecter' OR name == 'Se déconnecter' OR " +
+                "label CONTAINS[c] 'déconnecter' OR name CONTAINS[c] 'déconnecter' OR " +
+                "label CONTAINS[c] 'deconnecter' OR name CONTAINS[c] 'deconnecter'"));
             return !els.isEmpty();
         } catch (Exception e) {
             return false;
@@ -1761,7 +1769,10 @@ public class SiteSelectionPage extends BasePage {
             List<WebElement> els = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "label == 'Go Online' OR name == 'Go Online' OR " +
                 "label CONTAINS[c] 'online' OR name CONTAINS[c] 'online' OR " +
-                "value CONTAINS[c] 'online'"));
+                "value CONTAINS[c] 'online' OR " +
+                // i18n: French "Se connecter"
+                "label == 'Se connecter' OR name == 'Se connecter' OR " +
+                "label CONTAINS[c] 'Se connecter' OR name CONTAINS[c] 'Se connecter'"));
             return !els.isEmpty();
         } catch (Exception e) {
             return false;
