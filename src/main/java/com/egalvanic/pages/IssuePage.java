@@ -125,14 +125,19 @@ public class IssuePage extends BasePage {
         try {
             System.out.println("📋 Tapping on Issues button...");
             int screenHeight = driver.manage().window().getSize().getHeight();
+            // Locale-agnostic label predicate fragment (used by multiple strategies).
+            // Includes English ("Issues") and French ("Problèmes"/"Problemes")
+            String labelMatch = "(label == 'Issues' OR label CONTAINS 'Issues' OR " +
+                                " label == 'Problèmes' OR label CONTAINS 'Problèmes' OR " +
+                                " label == 'Problemes' OR label CONTAINS 'Problemes' OR " +
+                                " name == 'Issues' OR name == 'Problèmes' OR name == 'Problemes')";
 
             // Strategy 1: Find Issues button INSIDE the tab bar element (most reliable)
             try {
                 WebDriverWait barWait = new WebDriverWait(driver, Duration.ofSeconds(3));
                 WebElement tabBar = barWait.until(ExpectedConditions.presenceOfElementLocated(
                     AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTabBar'")));
-                WebElement issuesBtn = tabBar.findElement(AppiumBy.iOSNsPredicateString(
-                    "label == 'Issues' OR label CONTAINS 'Issues'"));
+                WebElement issuesBtn = tabBar.findElement(AppiumBy.iOSNsPredicateString(labelMatch));
                 issuesBtn.click();
                 sleep(500);
                 System.out.println("✓ Tapped Issues in tab bar");
@@ -144,7 +149,7 @@ public class IssuePage extends BasePage {
             // Strategy 2: Button with label "Issues" in bottom 20% of screen (tab bar area)
             try {
                 List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND (label == 'Issues' OR label CONTAINS 'Issues')"));
+                    "type == 'XCUIElementTypeButton' AND " + labelMatch));
                 int tabBarY = (int)(screenHeight * 0.80);
                 for (WebElement btn : buttons) {
                     int y = btn.getLocation().getY();
@@ -160,9 +165,71 @@ public class IssuePage extends BasePage {
                 System.out.println("   Button search failed: " + e2.getMessage());
             }
 
+            // Strategy 2b: Quick Actions card (Dashboard) — Issues card has badge count.
+            // Card lives between Y=screenHeight*0.3 and Y=screenHeight*0.75. This UI
+            // variant has NO Issues tab in the bottom bar; Issues is only a card.
+            try {
+                List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND " + labelMatch));
+                int upperY = (int)(screenHeight * 0.25);
+                int lowerY = (int)(screenHeight * 0.80);
+                for (WebElement btn : buttons) {
+                    int y = btn.getLocation().getY();
+                    if (y > upperY && y < lowerY) {
+                        btn.click();
+                        sleep(800);
+                        System.out.println("✓ Tapped Issues Quick Actions card (y=" + y + ")");
+                        return true;
+                    }
+                }
+            } catch (Exception eQa) {
+                System.out.println("   Quick Actions card search failed: " + eQa.getMessage());
+            }
+
+            // Strategy 2c: SwiftUI Quick Action card — the label is XCUIElementTypeStaticText
+            // inside an XCUIElementTypeOther parent. The Button predicate above misses it.
+            // Find the StaticText and synthesize a tap at its center; the SwiftUI hit-test
+            // routes to the tappable parent.
+            try {
+                List<WebElement> labels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND " + labelMatch));
+                int upperY = (int)(screenHeight * 0.25);
+                int lowerY = (int)(screenHeight * 0.80);
+                for (WebElement lbl : labels) {
+                    int y = lbl.getLocation().getY();
+                    if (y > upperY && y < lowerY) {
+                        int cx = lbl.getLocation().getX() + lbl.getSize().getWidth() / 2;
+                        int cy = y + lbl.getSize().getHeight() / 2;
+                        Map<String, Object> tapArgs = new HashMap<>();
+                        tapArgs.put("x", cx);
+                        tapArgs.put("y", cy);
+                        driver.executeScript("mobile: tap", tapArgs);
+                        sleep(800);
+                        if (isIssuesScreenDisplayed()) {
+                            System.out.println("✓ Tapped Issues Quick Action label (x=" + cx + ", y=" + cy + ")");
+                            return true;
+                        }
+                        // Try tapping slightly above the label (where the icon sits)
+                        int iconY = Math.max(y - 30, upperY);
+                        tapArgs.put("y", iconY);
+                        driver.executeScript("mobile: tap", tapArgs);
+                        sleep(800);
+                        if (isIssuesScreenDisplayed()) {
+                            System.out.println("✓ Tapped Issues Quick Action icon (x=" + cx + ", y=" + iconY + ")");
+                            return true;
+                        }
+                    }
+                }
+            } catch (Exception eQa2) {
+                System.out.println("   StaticText Quick Action search failed: " + eQa2.getMessage());
+            }
+
             // Strategy 3: accessibilityId — find all matches, prefer bottom-most (tab bar)
             try {
-                List<WebElement> issuesElements = driver.findElements(AppiumBy.accessibilityId("Issues"));
+                List<WebElement> issuesElements = new java.util.ArrayList<>();
+                issuesElements.addAll(driver.findElements(AppiumBy.accessibilityId("Issues")));
+                issuesElements.addAll(driver.findElements(AppiumBy.accessibilityId("Problèmes")));
+                issuesElements.addAll(driver.findElements(AppiumBy.accessibilityId("Problemes")));
                 if (!issuesElements.isEmpty()) {
                     // Sort by Y descending — tab bar is at the bottom
                     WebElement bottomMost = issuesElements.get(0);
@@ -326,8 +393,11 @@ public class IssuePage extends BasePage {
      */
     public boolean isDoneButtonDisplayed() {
         try {
+            // i18n: English "Done", French "Terminé" / "OK"
             WebElement btn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(label == 'Done' OR name == 'Done') AND type == 'XCUIElementTypeButton'"));
+                "(label == 'Done' OR name == 'Done' OR " +
+                " label == 'Terminé' OR name == 'Terminé' OR " +
+                " label == 'OK' OR name == 'OK') AND type == 'XCUIElementTypeButton'"));
             return btn.isDisplayed();
         } catch (Exception e) {
             return false;
@@ -397,8 +467,11 @@ public class IssuePage extends BasePage {
      */
     public boolean isIssuesTitleDisplayed() {
         try {
+            // i18n: English "Issues", French "Problèmes" / "Problemes"
             List<WebElement> titles = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "(label == 'Issues' OR name == 'Issues') AND " +
+                "(label == 'Issues' OR name == 'Issues' OR " +
+                " label == 'Problèmes' OR name == 'Problèmes' OR " +
+                " label == 'Problemes' OR name == 'Problemes') AND " +
                 "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeNavigationBar')"));
             return !titles.isEmpty();
         } catch (Exception e) {

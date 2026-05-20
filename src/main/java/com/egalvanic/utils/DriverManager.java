@@ -100,6 +100,39 @@ public class DriverManager {
                 options.setUdid(deviceUdid);
                 options.setApp(AppConstants.APP_PATH);
 
+                // Force English. The app stores a CUSTOM key `appLanguage` in its own
+                // plist (NOT iOS-standard AppleLanguages) and uses that to pick the UI
+                // language at launch. Belt-and-braces:
+                //   1. Pass -AppleLanguages/-AppleLocale as process args (for any code
+                //      paths that respect iOS-standard locale).
+                //   2. Pre-write the app's custom `appLanguage`/`userPreferredLanguage`
+                //      to "en" via `simctl spawn defaults write` BEFORE the driver
+                //      starts (so the first launch reads English).
+                // Avoid setLanguage()/setLocale() — they trigger a sim-language reset
+                // that can hang WDA startup past 90s HTTP timeout.
+                // Fix for: French rendering ("Bonjour ! Bienvenue sur ...") which broke
+                // locale-sensitive test predicates (mass failures in dev-repo CI, changelog 071).
+                java.util.Map<String, Object> processArguments = new java.util.HashMap<>();
+                processArguments.put("args", java.util.Arrays.asList(
+                        "-AppleLanguages", "(en)",
+                        "-AppleLocale", "en_US"));
+                options.setCapability("appium:processArguments", processArguments);
+
+                try {
+                    String bundleId = "com.egalvanic.zplatform-QA";
+                    String[] terminate = {"xcrun", "simctl", "terminate", deviceUdid, bundleId};
+                    new ProcessBuilder(terminate).redirectErrorStream(true).start().waitFor();
+                    String[] writeAppLang = {"xcrun", "simctl", "spawn", deviceUdid,
+                            "defaults", "write", bundleId, "appLanguage", "en"};
+                    new ProcessBuilder(writeAppLang).redirectErrorStream(true).start().waitFor();
+                    String[] writeUserLang = {"xcrun", "simctl", "spawn", deviceUdid,
+                            "defaults", "write", bundleId, "userPreferredLanguage", "en"};
+                    new ProcessBuilder(writeUserLang).redirectErrorStream(true).start().waitFor();
+                    System.out.println("🌐 Forced app language to English (appLanguage=en)");
+                } catch (Exception langEx) {
+                    System.out.println("⚠️ Could not pre-write app language: " + langEx.getMessage());
+                }
+
                 // Set WDA local port for parallel execution (prevents port conflicts)
                 if (wdaLocalPort != null) {
                     options.setCapability("appium:wdaLocalPort", Integer.parseInt(wdaLocalPort));

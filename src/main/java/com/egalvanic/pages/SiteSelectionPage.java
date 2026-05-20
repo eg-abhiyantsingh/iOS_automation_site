@@ -1019,7 +1019,37 @@ public class SiteSelectionPage extends BasePage {
      * More robust than checking single elements
      */
     public boolean isDashboardDisplayed() {
-        // Check multiple dashboard indicators - any one means we're on dashboard
+        // POSITIVE check first: Dashboard-unique text "Welcome to" / "Quick Actions"
+        // (also French: "Bienvenue sur" / "Actions rapides"). This avoids false positives
+        // from looser predicates below.
+        try {
+            driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "(label CONTAINS[c] 'Welcome to' OR label == 'Quick Actions' OR " +
+                " label CONTAINS[c] 'Bienvenue sur' OR label CONTAINS[c] 'Actions rapides')"));
+            System.out.println("✅ Dashboard detected via Welcome/Quick Actions text");
+            return true;
+        } catch (Exception ignored) { /* not the unique marker — continue */ }
+
+        // NEGATIVE guard: explicit Schedule-screen exclusion.
+        // Schedule has "View Sites" button which would falsely match the loose sitesButton
+        // predicate below (label CONTAINS 'sites'). Detect Schedule and bail out early.
+        try {
+            driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label == 'Schedule'"));
+            // Confirm with a secondary Schedule-only marker
+            try {
+                driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND " +
+                    "(label CONTAINS[c] 'No scheduled work' OR label CONTAINS[c] 'scheduled work today' OR " +
+                    " label CONTAINS[c] 'Good Morning' OR label CONTAINS[c] 'Good Afternoon' OR " +
+                    " label CONTAINS[c] 'Good Evening')"));
+                System.out.println("ℹ️ On Schedule screen — not Dashboard");
+                return false;
+            } catch (Exception ignored) { /* Schedule header alone — continue carefully */ }
+        } catch (Exception ignored) { /* not on Schedule — continue */ }
+
+        // Fallback indicators — any one means we're on dashboard
         if (isElementDisplayed(sitesButton) || isElementDisplayed(sitesButtonAlt)) {
             System.out.println("✅ Dashboard detected via Sites button");
             return true;
@@ -3234,12 +3264,65 @@ public class SiteSelectionPage extends BasePage {
      */
     public boolean navigateToDashboardFromAnyScreen() {
         System.out.println("🧭 Navigating to Dashboard from any screen...");
+        // Strategy 0: on Welcome page (post-launch, pre-site-select).
+        // If Continue button is enabled → tap it; if disabled (no company code typed yet),
+        // type the configured company code first, then tap Continue. After Continue,
+        // app may go to Login (needs login flow) or directly to Site Selection.
+        try {
+            WebElement continueBtn = null;
+            // Try by accessibility id first, then by label/name predicate (more tolerant)
+            try {
+                continueBtn = driver.findElement(
+                    io.appium.java_client.AppiumBy.accessibilityId("Continue"));
+            } catch (Exception ignored) {
+                try {
+                    continueBtn = driver.findElement(
+                        io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeButton' AND " +
+                            "(name == 'Continue' OR label == 'Continue')"));
+                } catch (Exception ignored2) { /* not on Welcome */ }
+            }
+            if (continueBtn != null) {
+                String enabledAttr = continueBtn.getAttribute("enabled");
+                boolean enabled = "true".equalsIgnoreCase(enabledAttr) || "1".equals(enabledAttr);
+                System.out.println("   ↳ On Welcome page (Continue enabled=" + enabled + ")");
+                if (!enabled) {
+                    // Type company code to enable Continue
+                    try {
+                        WebElement codeField = driver.findElement(
+                            io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                                "type == 'XCUIElementTypeTextField'"));
+                        codeField.click();
+                        codeField.sendKeys(com.egalvanic.constants.AppConstants.VALID_COMPANY_CODE);
+                        try { Thread.sleep(400); } catch (InterruptedException ignored3) { /* */ }
+                        // dismiss keyboard so Continue button is hit-testable
+                        try {
+                            driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                                "type == 'XCUIElementTypeKeyboard'"));
+                            // try return/done key first; harmless if missing
+                            try { codeField.sendKeys("\n"); } catch (Exception ignored4) { /* */ }
+                        } catch (Exception noKb) { /* keyboard not up */ }
+                        System.out.println("   ↳ Typed company code on Welcome page");
+                    } catch (Exception typeEx) {
+                        System.out.println("   ↳ Could not type company code: " + typeEx.getMessage());
+                    }
+                }
+                try { continueBtn.click(); } catch (Exception clickEx) {
+                    System.out.println("   ↳ Continue click failed: " + clickEx.getMessage());
+                }
+                try { Thread.sleep(1500); } catch (InterruptedException ignored5) { /* */ }
+                if (isOnDashboardQuick()) return true;
+                // else fall through — Login or Site Selection screen now; later strategies
+                // (or navigateWithLoginIfNeeded in callers) continue the flow
+            }
+        } catch (Exception ignored) { /* not on Welcome */ }
+
         // Strategy 1: already on Dashboard
         try {
             WebElement d = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND " +
                 "(label CONTAINS[c] 'Welcome to' OR label == 'Quick Actions' OR " +
-                " label CONTAINS[c] 'Bienvenue sur')"));
+                " label CONTAINS[c] 'Bienvenue sur' OR label CONTAINS[c] 'Actions rapides')"));
             if (d.isDisplayed()) {
                 System.out.println("   ↳ Already on Dashboard");
                 return true;
@@ -3315,7 +3398,8 @@ public class SiteSelectionPage extends BasePage {
         try {
             driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND " +
-                "(label CONTAINS[c] 'Welcome to' OR label == 'Quick Actions')"));
+                "(label CONTAINS[c] 'Welcome to' OR label == 'Quick Actions' OR " +
+                " label CONTAINS[c] 'Bienvenue sur' OR label CONTAINS[c] 'Actions rapides')"));
             System.out.println("   ✅ Dashboard detected");
             return true;
         } catch (Exception e) { return false; }

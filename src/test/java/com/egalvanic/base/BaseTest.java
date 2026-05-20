@@ -188,8 +188,109 @@ public class BaseTest {
         // stuck on the re-login screen and no test can navigate to its target.
         handleSessionExpiredIfNeeded();
 
+        // Auto-advance from Welcome / Login / Site Selection so every test starts on
+        // Dashboard. Without this, standalone test runs (e.g. mvn -Dtest='X#Y') fail
+        // at navigation because they depend on a prior test (#001) having logged in.
+        autoAdvanceToDashboardIfNeeded();
+
         testStartTime = System.currentTimeMillis();
         System.out.println("✅ Test setup complete  [" + timestamp() + "]\n");
+    }
+
+    /**
+     * Drive the app from Welcome / Login / Site Selection to Dashboard.
+     * No-op if already on Dashboard (the common case in suite runs where prior
+     * tests left the app logged in). Required when running a single test in
+     * isolation, since most tests assume the app is already past onboarding.
+     *
+     * Uses direct findElement calls (not PageFactory) — PageFactory's lazy element
+     * lookup combined with isElementDisplayed's broad exception catch was silently
+     * returning false even on screens that obviously contained the elements.
+     */
+    private void autoAdvanceToDashboardIfNeeded() {
+        try {
+            io.appium.java_client.ios.IOSDriver d = DriverManager.getDriver();
+            if (d == null) return;
+
+            // Fast-path: already on Dashboard (most common case in batch runs)
+            if (isOnDashboardDirect(d)) {
+                System.out.println("🧭 Auto-advance: already on Dashboard");
+                return;
+            }
+
+            // Welcome page: has accessibilityId 'Continue' button.
+            try {
+                org.openqa.selenium.WebElement continueBtn = d.findElement(
+                    io.appium.java_client.AppiumBy.accessibilityId("Continue"));
+                if (continueBtn != null) {
+                    System.out.println("🧭 Auto-advance: on Welcome page, submitting company code");
+                    try {
+                        org.openqa.selenium.WebElement codeField = d.findElement(
+                            io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                                "type == 'XCUIElementTypeTextField'"));
+                        codeField.click();
+                        codeField.clear();
+                        codeField.sendKeys(AppConstants.VALID_COMPANY_CODE);
+                    } catch (Exception typeEx) {
+                        System.out.println("   ⚠️ Could not type company code: " + typeEx.getMessage());
+                    }
+                    try { Thread.sleep(400); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
+                    try { continueBtn.click(); } catch (Exception clickEx) {
+                        // Continue may have been disabled — try locating again after type
+                        try {
+                            d.findElement(io.appium.java_client.AppiumBy.accessibilityId("Continue")).click();
+                        } catch (Exception ignored) {}
+                    }
+                    try { Thread.sleep(1500); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
+                }
+            } catch (Exception notWelcome) { /* not on Welcome page */ }
+
+            // Login page: accessibilityId 'Sign In' button.
+            try {
+                org.openqa.selenium.WebElement signInBtn = d.findElement(
+                    io.appium.java_client.AppiumBy.accessibilityId("Sign In"));
+                if (signInBtn != null) {
+                    System.out.println("🧭 Auto-advance: on Login page, signing in");
+                    loginPage.login(AppConstants.VALID_EMAIL, AppConstants.VALID_PASSWORD);
+                    try { Thread.sleep(2500); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
+                }
+            } catch (Exception notLogin) { /* not on Login page */ }
+
+            // Site Selection: any site card visible.
+            try {
+                if (siteSelectionPage.isSiteListDisplayed()) {
+                    System.out.println("🧭 Auto-advance: on Site Selection, selecting first site");
+                    String site = siteSelectionPage.selectFirstSiteFast();
+                    if (site == null) {
+                        try { siteSelectionPage.selectFirstSite(); } catch (Exception ignored) {}
+                    }
+                    siteSelectionPage.waitForDashboardReady();
+                }
+            } catch (Exception notSite) { /* not on Site Selection */ }
+
+            if (isOnDashboardDirect(d)) {
+                System.out.println("✅ Auto-advance: reached Dashboard");
+            } else {
+                System.out.println("⚠️ Auto-advance: did not reach Dashboard — test will attempt own recovery");
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Auto-advance error: " + e.getMessage());
+        }
+    }
+
+    /** Direct Dashboard check using locale-independent SF Symbol icon name. */
+    private boolean isOnDashboardDirect(io.appium.java_client.ios.IOSDriver d) {
+        try {
+            d.findElement(io.appium.java_client.AppiumBy.accessibilityId("building.2"));
+            return true;
+        } catch (Exception e) {
+            try {
+                d.findElement(io.appium.java_client.AppiumBy.accessibilityId("arrow.clockwise"));
+                return true;
+            } catch (Exception e2) {
+                return false;
+            }
+        }
     }
 
     /**
