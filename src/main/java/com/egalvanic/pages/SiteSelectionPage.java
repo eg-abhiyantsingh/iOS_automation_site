@@ -3075,20 +3075,31 @@ public class SiteSelectionPage extends BasePage {
      * Returns true if Settings screen is now displayed.
      */
     public boolean tapSettingsTab() {
+        // i18n: English "Settings", French "Paramètres" / "Parametres"
+        String settingsMatch =
+            "(label == 'Settings' OR label == 'Paramètres' OR label == 'Parametres' OR " +
+            " name == 'Settings' OR name == 'Paramètres' OR name == 'Parametres')";
+        // Poll up to 3 seconds — tab bar may not be rendered immediately after
+        // site selection / navigation, and findElements returns instantly with []
         try {
-            // Strategy 1: bottom tab bar
-            java.util.List<org.openqa.selenium.WebElement> btns = driver.findElements(
-                io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND label == 'Settings'"));
-            for (org.openqa.selenium.WebElement b : btns) {
-                if (b.getLocation().getY() > 600) {
-                    b.click(); sleep(800);
+            int sh = driver.manage().window().getHeight();
+            int tabAreaY = (int)(sh * 0.85);
+            for (int poll = 0; poll < 6; poll++) {
+                java.util.List<org.openqa.selenium.WebElement> btns = driver.findElements(
+                    io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND " + settingsMatch));
+                if (!btns.isEmpty()) {
+                    for (org.openqa.selenium.WebElement b : btns) {
+                        if (b.getLocation().getY() > tabAreaY) {
+                            b.click(); sleep(800);
+                            if (isSettingsScreenDisplayed()) return true;
+                        }
+                    }
+                    btns.get(0).click(); sleep(800);
                     if (isSettingsScreenDisplayed()) return true;
+                    break;
                 }
-            }
-            if (!btns.isEmpty()) {
-                btns.get(0).click(); sleep(800);
-                if (isSettingsScreenDisplayed()) return true;
+                sleep(500);
             }
         } catch (Exception ignored) {}
         // Strategy 2: gear icon
@@ -3100,16 +3111,49 @@ public class SiteSelectionPage extends BasePage {
             gear.click(); sleep(800);
             return isSettingsScreenDisplayed();
         } catch (Exception ignored) {}
+        // Strategy 3: StaticText label (SwiftUI may render bottom-tab as Other
+        // with label-only StaticText child)
+        try {
+            java.util.List<org.openqa.selenium.WebElement> labels = driver.findElements(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND " + settingsMatch));
+            int screenHeight = driver.manage().window().getSize().getHeight();
+            for (org.openqa.selenium.WebElement label : labels) {
+                int y = label.getLocation().getY();
+                if (y > screenHeight * 0.80) {
+                    int cx = label.getLocation().getX() + label.getSize().getWidth() / 2;
+                    int cy = y + label.getSize().getHeight() / 2;
+                    java.util.Map<String, Object> tap = new java.util.HashMap<>();
+                    tap.put("x", cx); tap.put("y", cy);
+                    driver.executeScript("mobile: tap", tap);
+                    sleep(800);
+                    if (isSettingsScreenDisplayed()) return true;
+                }
+            }
+        } catch (Exception ignored) {}
+        // Strategy 4: coordinate tap on rightmost bottom-tab (Settings is 5th tab)
+        try {
+            org.openqa.selenium.Dimension size = driver.manage().window().getSize();
+            java.util.Map<String, Object> tap = new java.util.HashMap<>();
+            tap.put("x", (int)(size.getWidth() * 0.92));
+            tap.put("y", (int)(size.getHeight() * 0.96));
+            driver.executeScript("mobile: tap", tap);
+            sleep(800);
+            if (isSettingsScreenDisplayed()) return true;
+        } catch (Exception ignored) {}
         return false;
     }
 
     /** Quick probe — is the Settings screen currently visible? */
     public boolean isSettingsScreenDisplayed() {
         try {
+            // i18n: English + French. Sync & Network → "Sync & réseau" / similar.
             driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND " +
-                "(label == 'Settings' OR label == 'Sync & Network' OR " +
-                "label == 'Account' OR label == 'Diagnostics')"));
+                "(label == 'Settings' OR label == 'Paramètres' OR label == 'Parametres' OR " +
+                " label == 'Sync & Network' OR label == 'Account' OR label == 'Diagnostics' OR " +
+                " label == 'Compte' OR label == 'Diagnostics' OR " +
+                " label CONTAINS[c] 'Sync' OR label CONTAINS[c] 'réseau' OR " +
+                " label CONTAINS[c] 'reseau')"));
             return true;
         } catch (Exception e) { return false; }
     }
