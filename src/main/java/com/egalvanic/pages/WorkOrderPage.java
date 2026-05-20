@@ -13798,38 +13798,8 @@ public class WorkOrderPage extends BasePage {
         }
     }
 
-    /**
-     * Dismiss the keyboard if it is showing (tap elsewhere or use Done button).
-     */
-    public void dismissKeyboard() {
-        try {
-            // Try "Done" button first
-            List<WebElement> doneButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND (label == 'Done' OR label == 'Return')"
-            ));
-            if (!doneButtons.isEmpty()) {
-                doneButtons.get(0).click();
-                return;
-            }
-            // Tap above the keyboard
-            org.openqa.selenium.Dimension size = driver.manage().window().getSize();
-            org.openqa.selenium.interactions.PointerInput finger =
-                new org.openqa.selenium.interactions.PointerInput(
-                    org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
-            org.openqa.selenium.interactions.Sequence tap =
-                new org.openqa.selenium.interactions.Sequence(finger, 1);
-            tap.addAction(finger.createPointerMove(Duration.ZERO,
-                org.openqa.selenium.interactions.PointerInput.Origin.viewport(),
-                size.width / 2, size.height / 4));
-            tap.addAction(finger.createPointerDown(
-                org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
-            tap.addAction(finger.createPointerUp(
-                org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
-            driver.perform(java.util.Arrays.asList(tap));
-        } catch (Exception e) {
-            System.out.println("⚠️ Could not dismiss keyboard: " + e.getMessage());
-        }
-    }
+    // dismissKeyboard() inherited from BasePage — bulletproof implementation.
+    // Do NOT add a local override (commit 3cc6d80 unified all keyboard handling).
 
     // ================================================================
     // PHOTO TYPE DROPDOWN (TC_JOB_061-066)

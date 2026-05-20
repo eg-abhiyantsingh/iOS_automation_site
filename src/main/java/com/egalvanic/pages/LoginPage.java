@@ -204,18 +204,7 @@ public class LoginPage extends BasePage {
         // CRITICAL: Dismiss keyboard first! After enterPassword(), the keyboard covers the
         // T&C checkbox area at the bottom of the login screen. Elements behind the keyboard
         // are not "visible" in iOS accessibility, so all visible-based searches fail.
-        try {
-            driver.hideKeyboard();
-            System.out.println("⌨️ Keyboard dismissed before T&C check");
-        } catch (Exception e) {
-            // Keyboard might not be open — that's fine
-            try {
-                // Fallback: tap on a neutral area above the keyboard to dismiss it
-                org.openqa.selenium.Dimension screenSize = driver.manage().window().getSize();
-                tapAtCoordinates(screenSize.getWidth() / 2, 200);
-                System.out.println("⌨️ Tapped neutral area to dismiss keyboard");
-            } catch (Exception ignored) {}
-        }
+        dismissKeyboard();
 
         // CRITICAL: Wait for keyboard dismiss animation (~300ms) and iOS accessibility
         // tree refresh. Without this, elements behind the keyboard are still marked
@@ -360,38 +349,9 @@ public void clickShowPassword() {
     }
 }
 
-    /**
-     * Dismiss the keyboard to prevent click issues - Using W3C Actions
-     */
-    public void dismissKeyboard() {
-        try {
-            driver.hideKeyboard();
-            shortWait();
-        } catch (Exception e) {
-            try {
-                driver.hideKeyboard("Done");
-                shortWait();
-            } catch (Exception ex1) {
-                try {
-                    driver.hideKeyboard("Return");
-                    shortWait();
-                } catch (Exception ex2) {
-                    try {
-                        driver.hideKeyboard("Go");
-                        shortWait();
-                    } catch (Exception ex3) {
-                        try {
-                            // Use W3C Actions instead of deprecated TouchAction
-                            performTap(100, 100);
-                            shortWait();
-                        } catch (Exception ex4) {
-                            System.out.println("Could not dismiss keyboard, continuing test...");
-                        }
-                    }
-                }
-            }
-        }
-    }
+    // dismissKeyboard() inherited from BasePage — bulletproof implementation
+    // (see BasePage.dismissKeyboard, commit 3cc6d80 / unified). Old local
+    // version had non-verified fallbacks; do NOT add a local override.
     
     /**
      * Perform tap using W3C Actions (replacement for deprecated TouchAction)

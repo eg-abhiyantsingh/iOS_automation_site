@@ -153,8 +153,7 @@ public abstract class BasePage {
                         int elY = clickable.getLocation().getY();
                         int screenH = driver.manage().window().getSize().height;
                         if (elY > screenH * 0.55) {
-                            driver.executeScript("mobile: hideKeyboard");
-                            sleep(200);
+                            dismissKeyboard();
                         }
                     } catch (Exception ignored) {}
                 }
@@ -208,6 +207,130 @@ public abstract class BasePage {
         waitForVisibility(element);
         element.clear();
         element.sendKeys(text);
+    }
+
+    // ================================================================
+    // KEYBOARD DISMISSAL — bulletproof multi-strategy + verify-after-each
+    // ================================================================
+    // All page objects MUST use these methods (NOT raw mobile:hideKeyboard
+    // or driver.hideKeyboard()) — see commit 3cc6d80 for rationale.
+
+    /** Returns true if the iOS keyboard is currently visible. */
+    public boolean isKeyboardShown() {
+        try {
+            return !driver.findElements(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeKeyboard'")).isEmpty();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Dismiss the iOS keyboard using a cascade of strategies, verifying
+     * isKeyboardShown() after each. Returns silently when keyboard is
+     * absent. Used everywhere — do NOT call mobile:hideKeyboard directly.
+     *
+     * Strategies (each verifies):
+     *   1a/b/c: mobile:hideKeyboard with strategy={tapOutside,swipeDown,pressKey}
+     *   1d: plain mobile:hideKeyboard (default)
+     *   2:  Tap Done/Return/Go/Search/Next on keyboard (incl. French)
+     *   3:  sendKeys("\n") to the focused text input
+     *   4:  Coordinate tap at Y=10 (status-bar safe zone)
+     */
+    public void dismissKeyboard() {
+        if (!isKeyboardShown()) {
+            return;
+        }
+
+        // Strategy 1a/b/c: mobile:hideKeyboard with explicit strategy variants
+        for (String strategy : new String[]{"tapOutside", "swipeDown", "pressKey"}) {
+            try {
+                java.util.Map<String, Object> args = new java.util.HashMap<>();
+                args.put("strategy", strategy);
+                if ("pressKey".equals(strategy)) {
+                    args.put("key", "return");
+                }
+                driver.executeScript("mobile: hideKeyboard", args);
+                sleep(200);
+                if (!isKeyboardShown()) {
+                    System.out.println("   Keyboard dismissed via mobile:hideKeyboard[" + strategy + "]");
+                    return;
+                }
+            } catch (Exception ignored) { /* try next */ }
+        }
+
+        // Strategy 1d: Plain mobile:hideKeyboard (default strategy, no args)
+        try {
+            driver.executeScript("mobile: hideKeyboard");
+            sleep(200);
+            if (!isKeyboardShown()) {
+                System.out.println("   Keyboard dismissed via mobile:hideKeyboard (default)");
+                return;
+            }
+        } catch (Exception ignored) {}
+
+        // Strategy 2: Tap Done/Return key. Filter Y > 40% screen to avoid
+        // nav-bar Done buttons. i18n: English + French keyboard labels.
+        try {
+            int screenHeight = driver.manage().window().getSize().getHeight();
+            int minY = (int) (screenHeight * 0.4);
+            java.util.List<WebElement> doneBtns = driver.findElements(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeKey') AND " +
+                "(label == 'Done' OR label == 'Return' OR label == 'Go' OR " +
+                " label == 'Search' OR label == 'Next' OR " +
+                " label == 'Terminé' OR label == 'OK' OR label == 'Retour' OR " +
+                " label == 'Aller' OR label == 'Rechercher' OR label == 'Suivant')"));
+            for (WebElement btn : doneBtns) {
+                try {
+                    int btnY = btn.getLocation().getY();
+                    if (btnY > minY) {
+                        btn.click();
+                        sleep(250);
+                        if (!isKeyboardShown()) {
+                            System.out.println("   Keyboard dismissed via Done/Return key (Y=" + btnY + ")");
+                            return;
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
+        } catch (Exception ignored) {}
+
+        // Strategy 3: sendKeys("\n") to the focused field
+        try {
+            WebElement activeField = driver.findElement(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeSecureTextField' OR " +
+                " type == 'XCUIElementTypeSearchField' OR type == 'XCUIElementTypeTextView') AND " +
+                "hasKeyboardFocus == 1"));
+            activeField.sendKeys("\n");
+            sleep(200);
+            if (!isKeyboardShown()) {
+                System.out.println("   Keyboard dismissed via \\n to focused field");
+                return;
+            }
+        } catch (Exception ignored) {}
+
+        // Strategy 4: Coordinate tap at Y=10 (status-bar, guaranteed safe)
+        try {
+            int screenWidth = driver.manage().window().getSize().getWidth();
+            PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
+            Sequence tap = new Sequence(finger, 0);
+            tap.addAction(finger.createPointerMove(Duration.ZERO,
+                PointerInput.Origin.viewport(), screenWidth / 2, 10));
+            tap.addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()));
+            tap.addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
+            driver.perform(java.util.Collections.singletonList(tap));
+            sleep(250);
+            if (!isKeyboardShown()) {
+                System.out.println("   Keyboard dismissed via status-bar tap (Y=10)");
+                return;
+            }
+        } catch (Exception ignored) {}
+
+        if (isKeyboardShown()) {
+            System.out.println("⚠️ Keyboard still visible after all dismiss strategies");
+        }
     }
 
     /**

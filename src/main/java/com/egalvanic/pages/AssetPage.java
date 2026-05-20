@@ -2502,16 +2502,8 @@ public class AssetPage extends BasePage {
                 sleep(200);
                 System.out.println("   ✅ Clicked Done button");
             } catch (Exception doneEx) {
-                System.out.println("   Done button not found, trying alternatives...");
-                // Try Return key or hide keyboard
-                try {
-                    driver.executeScript("mobile: hideKeyboard", Map.of("strategy", "pressKey", "key", "Done"));
-                } catch (Exception kbEx) {
-                    // Fallback: tap outside to dismiss
-                    try {
-                        driver.executeScript("mobile: tap", Map.of("x", 200, "y", 150));
-                    } catch (Exception tapEx) {}
-                }
+                System.out.println("   Done button not found, using dismissKeyboard()...");
+                dismissKeyboard();
             }
             sleep(300);
             
@@ -2560,19 +2552,9 @@ public class AssetPage extends BasePage {
     public void toggleMarkAsCompleted() {
         System.out.println("🔄 Toggling Mark as Completed...");
         try {
-            // IMPORTANT: Dismiss keyboard first by tapping outside or pressing Done
+            // IMPORTANT: Dismiss keyboard first
             System.out.println("   Dismissing keyboard...");
-            try {
-                // Try to hide keyboard
-                driver.executeScript("mobile: hideKeyboard");
-            } catch (Exception kbEx) {
-                // Fallback: tap on a neutral area to dismiss keyboard
-                try {
-                    driver.executeScript("mobile: tap", Map.of("x", 200, "y", 150));
-                } catch (Exception tapEx) {
-                    // Ignore
-                }
-            }
+            dismissKeyboard();
             sleep(200);
             
             WebElement toggle = driver.findElement(
@@ -2610,10 +2592,8 @@ public class AssetPage extends BasePage {
         } catch (Exception e) {
             System.out.println("⚠️ Could not toggle via element, trying coordinates...");
             // Fallback: dismiss keyboard and tap at typical toggle location
-            try {
-                driver.executeScript("mobile: hideKeyboard");
-                sleep(300);
-            } catch (Exception kbEx) {}
+            dismissKeyboard();
+            sleep(300);
             
             try {
                 driver.executeScript("mobile: tap", Map.of("x", 340, "y", 756));
@@ -6222,44 +6202,9 @@ public class AssetPage extends BasePage {
 
 
 
-    public void dismissKeyboard() {
-        // Strategy 1: Try Done/Return button on keyboard toolbar
-        try {
-            WebElement doneButton = driver.findElement(
-                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND (name == 'Done' OR name == 'Return' OR name == 'return')")
-            );
-            doneButton.click();
-            System.out.println("✅ Keyboard dismissed (Done/Return button)");
-            return;
-        } catch (Exception e) {}
-        
-        // Strategy 2: Try Appium hideKeyboard
-        try {
-            driver.hideKeyboard();
-            System.out.println("✅ Keyboard dismissed (hideKeyboard)");
-            return;
-        } catch (Exception e) {}
-        
-        // Strategy 3: Tap outside keyboard area (safe zone at top)
-        try {
-            int screenWidth = driver.manage().window().getSize().width;
-            driver.executeScript("mobile: tap", Map.of("x", screenWidth / 2, "y", 100));
-            System.out.println("✅ Keyboard dismissed (tap outside)");
-            return;
-        } catch (Exception e) {}
-        
-        // Strategy 4: Press keyboard key to confirm (Enter/Return on keyboard)
-        try {
-            WebElement keyboardKey = driver.findElement(
-                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeKey' AND (name CONTAINS 'Return' OR name CONTAINS 'return' OR name CONTAINS 'Go' OR name CONTAINS 'Next')")
-            );
-            keyboardKey.click();
-            System.out.println("✅ Keyboard dismissed (keyboard key)");
-            return;
-        } catch (Exception e) {}
-        
-        System.out.println("⚠️ Keyboard may still be open - all dismiss strategies exhausted");
-    }
+    // dismissKeyboard() / isKeyboardShown() inherited from BasePage —
+    // bulletproof multi-strategy implementation (commit 3cc6d80, unified to
+    // BasePage). Do NOT add a local override.
 
     public void scrollFormDown() {
         // Use RIGHT EDGE corner for scrolling - no form fields there!
