@@ -215,11 +215,16 @@ public abstract class BasePage {
     // All page objects MUST use these methods (NOT raw mobile:hideKeyboard
     // or driver.hideKeyboard()) — see commit 3cc6d80 for rationale.
 
-    /** Returns true if the iOS keyboard is currently visible. */
+    /**
+     * Returns true if the iOS keyboard is currently visible.
+     * Note: the XCUIElementTypeKeyboard element can persist in the DOM after the
+     * keyboard is hidden (iOS quirk), so we require visible == 1 to avoid false
+     * positives. On iOS 18.5 the visible attribute is reliable for this check.
+     */
     public boolean isKeyboardShown() {
         try {
             return !driver.findElements(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeKeyboard'")).isEmpty();
+                "type == 'XCUIElementTypeKeyboard' AND visible == 1")).isEmpty();
         } catch (Exception e) {
             return false;
         }

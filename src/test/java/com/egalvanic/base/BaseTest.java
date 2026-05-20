@@ -924,8 +924,17 @@ public class BaseTest {
         if ("SITE_SELECTION".equals(currentScreen)) {
             // Already logged in, just need to select a site
             System.out.println("🔍 Already on Site Selection — skipping login, selecting site...");
+        } else if ("LOGIN_PAGE".equals(currentScreen)) {
+            // On Login Page (past Welcome) — skip company-code step, go straight to credentials.
+            // Fix for CI Run 26167885097 / Asset_Phase2 CB_EAD_01: performLogin() restarted from
+            // Welcome and waited 10s for Continue button (only on Welcome) → timeout.
+            System.out.println("🔐 On Login page — entering credentials directly (skip company code)");
+            loginPage.waitForPageReady();
+            loginPage.loginTurbo(AppConstants.VALID_EMAIL, AppConstants.VALID_PASSWORD);
+            siteSelectionPage.handleScheduleScreenIfPresent();
+            System.out.println("✅ Login completed (direct from LOGIN_PAGE)");
         } else {
-            // On Welcome/Login page or unknown — do full login
+            // On Welcome page or unknown — do full login
             performLogin();
         }
 

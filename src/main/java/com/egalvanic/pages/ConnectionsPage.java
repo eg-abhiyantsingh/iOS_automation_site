@@ -5780,11 +5780,15 @@ public class ConnectionsPage {
         return !isKeyboardShown();
     }
 
-    /** Returns true if the iOS keyboard is currently visible. */
+    /**
+     * Returns true if the iOS keyboard is currently visible.
+     * Require visible == 1: the XCUIElementTypeKeyboard element can persist in
+     * the DOM after the keyboard hides on iOS 18.5, causing false positives.
+     */
     private boolean isKeyboardShown() {
         try {
             return !driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeKeyboard'")).isEmpty();
+                "type == 'XCUIElementTypeKeyboard' AND visible == 1")).isEmpty();
         } catch (Exception e) {
             return false;
         }
