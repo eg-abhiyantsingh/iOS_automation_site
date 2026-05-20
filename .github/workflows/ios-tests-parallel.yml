@@ -2811,10 +2811,97 @@ jobs:
               ATTACHMENT_LIST="consolidated-reports/Consolidated_Client_Report.html"
             fi
             echo "ATTACHMENT_LIST=$ATTACHMENT_LIST" >> "$GITHUB_OUTPUT"
-            echo "Consolidated report generated"
+            echo "Consolidated client report generated"
           fi
 
+          # ==============================================================
+          # Consolidated DETAILED report — link-index style.
+          # Detailed reports are large (ExtentReports with embedded screenshots,
+          # ~25-35 MB each). Inline-merging 17 produces a 500+ MB HTML that
+          # struggles to open. Instead: copy each per-module detailed report
+          # into consolidated-reports/detailed/ and build an index HTML that
+          # links to them.
+          # ==============================================================
+          echo ""
+          echo "=== Building Consolidated Detailed Report (link index) ==="
+          mkdir -p consolidated-reports/detailed
+
+          DETAILED_COUNT=0
+          DETAILED_LINKS=""
+          for detailed in $(find all-reports -name "Detailed_Report_*.html" -type f 2>/dev/null | sort); do
+            DETAILED_COUNT=$((DETAILED_COUNT+1))
+            MODULE=$(echo "$detailed" | awk -F'/' '{print $2}' | sed 's/-report$//')
+            cp "$detailed" "consolidated-reports/detailed/${MODULE}_detailed_report.html"
+            DETAILED_LINKS="${DETAILED_LINKS}<li><a href=\"detailed/${MODULE}_detailed_report.html\">${MODULE}</a></li>"
+            echo "  Detailed: ${MODULE} → detailed/${MODULE}_detailed_report.html"
+          done
+          echo "Total detailed reports copied: $DETAILED_COUNT"
+
+          cat > consolidated-reports/Consolidated_Detailed_Report.html <<HTMLEOF
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <title>eGalvanic iOS Automation — Consolidated Detailed Report</title>
+            <style>
+              body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+              .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
+              .header h1 { margin: 0; font-size: 24px; }
+              .header p { margin: 8px 0 0; opacity: 0.9; }
+              .content { max-width: 1000px; margin: 20px auto; padding: 0 20px; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+              .content-inner { padding: 30px; }
+              h2 { color: #444; border-bottom: 2px solid #667eea; padding-bottom: 8px; }
+              ul.module-list { list-style: none; padding: 0; }
+              ul.module-list li { padding: 12px 16px; border-bottom: 1px solid #eee; }
+              ul.module-list li:last-child { border-bottom: none; }
+              ul.module-list a { color: #4a90d9; text-decoration: none; font-weight: 600; }
+              ul.module-list a:hover { text-decoration: underline; }
+              .note { background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px 16px; margin: 16px 0; font-size: 13px; }
+              .footer { text-align: center; padding: 20px; color: #999; font-size: 12px; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h1>eGalvanic iOS Automation — Consolidated Detailed Report</h1>
+              <p>Click any module below for its full detailed ExtentReport (screenshots + per-step logs)</p>
+            </div>
+            <div class="content">
+              <div class="content-inner">
+                <div class="note">
+                  This index links to ${DETAILED_COUNT} per-module detailed reports preserved in the
+                  <code>detailed/</code> folder. For the summary table (pass/fail counts), see
+                  <a href="Consolidated_Client_Report.html">Consolidated_Client_Report.html</a>.
+                </div>
+                <h2>Modules</h2>
+                <ul class="module-list">
+                  ${DETAILED_LINKS}
+                </ul>
+              </div>
+            </div>
+            <div class="footer">
+              <p>eGalvanic iOS Automation Framework — Consolidated Detailed Report</p>
+            </div>
+          </body>
+          </html>
+          HTMLEOF
+
+          echo "Consolidated detailed report index generated"
           ls -la consolidated-reports/ 2>/dev/null || echo "No reports directory"
+          ls -la consolidated-reports/detailed/ 2>/dev/null | head -5
+
+      - name: Upload Consolidated Reports Artifact
+        # Makes consolidated-reports/ downloadable from the Actions UI alongside
+        # the per-suite artifacts. Includes:
+        #   - Consolidated_Client_Report.html    (summary table, pass/fail counts)
+        #   - Consolidated_Detailed_Report.html  (link-index)
+        #   - detailed/<module>_detailed_report.html  (per-module ExtentReports)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: consolidated-reports
+          path: consolidated-reports/
+          retention-days: 14
+          if-no-files-found: warn
 
       - name: Prepare Email Summary
         id: email
