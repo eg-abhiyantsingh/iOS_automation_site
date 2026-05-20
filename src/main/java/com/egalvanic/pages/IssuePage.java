@@ -277,6 +277,65 @@ public class IssuePage extends BasePage {
                 System.out.println("   Coordinate tap failed: " + e4.getMessage());
             }
 
+            // DIAGNOSTIC DUMP: every strategy failed — log what IS on screen so the
+            // real label/type can be added as a new strategy. Pattern from
+            // changelog 069 (PHPicker debug) / 075 (Work Order debug).
+            try {
+                System.out.println("🔍 DIAGNOSTIC: tapOnIssuesButton — all strategies exhausted");
+                System.out.println("   Screen height: " + screenHeight);
+                // 1) All buttons (top 20) with y / name / label
+                List<WebElement> btns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton'"));
+                System.out.println("   --- Buttons on screen (top 20) ---");
+                int count = 0;
+                for (WebElement b : btns) {
+                    if (count >= 20) { System.out.println("   ... +" + (btns.size() - 20) + " more"); break; }
+                    try {
+                        System.out.println("   [Y=" + b.getLocation().getY() + "] name='" +
+                            b.getAttribute("name") + "' label='" + b.getAttribute("label") + "'");
+                    } catch (Exception ignored) {}
+                    count++;
+                }
+                // 2) Static texts in the dashboard region (y 100..700) — Quick Action labels
+                List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText'"));
+                System.out.println("   --- StaticTexts in dashboard region (top 30) ---");
+                count = 0;
+                for (WebElement t : texts) {
+                    if (count >= 30) { System.out.println("   ... +" + (texts.size() - 30) + " more"); break; }
+                    try {
+                        int ty = t.getLocation().getY();
+                        if (ty > 80 && ty < 900) {
+                            System.out.println("   [Y=" + ty + "] '" + t.getAttribute("label") + "'");
+                            count++;
+                        }
+                    } catch (Exception ignored) {}
+                }
+                // 3) Other / Image elements in dashboard (SwiftUI custom cards)
+                List<WebElement> others = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeOther' OR type == 'XCUIElementTypeImage' OR type == 'XCUIElementTypeCell') AND " +
+                    "(name != '' OR label != '')"));
+                System.out.println("   --- Other/Image/Cell with name or label (top 15) ---");
+                count = 0;
+                for (WebElement o : others) {
+                    if (count >= 15) break;
+                    try {
+                        int oy = o.getLocation().getY();
+                        if (oy > 80 && oy < 900) {
+                            String n = o.getAttribute("name");
+                            String l = o.getAttribute("label");
+                            if ((n != null && !n.isEmpty()) || (l != null && !l.isEmpty())) {
+                                System.out.println("   [Y=" + oy + ",type=" + o.getAttribute("type") +
+                                    "] name='" + n + "' label='" + l + "'");
+                                count++;
+                            }
+                        }
+                    } catch (Exception ignored) {}
+                }
+            } catch (Exception diagEx) {
+                System.out.println("   Diagnostic dump failed: " + diagEx.getMessage());
+            }
+
             System.out.println("⚠️ Could not tap Issues button");
             return false;
         } catch (Exception e) {
