@@ -1353,8 +1353,11 @@ public final class OfflineTest extends BaseTest {
                 "New Issue form should appear after tapping Add button");
 
         // Step 3: Fill in issue details (same order as createQuickIssue in IssuePage)
-        logStep("Selecting issue class: NEC Violation");
-        issuePage.selectIssueClass("NEC Violation");
+        // Changelog 077: use selectFirstAvailableIssueClass() instead of
+        // hard-coded "NEC Violation" — sim test data may have fewer classes.
+        logStep("Selecting first available issue class");
+        String selectedClass = issuePage.selectFirstAvailableIssueClass();
+        logStep("Selected class: " + selectedClass);
         shortWait();
 
         String issueTitle = "OffIssue_" + System.currentTimeMillis();

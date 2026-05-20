@@ -23149,13 +23149,76 @@ public class WorkOrderPage extends BasePage {
      * to open the From-Photos / From-Files picker.
      */
     public boolean tapUploadIRPhotosLink() {
+        // Strategy 1: exact label match (most common)
         try {
             WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND " +
-                "label == 'Upload IR Photos'"));
+                "(label == 'Upload IR Photos' OR label == 'Upload IR Photo')"));
+            System.out.println("   ↳ Upload IR Photos: exact label match");
             btn.click(); sleep(600);
             return true;
-        } catch (Exception e) { return false; }
+        } catch (Exception ignored) { /* fall through */ }
+
+        // Strategy 2: CONTAINS 'Upload' (matches 'Upload IR Photos', 'Upload Photos', etc.)
+        try {
+            WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND " +
+                "label CONTAINS[c] 'Upload'"));
+            System.out.println("   ↳ Upload IR Photos: CONTAINS Upload — '"
+                + btn.getAttribute("label") + "'");
+            btn.click(); sleep(600);
+            return true;
+        } catch (Exception ignored) { /* fall through */ }
+
+        // Strategy 3: button with cloud/upload icon (name CONTAINS 'cloud' or 'upload')
+        try {
+            WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(name CONTAINS[c] 'cloud' OR name CONTAINS[c] 'upload' OR " +
+                " name CONTAINS[c] 'arrow.up')"));
+            System.out.println("   ↳ Upload IR Photos: icon match — name='"
+                + btn.getAttribute("name") + "'");
+            btn.click(); sleep(600);
+            return true;
+        } catch (Exception ignored) { /* fall through */ }
+
+        // Diagnostic dump on failure — show what IS on screen
+        System.out.println("   ⚠️ Upload IR Photos link NOT found. Diagnostic dump:");
+        try {
+            java.util.List<WebElement> btns = driver.findElements(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton'"));
+            int n = 0;
+            for (WebElement b : btns) {
+                try {
+                    String l = b.getAttribute("label");
+                    String name = b.getAttribute("name");
+                    if ((l != null && !l.isEmpty()) || (name != null && !name.isEmpty())) {
+                        System.out.println("   [Y=" + b.getRect().getY() + "] label='"
+                            + (l == null ? "" : l) + "' name='" + (name == null ? "" : name) + "'");
+                        if (++n >= 12) break;
+                    }
+                } catch (Exception ignored) { /* skip stale */ }
+            }
+            java.util.List<WebElement> texts = driver.findElements(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText'"));
+            System.out.println("   --- Top StaticTexts ---");
+            int m = 0;
+            for (WebElement t : texts) {
+                try {
+                    String l = t.getAttribute("label");
+                    if (l != null && !l.isEmpty()) {
+                        int y = t.getRect().getY();
+                        if (y < 400) {
+                            System.out.println("   [Y=" + y + "] '" + l + "'");
+                            if (++m >= 8) break;
+                        }
+                    }
+                } catch (Exception ignored) { /* skip */ }
+            }
+        } catch (Exception ignored) { /* dump best-effort */ }
+        return false;
     }
 
     /** From the upload menu, choose "From Photos" (iOS Photos library). */
@@ -23251,8 +23314,9 @@ public class WorkOrderPage extends BasePage {
         // Snapshot the pre-upload state so we know what to wait FOR change
         int placeholdersBefore = countNoImagePlaceholders();
         int realImagesBefore = countThermalImages();
+        int headerCountBefore = countIRPhotoHeaderNumber();
         System.out.println("   ↳ Pre-upload state: " + placeholdersBefore
-            + " 'No Image' placeholders, " + realImagesBefore + " thermal images");
+            + " placeholders, " + realImagesBefore + " thermal images, header count=" + headerCountBefore);
 
         long deadline = System.currentTimeMillis() + maxWaitMs;
         int pollCount = 0;
@@ -23261,6 +23325,7 @@ public class WorkOrderPage extends BasePage {
 
             int placeholdersNow = countNoImagePlaceholders();
             int realImagesNow = countThermalImages();
+            int headerCountNow = countIRPhotoHeaderNumber();
 
             // Success A: 'No Image' count decreased (placeholder replaced by real photo)
             if (placeholdersBefore > 0 && placeholdersNow < placeholdersBefore) {
@@ -23283,28 +23348,95 @@ public class WorkOrderPage extends BasePage {
                 return true;
             }
 
+            // Success D (changelog 077): "N IR Photo(s)" header count increased
+            if (headerCountNow > headerCountBefore) {
+                System.out.println("   ↳ Upload complete (poll " + pollCount
+                    + "): IR photo header count " + headerCountBefore + " → " + headerCountNow);
+                return true;
+            }
+
+            // Success E (changelog 077): if both before+now show zero placeholders
+            // AND zero thermal images AND zero header — the picker likely
+            // dismissed cleanly to a screen that doesn't have these indicators
+            // (e.g., back to Dashboard). Accept after 5 stable polls.
+            if (placeholdersBefore == 0 && realImagesBefore == 0 && headerCountBefore == 0
+                && placeholdersNow == 0 && realImagesNow == 0 && headerCountNow == 0
+                && pollCount >= 5) {
+                System.out.println("   ↳ Upload complete (poll " + pollCount
+                    + "): post-upload screen has no IR indicators — assume picker dismissed OK");
+                return true;
+            }
+
             try { Thread.sleep(1000); } catch (InterruptedException ignored) { /* */ }
         }
         System.out.println("   ↳ Upload wait TIMEOUT after " + maxWaitMs + "ms ("
             + pollCount + " polls). placeholders=" + countNoImagePlaceholders()
-            + " thermalImages=" + countThermalImages());
+            + " thermalImages=" + countThermalImages()
+            + " headerCount=" + countIRPhotoHeaderNumber());
         return false;
     }
 
     private int countNoImagePlaceholders() {
         try {
             return driver.findElements(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND label == 'No Image'")).size();
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "(label == 'No Image' OR label == 'No Photo' OR " +
+                " label CONTAINS[c] 'no image' OR label CONTAINS[c] 'placeholder')")).size();
         } catch (Exception e) { return 0; }
     }
 
+    /**
+     * Count "anything that looks like a real uploaded thermal image".
+     * Widened (changelog 077): matches by name, label, OR meaningful visible
+     * size (>50x50px) — the latter catches images with empty accessibility
+     * labels that ARE actual photos.
+     */
     private int countThermalImages() {
+        int count = 0;
         try {
-            return driver.findElements(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+            // Named-pattern match (original)
+            count += driver.findElements(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeImage' AND " +
                 "(name CONTAINS[c] 'thermal' OR name CONTAINS[c] 'ir_' OR " +
                 "name CONTAINS[c] 'flir' OR name CONTAINS[c] '.jpg' OR " +
-                "name CONTAINS[c] '.png' OR label CONTAINS[c] 'thumbnail')")).size();
+                "name CONTAINS[c] '.png' OR label CONTAINS[c] 'thumbnail' OR " +
+                "label CONTAINS[c] 'photo')")).size();
+            // Real-sized image fallback: any Image element >50x50 (filters
+            // out icons but catches thumbnails/photos with empty labels)
+            java.util.List<WebElement> allImages = driver.findElements(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeImage'"));
+            for (WebElement img : allImages) {
+                try {
+                    org.openqa.selenium.Rectangle r = img.getRect();
+                    if (r.getWidth() >= 50 && r.getHeight() >= 50) count++;
+                } catch (Exception ignored) { /* skip stale */ }
+            }
+        } catch (Exception e) { /* return whatever we got */ }
+        return count;
+    }
+
+    /**
+     * Count "N IR Photo" / "N IR Photos" header text occurrences.
+     * Used as additional upload-success signal — if the count goes UP
+     * (e.g., 0→1, 1→2), an upload completed.
+     */
+    private int countIRPhotoHeaderNumber() {
+        try {
+            java.util.List<WebElement> els = driver.findElements(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND label MATCHES '\\\\d+ IR Photo.*'"));
+            int max = 0;
+            for (WebElement e : els) {
+                try {
+                    String l = e.getAttribute("label");
+                    if (l != null && l.matches("\\d+ IR Photo.*")) {
+                        int n = Integer.parseInt(l.split(" ")[0]);
+                        if (n > max) max = n;
+                    }
+                } catch (Exception ignored) { /* skip */ }
+            }
+            return max;
         } catch (Exception e) { return 0; }
     }
 

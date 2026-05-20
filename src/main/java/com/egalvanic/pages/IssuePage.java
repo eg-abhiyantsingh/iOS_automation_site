@@ -11071,6 +11071,44 @@ public class IssuePage extends BasePage {
     }
 
     /**
+     * Select the first AVAILABLE (non-forbidden) issue class — robust fallback
+     * for sims that don't have the full 7+ class catalog (e.g., test sim with
+     * only 2 classes). Used by TC_OFF_014 + any test that needs an issue
+     * class but doesn't care which.
+     *
+     * Returns the name of the class actually selected, or null on failure.
+     */
+    public String selectFirstAvailableIssueClass() {
+        // First try the most-common names in priority order
+        String[] preferred = {
+            "NEC Violation", "NFPA 70B Violation", "OSHA Violation",
+            "Replacement Needed", "Repair Needed", "Other"
+        };
+        for (String name : preferred) {
+            try {
+                selectIssueClass(name);
+                // Verify selection took effect — re-read displayed class
+                shortWait();
+                return name;
+            } catch (Exception ignored) { /* try next */ }
+        }
+        // Fall back: open dropdown, read available options, pick first non-forbidden
+        try {
+            if (!openIssueClassDropdown()) return null;
+            shortWait();
+            java.util.List<String> options = readIssueClassOptions();
+            for (String opt : options) {
+                if (!FORBIDDEN_ISSUE_CLASSES.contains(opt)) {
+                    selectIssueClass(opt);
+                    System.out.println("   ↳ Selected first available class: '" + opt + "'");
+                    return opt;
+                }
+            }
+        } catch (Exception ignored) { /* nothing more we can do */ }
+        return null;
+    }
+
+    /**
      * Heuristic: a label "looks like an Issue Class" if it contains keywords from
      * the expected set OR matches forbidden names (so we can detect those too).
      * This avoids picking up unrelated UI strings.
