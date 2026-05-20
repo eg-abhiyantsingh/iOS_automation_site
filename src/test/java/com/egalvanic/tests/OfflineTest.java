@@ -1179,11 +1179,23 @@ public final class OfflineTest extends BaseTest {
         // Step 1: Navigate to My Tasks
         logStep("Navigating to My Tasks for task creation");
         siteSelectionPage.clickMyTasksButton();
-        shortWait();
-
-        boolean leftDashboard = !siteSelectionPage.isDashboardDisplayed();
-        logStep("Left dashboard to My Tasks: " + leftDashboard);
-        assertTrue(leftDashboard, "Should navigate to My Tasks screen from dashboard");
+        // Poll up to 3 seconds for the Tasks screen to appear — positive detection
+        // (find "Tasks" / "Mes tâches" header). More reliable than !isDashboardDisplayed
+        // which can falsely return true (Wi-Fi + sort icons match loose nav-bar fallback).
+        boolean onTasksScreen = false;
+        for (int i = 0; i < 6 && !onTasksScreen; i++) {
+            try {
+                io.appium.java_client.ios.IOSDriver poll = DriverManager.getDriver();
+                onTasksScreen = !poll.findElements(AppiumBy.iOSNsPredicateString(
+                    "(label == 'Tasks' OR label == 'Mes tâches' OR label == 'Mes taches' OR " +
+                    " name == 'Tasks' OR name == 'Mes tâches') AND " +
+                    "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeNavigationBar')"))
+                    .isEmpty();
+            } catch (Exception ignored) {}
+            if (!onTasksScreen) sleep(500);
+        }
+        logStep("On Tasks screen: " + onTasksScreen);
+        assertTrue(onTasksScreen, "Should navigate to My Tasks screen from dashboard");
 
         boolean taskCreationAttempted = false;
 
@@ -2596,49 +2608,43 @@ public final class OfflineTest extends BaseTest {
 
         logStepWithScreenshot("Checking pending items for queue timestamp");
 
-        // Verify pending items show a "Queued: X min, Y sec ago" timestamp
+        // Verify pending items show a "Queued: X min, Y sec ago" timestamp.
+        // Widened: poll up to 3s, match ANY element type via label OR name OR value
+        // (SwiftUI sometimes exposes the timestamp text via the parent View's value
+        // attribute rather than a child StaticText label).
         boolean timestampFound = false;
         String timestampText = "";
-        try {
-            java.util.List<org.openqa.selenium.WebElement> timeTexts =
-                DriverManager.getDriver().findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND " +
-                    "(label CONTAINS 'Queued' OR label CONTAINS 'queued' OR " +
-                    "label CONTAINS 'ago' OR label CONTAINS 'min' OR " +
-                    "label CONTAINS 'sec' OR label CONTAINS 'just now')"));
-
-            for (org.openqa.selenium.WebElement text : timeTexts) {
-                String label = text.getAttribute("label");
-                if (label != null && (label.contains("Queued") || label.contains("ago") ||
-                        label.contains("min") || label.contains("sec") ||
-                        label.contains("just now"))) {
-                    timestampFound = true;
-                    timestampText = label;
-                    logStep("Found queue timestamp: '" + label + "'");
-                    break;
-                }
-            }
-
-            // Fallback: regex search for time patterns
-            if (!timestampFound) {
-                java.util.List<org.openqa.selenium.WebElement> allTexts =
+        String[] keywords = {"Queued", "queued", " ago", "just now", "min ago", "sec ago", "hour ago",
+                             // i18n French
+                             "Mis en file", "il y a", "à l'instant", "min", "sec"};
+        for (int attempt = 0; attempt < 6 && !timestampFound; attempt++) {
+            try {
+                java.util.List<org.openqa.selenium.WebElement> all =
                     DriverManager.getDriver().findElements(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeStaticText'"));
-
-                for (org.openqa.selenium.WebElement text : allTexts) {
-                    String label = text.getAttribute("label");
-                    if (label != null && (label.matches(".*\\d+.*min.*") ||
-                            label.matches(".*\\d+.*sec.*") ||
-                            label.matches(".*\\d+.*ago.*"))) {
-                        timestampFound = true;
-                        timestampText = label;
-                        logStep("Found timestamp via pattern: '" + label + "'");
-                        break;
+                        "type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeOther' OR " +
+                        "type == 'XCUIElementTypeCell'"));
+                for (org.openqa.selenium.WebElement el : all) {
+                    for (String attr : new String[]{"label", "name", "value"}) {
+                        try {
+                            String v = el.getAttribute(attr);
+                            if (v == null || v.isEmpty()) continue;
+                            for (String k : keywords) {
+                                if (v.contains(k) || v.matches(".*\\b\\d+\\s*(min|sec|hour|day)\\b.*")) {
+                                    timestampFound = true;
+                                    timestampText = v;
+                                    logStep("Found queue timestamp (" + attr + "): '" + v + "'");
+                                    break;
+                                }
+                            }
+                            if (timestampFound) break;
+                        } catch (Exception ignored) {}
                     }
+                    if (timestampFound) break;
                 }
+            } catch (Exception e) {
+                logWarning("Timestamp search error (attempt " + attempt + "): " + e.getMessage());
             }
-        } catch (Exception e) {
-            logWarning("Timestamp search error: " + e.getMessage());
+            if (!timestampFound) sleep(500);
         }
 
         logStepWithScreenshot("Queue timestamp verification");

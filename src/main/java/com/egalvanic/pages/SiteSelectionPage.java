@@ -1053,6 +1053,25 @@ public class SiteSelectionPage extends BasePage {
             } catch (Exception ignored) { /* Schedule header alone — continue carefully */ }
         } catch (Exception ignored) { /* not on Schedule — continue */ }
 
+        // NEGATIVE guard: explicit Tasks/Issues/Locations/Connections-screen exclusion.
+        // These screens have nav-bar Wi-Fi + sort icons that match the loose nav-bar
+        // fallback below (>=2 buttons with name 'arrow'/'wifi'/'Wi-Fi'). Detect the
+        // screen-title text and bail out early. Match any element type (NavigationBar
+        // or StaticText) since iOS renders the title inconsistently across builds.
+        // i18n: French equivalents — Problèmes/Emplacements/Connexions/Actifs.
+        try {
+            driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "label == 'Tasks' OR label == 'Issues' OR label == 'Locations' OR " +
+                "label == 'Connections' OR label == 'Assets' OR " +
+                "label == 'Problèmes' OR label == 'Emplacements' OR " +
+                "label == 'Connexions' OR label == 'Actifs' OR " +
+                "label == 'Mes tâches' OR label == 'Mes taches' OR " +
+                "name == 'Tasks' OR name == 'Issues' OR name == 'Locations' OR " +
+                "name == 'Connections' OR name == 'Problèmes' OR name == 'Emplacements'"));
+            System.out.println("ℹ️ On a non-Dashboard module screen — not Dashboard");
+            return false;
+        } catch (Exception ignored) { /* not a module screen — continue */ }
+
         // Fallback indicators — any one means we're on dashboard
         if (isElementDisplayed(sitesButton) || isElementDisplayed(sitesButtonAlt)) {
             System.out.println("✅ Dashboard detected via Sites button");
@@ -2100,18 +2119,42 @@ public class SiteSelectionPage extends BasePage {
      */
     public void clickMyTasksButton() {
         System.out.println("📍 Attempting to click My Tasks button...");
+        // i18n: English "My Tasks", French "Mes tâches" / "Mes taches"
+        String labelMatch = "(label == 'My Tasks' OR label == 'Mes tâches' OR label == 'Mes taches' OR " +
+                            " name == 'My Tasks' OR name == 'Mes tâches' OR name == 'Mes taches' OR " +
+                            " label CONTAINS 'My Tasks' OR label CONTAINS 'Mes tâches' OR " +
+                            " label CONTAINS 'Mes taches')";
         try {
-            // Single findElements with short implicit wait — avoids 5s timeout per miss
             driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(500));
             try {
+                // Strategy 1: as a Button (Quick Actions card on Dashboard renders as button)
                 java.util.List<WebElement> btns = driver.findElements(
                     AppiumBy.iOSNsPredicateString(
-                        "(label == 'My Tasks' OR name == 'My Tasks') AND " +
-                        "type == 'XCUIElementTypeButton'"));
+                        "type == 'XCUIElementTypeButton' AND " + labelMatch));
                 if (!btns.isEmpty()) {
                     btns.get(0).click();
                     System.out.println("✅ Clicked My Tasks button");
                     return;
+                }
+                // Strategy 2: tap the StaticText label (SwiftUI sometimes wraps icon+text
+                // in a non-button container — the label is the only matchable element)
+                java.util.List<WebElement> labels = driver.findElements(
+                    AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND " + labelMatch));
+                for (WebElement label : labels) {
+                    int y = label.getLocation().getY();
+                    int screenHeight = driver.manage().window().getSize().getHeight();
+                    // Quick Actions card sits in middle of dashboard (Y between 25% and 75%)
+                    if (y > screenHeight * 0.25 && y < screenHeight * 0.75) {
+                        int cx = label.getLocation().getX() + label.getSize().getWidth() / 2;
+                        int cy = y - 20; // tap the icon above the label
+                        java.util.Map<String, Object> tapArgs = new java.util.HashMap<>();
+                        tapArgs.put("x", cx);
+                        tapArgs.put("y", cy);
+                        driver.executeScript("mobile: tap", tapArgs);
+                        System.out.println("✅ Clicked My Tasks card via coordinate tap (y=" + y + ")");
+                        return;
+                    }
                 }
             } finally {
                 driver.manage().timeouts().implicitlyWait(
