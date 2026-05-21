@@ -233,6 +233,7 @@ jobs:
           #  -Dmaven.artifact.threads=10  parallel artifact resolution if any deps need fetching
           mvn -B -q -ntp --no-snapshot-updates -fae -T 1C \
             -Dmaven.artifact.threads=10 \
+            -Dsmoke.chain=true \
             test -Dtest="$TESTS" \
             -DDEVICE_NAME="$DEV_NAME" \
             -DPLATFORM_VERSION="$PLAT_VER" \

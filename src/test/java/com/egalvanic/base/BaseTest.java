@@ -144,32 +144,38 @@ public class BaseTest {
             DriverManager.initDriver(deviceName, udid, appiumPort, wdaLocalPort);
         }
 
-        // Soft restart: kill app process and relaunch to clear navigation/tab state
-        // With noReset=true, login data persists but stale screen state is cleared
-        // IMPORTANT: terminateApp and activateApp in separate try-catches so a failed
-        // terminate doesn't skip the activate (which would leave the app not running)
-        boolean terminated = false;
-        try {
-            DriverManager.getDriver().terminateApp(AppConstants.APP_BUNDLE_ID);
-            Thread.sleep(500);
-            terminated = true;
-        } catch (Exception e) {
-            System.out.println("⚠️ terminateApp failed (app may not be running yet): " + e.getMessage());
-        }
-        try {
-            DriverManager.getDriver().activateApp(AppConstants.APP_BUNDLE_ID);
-            Thread.sleep(500);
-            System.out.println("🔄 App soft-restarted (clean navigation state)");
-        } catch (Exception e) {
-            System.out.println("⚠️ activateApp failed: " + e.getMessage());
-            if (!terminated) {
-                // Both failed — session may be dead, try reinitializing driver
-                System.out.println("🔄 Session appears dead, reinitializing driver...");
-                try {
-                    DriverManager.quitDriver();
-                } catch (Exception ignored) {}
-                try { Thread.sleep(2000); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
-                DriverManager.initDriver(deviceName, udid, appiumPort, wdaLocalPort);
+        // Soft restart: kill app process and relaunch to clear navigation/tab state.
+        // With noReset=true, login data persists but stale screen state is cleared.
+        //
+        // SPEED MODE (-Dsmoke.chain=true): skip the soft restart entirely so the
+        // app stays running between tests. Each test's loginAndSelectSite() fast-
+        // paths to Dashboard. Saves ~30 sec per test = ~2 min on 5 tests.
+        boolean chainMode = "true".equalsIgnoreCase(System.getProperty("smoke.chain"));
+        if (chainMode && DriverManager.isDriverActive()) {
+            System.out.println("⚡ Chain mode: skipping soft-restart (app stays running from previous test)");
+        } else {
+            boolean terminated = false;
+            try {
+                DriverManager.getDriver().terminateApp(AppConstants.APP_BUNDLE_ID);
+                Thread.sleep(500);
+                terminated = true;
+            } catch (Exception e) {
+                System.out.println("⚠️ terminateApp failed (app may not be running yet): " + e.getMessage());
+            }
+            try {
+                DriverManager.getDriver().activateApp(AppConstants.APP_BUNDLE_ID);
+                Thread.sleep(500);
+                System.out.println("🔄 App soft-restarted (clean navigation state)");
+            } catch (Exception e) {
+                System.out.println("⚠️ activateApp failed: " + e.getMessage());
+                if (!terminated) {
+                    System.out.println("🔄 Session appears dead, reinitializing driver...");
+                    try {
+                        DriverManager.quitDriver();
+                    } catch (Exception ignored) {}
+                    try { Thread.sleep(2000); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+                    DriverManager.initDriver(deviceName, udid, appiumPort, wdaLocalPort);
+                }
             }
         }
 
