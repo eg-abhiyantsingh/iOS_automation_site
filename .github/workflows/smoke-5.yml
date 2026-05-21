@@ -83,16 +83,6 @@ jobs:
           node-version: '18'
 
       # ──────────────────── Caches ────────────────────
-      - name: Cache Appium global modules
-        id: appium-cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            /Users/runner/.npm
-            /Users/runner/.appium
-            /opt/homebrew/lib/node_modules/appium
-          key: appium-v4-large-${{ runner.os }}
-
       - name: Cache WDA derived data
         id: wda-derived-cache
         uses: actions/cache@v4
@@ -108,19 +98,10 @@ jobs:
           key: wda-app-v4-large-${{ runner.os }}
 
       # ──────────────────── Appium ────────────────────
-      - name: Install Appium (skip if cached)
-        if: steps.appium-cache.outputs.cache-hit != 'true'
+      - name: Install Appium
         run: |
-          npm install -g appium@next > /dev/null 2>&1
-          appium driver install xcuitest > /dev/null 2>&1
-          echo "Appium $(appium --version) installed"
-
-      - name: Verify Appium ready
-        run: |
-          if ! command -v appium >/dev/null 2>&1; then
-            npm install -g appium@next > /dev/null 2>&1
-            appium driver install xcuitest > /dev/null 2>&1
-          fi
+          npm install -g appium@next > /dev/null 2>&1 || npm install -g appium@next
+          appium driver install xcuitest > /dev/null 2>&1 || true
           appium --version
 
       # ──────────────────── Parallel prep ────────────────────
