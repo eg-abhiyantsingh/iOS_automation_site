@@ -2934,34 +2934,65 @@ public class AssetPage extends BasePage {
             originalWait = java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT);
         }
         try {
-            // Dashboard specific: Has tab bar with Assets/Locations AND building.2 icon
-            // This distinguishes it from Site Selection page
+            // Schedule-screen NEGATIVE signal: if we see "View Sites" button or
+            // "No scheduled work today" / "Schedule" header, we are NOT on Dashboard.
+            // Both Schedule and Dashboard share the bottom-nav `building.2` icon, so
+            // the old fall-through-to-icon check was a false positive. CI run
+            // 26162229242 Issues P2 every test failed for 7.5min straight because
+            // detectCurrentScreen routed Schedule → DASHBOARD → tapped Issues which
+            // doesn't exist on Schedule → 420s timeout × 50 tests = 6h cap.
+            try {
+                List<WebElement> scheduleSignals = driver.findElements(
+                    AppiumBy.iOSNsPredicateString(
+                        "(label == 'View Sites' OR name == 'View Sites' OR " +
+                        " label == 'Schedule' OR name == 'Schedule' OR " +
+                        " label CONTAINS 'No scheduled work' OR name CONTAINS 'No scheduled work')"
+                    )
+                );
+                if (!scheduleSignals.isEmpty()) {
+                    System.out.println("   NOT Dashboard — Schedule screen detected (View Sites / Schedule / No scheduled work present)");
+                    return false;
+                }
+            } catch (Exception e) { /* if check fails, fall through */ }
 
-            // Check for Assets tab/button (bottom tab bar)
+            // Dashboard POSITIVE signal: greeting text or Quick Actions section.
+            // building.2 alone is not enough (shared with Schedule). Require one of:
+            //   English: 'Welcome to' / 'Quick Actions'
+            //   French:  'Bienvenue sur' / 'Actions rapides'
+            try {
+                driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND " +
+                    "(label CONTAINS[c] 'Welcome to' OR label == 'Quick Actions' OR " +
+                    " label CONTAINS[c] 'Bienvenue sur' OR label CONTAINS[c] 'Actions rapides')"));
+                System.out.println("   Dashboard detected (greeting / Quick Actions text present)");
+                return true;
+            } catch (Exception eGreet) { /* try icon-based fallback */ }
+
+            // Fallback (legacy): Assets tab OR building.2 icon. Kept for compatibility
+            // when the greeting text rolls off-screen during scroll, but the schedule
+            // negative-signal above already gated against Schedule false positives.
             boolean hasAssetsTab = false;
             try {
                 List<WebElement> assetsElements = driver.findElements(
                     AppiumBy.iOSNsPredicateString(
-                        "(name == 'Assets' OR label == 'Assets') AND type == 'XCUIElementTypeButton'"
+                        "(name == 'Assets' OR label == 'Assets' OR " +
+                        " name == 'Actifs' OR label == 'Actifs') AND " +
+                        "type == 'XCUIElementTypeButton'"
                     )
                 );
                 hasAssetsTab = !assetsElements.isEmpty();
             } catch (Exception e) {}
 
-            // Check for building.2 icon (dashboard indicator)
             boolean hasBuildingIcon = false;
             try {
                 driver.findElement(AppiumBy.accessibilityId("building.2"));
                 hasBuildingIcon = true;
             } catch (Exception e) {}
 
-            // Dashboard = has Assets tab OR building icon
             boolean isDashboard = hasAssetsTab || hasBuildingIcon;
-
             if (isDashboard) {
-                System.out.println("   Dashboard detected (Assets tab: " + hasAssetsTab + ", Building icon: " + hasBuildingIcon + ")");
+                System.out.println("   Dashboard detected via fallback (Assets tab: " + hasAssetsTab + ", Building icon: " + hasBuildingIcon + ")");
             }
-
             return isDashboard;
         } catch (Exception e) {
             return false;

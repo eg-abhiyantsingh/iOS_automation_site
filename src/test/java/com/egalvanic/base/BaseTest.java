@@ -307,6 +307,27 @@ public class BaseTest {
                 }
             } catch (Exception notSite) { /* not on Site Selection */ }
 
+            // Schedule screen: after login the app sometimes lands on Schedule
+            // (calendar view with 'View Sites' button) instead of Dashboard.
+            // Tap 'View Sites' to navigate to Site Selection, then pick a site.
+            // Was the root cause of Issues P2 / Site Visit / most Asset suites
+            // hitting the 6h cap in CI run 26162229242 — every test failed
+            // because tapOnIssuesButton couldn't find Issues on Schedule.
+            try {
+                if (siteSelectionPage.isScheduleScreenDisplayed()) {
+                    System.out.println("🧭 Auto-advance: on Schedule screen, tapping View Sites");
+                    siteSelectionPage.clickViewSites();
+                    try { Thread.sleep(1200); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
+                    if (siteSelectionPage.isSiteListDisplayed()) {
+                        String site = siteSelectionPage.selectFirstSiteFast();
+                        if (site == null) {
+                            try { siteSelectionPage.selectFirstSite(); } catch (Exception ignored) {}
+                        }
+                        siteSelectionPage.waitForDashboardReady();
+                    }
+                }
+            } catch (Exception notSched) { /* not on Schedule */ }
+
             if (isOnDashboardDirect(d)) {
                 System.out.println("✅ Auto-advance: reached Dashboard");
                 // ROOT-CAUSE FIX: SiteLanguageController auto-switches the app's
@@ -702,7 +723,19 @@ public class BaseTest {
         }
 
         try {
-            // Check DASHBOARD FIRST — most common state with noReset=true
+            // Check SCHEDULE before DASHBOARD — Schedule shares the `building.2`
+            // bottom-nav icon with Dashboard, so the dashboard check used to
+            // false-positive on Schedule. Now isDashboardDisplayed has a negative
+            // signal for View Sites etc., but we still check Schedule first so
+            // callers can short-circuit Schedule→Dashboard navigation explicitly.
+            try {
+                if (siteSelectionPage.isScheduleScreenDisplayed()) {
+                    System.out.println("   → Schedule Screen");
+                    return "SCHEDULE";
+                }
+            } catch (Exception e) {}
+
+            // Check DASHBOARD — most common state with noReset=true
             try {
                 if (assetPage.isDashboardDisplayed()) {
                     System.out.println("   → Dashboard (logged in)");
