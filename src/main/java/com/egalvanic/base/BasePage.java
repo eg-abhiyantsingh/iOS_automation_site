@@ -248,29 +248,48 @@ public abstract class BasePage {
      * isKeyboardShown() after each. Returns silently when keyboard is
      * absent. Used everywhere — do NOT call mobile:hideKeyboard directly.
      *
+     * Login-form guard: when a "Sign In"/"Connexion" button is visible we
+     * are on the auth screen — pressing Return on a focused Email/Password
+     * field submits the form prematurely. We narrow the Return-key skip
+     * to that case only; for every other screen Return is the standard
+     * iOS gesture and dismisses the keyboard reliably.
+     *
      * Strategies (each verifies):
-     *   1a/b/c: mobile:hideKeyboard with strategy={tapOutside,swipeDown,pressKey}
-     *   1d: plain mobile:hideKeyboard (default)
-     *   2:  Tap Done/Return/Go/Search/Next on keyboard (incl. French)
-     *   3:  sendKeys("\n") to the focused text input
-     *   4:  Coordinate tap at Y=10 (status-bar safe zone)
+     *   1a/b: mobile:hideKeyboard with strategy={tapOutside,swipeDown}
+     *   1c: plain mobile:hideKeyboard (default)
+     *   2:  Coordinate tap in the safe zone above the keyboard (NOT the
+     *       status bar — status-bar taps are absorbed by the system and
+     *       never reach the app, so they cannot dismiss the keyboard).
+     *   3:  Tap a static-text label sitting above the keyboard (kills the
+     *       text-field's first-responder without triggering any control).
+     *   4:  Tap Done/Terminé on the keyboard accessory bar.
+     *   5:  sendKeys("\n") to the focused text input (skipped on the login
+     *       screen to avoid form submission with empty/partial creds).
+     *   6:  Short scroll swipe — iOS dismisses the keyboard on user scroll.
      */
     public void dismissKeyboard() {
         if (!isKeyboardShown()) {
             return;
         }
 
-        // Strategy 1a/b: mobile:hideKeyboard with non-destructive strategies only.
-        // CRITICAL: do NOT use strategy="pressKey",key="return" here — pressing
-        // Return on a focused TextField/SecureTextField submits the form (e.g.,
-        // logs in with empty fields) BEFORE the test has finished typing. Caused
-        // login regression in TC_ISS_002-010 (commit 0ee4422 brought it in).
+        // Detect login-form context ONCE — drives which strategies are safe.
+        boolean loginContext = false;
+        try {
+            driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND visible == 1 AND " +
+                "(label CONTAINS[c] 'Sign In' OR label CONTAINS[c] 'Sign in' OR " +
+                " name CONTAINS[c] 'Sign In' OR name CONTAINS[c] 'signIn' OR " +
+                " label CONTAINS[c] 'Connexion' OR label CONTAINS[c] 'Se connecter')"));
+            loginContext = true;
+        } catch (Exception ignored) {}
+
+        // Strategy 1a/b: mobile:hideKeyboard with non-destructive strategies
         for (String strategy : new String[]{"tapOutside", "swipeDown"}) {
             try {
                 java.util.Map<String, Object> args = new java.util.HashMap<>();
                 args.put("strategy", strategy);
                 driver.executeScript("mobile: hideKeyboard", args);
-                sleep(200);
+                sleep(250);
                 if (!isKeyboardShown()) {
                     System.out.println("   Keyboard dismissed via mobile:hideKeyboard[" + strategy + "]");
                     return;
@@ -278,81 +297,146 @@ public abstract class BasePage {
             } catch (Exception ignored) { /* try next */ }
         }
 
-        // Strategy 1d: Plain mobile:hideKeyboard (default strategy, no args)
+        // Strategy 1c: Plain mobile:hideKeyboard (default strategy, no args)
         try {
             driver.executeScript("mobile: hideKeyboard");
-            sleep(200);
+            sleep(250);
             if (!isKeyboardShown()) {
                 System.out.println("   Keyboard dismissed via mobile:hideKeyboard (default)");
                 return;
             }
         } catch (Exception ignored) {}
 
-        // Strategy 2: Tap Done/Return/Go key on keyboard. Filter Y > 40% screen
-        // to avoid nav-bar Done buttons. SKIP this strategy entirely if the
-        // focused field is a TextField/SecureTextField/SearchField — Return/Go
-        // on those fields SUBMITS the form (login-form regression).
-        // Safe for TextView (multi-line) where Return is a newline.
-        boolean focusedIsForm = false;
+        // Compute the keyboard's top edge so we can target a tap point strictly above it.
+        int screenWidth = driver.manage().window().getSize().getWidth();
+        int screenHeight = driver.manage().window().getSize().getHeight();
+        int keyboardTopY = (int) (screenHeight * 0.55); // sane default
         try {
-            driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                "(type == 'XCUIElementTypeTextField' OR " +
-                " type == 'XCUIElementTypeSecureTextField' OR " +
-                " type == 'XCUIElementTypeSearchField') AND hasKeyboardFocus == 1"));
-            focusedIsForm = true;
+            WebElement kb = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeKeyboard' AND visible == 1"));
+            int kbY = kb.getLocation().getY();
+            if (kbY > 100 && kbY < screenHeight) {
+                keyboardTopY = kbY;
+            }
         } catch (Exception ignored) {}
-        if (!focusedIsForm) {
-            try {
-                int screenHeight = driver.manage().window().getSize().getHeight();
-                int minY = (int) (screenHeight * 0.4);
-                java.util.List<WebElement> doneBtns = driver.findElements(
-                    io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeKey') AND " +
-                    "(label == 'Done' OR label == 'Terminé' OR label == 'OK')"));
-                for (WebElement btn : doneBtns) {
-                    try {
-                        int btnY = btn.getLocation().getY();
-                        if (btnY > minY) {
-                            btn.click();
-                            sleep(250);
-                            if (!isKeyboardShown()) {
-                                System.out.println("   Keyboard dismissed via Done/Terminé key (Y=" + btnY + ")");
-                                return;
-                            }
+
+        // Strategy 2: Coordinate tap in the safe zone (well below nav bar, well above keyboard).
+        // This is the workhorse for TextField/SecureTextField — a plain background tap
+        // makes the focused field resign first responder and the keyboard slides away.
+        try {
+            int safeY = Math.max(140, keyboardTopY - 80);
+            if (safeY < keyboardTopY && safeY > 120) {
+                PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
+                Sequence tap = new Sequence(finger, 0);
+                tap.addAction(finger.createPointerMove(Duration.ZERO,
+                    PointerInput.Origin.viewport(), screenWidth / 2, safeY));
+                tap.addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()));
+                tap.addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
+                driver.perform(java.util.Collections.singletonList(tap));
+                sleep(300);
+                if (!isKeyboardShown()) {
+                    System.out.println("   Keyboard dismissed via safe-zone tap (X=" +
+                        (screenWidth / 2) + ", Y=" + safeY + ")");
+                    return;
+                }
+            }
+        } catch (Exception ignored) {}
+
+        // Strategy 3: Tap a static-text label sitting in the safe zone. StaticText
+        // is non-interactive in iOS — tapping it cannot trigger navigation, but it
+        // still steals first-responder away from the focused field.
+        try {
+            java.util.List<WebElement> labels = driver.findElements(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == 1"));
+            for (WebElement lbl : labels) {
+                try {
+                    int lblY = lbl.getLocation().getY();
+                    int lblH = lbl.getSize().getHeight();
+                    if (lblY > 130 && lblY + lblH < keyboardTopY - 20 && lblH > 0 && lblH < 60) {
+                        int cx = lbl.getLocation().getX() + Math.max(5, lbl.getSize().getWidth() / 2);
+                        int cy = lblY + Math.max(5, lblH / 2);
+                        PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
+                        Sequence tap = new Sequence(finger, 0);
+                        tap.addAction(finger.createPointerMove(Duration.ZERO,
+                            PointerInput.Origin.viewport(), cx, cy));
+                        tap.addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()));
+                        tap.addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
+                        driver.perform(java.util.Collections.singletonList(tap));
+                        sleep(300);
+                        if (!isKeyboardShown()) {
+                            System.out.println("   Keyboard dismissed via StaticText tap (Y=" + lblY + ")");
+                            return;
                         }
-                    } catch (Exception ignored) {}
+                        break; // one safe-zone label is enough; don't spam taps
+                    }
+                } catch (Exception ignored) {}
+            }
+        } catch (Exception ignored) {}
+
+        // Strategy 4: Tap Done/Terminé on keyboard accessory bar. Filter Y > 40%
+        // screen to avoid nav-bar Done buttons.
+        try {
+            int minY = (int) (screenHeight * 0.4);
+            java.util.List<WebElement> doneBtns = driver.findElements(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeKey') AND " +
+                "(label == 'Done' OR label == 'Terminé' OR label == 'OK' OR label == 'return')"));
+            for (WebElement btn : doneBtns) {
+                try {
+                    int btnY = btn.getLocation().getY();
+                    if (btnY > minY) {
+                        btn.click();
+                        sleep(300);
+                        if (!isKeyboardShown()) {
+                            System.out.println("   Keyboard dismissed via Done/Terminé key (Y=" + btnY + ")");
+                            return;
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
+        } catch (Exception ignored) {}
+
+        // Strategy 5: sendKeys("\n") to the focused text input — but ONLY when
+        // we are NOT on the login screen. On non-login screens this is the
+        // natural keyboard-dismiss gesture and does not submit the form.
+        if (!loginContext) {
+            try {
+                WebElement focused = driver.findElement(
+                    io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeTextField' OR " +
+                    " type == 'XCUIElementTypeTextView' OR " +
+                    " type == 'XCUIElementTypeSecureTextField') AND hasKeyboardFocus == 1"));
+                focused.sendKeys("\n");
+                sleep(300);
+                if (!isKeyboardShown()) {
+                    System.out.println("   Keyboard dismissed via \\n to focused field (non-login)");
+                    return;
                 }
             } catch (Exception ignored) {}
         }
 
-        // Strategy 3: sendKeys("\n") ONLY to TextView (multi-line) — NOT TextField/
-        // SecureTextField/SearchField, where Return submits the form (login regression).
+        // Strategy 6: Short scroll swipe in the safe zone — iOS auto-dismisses
+        // the keyboard when the user scrolls a form view.
         try {
-            WebElement activeField = driver.findElement(
-                io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeTextView' AND hasKeyboardFocus == 1"));
-            activeField.sendKeys("\n");
-            sleep(200);
-            if (!isKeyboardShown()) {
-                System.out.println("   Keyboard dismissed via \\n to focused TextView");
-                return;
-            }
-        } catch (Exception ignored) {}
-
-        // Strategy 4: Coordinate tap at Y=10 (status-bar, guaranteed safe)
-        try {
-            int screenWidth = driver.manage().window().getSize().getWidth();
-            PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
-            Sequence tap = new Sequence(finger, 0);
-            tap.addAction(finger.createPointerMove(Duration.ZERO,
-                PointerInput.Origin.viewport(), screenWidth / 2, 10));
-            tap.addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()));
-            tap.addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
-            driver.perform(java.util.Collections.singletonList(tap));
-            sleep(250);
-            if (!isKeyboardShown()) {
-                System.out.println("   Keyboard dismissed via status-bar tap (Y=10)");
-                return;
+            int startX = screenWidth / 2;
+            int startY = Math.max(180, keyboardTopY - 100);
+            int endY   = Math.max(140, keyboardTopY - 180);
+            if (startY > endY + 20) {
+                PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
+                Sequence swipe = new Sequence(finger, 0);
+                swipe.addAction(finger.createPointerMove(Duration.ZERO,
+                    PointerInput.Origin.viewport(), startX, startY));
+                swipe.addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()));
+                swipe.addAction(finger.createPointerMove(Duration.ofMillis(250),
+                    PointerInput.Origin.viewport(), startX, endY));
+                swipe.addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
+                driver.perform(java.util.Collections.singletonList(swipe));
+                sleep(400);
+                if (!isKeyboardShown()) {
+                    System.out.println("   Keyboard dismissed via short scroll swipe");
+                    return;
+                }
             }
         } catch (Exception ignored) {}
 

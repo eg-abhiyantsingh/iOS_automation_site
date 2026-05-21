@@ -8093,93 +8093,134 @@ public class AssetPage extends BasePage {
      * not grow". See memory: feedback_dismiss_keyboard_after_type.md.
      */
     public void clickEditSave() {
-        // FAST dismiss via Return key first (this is asset Edit screen — not a
-        // login form, so pressing Return is safe and faster than tapOutside/
-        // swipeDown which take ~1-2s combined). If that fails, fall back to
-        // the bulletproof BasePage.dismissKeyboard() cascade.
-        //
-        // CRITICAL: per memory feedback_dismiss_keyboard_after_type.md +
-        // BasePage.dismissKeyboard comment, do NOT use Return globally —
-        // pressing Return on a focused login Email/Password field SUBMITS
-        // the form prematurely. Asset-edit context is safe.
-        boolean fastDismissed = false;
+        // Dismiss the keyboard FIRST. Asset Edit is not the login form, so we
+        // could press Return directly — but BasePage.dismissKeyboard() already
+        // handles that (Return only when not on the Sign In screen) and has
+        // strong fallbacks (safe-zone tap, StaticText tap, swipe). Going
+        // through it once gives us the full cascade with verification.
+        try { dismissKeyboard(); } catch (Exception ignored) { /* not fatal */ }
+        sleep(200);
+
+        // Pull the keyboard's top edge so we never click a Save button that is
+        // visually underneath it. iOS taps go to the topmost view at that
+        // coordinate — a Save button whose center sits inside the keyboard
+        // frame will receive zero clicks even though Appium reports success.
+        int screenHeight = driver.manage().window().getSize().getHeight();
+        int kbTopProbe = screenHeight + 1; // "no keyboard" sentinel
         try {
-            java.util.Map<String, Object> args = new java.util.HashMap<>();
-            args.put("strategy", "pressKey");
-            args.put("key", "return");
-            driver.executeScript("mobile: hideKeyboard", args);
-            fastDismissed = true;
-            sleep(100);
-        } catch (Exception ignored) { /* fall through */ }
+            WebElement kb = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeKeyboard' AND visible == 1"));
+            int kbY = kb.getLocation().getY();
+            if (kbY > 100 && kbY < screenHeight) {
+                kbTopProbe = kbY;
+                System.out.println("   ⚠️ Keyboard still up after dismiss — top edge Y=" + kbY +
+                    " (will avoid Save buttons below this Y)");
+            }
+        } catch (Exception ignored) { /* keyboard genuinely gone */ }
+        final int keyboardTopY = kbTopProbe;
 
-        if (!fastDismissed) {
-            try { dismissKeyboard(); } catch (Exception ignored) { /* not fatal */ }
-        }
-        sleep(150);
+        // Helper lambda (inline): is the element's center above the keyboard?
+        java.util.function.Predicate<WebElement> aboveKeyboard = el -> {
+            try {
+                int cy = el.getLocation().getY() + el.getSize().getHeight() / 2;
+                return cy < keyboardTopY - 4;
+            } catch (Exception e) {
+                return true;
+            }
+        };
 
-        // Strategy 1: accessibilityId exactly "Save"
+        // Strategy 1: accessibilityId exactly "Save" — only click if above keyboard
         try {
             WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(3));
             WebElement saveBtn = wait.until(ExpectedConditions.elementToBeClickable(
                 AppiumBy.accessibilityId("Save")));
-            saveBtn.click();
-            System.out.println("✅ Clicked Save on Edit screen (accessibilityId='Save')");
-            sleep(400);
-            return;
+            if (aboveKeyboard.test(saveBtn)) {
+                saveBtn.click();
+                System.out.println("✅ Clicked Save on Edit screen (accessibilityId='Save')");
+                sleep(400);
+                return;
+            }
+            System.out.println("   Strategy 1: Save found but under keyboard — skipping");
         } catch (Exception ignored) { /* try next */ }
 
-        // Strategy 2: accessibilityId "Save Changes" (most edit screens use this)
+        // Strategy 2: accessibilityId "Save Changes" — only click if above keyboard
         try {
             WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(3));
             WebElement saveBtn = wait.until(ExpectedConditions.elementToBeClickable(
                 AppiumBy.accessibilityId("Save Changes")));
-            saveBtn.click();
-            System.out.println("✅ Clicked Save Changes on Edit screen");
-            sleep(400);
-            return;
+            if (aboveKeyboard.test(saveBtn)) {
+                saveBtn.click();
+                System.out.println("✅ Clicked Save Changes on Edit screen");
+                sleep(400);
+                return;
+            }
+            System.out.println("   Strategy 2: Save Changes found but under keyboard — skipping");
         } catch (Exception ignored) { /* try next */ }
 
-        // Strategy 3: predicate match — any Button whose name/label contains 'Save'
-        //   (covers 'Save', 'Save Changes', 'Save & Close', 'Enregistrer' [FR], etc.)
+        // Strategy 3: predicate match — any Button whose name/label contains 'Save'/
+        // 'Enregistrer'. Only click candidates above the keyboard; prefer bottom-most.
         try {
             java.util.List<WebElement> saveButtons = driver.findElements(
                 AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeButton' AND " +
                     "(name CONTAINS[c] 'Save' OR label CONTAINS[c] 'Save' OR " +
                     " name CONTAINS[c] 'Enregistrer' OR label CONTAINS[c] 'Enregistrer')"));
-            if (!saveButtons.isEmpty()) {
-                // Prefer the bottom-most match (Save is typically at form bottom)
-                WebElement target = saveButtons.get(0);
-                int maxY = target.getLocation().getY();
-                for (WebElement b : saveButtons) {
-                    int y = b.getLocation().getY();
-                    if (y > maxY) { maxY = y; target = b; }
-                }
+            WebElement target = null;
+            int targetY = -1;
+            for (WebElement b : saveButtons) {
+                if (!aboveKeyboard.test(b)) continue;
+                int y = b.getLocation().getY();
+                if (y > targetY) { targetY = y; target = b; }
+            }
+            if (target != null) {
                 target.click();
-                System.out.println("✅ Clicked Save via predicate match (y=" + maxY +
+                System.out.println("✅ Clicked Save via predicate match (y=" + targetY +
                     ", name='" + target.getAttribute("name") + "')");
                 sleep(400);
                 return;
             }
+            if (!saveButtons.isEmpty()) {
+                System.out.println("   Strategy 3: " + saveButtons.size() +
+                    " Save candidates found but all under keyboard");
+            }
         } catch (Exception ignored) { /* fall through */ }
 
-        // Strategy 4: scroll to find Save (it may be below the keyboard / off-screen)
+        // Strategy 4: keyboard is still covering Save — try once more to dismiss,
+        // then scroll the form so Save moves above the (hopefully gone) keyboard.
         try {
+            dismissKeyboard();
+            sleep(250);
             driver.executeScript("mobile: scroll", java.util.Map.of(
                 "direction", "down",
                 "predicateString",
                 "(name CONTAINS[c] 'Save' OR label CONTAINS[c] 'Save') AND type == 'XCUIElementTypeButton'"));
             sleep(300);
+
+            // Recompute keyboard position — it may have moved or finally dismissed
+            int kbTopRetry = screenHeight + 1;
+            try {
+                WebElement kb2 = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeKeyboard' AND visible == 1"));
+                int kbY2 = kb2.getLocation().getY();
+                if (kbY2 > 100 && kbY2 < screenHeight) kbTopRetry = kbY2;
+            } catch (Exception ignored) {}
+            final int kbTopFinal = kbTopRetry;
+
             WebElement scrolledSave = driver.findElement(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND " +
                 "(name CONTAINS[c] 'Save' OR label CONTAINS[c] 'Save')"));
-            scrolledSave.click();
-            System.out.println("✅ Clicked Save after scroll");
-            sleep(400);
-            return;
+            int cy = scrolledSave.getLocation().getY() + scrolledSave.getSize().getHeight() / 2;
+            if (cy < kbTopFinal - 4) {
+                scrolledSave.click();
+                System.out.println("✅ Clicked Save after scroll (cy=" + cy + ", kbTop=" + kbTopFinal + ")");
+                sleep(400);
+                return;
+            }
+            System.out.println("   Strategy 4: Save still under keyboard after scroll (cy=" + cy +
+                ", kbTop=" + kbTopFinal + ")");
         } catch (Exception ignored) { /* nothing left to try */ }
 
-        System.out.println("⚠️ Could not click Save — all 4 strategies failed");
+        System.out.println("⚠️ Could not click Save — keyboard obscured the button on every attempt");
     }
 
     /**
