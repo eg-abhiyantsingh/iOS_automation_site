@@ -252,49 +252,147 @@ public class AssetPage extends BasePage {
             // No Close button, that's fine - we might already be on Asset List
         }
         
-        // CORRECT WAY: Assets tab button has name="list.bullet" and label="Assets"
-        // Must use predicate to find button by label, not accessibility ID
+        // ROOT-CAUSE FIX (UC1 state pollution):
+        // Strategy 1 was `label == 'Assets' AND type == 'XCUIElementTypeButton'`,
+        // which can ALSO match the Dashboard's "Quick Actions → Assets" CARD —
+        // tapping that card routes through Sites picker. The bottom-nav tab icon
+        // has accessibility id "list.bullet" which is unique. So:
+        //   Strategy 1: accessibilityId('list.bullet')    ← UNIQUE bottom-nav
+        //   Strategy 2: label == 'Assets' Button          ← may misroute
+        //   Strategy 3: Site tab → list.bullet            ← last resort
+        // After each click we verify with up to 3.5s for either:
+        //   ✅ XCUIElementTypeCell rendered (asset rows present, even empty list
+        //     has a search header cell)
+        //   ❌ 'Create New Site'/'Select Site'/'Search sites' (Sites picker)
+        // On misroute → dismiss Sites picker via Cancel + fall through.
+
+        // Strategy 1: accessibilityId list.bullet (unique to bottom-nav Assets tab)
+        try {
+            WebElement assetsTab = driver.findElement(AppiumBy.accessibilityId("list.bullet"));
+            assetsTab.click();
+            sleep(300);
+            if (verifyOnAssetList("list.bullet")) return;
+        } catch (Exception e1) {
+            System.out.println("⚠️ Could not find list.bullet: " + e1.getMessage());
+        }
+
+        // Strategy 2: label == 'Assets' Button (broader — may match Quick Actions)
         try {
             WebElement assetsTab = driver.findElement(
                 AppiumBy.iOSNsPredicateString("label == 'Assets' AND type == 'XCUIElementTypeButton'")
             );
             assetsTab.click();
-            sleep(300); // OPTIMIZED: 500ms -> 300ms
-            System.out.println("✅ Asset List opened");
-            return;
-        } catch (Exception e) {
-            System.out.println("⚠️ Could not find Assets tab by label: " + e.getMessage());
-        }
-        
-        // Fallback: try by accessibility ID "list.bullet" (the icon name)
-        try {
-            WebElement assetsTab = driver.findElement(AppiumBy.accessibilityId("list.bullet"));
-            assetsTab.click();
-            sleep(300); // OPTIMIZED: 500ms -> 300ms
-            System.out.println("✅ Asset List opened (via list.bullet)");
-            return;
+            sleep(300);
+            if (verifyOnAssetList("label='Assets'")) return;
         } catch (Exception e2) {
-            System.out.println("⚠️ Could not find list.bullet: " + e2.getMessage());
+            System.out.println("⚠️ Could not find Assets tab by label: " + e2.getMessage());
         }
-        
-        // Last resort: Try clicking Site/house tab first, then Assets
+
+        // Strategy 3: Site tab → list.bullet (re-root from bottom-nav baseline)
         try {
-            System.out.println("⚠️ Trying Site tab first...");
+            System.out.println("⚠️ Trying Site tab first then list.bullet...");
             WebElement siteTab = driver.findElement(
                 AppiumBy.iOSNsPredicateString("label == 'Site' AND type == 'XCUIElementTypeButton'")
             );
             siteTab.click();
-            sleep(300); // OPTIMIZED: 500ms -> 300ms
-            
-            WebElement assetsTab = driver.findElement(
-                AppiumBy.iOSNsPredicateString("label == 'Assets' AND type == 'XCUIElementTypeButton'")
-            );
+            sleep(300);
+
+            WebElement assetsTab = driver.findElement(AppiumBy.accessibilityId("list.bullet"));
             assetsTab.click();
-            sleep(300); // OPTIMIZED: 500ms -> 300ms
-            System.out.println("✅ Asset List opened (via Site tab)");
+            sleep(300);
+            if (verifyOnAssetList("Site→list.bullet")) return;
         } catch (Exception e3) {
-            System.out.println("⚠️ Could not open Asset List: " + e3.getMessage());
+            System.out.println("⚠️ Could not open Asset List via Site tab: " + e3.getMessage());
         }
+    }
+
+    /**
+     * Shared post-click verification: did we land on the Asset List?
+     * Positive: 1+ XCUIElementTypeCell visible (asset row, even on empty list there's
+     *   usually a search field cell).
+     * Negative: any of [Create New Site, Select Site, Search sites] visible = Sites picker.
+     * Returns true on positive landing. On negative landing, taps Cancel and returns false.
+     * On no-signal timeout, returns false (caller falls through to next strategy).
+     *
+     * 3.5s wait is longer than my previous 2s — the Sites picker fades in over animation
+     * frames and was missing the 2s window in v13 (selectFirstAsset later detected it
+     * ~50ms after navigateToAssetListTurbo returned).
+     */
+    private boolean verifyOnAssetList(String strategyName) {
+        // Manual polling loop — WebDriverWait.until() can't distinguish "keep waiting"
+        // from "abort early" (both map to falsy), so we can't use it to exit on a
+        // negative signal. Roll our own with explicit positive/negative checks.
+        long deadline = System.currentTimeMillis() + 3500;
+        boolean sitesPickerSeen = false;
+        org.openqa.selenium.By cellsLocator = AppiumBy.iOSNsPredicateString(
+            "type == 'XCUIElementTypeCell'");
+        org.openqa.selenium.By sitesPickerLocator = AppiumBy.iOSNsPredicateString(
+            "(name == 'Create New Site' OR name == 'Select Site' OR " +
+            "label == 'Create New Site' OR label == 'Select Site' OR " +
+            "label CONTAINS[c] 'Search sites' OR " +
+            "name CONTAINS[c] 'Search sites')");
+
+        while (System.currentTimeMillis() < deadline) {
+            try {
+                // Positive: cell visible → on Asset List (or any list-shaped screen)
+                if (!driver.findElements(cellsLocator).isEmpty()) {
+                    // Double-check: cells could be Sites-picker rows (sites also render
+                    // in XCUIElementTypeCell). If Sites picker indicators are ALSO
+                    // present, it's the Sites picker, NOT Asset list.
+                    if (driver.findElements(sitesPickerLocator).isEmpty()) {
+                        System.out.println("✅ Asset List opened (" + strategyName + ", cells rendered)");
+                        return true;
+                    } else {
+                        sitesPickerSeen = true;
+                        break;
+                    }
+                }
+                // Negative: Sites picker detected → break out to dismiss
+                if (!driver.findElements(sitesPickerLocator).isEmpty()) {
+                    sitesPickerSeen = true;
+                    break;
+                }
+            } catch (Exception pollEx) {
+                // Transient DOM error during animation — keep polling
+            }
+            sleep(150);
+        }
+
+        if (sitesPickerSeen) {
+            System.out.println("⚠️ " + strategyName + ": landed on Sites picker — dismissing");
+            // Try Cancel button first
+            try {
+                driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "label == 'Cancel' AND type == 'XCUIElementTypeButton'")).click();
+                sleep(500);
+            } catch (Exception noCancel) {
+                // No Cancel button; try swipe-down to dismiss modal sheet
+                try {
+                    org.openqa.selenium.Dimension size = driver.manage().window().getSize();
+                    org.openqa.selenium.interactions.PointerInput finger =
+                        new org.openqa.selenium.interactions.PointerInput(
+                            org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
+                    org.openqa.selenium.interactions.Sequence swipe =
+                        new org.openqa.selenium.interactions.Sequence(finger, 0);
+                    int midX = size.getWidth() / 2;
+                    swipe.addAction(finger.createPointerMove(Duration.ZERO,
+                        org.openqa.selenium.interactions.PointerInput.Origin.viewport(),
+                        midX, size.getHeight() / 4));
+                    swipe.addAction(finger.createPointerDown(0));
+                    swipe.addAction(finger.createPointerMove(Duration.ofMillis(300),
+                        org.openqa.selenium.interactions.PointerInput.Origin.viewport(),
+                        midX, size.getHeight() * 3 / 4));
+                    swipe.addAction(finger.createPointerUp(0));
+                    ((io.appium.java_client.ios.IOSDriver) driver).perform(
+                        java.util.Collections.singletonList(swipe));
+                    sleep(500);
+                } catch (Exception ignoreSwipe) {}
+            }
+            return false;
+        }
+
+        System.out.println("⚠️ " + strategyName + ": no cells in 3.5s — possibly wrong screen, trying next");
+        return false;
     }
     
 

@@ -1081,11 +1081,62 @@ public class SiteSelectionPage extends BasePage {
                 }
             }
             
+            // FALLBACK (UC1 v15): If Sites button still not found, we're likely on
+            // a non-Dashboard screen (Asset List / Edit / Issue Detail / etc.) where
+            // the Sites button (building.2) doesn't render. The bottom-nav Site tab
+            // (name='house') takes us back to Dashboard, where Sites button IS.
+            // After tapping Site tab, retry the original strategies.
+            if (!clicked) {
+                System.out.println("⚠️ Sites button not found on current screen — trying Site/house tab to return to Dashboard");
+                try {
+                    WebElement siteTab = driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "name == 'house' AND type == 'XCUIElementTypeButton'"));
+                    siteTab.click();
+                    sleep(800);  // give Dashboard time to render Sites Quick Action card
+                    System.out.println("✅ Returned to Dashboard via Site tab — retrying Sites button");
+
+                    // Retry: building.2 accessibility ID first
+                    try {
+                        if (isElementDisplayed(sitesButtonOriginal)) {
+                            System.out.println("✅ Found Sites button (post-Dashboard nav) via building.2");
+                            click(sitesButtonOriginal);
+                            clicked = true;
+                        }
+                    } catch (Exception ignored) {}
+
+                    if (!clicked) {
+                        // Retry: scan all buttons for building.2/Sites (excluding house/Site)
+                        List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeButton'"));
+                        for (WebElement btn : buttons) {
+                            String name = btn.getAttribute("name");
+                            String label = btn.getAttribute("label");
+                            if (name != null && !name.equals("house") && !name.equals("Site") &&
+                                (name.contains("building") || name.equals("Sites"))) {
+                                System.out.println("✅ Found Sites button (post-Dashboard nav) by name: " + name);
+                                btn.click();
+                                clicked = true;
+                                break;
+                            }
+                            if (label != null && !label.equals("Site") &&
+                                label.toLowerCase().contains("sites")) {
+                                System.out.println("✅ Found Sites button (post-Dashboard nav) by label: " + label);
+                                btn.click();
+                                clicked = true;
+                                break;
+                            }
+                        }
+                    }
+                } catch (Exception siteTabEx) {
+                    System.out.println("   Site/house tab not found either: " + siteTabEx.getMessage());
+                }
+            }
+
             if (!clicked) {
                 System.out.println("⚠️ Sites button not found with any strategy");
                 throw new RuntimeException("Sites button not found");
             }
-            
+
         } catch (Exception e) {
             System.out.println("⚠️ clickSitesButton error: " + e.getMessage());
             throw e;
