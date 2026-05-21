@@ -3084,7 +3084,7 @@ public class SiteSelectionPage extends BasePage {
         // Poll up to 3 seconds — tab bar may not be rendered immediately after
         // site selection / navigation, and findElements returns instantly with []
         try {
-            int sh = driver.manage().window().getHeight();
+            int sh = driver.manage().window().getSize().getHeight();
             int tabAreaY = (int)(sh * 0.85);
             for (int poll = 0; poll < 6; poll++) {
                 java.util.List<org.openqa.selenium.WebElement> btns = driver.findElements(
