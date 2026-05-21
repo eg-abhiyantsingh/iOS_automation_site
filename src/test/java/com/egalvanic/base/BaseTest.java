@@ -218,16 +218,52 @@ public class BaseTest {
                 return;
             }
 
-            // Welcome page: has accessibilityId 'Continue' button.
+            // Welcome page detection — STRICTER than just 'Continue' button.
+            // Why: when app boots on Login screen with "Invalid email or password" error,
+            // there's also a 'Change Company' button up top that some queries may catch as
+            // a 'Continue'-like flow, AND the page has an Email TextField as the first
+            // XCUIElementTypeTextField. Previous logic typed 'acme.egalvanic' into the
+            // Email field, causing 475 cascading CI failures (run 26162229242).
+            //
+            // Real Welcome screen signals (need at least ONE):
+            //   - Static text label "Welcome" or "Bienvenue"
+            //   - TextField with placeholder containing "acme.egalvanic"
+            //   - StaticText label "Company Code"
+            //   - The Continue button must NOT be next to a 'Sign In' button (Login marker)
+            boolean isWelcomePage = false;
             try {
-                org.openqa.selenium.WebElement continueBtn = d.findElement(
-                    io.appium.java_client.AppiumBy.accessibilityId("Continue"));
-                if (continueBtn != null) {
-                    System.out.println("🧭 Auto-advance: on Welcome page, submitting company code");
+                d.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND " +
+                    "(label == 'Welcome' OR label == 'Bienvenue' OR " +
+                    " label CONTAINS[c] 'Company Code' OR label CONTAINS[c] 'Code société' OR " +
+                    " label CONTAINS[c] 'company code')"));
+                isWelcomePage = true;
+            } catch (Exception ignored) {}
+            // Strong negative signal: 'Sign In' button means we're on Login page, NOT Welcome
+            boolean signInButtonPresent = false;
+            try {
+                d.findElement(io.appium.java_client.AppiumBy.accessibilityId("Sign In"));
+                signInButtonPresent = true;
+            } catch (Exception ignored) {}
+
+            if (isWelcomePage && !signInButtonPresent) {
+                try {
+                    org.openqa.selenium.WebElement continueBtn = d.findElement(
+                        io.appium.java_client.AppiumBy.accessibilityId("Continue"));
+                    System.out.println("🧭 Auto-advance: on Welcome page (Welcome label present, no Sign In), submitting company code");
                     try {
-                        org.openqa.selenium.WebElement codeField = d.findElement(
-                            io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                        // Prefer the placeholder-specific TextField — never matches Login's Email field
+                        org.openqa.selenium.WebElement codeField;
+                        try {
+                            codeField = d.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                                "type == 'XCUIElementTypeTextField' AND " +
+                                "(value CONTAINS 'acme.egalvanic' OR value == '' OR " +
+                                " name CONTAINS[c] 'company' OR label CONTAINS[c] 'company')"));
+                        } catch (Exception fallback) {
+                            // Fallback only if Welcome was confirmed by static text above
+                            codeField = d.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                                 "type == 'XCUIElementTypeTextField'"));
+                        }
                         codeField.click();
                         codeField.clear();
                         codeField.sendKeys(AppConstants.VALID_COMPANY_CODE);
@@ -236,14 +272,17 @@ public class BaseTest {
                     }
                     try { Thread.sleep(400); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
                     try { continueBtn.click(); } catch (Exception clickEx) {
-                        // Continue may have been disabled — try locating again after type
                         try {
                             d.findElement(io.appium.java_client.AppiumBy.accessibilityId("Continue")).click();
                         } catch (Exception ignored) {}
                     }
                     try { Thread.sleep(1500); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
+                } catch (Exception noContinue) {
+                    System.out.println("   ⚠️ Welcome signals present but no Continue button found");
                 }
-            } catch (Exception notWelcome) { /* not on Welcome page */ }
+            } else if (signInButtonPresent) {
+                System.out.println("🧭 Auto-advance: Sign In present — skipping Welcome path, going to Login");
+            }
 
             // Login page: accessibilityId 'Sign In' button.
             try {
@@ -278,19 +317,22 @@ public class BaseTest {
         }
     }
 
-    /** Direct Dashboard check using locale-independent SF Symbol icon name. */
+    /**
+     * Direct Dashboard check. The bottom-nav `building.2` SF Symbol is shared with
+     * the Schedule screen, so we additionally require a Dashboard-specific text
+     * element ('Welcome to' / 'Bienvenue sur' / 'Quick Actions' / 'Actions rapides').
+     * Without this discrimination, tests that landed on Schedule (e.g. TC_JOB_001,
+     * ATS_ECR_01 in CI run 26162229242) incorrectly thought they were on Dashboard
+     * and then failed at their first module-specific assertion.
+     */
     private boolean isOnDashboardDirect(io.appium.java_client.ios.IOSDriver d) {
         try {
-            d.findElement(io.appium.java_client.AppiumBy.accessibilityId("building.2"));
+            d.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "(label CONTAINS[c] 'Welcome to' OR label == 'Quick Actions' OR " +
+                " label CONTAINS[c] 'Bienvenue sur' OR label CONTAINS[c] 'Actions rapides')"));
             return true;
-        } catch (Exception e) {
-            try {
-                d.findElement(io.appium.java_client.AppiumBy.accessibilityId("arrow.clockwise"));
-                return true;
-            } catch (Exception e2) {
-                return false;
-            }
-        }
+        } catch (Exception e) { return false; }
     }
 
     /**
