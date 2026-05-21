@@ -47,7 +47,7 @@ public class WorkOrderPage extends BasePage {
     private List<WebElement> availableBadges;
 
     // Back button (to return to dashboard)
-    @iOSXCUITFindBy(iOSNsPredicate = "type == 'XCUIElementTypeButton' AND (label == 'Back' OR label CONTAINS 'Dashboard')")
+    @iOSXCUITFindBy(iOSNsPredicate = "type == 'XCUIElementTypeButton' AND ((label == 'Back' OR label == 'Retour') OR label CONTAINS 'Dashboard')")
     private WebElement backButton;
 
     // ================================================================
@@ -1064,7 +1064,7 @@ public class WorkOrderPage extends BasePage {
     public boolean isSessionDetailsBackButtonDisplayed() {
         try {
             List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND (label == 'Back' OR label CONTAINS 'Work Orders' OR label CONTAINS 'back')"
+                "type == 'XCUIElementTypeButton' AND ((label == 'Back' OR label == 'Retour') OR label CONTAINS 'Work Orders' OR label CONTAINS 'back')"
             ));
             boolean found = !buttons.isEmpty();
             System.out.println(found ? "✅ Back button found on Session Details" : "⚠️ Back button not found");
@@ -3121,7 +3121,7 @@ public class WorkOrderPage extends BasePage {
     public boolean isAssetsInRoomDoneButtonDisplayed() {
         try {
             List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND (label == 'Done' OR label == 'Back' OR label CONTAINS 'Work Orders' OR label CONTAINS 'Session')"
+                "type == 'XCUIElementTypeButton' AND ((label == 'Done' OR label == 'Terminé') OR (label == 'Back' OR label == 'Retour') OR label CONTAINS 'Work Orders' OR label CONTAINS 'Session')"
             ));
             boolean found = !buttons.isEmpty();
             System.out.println(found ? "✅ Done/Back button found" : "⚠️ Done/Back button not found");
@@ -3141,7 +3141,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 1: "Done" button
         try {
             List<WebElement> doneButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Done'"
+                "type == 'XCUIElementTypeButton' AND (label == 'Done' OR label == 'Terminé')"
             ));
             if (!doneButtons.isEmpty()) {
                 doneButtons.get(0).click();
@@ -3153,7 +3153,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Back button / chevron (< Work Orders, < Session, Back)
         try {
             WebElement back = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND (label == 'Back' OR label CONTAINS 'back' OR label CONTAINS 'Work Orders' OR label CONTAINS 'Session')"
+                "type == 'XCUIElementTypeButton' AND ((label == 'Back' OR label == 'Retour') OR label CONTAINS 'back' OR label CONTAINS 'Work Orders' OR label CONTAINS 'Session')"
             ));
             back.click();
             System.out.println("✅ Tapped back button on Assets in Room");
@@ -4072,12 +4072,12 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND "
-                + "(label == 'Remove' OR label == 'Confirm' OR label == 'Delete' "
+                + "(label == 'Remove' OR label == 'Confirm' OR (label == 'Delete' OR label == 'Supprimer') "
                 + "OR label == 'Yes' OR label CONTAINS 'Remove')"
             ));
             // Also need a Cancel button for it to be a confirmation dialog
             List<WebElement> cancelBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'No')"
+                "type == 'XCUIElementTypeButton' AND ((label == 'Cancel' OR label == 'Annuler') OR label == 'No')"
             ));
             if (!buttons.isEmpty() && !cancelBtns.isEmpty()) {
                 System.out.println("✅ Confirmation dialog detected via Remove + Cancel buttons");
@@ -4452,7 +4452,7 @@ public class WorkOrderPage extends BasePage {
     public boolean isAddAssetsCancelButtonDisplayed() {
         try {
             List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"
+                "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'Annuler')"
             ));
             return !buttons.isEmpty();
         } catch (Exception e) {
@@ -4467,7 +4467,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Tapping Cancel on Add Assets...");
         try {
             WebElement cancel = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"
+                "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'Annuler')"
             ));
             cancel.click();
             System.out.println("✅ Tapped Cancel on Add Assets");
@@ -5124,7 +5124,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Tapping Cancel on Photo Walkthrough...");
         try {
             List<WebElement> cancelBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"
+                "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'Annuler')"
             ));
             if (!cancelBtns.isEmpty()) {
                 cancelBtns.get(0).click();
@@ -5378,7 +5378,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 3: Combination — Cancel button + Quick Count related content
         try {
             List<WebElement> cancelBtn = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"
+                "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'Annuler')"
             ));
             List<WebElement> qcContent = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND "
@@ -5946,7 +5946,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Tapping Cancel button on Quick Count/subtype screen...");
         try {
             List<WebElement> cancelBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"
+                "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'Annuler')"
             ));
             if (!cancelBtns.isEmpty()) {
                 cancelBtns.get(0).click();
@@ -6442,7 +6442,7 @@ public class WorkOrderPage extends BasePage {
             List<WebElement> trashBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND "
                 + "(name CONTAINS 'trash' OR label CONTAINS 'trash' "
-                + "OR label == 'Delete' OR name CONTAINS 'delete' "
+                + "OR (label == 'Delete' OR label == 'Supprimer') OR name CONTAINS 'delete' "
                 + "OR name == 'trash.circle' OR name == 'trash.fill')"
             ));
             for (WebElement btn : trashBtns) {
@@ -7423,7 +7423,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Checking if Classify OCPD Done button is enabled...");
         try {
             List<WebElement> doneBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Done'"
+                "type == 'XCUIElementTypeButton' AND (label == 'Done' OR label == 'Terminé')"
             ));
             if (!doneBtns.isEmpty()) {
                 String enabled = doneBtns.get(0).getAttribute("enabled");
@@ -7447,7 +7447,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Tapping Done on Classify OCPD screen...");
         try {
             List<WebElement> doneBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Done'"
+                "type == 'XCUIElementTypeButton' AND (label == 'Done' OR label == 'Terminé')"
             ));
             if (!doneBtns.isEmpty()) {
                 doneBtns.get(0).click();
@@ -7471,7 +7471,7 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> backBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND "
-                + "(label == 'Back' OR label CONTAINS 'Back')"
+                + "((label == 'Back' OR label == 'Retour') OR label CONTAINS 'Back')"
             ));
             for (WebElement btn : backBtns) {
                 int x = btn.getLocation().getX();
@@ -8329,7 +8329,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Checking for Done button on Add Photos screen...");
         try {
             List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Done'"
+                "type == 'XCUIElementTypeButton' AND (label == 'Done' OR label == 'Terminé')"
             ));
             boolean displayed = !found.isEmpty();
             System.out.println(displayed
@@ -8415,7 +8415,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Tapping Cancel on Add Photos screen...");
         try {
             List<WebElement> cancelBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"
+                "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'Annuler')"
             ));
             if (!cancelBtns.isEmpty()) {
                 cancelBtns.get(0).click();
@@ -8984,7 +8984,7 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> btns = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND "
-                + "(label == 'OK' OR label == 'Done' OR label == 'Dismiss') "
+                + "(label == 'OK' OR (label == 'Done' OR label == 'Terminé') OR label == 'Dismiss') "
             ));
             if (!btns.isEmpty()) {
                 btns.get(0).click();
@@ -9239,7 +9239,7 @@ public class WorkOrderPage extends BasePage {
     public boolean isNewAssetFormCancelButtonDisplayed() {
         try {
             List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"
+                "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'Annuler')"
             ));
             return !buttons.isEmpty();
         } catch (Exception e) {
@@ -9254,7 +9254,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Tapping Cancel on New Asset form...");
         try {
             WebElement cancel = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"
+                "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'Annuler')"
             ));
             cancel.click();
             System.out.println("✅ Tapped Cancel on New Asset form");
@@ -11551,7 +11551,7 @@ public class WorkOrderPage extends BasePage {
     public boolean isLinkIssuesCancelButtonDisplayed() {
         try {
             List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"
+                "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'Annuler')"
             ));
             boolean found = !buttons.isEmpty();
             System.out.println(found ? "✅ Cancel button found on Link Issues" : "⚠️ Cancel button not found");
@@ -11718,7 +11718,7 @@ public class WorkOrderPage extends BasePage {
     public boolean tapLinkIssuesCancel() {
         try {
             List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"
+                "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'Annuler')"
             ));
             if (!buttons.isEmpty()) {
                 buttons.get(0).click();
@@ -12274,7 +12274,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 3: Tap Cancel button on keyboard (if visible)
         try {
             List<WebElement> cancelButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"
+                "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'Annuler')"
             ));
             for (WebElement btn : cancelButtons) {
                 try {
@@ -13427,10 +13427,10 @@ public class WorkOrderPage extends BasePage {
         // Strategy 3: Presence of "Create" button + form fields (Job name, Photo Type)
         try {
             List<WebElement> createBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND (label == 'Create' OR label CONTAINS 'Create')"
+                "type == 'XCUIElementTypeButton' AND ((label == 'Create' OR label == 'Créer') OR label CONTAINS 'Create')"
             ));
             List<WebElement> cancelBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"
+                "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'Annuler')"
             ));
             if (!createBtns.isEmpty() && !cancelBtns.isEmpty()) {
                 // Both Create and Cancel on same screen — likely New Job form
@@ -13465,7 +13465,7 @@ public class WorkOrderPage extends BasePage {
     public boolean isNewJobCancelButtonDisplayed() {
         try {
             WebElement cancel = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"
+                "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'Annuler')"
             ));
             return cancel.isDisplayed();
         } catch (Exception e) {
@@ -13479,7 +13479,7 @@ public class WorkOrderPage extends BasePage {
     public boolean isNewJobCreateButtonDisplayed() {
         try {
             List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND (label == 'Create' OR label CONTAINS 'Create')"
+                "type == 'XCUIElementTypeButton' AND ((label == 'Create' OR label == 'Créer') OR label CONTAINS 'Create')"
             ));
             return !buttons.isEmpty();
         } catch (Exception e) {
@@ -13494,7 +13494,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Tapping Cancel on New Job screen...");
         try {
             WebElement cancel = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"
+                "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'Annuler')"
             ));
             cancel.click();
             System.out.println("✅ Tapped Cancel on New Job");
@@ -14379,7 +14379,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 1: Button with "Create" label
         try {
             List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND (label == 'Create' "
+                "type == 'XCUIElementTypeButton' AND ((label == 'Create' OR label == 'Créer') "
                 + "OR label CONTAINS 'Create')"
             ));
             if (!buttons.isEmpty()) {
@@ -14445,7 +14445,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Fresh lookup for back/close buttons
         try {
             WebElement btn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND (label == 'Back' OR label CONTAINS 'back' OR label CONTAINS 'close' OR label CONTAINS 'dismiss')"
+                "type == 'XCUIElementTypeButton' AND ((label == 'Back' OR label == 'Retour') OR label CONTAINS 'back' OR label CONTAINS 'close' OR label CONTAINS 'dismiss')"
             ));
             btn.click();
             System.out.println("✅ Went back via button search");
@@ -14563,7 +14563,7 @@ public class WorkOrderPage extends BasePage {
                 "type == 'XCUIElementTypeButton' AND "
                 + "(label == 'xmark.circle.fill' OR label == 'xmark.circle' "
                 + "OR label == 'xmark' OR label CONTAINS 'Remove' OR label CONTAINS 'remove' "
-                + "OR label == 'Delete' OR name == 'xmark.circle.fill')"
+                + "OR (label == 'Delete' OR label == 'Supprimer') OR name == 'xmark.circle.fill')"
             ));
             // Filter to buttons in the photo area (Y > 200)
             for (WebElement btn : xButtons) {
@@ -14908,7 +14908,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Tapping Cancel on Classify Asset...");
         try {
             WebElement btn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"
+                "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'Annuler')"
             ));
             btn.click();
             System.out.println("✅ Tapped Cancel on Classify Asset");
@@ -15297,7 +15297,7 @@ public class WorkOrderPage extends BasePage {
             List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND "
                 + "(label CONTAINS 'Done with OCP' OR label CONTAINS 'Done with OCPD' "
-                + "OR label == 'Done')"
+                + "OR (label == 'Done' OR label == 'Terminé'))"
             ));
             boolean displayed = !found.isEmpty();
             System.out.println(displayed
@@ -16014,7 +16014,7 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> doneBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND "
-                + "(label == 'Done' OR name == 'Done')"
+                + "((label == 'Done' OR label == 'Terminé') OR (name == 'Done' OR name == 'Terminé'))"
             ));
             if (!doneBtns.isEmpty()) {
                 doneBtns.get(0).click();
@@ -16036,7 +16036,7 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> found = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND "
-                + "(label == 'Cancel' OR name == 'Cancel')"
+                + "((label == 'Cancel' OR label == 'Annuler') OR (name == 'Cancel' OR name == 'Annuler'))"
             ));
             boolean displayed = !found.isEmpty();
             System.out.println(displayed
@@ -16173,7 +16173,7 @@ public class WorkOrderPage extends BasePage {
             ));
             List<WebElement> cancelBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND "
-                + "(label == 'Cancel' OR label == 'No' OR label CONTAINS 'Stay')"
+                + "((label == 'Cancel' OR label == 'Annuler') OR label == 'No' OR label CONTAINS 'Stay')"
             ));
             if (!discardBtns.isEmpty() && !cancelBtns.isEmpty()) {
                 System.out.println("✅ Discard confirmation via button pair");
@@ -16698,7 +16698,7 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> cancelBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND "
-                + "(label == 'Cancel' OR label == 'Close' OR label == 'Done')"
+                + "((label == 'Cancel' OR label == 'Annuler') OR label == 'Close' OR (label == 'Done' OR label == 'Terminé'))"
             ));
             if (!cancelBtns.isEmpty()) {
                 cancelBtns.get(0).click();
@@ -16857,7 +16857,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Checking for 'Cancel' button in removal confirmation...");
         try {
             List<WebElement> cancelBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'No')"
+                "type == 'XCUIElementTypeButton' AND ((label == 'Cancel' OR label == 'Annuler') OR label == 'No')"
             ));
             boolean found = !cancelBtns.isEmpty();
             System.out.println(found ? "✅ Cancel button found" : "⚠️ Cancel button not found");
@@ -16876,7 +16876,7 @@ public class WorkOrderPage extends BasePage {
 
         try {
             List<WebElement> cancelBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'No')"
+                "type == 'XCUIElementTypeButton' AND ((label == 'Cancel' OR label == 'Annuler') OR label == 'No')"
             ));
             if (!cancelBtns.isEmpty()) {
                 cancelBtns.get(0).click();
@@ -17365,7 +17365,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 3: Look for both Cancel and Deactivate buttons visible simultaneously
         try {
             List<WebElement> cancelBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"
+                "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'Annuler')"
             ));
             List<WebElement> deactivateBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND "
@@ -17483,7 +17483,7 @@ public class WorkOrderPage extends BasePage {
 
         try {
             List<WebElement> btns = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"
+                "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'Annuler')"
             ));
             if (!btns.isEmpty()) {
                 btns.get(0).click();
@@ -17510,7 +17510,7 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> doneBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND "
-                + "(label == 'Done' OR label == 'DONE')"
+                + "((label == 'Done' OR label == 'Terminé') OR label == 'DONE')"
             ));
             for (WebElement btn : doneBtns) {
                 int y = btn.getLocation().getY();
@@ -17846,7 +17846,7 @@ public class WorkOrderPage extends BasePage {
     public boolean isLinkTasksCancelButtonDisplayed() {
         try {
             List<WebElement> btns = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"
+                "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'Annuler')"
             ));
             return !btns.isEmpty();
         } catch (Exception e) { return false; }
@@ -17919,7 +17919,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Tapping Cancel on Link Tasks...");
         try {
             WebElement btn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"
+                "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'Annuler')"
             ));
             btn.click();
             System.out.println("✅ Tapped Cancel on Link Tasks");
@@ -18988,7 +18988,7 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND "
-                + "(label == 'Cancel' OR label == 'cancel')"
+                + "((label == 'Cancel' OR label == 'Annuler') OR label == 'cancel')"
             ));
             if (!buttons.isEmpty()) {
                 System.out.println("✅ Cancel button found");
@@ -19008,7 +19008,7 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND "
-                + "(label == 'Cancel' OR label == 'cancel')"
+                + "((label == 'Cancel' OR label == 'Annuler') OR label == 'cancel')"
             ));
             if (!buttons.isEmpty()) {
                 buttons.get(0).click();
@@ -19084,7 +19084,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Checking for task form Cancel button...");
         try {
             List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"
+                "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'Annuler')"
             ));
             for (WebElement btn : buttons) {
                 int y = btn.getLocation().getY();
@@ -19106,7 +19106,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Tapping task form Cancel...");
         try {
             List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"
+                "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'Annuler')"
             ));
             for (WebElement btn : buttons) {
                 int y = btn.getLocation().getY();
@@ -19130,7 +19130,7 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND "
-                + "(label == 'Create Task' OR label == 'Create task' OR label == 'Create')"
+                + "(label == 'Create Task' OR label == 'Create task' OR (label == 'Create' OR label == 'Créer'))"
             ));
             if (!buttons.isEmpty()) {
                 System.out.println("✅ Create Task button found");
@@ -21138,7 +21138,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Tapping New Issue Cancel...");
         try {
             List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"
+                "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'Annuler')"
             ));
             for (WebElement btn : buttons) {
                 int y = btn.getLocation().getY();
@@ -21638,7 +21638,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: Look for "Cancel" + file picker UI indicators
         try {
             List<WebElement> cancel = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"
+                "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'Annuler')"
             ));
             List<WebElement> recents = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "label CONTAINS 'Recents' OR label CONTAINS 'Browse' "
@@ -21661,7 +21661,7 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Dismissing file picker...");
         try {
             List<WebElement> cancel = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"
+                "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'Annuler')"
             ));
             if (!cancel.isEmpty()) {
                 cancel.get(0).click();
@@ -21672,7 +21672,7 @@ public class WorkOrderPage extends BasePage {
         // Strategy 2: tap Done if present
         try {
             List<WebElement> done = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Done'"
+                "type == 'XCUIElementTypeButton' AND (label == 'Done' OR label == 'Terminé')"
             ));
             if (!done.isEmpty()) {
                 done.get(0).click();
@@ -22133,7 +22133,7 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> close = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND "
-                + "(label == 'Close' OR label == 'Cancel')"
+                + "(label == 'Close' OR (label == 'Cancel' OR label == 'Annuler'))"
             ));
             if (!close.isEmpty()) {
                 close.get(0).click();
@@ -22243,7 +22243,7 @@ public class WorkOrderPage extends BasePage {
         try {
             List<WebElement> done = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND "
-                + "(label == 'Done' OR label == 'Close')"
+                + "((label == 'Done' OR label == 'Terminé') OR label == 'Close')"
             ));
             if (!done.isEmpty()) {
                 done.get(0).click();
@@ -22704,7 +22704,7 @@ public class WorkOrderPage extends BasePage {
             // Tap Back nav button
             try {
                 WebElement back = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND label == 'Back'"));
+                    "type == 'XCUIElementTypeButton' AND (label == 'Back' OR label == 'Retour')"));
                 back.click(); sleep(500);
             } catch (Exception ignored) { return; /* no Back button — give up */ }
         }
@@ -23764,7 +23764,7 @@ public class WorkOrderPage extends BasePage {
     public boolean confirmDatePicker() {
         try {
             WebElement done = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND (label == 'Done' OR label == 'Confirm' OR label == 'Save')"));
+                "type == 'XCUIElementTypeButton' AND ((label == 'Done' OR label == 'Terminé') OR label == 'Confirm' OR (label == 'Save' OR label == 'Enregistrer' OR label == 'Sauvegarder'))"));
             done.click();
             try { Thread.sleep(400); } catch (InterruptedException ignored) {}
             return true;

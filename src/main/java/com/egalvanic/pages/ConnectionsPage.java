@@ -731,7 +731,7 @@ public class ConnectionsPage {
             
             try {
                 WebElement backBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label == 'Back' OR label == 'Connections' OR name CONTAINS 'back')"));
+                    "((label == 'Back' OR label == 'Retour') OR label == 'Connections' OR name CONTAINS 'back')"));
                 if (backBtn.isDisplayed()) return true;
             } catch (Exception e3) {}
             
@@ -764,7 +764,7 @@ public class ConnectionsPage {
         try {
             try {
                 WebElement backBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label == 'Back' OR label == 'Connections' OR name CONTAINS 'back')"));
+                    "((label == 'Back' OR label == 'Retour') OR label == 'Connections' OR name CONTAINS 'back')"));
                 backBtn.click();
                 sleep(400);
                 return true;
@@ -1185,7 +1185,7 @@ public class ConnectionsPage {
             // Strategy 3: Check for Create button + Source Node field (English + French)
             try {
                 WebElement createBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label == 'Create' OR name == 'Create' OR label == 'Créer' OR name == 'Créer')"));
+                    "((label == 'Create' OR label == 'Créer') OR (name == 'Create' OR name == 'Créer') OR label == 'Créer' OR name == 'Créer')"));
                 WebElement sourceNode = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label CONTAINS[c] 'Source' OR label CONTAINS[c] 'source' OR " +
                     " label CONTAINS[c] 'Nœud source' OR label CONTAINS[c] 'Noeud source')"));
@@ -1220,12 +1220,12 @@ public class ConnectionsPage {
     public boolean isCancelButtonDisplayed() {
         try {
             WebElement cancelBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(label == 'Cancel' OR name == 'Cancel') AND type == 'XCUIElementTypeButton'"));
+                "((label == 'Cancel' OR label == 'Annuler') OR (name == 'Cancel' OR name == 'Annuler')) AND type == 'XCUIElementTypeButton'"));
             return cancelBtn.isDisplayed();
         } catch (Exception e) {
             try {
                 WebElement cancelText = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "label == 'Cancel'"));
+                    "(label == 'Cancel' OR label == 'Annuler')"));
                 return cancelText.isDisplayed();
             } catch (Exception e2) {
                 return false;
@@ -1252,7 +1252,7 @@ public class ConnectionsPage {
     public boolean isCreateButtonDisplayed() {
         try {
             WebElement createBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(label == 'Create' OR name == 'Create')"));
+                "((label == 'Create' OR label == 'Créer') OR (name == 'Create' OR name == 'Créer'))"));
             return createBtn.isDisplayed();
         } catch (Exception e) {
             return false;
@@ -1278,7 +1278,7 @@ public class ConnectionsPage {
             // Strategy 2: Find Cancel button
             try {
                 WebElement cancelBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label == 'Cancel' OR name == 'Cancel') AND type == 'XCUIElementTypeButton'"));
+                    "((label == 'Cancel' OR label == 'Annuler') OR (name == 'Cancel' OR name == 'Annuler')) AND type == 'XCUIElementTypeButton'"));
                 cancelBtn.click();
                 sleep(300);
                 System.out.println("✓ Tapped Cancel button");
@@ -1288,7 +1288,7 @@ public class ConnectionsPage {
             // Strategy 3: Find Cancel text element
             try {
                 WebElement cancelText = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "label == 'Cancel'"));
+                    "(label == 'Cancel' OR label == 'Annuler')"));
                 cancelText.click();
                 sleep(300);
                 System.out.println("✓ Tapped Cancel text");
@@ -1385,7 +1385,7 @@ public class ConnectionsPage {
     public boolean isCreateButtonEnabled() {
         try {
             WebElement createBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(label == 'Create' OR name == 'Create')"));
+                "((label == 'Create' OR label == 'Créer') OR (name == 'Create' OR name == 'Créer'))"));
             String enabled = createBtn.getAttribute("enabled");
             boolean isEnabled = "true".equals(enabled);
             System.out.println("Create button enabled: " + isEnabled);
@@ -1401,7 +1401,7 @@ public class ConnectionsPage {
     public String getCreateButtonState() {
         try {
             WebElement createBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(label == 'Create' OR name == 'Create')"));
+                "((label == 'Create' OR label == 'Créer') OR (name == 'Create' OR name == 'Créer'))"));
             String enabled = createBtn.getAttribute("enabled");
             String value = createBtn.getAttribute("value");
             return "enabled=" + enabled + ", value=" + value;
@@ -1417,7 +1417,7 @@ public class ConnectionsPage {
         try {
             System.out.println("🔨 Tapping Create button...");
             WebElement createBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(label == 'Create' OR name == 'Create')"));
+                "((label == 'Create' OR label == 'Créer') OR (name == 'Create' OR name == 'Créer'))"));
             createBtn.click();
             sleep(200);
             System.out.println("✓ Tapped Create button");
@@ -1612,7 +1612,7 @@ public class ConnectionsPage {
             // Strategy 2: Find Done/Cancel button
             try {
                 WebElement doneBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label == 'Done' OR label == 'Cancel') AND type == 'XCUIElementTypeButton'"));
+                    "((label == 'Done' OR label == 'Terminé') OR (label == 'Cancel' OR label == 'Annuler')) AND type == 'XCUIElementTypeButton'"));
                 doneBtn.click();
                 sleep(300);
                 System.out.println("✓ Dismissed dropdown via button");
@@ -2636,7 +2636,7 @@ public class ConnectionsPage {
         try {
             try {
                 WebElement cancelBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "label == 'Cancel'"));
+                    "(label == 'Cancel' OR label == 'Annuler')"));
                 cancelBtn.click();
                 sleep(300);
                 return true;
@@ -3090,7 +3090,7 @@ public class ConnectionsPage {
             // Strategy 2: Find Cancel/Done button
             try {
                 WebElement dismissBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label == 'Cancel' OR label == 'Done') AND type == 'XCUIElementTypeButton'"));
+                    "((label == 'Cancel' OR label == 'Annuler') OR (label == 'Done' OR label == 'Terminé')) AND type == 'XCUIElementTypeButton'"));
                 dismissBtn.click();
                 sleep(300);
                 return true;
@@ -3719,7 +3719,7 @@ public class ConnectionsPage {
             // Strategy 2: Tap Cancel/Done
             try {
                 WebElement dismissBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label == 'Cancel' OR label == 'Done') AND type == 'XCUIElementTypeButton'"));
+                    "((label == 'Cancel' OR label == 'Annuler') OR (label == 'Done' OR label == 'Terminé')) AND type == 'XCUIElementTypeButton'"));
                 dismissBtn.click();
                 sleep(300);
                 return true;
@@ -3768,7 +3768,7 @@ public class ConnectionsPage {
     public boolean isCreateButtonVisuallyEnabled() {
         try {
             WebElement createBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(label == 'Create' OR name == 'Create')"));
+                "((label == 'Create' OR label == 'Créer') OR (name == 'Create' OR name == 'Créer'))"));
 
             // Check enabled attribute
             String enabled = createBtn.getAttribute("enabled");
@@ -4154,7 +4154,7 @@ public class ConnectionsPage {
     public boolean isCreateButtonDisabled() {
         try {
             WebElement createBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(label == 'Create' OR name == 'Create')"));
+                "((label == 'Create' OR label == 'Créer') OR (name == 'Create' OR name == 'Créer'))"));
             String enabled = createBtn.getAttribute("enabled");
             boolean isDisabled = !"true".equalsIgnoreCase(enabled);
             System.out.println("Create button disabled: " + isDisabled);
@@ -4431,7 +4431,8 @@ public class ConnectionsPage {
             // Look for common menu option texts
             try {
                 List<WebElement> menuItems = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "(label CONTAINS 'Edit' OR label CONTAINS 'Delete' OR label CONTAINS 'Share' OR label CONTAINS 'Cancel')"));
+                    "(label CONTAINS 'Edit' OR label CONTAINS 'Delete' OR label CONTAINS 'Share' OR label CONTAINS 'Cancel' OR " +
+                    " label CONTAINS 'Modifier' OR label CONTAINS 'Supprimer' OR label CONTAINS 'Partager' OR label CONTAINS 'Annuler')"));
                 if (menuItems.size() >= 2) {
                     System.out.println("✓ Menu options detected");
                     return true;
@@ -4452,7 +4453,7 @@ public class ConnectionsPage {
             // Try Cancel button first
             try {
                 WebElement cancelBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "label == 'Cancel'"));
+                    "(label == 'Cancel' OR label == 'Annuler')"));
                 cancelBtn.click();
                 sleep(300);
                 return true;
@@ -4580,7 +4581,7 @@ public class ConnectionsPage {
                 // Check for Back button to Connections
                 try {
                     WebElement backBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                        "(label == 'Connections' OR label == 'Back') AND type == 'XCUIElementTypeButton'"));
+                        "(label == 'Connections' OR (label == 'Back' OR label == 'Retour')) AND type == 'XCUIElementTypeButton'"));
                     if (backBtn.isDisplayed()) {
                         System.out.println("✓ Connection Details screen detected (Back to Connections)");
                         return true;
@@ -4683,7 +4684,7 @@ public class ConnectionsPage {
             // Try Back button
             try {
                 WebElement backBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label == 'Connections' OR label == 'Back' OR name CONTAINS 'back') AND type == 'XCUIElementTypeButton'"));
+                    "(label == 'Connections' OR (label == 'Back' OR label == 'Retour') OR name CONTAINS 'back') AND type == 'XCUIElementTypeButton'"));
                 backBtn.click();
                 sleep(300);
                 System.out.println("✓ Navigated back from connection details");
@@ -4779,7 +4780,7 @@ public class ConnectionsPage {
             // Look for Save/Done button indicating edit mode
             try {
                 WebElement saveBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label == 'Save' OR label == 'Done' OR label == 'Update')"));
+                    "(label == 'Save' OR (label == 'Done' OR label == 'Terminé') OR label == 'Update')"));
                 System.out.println("✓ In edit mode (Save/Done button visible)");
                 return true;
             } catch (Exception e1) {}
@@ -4839,7 +4840,7 @@ public class ConnectionsPage {
             
             try {
                 WebElement saveBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label == 'Save' OR label == 'Done' OR label == 'Update')"));
+                    "(label == 'Save' OR (label == 'Done' OR label == 'Terminé') OR label == 'Update')"));
                 saveBtn.click();
                 sleep(300);
                 System.out.println("✓ Saved changes");
@@ -4975,7 +4976,7 @@ public class ConnectionsPage {
         try {
             try {
                 WebElement cancelBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label == 'Cancel' OR label == 'No')"));
+                    "((label == 'Cancel' OR label == 'Annuler') OR label == 'No')"));
                 cancelBtn.click();
                 sleep(300);
                 return true;
@@ -5225,7 +5226,7 @@ public class ConnectionsPage {
             // Try OK button
             try {
                 WebElement okBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label == 'OK' OR label == 'Cancel' OR label == 'Dismiss')"));
+                    "(label == 'OK' OR (label == 'Cancel' OR label == 'Annuler') OR label == 'Dismiss')"));
                 okBtn.click();
                 sleep(300);
                 return true;
@@ -5729,7 +5730,7 @@ public class ConnectionsPage {
                 int minY = (int) (screenHeight * 0.4);
                 java.util.List<WebElement> doneBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeKey') AND " +
-                    "(label == 'Done' OR label == 'Terminé' OR label == 'OK')"));
+                    "((label == 'Done' OR label == 'Terminé') OR label == 'Terminé' OR label == 'OK')"));
                 for (WebElement btn : doneBtns) {
                     try {
                         int btnY = btn.getLocation().getY();
@@ -6553,7 +6554,7 @@ public class ConnectionsPage {
             // Check for Done/Cancel buttons indicating selection mode
             try {
                 WebElement doneBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label == 'Done' OR label == 'Cancel') AND type == 'XCUIElementTypeButton'"));
+                    "((label == 'Done' OR label == 'Terminé') OR (label == 'Cancel' OR label == 'Annuler')) AND type == 'XCUIElementTypeButton'"));
                 // Need to verify this is related to selection mode
                 int y = doneBtn.getLocation().getY();
                 if (y < 150) {
@@ -6576,7 +6577,7 @@ public class ConnectionsPage {
             // Try Done/Cancel button
             try {
                 WebElement doneBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label == 'Done' OR label == 'Cancel')"));
+                    "((label == 'Done' OR label == 'Terminé') OR (label == 'Cancel' OR label == 'Annuler'))"));
                 doneBtn.click();
                 sleep(300);
                 return true;
@@ -6918,7 +6919,7 @@ public class ConnectionsPage {
                 WebElement deleteBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "label == 'Delete' AND type == 'XCUIElementTypeButton'"));
                 WebElement cancelBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "label == 'Cancel' AND type == 'XCUIElementTypeButton'"));
+                    "(label == 'Cancel' OR label == 'Annuler') AND type == 'XCUIElementTypeButton'"));
                 if (deleteBtn.isDisplayed() && cancelBtn.isDisplayed()) {
                     System.out.println("✓ Delete/Cancel buttons visible");
                     return true;
@@ -6959,7 +6960,7 @@ public class ConnectionsPage {
         try {
             try {
                 WebElement cancelBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label == 'Cancel' OR label == 'No')"));
+                    "((label == 'Cancel' OR label == 'Annuler') OR label == 'No')"));
                 cancelBtn.click();
                 sleep(300);
                 return true;
@@ -7049,7 +7050,7 @@ public class ConnectionsPage {
         try {
             try {
                 WebElement cancelBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "label == 'Cancel' AND type == 'XCUIElementTypeButton'"));
+                    "(label == 'Cancel' OR label == 'Annuler') AND type == 'XCUIElementTypeButton'"));
                 int y = cancelBtn.getLocation().getY();
                 if (y < 150) {
                     System.out.println("✓ Cancel button visible in header");
@@ -7112,7 +7113,7 @@ public class ConnectionsPage {
             
             try {
                 WebElement cancelBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "label == 'Cancel' AND type == 'XCUIElementTypeButton'"));
+                    "(label == 'Cancel' OR label == 'Annuler') AND type == 'XCUIElementTypeButton'"));
                 cancelBtn.click();
                 sleep(300);
                 System.out.println("✓ Tapped Cancel");
@@ -7410,7 +7411,7 @@ public class ConnectionsPage {
         try {
             try {
                 WebElement cancelBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label == 'Cancel' OR label == 'No')"));
+                    "((label == 'Cancel' OR label == 'Annuler') OR label == 'No')"));
                 cancelBtn.click();
                 sleep(300);
                 return true;
@@ -8444,7 +8445,7 @@ public class ConnectionsPage {
             // Look for Cancel and Delete buttons together
             try {
                 WebElement cancelBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "label == 'Cancel'"));
+                    "(label == 'Cancel' OR label == 'Annuler')"));
                 WebElement deleteBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "label == 'Delete'"));
 
@@ -8548,7 +8549,7 @@ public class ConnectionsPage {
                 WebElement alert = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeAlert'"));
                 WebElement cancelBtn = alert.findElement(AppiumBy.iOSNsPredicateString(
-                    "label == 'Cancel'"));
+                    "(label == 'Cancel' OR label == 'Annuler')"));
                 cancelBtn.click();
                 sleep(300);
                 System.out.println("\u2713 Tapped Cancel in alert");
@@ -8560,7 +8561,7 @@ public class ConnectionsPage {
                 WebElement sheet = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeSheet'"));
                 WebElement cancelBtn = sheet.findElement(AppiumBy.iOSNsPredicateString(
-                    "label == 'Cancel'"));
+                    "(label == 'Cancel' OR label == 'Annuler')"));
                 cancelBtn.click();
                 sleep(300);
                 System.out.println("\u2713 Tapped Cancel in sheet");
@@ -8571,7 +8572,7 @@ public class ConnectionsPage {
             try {
                 WebElement cancelBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeButton' AND " +
-                    "(label == 'Cancel' OR label == 'No' OR label == 'Dismiss' OR label == 'Keep')"));
+                    "((label == 'Cancel' OR label == 'Annuler') OR label == 'No' OR label == 'Dismiss' OR label == 'Keep')"));
                 cancelBtn.click();
                 sleep(300);
                 System.out.println("\u2713 Tapped Cancel/Dismiss button");

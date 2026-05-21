@@ -33,7 +33,7 @@ public class SiteSelectionPage extends BasePage {
     private WebElement cancelButton;
     
     // Cancel Button Alternative - by label
-    @iOSXCUITFindBy(iOSNsPredicate = "type == 'XCUIElementTypeButton' AND label == 'Cancel'")
+    @iOSXCUITFindBy(iOSNsPredicate = "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'Annuler')")
     private WebElement cancelButtonAlt;
 
     // Select Site Title
@@ -2946,7 +2946,7 @@ public class SiteSelectionPage extends BasePage {
                 "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' OR " +
                 "type == 'XCUIElementTypeMenuItem' OR type == 'XCUIElementTypeCell') AND " +
                 "(label == 'Edit Site' OR label == 'Delete Site' OR " +
-                "label == 'Edit' OR label == 'Delete')"));
+                "(label == 'Edit' OR label == 'Modifier') OR (label == 'Delete' OR label == 'Supprimer'))"));
             return true;
         } catch (Exception e) { return false; }
     }
@@ -2957,7 +2957,7 @@ public class SiteSelectionPage extends BasePage {
             WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' OR " +
                 "type == 'XCUIElementTypeMenuItem' OR type == 'XCUIElementTypeCell') AND " +
-                "(label == 'Edit Site' OR label == 'Edit')"));
+                "(label == 'Edit Site' OR (label == 'Edit' OR label == 'Modifier'))"));
             btn.click();
             try { Thread.sleep(500); } catch (InterruptedException ignored) {}
             return true;
@@ -3467,8 +3467,8 @@ public class SiteSelectionPage extends BasePage {
             try {
                 WebElement back = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeButton' AND " +
-                    "(label == 'Back' OR label == 'Close' OR label == 'Cancel' OR " +
-                    " label == 'Done' OR name == 'BackButton' OR name == 'Cancel')"));
+                    "((label == 'Back' OR label == 'Retour') OR label == 'Close' OR (label == 'Cancel' OR label == 'Annuler') OR " +
+                    " (label == 'Done' OR label == 'Terminé') OR name == 'BackButton' OR (name == 'Cancel' OR name == 'Annuler'))"));
                 System.out.println("   ↳ Back-stack pop attempt " + (i+1) + " via '"
                     + back.getAttribute("label") + "'");
                 back.click();

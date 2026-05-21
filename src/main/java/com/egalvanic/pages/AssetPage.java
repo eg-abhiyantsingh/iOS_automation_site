@@ -582,7 +582,7 @@ public class AssetPage extends BasePage {
         try {
             // Try Done button first
             WebElement saveBtn = driver.findElement(
-                AppiumBy.iOSNsPredicateString("label == 'Done' OR label == 'Save'")
+                AppiumBy.iOSNsPredicateString("(label == 'Done' OR label == 'Terminé') OR (label == 'Save' OR label == 'Enregistrer' OR label == 'Sauvegarder')")
             );
             saveBtn.click();
             sleep(400);
@@ -599,7 +599,7 @@ public class AssetPage extends BasePage {
         System.out.println("🔙 Clicking Back...");
         try {
             WebElement backBtn = driver.findElement(
-                AppiumBy.iOSNsPredicateString("label == 'Back' OR name == 'Back'")
+                AppiumBy.iOSNsPredicateString("(label == 'Back' OR label == 'Retour') OR (name == 'Back' OR name == 'Retour')")
             );
             backBtn.click();
             sleep(400);
@@ -678,7 +678,7 @@ public class AssetPage extends BasePage {
             // Wait for alert to appear
             sleep(200);
             WebElement deleteBtn = driver.findElement(
-                AppiumBy.iOSNsPredicateString("label == 'Delete' AND type == 'XCUIElementTypeButton'")
+                AppiumBy.iOSNsPredicateString("(label == 'Delete' OR label == 'Supprimer') AND type == 'XCUIElementTypeButton'")
             );
             deleteBtn.click();
             sleep(600);
@@ -906,7 +906,7 @@ public class AssetPage extends BasePage {
             System.out.println("   Dismissing keyboard...");
             try {
                 WebElement doneBtn = driver.findElement(
-                    AppiumBy.iOSNsPredicateString("label == 'Done' AND type == 'XCUIElementTypeButton'")
+                    AppiumBy.iOSNsPredicateString("(label == 'Done' OR label == 'Terminé') AND type == 'XCUIElementTypeButton'")
                 );
                 doneBtn.click();
                 sleep(200);
@@ -1352,7 +1352,7 @@ public class AssetPage extends BasePage {
         System.out.println("🆕 Clicking Create button...");
         try {
             WebElement createBtn = driver.findElement(
-                AppiumBy.iOSNsPredicateString("name == 'Create' AND type == 'XCUIElementTypeButton'")
+                AppiumBy.iOSNsPredicateString("(name == 'Create' OR name == 'Créer') AND type == 'XCUIElementTypeButton'")
             );
             createBtn.click();
             sleep(500);
@@ -2067,7 +2067,7 @@ public class AssetPage extends BasePage {
         System.out.println("🆕 Clicking Create button...");
         try {
             WebElement btn = driver.findElement(
-                AppiumBy.iOSNsPredicateString("name == 'Create' AND type == 'XCUIElementTypeButton'")
+                AppiumBy.iOSNsPredicateString("(name == 'Create' OR name == 'Créer') AND type == 'XCUIElementTypeButton'")
             );
             btn.click();
             sleep(500);
@@ -2176,7 +2176,7 @@ public class AssetPage extends BasePage {
         System.out.println("❌ Clicking Cancel...");
         try {
             WebElement btn = driver.findElement(
-                AppiumBy.iOSNsPredicateString("name == 'Cancel' AND type == 'XCUIElementTypeButton'")
+                AppiumBy.iOSNsPredicateString("(name == 'Cancel' OR name == 'Annuler') AND type == 'XCUIElementTypeButton'")
             );
             btn.click();
             sleep(400);
@@ -2296,7 +2296,7 @@ public class AssetPage extends BasePage {
         System.out.println("❌ Clicking Cancel...");
         try {
             WebElement btn = driver.findElement(
-                AppiumBy.iOSNsPredicateString("name == 'Cancel' AND type == 'XCUIElementTypeButton'")
+                AppiumBy.iOSNsPredicateString("(name == 'Cancel' OR name == 'Annuler') AND type == 'XCUIElementTypeButton'")
             );
             btn.click();
             sleep(400);
@@ -2496,7 +2496,7 @@ public class AssetPage extends BasePage {
             System.out.println("   Clicking Done to dismiss keyboard...");
             try {
                 WebElement doneBtn = driver.findElement(
-                    AppiumBy.iOSNsPredicateString("label == 'Done' AND type == 'XCUIElementTypeButton'")
+                    AppiumBy.iOSNsPredicateString("(label == 'Done' OR label == 'Terminé') AND type == 'XCUIElementTypeButton'")
                 );
                 doneBtn.click();
                 sleep(200);
@@ -2691,7 +2691,7 @@ public class AssetPage extends BasePage {
         // Strategy 3: Find button with Back/chevron.left name/label
         try {
             WebElement backBtn = driver.findElement(
-                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND (name == 'Back' OR label == 'Back' OR name == 'chevron.left' OR name CONTAINS 'back')")
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND ((name == 'Back' OR name == 'Retour') OR (label == 'Back' OR label == 'Retour') OR name == 'chevron.left' OR name CONTAINS 'back')")
             );
             if (backBtn.isDisplayed()) {
                 backBtn.click();
@@ -2767,7 +2767,7 @@ public class AssetPage extends BasePage {
         // Strategy 2: Find button with Back name/label
         try {
             WebElement backBtn = driver.findElement(
-                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND (name == 'Back' OR label == 'Back' OR name == 'chevron.left')")
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND ((name == 'Back' OR name == 'Retour') OR (label == 'Back' OR label == 'Retour') OR name == 'chevron.left')")
             );
             if (backBtn.isDisplayed()) {
                 backBtn.click();
@@ -2817,7 +2817,7 @@ public class AssetPage extends BasePage {
         // Strategy 3: Find button with Cancel name/label
         try {
             WebElement cancelBtn = driver.findElement(
-                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND (name == 'Cancel' OR label == 'Cancel')")
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND ((name == 'Cancel' OR name == 'Annuler') OR (label == 'Cancel' OR label == 'Annuler'))")
             );
             if (cancelBtn.isDisplayed()) {
                 cancelBtn.click();
@@ -2856,7 +2856,7 @@ public class AssetPage extends BasePage {
         // Strategy 5: Find StaticText "Cancel" and click
         try {
             WebElement cancelText = driver.findElement(
-                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText' AND (name == 'Cancel' OR label == 'Cancel')")
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText' AND ((name == 'Cancel' OR name == 'Annuler') OR (label == 'Cancel' OR label == 'Annuler'))")
             );
             cancelText.click();
             System.out.println("✅ Clicked Cancel (StaticText)");
@@ -3060,7 +3060,7 @@ public class AssetPage extends BasePage {
             try {
                 List<WebElement> editBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeButton' AND " +
-                    "(label == 'Edit' OR name == 'Edit' OR " +
+                    "((label == 'Edit' OR label == 'Modifier') OR (name == 'Edit' OR name == 'Modifier') OR " +
                     " label == 'Modifier' OR name == 'Modifier')"
                 ));
                 hasEditButton = !editBtns.isEmpty();
@@ -3492,7 +3492,7 @@ public class AssetPage extends BasePage {
                 boolean clickWorked = false;
                 try {
                     List<WebElement> detailIndicators = driver.findElements(
-                        AppiumBy.iOSNsPredicateString("(name == 'Asset Details' OR name CONTAINS 'Edit' OR name == 'Save' OR name == 'Back')")
+                        AppiumBy.iOSNsPredicateString("(name == 'Asset Details' OR name CONTAINS 'Edit' OR (name == 'Save' OR name == 'Enregistrer' OR name == 'Sauvegarder') OR (name == 'Back' OR name == 'Retour'))")
                     );
                     clickWorked = !detailIndicators.isEmpty();
                 } catch (Exception e) {}
@@ -3515,7 +3515,7 @@ public class AssetPage extends BasePage {
                     // Check again
                     try {
                         List<WebElement> detailIndicators = driver.findElements(
-                            AppiumBy.iOSNsPredicateString("(name == 'Asset Details' OR name CONTAINS 'Edit' OR name == 'Save' OR name == 'Back')")
+                            AppiumBy.iOSNsPredicateString("(name == 'Asset Details' OR name CONTAINS 'Edit' OR (name == 'Save' OR name == 'Enregistrer' OR name == 'Sauvegarder') OR (name == 'Back' OR name == 'Retour'))")
                         );
                         clickWorked = !detailIndicators.isEmpty();
                     } catch (Exception e) {}
@@ -4221,7 +4221,7 @@ public class AssetPage extends BasePage {
                 driver.findElement(AppiumBy.accessibilityId("Save")).click();
             } catch (Exception e) {
                 driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND (name == 'Save' OR label == 'Save')")).click();
+                    "type == 'XCUIElementTypeButton' AND ((name == 'Save' OR name == 'Enregistrer' OR name == 'Sauvegarder') OR (label == 'Save' OR label == 'Enregistrer' OR label == 'Sauvegarder'))")).click();
             }
             System.out.println("   Saved: " + text);
             return true;
@@ -4236,7 +4236,7 @@ public class AssetPage extends BasePage {
         System.out.println("   Dismissing picker...");
         for (int i = 0; i < 3; i++) {
             try {
-                driver.findElement(AppiumBy.iOSNsPredicateString("name == 'Back' OR label == 'Back'")).click();
+                driver.findElement(AppiumBy.iOSNsPredicateString("(name == 'Back' OR name == 'Retour') OR (label == 'Back' OR label == 'Retour')")).click();
                 sleep(300);
                 if (!isLocationPickerOpen()) return;
             } catch (Exception e) { break; }
@@ -4869,7 +4869,7 @@ public class AssetPage extends BasePage {
             if (!saved) {
                 try {
                     driver.findElement(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeButton' AND (label == 'Save' OR name == 'Save')")).click();
+                        "type == 'XCUIElementTypeButton' AND ((label == 'Save' OR label == 'Enregistrer' OR label == 'Sauvegarder') OR (name == 'Save' OR name == 'Enregistrer' OR name == 'Sauvegarder'))")).click();
                     System.out.println("   Saved via button predicate");
                     saved = true;
                 } catch (Exception e) {
@@ -5250,7 +5250,7 @@ public class AssetPage extends BasePage {
                 // Check for Cancel button (another indicator picker is open)
                 try {
                     driver.findElement(AppiumBy.iOSNsPredicateString(
-                        "label == 'Cancel' AND type == 'XCUIElementTypeButton'"));
+                        "(label == 'Cancel' OR label == 'Annuler') AND type == 'XCUIElementTypeButton'"));
                     pickerOpen = true;
                 } catch (Exception e2) {
                     // Picker is closed
@@ -5280,7 +5280,7 @@ public class AssetPage extends BasePage {
             // Check if dismissed
             try {
                 driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label == 'Select Location' OR label == 'Cancel') AND type == 'XCUIElementTypeStaticText'"));
+                    "(label == 'Select Location' OR (label == 'Cancel' OR label == 'Annuler')) AND type == 'XCUIElementTypeStaticText'"));
             } catch (Exception e) {
                 System.out.println("   Picker dismissed after tapping header");
                 return true;
@@ -5438,7 +5438,7 @@ public class AssetPage extends BasePage {
         // Strategy 2: Look for any "Done" or "Save" button
         try {
             WebElement doneBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND (label == 'Done' OR label == 'Save' OR label == 'OK')"));
+                "type == 'XCUIElementTypeButton' AND ((label == 'Done' OR label == 'Terminé') OR (label == 'Save' OR label == 'Enregistrer' OR label == 'Sauvegarder') OR label == 'OK')"));
             doneBtn.click();
             System.out.println("   Clicked Done/Save button");
             sleep(200);
@@ -5458,12 +5458,12 @@ public class AssetPage extends BasePage {
         // Strategy 4: Navigate back using back button
         try {
             WebElement backBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND (label == 'Back' OR name CONTAINS 'back' OR label CONTAINS 'chevron')"));
+                "type == 'XCUIElementTypeButton' AND ((label == 'Back' OR label == 'Retour') OR name CONTAINS 'back' OR label CONTAINS 'chevron')"));
             // Click back multiple times to exit the hierarchy
             for (int i = 0; i < 3; i++) {
                 try {
                     backBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeButton' AND (label == 'Back' OR name CONTAINS 'back')"));
+                        "type == 'XCUIElementTypeButton' AND ((label == 'Back' OR label == 'Retour') OR name CONTAINS 'back')"));
                     backBtn.click();
                     sleep(300);
                 } catch (Exception e2) {
@@ -6922,7 +6922,7 @@ public class AssetPage extends BasePage {
         // Try predicate for Edit button
         try {
             WebElement editBtn = driver.findElement(
-                AppiumBy.iOSNsPredicateString("name == 'Edit' OR label == 'Edit'")
+                AppiumBy.iOSNsPredicateString("(name == 'Edit' OR name == 'Modifier') OR (label == 'Edit' OR label == 'Modifier')")
             );
             editBtn.click();
             System.out.println("✅ Clicked Edit button (predicate)");
@@ -6988,7 +6988,7 @@ public class AssetPage extends BasePage {
         if (!onEditScreen) {
             try {
                 onEditScreen = driver.findElements(
-                    AppiumBy.iOSNsPredicateString("(name == 'Back' OR name == 'Assets') AND type == 'XCUIElementTypeButton'")
+                    AppiumBy.iOSNsPredicateString("((name == 'Back' OR name == 'Retour') OR name == 'Assets') AND type == 'XCUIElementTypeButton'")
                 ).size() > 0;
             } catch (Exception e) {}
         }
@@ -7091,7 +7091,7 @@ public class AssetPage extends BasePage {
         if (!onEditScreen) {
             try {
                 List<WebElement> backBtn = driver.findElements(
-                    AppiumBy.iOSNsPredicateString("(name == 'Back' OR name == 'Assets' OR name CONTAINS 'chevron') AND type == 'XCUIElementTypeButton'")
+                    AppiumBy.iOSNsPredicateString("((name == 'Back' OR name == 'Retour') OR name == 'Assets' OR name CONTAINS 'chevron') AND type == 'XCUIElementTypeButton'")
                 );
                 if (!backBtn.isEmpty()) {
                     // We're on some detail screen, probably the edit screen
@@ -7151,7 +7151,7 @@ public class AssetPage extends BasePage {
                 // Check for "Close" button + any text field (edit screen has editable fields)
                 try {
                     WebElement closeBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeButton' AND (label == 'Close' OR label == 'Done')"));
+                        "type == 'XCUIElementTypeButton' AND (label == 'Close' OR (label == 'Done' OR label == 'Terminé'))"));
                     if (closeBtn.isDisplayed()) {
                         System.out.println("   ✅ Edit screen detected (Close/Done button)");
                         return true;
@@ -8153,7 +8153,7 @@ public class AssetPage extends BasePage {
         // Strategy 2: Find button with Cancel label
         try {
             WebElement cancelBtn = driver.findElement(
-                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND (name == 'Cancel' OR label == 'Cancel')")
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND ((name == 'Cancel' OR name == 'Annuler') OR (label == 'Cancel' OR label == 'Annuler'))")
             );
             cancelBtn.click();
             System.out.println("✅ Clicked Cancel button");
@@ -8164,7 +8164,7 @@ public class AssetPage extends BasePage {
         // Strategy 3: Find StaticText "Cancel" and click
         try {
             WebElement cancelText = driver.findElement(
-                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText' AND (name == 'Cancel' OR label == 'Cancel')")
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText' AND ((name == 'Cancel' OR name == 'Annuler') OR (label == 'Cancel' OR label == 'Annuler'))")
             );
             cancelText.click();
             System.out.println("✅ Clicked Cancel text");
@@ -8776,7 +8776,7 @@ public class AssetPage extends BasePage {
         } catch (Exception e) {
             try {
                 WebElement done = driver.findElement(
-                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND label == 'Done'")
+                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND (label == 'Done' OR label == 'Terminé')")
                 );
                 done.click();
                 System.out.println("   ✓ Tapped Done (predicate)");
@@ -9546,7 +9546,7 @@ public class AssetPage extends BasePage {
         // Strategy 4: Check for "Save" button (alternative naming)
         try {
             WebElement saveBtn = driver.findElement(
-                AppiumBy.iOSNsPredicateString("name == 'Save' AND type == 'XCUIElementTypeButton'")
+                AppiumBy.iOSNsPredicateString("(name == 'Save' OR name == 'Enregistrer' OR name == 'Sauvegarder') AND type == 'XCUIElementTypeButton'")
             );
             if (saveBtn.isDisplayed()) {
                 System.out.println("   ✅ Found visible 'Save' button (alternative)");
@@ -9565,7 +9565,7 @@ public class AssetPage extends BasePage {
             try {
                 WebElement saveBtn = driver.findElement(
                     AppiumBy.iOSNsPredicateString(
-                        "(name CONTAINS 'Save' OR name == 'Save') AND type == 'XCUIElementTypeButton'"
+                        "(name CONTAINS 'Save' OR (name == 'Save' OR name == 'Enregistrer' OR name == 'Sauvegarder')) AND type == 'XCUIElementTypeButton'"
                     )
                 );
                 if (saveBtn.isDisplayed()) {
@@ -11369,7 +11369,7 @@ public class AssetPage extends BasePage {
         try {
             WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND " +
-                "(name == 'plus' OR name CONTAINS 'plus' OR label == 'Add' OR label == 'Create')"));
+                "(name == 'plus' OR name CONTAINS 'plus' OR label == 'Add' OR (label == 'Create' OR label == 'Créer'))"));
             btn.click(); sleep(500); return true;
         } catch (Exception e) { return false; }
     }
@@ -11380,7 +11380,7 @@ public class AssetPage extends BasePage {
             try {
                 WebElement cancel = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeButton' AND " +
-                    "(label == 'Cancel' OR label == 'Close' OR label == 'Discard')"));
+                    "((label == 'Cancel' OR label == 'Annuler') OR label == 'Close' OR label == 'Discard')"));
                 cancel.click();
                 sleep(400);
             } catch (Exception ignored) {}

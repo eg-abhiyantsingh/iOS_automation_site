@@ -421,7 +421,7 @@ public class IssuePage extends BasePage {
                 boolean hasAdd = false;
                 try {
                     driver.findElement(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeButton' AND label == 'Done'"));
+                        "type == 'XCUIElementTypeButton' AND (label == 'Done' OR label == 'Terminé')"));
                     hasDone = true;
                 } catch (Exception ignored) {}
                 try {
@@ -454,7 +454,7 @@ public class IssuePage extends BasePage {
         try {
             // i18n: English "Done", French "Terminé" / "OK"
             WebElement btn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(label == 'Done' OR name == 'Done' OR " +
+                "((label == 'Done' OR label == 'Terminé') OR (name == 'Done' OR name == 'Terminé') OR " +
                 " label == 'Terminé' OR name == 'Terminé' OR " +
                 " label == 'OK' OR name == 'OK') AND type == 'XCUIElementTypeButton'"));
             return btn.isDisplayed();
@@ -544,7 +544,7 @@ public class IssuePage extends BasePage {
     public void tapDoneButton() {
         try {
             WebElement btn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(label == 'Done' OR name == 'Done') AND type == 'XCUIElementTypeButton'"));
+                "((label == 'Done' OR label == 'Terminé') OR (name == 'Done' OR name == 'Terminé')) AND type == 'XCUIElementTypeButton'"));
             btn.click();
             sleep(300);
             System.out.println("✅ Tapped Done button");
@@ -636,7 +636,7 @@ public class IssuePage extends BasePage {
             // Dismiss keyboard by tapping Cancel or outside
             try {
                 WebElement cancelBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND label == 'Cancel'"));
+                    "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'Annuler')"));
                 cancelBtn.click();
                 sleep(300);
             } catch (Exception ignored) {}
@@ -1909,7 +1909,7 @@ public class IssuePage extends BasePage {
             for (int attempt = 1; attempt <= 10; attempt++) {
                 WebElement btn = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label == 'Create Issue' OR name == 'Create Issue' OR " +
-                    "label == 'Create' OR name == 'Create') AND type == 'XCUIElementTypeButton'"));
+                    "(label == 'Create' OR label == 'Créer') OR (name == 'Create' OR name == 'Créer')) AND type == 'XCUIElementTypeButton'"));
                 String enabled = btn.getAttribute("enabled");
                 if ("true".equals(enabled)) {
                     btn.click();
@@ -4864,7 +4864,7 @@ public class IssuePage extends BasePage {
             // Check for Cancel button that appears in picker
             try {
                 WebElement cancel = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND label == 'Cancel'"));
+                    "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'Annuler')"));
                 // Only consider it a picker if we're not on the Issue Details screen anymore
                 boolean stillOnDetails = isIssueDetailsScreenDisplayed();
                 if (!stillOnDetails) {
@@ -4890,7 +4890,7 @@ public class IssuePage extends BasePage {
                 WebElement cameraUI = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(type == 'XCUIElementTypeButton' AND " +
                     "(label CONTAINS 'Take Picture' OR label CONTAINS 'Capture' OR " +
-                    "label CONTAINS 'Shutter' OR label == 'Cancel')) OR " +
+                    "label CONTAINS 'Shutter' OR (label == 'Cancel' OR label == 'Annuler'))) OR " +
                     "(type == 'XCUIElementTypeStaticText' AND " +
                     "(label CONTAINS 'Camera' OR label CONTAINS 'Allow'))"));
                 return cameraUI.isDisplayed();
@@ -4912,7 +4912,7 @@ public class IssuePage extends BasePage {
         try {
             WebElement cancel = driver.findElement(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND " +
-                "(label == 'Cancel' OR label == 'Done' OR label == 'Close')"));
+                "((label == 'Cancel' OR label == 'Annuler') OR (label == 'Done' OR label == 'Terminé') OR label == 'Close')"));
             cancel.click();
             sleep(500);
             System.out.println("✅ Dismissed photo picker");
@@ -4938,7 +4938,7 @@ public class IssuePage extends BasePage {
         try {
             WebElement cancel = driver.findElement(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND " +
-                "(label == 'Cancel' OR label == 'Done' OR label == 'Close')"));
+                "((label == 'Cancel' OR label == 'Annuler') OR (label == 'Done' OR label == 'Terminé') OR label == 'Close')"));
             cancel.click();
             sleep(500);
             System.out.println("✅ Dismissed camera");
@@ -4947,7 +4947,7 @@ public class IssuePage extends BasePage {
             try {
                 WebElement dontAllow = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeButton' AND " +
-                    "(label == \"Don't Allow\" OR label == 'Cancel' OR label == 'OK')"));
+                    "(label == \"Don't Allow\" OR (label == 'Cancel' OR label == 'Annuler') OR label == 'OK')"));
                 dontAllow.click();
                 sleep(500);
             } catch (Exception e2) {
@@ -5074,11 +5074,11 @@ public class IssuePage extends BasePage {
             try {
                 List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeButton' AND " +
-                    "(label == 'Delete' OR label == 'Confirm' OR label == 'Yes' OR " +
+                    "((label == 'Delete' OR label == 'Supprimer') OR label == 'Confirm' OR label == 'Yes' OR " +
                     "label CONTAINS 'Confirm Delete')"));
                 // There should also be a Cancel button nearby
                 List<WebElement> cancelBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND label == 'Cancel'"));
+                    "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'Annuler')"));
                 if (!buttons.isEmpty() && !cancelBtns.isEmpty()) {
                     System.out.println("   Delete confirmation dialog inferred from buttons");
                     return true;
@@ -5151,7 +5151,7 @@ public class IssuePage extends BasePage {
         System.out.println("❌ Cancelling delete issue...");
         try {
             WebElement cancelBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"));
+                "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'Annuler')"));
             cancelBtn.click();
             sleep(400);
             System.out.println("✅ Cancelled deletion");
@@ -5185,7 +5185,7 @@ public class IssuePage extends BasePage {
         try {
             String predicate = "type == 'XCUIElementTypeButton' AND " +
                 "(label CONTAINS 'Save Changes' OR label CONTAINS 'Save changes' OR " +
-                "name CONTAINS 'Save Changes' OR label == 'Save')";
+                "name CONTAINS 'Save Changes' OR (label == 'Save' OR label == 'Enregistrer' OR label == 'Sauvegarder'))";
 
             // Strategy 1: Direct search
             try {
@@ -5233,7 +5233,7 @@ public class IssuePage extends BasePage {
         try {
             String predicate = "type == 'XCUIElementTypeButton' AND " +
                 "(label CONTAINS 'Save Changes' OR label CONTAINS 'Save changes' OR " +
-                "name CONTAINS 'Save Changes' OR label == 'Save')";
+                "name CONTAINS 'Save Changes' OR (label == 'Save' OR label == 'Enregistrer' OR label == 'Sauvegarder'))";
 
             // Strategy 1: Direct find
             try {
@@ -5487,7 +5487,7 @@ public class IssuePage extends BasePage {
             // Dismiss keyboard before proceeding to asset selection
             try {
                 driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND label == 'Done'")).click();
+                    "type == 'XCUIElementTypeButton' AND (label == 'Done' OR label == 'Terminé')")).click();
                 sleep(300);
             } catch (Exception ignored) {
                 // Try tapping outside the text field to dismiss keyboard
@@ -10441,8 +10441,8 @@ public class IssuePage extends BasePage {
             // Combined query for all possible delete button forms
             List<WebElement> deleteBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeImage') AND " +
-                "(label == 'Delete' OR label == 'Trash' OR label CONTAINS 'Delete' OR " +
-                "name == 'Delete' OR name == 'trash' OR name CONTAINS 'delete' OR label CONTAINS 'trash')"));
+                "((label == 'Delete' OR label == 'Supprimer') OR label == 'Trash' OR label CONTAINS 'Delete' OR " +
+                "(name == 'Delete' OR name == 'Supprimer') OR name == 'trash' OR name CONTAINS 'delete' OR label CONTAINS 'trash')"));
             if (!deleteBtns.isEmpty()) {
                 System.out.println("   Swipe Delete button found (" + deleteBtns.size() + " matches)");
                 return true;
@@ -10540,7 +10540,7 @@ public class IssuePage extends BasePage {
         try {
             WebElement btn = driver.findElement(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND " +
-                "(label == 'Delete' OR label CONTAINS 'Delete' OR name == 'Delete' OR " +
+                "((label == 'Delete' OR label == 'Supprimer') OR label CONTAINS 'Delete' OR (name == 'Delete' OR name == 'Supprimer') OR " +
                 "name CONTAINS 'trash' OR label CONTAINS 'Trash')"));
             btn.click();
             sleep(500);
@@ -10641,7 +10641,7 @@ public class IssuePage extends BasePage {
             try {
                 WebElement confirmBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeButton' AND " +
-                    "(label == 'Delete' OR label == 'Confirm' OR label == 'Yes')"));
+                    "((label == 'Delete' OR label == 'Supprimer') OR label == 'Confirm' OR label == 'Yes')"));
                 confirmBtn.click();
                 sleep(500);
                 System.out.println("✅ Confirmed swipe delete");
@@ -10677,7 +10677,7 @@ public class IssuePage extends BasePage {
         System.out.println("❌ Cancelling swipe delete...");
         try {
             WebElement cancelBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Cancel'"));
+                "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'Annuler')"));
             cancelBtn.click();
             sleep(400);
             System.out.println("✅ Cancelled swipe delete");
@@ -11252,7 +11252,7 @@ public class IssuePage extends BasePage {
         try {
             try {
                 WebElement cancel = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND label == 'Cancel'"));
+                    "type == 'XCUIElementTypeButton' AND (label == 'Cancel' OR label == 'Annuler')"));
                 cancel.click();
                 sleep(300);
                 return;
@@ -11368,7 +11368,7 @@ public class IssuePage extends BasePage {
             try {
                 driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeButton' AND " +
-                    "(label == 'Done' OR label == 'Close' OR name == 'xmark')"));
+                    "((label == 'Done' OR label == 'Terminé') OR label == 'Close' OR name == 'xmark')"));
             } catch (Exception e) {
                 return false;
             }
@@ -11398,7 +11398,7 @@ public class IssuePage extends BasePage {
             try {
                 WebElement done = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeButton' AND " +
-                    "(label == 'Done' OR label == 'Close' OR name == 'xmark')"));
+                    "((label == 'Done' OR label == 'Terminé') OR label == 'Close' OR name == 'xmark')"));
                 done.click();
                 sleep(400);
                 return true;

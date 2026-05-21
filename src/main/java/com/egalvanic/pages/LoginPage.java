@@ -904,7 +904,7 @@ public void clickShowPassword() {
             // Strategy B: a Done/Close button + long body text (modal sheet pattern)
             try {
                 driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                    "(type == 'XCUIElementTypeButton') AND (label == 'Done' OR label == 'Close')"));
+                    "(type == 'XCUIElementTypeButton') AND ((label == 'Done' OR label == 'Terminé') OR label == 'Close')"));
                 // Plus must NOT see Sign In button (we're not on login screen anymore)
                 List<WebElement> signIns = driver.findElements(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeButton' AND label == 'Sign In'"));
@@ -924,7 +924,7 @@ public void clickShowPassword() {
         try {
             try {
                 WebElement done = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND (label == 'Done' OR label == 'Close')"));
+                    "type == 'XCUIElementTypeButton' AND ((label == 'Done' OR label == 'Terminé') OR label == 'Close')"));
                 done.click();
                 sleep(500);
                 return true;
