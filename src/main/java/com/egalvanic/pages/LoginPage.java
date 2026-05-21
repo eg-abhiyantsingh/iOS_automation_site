@@ -143,6 +143,24 @@ public class LoginPage extends BasePage {
             emailField.click();
             emailField.clear();
             emailField.sendKeys(email);
+            // Diagnostic: verify the email field received exactly what we sent.
+            // iOS keyboards on newer iOS versions can autocorrect/autofill "+",
+            // breaking the test account email (abhiyant.singh+admin@...).
+            try {
+                String actual = emailField.getAttribute("value");
+                if (actual != null && !actual.equals(email)) {
+                    System.out.println("⚠️ Email autocorrect detected. Expected: '" + email +
+                        "', got: '" + actual + "' — retrying with one char at a time");
+                    emailField.clear();
+                    for (char c : email.toCharArray()) {
+                        emailField.sendKeys(String.valueOf(c));
+                    }
+                    actual = emailField.getAttribute("value");
+                    System.out.println("📧 After per-char retype: '" + actual + "'");
+                } else if (actual != null) {
+                    System.out.println("📧 Email field value: '" + actual + "' (matches expected)");
+                }
+            } catch (Exception diagEx) { /* diagnostic only */ }
         } catch (org.openqa.selenium.StaleElementReferenceException e) {
             // Re-find element if stale
             System.out.println("⚠️ Email field stale, re-finding...");
@@ -163,6 +181,21 @@ public class LoginPage extends BasePage {
             passwordField.click();
             passwordField.clear();
             passwordField.sendKeys(password);
+            // Diagnostic: verify the password field received text.
+            // SecureTextField masks the value, but reports filled length.
+            try {
+                String val = passwordField.getAttribute("value");
+                int actualLen = (val != null) ? val.length() : 0;
+                int expectedLen = password.length();
+                System.out.println("🔐 Password typed: expected " + expectedLen +
+                    " chars, field reports " + actualLen + " chars (masked='" + val + "')");
+                if (actualLen == 0 && expectedLen > 0) {
+                    System.out.println("⚠️ Password field appears EMPTY after sendKeys — retrying");
+                    passwordField.click();
+                    passwordField.clear();
+                    passwordField.sendKeys(password);
+                }
+            } catch (Exception diagEx) { /* diagnostic only */ }
         } catch (org.openqa.selenium.StaleElementReferenceException e) {
             // Re-find element if stale
             System.out.println("⚠️ Password field stale, re-finding...");
