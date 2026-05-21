@@ -94,6 +94,21 @@ public final class OfflineTest extends BaseTest {
 
     @BeforeMethod(alwaysRun = true)
     public void offlineTestSetup() {
+        // Mirror @BeforeClass: skip on CI before touching any page object.
+        // alwaysRun=true forces this method to fire even after classSetup
+        // already threw SkipException — without this guard we'd instantiate
+        // IssuePage with a dead/uninitialized driver and surfacing a
+        // misleading "Driver not initialized" failure instead of a clean
+        // SKIP. Same for any unexpected state where the driver is gone.
+        if (isCI()) {
+            throw new org.testng.SkipException(
+                "Offline tests require real WiFi toggle — not available on CI simulators");
+        }
+        if (!DriverManager.isDriverActive()) {
+            throw new org.testng.SkipException(
+                "Driver not initialized for OfflineTest setup — skipping cleanly");
+        }
+
         issuePage = new IssuePage();
 
         // One-time cleanup: restore clean online state (WiFi icon = "Wi-Fi")
