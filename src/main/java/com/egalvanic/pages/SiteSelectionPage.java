@@ -583,76 +583,120 @@ public class SiteSelectionPage extends BasePage {
     }
 
     /**
-     * Enter text in search bar (CI-safe with explicit waits)
-     * Updated to handle new UI where search bar element may be different
+     * Enter text in search bar (CI-safe with explicit waits).
+     *
+     * IMPORTANT: Uses direct {@code driver.findElement(…)} (no PageFactory) so the
+     * helper works on REPEATED invocations. PageFactory caches a WebElement ref
+     * after first lookup, but when the Sites picker is closed and reopened (e.g.,
+     * to switch from Site A to Site B in UC3_multiSiteDataCoexistence), the cached
+     * reference is stale — {@code waitForElementToBeClickable} returns null
+     * silently for stale refs and the helper used to fall through to strategies
+     * that required {@code visible == true} (sometimes 0 during modal-sheet
+     * present animation), eventually failing entirely.
+     *
+     * Each strategy below performs a fresh DOM query and throws on miss, so the
+     * catch block fires and we surface what was tried.
      */
     public void searchSite(String siteName) {
-        // Strategy 1: Try primary locator
+        // Strategy 1: TextField OR SearchField (broadest, covers UI variants)
         try {
-            WebElement searchElement = waitForElementToBeClickable(searchBar, 3);
-            if (searchElement != null) {
-                searchElement.click();
-                sleep(200);
-                searchElement.sendKeys(siteName);
-                System.out.println("✅ Entered '" + siteName + "' in search box (primary)");
-                return;
-            }
-        } catch (Exception e) {
-            System.out.println("⚠️ Primary search bar not found, trying alternatives...");
-        }
-        
-        // Strategy 2: Try alternative locator
-        try {
-            WebElement searchAlt = waitForElementToBeClickable(searchBarAlt, 3);
-            if (searchAlt != null) {
-                searchAlt.click();
-                sleep(200);
-                searchAlt.sendKeys(siteName);
-                System.out.println("✅ Entered '" + siteName + "' in search box (alt)");
-                return;
-            }
-        } catch (Exception e) {
-            System.out.println("⚠️ Alternative search bar not found...");
-        }
-        
-        // Strategy 3: Try generic TextField locator
-        try {
-            WebElement searchGeneric = waitForElementToBeClickable(searchBarGeneric, 3);
-            if (searchGeneric != null) {
-                searchGeneric.click();
-                sleep(200);
-                searchGeneric.sendKeys(siteName);
-                System.out.println("✅ Entered '" + siteName + "' in search box (generic)");
-                return;
-            }
-        } catch (Exception e) {
-            System.out.println("⚠️ Generic search bar not found...");
-        }
-        
-        // Strategy 4: Find any visible TextField directly
-        try {
-            WebElement textField = driver.findElement(AppiumBy.iOSClassChain("**/XCUIElementTypeTextField[`visible == true`]"));
-            textField.click();
+            WebElement field = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeSearchField'"));
+            field.click();
             sleep(200);
-            textField.sendKeys(siteName);
-            System.out.println("✅ Entered '" + siteName + "' in search box (direct TextField)");
+            field.sendKeys(siteName);
+            System.out.println("✅ Entered '" + siteName + "' in search box (primary)");
             return;
         } catch (Exception e) {
-            System.out.println("⚠️ Direct TextField not found...");
+            System.out.println("⚠️ Primary (TextField OR SearchField) not found, trying alternatives...");
         }
-        
-        // Strategy 5: Try SearchField type
+
+        // Strategy 2: Field with 'search' placeholder/value (case-insensitive)
         try {
-            WebElement searchField = driver.findElement(AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeSearchField'"));
-            searchField.click();
+            WebElement field = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "(value CONTAINS[c] 'search' OR placeholderValue CONTAINS[c] 'search' OR " +
+                " value CONTAINS[c] 'recherche' OR placeholderValue CONTAINS[c] 'recherche') AND " +
+                "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeSearchField')"));
+            field.click();
             sleep(200);
-            searchField.sendKeys(siteName);
+            field.sendKeys(siteName);
+            System.out.println("✅ Entered '" + siteName + "' in search box (alt — placeholder match)");
+            return;
+        } catch (Exception e) {
+            System.out.println("⚠️ Alternative (search placeholder) not found...");
+        }
+
+        // Strategy 3: Visible TextField via class chain (kept for compatibility)
+        try {
+            WebElement field = driver.findElement(AppiumBy.iOSClassChain(
+                "**/XCUIElementTypeTextField[`visible == true`]"));
+            field.click();
+            sleep(200);
+            field.sendKeys(siteName);
+            System.out.println("✅ Entered '" + siteName + "' in search box (visible TextField)");
+            return;
+        } catch (Exception e) {
+            System.out.println("⚠️ Visible TextField not found...");
+        }
+
+        // Strategy 4: ANY TextField (drop the visible==true constraint — iOS sometimes
+        // reports visible=0 for elements freshly presented in a modal sheet)
+        try {
+            WebElement field = driver.findElement(AppiumBy.iOSClassChain(
+                "**/XCUIElementTypeTextField"));
+            field.click();
+            sleep(200);
+            field.sendKeys(siteName);
+            System.out.println("✅ Entered '" + siteName + "' in search box (any TextField — no visibility constraint)");
+            return;
+        } catch (Exception e) {
+            System.out.println("⚠️ Any TextField not found...");
+        }
+
+        // Strategy 5: SearchField type explicitly
+        try {
+            WebElement field = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeSearchField'"));
+            field.click();
+            sleep(200);
+            field.sendKeys(siteName);
             System.out.println("✅ Entered '" + siteName + "' in search box (SearchField)");
             return;
-        } catch (Exception e) {
-            System.err.println("❌ Could not find any search bar: " + e.getMessage());
-            throw new RuntimeException("Search bar not found with any strategy");
+        } catch (Exception ignored) {}
+
+        // DIAGNOSTIC DUMP: every strategy failed — log what IS on screen so the
+        // real element/state can be surfaced. Pattern from changelog 069 (PHPicker
+        // debug) / 081 (tapOnIssuesButton diagnostic dump).
+        try {
+            System.out.println("🔍 DIAGNOSTIC: searchSite — all 5 strategies exhausted");
+            java.util.List<WebElement> txt = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeTextField'"));
+            System.out.println("   --- TextFields on screen (" + txt.size() + ") ---");
+            int n = 0;
+            for (WebElement t : txt) {
+                if (n++ >= 8) break;
+                try {
+                    System.out.println("   [Y=" + t.getLocation().getY() + ",visible=" +
+                        t.getAttribute("visible") + ",value='" + t.getAttribute("value") +
+                        "',placeholderValue='" + t.getAttribute("placeholderValue") + "']");
+                } catch (Exception ignored) {}
+            }
+            java.util.List<WebElement> sf = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeSearchField'"));
+            System.out.println("   --- SearchFields on screen (" + sf.size() + ") ---");
+            n = 0;
+            for (WebElement s : sf) {
+                if (n++ >= 4) break;
+                try {
+                    System.out.println("   [Y=" + s.getLocation().getY() + ",visible=" +
+                        s.getAttribute("visible") + ",value='" + s.getAttribute("value") + "']");
+                } catch (Exception ignored) {}
+            }
+        } catch (Exception diagEx) {
+            System.out.println("   Diagnostic dump failed: " + diagEx.getMessage());
         }
+        System.err.println("❌ Could not find any search bar");
+        throw new RuntimeException("Search bar not found with any strategy");
     }
 
     /**
