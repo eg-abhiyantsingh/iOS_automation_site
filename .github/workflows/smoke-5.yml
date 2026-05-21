@@ -173,7 +173,11 @@ jobs:
 
       - name: Start Appium Server
         run: |
-          appium --relaxed-security --log-level error > appium.log 2>&1 &
+          # --session-override: if a new POST /session arrives while an old session
+          # is active, kill the old one and start the new. Prevents "Request timeout
+          # to 127.0.0.1:4723 after 90000 ms" when Test Suite N+1 starts while
+          # Test Suite N's session is still being torn down server-side.
+          appium --relaxed-security --session-override --log-level error > appium.log 2>&1 &
           for i in {1..20}; do
             [ "$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:4723/status 2>/dev/null)" = "200" ] && break
             sleep 1
