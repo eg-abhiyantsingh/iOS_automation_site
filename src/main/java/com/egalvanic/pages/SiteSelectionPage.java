@@ -76,12 +76,21 @@ public class SiteSelectionPage extends BasePage {
     // DASHBOARD ELEMENTS
     // ================================================================
 
-    // Sites Button (Quick Action) - flexible for both old and new UI
-    @iOSXCUITFindBy(iOSNsPredicate = "type == 'XCUIElementTypeButton' AND (name == 'building.2' OR name CONTAINS 'building' OR name CONTAINS 'site' OR label CONTAINS[c] 'sites' OR label CONTAINS[c] 'site')")
+    // Sites QUICK ACTION button (the tile on Dashboard that opens the Site picker).
+    // EXPLICITLY excludes the bottom-nav "Site" tab (name='house' label='Site') —
+    // tapping that just stays on Dashboard, doesn't open the picker. Per
+    // diagnostic dump in commit 03e77b9, the old `label CONTAINS[c] 'site'`
+    // predicate was matching the bottom-nav house tab and Step 3 of UC1 was
+    // never reaching the Sites picker.
+    @iOSXCUITFindBy(iOSNsPredicate = "type == 'XCUIElementTypeButton' AND " +
+        "(name == 'building.2' OR name == 'building.2.crop.circle' OR " +
+        " name == 'Sites' OR label == 'Sites' OR label == 'Site Selector') " +
+        "AND name != 'house'")
     private WebElement sitesButton;
-    
-    // Sites Button Alternative - by various building icons
-    @iOSXCUITFindBy(iOSNsPredicate = "type == 'XCUIElementTypeButton' AND (name CONTAINS 'building' OR name CONTAINS 'house' OR name CONTAINS 'Sites' OR label CONTAINS 'Sites')")
+
+    // Sites Button Alternative — building icons only (no generic 'house' / 'Site')
+    @iOSXCUITFindBy(iOSNsPredicate = "type == 'XCUIElementTypeButton' AND " +
+        "(name CONTAINS 'building' OR name == 'Sites' OR label == 'Sites')")
     private WebElement sitesButtonAlt;
     
     // Sites Button by accessibility ID (original)
