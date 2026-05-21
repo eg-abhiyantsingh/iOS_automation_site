@@ -198,13 +198,27 @@ jobs:
             sleep 1
           done
 
-      - name: Run 5 Smoke Tests
+      - name: Run 5 Smoke Tests (turbo)
         continue-on-error: true
         env:
           WORKSPACE: ${{ github.workspace }}
           SIM_UDID: ${{ env.SIMULATOR_UDID }}
           DEV_NAME: ${{ env.DEVICE_NAME }}
           PLAT_VER: ${{ env.PLATFORM_VERSION }}
+          # Maven & JVM tuning for fastest startup + smaller GC pauses:
+          #  - .mvn/maven.config caches don't apply; use MAVEN_OPTS
+          #  - tieredStopAtLevel=1 → skip C2 compiler (slower steady-state but faster startup;
+          #    fine for short test runs)
+          #  - Xss512k thread stack (smaller = more threads fit in RAM)
+          #  - UseG1GC = predictable pauses
+          #  - PerfDisableSharedMem = skip /tmp/hsperfdata writes (faster JVM start)
+          MAVEN_OPTS: >-
+            -Xms512m -Xmx2g
+            -XX:+UseG1GC
+            -XX:+PerfDisableSharedMem
+            -XX:TieredStopAtLevel=1
+            -XX:+UnlockExperimentalVMOptions
+            -Dorg.slf4j.simpleLogger.defaultLogLevel=warn
         run: |
           APP_PATH="$WORKSPACE/apps/Z Platform-QA.app"
           BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
@@ -212,9 +226,9 @@ jobs:
 
           WDA_APP=$(find /tmp/wda-app -name "WebDriverAgentRunner-Runner.app" -type d 2>/dev/null | head -1)
           if [ -n "$WDA_APP" ]; then
-            echo "Using prebuilt WDA: $WDA_APP"
+            echo "✅ Using prebuilt WDA: $WDA_APP"
           else
-            echo "No prebuilt WDA — XCUITest will build at first session"
+            echo "⚠️ No prebuilt WDA — XCUITest will build at first session"
           fi
 
           TESTS="AuthenticationTest#TC01_verifyWelcomeScreenUILoads"
@@ -223,7 +237,17 @@ jobs:
           TESTS="$TESTS,Asset_Phase1_Test#ATS_ECR_01_verifyNewAssetScreenLoadsSuccessfully"
           TESTS="$TESTS,OfflineTest#TC_OFF_001_verifyGoOfflineButtonOnSiteDashboard"
 
-          mvn -B -q test -Dtest="$TESTS" \
+          # mvn flags:
+          #  -B               batch/non-interactive
+          #  -q               quiet
+          #  -ntp             no transfer progress
+          #  --no-snapshot-updates  skip checking for updates
+          #  -fae             fail-at-end so all 5 run even if one fails
+          #  -T 1C            1 thread per core for build phase (compile only — tests serial)
+          #  -Dmaven.artifact.threads=10  parallel artifact resolution if any deps need fetching
+          mvn -B -q -ntp --no-snapshot-updates -fae -T 1C \
+            -Dmaven.artifact.threads=10 \
+            test -Dtest="$TESTS" \
             -DDEVICE_NAME="$DEV_NAME" \
             -DPLATFORM_VERSION="$PLAT_VER" \
             -DSIMULATOR_UDID="$SIM_UDID" \
