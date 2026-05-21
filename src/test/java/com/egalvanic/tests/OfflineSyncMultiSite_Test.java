@@ -228,8 +228,14 @@ public class OfflineSyncMultiSite_Test extends BaseTest {
 
         int afterCreateCount = siteSelectionPage.getPendingSyncCount();
         System.out.println("[UC1] After offline asset-edit, pending sync count = " + afterCreateCount);
-        skipIfPreconditionMissing(() -> afterCreateCount > baselineCount,
-            "Queue did not grow after offline asset edit (baseline=" + baselineCount +
+        // Multi-site offline-persistence test only requires that offline data EXISTS
+        // (queue >= 1). Strict growth (afterCreate > baseline) is wrong when the
+        // edit hits an asset that already has a pending entry — the app updates
+        // the existing queue record in place rather than adding a new one, so
+        // count stays the same. What matters is: queue has pending data, and
+        // that data survives the multi-site switch.
+        skipIfPreconditionMissing(() -> afterCreateCount >= 1,
+            "Queue is empty after offline asset edit (baseline=" + baselineCount +
             ", afterCreate=" + afterCreateCount + ") — sim env may have no assets or read-only data");
 
         // Verify offline state was retained through the create flow
