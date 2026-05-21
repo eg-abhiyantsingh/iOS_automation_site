@@ -1984,25 +1984,77 @@ public class SiteSelectionPage extends BasePage {
     }
 
     /**
-     * Get pending sync records count
-     * Returns the number of records pending sync (e.g., "Sync 1 records" -> 1)
+     * Get pending sync records count.
+     *
+     * Reads the sync queue size from multiple sources in priority order:
+     *   1. WiFi-icon badge in the nav bar — a button whose `name` attribute
+     *      is the digit count (e.g. button name='1' next to the WiFi icon).
+     *      This is the live indicator shown in the top-left of Dashboard
+     *      when there are pending offline writes. Same pattern that
+     *      isWifiOffline() at line ~1255 already uses to detect offline.
+     *   2. The "Sync Queue Analyzer" settings row badge (also a digit-named
+     *      button).
+     *   3. Legacy: `syncRecordsText` PageFactory element ("Sync X records")
+     *      — kept for back-compat with older UI variants.
+     *
+     * Returns 0 if no pending writes (no badge visible).
      */
     public int getPendingSyncCount() {
+        // Strategy 1: Nav-bar WiFi badge (button with name matching \d+).
+        // This is the canonical live indicator on Dashboard.
+        try {
+            WebElement navBar = driver.findElement(AppiumBy.className("XCUIElementTypeNavigationBar"));
+            List<WebElement> navButtons = navBar.findElements(AppiumBy.className("XCUIElementTypeButton"));
+            for (WebElement btn : navButtons) {
+                String name = btn.getAttribute("name");
+                if (name != null && name.matches("\\d+")) {
+                    try {
+                        int count = Integer.parseInt(name);
+                        System.out.println("[SYNC-COUNT] WiFi badge in nav bar = " + count);
+                        return count;
+                    } catch (NumberFormatException ignored) { /* try other strategies */ }
+                }
+            }
+        } catch (Exception navEx) { /* nav bar not found — try other strategies */ }
+
+        // Strategy 2: Any button anywhere on screen with digit-only name (covers
+        // Settings → Sync Queue Analyzer row badge AND Pending tab count).
+        try {
+            List<WebElement> digitButtons = driver.findElements(
+                AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND name MATCHES '\\\\d+'"));
+            // Prefer the smallest Y (top-most = the nav-bar badge if present)
+            if (!digitButtons.isEmpty()) {
+                WebElement topMost = digitButtons.get(0);
+                int minY = topMost.getLocation().getY();
+                for (WebElement b : digitButtons) {
+                    int y = b.getLocation().getY();
+                    if (y < minY) { minY = y; topMost = b; }
+                }
+                String n = topMost.getAttribute("name");
+                try {
+                    int count = Integer.parseInt(n);
+                    System.out.println("[SYNC-COUNT] Digit-named button (y=" + minY + ") = " + count);
+                    return count;
+                } catch (NumberFormatException ignored) {}
+            }
+        } catch (Exception ignored) { /* fall through */ }
+
+        // Strategy 3 (legacy): "Sync X records" text element.
         try {
             if (isElementDisplayed(syncRecordsText)) {
                 String text = syncRecordsText.getAttribute("label");
-                // Extract number from "Sync X records"
                 String[] parts = text.split(" ");
                 for (String part : parts) {
                     try {
-                        return Integer.parseInt(part);
-                    } catch (NumberFormatException ignored) {
-                    }
+                        int count = Integer.parseInt(part);
+                        System.out.println("[SYNC-COUNT] syncRecordsText = " + count);
+                        return count;
+                    } catch (NumberFormatException ignored) {}
                 }
             }
-        } catch (Exception e) {
-            System.out.println("⚠️ Could not get sync count: " + e.getMessage());
-        }
+        } catch (Exception e) { /* nothing to do */ }
+
         return 0;
     }
 
