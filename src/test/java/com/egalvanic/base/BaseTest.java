@@ -106,6 +106,9 @@ public class BaseTest {
             @Optional String udid,
             @Optional String appiumPort,
             @Optional String wdaLocalPort) {
+        // Hoisted so it's visible to the soft-restart block AND the auto-advance skip
+        // below. Toggled in CI smoke runs via -Dsmoke.chain=true.
+        boolean chainMode = "true".equalsIgnoreCase(System.getProperty("smoke.chain"));
         // Skip setup for chained tests
         if (skipNextSetup) {
             // Verify the driver is still alive before reusing it
@@ -149,8 +152,8 @@ public class BaseTest {
         //
         // SPEED MODE (-Dsmoke.chain=true): skip the soft restart entirely so the
         // app stays running between tests. Each test's loginAndSelectSite() fast-
-        // paths to Dashboard. Saves ~30 sec per test = ~2 min on 5 tests.
-        boolean chainMode = "true".equalsIgnoreCase(System.getProperty("smoke.chain"));
+        // paths to Dashboard. Saves ~30 sec per test.
+        // (chainMode is hoisted at top of method so it's visible in auto-advance too.)
         if (chainMode && DriverManager.isDriverActive()) {
             System.out.println("⚡ Chain mode: skipping soft-restart (app stays running from previous test)");
         } else {
@@ -197,7 +200,14 @@ public class BaseTest {
         // Auto-advance from Welcome / Login / Site Selection so every test starts on
         // Dashboard. Without this, standalone test runs (e.g. mvn -Dtest='X#Y') fail
         // at navigation because they depend on a prior test (#001) having logged in.
-        autoAdvanceToDashboardIfNeeded();
+        //
+        // SPEED MODE: skip auto-advance for chained tests if we're already on Dashboard
+        // (the previous test left us there). Saves another 5-10 sec per test.
+        if (chainMode && siteSelectionPage.isDashboardDisplayed()) {
+            System.out.println("⚡ Chain mode: already on Dashboard, skipping auto-advance");
+        } else {
+            autoAdvanceToDashboardIfNeeded();
+        }
 
         testStartTime = System.currentTimeMillis();
         System.out.println("✅ Test setup complete  [" + timestamp() + "]\n");

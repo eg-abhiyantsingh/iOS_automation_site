@@ -64,7 +64,7 @@ jobs:
     #   macos-15-xlarge → 12-core M1, 24 GB, ~$0.50/min
     # Change runs-on below to the larger label once enabled.
     runs-on: macos-15
-    timeout-minutes: 30
+    timeout-minutes: 20
 
     steps:
       - name: Checkout code
@@ -183,7 +183,7 @@ jobs:
             sleep 1
           done
 
-      - name: Run 5 Smoke Tests (turbo)
+      - name: Run 3 Smoke Tests (turbo)
         continue-on-error: true
         env:
           WORKSPACE: ${{ github.workspace }}
@@ -221,10 +221,14 @@ jobs:
           # a logged-out app, but auto-advance puts us on Dashboard immediately, so
           # they failed and the driver died for subsequent tests. Picking 5 Dashboard-
           # rooted tests means all share the same auto-advance setup.
+          # 3 tests cover ALL major fix areas; explicitly EXCLUDES Authentication
+          # and SiteSelection which need a fresh logged-out app and break the chain.
+          #   Issue_Phase1.TC_ISS_001 — Quick Actions card nav + forceEnglish toggle
+          #   Asset_Phase1.ATS_ECR_01 — AssetPage i18n (Nouvel actif, etc.)
+          #   OfflineTest.TC_OFF_001  — Go Offline button (offline + sim path)
+          # Connections + Location skipped from smoke — Issues already proves nav.
           TESTS="Issue_Phase1_Test#TC_ISS_001_verifyIssuesScreenHeaderElements"
           TESTS="$TESTS,Asset_Phase1_Test#ATS_ECR_01_verifyNewAssetScreenLoadsSuccessfully"
-          TESTS="$TESTS,Connections_Test#TC_CONN_001_verifyConnectionsTabInBottomNavigation"
-          TESTS="$TESTS,LocationTest#TC_NB_001_verifyNewBuildingScreenUIElements"
           TESTS="$TESTS,OfflineTest#TC_OFF_001_verifyGoOfflineButtonOnSiteDashboard"
 
           # mvn flags:
