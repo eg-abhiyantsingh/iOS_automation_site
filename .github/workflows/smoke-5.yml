@@ -64,7 +64,10 @@ jobs:
     #   macos-15-xlarge → 12-core M1, 24 GB, ~$0.50/min
     # Change runs-on below to the larger label once enabled.
     runs-on: macos-15
-    timeout-minutes: 20
+    # Per project rule: iOS test workflows always use a 6-hour wall-clock
+    # cap so flaky simulator boots don't truncate the job before tests
+    # have a chance to run. See memory: feedback_ci_timeout_6h.
+    timeout-minutes: 360
 
     steps:
       - name: Checkout code
