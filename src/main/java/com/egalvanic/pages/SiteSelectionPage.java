@@ -1026,25 +1026,32 @@ public class SiteSelectionPage extends BasePage {
             }
             
             // Fallback: Find by searching all buttons in view
+            // CRITICAL: must NOT match name='house' or label='Site' — those are
+            // the bottom-nav 'Site' tab which just stays on Dashboard, never
+            // opens the picker. Per UC1 v11 log: this fallback was finding the
+            // house tab even after PageFactory predicate was tightened.
             if (!clicked) {
                 System.out.println("🔍 Searching for Sites button in all visible buttons...");
                 List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeButton'"
                 ));
-                
+
                 for (WebElement btn : buttons) {
                     String name = btn.getAttribute("name");
                     String label = btn.getAttribute("label");
-                    // Check for building icons (various SF Symbols)
-                    if (name != null && (name.contains("building") || name.contains("site") || 
-                                         name.contains("house") || name.equals("Sites"))) {
+                    // Match building.2 icon variants OR explicit 'Sites' name/label —
+                    // explicitly EXCLUDE 'house' (bottom-nav tab) and singular 'Site'
+                    // (also bottom-nav). The Quick Action Sites card has the
+                    // building.2 SF Symbol icon; the bottom-nav has house.
+                    if (name != null && !name.equals("house") && !name.equals("Site") &&
+                        (name.contains("building") || name.equals("Sites"))) {
                         System.out.println("✅ Found Sites button by name: " + name);
                         btn.click();
                         clicked = true;
                         break;
                     }
-                    if (label != null && (label.toLowerCase().contains("sites") || 
-                                          label.toLowerCase().contains("site"))) {
+                    if (label != null && !label.equals("Site") &&
+                        label.toLowerCase().contains("sites")) {
                         System.out.println("✅ Found Sites button by label: " + label);
                         btn.click();
                         clicked = true;
