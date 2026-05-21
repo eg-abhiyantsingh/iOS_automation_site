@@ -1290,17 +1290,48 @@ public class SiteSelectionPage extends BasePage {
                     org.openqa.selenium.Point loc = btn.getLocation();
                     org.openqa.selenium.Dimension sz = btn.getSize();
                     int tapX = loc.getX() + sz.getWidth() / 2;
-                    int tapY = loc.getY() + sz.getHeight() / 2;
+                    // Target the UPPER portion of the button bounds (~25% from top) where
+                    // the actual visible Wi-Fi icon sits. iOS reports the accessibility
+                    // hitbox center at Y=78 for a button at (16,63)-(53,94), but the
+                    // visible icon is in the status bar area (Y~58-65). On iOS 26.2
+                    // hit-testing for the system Wi-Fi popup is stricter than iOS 18.5
+                    // (CI) — tapping at button-center Y misses the popup trigger.
+                    int tapY = loc.getY() + Math.max(sz.getHeight() / 4, 6);
 
                     System.out.println("[DEBUG-WIFI] WiFi button: name=" + name
                         + ", visible=" + visible
                         + ", loc=(" + loc.getX() + "," + loc.getY() + ")"
                         + ", size=(" + sz.getWidth() + "x" + sz.getHeight() + ")"
-                        + ", tapCenter=(" + tapX + "," + tapY + ")");
+                        + ", tapTarget=(" + tapX + "," + tapY + ") [upper-quarter]");
 
-                    // Use W3C Actions tap (works regardless of visible attribute)
+                    // Try W3C Actions tap first (works on iOS 18.5 CI)
                     performW3CTap(tapX, tapY);
-                    System.out.println("✅ Tapped WiFi button via W3C Actions (name: " + name + ")");
+                    System.out.println("✅ Tapped WiFi button via W3C Actions at upper-quarter (name: " + name + ")");
+
+                    // If popup didn't open within 1.5s, retry with mobile:tap (Appium
+                    // native gesture, sometimes triggers iOS hit-test differently than
+                    // W3C Actions on iOS 26.2).
+                    try { Thread.sleep(1500); } catch (InterruptedException ignored) {}
+                    boolean popupOpen = false;
+                    try {
+                        java.util.List<WebElement> popupSignals = driver.findElements(
+                            io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                                "label CONTAINS[c] 'Offline' OR label CONTAINS[c] 'Online' OR " +
+                                " name CONTAINS[c] 'Offline' OR name CONTAINS[c] 'Online'"));
+                        popupOpen = !popupSignals.isEmpty();
+                    } catch (Exception ignored) {}
+                    if (!popupOpen) {
+                        System.out.println("[DEBUG-WIFI] W3C tap did not open popup — retrying with mobile:tap");
+                        try {
+                            java.util.Map<String, Object> tapArgs = new java.util.HashMap<>();
+                            tapArgs.put("x", tapX);
+                            tapArgs.put("y", tapY);
+                            driver.executeScript("mobile: tap", tapArgs);
+                            System.out.println("✅ Re-tapped WiFi via mobile:tap at (" + tapX + "," + tapY + ")");
+                        } catch (Exception tapEx) {
+                            System.out.println("⚠️ mobile:tap also failed: " + tapEx.getMessage());
+                        }
+                    }
                     return;
                 }
 
