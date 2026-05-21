@@ -163,6 +163,24 @@ public class DriverManager {
                 options.setCapability("appium:shouldUseSingletonTestManager", false);
                 options.setCapability("appium:waitForIdleTimeout", 0);
 
+                // ========== WDA prebuilt path (CI smoke speed-up) ==========
+                // When the CI workflow pre-builds WebDriverAgentRunner.app and
+                // caches it at /tmp/wda-build (or /tmp/wda-app), pass the path so
+                // Appium reuses it instead of rebuilding. Skips 2-5 min of xcodebuild.
+                // -DAPPIUM_DERIVED_DATA_PATH and -DAPPIUM_PREBUILT_WDA_APP are set
+                // by the smoke-5.yml workflow.
+                String derivedDataPath = System.getProperty("APPIUM_DERIVED_DATA_PATH");
+                if (derivedDataPath != null && !derivedDataPath.isEmpty()) {
+                    options.setCapability("appium:derivedDataPath", derivedDataPath);
+                    System.out.println("📦 Using cached WDA derivedDataPath: " + derivedDataPath);
+                }
+                String prebuiltWdaApp = System.getProperty("APPIUM_PREBUILT_WDA_APP");
+                if (prebuiltWdaApp != null && !prebuiltWdaApp.isEmpty()) {
+                    options.setCapability("appium:updatedWDABundleId", "com.facebook.WebDriverAgentRunner.xctrunner");
+                    options.setCapability("appium:prebuiltWDAPath", prebuiltWdaApp);
+                    System.out.println("📦 Using prebuilt WDA app: " + prebuiltWdaApp);
+                }
+
                 // ========== ELEMENT VISIBILITY SETTINGS ==========
                 options.setCapability("appium:simpleIsVisibleCheck", true);
                 options.setCapability("appium:maxTypingFrequency", 60);
@@ -205,7 +223,13 @@ public class DriverManager {
                 ClientConfig httpConfig = ClientConfig.defaultConfig()
                         .baseUrl(appiumServer)
                         .connectionTimeout(Duration.ofSeconds(60))
-                        .readTimeout(Duration.ofSeconds(90));
+                        // 600s = 10 min: covers WDA cold-build on first session
+                        // (xcodebuild can take 2-5 min on macos-15 free runners).
+                        // 90s was too short — Appium would still be building WDA
+                        // when our client gave up, causing "Could not start a new
+                        // session" timeouts. After first session, subsequent
+                        // session creations are <30 sec since WDA is warm.
+                        .readTimeout(Duration.ofSeconds(600));
                 IOSDriver newDriver = new IOSDriver(httpConfig, options);
                 newDriver.manage().timeouts().implicitlyWait(Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
 
