@@ -120,14 +120,16 @@ public class DriverManager {
 
                 try {
                     String bundleId = "com.egalvanic.zplatform-QA";
-                    String[] terminate = {"xcrun", "simctl", "terminate", deviceUdid, bundleId};
-                    new ProcessBuilder(terminate).redirectErrorStream(true).start().waitFor();
-                    String[] writeAppLang = {"xcrun", "simctl", "spawn", deviceUdid,
-                            "defaults", "write", bundleId, "appLanguage", "en"};
-                    new ProcessBuilder(writeAppLang).redirectErrorStream(true).start().waitFor();
-                    String[] writeUserLang = {"xcrun", "simctl", "spawn", deviceUdid,
-                            "defaults", "write", bundleId, "userPreferredLanguage", "en"};
-                    new ProcessBuilder(writeUserLang).redirectErrorStream(true).start().waitFor();
+                    // CRITICAL: bound each simctl call with a 10-sec timeout. Without
+                    // this, a hung simctl (common right after sim boot or when WDA is
+                    // initializing on the sim) blocks driver init for the full Maven
+                    // test step. We saw 8-minute hangs in CI run 26220522090 caused
+                    // by waitFor() with no timeout here.
+                    runSimctlWithTimeout(new String[]{"xcrun", "simctl", "terminate", deviceUdid, bundleId});
+                    runSimctlWithTimeout(new String[]{"xcrun", "simctl", "spawn", deviceUdid,
+                            "defaults", "write", bundleId, "appLanguage", "en"});
+                    runSimctlWithTimeout(new String[]{"xcrun", "simctl", "spawn", deviceUdid,
+                            "defaults", "write", bundleId, "userPreferredLanguage", "en"});
                     System.out.println("🌐 Forced app language to English (appLanguage=en)");
                 } catch (Exception langEx) {
                     System.out.println("⚠️ Could not pre-write app language: " + langEx.getMessage());
@@ -241,6 +243,29 @@ public class DriverManager {
                 e.printStackTrace();
                 throw new RuntimeException("Failed to initialize driver: " + e.getMessage(), e);
             }
+        }
+    }
+
+    /**
+     * Run an `xcrun simctl` command with a 10-second timeout. If the command
+     * hangs (common when the sim is busy right after boot, when WDA is starting,
+     * or when an app process is in a weird state), this returns silently rather
+     * than blocking the entire driver-init flow.
+     *
+     * Without this guard, CI run 26220522090 hung 8 minutes inside
+     * `ProcessBuilder.waitFor()` while writing the appLanguage plist key —
+     * simctl was queuing the spawn behind a busy sim. Job hit the 20-min cap.
+     */
+    private static void runSimctlWithTimeout(String[] cmd) {
+        try {
+            Process p = new ProcessBuilder(cmd).redirectErrorStream(true).start();
+            boolean ok = p.waitFor(10, java.util.concurrent.TimeUnit.SECONDS);
+            if (!ok) {
+                System.out.println("⚠️ simctl timed out after 10s: " + String.join(" ", cmd));
+                p.destroyForcibly();
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ simctl error: " + e.getMessage());
         }
     }
 
