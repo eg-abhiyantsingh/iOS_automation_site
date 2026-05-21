@@ -231,10 +231,15 @@ jobs:
             echo "⚠️ No prebuilt WDA — XCUITest will build at first session"
           fi
 
-          TESTS="AuthenticationTest#TC01_verifyWelcomeScreenUILoads"
-          TESTS="$TESTS,SiteSelectionTest#TC_SS_001_verifySelectSiteScreenUIElements"
-          TESTS="$TESTS,Issue_Phase1_Test#TC_ISS_001_verifyIssuesScreenHeaderElements"
+          # All 5 tests start from DASHBOARD state — no fresh-install assumption.
+          # Earlier mix had TC01 (Welcome) + TC_SS_001 (SiteSelection) which expected
+          # a logged-out app, but auto-advance puts us on Dashboard immediately, so
+          # they failed and the driver died for subsequent tests. Picking 5 Dashboard-
+          # rooted tests means all share the same auto-advance setup.
+          TESTS="Issue_Phase1_Test#TC_ISS_001_verifyIssuesScreenHeaderElements"
           TESTS="$TESTS,Asset_Phase1_Test#ATS_ECR_01_verifyNewAssetScreenLoadsSuccessfully"
+          TESTS="$TESTS,Connections_Test#TC_CONN_001_verifyConnectionsTabInBottomNavigation"
+          TESTS="$TESTS,LocationTest#TC_NB_001_verifyNewBuildingScreenUIElements"
           TESTS="$TESTS,OfflineTest#TC_OFF_001_verifyGoOfflineButtonOnSiteDashboard"
 
           # mvn flags:
