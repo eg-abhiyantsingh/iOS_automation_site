@@ -203,38 +203,45 @@ public class OfflineSyncMultiSite_Test extends BaseTest {
         // ------------------------------------------------------------------
         logStep("Step 2b: Edit first asset offline on Site A");
         String uniqueSuffix = "_UC1_" + System.currentTimeMillis();
+
+        // Step 2b: navigate + open asset + edit + save.
+        // CRITICAL: SkipException must bubble up so the test actually skips
+        // when state pollution puts us on Sites picker. Previous version
+        // wrapped this in a broad catch (Exception) which swallowed
+        // SkipException and let the test continue into Step 3 with a
+        // garbage state.
         try {
             assetPage.navigateToAssetList();
             mediumWait();
-            String originalName = assetPage.selectFirstAsset();
-            // Per user feedback "i think u are clicking on create new site":
-            // selectFirstAsset returns null when it detects the Sites picker
-            // (or any wrong screen). Skip cleanly rather than try to edit a
-            // ghost "asset" that would actually create a new site.
-            if (originalName == null || originalName.equals("Create New Site") ||
-                originalName.equals("Select Site") || originalName.startsWith("Search sites")) {
-                skipIfPreconditionMissing(() -> false,
-                    "navigateToAssetList misrouted to Sites picker (got asset='" +
-                    originalName + "'). State pollution from prior site selection — " +
-                    "needs navigateToAssetList state-aware fix.");
-            }
-            System.out.println("[UC1] Opened asset for edit: " + originalName);
+        } catch (Exception navEx) {
+            System.out.println("[UC1] navigateToAssetList warning: " + navEx.getMessage());
+        }
+
+        String originalName = assetPage.selectFirstAsset();
+        // Per user feedback "i think u are clicking on create new site":
+        // selectFirstAsset returns null when it detects the Sites picker
+        // (or any wrong screen). Skip cleanly rather than try to edit a
+        // ghost "asset" that would actually create a new site.
+        if (originalName == null || originalName.equals("Create New Site") ||
+            originalName.equals("Select Site") || originalName.startsWith("Search sites")) {
+            skipIfPreconditionMissing(() -> false,
+                "navigateToAssetList misrouted to Sites picker (got asset='" +
+                originalName + "'). State pollution from prior site selection — " +
+                "needs navigateToAssetList state-aware fix.");
+        }
+        System.out.println("[UC1] Opened asset for edit: " + originalName);
+
+        try {
             mediumWait();
             assetPage.clickEditTurbo();
             mediumWait();
-            // Modify the asset name with a unique suffix so the save is non-trivial.
-            // (If enterAssetName appends rather than replacing, we still end up with a
-            // distinct value that the app will mark dirty.)
-            try {
-                assetPage.enterAssetName(uniqueSuffix);
-                mediumWait();
-            } catch (Exception nameEx) {
-                System.out.println("[UC1] enterAssetName warning: " + nameEx.getMessage());
-            }
+            assetPage.enterAssetName(uniqueSuffix);
+            mediumWait();
             assetPage.clickEditSave();
             mediumWait();
-        } catch (Exception e) {
-            System.out.println("[UC1] Asset edit error: " + e.getMessage());
+        } catch (Exception editEx) {
+            System.out.println("[UC1] Asset edit step warning: " + editEx.getMessage());
+            // Don't swallow — let the queue-grow assertion below catch this
         }
 
         int afterCreateCount = siteSelectionPage.getPendingSyncCount();
