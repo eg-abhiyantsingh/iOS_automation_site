@@ -3166,7 +3166,38 @@ public class SiteSelectionPage extends BasePage {
             System.out.println("🔄 Switching to site: " + targetSiteName);
             clickSitesButton();
             sleep(1500);
-            return selectSiteByName(targetSiteName);
+            try {
+                return selectSiteByName(targetSiteName);
+            } catch (RuntimeException searchEx) {
+                // Search-bar lookup blew up — likely the Sites picker did not
+                // actually open (e.g., the Sites button tap landed on the wrong
+                // element, or the picker render is throttled by an in-flight
+                // sync). Dump what IS on screen so future runs reveal the truth
+                // instead of failing silently with "Search bar not found".
+                System.out.println("🔍 DIAGNOSTIC: switchToSite failed at search-bar stage — dumping screen");
+                try {
+                    String[] types = {"XCUIElementTypeNavigationBar", "XCUIElementTypeStaticText",
+                        "XCUIElementTypeButton", "XCUIElementTypeOther"};
+                    for (String t : types) {
+                        java.util.List<WebElement> els = driver.findElements(
+                            AppiumBy.iOSNsPredicateString("type == '" + t + "' AND " +
+                                "(label != '' OR name != '')"));
+                        System.out.println("   --- " + t + " (" + els.size() + ") ---");
+                        int n = 0;
+                        for (WebElement el : els) {
+                            if (n++ >= 6) break;
+                            try {
+                                System.out.println("   [Y=" + el.getLocation().getY() +
+                                    "] name='" + el.getAttribute("name") +
+                                    "' label='" + el.getAttribute("label") + "'");
+                            } catch (Exception ignored) {}
+                        }
+                    }
+                } catch (Exception diagEx) {
+                    System.out.println("   diagnostic dump failed: " + diagEx.getMessage());
+                }
+                throw searchEx;
+            }
         } catch (Exception e) {
             System.out.println("⚠️ switchToSite('" + targetSiteName + "') failed: " + e.getMessage());
             return false;

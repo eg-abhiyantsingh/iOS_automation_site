@@ -78,12 +78,23 @@ public class OfflineSyncMultiSite_Test extends BaseTest {
 
     @BeforeMethod(alwaysRun = true)
     public void perTestSetup() {
-        // Defensive: ensure we're online and on dashboard before each test
+        // Defensive: ensure we're online before each test — UNLESS there are
+        // pending sync records from a prior offline operation. In that case
+        // auto-online would silently sync them, invalidating multi-site
+        // offline-persistence tests like UC1. Also auto-online when truly
+        // online but pending=0 is pure waste (~60s per test on iOS 26.2).
         try {
             if (siteSelectionPage.isWifiOffline()) {
-                System.out.println("🌐 Was offline — restoring online state for clean start");
-                siteSelectionPage.goOnline();
-                shortWait();
+                boolean hasPending = false;
+                try { hasPending = siteSelectionPage.hasPendingSyncRecords(); } catch (Exception ignored) {}
+                if (hasPending) {
+                    System.out.println("🌐 Was offline with pending sync — LEAVING AS-IS " +
+                        "(auto-online would sync the queue and break multi-site offline tests)");
+                } else {
+                    System.out.println("🌐 Was offline (no pending) — restoring online state");
+                    siteSelectionPage.goOnline();
+                    shortWait();
+                }
             }
         } catch (Exception e) {
             System.out.println("⚠️ perTestSetup online-restore probe failed: " + e.getMessage());
