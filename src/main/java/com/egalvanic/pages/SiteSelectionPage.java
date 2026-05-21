@@ -846,19 +846,40 @@ public class SiteSelectionPage extends BasePage {
      */
     public boolean selectSiteByName(String siteName) {
         System.out.println("🔍 Selecting site by name: " + siteName);
-        
-        // Clear any previous search first to avoid cache issues
+
+        // Speed optimization: only call clearSearch() if the clear-button (xmark)
+        // actually exists. Without this guard, clearSearch() ALWAYS fires its
+        // 2s xpath lookup + waitForVisibility wait + verbose stack-trace dump
+        // when the search field is already empty (common case on first switch).
+        // Was costing ~3-5s + log noise per selectSiteByName call.
+        boolean clearButtonPresent = false;
         try {
-            clearSearch();
-            waitForSearchResultsReady();
-        } catch (Exception e) {
-            System.out.println("⚠️ Could not clear previous search: " + e.getMessage());
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(200));
+            try {
+                clearButtonPresent = !driver.findElements(
+                    AppiumBy.iOSNsPredicateString(
+                        "name == 'xmark.circle.fill' OR label == 'Clear text'")).isEmpty();
+            } finally {
+                driver.manage().timeouts().implicitlyWait(
+                    java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
+            }
+        } catch (Exception ignored) { /* default: no clear */ }
+
+        if (clearButtonPresent) {
+            try {
+                clearSearch();
+                // No need to waitForSearchResultsReady here — searchSite below
+                // will wait for results after typing. Dropping the duplicate
+                // wait saves another ~1-2s per call.
+            } catch (Exception e) {
+                System.out.println("⚠️ Could not clear previous search: " + e.getMessage());
+            }
         }
-        
+
         // Search for the site
         System.out.println("📝 Entering search text: " + siteName);
         searchSite(siteName);
-        
+
         // Wait for search results to load using explicit wait (CI/CD safe)
         waitForSearchResultsReady();
         

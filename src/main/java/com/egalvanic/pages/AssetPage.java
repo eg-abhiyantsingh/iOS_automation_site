@@ -8082,20 +8082,85 @@ public class AssetPage extends BasePage {
     }
 
     /**
-     * Click Save button on Edit Asset Details screen
+     * Click Save button on Edit Asset Details screen.
+     *
+     * CRITICAL: dismisses the iOS keyboard FIRST. The Save button is at the
+     * bottom of the form, exactly where the keyboard sits after the user has
+     * just typed into any field. Without the dismiss, waitForClickable(Save)
+     * times out after 5s because the keyboard physically obscures the button,
+     * the save never fires, and any test that relies on the save (offline
+     * write tests, edit-asset tests, etc.) silently SKIPs with "queue did
+     * not grow". See memory: feedback_dismiss_keyboard_after_type.md.
      */
     public void clickEditSave() {
+        // Dismiss keyboard FIRST — otherwise it covers the Save button and
+        // every subsequent strategy below times out waiting for clickable.
+        try { dismissKeyboard(); } catch (Exception ignored) { /* not fatal */ }
+        sleep(200);
+
+        // Strategy 1: accessibilityId exactly "Save"
         try {
-            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(3));
             WebElement saveBtn = wait.until(ExpectedConditions.elementToBeClickable(
-                AppiumBy.accessibilityId("Save")
-            ));
+                AppiumBy.accessibilityId("Save")));
             saveBtn.click();
-            System.out.println("✅ Clicked Save on Edit screen");
+            System.out.println("✅ Clicked Save on Edit screen (accessibilityId='Save')");
             sleep(400);
-        } catch (Exception e) {
-            System.out.println("⚠️ Could not click Save: " + e.getMessage());
-        }
+            return;
+        } catch (Exception ignored) { /* try next */ }
+
+        // Strategy 2: accessibilityId "Save Changes" (most edit screens use this)
+        try {
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(3));
+            WebElement saveBtn = wait.until(ExpectedConditions.elementToBeClickable(
+                AppiumBy.accessibilityId("Save Changes")));
+            saveBtn.click();
+            System.out.println("✅ Clicked Save Changes on Edit screen");
+            sleep(400);
+            return;
+        } catch (Exception ignored) { /* try next */ }
+
+        // Strategy 3: predicate match — any Button whose name/label contains 'Save'
+        //   (covers 'Save', 'Save Changes', 'Save & Close', 'Enregistrer' [FR], etc.)
+        try {
+            java.util.List<WebElement> saveButtons = driver.findElements(
+                AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND " +
+                    "(name CONTAINS[c] 'Save' OR label CONTAINS[c] 'Save' OR " +
+                    " name CONTAINS[c] 'Enregistrer' OR label CONTAINS[c] 'Enregistrer')"));
+            if (!saveButtons.isEmpty()) {
+                // Prefer the bottom-most match (Save is typically at form bottom)
+                WebElement target = saveButtons.get(0);
+                int maxY = target.getLocation().getY();
+                for (WebElement b : saveButtons) {
+                    int y = b.getLocation().getY();
+                    if (y > maxY) { maxY = y; target = b; }
+                }
+                target.click();
+                System.out.println("✅ Clicked Save via predicate match (y=" + maxY +
+                    ", name='" + target.getAttribute("name") + "')");
+                sleep(400);
+                return;
+            }
+        } catch (Exception ignored) { /* fall through */ }
+
+        // Strategy 4: scroll to find Save (it may be below the keyboard / off-screen)
+        try {
+            driver.executeScript("mobile: scroll", java.util.Map.of(
+                "direction", "down",
+                "predicateString",
+                "(name CONTAINS[c] 'Save' OR label CONTAINS[c] 'Save') AND type == 'XCUIElementTypeButton'"));
+            sleep(300);
+            WebElement scrolledSave = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(name CONTAINS[c] 'Save' OR label CONTAINS[c] 'Save')"));
+            scrolledSave.click();
+            System.out.println("✅ Clicked Save after scroll");
+            sleep(400);
+            return;
+        } catch (Exception ignored) { /* nothing left to try */ }
+
+        System.out.println("⚠️ Could not click Save — all 4 strategies failed");
     }
 
     /**
