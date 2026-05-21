@@ -3432,26 +3432,49 @@ public class AssetPage extends BasePage {
             System.out.println("   Strategy 1 failed: " + e.getMessage());
         }
         
+        // WRONG-SCREEN GUARD: if we see strong signals that we're actually on
+        // the Sites picker (not Asset list), bail loudly instead of falling
+        // through and accidentally clicking "Create New Site" or a site row.
+        // Per user feedback: "i think u are clicking on create new site".
+        // selectFirstAsset has 53 callers — wrong-screen ghost-click can silently
+        // produce a brand-new site / unintended write.
+        try {
+            java.util.List<WebElement> wrongScreenSignals = driver.findElements(
+                AppiumBy.iOSNsPredicateString(
+                    "(name == 'Create New Site' OR label == 'Create New Site' OR " +
+                    " name == 'Select Site' OR label == 'Select Site' OR " +
+                    " name CONTAINS[c] 'Search sites' OR " +
+                    " label CONTAINS[c] 'Search sites')"));
+            if (!wrongScreenSignals.isEmpty()) {
+                System.out.println("⚠️ selectFirstAsset bailed: looks like Sites picker (found 'Create New Site' / 'Select Site' / 'Search sites'), NOT Asset list");
+                return null;
+            }
+        } catch (Exception ignored) { /* not fatal — fall through to strategies */ }
+
         // STRATEGY 2: Find StaticText elements in asset list area (y > 100 to skip header)
         try {
             System.out.println("   Strategy 2: Finding StaticText in list area...");
-            
+
             List<WebElement> allTexts = driver.findElements(
                 AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText'")
             );
             System.out.println("   Found " + allTexts.size() + " StaticText elements");
-            
+
             for (WebElement text : allTexts) {
                 int y = text.getLocation().getY();
                 String name = text.getAttribute("name");
-                
+
                 // Skip header area (y < 110) and tab bar area (y > 780)
-                // Skip common non-asset texts
+                // Skip common non-asset texts (added Site-picker keywords per user
+                // feedback — was clicking 'Create New Site' as if it were an asset)
                 if (y >= 110 && y <= 780 && name != null && !name.isEmpty()) {
                     String lower = name.toLowerCase();
-                    if (!lower.equals("assets") && !lower.equals("search") && 
+                    if (!lower.equals("assets") && !lower.equals("search") &&
                         !lower.contains("task") && !lower.equals("no location") &&
                         !lower.equals("android") && !lower.equals("ios") &&
+                        // Site-picker labels — would lead to creating a new site / unintended write
+                        !lower.equals("create new site") && !lower.equals("select site") &&
+                        !lower.contains("search sites") &&
                         !name.equals("ATS") && !name.equals("UPS") && !name.equals("PDU") &&
                         !name.equals("Generator") && !name.equals("Panelboard") &&
                         !name.equals("Disconnect Switch") && !name.equals("MCC") &&
