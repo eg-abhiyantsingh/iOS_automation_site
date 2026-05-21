@@ -1,0 +1,274 @@
+name: "Smoke 5 TURBO — fastest possible iOS CI"
+
+# FASTEST iOS automation setup using GitHub-hosted runners.
+# Target: cold ~3 min, warm ~60 sec for 5 tests.
+#
+# ──────────────────────────────────────────────────────────────────────
+#  WHAT MAKES THIS FAST (in order of impact)
+# ──────────────────────────────────────────────────────────────────────
+#
+# 1. PAID Apple Silicon runner (macos-15-large)
+#    - 6-core M1 vs standard 3-core M1
+#    - 14 GB RAM vs 7 GB
+#    - ~2x faster Xcode + simulator operations
+#    - GitHub billing: ~$0.16/min (vs $0.08/min for standard)
+#    - For even more speed: macos-15-xlarge (12-core, 24 GB, ~$0.50/min)
+#
+# 2. PRE-BUILT WDA APP BUNDLE CACHE
+#    Caches the WebDriverAgentRunner-Runner.app itself (~50 MB), not just
+#    derived-data. Skips Xcode WDA compilation on warm runs — saves 2-5 min.
+#
+# 3. SIMULATOR BOOTSTATUS POLLING
+#    xcrun simctl bootstatus -b waits until the system is fully initialized
+#    (not just "Booted"). More reliable + faster than 2s polling.
+#
+# 4. PARALLEL JOB STEPS
+#    Unzip ‖ boot, install ‖ WDA-build run simultaneously.
+#
+# 5. MAVEN + APPIUM + WDA caches (actions/cache@v4)
+#
+# ──────────────────────────────────────────────────────────────────────
+#  EVEN-FASTER PAID ALTERNATIVES (not implemented here)
+# ──────────────────────────────────────────────────────────────────────
+#
+#   * BrowserStack App Automate / Sauce Labs / AWS Device Farm —
+#     real devices in the cloud, no simulator boot at all. ~10-20 sec
+#     start vs ~60 sec with sim. Cost: $40-200/mo entry tiers.
+#
+#   * Self-hosted Mac Studio runner — fastest absolute, you control HW,
+#     keep the simulator pre-warmed between runs. One-time HW cost.
+#
+#   * GitHub macos-15-xlarge (12-core) — bump runs-on to that line if you
+#     want max GH-hosted speed at higher per-minute cost.
+#
+# Triggered manually via workflow_dispatch.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  WDA_CACHE_VERSION: v4
+
+jobs:
+  smoke-5-turbo:
+    name: "Smoke 5 TURBO (Auth + SiteSelect + Issues + Asset + Offline)"
+    # macos-15-large: 6-core Apple Silicon, 14 GB RAM (paid, ~$0.16/min)
+    # macos-15-xlarge: 12-core, 24 GB (paid, ~$0.50/min) — uncomment for max
+    runs-on: macos-15-large
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      # ──────────────────── Caches ────────────────────
+      - name: Cache Appium global modules
+        id: appium-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            /Users/runner/.npm
+            /Users/runner/.appium
+            /opt/homebrew/lib/node_modules/appium
+          key: appium-v4-large-${{ runner.os }}
+
+      - name: Cache WDA derived data
+        id: wda-derived-cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/wda-build
+          key: wda-derived-v4-large-${{ runner.os }}
+
+      - name: Cache pre-built WDA app bundle
+        id: wda-app-cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/wda-app
+          key: wda-app-v4-large-${{ runner.os }}
+
+      # ──────────────────── Appium ────────────────────
+      - name: Install Appium (skip if cached)
+        if: steps.appium-cache.outputs.cache-hit != 'true'
+        run: |
+          npm install -g appium@next > /dev/null 2>&1
+          appium driver install xcuitest > /dev/null 2>&1
+          echo "Appium $(appium --version) installed"
+
+      - name: Verify Appium ready
+        run: |
+          if ! command -v appium >/dev/null 2>&1; then
+            npm install -g appium@next > /dev/null 2>&1
+            appium driver install xcuitest > /dev/null 2>&1
+          fi
+          appium --version
+
+      # ──────────────────── Parallel prep ────────────────────
+      - name: Unzip App + Boot Simulator (parallel)
+        env:
+          WORKSPACE: ${{ github.workspace }}
+        run: |
+          (
+            unzip -o "$WORKSPACE/apps/Z-Platform-QA.zip" -d "$WORKSPACE/apps/" > /dev/null
+            if [ -d "$WORKSPACE/apps/Z-Platform-QA.app" ] && [ ! -d "$WORKSPACE/apps/Z Platform-QA.app" ]; then
+              mv "$WORKSPACE/apps/Z-Platform-QA.app" "$WORKSPACE/apps/Z Platform-QA.app"
+            fi
+          ) &
+          UNZIP_PID=$!
+
+          UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && UDID=$(xcrun simctl list devices available | grep -E "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && UDID=$(xcrun simctl list devices available | grep -E "iPhone 1[5-6]" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && echo "No simulator" && exit 1
+
+          xcrun simctl shutdown "$UDID" 2>/dev/null || true
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+          xcrun simctl bootstatus "$UDID" -b
+          wait "$UNZIP_PID" 2>/dev/null || true
+
+          DEVICE=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
+          VERSION=$(xcrun simctl list devices available | grep -B 50 "$UDID" | grep "-- iOS" | tail -1 | sed 's/.*iOS \([0-9.]*\).*/\1/')
+          [ -z "$VERSION" ] && VERSION="18.5"
+          echo "SIMULATOR_UDID=$UDID" >> "$GITHUB_ENV"
+          echo "DEVICE_NAME=$DEVICE" >> "$GITHUB_ENV"
+          echo "PLATFORM_VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Pre-install App + Build-or-restore WDA (parallel)
+        env:
+          WORKSPACE: ${{ github.workspace }}
+          SIM_UDID: ${{ env.SIMULATOR_UDID }}
+          WDA_DERIVED_HIT: ${{ steps.wda-derived-cache.outputs.cache-hit }}
+          WDA_APP_HIT: ${{ steps.wda-app-cache.outputs.cache-hit }}
+        run: |
+          (
+            xcrun simctl install "$SIM_UDID" "$WORKSPACE/apps/Z Platform-QA.app"
+          ) &
+          INSTALL_PID=$!
+
+          if [ "$WDA_APP_HIT" = "true" ] && [ -d /tmp/wda-app ]; then
+            echo "WDA app-bundle cache HIT"
+            ls -la /tmp/wda-app/
+          elif [ "$WDA_DERIVED_HIT" = "true" ] && [ -d /tmp/wda-build ]; then
+            echo "WDA derived-data cache HIT — extracting .app bundle for next run"
+            mkdir -p /tmp/wda-app
+            find /tmp/wda-build -name "WebDriverAgentRunner-Runner.app" -type d | head -1 | xargs -I{} cp -R "{}" /tmp/wda-app/
+            ls -la /tmp/wda-app/
+          else
+            echo "WDA cache MISS — building"
+            WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+            if [ -n "$WDA_PATH" ]; then
+              cd "$WDA_PATH"
+              xcodebuild build-for-testing \
+                -project WebDriverAgent.xcodeproj \
+                -scheme WebDriverAgentRunner \
+                -destination "platform=iOS Simulator,id=$SIM_UDID" \
+                -derivedDataPath /tmp/wda-build \
+                -quiet || true
+              mkdir -p /tmp/wda-app
+              find /tmp/wda-build -name "WebDriverAgentRunner-Runner.app" -type d | head -1 | xargs -I{} cp -R "{}" /tmp/wda-app/
+            fi
+          fi
+          wait "$INSTALL_PID" 2>/dev/null || true
+
+      - name: Start Appium Server
+        run: |
+          appium --relaxed-security --log-level error > appium.log 2>&1 &
+          for i in {1..20}; do
+            [ "$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:4723/status 2>/dev/null)" = "200" ] && break
+            sleep 1
+          done
+
+      - name: Run 5 Smoke Tests
+        continue-on-error: true
+        env:
+          WORKSPACE: ${{ github.workspace }}
+          SIM_UDID: ${{ env.SIMULATOR_UDID }}
+          DEV_NAME: ${{ env.DEVICE_NAME }}
+          PLAT_VER: ${{ env.PLATFORM_VERSION }}
+        run: |
+          APP_PATH="$WORKSPACE/apps/Z Platform-QA.app"
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
+          echo "Bundle ID: $BUNDLE_ID"
+
+          WDA_APP=$(find /tmp/wda-app -name "WebDriverAgentRunner-Runner.app" -type d 2>/dev/null | head -1)
+          if [ -n "$WDA_APP" ]; then
+            echo "Using prebuilt WDA: $WDA_APP"
+          else
+            echo "No prebuilt WDA — XCUITest will build at first session"
+          fi
+
+          TESTS="AuthenticationTest#TC01_verifyWelcomeScreenUILoads"
+          TESTS="$TESTS,SiteSelectionTest#TC_SS_001_verifySelectSiteScreenUIElements"
+          TESTS="$TESTS,Issue_Phase1_Test#TC_ISS_001_verifyIssuesScreenHeaderElements"
+          TESTS="$TESTS,Asset_Phase1_Test#ATS_ECR_01_verifyNewAssetScreenLoadsSuccessfully"
+          TESTS="$TESTS,OfflineTest#TC_OFF_001_verifyGoOfflineButtonOnSiteDashboard"
+
+          mvn -B -q test -Dtest="$TESTS" \
+            -DDEVICE_NAME="$DEV_NAME" \
+            -DPLATFORM_VERSION="$PLAT_VER" \
+            -DSIMULATOR_UDID="$SIM_UDID" \
+            -DAPP_BUNDLE_ID="$BUNDLE_ID" \
+            -DAPP_PATH="$APP_PATH" \
+            -DAPPIUM_DERIVED_DATA_PATH="/tmp/wda-build" \
+            -DAPPIUM_PREBUILT_WDA_APP="$WDA_APP"
+
+      - name: Summarize Results
+        if: always()
+        run: |
+          echo ""
+          echo "============================================================"
+          echo "                 SMOKE 5 TURBO RESULTS"
+          echo "============================================================"
+          if [ -f target/surefire-reports/testng-results.xml ]; then
+            python3 - <<'PYEOF'
+          import xml.etree.ElementTree as ET
+          r = ET.parse('target/surefire-reports/testng-results.xml').getroot()
+          passed = int(r.get('passed', 0))
+          failed = int(r.get('failed', 0))
+          skipped = int(r.get('skipped', 0))
+          total = passed + failed + skipped
+          print(f'  Total:   {total}')
+          print(f'  Passed:  {passed}')
+          print(f'  Failed:  {failed}')
+          print(f'  Skipped: {skipped}')
+          print()
+          if failed > 0:
+              print('FAILED:')
+              for tm in r.iter('test-method'):
+                  if tm.get('status') == 'FAIL' and tm.get('is-config') != 'true':
+                      name = tm.get('name', 'unknown')
+                      exc = tm.find('.//exception/message')
+                      msg = (exc.text or '').strip().split('\n')[0][:140] if exc is not None else '(no message)'
+                      print(f'  FAIL {name}')
+                      print(f'       {msg}')
+          PYEOF
+          else
+            echo "(No testng-results.xml)"
+          fi
+
+      - name: Upload Reports + Screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-5-turbo-report
+          path: |
+            target/surefire-reports/
+            reports/
+            screenshots/
+            appium.log
+          retention-days: 7
+          if-no-files-found: warn
