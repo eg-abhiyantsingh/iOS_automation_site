@@ -142,7 +142,17 @@ public class DriverManager {
 
                 // ========== CRITICAL: WDA TIMEOUT FIXES FOR CI ==========
                 // Simulator boot timeout - 5 minutes (CI simulators can be slow to boot)
+                // Set BOTH the old key (simulatorBootTimeout) and the new one
+                // (simulatorStartupTimeout). Appium 2.x / xcuitest-driver 5+
+                // renamed the option; setting the old name alone is silently
+                // ignored, so the internal default (120 sec) is used and the
+                // session fails with "simulator failed to finish booting after
+                // 120s" even when the sim is genuinely ready but slow.
                 options.setCapability("appium:simulatorBootTimeout", 300000);
+                options.setCapability("appium:simulatorStartupTimeout", 300000);
+                // Also tolerate slow WindowServer / SpringBoard startup
+                options.setCapability("appium:waitForQuiescence", false);
+                options.setCapability("appium:skipDeviceInitialization", true);
                 // WDA launch timeout (build + start) - 10 minutes for CI environments (first run needs to build WDA)
                 options.setWdaLaunchTimeout(Duration.ofMillis(600000));
                 // WDA connection timeout - 5 minutes
