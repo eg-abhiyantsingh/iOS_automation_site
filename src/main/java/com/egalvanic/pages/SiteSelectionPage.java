@@ -1054,22 +1054,24 @@ public class SiteSelectionPage extends BasePage {
         } catch (Exception ignored) { /* not on Schedule — continue */ }
 
         // NEGATIVE guard: explicit Tasks/Issues/Locations/Connections-screen exclusion.
-        // These screens have nav-bar Wi-Fi + sort icons that match the loose nav-bar
-        // fallback below (>=2 buttons with name 'arrow'/'wifi'/'Wi-Fi'). Detect the
-        // screen-title text and bail out early. Match any element type (NavigationBar
-        // or StaticText) since iOS renders the title inconsistently across builds.
-        // i18n: French equivalents — Problèmes/Emplacements/Connexions/Actifs.
+        // CRITICAL: require the screen-title to be a NavigationBar (top of screen),
+        // NOT a generic label match — Dashboard's Quick Actions cards have labels
+        // "Problèmes" / "Connexions" / "Emplacements" too, so a generic label match
+        // would falsely flag Dashboard as a module screen.
+        // (Earlier broad match caused regression in TC_ISS_002-010.)
         try {
-            driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                "label == 'Tasks' OR label == 'Issues' OR label == 'Locations' OR " +
-                "label == 'Connections' OR label == 'Assets' OR " +
-                "label == 'Problèmes' OR label == 'Emplacements' OR " +
-                "label == 'Connexions' OR label == 'Actifs' OR " +
-                "label == 'Mes tâches' OR label == 'Mes taches' OR " +
-                "name == 'Tasks' OR name == 'Issues' OR name == 'Locations' OR " +
-                "name == 'Connections' OR name == 'Problèmes' OR name == 'Emplacements'"));
-            System.out.println("ℹ️ On a non-Dashboard module screen — not Dashboard");
-            return false;
+            org.openqa.selenium.WebElement navBar = driver.findElement(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeNavigationBar' AND " +
+                    "(name == 'Tasks' OR name == 'Issues' OR name == 'Locations' OR " +
+                    " name == 'Connections' OR " +
+                    " name == 'Problèmes' OR name == 'Emplacements' OR name == 'Connexions' OR " +
+                    " name == 'Mes tâches' OR name == 'Mes taches')"));
+            if (navBar.isDisplayed()) {
+                System.out.println("ℹ️ On a non-Dashboard module screen (navBar='" +
+                    navBar.getAttribute("name") + "') — not Dashboard");
+                return false;
+            }
         } catch (Exception ignored) { /* not a module screen — continue */ }
 
         // Fallback indicators — any one means we're on dashboard

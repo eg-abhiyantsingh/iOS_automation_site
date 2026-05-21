@@ -152,8 +152,21 @@ public abstract class BasePage {
                     try {
                         int elY = clickable.getLocation().getY();
                         int screenH = driver.manage().window().getSize().height;
-                        if (elY > screenH * 0.55) {
-                            dismissKeyboard();
+                        if (elY > screenH * 0.55 && isKeyboardShown()) {
+                            // CAUTION: use only the SAFE non-destructive variant here.
+                            // The full dismissKeyboard cascade taps the keyboard's
+                            // Return/Done key, which on login-screen SecureTextField
+                            // SUBMITS the form with whatever's currently filled.
+                            // (Regression in TC_ISS_002-010 — login submitted with
+                            // empty password.) Use tapOutside-only and accept that
+                            // some keyboards persist; the click() itself often
+                            // dismisses by shifting focus.
+                            try {
+                                java.util.Map<String, Object> args = new java.util.HashMap<>();
+                                args.put("strategy", "tapOutside");
+                                driver.executeScript("mobile: hideKeyboard", args);
+                                sleep(150);
+                            } catch (Exception ignored) {}
                         }
                     } catch (Exception ignored) {}
                 }
@@ -247,14 +260,15 @@ public abstract class BasePage {
             return;
         }
 
-        // Strategy 1a/b/c: mobile:hideKeyboard with explicit strategy variants
-        for (String strategy : new String[]{"tapOutside", "swipeDown", "pressKey"}) {
+        // Strategy 1a/b: mobile:hideKeyboard with non-destructive strategies only.
+        // CRITICAL: do NOT use strategy="pressKey",key="return" here — pressing
+        // Return on a focused TextField/SecureTextField submits the form (e.g.,
+        // logs in with empty fields) BEFORE the test has finished typing. Caused
+        // login regression in TC_ISS_002-010 (commit 0ee4422 brought it in).
+        for (String strategy : new String[]{"tapOutside", "swipeDown"}) {
             try {
                 java.util.Map<String, Object> args = new java.util.HashMap<>();
                 args.put("strategy", strategy);
-                if ("pressKey".equals(strategy)) {
-                    args.put("key", "return");
-                }
                 driver.executeScript("mobile: hideKeyboard", args);
                 sleep(200);
                 if (!isKeyboardShown()) {
@@ -274,44 +288,53 @@ public abstract class BasePage {
             }
         } catch (Exception ignored) {}
 
-        // Strategy 2: Tap Done/Return key. Filter Y > 40% screen to avoid
-        // nav-bar Done buttons. i18n: English + French keyboard labels.
+        // Strategy 2: Tap Done/Return/Go key on keyboard. Filter Y > 40% screen
+        // to avoid nav-bar Done buttons. SKIP this strategy entirely if the
+        // focused field is a TextField/SecureTextField/SearchField — Return/Go
+        // on those fields SUBMITS the form (login-form regression).
+        // Safe for TextView (multi-line) where Return is a newline.
+        boolean focusedIsForm = false;
         try {
-            int screenHeight = driver.manage().window().getSize().getHeight();
-            int minY = (int) (screenHeight * 0.4);
-            java.util.List<WebElement> doneBtns = driver.findElements(
-                io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeKey') AND " +
-                "(label == 'Done' OR label == 'Return' OR label == 'Go' OR " +
-                " label == 'Search' OR label == 'Next' OR " +
-                " label == 'Terminé' OR label == 'OK' OR label == 'Retour' OR " +
-                " label == 'Aller' OR label == 'Rechercher' OR label == 'Suivant')"));
-            for (WebElement btn : doneBtns) {
-                try {
-                    int btnY = btn.getLocation().getY();
-                    if (btnY > minY) {
-                        btn.click();
-                        sleep(250);
-                        if (!isKeyboardShown()) {
-                            System.out.println("   Keyboard dismissed via Done/Return key (Y=" + btnY + ")");
-                            return;
-                        }
-                    }
-                } catch (Exception ignored) {}
-            }
+            driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeTextField' OR " +
+                " type == 'XCUIElementTypeSecureTextField' OR " +
+                " type == 'XCUIElementTypeSearchField') AND hasKeyboardFocus == 1"));
+            focusedIsForm = true;
         } catch (Exception ignored) {}
+        if (!focusedIsForm) {
+            try {
+                int screenHeight = driver.manage().window().getSize().getHeight();
+                int minY = (int) (screenHeight * 0.4);
+                java.util.List<WebElement> doneBtns = driver.findElements(
+                    io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeKey') AND " +
+                    "(label == 'Done' OR label == 'Terminé' OR label == 'OK')"));
+                for (WebElement btn : doneBtns) {
+                    try {
+                        int btnY = btn.getLocation().getY();
+                        if (btnY > minY) {
+                            btn.click();
+                            sleep(250);
+                            if (!isKeyboardShown()) {
+                                System.out.println("   Keyboard dismissed via Done/Terminé key (Y=" + btnY + ")");
+                                return;
+                            }
+                        }
+                    } catch (Exception ignored) {}
+                }
+            } catch (Exception ignored) {}
+        }
 
-        // Strategy 3: sendKeys("\n") to the focused field
+        // Strategy 3: sendKeys("\n") ONLY to TextView (multi-line) — NOT TextField/
+        // SecureTextField/SearchField, where Return submits the form (login regression).
         try {
             WebElement activeField = driver.findElement(
                 io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeSecureTextField' OR " +
-                " type == 'XCUIElementTypeSearchField' OR type == 'XCUIElementTypeTextView') AND " +
-                "hasKeyboardFocus == 1"));
+                "type == 'XCUIElementTypeTextView' AND hasKeyboardFocus == 1"));
             activeField.sendKeys("\n");
             sleep(200);
             if (!isKeyboardShown()) {
-                System.out.println("   Keyboard dismissed via \\n to focused field");
+                System.out.println("   Keyboard dismissed via \\n to focused TextView");
                 return;
             }
         } catch (Exception ignored) {}

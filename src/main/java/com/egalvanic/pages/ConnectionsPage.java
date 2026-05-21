@@ -5689,14 +5689,11 @@ public class ConnectionsPage {
             return true;
         }
 
-        // Strategy 1a/b/c: mobile:hideKeyboard with strategy variants
-        for (String strategy : new String[]{"tapOutside", "swipeDown", "pressKey"}) {
+        // Strategy 1a/b: non-destructive only — pressKey:return submits forms
+        for (String strategy : new String[]{"tapOutside", "swipeDown"}) {
             try {
                 java.util.Map<String, Object> args = new java.util.HashMap<>();
                 args.put("strategy", strategy);
-                if ("pressKey".equals(strategy)) {
-                    args.put("key", "return");
-                }
                 driver.executeScript("mobile: hideKeyboard", args);
                 sleep(200);
                 if (!isKeyboardShown()) {
@@ -5716,41 +5713,48 @@ public class ConnectionsPage {
             }
         } catch (Exception ignored) {}
 
-        // Strategy 2: Tap Done/Return/Go (English + French keyboard labels)
+        // Strategy 2: Tap Done key only — Return/Go submit forms (regression risk).
+        // Skip if focused field is form-submit-on-return type.
+        boolean focusedIsForm = false;
         try {
-            int screenHeight = driver.manage().window().getSize().getHeight();
-            int minY = (int) (screenHeight * 0.4);
-            java.util.List<WebElement> doneBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeKey') AND " +
-                "(label == 'Done' OR label == 'Return' OR label == 'Go' OR " +
-                " label == 'Search' OR label == 'Next' OR " +
-                " label == 'Terminé' OR label == 'OK' OR label == 'Retour' OR " +
-                " label == 'Aller' OR label == 'Rechercher' OR label == 'Suivant')"));
-            for (WebElement btn : doneBtns) {
-                try {
-                    int btnY = btn.getLocation().getY();
-                    if (btnY > minY) {
-                        btn.click();
-                        sleep(250);
-                        if (!isKeyboardShown()) {
-                            System.out.println("   Keyboard dismissed via Done/Return key (Y=" + btnY + ")");
-                            return true;
-                        }
-                    }
-                } catch (Exception ignored) {}
-            }
+            driver.findElement(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeTextField' OR " +
+                " type == 'XCUIElementTypeSecureTextField' OR " +
+                " type == 'XCUIElementTypeSearchField') AND hasKeyboardFocus == 1"));
+            focusedIsForm = true;
         } catch (Exception ignored) {}
+        if (!focusedIsForm) {
+            try {
+                int screenHeight = driver.manage().window().getSize().getHeight();
+                int minY = (int) (screenHeight * 0.4);
+                java.util.List<WebElement> doneBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeKey') AND " +
+                    "(label == 'Done' OR label == 'Terminé' OR label == 'OK')"));
+                for (WebElement btn : doneBtns) {
+                    try {
+                        int btnY = btn.getLocation().getY();
+                        if (btnY > minY) {
+                            btn.click();
+                            sleep(250);
+                            if (!isKeyboardShown()) {
+                                System.out.println("   Keyboard dismissed via Done key (Y=" + btnY + ")");
+                                return true;
+                            }
+                        }
+                    } catch (Exception ignored) {}
+                }
+            } catch (Exception ignored) {}
+        }
 
-        // Strategy 3: sendKeys("\n") to focused field
+        // Strategy 3: sendKeys("\n") ONLY to TextView (multi-line) — Return on
+        // TextField/SecureTextField submits forms
         try {
             WebElement activeField = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeSecureTextField' OR " +
-                " type == 'XCUIElementTypeSearchField' OR type == 'XCUIElementTypeTextView') AND " +
-                "hasKeyboardFocus == 1"));
+                "type == 'XCUIElementTypeTextView' AND hasKeyboardFocus == 1"));
             activeField.sendKeys("\n");
             sleep(200);
             if (!isKeyboardShown()) {
-                System.out.println("   Keyboard dismissed via \\n to focused field");
+                System.out.println("   Keyboard dismissed via \\n to focused TextView");
                 return true;
             }
         } catch (Exception ignored) {}

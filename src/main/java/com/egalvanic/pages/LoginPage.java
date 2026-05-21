@@ -138,7 +138,9 @@ public class LoginPage extends BasePage {
 
     public void enterEmail(String email) {
         try {
-            click(emailField);
+            // Direct .click() — bypass BasePage.click() which pre-dismisses
+            // the keyboard (can swallow next field's input on login screen).
+            emailField.click();
             emailField.clear();
             emailField.sendKeys(email);
         } catch (org.openqa.selenium.StaleElementReferenceException e) {
@@ -155,7 +157,10 @@ public class LoginPage extends BasePage {
 
     public void enterPassword(String password) {
         try {
-            click(passwordField);
+            // Direct .click() — bypass BasePage.click() which pre-dismisses
+            // the keyboard. On login screen the dismissal can swallow the
+            // typed password if the form submits on the dismiss tap.
+            passwordField.click();
             passwordField.clear();
             passwordField.sendKeys(password);
         } catch (org.openqa.selenium.StaleElementReferenceException e) {
@@ -201,10 +206,16 @@ public class LoginPage extends BasePage {
      * Safe to call even if the checkbox doesn't exist (older app versions).
      */
     public void acceptTermsIfPresent() {
-        // CRITICAL: Dismiss keyboard first! After enterPassword(), the keyboard covers the
-        // T&C checkbox area at the bottom of the login screen. Elements behind the keyboard
-        // are not "visible" in iOS accessibility, so all visible-based searches fail.
-        dismissKeyboard();
+        // Dismiss keyboard first to expose T&C below. Use ONLY the safe Appium
+        // strategy "swipeDown" — earlier code used the full dismissKeyboard cascade
+        // which could accidentally tap nearby Sign In button (Y=605) during its
+        // tapOutside / Done-key strategies, submitting the form prematurely.
+        try {
+            java.util.Map<String, Object> args = new java.util.HashMap<>();
+            args.put("strategy", "swipeDown");
+            driver.executeScript("mobile: hideKeyboard", args);
+            sleep(300);
+        } catch (Exception ignored) {}
 
         // CRITICAL: Wait for keyboard dismiss animation (~300ms) and iOS accessibility
         // tree refresh. Without this, elements behind the keyboard are still marked
@@ -369,7 +380,10 @@ public void clickShowPassword() {
      * Tap Sign In button - Multiple approaches for reliability
      */
     public void tapSignIn() {
-        dismissKeyboard();
+        // Do NOT call dismissKeyboard() here. The dismiss strategies (tapOutside,
+        // tap-Done-key) can accidentally tap the Sign In button itself if the
+        // keyboard's top edge is near the button — that submits the form with
+        // partial state. iOS auto-dismisses the keyboard on button tap.
         shortWait();
         
         // Approach 1: Direct click
