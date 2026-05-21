@@ -57,7 +57,13 @@ jobs:
     name: "Smoke 5 TURBO (Auth + SiteSelect + Issues + Asset + Offline)"
     # macos-15-large: 6-core Apple Silicon, 14 GB RAM (paid, ~$0.16/min)
     # macos-15-xlarge: 12-core, 24 GB (paid, ~$0.50/min) — uncomment for max
-    runs-on: macos-15-large
+    # Default: standard macos-15 (3-core M1, included in plan).
+    # To upgrade to PAID Apple Silicon runners (requires Settings → Billing
+    # → Larger runners to be enabled on your account):
+    #   macos-15-large  → 6-core M1, 14 GB,  ~$0.16/min
+    #   macos-15-xlarge → 12-core M1, 24 GB, ~$0.50/min
+    # Change runs-on below to the larger label once enabled.
+    runs-on: macos-15
     timeout-minutes: 30
 
     steps:
