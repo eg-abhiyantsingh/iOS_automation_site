@@ -8093,10 +8093,29 @@ public class AssetPage extends BasePage {
      * not grow". See memory: feedback_dismiss_keyboard_after_type.md.
      */
     public void clickEditSave() {
-        // Dismiss keyboard FIRST — otherwise it covers the Save button and
-        // every subsequent strategy below times out waiting for clickable.
-        try { dismissKeyboard(); } catch (Exception ignored) { /* not fatal */ }
-        sleep(200);
+        // FAST dismiss via Return key first (this is asset Edit screen — not a
+        // login form, so pressing Return is safe and faster than tapOutside/
+        // swipeDown which take ~1-2s combined). If that fails, fall back to
+        // the bulletproof BasePage.dismissKeyboard() cascade.
+        //
+        // CRITICAL: per memory feedback_dismiss_keyboard_after_type.md +
+        // BasePage.dismissKeyboard comment, do NOT use Return globally —
+        // pressing Return on a focused login Email/Password field SUBMITS
+        // the form prematurely. Asset-edit context is safe.
+        boolean fastDismissed = false;
+        try {
+            java.util.Map<String, Object> args = new java.util.HashMap<>();
+            args.put("strategy", "pressKey");
+            args.put("key", "return");
+            driver.executeScript("mobile: hideKeyboard", args);
+            fastDismissed = true;
+            sleep(100);
+        } catch (Exception ignored) { /* fall through */ }
+
+        if (!fastDismissed) {
+            try { dismissKeyboard(); } catch (Exception ignored) { /* not fatal */ }
+        }
+        sleep(150);
 
         // Strategy 1: accessibilityId exactly "Save"
         try {
