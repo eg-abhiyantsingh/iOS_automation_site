@@ -309,6 +309,20 @@ public class BaseTest {
 
             if (isOnDashboardDirect(d)) {
                 System.out.println("✅ Auto-advance: reached Dashboard");
+                // ROOT-CAUSE FIX: SiteLanguageController auto-switches the app's
+                // UI language to site.office_language on every site selection.
+                // Test sites (Wild Goose Brewery / "test site" / "Test QA 16")
+                // have office_language="fr", so after site selection the app
+                // is in French — breaking any predicate that matches English
+                // labels only. Tap Settings → Language → English to set
+                // manualOverrideActive=true for the session.
+                try {
+                    if (siteSelectionPage.isAppInFrench()) {
+                        siteSelectionPage.forceEnglishViaSettings();
+                    }
+                } catch (Exception langEx) {
+                    System.out.println("⚠️ forceEnglishViaSettings raised: " + langEx.getMessage());
+                }
             } else {
                 System.out.println("⚠️ Auto-advance: did not reach Dashboard — test will attempt own recovery");
             }

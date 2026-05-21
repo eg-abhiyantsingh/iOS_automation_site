@@ -3501,4 +3501,104 @@ public class SiteSelectionPage extends BasePage {
         } catch (Exception e) { return false; }
     }
 
+    // ================================================================
+    // LANGUAGE FORCING — root-cause workaround for office_language=fr
+    // ================================================================
+    // The app's SiteLanguageController auto-switches UI to the site's
+    // office_language on EVERY site selection. Wild Goose Brewery + test
+    // sites have office_language="fr", so the app keeps flipping to French
+    // even when UserDefaults appLanguage="en" was pre-written.
+    //
+    // forceEnglishViaSettings navigates Settings → Language → English in
+    // the app, which sets manualOverrideActive=true for the session AND
+    // persists "userPreferredLanguage=en" in UserDefaults. On subsequent
+    // site selections in this session, the override flag will be cleared
+    // again — so this needs to run AFTER each site selection that may
+    // have flipped the language.
+
+    /** Quick probe — is the app currently rendering in French? */
+    public boolean isAppInFrench() {
+        try {
+            // Look for any unique French Dashboard / common-button marker.
+            driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "(label CONTAINS[c] 'Bienvenue sur' OR " +
+                " label CONTAINS[c] 'Actions rapides' OR " +
+                " label == 'Bonjour !' OR label CONTAINS[c] 'Bonjour' OR " +
+                " label == 'Mes tâches' OR label == 'Problèmes' OR " +
+                " label == 'Emplacements' OR label == 'Connexions' OR " +
+                " label == 'Paramètres' OR label == 'Actualiser' OR " +
+                " label == 'Actifs' OR " +
+                " label CONTAINS[c] 'Aucun ordre de travail' OR " +
+                " label CONTAINS[c] 'Synchronisation et réseau')"));
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /**
+     * If the app is rendering in French, navigate Settings → Language → English
+     * and confirm. After this returns, the language flips immediately and
+     * persists for the rest of this app session (sets manualOverrideActive
+     * via SiteLanguageController.onUserManuallyPickedLanguage).
+     *
+     * @return true if the toggle was performed (or already English), false on error
+     */
+    public boolean forceEnglishViaSettings() {
+        if (!isAppInFrench()) {
+            return true; // already English (or unknown — be safe)
+        }
+        System.out.println("🌐 App in French — navigating Settings → Language → English");
+        try {
+            if (!tapSettingsTab()) {
+                System.out.println("⚠️ Could not reach Settings tab");
+                return false;
+            }
+            // Scroll down to find Language section. Language is mid-screen.
+            // First try: find "Langue" or "Language" header + tap "English" row below
+            for (int scrollAttempt = 0; scrollAttempt < 6; scrollAttempt++) {
+                java.util.List<org.openqa.selenium.WebElement> englishRows = driver.findElements(
+                    io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND label == 'English'"));
+                if (!englishRows.isEmpty()) {
+                    englishRows.get(0).click();
+                    sleep(500);
+                    // Confirmation alert: tap OK
+                    try {
+                        org.openqa.selenium.WebElement ok = driver.findElement(
+                            io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                                "type == 'XCUIElementTypeButton' AND " +
+                                "(label == 'OK' OR label == 'Ok')"));
+                        ok.click();
+                        sleep(1500);  // wait for language switch + refresh
+                        System.out.println("✅ Language switched to English");
+                        // Navigate back to Dashboard via Site tab
+                        try {
+                            org.openqa.selenium.WebElement siteTab = driver.findElement(
+                                io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                                    "type == 'XCUIElementTypeButton' AND " +
+                                    "(label == 'Site' OR label == 'Accueil')"));
+                            siteTab.click();
+                            sleep(800);
+                        } catch (Exception ignored) {}
+                        return true;
+                    } catch (Exception confirmEx) {
+                        System.out.println("⚠️ Language confirmation OK not found");
+                        return false;
+                    }
+                }
+                // Not found yet — scroll down
+                try {
+                    java.util.Map<String, Object> scrollArgs = new java.util.HashMap<>();
+                    scrollArgs.put("direction", "down");
+                    driver.executeScript("mobile: swipe", scrollArgs);
+                    sleep(300);
+                } catch (Exception ignored) {}
+            }
+            System.out.println("⚠️ Could not find 'English' row in Settings after scrolling");
+            return false;
+        } catch (Exception e) {
+            System.out.println("⚠️ forceEnglishViaSettings error: " + e.getMessage());
+            return false;
+        }
+    }
 }
