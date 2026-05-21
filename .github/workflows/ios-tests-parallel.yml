@@ -2150,13 +2150,12 @@ jobs:
           echo "✅ App unzipped from local apps/Z-Platform-QA.zip"
       - name: Boot Simulator
         run: |
-          UDID=""
-          for VERSION in 18.4 18.3 18.2 18.1 18.0; do
-            for MODEL in "iPhone 16 Pro" "iPhone 15 Pro" "iPhone"; do
-              UDID=$(xcrun simctl list devices available | grep -A 100 "iOS $VERSION" | grep "$MODEL" | head -1 | awk -F '[()]' '{print $2}')
-              [ -n "$UDID" ] && break 2
-            done
-          done
+          # Pattern aligned with site-tests / asset-* jobs (fix from changelog 083):
+          # the old hard-coded list iOS 18.0–18.4 broke when macos-15 runners
+          # rolled forward to iOS 18.5. Use "iOS 18" substring instead.
+          UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && UDID=$(xcrun simctl list devices available | grep -E "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && UDID=$(xcrun simctl list devices available | grep -E "iPhone 1[5-6]" | head -1 | awk -F '[()]' '{print $2}')
           [ -z "$UDID" ] && echo "No simulator" && exit 1
 
           DEVICE_NAME=$(xcrun simctl list devices available | grep "$UDID" | sed 's/(.*//' | xargs)
