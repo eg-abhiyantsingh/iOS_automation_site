@@ -293,18 +293,39 @@ public class BaseTest {
                 System.out.println("🔑 Password entered, Sign In tapped");
                 Thread.sleep(2000);
 
-                // Handle "Save Password?" popup if it appears
-                try {
-                    d.switchTo().alert().dismiss();
-                    System.out.println("🔑 Save Password popup dismissed");
-                } catch (Exception ignored) {}
-                try { Thread.sleep(300); } catch (InterruptedException ignored) {}
-                try {
-                    org.openqa.selenium.WebElement notNow = d.findElement(
-                        io.appium.java_client.AppiumBy.accessibilityId("Not Now"));
-                    notNow.click();
-                    System.out.println("🔑 'Not Now' clicked for password save");
-                } catch (Exception ignored) {}
+                // Handle stacked post-Sign-In popups: Notification permission
+                // ("Don't Allow") + Save Password ("Not Now"). Two-pass cascade
+                // mirrors LoginPage.handleSavePasswordTurbo so re-auth recovers
+                // cleanly on fresh-install / app-reset runs.
+                for (int popPass = 1; popPass <= 2; popPass++) {
+                    boolean handled = false;
+                    try {
+                        d.switchTo().alert().dismiss();
+                        System.out.println("🔑 Alert dismissed (pass " + popPass + ")");
+                        handled = true;
+                    } catch (Exception ignored) {}
+                    if (!handled) {
+                        try {
+                            d.findElement(io.appium.java_client.AppiumBy.accessibilityId(
+                                "Don't Allow")).click();
+                            System.out.println("🔑 'Don't Allow' clicked (pass " + popPass + ")");
+                            handled = true;
+                        } catch (Exception ignored) {}
+                    }
+                    if (!handled) {
+                        try {
+                            d.findElement(io.appium.java_client.AppiumBy.accessibilityId(
+                                "Not Now")).click();
+                            System.out.println("🔑 'Not Now' clicked (pass " + popPass + ")");
+                            handled = true;
+                        } catch (Exception ignored) {}
+                    }
+                    if (handled) {
+                        try { Thread.sleep(400); } catch (InterruptedException ignored) {}
+                    } else {
+                        break; // nothing left to dismiss
+                    }
+                }
 
                 Thread.sleep(1000);
 

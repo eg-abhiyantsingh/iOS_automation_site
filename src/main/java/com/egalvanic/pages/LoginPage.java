@@ -520,54 +520,73 @@ public void clickShowPassword() {
     // ================================================================
     
     /**
-     * TURBO: Handle Save Password popup FAST (max 1.5 seconds)
-     * Only uses the most reliable methods, skips slow fallbacks
+     * TURBO: Handle post-Sign-In system popups (max ~2 seconds).
+     *
+     * On fresh-install runs against the new app build, TWO popups stack
+     * after a successful Sign In:
+     *   1. Notification permission ("Z Platform-QA Would Like to Send You
+     *      Notifications"). Buttons: "Allow" / "Don't Allow".
+     *   2. Save Password sheet. Buttons: "Not Now" / "Save".
+     *
+     * The previous version only handled (2). The (1) dialog would still
+     * cover Site Selection on first run, breaking auto-advance. We now
+     * cascade through {alert.dismiss → Don't Allow → Not Now} TWICE so a
+     * stacked pair is cleared in a single call. Each strategy is cheap —
+     * the whole method still budgets ~2 s on the worst (zero-popups) case.
      */
     private void handleSavePasswordTurbo() {
         long start = System.currentTimeMillis();
-        
-        // Quick check - try alert first (fastest)
-        try {
-            driver.switchTo().alert().dismiss();
-            System.out.println("⚡ Alert dismissed in " + (System.currentTimeMillis() - start) + "ms");
-            return;
-        } catch (Exception e) {}
-        
-        try {
-            driver.switchTo().alert().accept();
-            System.out.println("⚡ Alert accepted in " + (System.currentTimeMillis() - start) + "ms");
-            return;
-        } catch (Exception e) {}
-        
-        // Quick button check - "Not Now" only (most common)
-        try {
-            WebElement btn = driver.findElement(
-                io.appium.java_client.AppiumBy.accessibilityId("Not Now")
-            );
-            btn.click();
-            System.out.println("⚡ 'Not Now' clicked in " + (System.currentTimeMillis() - start) + "ms");
-            return;
-        } catch (Exception e) {}
-        
-        // One more quick check after tiny delay
-        try { Thread.sleep(300); } catch (InterruptedException e) {}
-        
-        try {
-            driver.switchTo().alert().dismiss();
-            System.out.println("⚡ Alert dismissed (retry) in " + (System.currentTimeMillis() - start) + "ms");
-            return;
-        } catch (Exception e) {}
-        
-        try {
-            WebElement btn = driver.findElement(
-                io.appium.java_client.AppiumBy.accessibilityId("Not Now")
-            );
-            btn.click();
-            System.out.println("⚡ 'Not Now' clicked (retry) in " + (System.currentTimeMillis() - start) + "ms");
-            return;
-        } catch (Exception e) {}
-        
-        System.out.println("⚡ No popup found in " + (System.currentTimeMillis() - start) + "ms");
+
+        // Two passes — there can be two stacked popups (notification, then save-password).
+        for (int pass = 1; pass <= 2; pass++) {
+            boolean dismissedThisPass = false;
+
+            // Native iOS alert API (covers UIAlertController-backed dialogs)
+            try {
+                driver.switchTo().alert().dismiss();
+                System.out.println("⚡ Alert dismissed (pass " + pass + ") in " +
+                    (System.currentTimeMillis() - start) + "ms");
+                dismissedThisPass = true;
+            } catch (Exception ignored) {}
+
+            // Notification permission dialog — accessibility id is "Don't Allow"
+            if (!dismissedThisPass) {
+                try {
+                    WebElement btn = driver.findElement(
+                        io.appium.java_client.AppiumBy.accessibilityId("Don't Allow"));
+                    btn.click();
+                    System.out.println("⚡ 'Don't Allow' clicked (pass " + pass + ") in " +
+                        (System.currentTimeMillis() - start) + "ms");
+                    dismissedThisPass = true;
+                } catch (Exception ignored) {}
+            }
+
+            // Save Password SwiftUI sheet — accessibility id is "Not Now"
+            if (!dismissedThisPass) {
+                try {
+                    WebElement btn = driver.findElement(
+                        io.appium.java_client.AppiumBy.accessibilityId("Not Now"));
+                    btn.click();
+                    System.out.println("⚡ 'Not Now' clicked (pass " + pass + ") in " +
+                        (System.currentTimeMillis() - start) + "ms");
+                    dismissedThisPass = true;
+                } catch (Exception ignored) {}
+            }
+
+            if (!dismissedThisPass) {
+                // Nothing matched this pass — second pass won't either, bail early
+                if (pass == 1) {
+                    try { Thread.sleep(250); } catch (InterruptedException ignored) {}
+                } else {
+                    System.out.println("⚡ No popup found in " +
+                        (System.currentTimeMillis() - start) + "ms");
+                    return;
+                }
+            } else {
+                // Give the next stacked popup a beat to render before pass 2
+                try { Thread.sleep(400); } catch (InterruptedException ignored) {}
+            }
+        }
     }
     
     /**
