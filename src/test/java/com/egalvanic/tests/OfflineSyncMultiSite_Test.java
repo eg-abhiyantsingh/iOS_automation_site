@@ -78,12 +78,23 @@ public class OfflineSyncMultiSite_Test extends BaseTest {
 
     @BeforeMethod(alwaysRun = true)
     public void perTestSetup() {
-        // Defensive: ensure we're online and on dashboard before each test
+        // Defensive: ensure we're online before each test — UNLESS there are
+        // pending sync records from a prior offline operation. In that case
+        // auto-online would silently sync them, invalidating multi-site
+        // offline-persistence tests like UC1. Also auto-online when truly
+        // online but pending=0 is pure waste (~60s per test on iOS 26.2).
         try {
             if (siteSelectionPage.isWifiOffline()) {
-                System.out.println("🌐 Was offline — restoring online state for clean start");
-                siteSelectionPage.goOnline();
-                shortWait();
+                boolean hasPending = false;
+                try { hasPending = siteSelectionPage.hasPendingSyncRecords(); } catch (Exception ignored) {}
+                if (hasPending) {
+                    System.out.println("🌐 Was offline with pending sync — LEAVING AS-IS " +
+                        "(auto-online would sync the queue and break multi-site offline tests)");
+                } else {
+                    System.out.println("🌐 Was offline (no pending) — restoring online state");
+                    siteSelectionPage.goOnline();
+                    shortWait();
+                }
             }
         } catch (Exception e) {
             System.out.println("⚠️ perTestSetup online-restore probe failed: " + e.getMessage());
@@ -163,39 +174,129 @@ public class OfflineSyncMultiSite_Test extends BaseTest {
             "UC1 - Single user working with multiple sites");
         loginAndPickSite(SITE_A);
 
-        logStep("Step 1: Confirm on Site A and capture queue baseline");
+        // ------------------------------------------------------------------
+        // Step 1: Capture queue baseline on Site A (before any offline writes)
+        // ------------------------------------------------------------------
+        logStep("Step 1: Capture queue baseline on Site A");
         int baselineCount = siteSelectionPage.getPendingSyncCount();
+        System.out.println("[UC1] Baseline pending sync count = " + baselineCount);
 
-        logStep("Step 2: Go offline + create one offline change in Site A");
+        // ------------------------------------------------------------------
+        // Step 2a: Go offline AND verify app actually went offline.
+        // The spec requires the app to stay offline THROUGHOUT site switching,
+        // so we explicitly assert the offline state here AND after every switch.
+        // ------------------------------------------------------------------
+        logStep("Step 2a: Go offline");
         siteSelectionPage.goOffline();
         mediumWait();
-        // We "create offline data" by triggering a known offline flow —
-        // the existing OfflineTest validates that creating an issue offline
-        // adds a queue entry. We rely on that primitive here.
-        // For UC1 the precise creation path doesn't matter; only that
-        // the queue grows. If the queue does NOT grow, skip — environment
-        // doesn't support offline writes for this run.
-        boolean queueGrew = siteSelectionPage.getPendingSyncCount() > baselineCount;
-        skipIfPreconditionMissing(() -> queueGrew || true,
-            "Offline-create flow not exercised — UC1 still validates site-switch persistence");
+        assertTrue(!siteSelectionPage.isWifiOnline(),
+            "App must be offline after goOffline() — UC1 requires staying offline " +
+            "through the entire site-switch sequence");
 
-        logStep("Step 3: Switch to Site B (without sync)");
+        // ------------------------------------------------------------------
+        // Step 2b: EDIT a real asset on Site A while offline.
+        // Per the user's spec ("Create offline data, Do not sync") we need an
+        // actual pending-sync entry. Asset edit is the most reliable primitive:
+        //   - Asset list is always populated on a working site
+        //   - Edit + Save Changes always grows the sync queue when offline
+        //   - Doesn't require complex new-asset setup (class, subtype, QR, etc.)
+        // ------------------------------------------------------------------
+        logStep("Step 2b: Edit first asset offline on Site A");
+        String uniqueSuffix = "_UC1_" + System.currentTimeMillis();
+
+        // Step 2b: navigate + open asset + edit + save.
+        // CRITICAL: SkipException must bubble up so the test actually skips
+        // when state pollution puts us on Sites picker. Previous version
+        // wrapped this in a broad catch (Exception) which swallowed
+        // SkipException and let the test continue into Step 3 with a
+        // garbage state.
+        try {
+            assetPage.navigateToAssetList();
+            mediumWait();
+        } catch (Exception navEx) {
+            System.out.println("[UC1] navigateToAssetList warning: " + navEx.getMessage());
+        }
+
+        String originalName = assetPage.selectFirstAsset();
+        // Per user feedback "i think u are clicking on create new site":
+        // selectFirstAsset returns null when it detects the Sites picker
+        // (or any wrong screen). Skip cleanly rather than try to edit a
+        // ghost "asset" that would actually create a new site.
+        if (originalName == null || originalName.equals("Create New Site") ||
+            originalName.equals("Select Site") || originalName.startsWith("Search sites")) {
+            skipIfPreconditionMissing(() -> false,
+                "navigateToAssetList misrouted to Sites picker (got asset='" +
+                originalName + "'). State pollution from prior site selection — " +
+                "needs navigateToAssetList state-aware fix.");
+        }
+        System.out.println("[UC1] Opened asset for edit: " + originalName);
+
+        try {
+            mediumWait();
+            assetPage.clickEditTurbo();
+            mediumWait();
+            assetPage.enterAssetName(uniqueSuffix);
+            mediumWait();
+            assetPage.clickEditSave();
+            mediumWait();
+        } catch (Exception editEx) {
+            System.out.println("[UC1] Asset edit step warning: " + editEx.getMessage());
+            // Don't swallow — let the queue-grow assertion below catch this
+        }
+
+        int afterCreateCount = siteSelectionPage.getPendingSyncCount();
+        System.out.println("[UC1] After offline asset-edit, pending sync count = " + afterCreateCount);
+        // Multi-site offline-persistence test only requires that offline data EXISTS
+        // (queue >= 1). Strict growth (afterCreate > baseline) is wrong when the
+        // edit hits an asset that already has a pending entry — the app updates
+        // the existing queue record in place rather than adding a new one, so
+        // count stays the same. What matters is: queue has pending data, and
+        // that data survives the multi-site switch.
+        skipIfPreconditionMissing(() -> afterCreateCount >= 1,
+            "Queue is empty after offline asset edit (baseline=" + baselineCount +
+            ", afterCreate=" + afterCreateCount + ") — sim env may have no assets or read-only data");
+
+        // Verify offline state was retained through the create flow
+        assertTrue(!siteSelectionPage.isWifiOnline(),
+            "App must STILL be offline after creating offline data — sync must not happen");
+
+        // ------------------------------------------------------------------
+        // Step 3: Switch to Site B and verify app STAYS OFFLINE through switch.
+        // ------------------------------------------------------------------
+        logStep("Step 3: Switch to Site B (must remain offline throughout)");
         boolean switched = siteSelectionPage.switchToSite(SITE_B);
         skipIfPreconditionMissing(() -> switched || multiSiteAvailable,
             "Cannot switch to Site B '" + SITE_B + "' — only one site available in this env");
+        mediumWait();
+        assertTrue(!siteSelectionPage.isWifiOnline(),
+            "App must remain offline after switch to Site B — auto-online during switch " +
+            "would silently sync the offline queue and invalidate the multi-site test");
 
-        logStep("Step 4: Switch back to Site A");
+        // ------------------------------------------------------------------
+        // Step 4: Switch back to Site A and verify offline state preserved.
+        // ------------------------------------------------------------------
+        logStep("Step 4: Switch back to Site A (must remain offline)");
         boolean switchedBack = siteSelectionPage.switchToSite(SITE_A);
         assertTrue(switchedBack || siteSelectionPage.getCurrentSiteName() != null,
             "Should be able to navigate back to Site A");
+        mediumWait();
+        assertTrue(!siteSelectionPage.isWifiOnline(),
+            "App must remain offline after switch back to Site A");
 
-        logStep("Step 5: Verify queue still has Site-A entries (or is at least non-decreasing)");
+        // ------------------------------------------------------------------
+        // Step 5: Verify the Site-A offline data PERSISTED across switches.
+        // Queue must not have shrunk — if it had, the app silently synced
+        // somewhere during the switching (network came back, etc.).
+        // ------------------------------------------------------------------
+        logStep("Step 5: Verify Site-A offline data persisted (queue did not shrink)");
         int finalCount = siteSelectionPage.getPendingSyncCount();
-        assertTrue(finalCount >= baselineCount,
-            "Pending sync count must not decrease after pure site switching " +
-            "(baseline=" + baselineCount + ", final=" + finalCount + ")");
+        System.out.println("[UC1] Final pending sync count = " + finalCount);
+        assertTrue(finalCount >= afterCreateCount,
+            "Pending sync count must NOT decrease after pure site switching " +
+            "(afterCreate=" + afterCreateCount + ", final=" + finalCount + "). " +
+            "A decrease means the app silently synced — multi-site offline persistence broken.");
 
-        shot("UC1: Site A data preserved across site switches");
+        shot("UC1: Site A data preserved across site switches; app stayed offline throughout");
     }
 
     /**
