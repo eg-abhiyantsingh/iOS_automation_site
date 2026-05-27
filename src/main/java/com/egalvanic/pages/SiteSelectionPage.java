@@ -1659,6 +1659,26 @@ public class SiteSelectionPage extends BasePage {
     public void goOffline() {
         try {
             System.out.println("🔄 Attempting to go offline...");
+            // v1.36: ensure Dashboard before tapping WiFi (same reason as goOnline)
+            try {
+                boolean onDashboard = !driver.findElements(AppiumBy.accessibilityId("Sites")).isEmpty();
+                if (!onDashboard) {
+                    System.out.println("[goOffline] Not on Dashboard — tapping Site (house) tab to return");
+                    for (String btn : new String[]{"Cancel", "Done", "Back"}) {
+                        try {
+                            java.util.List<WebElement> cands = driver.findElements(AppiumBy.accessibilityId(btn));
+                            if (!cands.isEmpty()) { cands.get(0).click(); sleep(300); break; }
+                        } catch (Exception ignored) {}
+                    }
+                    for (String tab : new String[]{"house.fill", "house"}) {
+                        try {
+                            WebElement t = driver.findElement(AppiumBy.accessibilityId(tab));
+                            t.click(); sleep(500); break;
+                        } catch (Exception ignored) {}
+                    }
+                    sleep(500);
+                }
+            } catch (Exception ignored) {}
             boolean currentlyOnline = isWifiOnline();
             System.out.println("[DEBUG-WIFI] isWifiOnline() = " + currentlyOnline);
 
@@ -1728,6 +1748,30 @@ public class SiteSelectionPage extends BasePage {
     public void goOnline() {
         try {
             System.out.println("🔄 Attempting to go online...");
+            // v1.36 (changelog 075): goOnline must be invoked from the Dashboard
+            // for the WiFi popup to surface. Called from Asset List / Asset
+            // Detail / Settings, the WiFi icon is visible but tapping it does
+            // not open the Go Online inline button. Tap house tab if needed.
+            try {
+                boolean onDashboard = !driver.findElements(AppiumBy.accessibilityId("Sites")).isEmpty();
+                if (!onDashboard) {
+                    System.out.println("[goOnline] Not on Dashboard — tapping Site (house) tab to return");
+                    for (String btn : new String[]{"Cancel", "Done", "Back"}) {
+                        try {
+                            java.util.List<WebElement> cands = driver.findElements(AppiumBy.accessibilityId(btn));
+                            if (!cands.isEmpty()) { cands.get(0).click(); sleep(300); break; }
+                        } catch (Exception ignored) {}
+                    }
+                    for (String tab : new String[]{"house.fill", "house"}) {
+                        try {
+                            WebElement t = driver.findElement(AppiumBy.accessibilityId(tab));
+                            t.click(); sleep(500); break;
+                        } catch (Exception ignored) {}
+                    }
+                    sleep(500);
+                }
+            } catch (Exception ignored) {}
+
             // v1.36 (changelog 075): isWifiOffline() can be stale during fast site
             // switches — observed scenario where it returns TRUE but the app has
             // already auto-onlined. Trust the popup itself: if tapping WiFi
