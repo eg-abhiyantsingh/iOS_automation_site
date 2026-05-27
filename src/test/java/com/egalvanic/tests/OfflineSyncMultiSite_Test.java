@@ -1151,18 +1151,36 @@ public class OfflineSyncMultiSite_Test extends BaseTest {
             "Multi-Site Offline Sync", "UC29 - Logout guardrails during sync");
         loginAndPickSite(SITE_A);
 
+        // Self-seed pending sync so the guardrail has something to guard.
+        logStep("Step 1: Go offline + self-seed an edit to create pending sync");
+        siteSelectionPage.goOffline();
+        mediumWait();
+        try {
+            assetPage.navigateToAssetList();
+            String name = assetPage.selectFirstAsset();
+            if (name != null && !name.isEmpty()) {
+                assetPage.clickEditTurbo();
+                mediumWait();
+                assetPage.enterAssetName("_UC29_" + System.currentTimeMillis());
+                mediumWait();
+                assetPage.clickEditSave();
+                mediumWait();
+            }
+        } catch (Exception e) {
+            System.out.println("[UC29] Edit warning: " + e.getMessage());
+        }
         int pending = siteSelectionPage.getPendingSyncCount();
         skipIfPreconditionMissing(() -> (pending > 0),
-            "UC29 requires pending sync items to validate logout guardrails during sync");
+            "Could not seed pending sync — UC29 requires pending items");
 
-        logStep("Step 1: Trigger sync (best-effort — kicks off long-running operation)");
+        logStep("Step 2: Go online + trigger sync (don't wait — testing mid-flight)");
+        siteSelectionPage.goOnline();
+        mediumWait();
         siteSelectionPage.syncPendingRecords();
-        // Don't wait for completion — we want to test logout DURING sync
 
-        logStep("Step 2: Try to logout while sync is in progress");
+        logStep("Step 3: Try to logout while sync is in progress");
         siteSelectionPage.tapSettingsTab();
         boolean blocked = siteSelectionPage.isLogoutBlocked();
-        // If sync was already complete (very fast), we can't test the guardrail
         skipIfPreconditionMissing(() -> (siteSelectionPage.hasPendingSyncRecords() || blocked),
             "Sync completed too quickly to validate guardrail — env-dependent timing");
 
@@ -1197,14 +1215,34 @@ public class OfflineSyncMultiSite_Test extends BaseTest {
             "Multi-Site Offline Sync", "UC32 - Site switch blocked during sync");
         loginAndPickSite(SITE_A);
 
+        // Self-seed pending sync so we can observe the guardrail.
+        logStep("Step 1: Go offline + self-seed an edit to create pending sync");
+        siteSelectionPage.goOffline();
+        mediumWait();
+        try {
+            assetPage.navigateToAssetList();
+            String name = assetPage.selectFirstAsset();
+            if (name != null && !name.isEmpty()) {
+                assetPage.clickEditTurbo();
+                mediumWait();
+                assetPage.enterAssetName("_UC32_" + System.currentTimeMillis());
+                mediumWait();
+                assetPage.clickEditSave();
+                mediumWait();
+            }
+        } catch (Exception e) {
+            System.out.println("[UC32] Edit warning: " + e.getMessage());
+        }
         int pending = siteSelectionPage.getPendingSyncCount();
         skipIfPreconditionMissing(() -> (pending > 0),
-            "UC32 requires pending sync to test site-switch guardrail");
+            "Could not seed pending sync — UC32 requires pending items");
 
-        logStep("Step 1: Trigger sync");
+        logStep("Step 2: Go online + trigger sync");
+        siteSelectionPage.goOnline();
+        mediumWait();
         siteSelectionPage.syncPendingRecords();
 
-        logStep("Step 2: Try to switch site immediately");
+        logStep("Step 3: Try to switch site immediately while sync is mid-flight");
         boolean blocked = siteSelectionPage.isSiteSwitchBlockedDuringSync();
         skipIfPreconditionMissing(() -> (siteSelectionPage.hasPendingSyncRecords() || blocked),
             "Sync completed too quickly to assert guardrail");
@@ -1223,21 +1261,41 @@ public class OfflineSyncMultiSite_Test extends BaseTest {
             "Multi-Site Offline Sync", "UC33 - Site switch after sync");
         loginAndPickSite(SITE_A);
 
+        // Self-seed pending sync, then sync, then verify clean post-sync switch.
+        logStep("Step 1: Go offline + self-seed an edit");
+        siteSelectionPage.goOffline();
+        mediumWait();
+        try {
+            assetPage.navigateToAssetList();
+            String name = assetPage.selectFirstAsset();
+            if (name != null && !name.isEmpty()) {
+                assetPage.clickEditTurbo();
+                mediumWait();
+                assetPage.enterAssetName("_UC33_" + System.currentTimeMillis());
+                mediumWait();
+                assetPage.clickEditSave();
+                mediumWait();
+            }
+        } catch (Exception e) {
+            System.out.println("[UC33] Edit warning: " + e.getMessage());
+        }
+
+        logStep("Step 2: Go online + drain the queue");
+        siteSelectionPage.goOnline();
+        mediumWait();
         if (siteSelectionPage.hasPendingSyncRecords()) {
-            logStep("Step 1: Drain queue first");
             siteSelectionPage.syncPendingRecords();
             siteSelectionPage.waitForSyncToComplete();
         }
         assertEquals(siteSelectionPage.getPendingSyncCount(), 0,
             "Queue must be empty before site switch");
 
-        logStep("Step 2: Switch site cleanly");
+        logStep("Step 3: Switch site cleanly after sync completion");
         boolean toB = siteSelectionPage.switchToSite(SITE_B);
         skipIfPreconditionMissing(() -> (toB), "Site B not available");
-        // Data loaded if we can see SOME dashboard element
         assertTrue(siteSelectionPage.getCurrentSiteName() != null
             || siteSelectionPage.isSitesButtonDisplayed(),
-            "Site B dashboard should load");
+            "Site B dashboard should load cleanly after sync completion");
         shot("UC33: Site switch after sync — clean");
     }
 
@@ -1257,17 +1315,36 @@ public class OfflineSyncMultiSite_Test extends BaseTest {
             "Multi-Site Offline Sync", "UC35 - Sync UI stability");
         loginAndPickSite(SITE_A);
 
+        // Self-seed pending sync so we can observe the indicator.
+        logStep("Step 1: Go offline + self-seed an edit");
+        siteSelectionPage.goOffline();
+        mediumWait();
+        try {
+            assetPage.navigateToAssetList();
+            String name = assetPage.selectFirstAsset();
+            if (name != null && !name.isEmpty()) {
+                assetPage.clickEditTurbo();
+                mediumWait();
+                assetPage.enterAssetName("_UC35_" + System.currentTimeMillis());
+                mediumWait();
+                assetPage.clickEditSave();
+                mediumWait();
+            }
+        } catch (Exception e) {
+            System.out.println("[UC35] Edit warning: " + e.getMessage());
+        }
         int pending = siteSelectionPage.getPendingSyncCount();
         skipIfPreconditionMissing(() -> (pending > 0),
-            "UC35 needs pending items to observe sync indicator");
+            "Could not seed pending items — UC35 needs queued data to observe indicator");
 
-        logStep("Step 1: Trigger sync");
+        logStep("Step 2: Go online + trigger sync");
+        siteSelectionPage.goOnline();
+        mediumWait();
         siteSelectionPage.syncPendingRecords();
 
-        logStep("Step 2: Verify sync indicator is visible while sync runs");
+        logStep("Step 3: Verify sync indicator is visible while sync runs");
         boolean indicatorSeen = siteSelectionPage.hasPendingSyncIndicator()
             || !siteSelectionPage.isSitesButtonEnabled();
-        // If sync completed instantly, this is a no-op observation
         if (indicatorSeen) {
             shot("UC35: Sync indicator visible during sync");
         }
