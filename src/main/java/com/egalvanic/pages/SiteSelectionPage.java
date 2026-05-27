@@ -812,22 +812,25 @@ public class SiteSelectionPage extends BasePage {
      */
     public boolean selectSiteByName(String siteName) {
         System.out.println("🔍 Selecting site by name: " + siteName);
-        
-        // Clear any previous search first to avoid cache issues
+
+        // Clear any previous search first to avoid cache issues. Don't wait
+        // for results to "appear" here — the field is now empty, so a full
+        // list reload may be slow OR may not happen at all. The post-search
+        // wait below is the one that actually needs to time out for results.
         try {
             clearSearch();
-            waitForSearchResultsReady();
         } catch (Exception e) {
             System.out.println("⚠️ Could not clear previous search: " + e.getMessage());
         }
-        
+
         // Search for the site
         System.out.println("📝 Entering search text: " + siteName);
         searchSite(siteName);
-        
-        // Wait for search results to load using explicit wait (CI/CD safe)
+
+        // Wait for search results to load using explicit wait (CI/CD safe).
+        // 6a392bc made this wait for size>0 (real results) instead of >=0.
         waitForSearchResultsReady();
-        
+
         // Get filtered results and click the first one
         List<WebElement> sites = getAllSites();
         System.out.println("📋 Found " + sites.size() + " sites after search");
