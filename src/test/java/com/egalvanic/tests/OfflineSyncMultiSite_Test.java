@@ -409,12 +409,14 @@ public class OfflineSyncMultiSite_Test extends BaseTest {
         }
         int afterB = siteSelectionPage.getPendingSyncCount();
         System.out.println("[UC3] After Site B offline edit, queue = " + afterB);
-        // Queue should grow cumulatively (Site A edit + Site B edit). Allow it
-        // to stay the same if the app folds duplicate edits per-asset, but it
-        // MUST be ≥ afterA (no shrinkage during a pure offline switch).
-        assertTrue(afterB >= afterA,
-            "Queue must not shrink across site switches while offline (afterA=" + afterA +
-            ", afterB=" + afterB + ") — a decrease indicates silent sync");
+        // v1.36 (changelog 075): the dashboard badge shows PER-SITE pending count,
+        // not global. afterB may be less than afterA depending on each site's
+        // local pending. We assert Site B has at least one pending item — the
+        // global "drain both sites' queues" assertion at Step 6 is the real
+        // proof of multi-site sync.
+        assertTrue(afterB >= 1,
+            "Site B must have at least one pending item from its own offline edit " +
+            "(afterA=" + afterA + ", afterB=" + afterB + ")");
 
         logStep("Step 6: STAY on Site B, go online + sync → drains BOTH sites' queues");
         siteSelectionPage.goOnline();
@@ -708,9 +710,13 @@ public class OfflineSyncMultiSite_Test extends BaseTest {
             System.out.println("[UC4] Site B edit warning: " + e.getMessage());
         }
         int afterB = siteSelectionPage.getPendingSyncCount();
-        assertTrue(afterB >= afterA,
-            "Queue must not shrink across site switches while offline (afterA=" + afterA +
-            ", afterB=" + afterB + ")");
+        // v1.36 (changelog 075): the badge displays PER-SITE pending count, not
+        // global. So afterB may be less than afterA after switching from a site
+        // that had multiple per-site pending items. The only guarantee here is
+        // that Site B has at least one pending item (from its own self-seeded edit).
+        assertTrue(afterB >= 1,
+            "Site B must have at least one pending item from its own offline edit " +
+            "(afterA=" + afterA + ", afterB=" + afterB + ")");
 
         logStep("Step 4: From Site B, go online + trigger sync — drains BOTH sites' queues");
         siteSelectionPage.goOnline();
