@@ -3626,6 +3626,9 @@ public class AssetPage extends BasePage {
             try { nameField.clear(); } catch (Exception ignored) {}
             nameField.sendKeys(name);
             System.out.println("✅ Entered asset name: " + name);
+            // v1.36: keyboard occludes Save Changes + bottom-nav Sites button;
+            // dismiss before any further interaction.
+            dismissKeyboard();
             return;
         } catch (Exception e) {}
 
@@ -3652,6 +3655,8 @@ public class AssetPage extends BasePage {
             } catch (Exception ignored) {}
             f.sendKeys(name);
             System.out.println("✅ Entered asset name (alt): " + name);
+            // v1.36: keyboard occludes downstream taps; always dismiss.
+            dismissKeyboard();
         }
     }
 

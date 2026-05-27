@@ -3000,6 +3000,9 @@ public class SiteSelectionPage extends BasePage {
         // Issues / any other screen. If we are NOT on Dashboard, tapping a "Sites"
         // element opens that screen's search field instead of the Sites picker,
         // and the test then accidentally clicks the first matching asset.
+        // Also dismiss any stray keyboard left by a prior sendKeys — it occludes
+        // the bottom-of-screen Sites Quick Action and corrupts visibility checks.
+        try { driver.executeScript("mobile: hideKeyboard"); } catch (Exception ignored) {}
         try {
             // Quickest probe: is the Sites Quick Action visible? It only exists on
             // the Dashboard. If absent, we are on the wrong screen.
