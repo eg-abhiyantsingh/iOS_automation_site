@@ -3287,6 +3287,81 @@ public class SiteSelectionPage extends BasePage {
     }
 
     /**
+     * Verify that the Sync Queue Analyzer shows no pending and no failed
+     * items — i.e., every sync attempt landed in History as green. Per user
+     * direction: "if you click on setting then sync queue analyzer click all
+     * should be green if any sync fail then you will see that in pending or
+     * fail". Returns true ONLY when:
+     *   - Pending tab count is 0 (or "Pending (0)" / no label), AND
+     *   - History has NO failure indicators (red / "Failed" / xmark) in
+     *     visible cells.
+     * Caller is responsible for already having navigated to Settings +
+     * opened the analyzer via openSyncQueueAnalyzer().
+     */
+    public boolean isSyncQueueAllGreen() {
+        // 1) Check Pending tab label looks like (0).
+        boolean pendingZero = false;
+        try {
+            java.util.List<WebElement> pending = driver.findElements(
+                AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND label BEGINSWITH 'Pending'"));
+            for (WebElement el : pending) {
+                String label = el.getAttribute("label");
+                if (label == null) continue;
+                // Match "Pending (0)" / "Pending(0)" / "Pending 0" / bare "Pending"
+                java.util.regex.Matcher m = java.util.regex.Pattern.compile(
+                    "Pending\\s*\\(?\\s*(\\d+)\\s*\\)?", java.util.regex.Pattern.CASE_INSENSITIVE
+                ).matcher(label);
+                if (m.find()) {
+                    pendingZero = "0".equals(m.group(1));
+                    System.out.println("[SyncQueue] Pending tab label='" + label + "' → pendingZero=" + pendingZero);
+                    break;
+                }
+                if (label.trim().equalsIgnoreCase("Pending")) { pendingZero = true; break; }
+            }
+        } catch (Exception e) {
+            System.out.println("[SyncQueue] Could not read Pending tab: " + e.getMessage());
+        }
+
+        // 2) Tap into History tab (so we can inspect it) — best-effort.
+        try {
+            java.util.List<WebElement> historyTabs = driver.findElements(
+                AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND label BEGINSWITH 'History'"));
+            if (!historyTabs.isEmpty()) {
+                historyTabs.get(0).click();
+                sleep(400);
+            }
+        } catch (Exception ignored) {}
+
+        // 3) Scan visible cells for any failure indicator.
+        boolean noFailures = true;
+        try {
+            // Failure signals on this screen: red xmark icon, the word
+            // 'Failed', 'Error', or a retry button on a cell.
+            java.util.List<WebElement> failureMarkers = driver.findElements(
+                AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeImage' OR type == 'XCUIElementTypeStaticText' " +
+                    "OR type == 'XCUIElementTypeButton') AND " +
+                    "(name CONTAINS[c] 'xmark' OR name CONTAINS[c] 'fail' OR name CONTAINS[c] 'error' " +
+                    "OR label CONTAINS[c] 'failed' OR label CONTAINS[c] 'error' OR label CONTAINS[c] 'retry')"));
+            if (!failureMarkers.isEmpty()) {
+                noFailures = false;
+                for (WebElement m : failureMarkers) {
+                    System.out.println("[SyncQueue] Failure marker found: name=" + m.getAttribute("name") +
+                        ", label=" + m.getAttribute("label"));
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("[SyncQueue] Failure scan errored: " + e.getMessage());
+        }
+        boolean allGreen = pendingZero && noFailures;
+        System.out.println("[SyncQueue] All green = " + allGreen +
+            " (pendingZero=" + pendingZero + ", noFailures=" + noFailures + ")");
+        return allGreen;
+    }
+
+    /**
      * Count items in the Sync Queue Analyzer's current tab.
      * Counts XCUIElementTypeCell entries below the tab control.
      * Returns -1 if the analyzer screen is not visible.

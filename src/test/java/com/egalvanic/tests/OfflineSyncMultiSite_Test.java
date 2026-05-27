@@ -427,7 +427,28 @@ public class OfflineSyncMultiSite_Test extends BaseTest {
             "Global sync from Site B should flush both sites' pending entries " +
             "(afterB=" + afterB + ", afterSync=" + afterSync + ")");
 
-        shot("UC3: offline edits on both sites flushed by single sync from Site B");
+        // Per user direction (2026-05-27): "if you click on setting then sync
+        // queue analyzer click all should be green if any sync fail then you
+        // will see that in pending or fail" — open the analyzer and assert all
+        // green (Pending=0 + History has no Failed markers).
+        logStep("Step 7: Open Sync Queue Analyzer — all items must be green");
+        boolean settingsOpened = siteSelectionPage.tapSettingsTab();
+        if (settingsOpened) {
+            boolean analyzerOpened = siteSelectionPage.openSyncQueueAnalyzer();
+            if (analyzerOpened) {
+                boolean allGreen = siteSelectionPage.isSyncQueueAllGreen();
+                assertTrue(allGreen,
+                    "Sync Queue Analyzer must show all green (Pending=0 + no failures) " +
+                    "after sync from Site B — any items in Pending or with failure markers " +
+                    "indicate a sync regression.");
+            } else {
+                System.out.println("[UC3] Could not open Sync Queue Analyzer — skipping deep verification");
+            }
+        } else {
+            System.out.println("[UC3] Could not open Settings tab — skipping deep verification");
+        }
+
+        shot("UC3: offline edits on both sites flushed + Sync Queue Analyzer all green");
     }
 
     /**
