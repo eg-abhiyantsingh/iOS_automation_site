@@ -1868,39 +1868,48 @@ public class SiteSelectionPage extends BasePage {
     public void clickSyncRecords() {
         try {
             System.out.println("🔍 Looking for Sync records option...");
-            
+
             // First try to find by text containing "Sync" and "record"
             java.util.List<WebElement> syncTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "label CONTAINS 'Sync' AND label CONTAINS 'record'"
             ));
-            
+
             if (!syncTexts.isEmpty()) {
                 WebElement syncElement = syncTexts.get(0);
                 String label = syncElement.getAttribute("label");
                 System.out.println("✅ Found: " + label);
                 syncElement.click();
                 System.out.println("✅ Clicked on Sync records");
-                sleep(1200); // Wait for sync to process
+                sleep(1200);
                 return;
             }
-            
-            // Fallback: Try the button locator
+
             if (isElementDisplayed(syncRecordsButton)) {
                 click(syncRecordsButton);
                 System.out.println("✅ Clicked Sync records button via fallback");
                 sleep(1200);
                 return;
             }
-            
-            // Last resort: try syncRecordsText locator
+
             if (isElementDisplayed(syncRecordsText)) {
                 click(syncRecordsText);
                 System.out.println("✅ Clicked Sync records text");
                 sleep(1200);
                 return;
             }
-            
-            System.out.println("⚠️ Could not find Sync records option");
+
+            // v1.36 (changelog 075): no popup-level Sync option exists on the
+            // May-27 build. Fall through to the Sync Queue Analyzer refresh
+            // button as the canonical manual sync trigger.
+            System.out.println("⚠️ No popup Sync option found — falling back to Sync Queue Analyzer refresh");
+            if (tapSettingsTab() && openSyncQueueAnalyzer()) {
+                if (tapSyncQueueAnalyzerRefresh()) {
+                    System.out.println("✅ Sync initiated via Sync Queue Analyzer refresh");
+                    sleep(1200);
+                    return;
+                }
+            }
+            System.out.println("⚠️ Could not trigger sync via any known mechanism");
         } catch (Exception e) {
             System.out.println("⚠️ Could not click sync records: " + e.getMessage());
         }
