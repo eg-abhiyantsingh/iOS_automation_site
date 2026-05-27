@@ -3442,13 +3442,17 @@ public class SiteSelectionPage extends BasePage {
                             "type == 'XCUIElementTypeStaticText') AND " +
                             "(label CONTAINS[c] 'sync queue' OR label CONTAINS[c] 'queue analyzer')"));
                     entry.click(); sleep(800);
-                    // Verify by looking for Pending / History tabs
+                    // v1.36: tab labels render as 'Pending (N)' / 'History (N)',
+                    // not just 'Pending' / 'History'. Use BEGINSWITH and CONTAINS.
                     try {
                         driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                             "type == 'XCUIElementTypeStaticText' AND " +
-                            "(label == 'Pending' OR label == 'History')"));
+                            "(label BEGINSWITH 'Pending' OR label BEGINSWITH 'History' OR " +
+                            "label CONTAINS[c] 'pending' OR label CONTAINS[c] 'history')"));
+                        System.out.println("✅ Sync Queue Analyzer opened (Pending/History tabs visible)");
                         return true;
                     } catch (Exception e2) {
+                        System.out.println("⚠️ Sync Queue Analyzer entry tapped but Pending/History tabs not detected");
                         return false;
                     }
                 } catch (Exception e) {
