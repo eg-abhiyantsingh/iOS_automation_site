@@ -3614,17 +3614,44 @@ public class AssetPage extends BasePage {
     }
 
     public void enterAssetName(String name) {
+        // v1.36 (changelog 075): On Asset Detail (no separate Edit mode), the
+        // Asset Name field is pre-populated with the existing value. sendKeys
+        // INSERTS at the cursor position, producing garbage like
+        // "CB-FMC SUITE 140__UC1_1779870990046seL-UC1_1779376830230_...".
+        // Always CLEAR the field first before typing.
         try {
             WebElement nameField = driver.findElement(
                 AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' AND value == 'Enter name'")
             );
+            try { nameField.clear(); } catch (Exception ignored) {}
             nameField.sendKeys(name);
             System.out.println("✅ Entered asset name: " + name);
-        } catch (Exception e) {
-            if (allTextFields.size() > 0) {
-                allTextFields.get(0).sendKeys(name);
-                System.out.println("✅ Entered asset name (alt): " + name);
-            }
+            return;
+        } catch (Exception e) {}
+
+        // Fallback: first TextField on screen (Edit mode where placeholder
+        // 'Enter name' is replaced by the current value, so above predicate
+        // misses it).
+        if (allTextFields.size() > 0) {
+            WebElement f = allTextFields.get(0);
+            try { f.clear(); } catch (Exception ignored) {}
+            // If clear() didn't empty it (iOS quirk on long pre-filled values),
+            // fall back to select-all + delete via the field's clear() retry.
+            try {
+                String v = f.getAttribute("value");
+                if (v != null && !v.isEmpty() && !v.equals("Enter name")) {
+                    f.click();
+                    sleep(150);
+                    // Long-press to bring up Select All / Delete — fallback
+                    // approximation by sending backspaces sized to the value length
+                    int chars = v.length();
+                    StringBuilder back = new StringBuilder();
+                    for (int i = 0; i < chars + 2; i++) back.append(""); // backspace
+                    f.sendKeys(back.toString());
+                }
+            } catch (Exception ignored) {}
+            f.sendKeys(name);
+            System.out.println("✅ Entered asset name (alt): " + name);
         }
     }
 
@@ -8057,17 +8084,24 @@ public class AssetPage extends BasePage {
      * Click Save button on Edit Asset Details screen
      */
     public void clickEditSave() {
+        // v1.36 (changelog 075): Asset Detail has no separate Edit mode. After a
+        // field changes, the Save button appears at the BOTTOM of the scroll view
+        // and its label is "Save Changes" (or just "Save" on older builds). Pure
+        // accessibilityId("Save") is too narrow — delegate to clickSaveChanges
+        // which already handles name-CONTAINS + scroll-into-view.
         try {
-            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(2));
             WebElement saveBtn = wait.until(ExpectedConditions.elementToBeClickable(
                 AppiumBy.accessibilityId("Save")
             ));
             saveBtn.click();
             System.out.println("✅ Clicked Save on Edit screen");
             sleep(400);
-        } catch (Exception e) {
-            System.out.println("⚠️ Could not click Save: " + e.getMessage());
-        }
+            return;
+        } catch (Exception ignored) {}
+
+        // Fallback: v1.36 Save Changes button (CONTAINS 'Save' + scroll into view)
+        clickSaveChanges();
     }
 
     /**

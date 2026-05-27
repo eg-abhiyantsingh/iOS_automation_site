@@ -583,12 +583,17 @@ public class SiteSelectionPage extends BasePage {
      * Updated to handle new UI where search bar element may be different
      */
     public void searchSite(String siteName) {
+        // v1.36 (changelog 075): On a second searchSite call within the same
+        // test, the search field retains the previously typed text. sendKeys
+        // then APPENDS, producing "Test QA 16test site" instead of replacing.
+        // Always clear() first.
         // Strategy 1: Try primary locator
         try {
             WebElement searchElement = waitForElementToBeClickable(searchBar, 3);
             if (searchElement != null) {
                 searchElement.click();
                 sleep(200);
+                try { searchElement.clear(); } catch (Exception ignored) {}
                 searchElement.sendKeys(siteName);
                 System.out.println("✅ Entered '" + siteName + "' in search box (primary)");
                 return;
@@ -596,13 +601,14 @@ public class SiteSelectionPage extends BasePage {
         } catch (Exception e) {
             System.out.println("⚠️ Primary search bar not found, trying alternatives...");
         }
-        
+
         // Strategy 2: Try alternative locator
         try {
             WebElement searchAlt = waitForElementToBeClickable(searchBarAlt, 3);
             if (searchAlt != null) {
                 searchAlt.click();
                 sleep(200);
+                try { searchAlt.clear(); } catch (Exception ignored) {}
                 searchAlt.sendKeys(siteName);
                 System.out.println("✅ Entered '" + siteName + "' in search box (alt)");
                 return;
@@ -617,6 +623,7 @@ public class SiteSelectionPage extends BasePage {
             if (searchGeneric != null) {
                 searchGeneric.click();
                 sleep(200);
+                try { searchGeneric.clear(); } catch (Exception ignored) {}
                 searchGeneric.sendKeys(siteName);
                 System.out.println("✅ Entered '" + siteName + "' in search box (generic)");
                 return;
@@ -624,24 +631,26 @@ public class SiteSelectionPage extends BasePage {
         } catch (Exception e) {
             System.out.println("⚠️ Generic search bar not found...");
         }
-        
+
         // Strategy 4: Find any visible TextField directly
         try {
             WebElement textField = driver.findElement(AppiumBy.iOSClassChain("**/XCUIElementTypeTextField[`visible == true`]"));
             textField.click();
             sleep(200);
+            try { textField.clear(); } catch (Exception ignored) {}
             textField.sendKeys(siteName);
             System.out.println("✅ Entered '" + siteName + "' in search box (direct TextField)");
             return;
         } catch (Exception e) {
             System.out.println("⚠️ Direct TextField not found...");
         }
-        
+
         // Strategy 5: Try SearchField type
         try {
             WebElement searchField = driver.findElement(AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeSearchField'"));
             searchField.click();
             sleep(200);
+            try { searchField.clear(); } catch (Exception ignored) {}
             searchField.sendKeys(siteName);
             System.out.println("✅ Entered '" + siteName + "' in search box (SearchField)");
             return;
@@ -921,9 +930,24 @@ public class SiteSelectionPage extends BasePage {
         try {
             System.out.println("📝 Clicking Sites button");
             boolean clicked = false;
-            
-            // Try original accessibility ID first (building.2)
+
+            // v1.36 (changelog 075): when this is called a SECOND time within the
+            // same test (after a switchToSite already executed once), the dashboard
+            // shows a `building.2` icon on the active-site row at the top of the
+            // screen — Appium's findElement returns that one first, and clicking
+            // it does NOT open the Sites picker. Prefer the Quick-Action button
+            // whose accessibility id is literally "Sites" (unambiguous).
             try {
+                WebElement sitesQA = driver.findElement(AppiumBy.accessibilityId("Sites"));
+                System.out.println("✅ Found Sites Quick-Action via accessibilityId('Sites')");
+                sitesQA.click();
+                clicked = true;
+            } catch (Exception e) {
+                System.out.println("   accessibilityId('Sites') not found, trying building.2...");
+            }
+
+            // Try original accessibility ID (building.2) as fallback
+            if (!clicked) try {
                 if (isElementDisplayed(sitesButtonOriginal)) {
                     System.out.println("✅ Found Sites button via original accessibility ID: building.2");
                     click(sitesButtonOriginal);
@@ -1830,16 +1854,44 @@ public class SiteSelectionPage extends BasePage {
      * Returns the number of records pending sync (e.g., "Sync 1 records" -> 1)
      */
     public int getPendingSyncCount() {
+        // v1.36 (changelog 075): Dashboard no longer always shows "Sync X record"
+        // text. When offline OR when sync is pending, a small digit-labeled
+        // button appears next to the Wi-Fi icon in the top nav bar (the same
+        // element captured by wifiButtonWithSyncCount). Read multiple sources.
         try {
+            // Source 1: legacy "Sync X record(s)" text
             if (isElementDisplayed(syncRecordsText)) {
                 String text = syncRecordsText.getAttribute("label");
-                // Extract number from "Sync X records"
-                String[] parts = text.split(" ");
-                for (String part : parts) {
-                    try {
-                        return Integer.parseInt(part);
-                    } catch (NumberFormatException ignored) {
+                if (text != null) {
+                    for (String part : text.split(" ")) {
+                        try { return Integer.parseInt(part); } catch (NumberFormatException ignored) {}
                     }
+                }
+            }
+        } catch (Exception ignored) {}
+
+        // Source 2: v1.36 nav-bar digit badge next to Wi-Fi icon
+        try {
+            java.util.List<WebElement> badges = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name MATCHES '\\\\d+'"));
+            for (WebElement b : badges) {
+                String n = b.getAttribute("name");
+                if (n != null && n.matches("\\d+")) {
+                    return Integer.parseInt(n);
+                }
+            }
+        } catch (Exception ignored) {}
+
+        // Source 3: SF-symbol bubble "X.circle.fill" or "X.circle" near Wi-Fi
+        try {
+            java.util.List<WebElement> circs = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeImage' OR type == 'XCUIElementTypeButton') AND " +
+                "(name MATCHES '\\\\d+\\\\.circle(\\\\.fill)?' OR label MATCHES '\\\\d+')"));
+            for (WebElement c : circs) {
+                String name = c.getAttribute("name");
+                if (name != null) {
+                    java.util.regex.Matcher m = java.util.regex.Pattern.compile("(\\d+)").matcher(name);
+                    if (m.find()) return Integer.parseInt(m.group(1));
                 }
             }
         } catch (Exception e) {
@@ -2932,15 +2984,70 @@ public class SiteSelectionPage extends BasePage {
      *         Sites screen could not be opened or the site name was not found.
      */
     public boolean switchToSite(String targetSiteName) {
+        // v1.36 (changelog 075): On the SECOND switchToSite call within the same
+        // test (after one switch already happened), tapping the Sites Quick
+        // Action sometimes doesn't open the picker — observed when the dashboard
+        // transition is still settling. Add picker-open verification + up to
+        // 3 retries.
+        System.out.println("🔄 Switching to site: " + targetSiteName);
+
+        // Step 0 (v1.36): Ensure we are on Dashboard, not on Asset Detail / Settings /
+        // Issues / any other screen. If we are NOT on Dashboard, tapping a "Sites"
+        // element opens that screen's search field instead of the Sites picker,
+        // and the test then accidentally clicks the first matching asset.
         try {
-            System.out.println("🔄 Switching to site: " + targetSiteName);
-            clickSitesButton();
-            sleep(1500);
-            return selectSiteByName(targetSiteName);
-        } catch (Exception e) {
-            System.out.println("⚠️ switchToSite('" + targetSiteName + "') failed: " + e.getMessage());
-            return false;
+            // Quickest probe: is the Sites Quick Action visible? It only exists on
+            // the Dashboard. If absent, we are on the wrong screen.
+            boolean onDashboard = !driver.findElements(AppiumBy.accessibilityId("Sites")).isEmpty();
+            if (!onDashboard) {
+                System.out.println("   Not on Dashboard — tapping Site (house) bottom tab to return");
+                // Try a Cancel/Back/Done first (dismiss any modal sheet)
+                for (String btn : new String[]{"Cancel", "Done", "Back"}) {
+                    try {
+                        java.util.List<WebElement> cands = driver.findElements(AppiumBy.accessibilityId(btn));
+                        if (!cands.isEmpty()) { cands.get(0).click(); sleep(300); break; }
+                    } catch (Exception ignored) {}
+                }
+                // Then tap the Site (house) tab in the bottom nav
+                for (String tab : new String[]{"house.fill", "house"}) {
+                    try {
+                        WebElement t = driver.findElement(AppiumBy.accessibilityId(tab));
+                        t.click(); sleep(500); break;
+                    } catch (Exception ignored) {}
+                }
+                sleep(500);
+            }
+        } catch (Exception ignored) {}
+
+        for (int attempt = 1; attempt <= 3; attempt++) {
+            try {
+                clickSitesButton();
+                sleep(1500);
+                // Verify the picker actually opened: search field OR site rows visible
+                boolean pickerOpen = false;
+                try {
+                    java.util.List<WebElement> searchFields = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeSearchField'"));
+                    pickerOpen = !searchFields.isEmpty();
+                } catch (Exception ignored) {}
+                if (!pickerOpen) {
+                    System.out.println("⚠️ Sites picker didn't open after attempt " + attempt + " — retrying");
+                    // Some lingering keyboard/popup may be in the way. Dismiss + retry.
+                    try { driver.executeScript("mobile: dismissKeyboard"); } catch (Exception ignored) {}
+                    try {
+                        driver.findElement(AppiumBy.accessibilityId("Done")).click();
+                    } catch (Exception ignored) {}
+                    sleep(800);
+                    continue;
+                }
+                return selectSiteByName(targetSiteName);
+            } catch (Exception e) {
+                System.out.println("⚠️ switchToSite('" + targetSiteName + "') attempt " + attempt + " failed: " + e.getMessage());
+                sleep(500);
+            }
         }
+        System.out.println("⚠️ switchToSite('" + targetSiteName + "') failed after 3 attempts");
+        return false;
     }
 
     /**
