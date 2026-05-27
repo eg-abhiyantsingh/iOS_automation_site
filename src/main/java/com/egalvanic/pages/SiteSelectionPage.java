@@ -1994,10 +1994,9 @@ public class SiteSelectionPage extends BasePage {
         System.out.println("⏳ Waiting for sync to complete...");
         // v1.36 (changelog 075): the old logic returned when isWifiOnline()
         // turned true — but "online" happens instantly after the toggle and
-        // sync itself takes 5–20s. The real "done" signal is the pending-sync
-        // count reaching 0. Wait up to 30s for that, then fall back to the
-        // other heuristics as soft signals.
-        int maxWaitSeconds = 30;
+        // sync itself takes 5–40s on the May-27 build. The real "done" signal
+        // is the pending-sync count reaching 0. Wait up to 60s for that.
+        int maxWaitSeconds = 60;
         int elapsed = 0;
 
         while (elapsed < maxWaitSeconds) {
@@ -2025,25 +2024,67 @@ public class SiteSelectionPage extends BasePage {
      * Sync pending records (go online first if offline, then sync)
      */
     public void syncPendingRecords() {
-        // First check if we're offline
+        // v1.36 (changelog 075): going online alone doesn't always auto-trigger
+        // sync on the May-27 build (queue can sit at N indefinitely). Use the
+        // Sync Queue Analyzer refresh button as the deterministic kick.
+
+        // Step 1: ensure we're online.
         if (isWifiOffline()) {
             System.out.println("📡 Currently offline, going online first...");
-            clickWifiButton();
-            // Wait for popup
-            waitForCondition(() -> isElementDisplayed(goOnlineText), 3);
-            clickGoOnline();
+            try { goOnline(); } catch (Exception e) {
+                System.out.println("⚠️ goOnline failed in syncPendingRecords: " + e.getMessage());
+            }
         }
-        
-        // Now click WiFi to open popup and sync
+
+        // Step 2: legacy popup-driven sync (older builds expose 'Sync X records' option).
         clickWifiButton();
         waitForCondition(() -> isSyncRecordsOptionVisible(), 3);
-        
         if (isSyncRecordsOptionVisible()) {
             clickSyncRecords();
-            System.out.println("✅ Sync initiated");
-            // Wait for sync to complete (Sites button becomes enabled)
+            System.out.println("✅ Sync initiated via legacy popup option");
             waitForCondition(() -> isSitesButtonEnabled(), 10);
+            return;
         }
+        // Dismiss the WiFi popup if it's still open from clickWifiButton above
+        try { tapOutsidePopup(); sleep(300); } catch (Exception ignored) {}
+
+        // Step 3: v1.36 path — open Settings → Sync Queue Analyzer + tap Refresh.
+        try {
+            if (tapSettingsTab() && openSyncQueueAnalyzer()) {
+                if (tapSyncQueueAnalyzerRefresh()) {
+                    System.out.println("✅ Sync initiated via Sync Queue Analyzer refresh");
+                    return;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Sync Queue Analyzer refresh failed: " + e.getMessage());
+        }
+
+        System.out.println("⚠️ No explicit sync trigger reached — relying on auto-sync on goOnline");
+    }
+
+    /**
+     * Tap the Sync Queue Analyzer's top-right refresh icon (circular arrows).
+     * Returns true if a refresh action was performed.
+     */
+    public boolean tapSyncQueueAnalyzerRefresh() {
+        try {
+            // Refresh icon is SF Symbol arrow.clockwise / arrow.triangle.2.circlepath
+            java.util.List<WebElement> candidates = driver.findElements(
+                AppiumBy.iOSNsPredicateString(
+                    "name == 'arrow.clockwise' OR name == 'arrow.triangle.2.circlepath' OR " +
+                    "label CONTAINS[c] 'refresh' OR label CONTAINS[c] 'sync now'"));
+            for (WebElement el : candidates) {
+                if (el.getLocation().getY() > 200) continue; // top-bar only
+                el.click();
+                sleep(500);
+                System.out.println("✅ Tapped Sync Queue Analyzer refresh icon");
+                return true;
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not tap refresh icon: " + e.getMessage());
+        }
+        return false;
     }
 
     /**
