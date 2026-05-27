@@ -20,9 +20,12 @@ public class AppConstants {
     // ============================================
     public static final String PLATFORM_NAME = "iOS";
     public static final String AUTOMATION_NAME = "XCUITest";
-    public static final String DEVICE_NAME = getEnv("DEVICE_NAME", "iPhone 17 Pro");
+    // Local default = iPhone 17 Pro Max (per user pref: user runs Pro themselves
+    // on the host MacBook screen; automation must use Pro Max to avoid contention).
+    // CI overrides via DEVICE_NAME / SIMULATOR_UDID env vars set in the workflow.
+    public static final String DEVICE_NAME = getEnv("DEVICE_NAME", "iPhone 17 Pro Max");
     public static final String PLATFORM_VERSION = getEnv("PLATFORM_VERSION", "26.2");
-    public static final String UDID = getEnv("SIMULATOR_UDID", "B745C0EF-01AA-4355-8B08-86812A8CBBAA");
+    public static final String UDID = getEnv("SIMULATOR_UDID", "E042B830-41DF-4690-AAB2-11FDE47916DD");
     public static final String APP_PATH = getEnv("APP_PATH", "/Users/abhiyantsingh/Downloads/Z Platform-QA.app");
     // Bundle ID is auto-detected from the app's Info.plist at APP_PATH.
     // Can be overridden via -DAPP_BUNDLE_ID or APP_BUNDLE_ID env var.
