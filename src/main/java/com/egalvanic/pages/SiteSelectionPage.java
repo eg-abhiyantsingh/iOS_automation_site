@@ -3087,6 +3087,9 @@ public class SiteSelectionPage extends BasePage {
         try {
             // Dashboard headers typically have the site name as a prominent static text
             // near the top (Y < 200). Try multiple strategies.
+            // v1.36 (changelog 075): exclude the WO (Work Order badge),
+            // network / sync / Hi indicators, and other short nav badges that
+            // landed at the top of the screen alongside the site name.
             java.util.List<org.openqa.selenium.WebElement> headers = driver.findElements(
                 io.appium.java_client.AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeStaticText'"));
@@ -3095,11 +3098,20 @@ public class SiteSelectionPage extends BasePage {
                 if (y < 0 || y > 200) continue;
                 String text = el.getAttribute("name");
                 if (text == null || text.isEmpty()) continue;
-                // Skip system labels, dates, status bar
                 String lower = text.toLowerCase();
-                if (lower.contains("am") || lower.contains("pm")) continue;  // time
+                // Skip system labels, dates, status bar
+                if (lower.contains("am") || lower.contains("pm")) continue;
                 if (lower.equals("sites") || lower.equals("dashboard")) continue;
-                if (lower.matches("\\d+:\\d+.*")) continue;  // time
+                if (lower.matches("\\d+:\\d+.*")) continue;
+                // Skip top-bar badges: WO (Work Order), Hi/Hello (greeting),
+                // pure digits (pending-sync count), wifi/network labels.
+                if (lower.equals("wo") || lower.equals("hi") || lower.equals("hello")) continue;
+                if (lower.matches("\\d+")) continue;  // sync badge
+                if (lower.contains("wi-fi") || lower.equals("wifi") || lower.equals("offline") ||
+                    lower.equals("online")) continue;
+                // Site names are typically longer than 4 chars; skip very short
+                // tokens that are almost certainly badges/icons.
+                if (text.length() < 4) continue;
                 if (text.length() > 60) continue;  // probably a paragraph
                 return text;
             }
