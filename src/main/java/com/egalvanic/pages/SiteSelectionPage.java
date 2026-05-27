@@ -3567,15 +3567,40 @@ public class SiteSelectionPage extends BasePage {
      * — that requires accessing the device file system out of band).
      */
     public boolean exportQueueAsJson() {
+        // v1.36 (changelog 075): Export JSON is hidden behind the ellipsis menu
+        // (top-right ⋯ icon) on the Sync Queue Analyzer screen, not a bare top-bar button.
         try {
-            org.openqa.selenium.WebElement btn = driver.findElement(
-                io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND " +
-                    "(label == 'Export' OR label CONTAINS[c] 'export json' OR " +
-                    "label CONTAINS[c] 'export queue')"));
-            btn.click(); sleep(800);
-            return true;
-        } catch (Exception e) { return false; }
+            // Strategy 1: direct button (legacy)
+            try {
+                org.openqa.selenium.WebElement btn = driver.findElement(
+                    io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND " +
+                        "(label == 'Export' OR label CONTAINS[c] 'export json' OR " +
+                        "label CONTAINS[c] 'export queue')"));
+                btn.click(); sleep(800);
+                return true;
+            } catch (Exception ignored) {}
+
+            // Strategy 2: tap the ellipsis.circle menu icon, then look for Export
+            try {
+                org.openqa.selenium.WebElement ellipsis = driver.findElement(
+                    io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                        "name == 'ellipsis.circle' OR name == 'ellipsis' OR " +
+                        "name CONTAINS[c] 'ellipsis'"));
+                ellipsis.click();
+                sleep(500);
+                java.util.List<WebElement> options = driver.findElements(
+                    AppiumBy.iOSNsPredicateString(
+                        "label CONTAINS[c] 'export' OR label CONTAINS[c] 'json' OR " +
+                        "label CONTAINS[c] 'share'"));
+                if (!options.isEmpty()) {
+                    options.get(0).click();
+                    sleep(800);
+                    return true;
+                }
+            } catch (Exception ignored) {}
+        } catch (Exception e) {}
+        return false;
     }
 
     /**
