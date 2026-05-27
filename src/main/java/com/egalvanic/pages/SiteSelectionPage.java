@@ -1129,7 +1129,31 @@ public class SiteSelectionPage extends BasePage {
                 return false;
             }
 
-            // Strategy 2: Check nav bar for sync badge (digit) — scoped to nav bar only
+            // v1.36 (changelog 075): the digit badge represents PENDING SYNC COUNT,
+            // not offline state. It can appear when online too (during sync, before
+            // drain). Use the wifi icon name as the source of truth:
+            //   - name="wifi" → online
+            //   - name="wifi.slash" → offline
+            try {
+                java.util.List<WebElement> wifiIcons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "name == 'wifi' OR name == 'wifi.slash'"));
+                for (WebElement el : wifiIcons) {
+                    if (el.getLocation().getY() > 120) continue;  // must be top nav
+                    String name = el.getAttribute("name");
+                    if ("wifi".equals(name)) {
+                        System.out.println("✅ WiFi online (name=wifi icon found in top nav)");
+                        return true;
+                    }
+                    if ("wifi.slash".equals(name)) {
+                        System.out.println("ℹ️ WiFi offline (name=wifi.slash icon found in top nav)");
+                        return false;
+                    }
+                }
+            } catch (Exception ignored) {}
+
+            // Strategy 2: Check nav bar for Wi-Fi / Wi-Fi Off named buttons.
+            // We INTENTIONALLY no longer treat a digit-named button as offline —
+            // that was a bug; digit badges persist after going online.
             try {
                 WebElement navBar = driver.findElement(AppiumBy.className("XCUIElementTypeNavigationBar"));
                 List<WebElement> navButtons = navBar.findElements(AppiumBy.className("XCUIElementTypeButton"));
@@ -1140,8 +1164,8 @@ public class SiteSelectionPage extends BasePage {
                             System.out.println("✅ WiFi online detected in navigation bar");
                             return true;
                         }
-                        if (name.equals("Wi-Fi Off") || name.matches("\\d+")) {
-                            System.out.println("ℹ️ WiFi is offline in nav bar (name: " + name + ")");
+                        if (name.equals("Wi-Fi Off")) {
+                            System.out.println("ℹ️ WiFi is offline in nav bar (Wi-Fi Off)");
                             return false;
                         }
                     }
@@ -1172,24 +1196,23 @@ public class SiteSelectionPage extends BasePage {
      * Check if WiFi is offline (including when showing pending sync count)
      */
     public boolean isWifiOffline() {
-        // Check definitive offline icon first, then nav bar for sync badge
+        // v1.36 (changelog 075): rely on wifi.slash icon name, NOT the digit
+        // badge — the badge persists after going online with pending sync.
         driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(500));
         try {
-            // Definitive check: "Wi-Fi Off" accessibility ID
+            // Definitive: wifi.slash image in top nav
+            try {
+                java.util.List<WebElement> wifiSlash = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "name == 'wifi.slash'"));
+                for (WebElement el : wifiSlash) {
+                    if (el.getLocation().getY() <= 120) return true;
+                }
+            } catch (Exception ignored) {}
+
+            // Accessibility id fallback
             if (!driver.findElements(AppiumBy.accessibilityId("Wi-Fi Off")).isEmpty()) {
                 return true;
             }
-            // Check nav bar for sync badge (digit name) — scoped to avoid false positives
-            try {
-                WebElement navBar = driver.findElement(AppiumBy.className("XCUIElementTypeNavigationBar"));
-                List<WebElement> navButtons = navBar.findElements(AppiumBy.className("XCUIElementTypeButton"));
-                for (WebElement btn : navButtons) {
-                    String name = btn.getAttribute("name");
-                    if (name != null && name.matches("\\d+")) {
-                        return true; // Sync badge = offline with pending
-                    }
-                }
-            } catch (Exception e) { /* nav bar not found */ }
             return false;
         } catch (Exception e) {
             return false;
