@@ -1992,24 +1992,24 @@ public class SiteSelectionPage extends BasePage {
      */
     public void waitForSyncToComplete() {
         System.out.println("⏳ Waiting for sync to complete...");
-        int maxWaitSeconds = 7;
+        // v1.36 (changelog 075): the old logic returned when isWifiOnline()
+        // turned true — but "online" happens instantly after the toggle and
+        // sync itself takes 5–20s. The real "done" signal is the pending-sync
+        // count reaching 0. Wait up to 30s for that, then fall back to the
+        // other heuristics as soft signals.
+        int maxWaitSeconds = 30;
         int elapsed = 0;
 
         while (elapsed < maxWaitSeconds) {
             try {
                 Thread.sleep(1000);
                 elapsed += 1;
-                System.out.println("⏳ Sync in progress... (" + elapsed + "s/" + maxWaitSeconds + "s)");
+                int pending = getPendingSyncCount();
+                System.out.println("⏳ Sync in progress... (" + elapsed + "s/" + maxWaitSeconds + "s, pending=" + pending + ")");
 
-                // Check if Sites button is enabled (indicates sync complete)
-                if (isSitesButtonEnabled()) {
-                    System.out.println("✅ Sync completed - Sites button is enabled");
-                    return;
-                }
-
-                // Check if WiFi shows online state without badge
-                if (isWifiOnline()) {
-                    System.out.println("✅ Sync completed - WiFi shows online");
+                // PRIMARY signal: queue drained to 0
+                if (pending == 0) {
+                    System.out.println("✅ Sync completed — pending sync count is 0");
                     return;
                 }
             } catch (InterruptedException e) {
@@ -2018,7 +2018,7 @@ public class SiteSelectionPage extends BasePage {
             }
         }
 
-        System.out.println("✅ Sync wait completed (timeout reached but sync may have finished)");
+        System.out.println("⚠️ Sync wait timed out after " + maxWaitSeconds + "s — pending count did not reach 0");
     }
 
     /**
