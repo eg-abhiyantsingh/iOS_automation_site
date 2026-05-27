@@ -1705,6 +1705,10 @@ public class SiteSelectionPage extends BasePage {
     public void goOnline() {
         try {
             System.out.println("🔄 Attempting to go online...");
+            // v1.36 (changelog 075): isWifiOffline() can be stale during fast site
+            // switches — observed scenario where it returns TRUE but the app has
+            // already auto-onlined. Trust the popup itself: if tapping WiFi
+            // surfaces 'Go Offline' (not 'Go Online') we're already online.
             boolean currentlyOffline = isWifiOffline();
             System.out.println("[DEBUG-WIFI] isWifiOffline() = " + currentlyOffline);
 
@@ -1715,19 +1719,30 @@ public class SiteSelectionPage extends BasePage {
                     System.out.println("📡 Go Online attempt " + attempt + "/2");
                     clickWifiButton();
                     System.out.println("[DEBUG-WIFI] Waiting 2500ms for popup animation...");
-                    sleep(2500); // Wait for popup animation (iOS 18.5 CI needs extra time)
+                    sleep(2500);
 
                     // Multi-strategy search for "Go Online" popup option
                     boolean elementClicked = findAndClickPopupOption("Online");
                     System.out.println("[DEBUG-WIFI] findAndClickPopupOption('Online') returned: " + elementClicked);
 
+                    // v1.36 SAFETY NET: if 'Go Online' isn't found, check whether
+                    // 'Go Offline' surfaced — that means we are ALREADY online and
+                    // the previous isWifiOffline() was stale. Dismiss + treat as
+                    // success.
+                    if (!elementClicked && isGoOfflineOptionVisible()) {
+                        System.out.println("ℹ️ 'Go Offline' inline button visible — app is already online " +
+                            "(isWifiOffline() was stale). Dismissing popup.");
+                        tapOutsidePopup();
+                        sleep(500);
+                        wentOnline = true;
+                        break;
+                    }
+
                     if (!elementClicked) {
-                        // Last resort: coordinate-based tap below WiFi button
                         System.out.println("⚠️ Element strategies failed, trying coordinate tap...");
                         tapPopupOptionByCoordinate();
                     }
 
-                    // Wait for state change
                     System.out.println("[DEBUG-WIFI] Waiting 1500ms for state change...");
                     sleep(1500);
                     wentOnline = isWifiOnline();
