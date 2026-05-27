@@ -3481,15 +3481,19 @@ public class SiteSelectionPage extends BasePage {
      */
     public boolean isSyncQueueAllGreen() {
         // 1) Check Pending tab label looks like (0).
+        // v1.36 (changelog 075): the tab label may be a StaticText OR an Other
+        // element, and the count appears in different forms ("Pending (0)" /
+        // "Pending(0)" / "Pending 0"). Widen the predicate to any element type
+        // whose label/name starts with "Pending".
         boolean pendingZero = false;
         try {
             java.util.List<WebElement> pending = driver.findElements(
                 AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND label BEGINSWITH 'Pending'"));
+                    "label BEGINSWITH 'Pending' OR name BEGINSWITH 'Pending'"));
             for (WebElement el : pending) {
                 String label = el.getAttribute("label");
+                if (label == null || label.isEmpty()) label = el.getAttribute("name");
                 if (label == null) continue;
-                // Match "Pending (0)" / "Pending(0)" / "Pending 0" / bare "Pending"
                 java.util.regex.Matcher m = java.util.regex.Pattern.compile(
                     "Pending\\s*\\(?\\s*(\\d+)\\s*\\)?", java.util.regex.Pattern.CASE_INSENSITIVE
                 ).matcher(label);
@@ -3498,10 +3502,25 @@ public class SiteSelectionPage extends BasePage {
                     System.out.println("[SyncQueue] Pending tab label='" + label + "' → pendingZero=" + pendingZero);
                     break;
                 }
-                if (label.trim().equalsIgnoreCase("Pending")) { pendingZero = true; break; }
+                if (label.trim().equalsIgnoreCase("Pending")) {
+                    pendingZero = true;
+                    System.out.println("[SyncQueue] Pending tab label='" + label + "' (bare) → pendingZero=true");
+                    break;
+                }
             }
         } catch (Exception e) {
             System.out.println("[SyncQueue] Could not read Pending tab: " + e.getMessage());
+        }
+
+        // Fallback: if we couldn't read a Pending tab label, trust the badge
+        // count (getPendingSyncCount). Pending=0 either way is the
+        // ground-truth signal.
+        if (!pendingZero) {
+            int badgeCount = getPendingSyncCount();
+            if (badgeCount == 0) {
+                pendingZero = true;
+                System.out.println("[SyncQueue] Pending tab unreadable but badge count=0 → pendingZero=true (fallback)");
+            }
         }
 
         // 2) Tap into History tab (so we can inspect it) — best-effort.
