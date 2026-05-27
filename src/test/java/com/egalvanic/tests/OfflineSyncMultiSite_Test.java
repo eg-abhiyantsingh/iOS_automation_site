@@ -126,14 +126,34 @@ public class OfflineSyncMultiSite_Test extends BaseTest {
      * Reuses the standard loginAndSelectSite() from BaseTest.
      */
     private void loginAndPickSite(String siteName) {
+        // Per user feedback "you are log in already consider that as site a only
+        // directly then switch to site b is okay" — the initial Site A switch
+        // costs ~10-15s per test and is wasted whenever a previous test (or the
+        // already-logged-in session) left us on a site. Skip the switch when we
+        // are on Dashboard with ANY site visible. If the current site happens
+        // to be different from `siteName` we rebind SITE_A locally so the
+        // post-Site-B "switch back" step navigates to the right place; if it
+        // collides with SITE_B we also rebind SITE_B (rare) so the test still
+        // exercises two distinct sites.
         loginAndSelectSite();
         try {
-            // If we're not on the requested site, switch to it
             String current = siteSelectionPage.getCurrentSiteName();
-            if (current != null && !current.equalsIgnoreCase(siteName)) {
-                siteSelectionPage.switchToSite(siteName);
-                mediumWait();
+            if (current != null && !current.isBlank()) {
+                String currentTrimmed = current.split(",")[0].trim();
+                System.out.println("[loginAndPickSite] Logged-in site: '" + currentTrimmed +
+                    "' — treating as SITE_A (skipping initial switch)");
+                SITE_A = currentTrimmed;
+                if (SITE_B.equalsIgnoreCase(SITE_A)) {
+                    String fallback = AppConstants.SITE_WITH_MANY_ASSETS.equalsIgnoreCase(SITE_A)
+                        ? AppConstants.SITE_WITH_FEW_ASSETS : AppConstants.SITE_WITH_MANY_ASSETS;
+                    System.out.println("[loginAndPickSite] SITE_B collided with current; rebinding SITE_B=" + fallback);
+                    SITE_B = fallback;
+                }
+                return;
             }
+            // Couldn't read current site name — fall back to old switch behaviour.
+            siteSelectionPage.switchToSite(siteName);
+            mediumWait();
         } catch (Exception ignored) {}
     }
 
