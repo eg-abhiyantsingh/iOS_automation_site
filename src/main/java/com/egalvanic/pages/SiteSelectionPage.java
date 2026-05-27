@@ -3161,7 +3161,19 @@ public class SiteSelectionPage extends BasePage {
                 // tokens that are almost certainly badges/icons.
                 if (text.length() < 4) continue;
                 if (text.length() > 60) continue;  // probably a paragraph
-                return text;
+                // v1.36 dashboard greets: "Welcome to <Site Name>" — strip the prefix
+                // so searches downstream match the real site name.
+                String cleaned = text;
+                if (cleaned.toLowerCase().startsWith("welcome to ")) {
+                    cleaned = cleaned.substring("welcome to ".length()).trim();
+                } else if (cleaned.toLowerCase().startsWith("welcome, ")) {
+                    cleaned = cleaned.substring("welcome, ".length()).trim();
+                } else if (cleaned.toLowerCase().startsWith("hello, ")) {
+                    cleaned = cleaned.substring("hello, ".length()).trim();
+                }
+                // Re-validate length after stripping
+                if (cleaned.length() < 4) continue;
+                return cleaned;
             }
         } catch (Exception ignored) {}
         return null;
