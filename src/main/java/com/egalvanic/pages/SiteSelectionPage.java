@@ -1237,23 +1237,56 @@ public class SiteSelectionPage extends BasePage {
                     return;
                 }
 
-                // Check nav bar for sync badge (digit name) — scoped to avoid false positives
+                // v1.36 (changelog 075): when offline + pending sync, the WiFi
+                // button's name is empty but a digit-badge sits NEXT TO it. Tapping
+                // the badge center opens the Sync Queue Analyzer popover, NOT the
+                // Go Online inline button. Find the wifi.slash IMAGE first (any
+                // type) and tap THAT — the badge is to the RIGHT of it.
+                try {
+                    java.util.List<WebElement> wifiSlashEls = driver.findElements(
+                        AppiumBy.iOSNsPredicateString(
+                            "name == 'wifi.slash' OR name == 'wifi' OR name == 'Wi-Fi' OR name == 'Wi-Fi Off'"));
+                    for (WebElement el : wifiSlashEls) {
+                        org.openqa.selenium.Point loc = el.getLocation();
+                        if (loc.getY() > 120) continue; // must be in top nav
+                        org.openqa.selenium.Dimension sz = el.getSize();
+                        int tapX = loc.getX() + sz.getWidth() / 2;
+                        int tapY = loc.getY() + sz.getHeight() / 2;
+                        System.out.println("[DEBUG-WIFI] wifi.slash/Wi-Fi image: name=" + el.getAttribute("name")
+                            + ", tapCenter=(" + tapX + "," + tapY + ")");
+                        performW3CTap(tapX, tapY);
+                        System.out.println("✅ Tapped wifi.slash icon via W3C Actions");
+                        return;
+                    }
+                } catch (Exception wifiSlashEx) { /* not found */ }
+
+                // Last-ditch: tap the known fixed WiFi icon coordinates (x=20-25,
+                // y=70-80 zone — observed across v1.36 builds on iPhone 17 Pro Max).
+                // This bypasses the badge entirely.
                 try {
                     WebElement navBar = driver.findElement(AppiumBy.className("XCUIElementTypeNavigationBar"));
                     java.util.List<WebElement> navButtons = navBar.findElements(AppiumBy.className("XCUIElementTypeButton"));
+                    boolean foundDigit = false;
+                    int digitX = -1, digitY = -1;
                     for (WebElement btn : navButtons) {
                         String name = btn.getAttribute("name");
                         if (name != null && name.matches("\\d+")) {
                             org.openqa.selenium.Point loc = btn.getLocation();
                             org.openqa.selenium.Dimension sz = btn.getSize();
-                            int tapX = loc.getX() + sz.getWidth() / 2;
-                            int tapY = loc.getY() + sz.getHeight() / 2;
-                            System.out.println("[DEBUG-WIFI] Sync badge: name=" + name
-                                + ", tapCenter=(" + tapX + "," + tapY + ")");
-                            performW3CTap(tapX, tapY);
-                            System.out.println("✅ Tapped WiFi sync badge via W3C Actions (name: " + name + ")");
-                            return;
+                            digitX = loc.getX() + sz.getWidth() / 2;
+                            digitY = loc.getY() + sz.getHeight() / 2;
+                            foundDigit = true;
+                            break;
                         }
+                    }
+                    if (foundDigit) {
+                        // Wifi icon is to the LEFT of the digit badge — tap there.
+                        int tapX = Math.max(15, digitX - 25);
+                        System.out.println("[DEBUG-WIFI] Sync badge at (" + digitX + "," + digitY +
+                            ") — tapping WiFi icon LEFT of it at (" + tapX + "," + digitY + ")");
+                        performW3CTap(tapX, digitY);
+                        System.out.println("✅ Tapped WiFi icon left of sync badge via W3C Actions");
+                        return;
                     }
                 } catch (Exception navEx) { /* nav bar not found */ }
             } finally {
