@@ -787,16 +787,21 @@ public class SiteSelectionPage extends BasePage {
      * Uses explicit wait with condition checking - CI/CD safe
      */
     public void waitForSearchResultsReady() {
+        // v1.36 (changelog 075): old condition `sites.size() >= 0` was always
+        // TRUE, so the wait returned immediately — the caller then read 0
+        // sites before the picker had finished loading. Wait for ACTUAL
+        // results to appear (size > 0) within the timeout. If genuinely
+        // empty (no matches), the 5s timeout is the worst case and we proceed.
         try {
             WebDriverWait searchWait = new WebDriverWait(driver, Duration.ofSeconds(5));
-            searchWait.pollingEvery(Duration.ofMillis(200));
+            searchWait.pollingEvery(Duration.ofMillis(250));
             searchWait.until(d -> {
                 List<WebElement> sites = getAllSites();
-                return sites.size() >= 0;
+                return sites.size() > 0;
             });
             System.out.println("✅ Search results ready");
         } catch (Exception e) {
-            System.out.println("⚠️ Search results wait timeout, continuing...");
+            System.out.println("⚠️ Search results wait timeout (5s), continuing with current state...");
         }
     }
 
