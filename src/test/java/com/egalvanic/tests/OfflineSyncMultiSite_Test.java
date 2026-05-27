@@ -543,6 +543,25 @@ public class OfflineSyncMultiSite_Test extends BaseTest {
             "UC2 - Sync queue preserved across site switch");
         loginAndPickSite(SITE_A);
 
+        // Self-seed offline data so this UC doesn't depend on env state.
+        logStep("Step 1: Go offline + edit one asset on Site A → queue grows");
+        siteSelectionPage.goOffline();
+        mediumWait();
+        try {
+            assetPage.navigateToAssetList();
+            String name = assetPage.selectFirstAsset();
+            if (name != null && !name.isEmpty()) {
+                assetPage.clickEditTurbo();
+                mediumWait();
+                assetPage.enterAssetName("_UC2_" + System.currentTimeMillis());
+                mediumWait();
+                assetPage.clickEditSave();
+                mediumWait();
+            }
+        } catch (Exception e) {
+            System.out.println("[UC2] Edit warning: " + e.getMessage());
+        }
+
         int beforeSwitch = siteSelectionPage.getPendingSyncCount();
         boolean toB = siteSelectionPage.switchToSite(SITE_B);
         skipIfPreconditionMissing(() -> (toB), "Site B not available");
@@ -554,13 +573,21 @@ public class OfflineSyncMultiSite_Test extends BaseTest {
             "(was " + beforeSwitch + ", now " + afterSwitch + ")");
 
         if (afterSwitch > 0) {
-            logStep("Step: Trigger sync — should succeed without errors");
+            logStep("Step 2: Go online + trigger sync");
+            siteSelectionPage.goOnline();
+            mediumWait();
             siteSelectionPage.syncPendingRecords();
             siteSelectionPage.waitForSyncToComplete();
             assertEquals(siteSelectionPage.getPendingSyncCount(), 0,
                 "Sync should drain the queue to 0");
+
+            logStep("Step 3: Verify Sync Queue Analyzer all-green");
+            if (siteSelectionPage.tapSettingsTab() && siteSelectionPage.openSyncQueueAnalyzer()) {
+                assertTrue(siteSelectionPage.isSyncQueueAllGreen(),
+                    "Sync Queue Analyzer must show all green after queue-preserved sync");
+            }
         }
-        shot("UC2: Queue preserved + sync successful");
+        shot("UC2: Queue preserved + sync successful + analyzer all-green");
     }
 
     /**
@@ -573,27 +600,69 @@ public class OfflineSyncMultiSite_Test extends BaseTest {
             "UC4 - All-site sync drains queues for every site");
         loginAndPickSite(SITE_A);
 
-        // We can only validate this end-to-end if the env actually has unsynced items.
-        // If queue is empty here, this UC reduces to a no-op (vacuous), so skip.
-        int initialCount = siteSelectionPage.getPendingSyncCount();
-        skipIfPreconditionMissing(() -> (initialCount > 0),
-            "No pending sync items — UC4 needs queued work to validate");
+        // Per user direction (2026-05-27): tests must CREATE the offline data
+        // themselves, not rely on env having pre-existing queued items.
+        logStep("Step 1: Go offline + edit one asset on Site A → queue grows");
+        siteSelectionPage.goOffline();
+        mediumWait();
+        try {
+            assetPage.navigateToAssetList();
+            String name = assetPage.selectFirstAsset();
+            if (name != null && !name.isEmpty()) {
+                assetPage.clickEditTurbo();
+                mediumWait();
+                assetPage.enterAssetName("_UC4a_" + System.currentTimeMillis());
+                mediumWait();
+                assetPage.clickEditSave();
+                mediumWait();
+            }
+        } catch (Exception e) {
+            System.out.println("[UC4] Site A edit warning: " + e.getMessage());
+        }
+        int afterA = siteSelectionPage.getPendingSyncCount();
+        skipIfPreconditionMissing(() -> (afterA > 0),
+            "Offline edit on Site A did not grow the queue — environment cannot exercise UC4");
 
-        logStep("Step 1: On Site A with " + initialCount + " pending items");
-        // Switch to B and trigger sync from there
+        logStep("Step 2: Switch to Site B (still offline)");
         boolean toB = siteSelectionPage.switchToSite(SITE_B);
         skipIfPreconditionMissing(() -> (toB), "Site B not available");
 
-        logStep("Step 2: From Site B, trigger sync — must sync ALL sites' queues");
+        logStep("Step 3: Edit one asset on Site B → queue grows further");
+        try {
+            assetPage.navigateToAssetList();
+            String name = assetPage.selectFirstAsset();
+            if (name != null && !name.isEmpty()) {
+                assetPage.clickEditTurbo();
+                mediumWait();
+                assetPage.enterAssetName("_UC4b_" + System.currentTimeMillis());
+                mediumWait();
+                assetPage.clickEditSave();
+                mediumWait();
+            }
+        } catch (Exception e) {
+            System.out.println("[UC4] Site B edit warning: " + e.getMessage());
+        }
+        int afterB = siteSelectionPage.getPendingSyncCount();
+        assertTrue(afterB >= afterA,
+            "Queue must not shrink across site switches while offline (afterA=" + afterA +
+            ", afterB=" + afterB + ")");
+
+        logStep("Step 4: From Site B, go online + trigger sync — drains BOTH sites' queues");
+        siteSelectionPage.goOnline();
+        mediumWait();
         siteSelectionPage.syncPendingRecords();
         siteSelectionPage.waitForSyncToComplete();
+        int afterSync = siteSelectionPage.getPendingSyncCount();
+        assertTrue(afterSync == 0,
+            "After all-site sync from Site B, total queue should be 0 " +
+            "(afterB=" + afterB + ", afterSync=" + afterSync + ")");
 
-        logStep("Step 3: Switch back to Site A and verify its queue drained too");
-        siteSelectionPage.switchToSite(SITE_A);
-        int finalA = siteSelectionPage.getPendingSyncCount();
-        assertEquals(finalA, 0,
-            "After all-site sync from Site B, Site A's queue should also be drained");
-        shot("UC4: All-site sync verified");
+        logStep("Step 5: Verify Sync Queue Analyzer shows all green");
+        if (siteSelectionPage.tapSettingsTab() && siteSelectionPage.openSyncQueueAnalyzer()) {
+            assertTrue(siteSelectionPage.isSyncQueueAllGreen(),
+                "Sync Queue Analyzer must show all green after all-site sync");
+        }
+        shot("UC4: All-site sync verified + analyzer all green");
     }
 
     /**
@@ -606,16 +675,43 @@ public class OfflineSyncMultiSite_Test extends BaseTest {
             "UC21 - Sync button drains queue");
         loginAndPickSite(SITE_A);
 
+        // Self-create offline data so this UC doesn't depend on env state.
+        logStep("Step 1: Go offline + edit one asset to seed the queue");
+        siteSelectionPage.goOffline();
+        mediumWait();
+        try {
+            assetPage.navigateToAssetList();
+            String name = assetPage.selectFirstAsset();
+            if (name != null && !name.isEmpty()) {
+                assetPage.clickEditTurbo();
+                mediumWait();
+                assetPage.enterAssetName("_UC21_" + System.currentTimeMillis());
+                mediumWait();
+                assetPage.clickEditSave();
+                mediumWait();
+            }
+        } catch (Exception e) {
+            System.out.println("[UC21] Edit warning: " + e.getMessage());
+        }
         int before = siteSelectionPage.getPendingSyncCount();
         skipIfPreconditionMissing(() -> (before > 0),
-            "Queue empty — UC21 requires pending items to validate sync");
+            "Could not seed offline data — UC21 requires queued items to validate Sync");
 
-        logStep("Step: Tap Sync");
+        logStep("Step 2: Go online + tap Sync");
+        siteSelectionPage.goOnline();
+        mediumWait();
         siteSelectionPage.syncPendingRecords();
         siteSelectionPage.waitForSyncToComplete();
         assertEquals(siteSelectionPage.getPendingSyncCount(), 0,
             "Queue should be drained to 0 after Sync tap");
-        shot("UC21: Sync button drained " + before + " items");
+
+        logStep("Step 3: Verify Sync Queue Analyzer shows all green");
+        if (siteSelectionPage.tapSettingsTab() && siteSelectionPage.openSyncQueueAnalyzer()) {
+            assertTrue(siteSelectionPage.isSyncQueueAllGreen(),
+                "Sync Queue Analyzer must show all green after Sync — any Pending or " +
+                "Failed item indicates a sync regression");
+        }
+        shot("UC21: Sync button drained " + before + " items + analyzer all-green");
     }
 
     /**
@@ -658,17 +754,45 @@ public class OfflineSyncMultiSite_Test extends BaseTest {
             "UC36 - Sync completion data validation");
         loginAndPickSite(SITE_A);
 
+        // Self-seed offline data so the test doesn't depend on env state.
+        logStep("Step 1: Go offline + edit one asset to seed queue");
+        siteSelectionPage.goOffline();
+        mediumWait();
+        try {
+            assetPage.navigateToAssetList();
+            String name = assetPage.selectFirstAsset();
+            if (name != null && !name.isEmpty()) {
+                assetPage.clickEditTurbo();
+                mediumWait();
+                assetPage.enterAssetName("_UC36_" + System.currentTimeMillis());
+                mediumWait();
+                assetPage.clickEditSave();
+                mediumWait();
+            }
+        } catch (Exception e) {
+            System.out.println("[UC36] Edit warning: " + e.getMessage());
+        }
         int before = siteSelectionPage.getPendingSyncCount();
         skipIfPreconditionMissing(() -> (before > 0),
-            "Queue empty — UC36 requires pending items");
+            "Could not seed offline data — UC36 requires queued items");
 
+        logStep("Step 2: Go online + sync");
+        siteSelectionPage.goOnline();
+        mediumWait();
         siteSelectionPage.syncPendingRecords();
         siteSelectionPage.waitForSyncToComplete();
         assertEquals(siteSelectionPage.getPendingSyncCount(), 0,
             "Queue must be 0 after sync");
         assertTrue(siteSelectionPage.isWifiOnline(),
             "WiFi icon must show normal online state after sync completes");
-        shot("UC36: Sync completed cleanly, no residual queue");
+
+        logStep("Step 3: Verify Sync Queue Analyzer shows all green");
+        if (siteSelectionPage.tapSettingsTab() && siteSelectionPage.openSyncQueueAnalyzer()) {
+            assertTrue(siteSelectionPage.isSyncQueueAllGreen(),
+                "Sync Queue Analyzer must show all green after sync completion " +
+                "(no items in Pending or History marked Failed)");
+        }
+        shot("UC36: Sync completed cleanly, no residual queue, analyzer all green");
     }
 
     // ================================================================
