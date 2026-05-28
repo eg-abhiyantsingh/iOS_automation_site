@@ -67,61 +67,21 @@ public final class Issue_Phase1_Test extends BaseTest {
      * Ensures the test starts on the Issues screen.
      */
     private boolean ensureOnIssuesScreen() {
+        // v1.36 (changelog 075) speed: per user feedback, the original method
+        // burned 10-30s per call (modal-dismiss probes + detectCurrentScreen +
+        // login recovery + retries) even on the happy path where the test had
+        // just done loginAndSelectSite(). Fast version: a single nav attempt;
+        // skip recovery (BaseTest.@BeforeMethod already lands us on Dashboard).
         if (issuePage.isIssuesScreenDisplayed()) {
             System.out.println("✓ Already on Issues screen");
             return true;
         }
-
-        // Dismiss any modal/picker/sheet left open by a prior test before attempting navigation.
-        // Tab bar is hidden under modal sheets — without this, the Issues tab tap can't register.
-        try { issuePage.tapCancelAssetPicker(); } catch (Exception ignored) {}
-        try { issuePage.tapCancelNewIssue(); } catch (Exception ignored) {}
-
-        // Try normal navigation FIRST (fast path — works when app is on Dashboard)
-        System.out.println("⚡ Navigating to Issues screen...");
         try {
-            boolean result = issuePage.navigateToIssuesScreen();
-            if (result) {
-                System.out.println("✓ Navigation successful");
-                return true;
-            }
+            return issuePage.navigateToIssuesScreen();
         } catch (Exception e) {
-            System.out.println("   First navigation attempt failed");
+            System.out.println("⚠️ navigateToIssuesScreen failed: " + e.getMessage());
+            return false;
         }
-
-        // Navigation failed — app might be on Welcome/Login/Site Selection.
-        // Detect screen and recover ONLY when needed (avoids slow element checks on happy path).
-        try {
-            String screen = detectCurrentScreen();
-            if ("WELCOME_PAGE".equals(screen) || "LOGIN_PAGE".equals(screen)) {
-                System.out.println("⚠️ App on " + screen + " — performing login recovery...");
-                loginAndSelectSite();
-            } else if ("SITE_SELECTION".equals(screen)) {
-                System.out.println("⚠️ App on Site Selection — selecting site...");
-                siteSelectionPage.selectFirstSiteFast();
-                siteSelectionPage.waitForDashboardReady();
-            }
-        } catch (Exception e) {
-            System.out.println("⚠️ Login recovery failed: " + e.getMessage());
-        }
-
-        // Retry navigation after recovery
-        for (int attempt = 1; attempt <= 2; attempt++) {
-            System.out.println("   Retry navigation " + attempt + "/2");
-            sleep(500);
-            try {
-                boolean result = issuePage.navigateToIssuesScreen();
-                if (result) {
-                    System.out.println("✓ Navigation successful after recovery");
-                    return true;
-                }
-            } catch (Exception e) {
-                System.out.println("   Retry " + attempt + " failed");
-            }
-        }
-
-        System.out.println("❌ Could not navigate to Issues screen");
-        return false;
     }
 
     /**
