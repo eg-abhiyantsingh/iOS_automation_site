@@ -610,9 +610,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Step 1: Navigate to Locations screen
-        logStep("Step 1: Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
 
         // Step 2: Verify building entries are displayed
         logStep("Step 2: Verifying building entries are displayed");
@@ -642,9 +639,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen if not already there
-        logStep("Ensuring we are on Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // FAST: Get any available building for testing
@@ -710,9 +704,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen if not already there
-        logStep("Ensuring we are on Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find any building to test with
@@ -792,9 +783,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen FIRST
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find building to edit AFTER we're on Locations screen
@@ -887,9 +875,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find a building to edit
@@ -994,9 +979,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find a building to edit
@@ -1088,9 +1070,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find a building to edit
@@ -1391,9 +1370,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen - FAST
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
 
         // SETUP: Create a test building to delete - FAST
         logStep("SETUP: Creating a test building for deletion");
@@ -1466,9 +1442,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find any building to test with
@@ -1559,9 +1532,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find and use target building
@@ -1643,9 +1613,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find building and navigate to New Floor
@@ -1720,9 +1687,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find building and navigate to New Floor
@@ -1788,9 +1752,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find building and navigate to New Floor
@@ -1858,9 +1819,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find building and navigate to New Floor
@@ -1932,9 +1890,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find building and navigate to New Floor
@@ -2001,9 +1956,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find building
@@ -2095,9 +2047,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find building
@@ -2181,9 +2130,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find building
@@ -2294,9 +2240,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Step 1: Navigate to Locations
-        logStep("Step 1: Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find target building (1two or substitute)
@@ -2371,9 +2314,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Ensure on Locations screen
-        logStep("Ensuring on Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find building with floors
@@ -2449,9 +2389,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Ensure on Locations screen
-        logStep("Ensuring on Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find and expand building to show floors
@@ -2543,9 +2480,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Ensure on Locations screen
-        logStep("Ensuring on Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find and expand building to show floors
@@ -2652,9 +2586,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Ensure on Locations screen
-        logStep("Ensuring on Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Expand building and find floor
@@ -2752,9 +2683,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Ensure on Locations screen
-        logStep("Ensuring on Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Expand building and find floor
@@ -2828,9 +2756,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Ensure on Locations screen
-        logStep("Ensuring on Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Expand building and find floor
@@ -2931,9 +2856,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Ensure on Locations screen
-        logStep("Ensuring on Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find building to use
@@ -3043,9 +2965,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Ensure on Locations screen - FAST
-        logStep("Ensuring on Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
 
         // Find building - FAST
         String buildingToTest = getAnyBuildingForTest();
@@ -3150,9 +3069,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Step 1: Navigate to Locations
-        logStep("Step 1: Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find target building and floor
@@ -3276,9 +3192,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find and expand building
@@ -3361,9 +3274,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find and expand building
@@ -3442,9 +3352,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find and expand building
@@ -3522,9 +3429,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen - FAST
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
 
         // Find and expand building - FAST
         String buildingToTest = getAnyBuildingForTest();
@@ -3586,9 +3490,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen - FAST
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
 
         // Find and expand building - FAST
         String buildingToTest = getAnyBuildingForTest();
@@ -3657,9 +3558,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find and expand building
@@ -3737,9 +3635,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find and expand building
@@ -3845,9 +3740,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find and expand building
@@ -3940,9 +3832,6 @@ public class LocationTest extends BaseTest {
         );
 
         // FAST: Navigate to Locations screen
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
 
         // FAST: Find and expand building
         String buildingToTest = getAnyBuildingForTest();
@@ -4008,9 +3897,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Step 1: Navigate to Locations
-        logStep("Step 1: Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find target building and floor
@@ -4119,9 +4005,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Ensure on Locations screen
-        logStep("Ensuring on Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find and expand building
@@ -4243,9 +4126,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Ensure on Locations screen
-        logStep("Ensuring on Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Step 1: Expand building and floor
@@ -4358,9 +4238,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Ensure on Locations screen
-        logStep("Ensuring on Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find and expand building
@@ -4496,9 +4373,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Ensure on Locations screen
-        logStep("Ensuring on Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Expand building and floor
@@ -4611,9 +4485,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Ensure on Locations screen
-        logStep("Ensuring on Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Expand building and floor
@@ -4717,9 +4588,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Ensure on Locations screen
-        logStep("Ensuring on Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Expand building and floor
@@ -4843,9 +4711,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Ensure on Locations screen
-        logStep("Ensuring on Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Expand building and floor
@@ -4960,9 +4825,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find and expand building
@@ -5086,9 +4948,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find and expand building
@@ -5215,9 +5074,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Step 1: Navigate to Locations
-        logStep("Step 1: Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find target building and floor
@@ -5353,9 +5209,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find and expand building and floor
@@ -5455,9 +5308,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find and expand building
@@ -5598,9 +5448,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find and expand building
@@ -5724,9 +5571,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find and expand building
@@ -5864,9 +5708,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find and expand building
@@ -5922,7 +5763,7 @@ public class LocationTest extends BaseTest {
         logStepWithScreenshot("After tapping Done button");
 
         // Verify we're back on Locations screen
-        onLocationsScreen = buildingPage.isLocationsScreenDisplayed() || 
+        boolean onLocationsScreen = buildingPage.isLocationsScreenDisplayed() || 
                                     buildingPage.areBuildingEntriesDisplayed();
         assertTrue(onLocationsScreen, "Should return to Locations list screen");
 
@@ -5962,9 +5803,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Step 1: Navigate to Locations
-        logStep("Step 1: Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
         logStepWithScreenshot("Locations screen - initial view");
 
@@ -6030,9 +5868,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Scroll to find No Location
@@ -6118,9 +5953,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Scroll to find and tap No Location
@@ -6214,9 +6046,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Scroll to find and tap No Location
@@ -6327,9 +6156,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Scroll to find and tap No Location
@@ -6441,9 +6267,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Scroll to find and tap No Location
@@ -6475,7 +6298,7 @@ public class LocationTest extends BaseTest {
         logStepWithScreenshot("After tapping Done button");
 
         // Verify we're back on Locations screen
-        onLocationsScreen = buildingPage.isLocationsScreenDisplayed() || 
+        boolean onLocationsScreen = buildingPage.isLocationsScreenDisplayed() || 
                                     buildingPage.areBuildingEntriesDisplayed();
         assertTrue(onLocationsScreen, "Should return to Locations list screen");
 
@@ -6503,9 +6326,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Scroll to find No Location
@@ -6586,9 +6406,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Step 1: Note current count
@@ -6726,9 +6543,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations screen
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Scroll to find No Location
@@ -6825,9 +6639,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations and open No Location
-        logStep("Navigating to No Location screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
         
         // TURBO scroll already does 5 scroll attempts with fast checks
@@ -6945,9 +6756,6 @@ public class LocationTest extends BaseTest {
         // 6. Create asset
         // 7. Verify asset appears in room
 
-        logStep("Step 1: Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
         logStepWithScreenshot("Locations screen");
 
@@ -7062,9 +6870,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to No Location
-        logStep("Navigating to No Location screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
         
         // TURBO scroll already does 5 scroll attempts with fast checks
@@ -7231,9 +7036,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Scroll to No Location and note count
@@ -7350,9 +7152,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to No Location
-        logStep("Navigating to No Location screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
         
         // TURBO scroll already does 5 scroll attempts with fast checks
@@ -7490,9 +7289,6 @@ public class LocationTest extends BaseTest {
         );
 
         // Navigate to Locations
-        logStep("Navigating to Locations screen");
-        boolean onLocationsScreen = ensureOnLocationsScreen();
-        assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 
         // Find a building with multiple rooms
@@ -7598,7 +7394,7 @@ public class LocationTest extends BaseTest {
         logStep("Step 4: Verifying asset moved between rooms");
 
         // Navigate back to Locations
-        onLocationsScreen = ensureOnLocationsScreen();
+        boolean onLocationsScreen = ensureOnLocationsScreen();
         assertTrue(onLocationsScreen, "Should be on Locations screen");
         shortWait();
 

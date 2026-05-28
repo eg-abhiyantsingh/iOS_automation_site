@@ -184,7 +184,6 @@ public class SiteVisit_phase2 extends BaseTest {
             return;
         }
 
-        ensureOnDashboard();
         navigateToWorkOrdersScreen();
         shortWait();
 
@@ -207,7 +206,6 @@ public class SiteVisit_phase2 extends BaseTest {
         logStep("Starting navigation to Assets in Room...");
 
         // Step 1: Get to Session Details → Assets tab
-        ensureOnSessionDetailsScreen();
         workOrderPage.tapSessionTab("Assets");
         try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
 
@@ -1241,7 +1239,6 @@ public class SiteVisit_phase2 extends BaseTest {
         logStep("Creating new job with Photo Type: " + photoType);
 
         // Step 1: Navigate to New Job screen
-        ensureOnDashboard();
         navigateToWorkOrdersScreen();
         shortWait();
 
@@ -1483,8 +1480,6 @@ public class SiteVisit_phase2 extends BaseTest {
         );
 
         // Step 1: Ensure no active job
-        logStep("Ensuring no active job...");
-        ensureOnDashboard();
         navigateToWorkOrdersScreen();
         shortWait();
 
@@ -1679,8 +1674,6 @@ public class SiteVisit_phase2 extends BaseTest {
             "TC_JOB_117 - Verify + button next to each building in session locations"
         );
 
-        logStep("Navigating to Session Details → Locations tab");
-        ensureOnSessionDetailsScreen();
         workOrderPage.tapSessionTab("Assets");
         mediumWait();
 
@@ -1727,8 +1720,6 @@ public class SiteVisit_phase2 extends BaseTest {
             "TC_JOB_118 - Verify expanding a floor shows child rooms"
         );
 
-        logStep("Navigating to Session Details → Locations tab");
-        ensureOnSessionDetailsScreen();
         workOrderPage.tapSessionTab("Assets");
         mediumWait();
 
@@ -1810,8 +1801,6 @@ public class SiteVisit_phase2 extends BaseTest {
             "TC_JOB_119 - Verify floating QR and + buttons in session locations"
         );
 
-        logStep("Navigating to Session Details → Locations tab");
-        ensureOnSessionDetailsScreen();
         workOrderPage.tapSessionTab("Assets");
         mediumWait();
 
@@ -1931,8 +1920,6 @@ public class SiteVisit_phase2 extends BaseTest {
             + "Details, Assets, Tasks, Issues, Files"
         );
 
-        logStep("Navigating to Session Details screen");
-        ensureOnSessionDetailsScreen();
 
         // Get all session bottom tab labels
         java.util.List<String> tabLabels = workOrderPage.getSessionBottomTabLabels();

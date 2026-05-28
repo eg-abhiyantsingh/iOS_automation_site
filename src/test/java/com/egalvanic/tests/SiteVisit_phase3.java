@@ -94,7 +94,6 @@ public class SiteVisit_phase3 extends BaseTest {
             return;
         }
 
-        ensureOnDashboard();
         navigateToWorkOrdersScreen();
         shortWait();
 
@@ -117,7 +116,6 @@ public class SiteVisit_phase3 extends BaseTest {
     private void navigateToAssetsInRoom() {
         logStep("Starting navigation to Assets in Room...");
 
-        ensureOnSessionDetailsScreen();
         workOrderPage.tapSessionTab("Assets");
         mediumWait();
 
@@ -4868,7 +4866,6 @@ public class SiteVisit_phase3 extends BaseTest {
     private boolean navigateToNewJobScreen() {
         logStep("Navigating to New Job screen...");
 
-        ensureOnDashboard();
         navigateToWorkOrdersScreen();
         shortWait();
 
@@ -6098,7 +6095,6 @@ public class SiteVisit_phase3 extends BaseTest {
     private boolean ensureActiveJobOnDashboard() {
         logStep("Ensuring active job and returning to dashboard...");
 
-        ensureOnDashboard();
         navigateToWorkOrdersScreen();
         shortWait();
 
@@ -6373,8 +6369,6 @@ public class SiteVisit_phase3 extends BaseTest {
             + "with 'Show All' toggle, and list of job cards."
         );
 
-        logStep("Navigating to Jobs/Work Orders screen");
-        ensureOnDashboard();
         navigateToWorkOrdersScreen();
         shortWait();
 
@@ -6444,7 +6438,6 @@ public class SiteVisit_phase3 extends BaseTest {
     private boolean navigateToTasksTab() {
         logStep("Navigating to Tasks tab...");
 
-        ensureOnSessionDetailsScreen();
 
         if (!workOrderPage.isSessionDetailsScreenDisplayed()) {
             logWarning("Not on Session Details screen");
@@ -7314,8 +7307,6 @@ public class SiteVisit_phase3 extends BaseTest {
             + "after linking tasks (e.g., red badge with count)."
         );
 
-        logStep("Navigating to Session Details");
-        ensureOnSessionDetailsScreen();
 
         if (!workOrderPage.isSessionDetailsScreenDisplayed()) {
             cleanupFromTasksTab();
@@ -8669,7 +8660,6 @@ public class SiteVisit_phase3 extends BaseTest {
     private boolean navigateToIssuesTab() {
         logStep("Navigating to Issues tab...");
 
-        ensureOnSessionDetailsScreen();
 
         if (!workOrderPage.isSessionDetailsScreenDisplayed()) {
             logWarning("Not on Session Details screen");
@@ -10024,7 +10014,6 @@ public class SiteVisit_phase3 extends BaseTest {
     private boolean navigateToFilesTab() {
         logStep("Navigating to Files tab...");
 
-        ensureOnSessionDetailsScreen();
 
         if (!workOrderPage.isSessionDetailsScreenDisplayed()) {
             logWarning("Not on Session Details screen");

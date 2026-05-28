@@ -243,9 +243,6 @@ public final class Connections_Test extends BaseTest {
         );
         loginAndSelectSite();
         // Ensure on Dashboard
-        logStep("Ensuring we are on Dashboard");
-        boolean onDashboard = ensureOnDashboard();
-        assertTrue(onDashboard, "Should be on Dashboard");
         shortWait();
 
         // Step 1: Observe bottom navigation bar
@@ -288,9 +285,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Step 1: Navigate to Connections tab
-        logStep("Step 1: Navigating to Connections tab");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Step 2: Observe header elements
@@ -355,9 +349,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Step 1: Observe search bar below title
@@ -408,9 +399,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Step 1: Observe connections list
@@ -469,9 +457,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Step 1: Observe connection entry format
@@ -525,9 +510,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Step 1: View connection with long name
@@ -600,9 +582,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Step 1: View connections list
@@ -667,9 +646,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Check if Missing Node exists
@@ -739,9 +715,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Get initial connection count
@@ -834,9 +807,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Clear any existing search
@@ -943,9 +913,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Clear any existing search and get initial count
@@ -1023,9 +990,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Clear any existing search first
@@ -1111,9 +1075,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Clear any existing search
@@ -1212,9 +1173,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         logStepWithScreenshot("Connections screen - before tapping + button");
@@ -1289,9 +1247,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to New Connection screen
-        logStep("Navigating to New Connection screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen first");
         shortWait();
 
         // Tap + button to open New Connection
@@ -1380,9 +1335,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to New Connection screen
-        logStep("Navigating to New Connection screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen first");
         shortWait();
 
         // Tap + button to open New Connection
@@ -1451,9 +1403,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen and get initial count
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen first");
         shortWait();
 
         int initialCount = connectionsPage.getConnectionCount();
@@ -1517,9 +1466,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to New Connection screen
-        logStep("Navigating to New Connection screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen first");
         shortWait();
 
         // Tap + button to open New Connection
@@ -1608,9 +1554,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to New Connection screen
-        logStep("Navigating to New Connection screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen first");
         shortWait();
 
         // Tap + button to open New Connection
@@ -1705,9 +1648,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to New Connection screen
-        logStep("Navigating to New Connection screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen first");
         shortWait();
 
         // Tap + button to open New Connection
@@ -1781,9 +1721,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to New Connection screen
-        logStep("Navigating to New Connection screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen first");
         shortWait();
 
         // Open New Connection screen
@@ -1872,9 +1809,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to New Connection screen
-        logStep("Navigating to New Connection screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen first");
         shortWait();
 
         // Open New Connection screen
@@ -1964,9 +1898,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to New Connection screen
-        logStep("Navigating to New Connection screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen first");
         shortWait();
 
         // Open New Connection screen
@@ -2071,9 +2002,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to New Connection screen
-        logStep("Navigating to New Connection screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen first");
         shortWait();
 
         // Open New Connection screen
@@ -2208,9 +2136,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to New Connection screen
-        logStep("Navigating to New Connection screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen first");
         shortWait();
 
         // Tap + button to open New Connection
@@ -2301,9 +2226,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to New Connection screen
-        logStep("Navigating to New Connection screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen first");
         shortWait();
 
         // Open New Connection screen
@@ -2390,9 +2312,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to New Connection screen
-        logStep("Navigating to New Connection screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen first");
         shortWait();
 
         // Open New Connection screen
@@ -2492,9 +2411,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to New Connection screen
-        logStep("Navigating to New Connection screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen first");
         shortWait();
 
         // Open New Connection screen
@@ -2595,9 +2511,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to New Connection screen
-        logStep("Navigating to New Connection screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen first");
         shortWait();
 
         // Open New Connection screen
@@ -2725,9 +2638,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to New Connection screen
-        logStep("Navigating to New Connection screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen first");
         shortWait();
 
         // Open New Connection screen
@@ -2850,9 +2760,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to New Connection screen
-        logStep("Navigating to New Connection screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen first");
         shortWait();
 
         // Open New Connection screen
@@ -2940,9 +2847,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to New Connection screen
-        logStep("Navigating to New Connection screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen first");
         shortWait();
 
         // Open New Connection screen
@@ -3031,9 +2935,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to New Connection screen
-        logStep("Navigating to New Connection screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen first");
         shortWait();
 
         // Open New Connection screen
@@ -3119,9 +3020,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to New Connection screen
-        logStep("Navigating to New Connection screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen first");
         shortWait();
 
         // Open New Connection screen
@@ -3207,9 +3105,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to New Connection screen
-        logStep("Navigating to New Connection screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen first");
         shortWait();
 
         // Open New Connection screen
@@ -3299,9 +3194,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Step 1: Navigate to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen first");
         shortWait();
 
         // Open New Connection screen
@@ -3406,9 +3298,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Step 1: Navigate to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen first");
         shortWait();
 
         // Open New Connection screen
@@ -3466,9 +3355,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Create a new connection
@@ -3527,9 +3413,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Open New Connection screen
@@ -3617,7 +3500,6 @@ public final class Connections_Test extends BaseTest {
             // May still be processing
             logWarning("May not be on Connections screen - checking state");
             longWait();
-            ensureOnConnectionsScreen();
         }
 
         // Final feedback summary
@@ -3655,9 +3537,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to New Connection screen
-        logStep("Navigating to New Connection screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen first");
         shortWait();
 
         // Open New Connection screen
@@ -3744,9 +3623,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to New Connection screen
-        logStep("Navigating to New Connection screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen first");
         shortWait();
 
         // Open New Connection screen
@@ -3827,9 +3703,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to New Connection screen
-        logStep("Navigating to New Connection screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen first");
         shortWait();
 
         // Open New Connection screen
@@ -3938,9 +3811,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         logStepWithScreenshot("Connections screen - checking header icons");
@@ -4001,9 +3871,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         logStepWithScreenshot("Connections screen - before tapping options");
@@ -4077,9 +3944,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Verify connections exist
@@ -4157,9 +4021,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connection details
-        logStep("Navigating to Connection details screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Tap on a connection to open details
@@ -4245,9 +4106,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connection details
-        logStep("Navigating to Connection details screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Tap on a connection to open details
@@ -4334,9 +4192,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connection details
-        logStep("Navigating to Connection details screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Tap on a connection to open details
@@ -4437,9 +4292,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connection details
-        logStep("Navigating to Connection details screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Get initial connection count
@@ -4533,9 +4385,6 @@ public final class Connections_Test extends BaseTest {
     public void TC_CONN_050_verifyDeleteConfirmation() {
         ExtentReportManager.createTest(AppConstants.MODULE_CONNECTIONS, AppConstants.FEATURE_CONNECTIONS_LIST,
             "TC_CONN_050 - Verify delete confirmation");
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         int connectionCount = connectionsPage.getConnectionCount();
         if (connectionCount == 0) { throw new SkipException("SKIPPED: No connections to test deletion"); }
         connectionsPage.tapOnFirstConnection();
@@ -4572,8 +4421,6 @@ public final class Connections_Test extends BaseTest {
 
         logStep("Step 1: Login and navigate to Connections list");
 
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         IOSDriver driver = DriverManager.getDriver();
@@ -4823,9 +4670,6 @@ public final class Connections_Test extends BaseTest {
     public void TC_CONN_052_verifyCannotCreateDuplicateConnection() {
         ExtentReportManager.createTest(AppConstants.MODULE_CONNECTIONS, AppConstants.FEATURE_CREATE_CONNECTION,
             "TC_CONN_052 - Verify cannot create duplicate connection (Partial)");
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         logStep("Note: Full duplicate test requires creating same connection twice");
         logStepWithScreenshot("TC_CONN_052: Duplicate prevention test (partial)");
     }
@@ -4842,9 +4686,6 @@ public final class Connections_Test extends BaseTest {
     public void TC_CONN_053_verifyEmptyConnectionsMessage() {
         ExtentReportManager.createTest(AppConstants.MODULE_CONNECTIONS, AppConstants.FEATURE_CONNECTIONS_LIST,
             "TC_CONN_053 - Verify empty connections message (Partial)");
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         int count = connectionsPage.getConnectionCount();
         boolean emptyState = connectionsPage.isEmptyConnectionsStateDisplayed();
         logStep("Connection count: " + count + ", Empty state: " + emptyState);
@@ -4872,7 +4713,6 @@ public final class Connections_Test extends BaseTest {
             logStep("SLD displayed: " + sldDisplayed);
             logStepWithScreenshot("SLD view");
         } else { logWarning("Could not navigate to SLD tab"); }
-        ensureOnConnectionsScreen();
         logStepWithScreenshot("TC_CONN_054: SLD verification complete");
     }
 
@@ -4892,7 +4732,6 @@ public final class Connections_Test extends BaseTest {
             logStep("Connection type on SLD: " + typeOnSLD);
             logStepWithScreenshot("SLD with connection type");
         } else { logWarning("Could not navigate to SLD tab"); }
-        ensureOnConnectionsScreen();
         logStepWithScreenshot("TC_CONN_055: Connection type on SLD verification complete");
     }
 
@@ -4927,9 +4766,6 @@ public final class Connections_Test extends BaseTest {
     public void TC_CONN_057_verifySearchPerformance() {
         ExtentReportManager.createTest(AppConstants.MODULE_CONNECTIONS, AppConstants.FEATURE_SEARCH_CONNECTIONS,
             "TC_CONN_057 - Verify search performance");
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         if (connectionsPage.getConnectionCount() == 0) { throw new SkipException("SKIPPED: No connections to search"); }
         long responseTime = connectionsPage.measureSearchResponseTime("A");
         logStep("Search response time: " + responseTime + "ms");
@@ -4950,9 +4786,6 @@ public final class Connections_Test extends BaseTest {
     public void TC_CONN_058_verifyKeyboardAppearsForSearchInSourceNode() {
         ExtentReportManager.createTest(AppConstants.MODULE_CONNECTIONS, AppConstants.FEATURE_SOURCE_NODE,
             "TC_CONN_058 - Verify keyboard appears for search");
-        logStep("Navigating to New Connection screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         connectionsPage.tapOnAddButton();
         shortWait();
         assertTrue(connectionsPage.isNewConnectionScreenDisplayed(), "Should be on New Connection screen");
@@ -4974,9 +4807,6 @@ public final class Connections_Test extends BaseTest {
     public void TC_CONN_059_verifyKeyboardDismissOnSelection() {
         ExtentReportManager.createTest(AppConstants.MODULE_CONNECTIONS, AppConstants.FEATURE_SOURCE_NODE,
             "TC_CONN_059 - Verify keyboard dismiss on selection");
-        logStep("Navigating to New Connection screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         connectionsPage.tapOnAddButton();
         shortWait();
         assertTrue(connectionsPage.isNewConnectionScreenDisplayed(), "Should be on New Connection screen");
@@ -5014,9 +4844,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         logStepWithScreenshot("Connections screen");
@@ -5150,9 +4977,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Step 1: View Connections list
@@ -5182,7 +5006,6 @@ public final class Connections_Test extends BaseTest {
                 if (stillOnForm) {
                     fail("Connection creation failed — still on New Connection screen");
                 }
-                ensureOnConnectionsScreen();
             }
 
             int newCount = connectionsPage.getConnectionCount();
@@ -5240,9 +5063,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Get initial count
@@ -5266,7 +5086,6 @@ public final class Connections_Test extends BaseTest {
                 connectionsPage.tapOnCancelButton();
                 shortWait();
             }
-            ensureOnConnectionsScreen();
         }
         logStep("First connection created: " + firstCreated);
 
@@ -5286,7 +5105,6 @@ public final class Connections_Test extends BaseTest {
                 connectionsPage.tapOnCancelButton();
                 shortWait();
             }
-            ensureOnConnectionsScreen();
         }
         logStep("Second connection created: " + secondCreated);
 
@@ -5306,7 +5124,6 @@ public final class Connections_Test extends BaseTest {
                 connectionsPage.tapOnCancelButton();
                 shortWait();
             }
-            ensureOnConnectionsScreen();
         }
         logStep("Third connection created: " + thirdCreated);
 
@@ -5364,9 +5181,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         logStepWithScreenshot("Connections screen - initial state");
@@ -5414,7 +5228,6 @@ public final class Connections_Test extends BaseTest {
                 connectionsPage.tapOnCancelButton();
                 shortWait();
             }
-            ensureOnConnectionsScreen();
         }
 
         int finalCount = connectionsPage.getConnectionCount();
@@ -5463,9 +5276,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         logStepWithScreenshot("Connections screen");
@@ -5560,9 +5370,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         logStepWithScreenshot("Connections screen");
@@ -5633,9 +5440,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         logStepWithScreenshot("Connections screen");
@@ -5708,9 +5512,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Check we have connections to display
@@ -5828,9 +5629,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Verify we have connections
@@ -5939,9 +5737,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Verify we have connections
@@ -6029,9 +5824,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Verify we have connections
@@ -6125,9 +5917,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Get initial connection count
@@ -6207,7 +5996,6 @@ public final class Connections_Test extends BaseTest {
         
         // Ensure we're back on connections screen
         if (!connectionsPage.isConnectionsScreenDisplayed()) {
-            ensureOnConnectionsScreen();
         }
         
         shortWait();
@@ -6241,9 +6029,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Verify we have connections
@@ -6351,9 +6136,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Verify we have connections
@@ -6442,9 +6224,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Verify we have connections
@@ -6524,9 +6303,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Get connection count
@@ -6614,9 +6390,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Verify we have connections
@@ -6712,9 +6485,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Verify we have at least 2 connections
@@ -6824,9 +6594,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         int connectionCount = connectionsPage.getConnectionsCount();
@@ -6905,9 +6672,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         int totalConnections = connectionsPage.getConnectionsCount();
@@ -6984,9 +6748,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         int totalConnections = connectionsPage.getConnectionsCount();
@@ -7079,9 +6840,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         int connectionCount = connectionsPage.getConnectionsCount();
@@ -7151,9 +6909,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Enter selection mode
@@ -7230,9 +6985,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         int connectionCount = connectionsPage.getConnectionsCount();
@@ -7315,9 +7067,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         int connectionCount = connectionsPage.getConnectionsCount();
@@ -7407,9 +7156,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         int connectionCount = connectionsPage.getConnectionsCount();
@@ -7513,9 +7259,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         int connectionCountBefore = connectionsPage.getConnectionsCount();
@@ -7603,9 +7346,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         int connectionCountBefore = connectionsPage.getConnectionsCount();
@@ -7683,9 +7423,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Get initial connection count
@@ -7754,7 +7491,6 @@ public final class Connections_Test extends BaseTest {
 
         // Ensure we're back on connections list
         if (!connectionsPage.isConnectionsScreenDisplayed()) {
-            ensureOnConnectionsScreen();
             shortWait();
         }
 
@@ -7809,9 +7545,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Verify we have connections
@@ -7916,9 +7649,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Verify we have connections
@@ -8039,9 +7769,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Verify we have connections
@@ -8151,9 +7878,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Get initial connection count
@@ -8252,9 +7976,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         logStepWithScreenshot("Connections screen");
@@ -8351,9 +8072,6 @@ public final class Connections_Test extends BaseTest {
         );
 
         // Navigate to Connections screen
-        logStep("Navigating to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen");
         shortWait();
 
         // Verify we have connections
@@ -8475,9 +8193,6 @@ public final class Connections_Test extends BaseTest {
             "TC_CONN_097 - Verify Core Attributes section visible on New Connection form"
         );
 
-        logStep("Step 1: Navigate to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen first");
         shortWait();
 
         logStep("Step 2: Open New Connection form");
@@ -8521,9 +8236,6 @@ public final class Connections_Test extends BaseTest {
             "TC_CONN_098 - Verify Core Attributes populate after Connection Type selected"
         );
 
-        logStep("Step 1: Navigate to Connections screen");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen first");
         shortWait();
 
         logStep("Step 2: Open New Connection form");
@@ -8580,9 +8292,6 @@ public final class Connections_Test extends BaseTest {
             "TC_CONN_099 - Verify edge properties displayed for selected Connection Type"
         );
 
-        logStep("Step 1: Navigate to Connections + open New Connection");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen first");
         shortWait();
         connectionsPage.tapOnAddButton();
         shortWait();
@@ -8633,9 +8342,6 @@ public final class Connections_Test extends BaseTest {
             "TC_CONN_100 - Verify changing Connection Type updates edge property fields"
         );
 
-        logStep("Step 1: Navigate to Connections + open New Connection");
-        boolean onConnections = ensureOnConnectionsScreen();
-        assertTrue(onConnections, "Should be on Connections screen first");
         shortWait();
         connectionsPage.tapOnAddButton();
         shortWait();

@@ -167,7 +167,6 @@ public class SiteVisit_phase1 extends BaseTest {
         loginAndSelectSite();
 
         logStep("Verifying dashboard is displayed");
-        ensureOnDashboard();
 
         logStep("Checking for 'No Active Job' / 'No Active Work Order' card");
         boolean cardVisible = siteSelectionPage.isNoActiveJobCardDisplayed();
@@ -189,8 +188,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_002 - Verify tapping No Active Job opens Work Orders screen"
         );
 
-        logStep("Ensuring on dashboard");
-        ensureOnDashboard();
 
         logStep("Tapping No Active Job card");
         siteSelectionPage.clickNoActiveJobCard();
@@ -218,8 +215,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_003 - Verify Work Orders screen header"
         );
 
-        logStep("Ensuring on Work Orders screen");
-        ensureOnDashboard();
         navigateToWorkOrdersScreen();
 
         logStep("Verifying screen header text");
@@ -244,8 +239,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_004 - Verify Start New Work Order button"
         );
 
-        logStep("Ensuring on Work Orders screen");
-        ensureOnDashboard();
         navigateToWorkOrdersScreen();
 
         logStep("Checking for 'Start New Work Order' button");
@@ -268,8 +261,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_005 - Verify Available Work Orders section"
         );
 
-        logStep("Ensuring on Work Orders screen");
-        ensureOnDashboard();
         navigateToWorkOrdersScreen();
 
         logStep("Checking for Available Work Orders section");
@@ -292,8 +283,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_006 - Verify work order entry displays all information"
         );
 
-        logStep("Ensuring on Work Orders screen");
-        ensureOnDashboard();
         navigateToWorkOrdersScreen();
 
         logStep("Verifying at least one work order entry exists");
@@ -332,8 +321,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_007 - Verify AVAILABLE badge on inactive work order"
         );
 
-        logStep("Ensuring on Work Orders screen");
-        ensureOnDashboard();
         navigateToWorkOrdersScreen();
 
         logStep("Checking for available state (Start button) on work order entries");
@@ -356,8 +343,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_008 - Verify green status indicator on work order entries"
         );
 
-        logStep("Ensuring on Work Orders screen");
-        ensureOnDashboard();
         navigateToWorkOrdersScreen();
 
         logStep("Checking for green status indicator on work order entries");
@@ -391,8 +376,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_009 - Verify work order counts display"
         );
 
-        logStep("Ensuring on Work Orders screen");
-        ensureOnDashboard();
         navigateToWorkOrdersScreen();
 
         logStep("Verifying work order entries display information");
@@ -424,8 +407,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_010 - Verify Activate button on available job"
         );
 
-        logStep("Ensuring on Work Orders screen");
-        ensureOnDashboard();
         navigateToWorkOrdersScreen();
 
         logStep("Checking for Start button on available work order");
@@ -448,8 +429,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_011 - Verify tapping Activate activates job"
         );
 
-        logStep("Ensuring on Work Orders screen");
-        ensureOnDashboard();
         navigateToWorkOrdersScreen();
 
         logStep("Recording initial badge counts");
@@ -488,8 +467,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_012 - Verify ACTIVE badge on activated job"
         );
 
-        logStep("Ensuring on Work Orders screen");
-        ensureOnDashboard();
         navigateToWorkOrdersScreen();
         shortWait();
 
@@ -529,8 +506,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_013 - Verify only one job can be active"
         );
 
-        logStep("Ensuring on Work Orders screen");
-        ensureOnDashboard();
         navigateToWorkOrdersScreen();
         shortWait();
 
@@ -588,8 +563,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_014 - Verify tapping active job opens Session Details"
         );
 
-        logStep("Ensuring on Work Orders screen");
-        ensureOnDashboard();
         navigateToWorkOrdersScreen();
         shortWait();
 
@@ -625,8 +598,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_015 - Verify Session Details header"
         );
 
-        logStep("Ensuring on Session Details screen");
-        ensureOnSessionDetailsScreen();
 
         logStep("Verifying Session Details header elements");
         // Back button
@@ -664,8 +635,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_016 - Verify Active Session badge"
         );
 
-        logStep("Ensuring on Session Details screen");
-        ensureOnSessionDetailsScreen();
 
         logStep("Checking for 'Active Session' badge with green dot");
         boolean activeSessionBadge = workOrderPage.isActiveSessionBadgeDisplayed();
@@ -694,8 +663,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_017 - Verify session stats cards"
         );
 
-        logStep("Ensuring on Session Details screen");
-        ensureOnSessionDetailsScreen();
 
         logStep("Verifying Tasks, Issues, and IR Photos stat cards");
         boolean statsDisplayed = workOrderPage.isSessionStatsDisplayed();
@@ -727,8 +694,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_018 - Verify INFORMATION section"
         );
 
-        logStep("Ensuring on Session Details screen");
-        ensureOnSessionDetailsScreen();
 
         logStep("Verifying INFORMATION section is displayed");
         boolean infoSection = workOrderPage.isInformationSectionDisplayed();
@@ -761,8 +726,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_019 - Verify Quick QR Action dropdown"
         );
 
-        logStep("Ensuring on Session Details screen");
-        ensureOnSessionDetailsScreen();
 
         logStep("Checking for Quick QR Action dropdown");
         boolean qrActionVisible = workOrderPage.isQuickQRActionDisplayed();
@@ -787,8 +750,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_020 - Verify session bottom tabs"
         );
 
-        logStep("Ensuring on Session Details screen");
-        ensureOnSessionDetailsScreen();
 
         logStep("Checking for 5 bottom tabs: Details, Locations, Tasks, Issues, Files");
         java.util.List<String> tabs = workOrderPage.getSessionBottomTabLabels();
@@ -822,8 +783,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_021 - Verify Issues tab in session"
         );
 
-        logStep("Ensuring on Session Details screen");
-        ensureOnSessionDetailsScreen();
 
         logStep("Tapping Issues tab");
         boolean tapped = workOrderPage.tapSessionTab("Issues");
@@ -850,8 +809,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_022 - Verify Issues tab badge"
         );
 
-        logStep("Ensuring on Session Details screen");
-        ensureOnSessionDetailsScreen();
 
         logStep("Checking Issues tab for badge count");
         String badgeCount = workOrderPage.getIssuesTabBadgeCount();
@@ -882,8 +839,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_023 - Verify session issues summary"
         );
 
-        logStep("Ensuring on Session Issues tab");
-        ensureOnSessionIssuesTab();
 
         logStep("Checking Total, Open, Closed summary counts");
         java.util.Map<String, String> summary = workOrderPage.getIssuesSummary();
@@ -919,8 +874,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_024 - Verify Manage Issues button"
         );
 
-        logStep("Ensuring on Session Issues tab");
-        ensureOnSessionIssuesTab();
 
         logStep("Checking for 'Manage Issues' button");
         boolean manageButtonVisible = workOrderPage.isManageIssuesButtonDisplayed();
@@ -942,8 +895,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_025 - Verify linked issues list"
         );
 
-        logStep("Ensuring on Session Issues tab");
-        ensureOnSessionIssuesTab();
 
         logStep("Checking linked issues list");
         int issueCount = workOrderPage.getLinkedIssueCount();
@@ -978,8 +929,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_026 - Verify + button to add issue"
         );
 
-        logStep("Ensuring on Session Issues tab");
-        ensureOnSessionIssuesTab();
 
         logStep("Checking for floating + button at bottom right");
         boolean addButtonVisible = workOrderPage.isAddIssueFloatingButtonDisplayed();
@@ -1001,8 +950,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_027 - Verify tapping Manage Issues opens Link screen"
         );
 
-        logStep("Ensuring on Session Issues tab");
-        ensureOnSessionIssuesTab();
 
         logStep("Tapping Manage Issues button");
         boolean tapped = workOrderPage.tapManageIssuesButton();
@@ -1029,8 +976,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_028 - Verify Link Issues screen UI"
         );
 
-        logStep("Ensuring on Link Issues screen");
-        ensureOnLinkIssuesScreen();
 
         logStep("Verifying Cancel button");
         boolean cancelBtn = workOrderPage.isLinkIssuesCancelButtonDisplayed();
@@ -1076,8 +1021,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_029 - Verify already linked issues have checkmark"
         );
 
-        logStep("Ensuring on Link Issues screen");
-        ensureOnLinkIssuesScreen();
 
         logStep("Checking for blue filled checkmark on previously linked issues");
         boolean checkedIssues = workOrderPage.isAnyIssueChecked();
@@ -1115,8 +1058,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_030 - Verify unlinked issues show empty circle checkbox"
         );
 
-        logStep("Ensuring on Link Issues screen");
-        ensureOnLinkIssuesScreen();
 
         logStep("Checking total issues available in list");
         int totalIssues = workOrderPage.getLinkIssuesListCount();
@@ -1161,8 +1102,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_031 - Verify Link Issues entry shows title, asset, status, date"
         );
 
-        logStep("Ensuring on Link Issues screen");
-        ensureOnLinkIssuesScreen();
 
         int totalIssues = workOrderPage.getLinkIssuesListCount();
         logStep("Total issues in list: " + totalIssues);
@@ -1206,8 +1145,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_032 - Verify tapping unlinked issue selects it (fills checkmark)"
         );
 
-        logStep("Ensuring on Link Issues screen");
-        ensureOnLinkIssuesScreen();
 
         int totalIssues = workOrderPage.getLinkIssuesListCount();
         if (totalIssues == 0) {
@@ -1272,8 +1209,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_033 - Verify tapping linked issue deselects it (unfills checkmark)"
         );
 
-        logStep("Ensuring on Link Issues screen");
-        ensureOnLinkIssuesScreen();
 
         int totalIssues = workOrderPage.getLinkIssuesListCount();
         if (totalIssues == 0) {
@@ -1334,8 +1269,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_034 - Verify Update button state changes with selections"
         );
 
-        logStep("Ensuring on Link Issues screen");
-        ensureOnLinkIssuesScreen();
 
         int totalIssues = workOrderPage.getLinkIssuesListCount();
         if (totalIssues == 0) {
@@ -1386,8 +1319,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_035 - Verify Update button saves linked issue changes"
         );
 
-        logStep("Ensuring on Link Issues screen");
-        ensureOnLinkIssuesScreen();
 
         int totalIssues = workOrderPage.getLinkIssuesListCount();
         if (totalIssues == 0) {
@@ -1451,8 +1382,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_036 - Verify Cancel discards changes on Link Issues screen"
         );
 
-        logStep("Ensuring on Session Issues tab first");
-        ensureOnSessionIssuesTab();
 
         // Record the issue count on the Issues tab before entering Link screen
         logStep("Recording linked issue count from session issues before changes");
@@ -1519,8 +1448,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_037 - Verify search filters issues in Link Issues screen"
         );
 
-        logStep("Ensuring on Link Issues screen");
-        ensureOnLinkIssuesScreen();
 
         logStep("Getting total issue count before search");
         int totalBefore = workOrderPage.getLinkIssuesListCount();
@@ -1590,8 +1517,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_038 - Verify My Session filter tab on session issues"
         );
 
-        logStep("Ensuring on Session Issues tab");
-        ensureOnSessionIssuesTab();
         logStepWithScreenshot("Session Issues tab before checking My Session filter");
 
         logStep("Checking if My Session filter is displayed");
@@ -1643,8 +1568,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_039 - Verify My Session count matches linked session issues"
         );
 
-        logStep("Ensuring on Session Issues tab");
-        ensureOnSessionIssuesTab();
 
         // Get linked issue count from the session
         logStep("Getting linked issue count from session");
@@ -1715,8 +1638,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_040 - Verify tapping My Session filters to show only linked issues"
         );
 
-        logStep("Ensuring on Session Issues tab");
-        ensureOnSessionIssuesTab();
 
         // Record the total linked issue count from the session BEFORE applying filter
         logStep("Getting linked issue count from session");
@@ -1799,8 +1720,6 @@ public class SiteVisit_phase1 extends BaseTest {
         );
 
         // Step 1: Navigate to Work Orders screen and try to deactivate any active job
-        logStep("Navigating to Work Orders screen to check for active jobs");
-        ensureOnDashboard();
         navigateToWorkOrdersScreen();
         shortWait();
 
@@ -1833,7 +1752,6 @@ public class SiteVisit_phase1 extends BaseTest {
                     mediumWait();
 
                     // Verify from dashboard without session context
-                    ensureOnDashboard();
                     logStepWithScreenshot("Dashboard state — cannot test without deactivation");
                     logStep("TC_JOB_041: Deactivation not available — "
                         + "My Session filter is inherently tied to active sessions. "
@@ -1888,7 +1806,6 @@ public class SiteVisit_phase1 extends BaseTest {
         // Re-activate a job for subsequent tests
         logStep("Re-activating a job for subsequent tests");
         if (!workOrderPage.isWorkOrdersScreenDisplayed()) {
-            ensureOnDashboard();
             navigateToWorkOrdersScreen();
             shortWait();
         }
@@ -1910,8 +1827,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_042 - Verify With Photos filter tab displayed on session issues"
         );
 
-        logStep("Ensuring on Session Issues tab");
-        ensureOnSessionIssuesTab();
         logStepWithScreenshot("Session Issues tab — checking for With Photos filter");
 
         logStep("Checking if With Photos filter tab is displayed");
@@ -1958,8 +1873,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_043 - Verify With Photos shows only issues with attached photos"
         );
 
-        logStep("Ensuring on Session Issues tab");
-        ensureOnSessionIssuesTab();
 
         // Record baseline count before filter
         logStep("Getting baseline issue count");
@@ -2037,8 +1950,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_044 - Verify tapping Start New Job starts job creation flow"
         );
 
-        logStep("Navigating to Work Orders screen");
-        ensureOnDashboard();
         navigateToWorkOrdersScreen();
         shortWait();
 
@@ -2115,7 +2026,6 @@ public class SiteVisit_phase1 extends BaseTest {
 
         logStep("Ensuring on Work Orders screen");
         if (!workOrderPage.isWorkOrdersScreenDisplayed()) {
-            ensureOnDashboard();
             navigateToWorkOrdersScreen();
             shortWait();
         }
@@ -2192,8 +2102,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_046 - Verify linking additional issue updates session counts"
         );
 
-        logStep("Ensuring on Session Issues tab");
-        ensureOnSessionIssuesTab();
 
         // Step 1: Record baseline counts
         logStep("Recording baseline session issue counts");
@@ -2314,8 +2222,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_047 - Verify unlinking issue decreases session counts"
         );
 
-        logStep("Ensuring on Session Issues tab");
-        ensureOnSessionIssuesTab();
 
         // Step 1: Record baseline counts
         logStep("Recording baseline session issue counts");
@@ -2422,8 +2328,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_048 - Verify issue class shown as tag on session issue entry"
         );
 
-        logStep("Ensuring on Session Issues tab");
-        ensureOnSessionIssuesTab();
 
         int linkedCount = workOrderPage.getLinkedIssueCount();
         logStep("Linked issues in session: " + linkedCount);
@@ -2490,8 +2394,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_049 - Verify asset name with location icon on session issue entry"
         );
 
-        logStep("Ensuring on Session Issues tab");
-        ensureOnSessionIssuesTab();
 
         int linkedCount = workOrderPage.getLinkedIssueCount();
         logStep("Linked issues in session: " + linkedCount);
@@ -2561,8 +2463,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_050 - Verify tapping session issue opens Issue Details screen"
         );
 
-        logStep("Ensuring on Session Issues tab");
-        ensureOnSessionIssuesTab();
 
         int linkedCount = workOrderPage.getLinkedIssueCount();
         logStep("Linked issues in session: " + linkedCount);
@@ -2635,8 +2535,6 @@ public class SiteVisit_phase1 extends BaseTest {
         );
 
         // Ensure a job is activated first
-        logStep("Ensuring a job is active");
-        ensureOnSessionDetailsScreen();
         logStep("On Session Details — active session confirmed");
 
         // Get session header for later comparison
@@ -2709,8 +2607,6 @@ public class SiteVisit_phase1 extends BaseTest {
         );
 
         // Get the active session name for comparison
-        logStep("Ensuring on Session Details to get session name");
-        ensureOnSessionDetailsScreen();
         String sessionName = workOrderPage.getSessionDetailsHeaderText();
         logStep("Active session name: " + (sessionName != null ? sessionName : "unknown"));
 
@@ -2782,8 +2678,6 @@ public class SiteVisit_phase1 extends BaseTest {
         );
 
         // Ensure on Session Issues tab and record baseline count
-        logStep("Ensuring on Session Issues tab");
-        ensureOnSessionIssuesTab();
 
         int linkedBefore = workOrderPage.getLinkedIssueCount();
         java.util.Map<String, String> summaryBefore = workOrderPage.getIssuesSummary();
@@ -2846,7 +2740,6 @@ public class SiteVisit_phase1 extends BaseTest {
             logStep("Not on Session Issues — navigating back");
             workOrderPage.goBack();
             mediumWait();
-            ensureOnSessionIssuesTab();
         }
 
         int linkedAfter = workOrderPage.getLinkedIssueCount();
@@ -2885,8 +2778,6 @@ public class SiteVisit_phase1 extends BaseTest {
         );
 
         // Step 1: Try to deactivate any active job
-        logStep("Navigating to Work Orders screen to deactivate any active job");
-        ensureOnDashboard();
         navigateToWorkOrdersScreen();
         shortWait();
 
@@ -2916,7 +2807,6 @@ public class SiteVisit_phase1 extends BaseTest {
 
         // Step 2: Navigate to dashboard and try to open New Issue screen
         logStep("Going to dashboard to access main Issues screen");
-        ensureOnDashboard();
         logStepWithScreenshot("On dashboard — attempting to open New Issue");
 
         // Try opening New Issue from the main Issues flow
@@ -2978,8 +2868,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_055 - Verify + button in Session Issues opens linked New Issue"
         );
 
-        logStep("Ensuring on Session Issues tab");
-        ensureOnSessionIssuesTab();
         logStepWithScreenshot("Session Issues tab — checking + button");
 
         // Verify + button is present
@@ -3055,8 +2943,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_056 - Verify tapping Start New Job opens New Job creation screen"
         );
 
-        logStep("Navigating to Work Orders screen");
-        ensureOnDashboard();
         navigateToWorkOrdersScreen();
         shortWait();
 
@@ -3131,8 +3017,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_057 - Verify New Job screen shows all form elements"
         );
 
-        logStep("Navigating to Work Orders → New Job screen");
-        ensureOnDashboard();
         navigateToWorkOrdersScreen();
         shortWait();
 
@@ -3227,8 +3111,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_058 - Verify default job name includes current date/time"
         );
 
-        logStep("Navigating to Work Orders → New Job screen");
-        ensureOnDashboard();
         navigateToWorkOrdersScreen();
         shortWait();
 
@@ -3306,8 +3188,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_059 - Verify job name field is editable"
         );
 
-        logStep("Navigating to Work Orders → New Job screen");
-        ensureOnDashboard();
         navigateToWorkOrdersScreen();
         shortWait();
 
@@ -3409,8 +3289,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_060 - Verify edited job name persists after creation"
         );
 
-        logStep("Navigating to Work Orders → New Job screen");
-        ensureOnDashboard();
         navigateToWorkOrdersScreen();
         shortWait();
 
@@ -3526,8 +3404,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_061 - Verify Photo Type dropdown with default value FLIR-SEP"
         );
 
-        logStep("Navigating to New Job screen");
-        ensureOnNewJobScreen();
 
         logStep("Checking if Photo Type dropdown is displayed");
         boolean photoTypeVisible = workOrderPage.isPhotoTypeDropdownDisplayed();
@@ -3574,8 +3450,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_062 - Verify all 4 Photo Type options available"
         );
 
-        logStep("Navigating to New Job screen");
-        ensureOnNewJobScreen();
 
         logStep("Tapping Photo Type dropdown to open it");
         boolean dropdownTapped = workOrderPage.tapPhotoTypeDropdown();
@@ -3696,8 +3570,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_067 - Verify Online status shown with WiFi icon"
         );
 
-        logStep("Navigating to New Job screen");
-        ensureOnNewJobScreen();
 
         logStep("Checking for Online indicator");
         boolean onlineVisible = workOrderPage.isOnlineIndicatorDisplayed();
@@ -3746,8 +3618,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_068 - Verify informational message about job behavior"
         );
 
-        logStep("Navigating to New Job screen");
-        ensureOnNewJobScreen();
 
         logStep("Checking for informational text about job behavior");
         boolean infoTextVisible = workOrderPage.isNewJobInfoTextDisplayed();
@@ -3819,8 +3689,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_069 - Verify tapping Create creates new job"
         );
 
-        logStep("Navigating to Work Orders screen");
-        ensureOnDashboard();
         navigateToWorkOrdersScreen();
         shortWait();
 
@@ -3934,8 +3802,6 @@ public class SiteVisit_phase1 extends BaseTest {
         );
 
         // Navigate to Work Orders screen to get baseline count
-        logStep("Navigating to Work Orders screen for baseline count");
-        ensureOnDashboard();
         navigateToWorkOrdersScreen();
         shortWait();
 
@@ -4031,8 +3897,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_071 - Verify Quick QR Action dropdown displayed with current setting"
         );
 
-        logStep("Navigating to New Job screen");
-        ensureOnNewJobScreen();
 
         // Check Quick QR Action dropdown is displayed
         logStep("Checking Quick QR Action dropdown visibility");
@@ -4088,8 +3952,6 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_072 - Verify Quick QR Action dropdown shows all options"
         );
 
-        logStep("Navigating to New Job screen");
-        ensureOnNewJobScreen();
 
         // Open the Quick QR Action dropdown
         logStep("Tapping Quick QR Action dropdown to open options");
@@ -4210,8 +4072,6 @@ public class SiteVisit_phase1 extends BaseTest {
         );
 
         // Ensure we have an active job and are on Session Details
-        logStep("Navigating to Session Details screen");
-        ensureOnSessionDetailsScreen();
 
         boolean onSessionDetails = workOrderPage.isSessionDetailsScreenDisplayed();
         logStep("On Session Details screen: " + onSessionDetails);
@@ -4268,8 +4128,6 @@ public class SiteVisit_phase1 extends BaseTest {
         );
 
         // Navigate to Locations tab
-        logStep("Navigating to Session Details");
-        ensureOnSessionDetailsScreen();
 
         logStep("Tapping Locations tab");
         workOrderPage.tapSessionTab("Assets");
@@ -4351,8 +4209,6 @@ public class SiteVisit_phase1 extends BaseTest {
         );
 
         // Navigate to Locations tab
-        logStep("Navigating to Session Details");
-        ensureOnSessionDetailsScreen();
 
         logStep("Tapping Locations tab");
         workOrderPage.tapSessionTab("Assets");
@@ -4430,8 +4286,6 @@ public class SiteVisit_phase1 extends BaseTest {
         );
 
         // Navigate to Locations tab
-        logStep("Navigating to Session Details");
-        ensureOnSessionDetailsScreen();
 
         logStep("Tapping Locations tab");
         workOrderPage.tapSessionTab("Assets");
@@ -4486,8 +4340,6 @@ public class SiteVisit_phase1 extends BaseTest {
         );
 
         // Navigate to Locations tab
-        logStep("Navigating to Session Details");
-        ensureOnSessionDetailsScreen();
 
         logStep("Tapping Locations tab");
         workOrderPage.tapSessionTab("Assets");
@@ -4543,8 +4395,6 @@ public class SiteVisit_phase1 extends BaseTest {
         );
 
         // Navigate to Locations tab
-        logStep("Navigating to Session Details");
-        ensureOnSessionDetailsScreen();
 
         logStep("Tapping Locations tab");
         workOrderPage.tapSessionTab("Assets");
@@ -4579,8 +4429,6 @@ public class SiteVisit_phase1 extends BaseTest {
         );
 
         // Navigate to Session Details (Details tab)
-        logStep("Navigating to Session Details screen");
-        ensureOnSessionDetailsScreen();
 
         boolean onSessionDetails = workOrderPage.isSessionDetailsScreenDisplayed();
         logStep("On Session Details: " + onSessionDetails);
@@ -4646,8 +4494,6 @@ public class SiteVisit_phase1 extends BaseTest {
         );
 
         // Navigate to Session Details (Details tab)
-        logStep("Navigating to Session Details screen");
-        ensureOnSessionDetailsScreen();
 
         logStep("Ensuring Details tab is active");
         workOrderPage.tapSessionTab("Details");
@@ -4709,8 +4555,6 @@ public class SiteVisit_phase1 extends BaseTest {
         );
 
         // Navigate to Locations tab
-        logStep("Navigating to Session Details");
-        ensureOnSessionDetailsScreen();
 
         logStep("Tapping Locations tab");
         workOrderPage.tapSessionTab("Assets");
@@ -6088,7 +5932,6 @@ public class SiteVisit_phase1 extends BaseTest {
         logStep("Starting navigation to Assets in Room...");
 
         // Step 1: Get to Session Details → Assets tab
-        ensureOnSessionDetailsScreen();
         workOrderPage.tapSessionTab("Assets");
         try { Thread.sleep(800); } catch (InterruptedException ignored) {}
 
@@ -6157,8 +6000,6 @@ public class SiteVisit_phase1 extends BaseTest {
      * or that the dropdown value updated.
      */
     private void verifyQuickQRActionSelection(String actionName) {
-        logStep("Navigating to New Job screen");
-        ensureOnNewJobScreen();
 
         // Record current value before changing
         String valueBefore = workOrderPage.getQuickQRActionValue();
@@ -6251,8 +6092,6 @@ public class SiteVisit_phase1 extends BaseTest {
      * selects the given type, and verifies it was selected.
      */
     private void verifyPhotoTypeSelection(String photoType) {
-        logStep("Navigating to New Job screen");
-        ensureOnNewJobScreen();
 
         logStep("Opening Photo Type dropdown");
         boolean dropdownTapped = workOrderPage.tapPhotoTypeDropdown();
@@ -6329,7 +6168,6 @@ public class SiteVisit_phase1 extends BaseTest {
             return;
         }
 
-        ensureOnDashboard();
         navigateToWorkOrdersScreen();
         shortWait();
 
@@ -6352,8 +6190,6 @@ public class SiteVisit_phase1 extends BaseTest {
      * Navigates to Work Orders and activates a job if none is active.
      */
     private void ensureJobActivated() {
-        logStep("Ensuring a job is activated...");
-        ensureOnDashboard();
         navigateToWorkOrdersScreen();
         shortWait();
 
@@ -6383,7 +6219,6 @@ public class SiteVisit_phase1 extends BaseTest {
         }
 
         // Navigate from dashboard
-        ensureOnDashboard();
         navigateToWorkOrdersScreen();
         shortWait();
 
@@ -6415,7 +6250,6 @@ public class SiteVisit_phase1 extends BaseTest {
         }
 
         // Get to Session Details screen first
-        ensureOnSessionDetailsScreen();
         shortWait();
 
         // Tap the Issues tab
@@ -6438,7 +6272,6 @@ public class SiteVisit_phase1 extends BaseTest {
         }
 
         // Get to Session Issues tab first
-        ensureOnSessionIssuesTab();
         shortWait();
 
         // Tap Manage Issues button

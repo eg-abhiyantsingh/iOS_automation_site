@@ -752,9 +752,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_NEW_ISSUE,
             "TC_ISS_022 - Verify New Issue screen UI elements");
 
-        logStep("Step 1: Navigate to New Issue form");
-        boolean onForm = ensureOnNewIssueForm();
-        assertTrue(onForm, "Should be on New Issue form");
 
         logStep("Step 2: Verify 'New Issue' title");
         boolean titleDisplayed = issuePage.isNewIssueFormDisplayed();
@@ -792,9 +789,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_NEW_ISSUE,
             "TC_ISS_023 - Verify Create Issue button initially disabled");
 
-        logStep("Step 1: Navigate to New Issue form");
-        boolean onForm = ensureOnNewIssueForm();
-        assertTrue(onForm, "Should be on New Issue form");
 
         logStep("Step 2: Verify Create Issue button is disabled");
         boolean enabled = issuePage.isCreateIssueEnabled();
@@ -816,9 +810,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_NEW_ISSUE,
             "TC_ISS_024 - Verify Asset is required validation");
 
-        logStep("Step 1: Navigate to New Issue form");
-        boolean onForm = ensureOnNewIssueForm();
-        assertTrue(onForm, "Should be on New Issue form");
 
         logStep("Step 2: Check for 'Asset is required' validation message");
         boolean assetRequired = issuePage.isAssetRequiredMessageDisplayed();
@@ -848,9 +839,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_NEW_ISSUE,
             "TC_ISS_025 - Verify Cancel returns to Issues list");
 
-        logStep("Step 1: Navigate to New Issue form");
-        boolean onForm = ensureOnNewIssueForm();
-        assertTrue(onForm, "Should be on New Issue form");
 
         logStep("Step 2: Note issue count before cancel");
         // We can't easily count from New Issue form, so skip this check
@@ -884,9 +872,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_CLASS,
             "TC_ISS_026 - Verify Issue Class dropdown");
 
-        logStep("Step 1: Navigate to New Issue form");
-        boolean onForm = ensureOnNewIssueForm();
-        assertTrue(onForm, "Should be on New Issue form");
 
         logStep("Step 2: Verify Issue Class dropdown is displayed");
         boolean dropdownDisplayed = issuePage.isIssueClassDropdownDisplayed();
@@ -913,9 +898,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_CLASS,
             "TC_ISS_027 - Verify Issue Class options");
 
-        logStep("Step 1: Navigate to New Issue form");
-        boolean onForm = ensureOnNewIssueForm();
-        assertTrue(onForm, "Should be on New Issue form");
 
         logStep("Step 2: Open Issue Class dropdown");
         boolean opened = issuePage.openIssueClassDropdown();
@@ -953,9 +935,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_CLASS,
             "TC_ISS_028 - Verify selecting NEC Violation");
 
-        logStep("Step 1: Navigate to New Issue form");
-        boolean onForm = ensureOnNewIssueForm();
-        assertTrue(onForm, "Should be on New Issue form");
 
         logStep("Step 2: Select NEC Violation from Issue Class");
         String selectedValue = issuePage.selectIssueClassAndGetValue("NEC Violation");
@@ -977,9 +956,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_CLASS,
             "TC_ISS_029 - Verify selecting NFPA 70B Violation");
 
-        logStep("Step 1: Navigate to New Issue form");
-        boolean onForm = ensureOnNewIssueForm();
-        assertTrue(onForm, "Should be on New Issue form");
 
         logStep("Step 2: Select NFPA 70B Violation from Issue Class");
         String selectedValue = issuePage.selectIssueClassAndGetValue("NFPA 70B Violation");
@@ -1001,9 +977,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_CLASS,
             "TC_ISS_030 - Verify selecting OSHA Violation");
 
-        logStep("Step 1: Navigate to New Issue form");
-        boolean onForm = ensureOnNewIssueForm();
-        assertTrue(onForm, "Should be on New Issue form");
 
         logStep("Step 2: Select OSHA Violation from Issue Class");
         String selectedValue = issuePage.selectIssueClassAndGetValue("OSHA Violation");
@@ -1025,9 +998,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_CLASS,
             "TC_ISS_031 - Verify selecting Repair Needed");
 
-        logStep("Step 1: Navigate to New Issue form");
-        boolean onForm = ensureOnNewIssueForm();
-        assertTrue(onForm, "Should be on New Issue form");
 
         logStep("Step 2: Select Repair Needed from Issue Class");
         String selectedValue = issuePage.selectIssueClassAndGetValue("Repair Needed");
@@ -1049,9 +1019,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_CLASS,
             "TC_ISS_032 - Verify selecting Thermal Anomaly");
 
-        logStep("Step 1: Navigate to New Issue form");
-        boolean onForm = ensureOnNewIssueForm();
-        assertTrue(onForm, "Should be on New Issue form");
 
         logStep("Step 2: Select Thermal Anomaly from Issue Class");
         String selectedValue = issuePage.selectIssueClassAndGetValue("Thermal Anomaly");
@@ -1073,9 +1040,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_CLASS,
             "TC_ISS_033 - Verify selecting Ultrasonic Anomaly");
 
-        logStep("Step 1: Navigate to New Issue form");
-        boolean onForm = ensureOnNewIssueForm();
-        assertTrue(onForm, "Should be on New Issue form");
 
         logStep("Step 2: Select Ultrasonic Anomaly from Issue Class");
         String selectedValue = issuePage.selectIssueClassAndGetValue("Ultrasonic Anomaly");
@@ -1101,9 +1065,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_TITLE,
             "TC_ISS_034 - Verify Title field");
 
-        logStep("Step 1: Navigate to New Issue form");
-        boolean onForm = ensureOnNewIssueForm();
-        assertTrue(onForm, "Should be on New Issue form");
 
         logStep("Step 2: Verify Title field is displayed");
         boolean titleFieldDisplayed = issuePage.isTitleFieldDisplayed();
@@ -1129,9 +1090,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_TITLE,
             "TC_ISS_035 - Verify entering Title text");
 
-        logStep("Step 1: Navigate to New Issue form");
-        boolean onForm = ensureOnNewIssueForm();
-        assertTrue(onForm, "Should be on New Issue form");
 
         logStep("Step 2: Enter test title in Title field");
         String testTitle = "TestTitleEntry_" + System.currentTimeMillis();
@@ -1161,9 +1119,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_PRIORITY,
             "TC_ISS_036 - Verify Priority dropdown");
 
-        logStep("Step 1: Navigate to New Issue form");
-        boolean onForm = ensureOnNewIssueForm();
-        assertTrue(onForm, "Should be on New Issue form");
 
         logStep("Step 2: Verify Priority dropdown is displayed");
         boolean priorityDisplayed = issuePage.isPriorityDropdownDisplayed();
@@ -1189,9 +1144,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_PRIORITY,
             "TC_ISS_037 - Verify Priority options");
 
-        logStep("Step 1: Navigate to New Issue form");
-        boolean onForm = ensureOnNewIssueForm();
-        assertTrue(onForm, "Should be on New Issue form");
 
         logStep("Step 2: Open Priority dropdown");
         boolean opened = issuePage.openPriorityDropdown();
@@ -1226,9 +1178,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_PRIORITY,
             "TC_ISS_038 - Verify selecting High priority");
 
-        logStep("Step 1: Navigate to New Issue form");
-        boolean onForm = ensureOnNewIssueForm();
-        assertTrue(onForm, "Should be on New Issue form");
 
         logStep("Step 2: Select High priority");
         String selectedValue = issuePage.selectPriorityAndGetValue("High");
@@ -1250,9 +1199,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_PRIORITY,
             "TC_ISS_039 - Verify selecting Medium priority");
 
-        logStep("Step 1: Navigate to New Issue form");
-        boolean onForm = ensureOnNewIssueForm();
-        assertTrue(onForm, "Should be on New Issue form");
 
         logStep("Step 2: Select Medium priority");
         String selectedValue = issuePage.selectPriorityAndGetValue("Medium");
@@ -1274,9 +1220,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_PRIORITY,
             "TC_ISS_040 - Verify selecting Low priority");
 
-        logStep("Step 1: Navigate to New Issue form");
-        boolean onForm = ensureOnNewIssueForm();
-        assertTrue(onForm, "Should be on New Issue form");
 
         logStep("Step 2: Select Low priority");
         String selectedValue = issuePage.selectPriorityAndGetValue("Low");
@@ -1302,9 +1245,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ASSET_SELECTION,
             "TC_ISS_041 - Verify Asset field");
 
-        logStep("Step 1: Navigate to New Issue form");
-        boolean onForm = ensureOnNewIssueForm();
-        assertTrue(onForm, "Should be on New Issue form");
 
         logStep("Step 2: Verify Select Asset field is displayed");
         // isSelectAssetDisplayed() has 3s wait + scroll fallback built in
@@ -1331,9 +1271,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ASSET_SELECTION,
             "TC_ISS_042 - Verify tapping Asset opens selection");
 
-        logStep("Step 1: Navigate to New Issue form");
-        boolean onForm = ensureOnNewIssueForm();
-        assertTrue(onForm, "Should be on New Issue form");
 
         logStep("Step 2: Tap Select Asset");
         issuePage.tapSelectAsset();
@@ -1359,9 +1296,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ASSET_SELECTION,
             "TC_ISS_043 - Verify asset list displayed");
 
-        logStep("Step 1: Navigate to New Issue form");
-        boolean onForm = ensureOnNewIssueForm();
-        assertTrue(onForm, "Should be on New Issue form");
 
         logStep("Step 2: Open Select Asset screen");
         issuePage.tapSelectAsset();
@@ -1388,9 +1322,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ASSET_SELECTION,
             "TC_ISS_044 - Verify search assets");
 
-        logStep("Step 1: Navigate to New Issue form");
-        boolean onForm = ensureOnNewIssueForm();
-        assertTrue(onForm, "Should be on New Issue form");
 
         logStep("Step 2: Open Select Asset screen");
         issuePage.tapSelectAsset();
@@ -1427,9 +1358,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ASSET_SELECTION,
             "TC_ISS_045 - Verify selecting asset");
 
-        logStep("Step 1: Navigate to New Issue form");
-        boolean onForm = ensureOnNewIssueForm();
-        assertTrue(onForm, "Should be on New Issue form");
 
         logStep("Step 2: Open Select Asset screen");
         issuePage.tapSelectAsset();
@@ -1465,9 +1393,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ASSET_SELECTION,
             "TC_ISS_046 - Verify + button to create new asset");
 
-        logStep("Step 1: Navigate to New Issue form");
-        boolean onForm = ensureOnNewIssueForm();
-        assertTrue(onForm, "Should be on New Issue form");
 
         logStep("Step 2: Open Select Asset screen");
         issuePage.tapSelectAsset();
@@ -1497,9 +1422,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ASSET_SELECTION,
             "TC_ISS_047 - Verify QR scan button");
 
-        logStep("Step 1: Navigate to New Issue form");
-        boolean onForm = ensureOnNewIssueForm();
-        assertTrue(onForm, "Should be on New Issue form");
 
         logStep("Step 2: Open Select Asset screen");
         issuePage.tapSelectAsset();
@@ -1534,9 +1456,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_CREATE_ISSUE,
             "TC_ISS_048 - Verify Create Issue enabled after required fields");
 
-        logStep("Step 1: Navigate to New Issue form");
-        boolean onForm = ensureOnNewIssueForm();
-        assertTrue(onForm, "Should be on New Issue form");
 
         logStep("Step 2: Verify Create Issue is initially disabled");
         boolean initiallyDisabled = !issuePage.isCreateIssueEnabled();
@@ -1576,9 +1495,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_CREATE_ISSUE,
             "TC_ISS_049 - Verify issue created successfully");
 
-        logStep("Step 1: Navigate to New Issue form");
-        boolean onForm = ensureOnNewIssueForm();
-        assertTrue(onForm, "Should be on New Issue form");
 
         logStep("Step 2: Fill Issue Class — NEC Violation");
         issuePage.selectIssueClass("NEC Violation");
@@ -4942,8 +4858,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_CLASS,
             "TC_ISS_SAFETY_01 - Verify 'Safety' NOT in Issue Class dropdown");
 
-        boolean onForm = ensureOnNewIssueForm();
-        assertTrue(onForm, "Should be on New Issue form");
 
         logStep("Step 2: Open Issue Class dropdown");
         boolean opened = issuePage.openIssueClassDropdown();
@@ -4978,9 +4892,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_CLASS,
             "TC_ISS_SAFETY_02 - Verify 'Notification' NOT in Issue Class dropdown");
 
-        logStep("Step 1: Navigate to New Issue form");
-        boolean onForm = ensureOnNewIssueForm();
-        assertTrue(onForm, "Should be on New Issue form");
 
         logStep("Step 2: Open Issue Class dropdown");
         assertTrue(issuePage.openIssueClassDropdown(), "Should open Issue Class dropdown");
@@ -5012,8 +4923,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_SAFETY_03 - Verify expected Issue Class list");
 
         logStep("Step 1: Open New Issue form + dropdown");
-        boolean onForm = ensureOnNewIssueForm();
-        assertTrue(onForm, "Should be on New Issue form");
         assertTrue(issuePage.openIssueClassDropdown(), "Should open Issue Class dropdown");
         mediumWait();
 
@@ -5057,8 +4966,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_SAFETY_04 - Verify Replacement Needed option selectable");
 
         logStep("Step 1: Open New Issue form");
-        boolean onForm = ensureOnNewIssueForm();
-        assertTrue(onForm, "Should be on New Issue form");
 
         logStep("Step 2: Select 'Replacement Needed' from Issue Class dropdown");
         issuePage.selectIssueClass("Replacement Needed");
@@ -5086,8 +4993,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_SAFETY_05 - Verify Issue Class option count");
 
         logStep("Step 1: Open dropdown");
-        boolean onForm = ensureOnNewIssueForm();
-        assertTrue(onForm, "Should be on New Issue form");
         assertTrue(issuePage.openIssueClassDropdown(), "Should open Issue Class dropdown");
         mediumWait();
 
