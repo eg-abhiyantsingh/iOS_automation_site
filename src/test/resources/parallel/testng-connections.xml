@@ -7,7 +7,10 @@
         <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
     </listeners>
     
-    <test name="Connections Tests">
+    <!-- Connections Tests DISABLED 2026-05-28: Connection tab hidden in v1.36 app.
+         Class also marked @Test(enabled=false) in Connections_Test.java.
+         Re-enable both this block AND the class annotation when feature returns. -->
+    <test name="Connections Tests" enabled="false">
         <classes>
             <class name="com.egalvanic.tests.Connections_Test"/>
         </classes>

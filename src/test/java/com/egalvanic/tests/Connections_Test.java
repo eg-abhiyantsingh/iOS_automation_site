@@ -32,7 +32,13 @@ import java.util.Set;
  * Pre-requisites:
  * - User logged in with site loaded
  * - Site has connections configured
+ *
+ * DISABLED 2026-05-28 — Connection tab is currently hidden in the v1.36 app
+ * per product. The 98 @Test methods below stay in source for easy revival
+ * when the feature is reinstated. Remove the class-level
+ * `@Test(enabled = false)` and the suite-XML comments to re-enable.
  */
+@Test(enabled = false)
 public final class Connections_Test extends BaseTest {
 
     // Page Objects
