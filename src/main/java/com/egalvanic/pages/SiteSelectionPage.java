@@ -849,14 +849,37 @@ public class SiteSelectionPage extends BasePage {
      */
     public String selectFirstSiteFast() {
         try {
-            // Wait max 3 seconds for any site button to appear and click it immediately
+            // v1.36 (changelog 075): the previous predicate matched ANY button
+            // with a comma in its name, which picked up Dashboard's WO Work
+            // Order card "WO, No Active Work Order, Tap to select a work order"
+            // when the screen happened to be Dashboard, not Site Selection.
+            // Iterate buttons and reject known non-site names (WO compound,
+            // Tasks compound, Search-related).
             WebDriverWait fastWait = new WebDriverWait(driver, Duration.ofSeconds(3));
-            WebElement firstSite = fastWait.until(ExpectedConditions.elementToBeClickable(
+            fastWait.until(ExpectedConditions.presenceOfElementLocated(
                 AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name CONTAINS ','")
             ));
-            String siteName = firstSite.getAttribute("name");
-            firstSite.click();
-            return siteName;
+            java.util.List<WebElement> buttons = driver.findElements(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name CONTAINS ','")
+            );
+            for (WebElement btn : buttons) {
+                String name = btn.getAttribute("name");
+                if (name == null) continue;
+                String lower = name.toLowerCase();
+                // Reject Dashboard non-site rows
+                if (lower.startsWith("wo,") || lower.startsWith("wo, ")) continue;
+                if (lower.contains("no active work order") || lower.contains("tap to select")) continue;
+                if (lower.matches("^\\d+,\\s*tasks.*")) continue;       // "694, Tasks"
+                if (lower.equals("create new site")) continue;
+                if (lower.equals("cancel")) continue;
+                if (lower.equals("xmark.circle.fill")) continue;
+                // Must look like a site: name + address pieces (≥2 commas)
+                if (name.indexOf(',') == name.lastIndexOf(',')) continue;
+                btn.click();
+                return name;
+            }
+            System.out.println("⚠️ Fast site select found no valid site row, falling back");
+            return selectFirstSite();
         } catch (Exception e) {
             System.out.println("⚠️ Fast site select failed, using standard method");
             return selectFirstSite();
