@@ -591,27 +591,44 @@ public void clickShowPassword() {
     private void handleSavePasswordTurbo() {
         long start = System.currentTimeMillis();
 
-        // v1.36 (changelog 075) BUG FIX: the original 400ms cap was based on
-        // the assumption "popups render in <100ms". WRONG for v1.36 — the
-        // Save Password SwiftUI sheet appears 1-2s AFTER Sign In, so a 400ms
-        // dismiss-pass missed it entirely and the sheet then blocked site
-        // selection.
-        // Two-part fix:
-        //   1. Sleep 1500ms BEFORE the dismiss loop so the popup is actually
-        //      on screen by the time we probe.
-        //   2. Use 600ms implicit-wait cap (still fast vs global 5s) per
-        //      findElement — the popup is now present so the search succeeds
-        //      on first attempt; no waste.
-        try { Thread.sleep(1500); } catch (InterruptedException ignored) {}
-
+        // v1.36 (changelog 075): the Save Password sheet sometimes appears
+        // 2-3 seconds AFTER Sign In, not 1.5s. Fixed-duration sleeps miss it.
+        // Switch to a polling wait — every 300ms for up to 5s, look for any
+        // of: 'Not Now', 'Don't Allow', or a UIAlertController. As soon as
+        // detected, jump straight to dismiss.
         java.time.Duration originalWait;
         try {
             originalWait = driver.manage().timeouts().getImplicitWaitTimeout();
-            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(600));
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(200));
         } catch (Exception e) {
             originalWait = java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT);
         }
         try {
+
+        // Poll up to 5s for the popup to appear (covers 1-3s render lag).
+        long pollDeadline = System.currentTimeMillis() + 5000;
+        boolean popupSeen = false;
+        while (System.currentTimeMillis() < pollDeadline) {
+            try {
+                if (!driver.findElements(io.appium.java_client.AppiumBy.accessibilityId("Not Now")).isEmpty()
+                    || !driver.findElements(io.appium.java_client.AppiumBy.accessibilityId("Don't Allow")).isEmpty()) {
+                    popupSeen = true;
+                    break;
+                }
+            } catch (Exception ignored) {}
+            try {
+                // Native UIAlertController (rare but possible)
+                driver.switchTo().alert();
+                popupSeen = true;
+                break;
+            } catch (Exception ignored) {}
+            try { Thread.sleep(300); } catch (InterruptedException ignored) {}
+        }
+        if (popupSeen) {
+            System.out.println("🔔 Post-login popup detected after " + (System.currentTimeMillis() - start) + "ms");
+        } else {
+            System.out.println("⚡ No popup found in poll window (" + (System.currentTimeMillis() - start) + "ms)");
+        }
 
         // Two passes — there can be two stacked popups (notification, then save-password).
         for (int pass = 1; pass <= 2; pass++) {
@@ -654,7 +671,23 @@ public void clickShowPassword() {
                 if (pass == 1) {
                     try { Thread.sleep(250); } catch (InterruptedException ignored) {}
                 } else {
-                    System.out.println("⚡ No popup found in " +
+                    // v1.36 LAST-RESORT: the Save Password sheet on iOS 17+ may
+                    // render at the system (Springboard) level, NOT in the app's
+                    // accessibility tree — so findElement can't see it. Try a
+                    // coordinate tap on the known "Not Now" button position.
+                    // iPhone 17 Pro Max logical screen is 430x932; "Not Now"
+                    // button sits at approximately (140, 600) inside the sheet
+                    // on this build.
+                    if (popupSeen) {
+                        try {
+                            driver.executeScript("mobile: tap", java.util.Map.of("x", 140, "y", 600));
+                            System.out.println("⚡ Coordinate tap on 'Not Now' fallback at (140,600)");
+                            try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+                        } catch (Exception coordEx) {
+                            System.out.println("⚠️ Coordinate-tap fallback failed: " + coordEx.getMessage());
+                        }
+                    }
+                    System.out.println("⚡ Popup handling complete in " +
                         (System.currentTimeMillis() - start) + "ms");
                     return;
                 }
