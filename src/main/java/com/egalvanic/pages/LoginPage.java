@@ -591,15 +591,23 @@ public void clickShowPassword() {
     private void handleSavePasswordTurbo() {
         long start = System.currentTimeMillis();
 
-        // v1.36 (changelog 075) speed fix: each findElement here uses the
-        // global 5s implicit wait. 6 missed calls (3 strategies × 2 passes)
-        // = 30s wasted per test when no popup exists (the common case).
-        // Cap implicit wait at 400ms for the duration of this method —
-        // popups, if present, render in <100ms so 400ms is plenty.
+        // v1.36 (changelog 075) BUG FIX: the original 400ms cap was based on
+        // the assumption "popups render in <100ms". WRONG for v1.36 — the
+        // Save Password SwiftUI sheet appears 1-2s AFTER Sign In, so a 400ms
+        // dismiss-pass missed it entirely and the sheet then blocked site
+        // selection.
+        // Two-part fix:
+        //   1. Sleep 1500ms BEFORE the dismiss loop so the popup is actually
+        //      on screen by the time we probe.
+        //   2. Use 600ms implicit-wait cap (still fast vs global 5s) per
+        //      findElement — the popup is now present so the search succeeds
+        //      on first attempt; no waste.
+        try { Thread.sleep(1500); } catch (InterruptedException ignored) {}
+
         java.time.Duration originalWait;
         try {
             originalWait = driver.manage().timeouts().getImplicitWaitTimeout();
-            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(400));
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(600));
         } catch (Exception e) {
             originalWait = java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT);
         }
