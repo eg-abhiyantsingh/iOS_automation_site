@@ -151,14 +151,16 @@ public class BaseTest {
         boolean terminated = false;
         try {
             DriverManager.getDriver().terminateApp(AppConstants.APP_BUNDLE_ID);
-            Thread.sleep(500);
+            // v1.36 (changelog 075) speed: 500ms → 200ms (iOS terminate completes in ~50ms)
+            Thread.sleep(200);
             terminated = true;
         } catch (Exception e) {
             System.out.println("⚠️ terminateApp failed (app may not be running yet): " + e.getMessage());
         }
         try {
             DriverManager.getDriver().activateApp(AppConstants.APP_BUNDLE_ID);
-            Thread.sleep(500);
+            // v1.36 (changelog 075) speed: 500ms → 200ms (activate is async, page checks handle the rest)
+            Thread.sleep(200);
             System.out.println("🔄 App soft-restarted (clean navigation state)");
         } catch (Exception e) {
             System.out.println("⚠️ activateApp failed: " + e.getMessage());

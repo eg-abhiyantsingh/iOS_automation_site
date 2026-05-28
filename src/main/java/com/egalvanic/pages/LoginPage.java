@@ -563,6 +563,20 @@ public void clickShowPassword() {
     private void handleSavePasswordTurbo() {
         long start = System.currentTimeMillis();
 
+        // v1.36 (changelog 075) speed fix: each findElement here uses the
+        // global 5s implicit wait. 6 missed calls (3 strategies × 2 passes)
+        // = 30s wasted per test when no popup exists (the common case).
+        // Cap implicit wait at 400ms for the duration of this method —
+        // popups, if present, render in <100ms so 400ms is plenty.
+        java.time.Duration originalWait;
+        try {
+            originalWait = driver.manage().timeouts().getImplicitWaitTimeout();
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(400));
+        } catch (Exception e) {
+            originalWait = java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT);
+        }
+        try {
+
         // Two passes — there can be two stacked popups (notification, then save-password).
         for (int pass = 1; pass <= 2; pass++) {
             boolean dismissedThisPass = false;
@@ -613,6 +627,10 @@ public void clickShowPassword() {
                 try { Thread.sleep(400); } catch (InterruptedException ignored) {}
             }
         }
+        } finally {
+            // Restore the original implicit wait so downstream calls aren't capped
+            try { driver.manage().timeouts().implicitlyWait(originalWait); } catch (Exception ignored) {}
+        }
     }
     
     /**
@@ -621,8 +639,9 @@ public void clickShowPassword() {
     public void loginTurbo(String email, String password) {
         long start = System.currentTimeMillis();
 
-        // Enter credentials (small delay ensures email field is ready for input)
-        try { Thread.sleep(500); } catch (InterruptedException e) {}
+        // v1.36 (changelog 075) speed: 500ms → 150ms (email field is ready
+        // immediately after Sign In page renders; small buffer for keyboard).
+        try { Thread.sleep(150); } catch (InterruptedException e) {}
         enterEmail(email);
         enterPassword(password);
 
