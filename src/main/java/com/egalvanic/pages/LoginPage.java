@@ -154,12 +154,38 @@ public class LoginPage extends BasePage {
     }
 
     public void enterPassword(String password) {
+        // v1.36 (changelog 075): on iOS 18.5 CI runners the SecureTextField
+        // has visible=false (iOS security behaviour) which makes
+        // waitForClickable time out. Try a direct find+click first, falling
+        // back to coordinate tap if the standard click chain fails.
+        try {
+            WebElement field = driver.findElement(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeSecureTextField'"));
+            try {
+                field.click();
+            } catch (Exception clickEx) {
+                // Coordinate tap fallback — SecureTextField may report
+                // visible=false, but tapping its location still works.
+                org.openqa.selenium.Point loc = field.getLocation();
+                org.openqa.selenium.Dimension sz = field.getSize();
+                int x = loc.getX() + sz.getWidth() / 2;
+                int y = loc.getY() + sz.getHeight() / 2;
+                driver.executeScript("mobile: tap", java.util.Map.of("x", x, "y", y));
+                System.out.println("✅ Password field tapped via coord at (" + x + "," + y + ")");
+            }
+            try { field.clear(); } catch (Exception ignored) {}
+            field.sendKeys(password);
+            return;
+        } catch (Exception e) {
+            System.out.println("⚠️ Direct password field path failed: " + e.getMessage() + " — falling back to click() chain");
+        }
+        // Legacy fallback (uses BasePage.click's full retry chain)
         try {
             click(passwordField);
             passwordField.clear();
             passwordField.sendKeys(password);
         } catch (org.openqa.selenium.StaleElementReferenceException e) {
-            // Re-find element if stale
             System.out.println("⚠️ Password field stale, re-finding...");
             WebElement freshPasswordField = driver.findElement(
                 io.appium.java_client.AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeSecureTextField'")

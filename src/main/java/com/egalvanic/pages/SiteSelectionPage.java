@@ -669,21 +669,37 @@ public class SiteSelectionPage extends BasePage {
             if (clearBtn != null) {
                 clearBtn.click();
                 System.out.println("✅ Search box cleared");
-                // Wait for search bar to be ready again (CI-safe)
                 waitForVisibility(searchBar, 2);
                 return;
             }
         } catch (Exception e) {
             System.out.println("⚠️ Clear button not found");
         }
-        
+
         try {
-            // Fallback: Find by accessibility ID
             driver.findElement(By.xpath("//XCUIElementTypeButton[@name='xmark.circle.fill']")).click();
             System.out.println("✅ Search box cleared (xpath)");
             waitForVisibility(searchBar, 2);
+            return;
         } catch (Exception e) {
-            System.out.println("⚠️ Could not clear search: " + e.getMessage());
+            System.out.println("⚠️ xmark.circle.fill not found, trying field-level clear...");
+        }
+
+        // v1.36 (changelog 075): if the xmark.circle.fill button doesn't appear
+        // (some search-bar implementations skip it), clear by finding the field
+        // and invoking .clear() on it directly.
+        try {
+            java.util.List<WebElement> fields = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeSearchField'"));
+            for (WebElement f : fields) {
+                if (f.getLocation().getY() > 120) {
+                    f.clear();
+                    System.out.println("✅ Search field cleared via field.clear() fallback");
+                    return;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not clear search via field fallback: " + e.getMessage());
         }
     }
 
@@ -691,15 +707,33 @@ public class SiteSelectionPage extends BasePage {
      * Get all sites from the list
      */
     public List<WebElement> getAllSites() {
+        // v1.36 (changelog 075) — CI race: after fresh login the site list takes
+        // 1-3s to render. Tests that immediately call this returned size=0 even
+        // though sites loaded shortly after. Poll up to 5s for at least one
+        // site to appear, then return the snapshot.
+        long deadline = System.currentTimeMillis() + 5000;
+        List<WebElement> sites;
+        do {
+            sites = collectSiteButtons();
+            if (!sites.isEmpty()) return sites;
+            try { Thread.sleep(300); } catch (InterruptedException e) { Thread.currentThread().interrupt(); break; }
+        } while (System.currentTimeMillis() < deadline);
+        return sites; // empty if nothing rendered within 5s
+    }
+
+    private List<WebElement> collectSiteButtons() {
         List<WebElement> sites = new java.util.ArrayList<>();
-        for (WebElement btn : allButtons) {
-            String name = btn.getAttribute("name");
-            if (name != null && !name.equals("Emoji") && !name.equals("dictation") 
-                && !name.equals("Create New Site") && !name.equals("Cancel") 
-                && !name.equals("xmark.circle.fill") && name.contains(",")) {
-                sites.add(btn);
+        try {
+            java.util.List<WebElement> buttons = driver.findElements(AppiumBy.className("XCUIElementTypeButton"));
+            for (WebElement btn : buttons) {
+                String name = btn.getAttribute("name");
+                if (name != null && !name.equals("Emoji") && !name.equals("dictation")
+                    && !name.equals("Create New Site") && !name.equals("Cancel")
+                    && !name.equals("xmark.circle.fill") && name.contains(",")) {
+                    sites.add(btn);
+                }
             }
-        }
+        } catch (Exception ignored) {}
         return sites;
     }
 
