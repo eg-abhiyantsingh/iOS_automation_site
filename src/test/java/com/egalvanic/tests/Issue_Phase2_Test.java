@@ -60,28 +60,12 @@ public final class Issue_Phase2_Test extends BaseTest {
      * Navigate to Issues screen with retry logic.
      * Ensures the test starts on the Issues screen.
      */
-    private boolean ensureOnIssuesScreen() {
-        // v1.36 (changelog 075) speed: stripped to fast path (was burning
-        // 10-30s on recovery dance). Matches Issue_Phase1_Test version.
-        if (issuePage.isIssuesScreenDisplayed()) {
-            System.out.println("✓ Already on Issues screen");
-            return true;
-        }
-        try {
-            return issuePage.navigateToIssuesScreen();
-        } catch (Exception e) {
-            System.out.println("⚠️ navigateToIssuesScreen failed: " + e.getMessage());
-            return false;
-        }
-    }
 
     /**
      * Common setup: navigate to Issues, open first issue, change to target class,
      * scroll down, and open Subcategory dropdown. Used by OSHA/NFPA subcategory tests.
      */
     private void openIssueWithClassAndSubcategory(String issueClass) {
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
         issuePage.tapAllTab();
         issuePage.tapFirstIssue();
         issuePage.changeIssueClassOnDetails(issueClass);
@@ -96,8 +80,6 @@ public final class Issue_Phase2_Test extends BaseTest {
      * Used by Thermal Anomaly, Repair Needed, Ultrasonic tests.
      */
     private void openIssueWithClass(String issueClass) {
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
         issuePage.tapAllTab();
         issuePage.tapFirstIssue();
         issuePage.changeIssueClassOnDetails(issueClass);
@@ -616,8 +598,6 @@ public final class Issue_Phase2_Test extends BaseTest {
             "TC_ISS_134 - Verify OSHA subcategories are different from NEC");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -703,8 +683,6 @@ public final class Issue_Phase2_Test extends BaseTest {
             "TC_ISS_135 - Verify OSHA subcategories are different from NFPA");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -1083,8 +1061,6 @@ public final class Issue_Phase2_Test extends BaseTest {
             "TC_ISS_142 - Verify creating Repair Needed issue without subcategory");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         String tempTitle = "TempRepairTest_" + System.currentTimeMillis();
         logStep("Step 2: Create a Repair Needed issue: '" + tempTitle + "'");
@@ -1143,8 +1119,6 @@ public final class Issue_Phase2_Test extends BaseTest {
             "TC_ISS_143 - Verify Repair Needed different from violation classes");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -1871,8 +1845,6 @@ public final class Issue_Phase2_Test extends BaseTest {
             "TC_ISS_159 - Verify Problem Temp field is required");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -1931,8 +1903,6 @@ public final class Issue_Phase2_Test extends BaseTest {
             "TC_ISS_160 - Verify entering Problem Temp number");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -1986,8 +1956,6 @@ public final class Issue_Phase2_Test extends BaseTest {
             "TC_ISS_161 - Verify Problem Temp accepts numeric input only");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -2030,8 +1998,6 @@ public final class Issue_Phase2_Test extends BaseTest {
             "TC_ISS_162 - Verify Reference Temp field is required");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -2090,8 +2056,6 @@ public final class Issue_Phase2_Test extends BaseTest {
             "TC_ISS_163 - Verify entering Reference Temp number");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -2146,8 +2110,6 @@ public final class Issue_Phase2_Test extends BaseTest {
             "TC_ISS_164 - Verify Current Draw table structure");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -2214,8 +2176,6 @@ public final class Issue_Phase2_Test extends BaseTest {
             "TC_ISS_165 - Verify entering Current Draw values");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -2278,8 +2238,6 @@ public final class Issue_Phase2_Test extends BaseTest {
             "TC_ISS_166 - Verify Current Draw is optional");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -2333,8 +2291,6 @@ public final class Issue_Phase2_Test extends BaseTest {
             "TC_ISS_167 - Verify Voltage Drop table structure");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -2403,8 +2359,6 @@ public final class Issue_Phase2_Test extends BaseTest {
             "TC_ISS_168 - Verify entering Voltage Drop values");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -2468,8 +2422,6 @@ public final class Issue_Phase2_Test extends BaseTest {
             "TC_ISS_169 - Verify Voltage Drop is optional");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -2544,8 +2496,6 @@ public final class Issue_Phase2_Test extends BaseTest {
             "TC_ISS_170 - Verify Required fields only toggle");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -2621,8 +2571,6 @@ public final class Issue_Phase2_Test extends BaseTest {
             "TC_ISS_171 - Verify Required fields only shows 3/3 when complete");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -2889,8 +2837,6 @@ public final class Issue_Phase2_Test extends BaseTest {
             "TC_ISS_176 - Verify Thermal Anomaly different from NEC/OSHA");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 

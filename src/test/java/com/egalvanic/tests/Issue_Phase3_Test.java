@@ -46,20 +46,6 @@ public final class Issue_Phase3_Test extends BaseTest {
      * Navigate to Issues screen with retry logic.
      * Ensures the test starts on the Issues screen.
      */
-    private boolean ensureOnIssuesScreen() {
-        // v1.36 (changelog 075) speed: stripped to fast path (was burning
-        // 10-30s on recovery dance). Matches Issue_Phase1_Test version.
-        if (issuePage.isIssuesScreenDisplayed()) {
-            System.out.println("✓ Already on Issues screen");
-            return true;
-        }
-        try {
-            return issuePage.navigateToIssuesScreen();
-        } catch (Exception e) {
-            System.out.println("⚠️ navigateToIssuesScreen failed: " + e.getMessage());
-            return false;
-        }
-    }
 
     // ================================================================
     // ULTRASONIC ANOMALY — SAVE & CREATE (TC_ISS_180-181)
@@ -75,8 +61,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ULTRASONIC_ANOMALY,
             "TC_ISS_180 - Verify Save Changes available for Ultrasonic Anomaly");
         loginAndSelectSite();
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Tap on first issue to open details");
@@ -156,8 +140,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ULTRASONIC_ANOMALY,
             "TC_ISS_181 - Verify creating Ultrasonic Anomaly issue");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Note current issue count");
@@ -240,8 +222,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ULTRASONIC_ANOMALY,
             "TC_ISS_182 - Verify Ultrasonic different from Thermal Anomaly");
 
-        logStep("Step 1: Ensure on Issues screen and open first issue");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         issuePage.tapFirstIssue();
@@ -337,8 +317,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ULTRASONIC_ANOMALY,
             "TC_ISS_183 - Verify Ultrasonic similar to Repair Needed");
 
-        logStep("Step 1: Ensure on Issues screen and open issue");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         issuePage.tapFirstIssue();
@@ -424,8 +402,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_STATUS_FILTERS,
             "TC_ISS_184 - Verify all 5 status filter tabs visible");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Get initially visible filter tabs");
@@ -499,8 +475,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_STATUS_FILTERS,
             "TC_ISS_185 - Verify Resolved tab filters correctly");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Note total count from All tab");
@@ -559,8 +533,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_STATUS_FILTERS,
             "TC_ISS_186 - Verify Closed tab filters correctly");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Tap All tab first to establish baseline");
@@ -619,8 +591,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_STATUS_FILTERS,
             "TC_ISS_187 - Verify In Progress tab count updates");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Record initial In Progress count");
@@ -714,8 +684,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_STATUS_FILTERS,
             "TC_ISS_188 - Verify filter tabs are scrollable");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Get tabs visible before scrolling");
@@ -791,8 +759,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_IN_PROGRESS_STATUS,
             "TC_ISS_189 - Verify In Progress badge on issue entry");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Tap All tab to see all issues");
@@ -893,8 +859,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_IN_PROGRESS_STATUS,
             "TC_ISS_190 - Verify In Progress in Issue Details header");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Open first issue (should be In Progress from TC_ISS_187)");
@@ -944,8 +908,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_IN_PROGRESS_STATUS,
             "TC_ISS_191 - Verify In Progress status field value");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Open first issue");
@@ -1010,8 +972,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_ICONS,
             "TC_ISS_192 - Verify different icons for different issue types");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Tap All tab to see all issues");
@@ -1043,8 +1003,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_ICONS,
             "TC_ISS_193 - Verify warning icon for Ultrasonic Anomaly");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Tap All tab to see all issues");
@@ -1078,8 +1036,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_PRIORITY_BADGES,
             "TC_ISS_194 - Verify Low priority badge (blue)");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Tap All tab to see all issues");
@@ -1149,8 +1105,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_ENTRY,
             "TC_ISS_195 - Verify issue with description shows additional text");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Tap All tab");
@@ -1231,8 +1185,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_STATUS_WORKFLOW,
             "TC_ISS_196 - Verify status progression Open to In Progress");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Tap Open tab to find an Open issue");
@@ -1342,8 +1294,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_STATUS_WORKFLOW,
             "TC_ISS_197 - Verify status progression In Progress to Resolved");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Find an In Progress issue");
@@ -1446,8 +1396,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_STATUS_WORKFLOW,
             "TC_ISS_198 - Verify status progression Resolved to Closed");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Find a Resolved issue");
@@ -1544,8 +1492,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_STATUS_WORKFLOW,
             "TC_ISS_199 - Verify can reopen Closed issue");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Find a Closed issue");
@@ -1652,8 +1598,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_FILTER_COUNTS,
             "TC_ISS_200 - Verify total count equals sum of all statuses");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Get All tab count");
@@ -1717,8 +1661,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SWIPE_ACTIONS,
             "TC_ISS_201 - Verify swipe left reveals action buttons");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Tap All tab to ensure issues are visible");
@@ -1773,8 +1715,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SWIPE_ACTIONS,
             "TC_ISS_202 - Verify Delete button on swipe");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         issuePage.tapAllTab();
@@ -1825,8 +1765,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SWIPE_ACTIONS,
             "TC_ISS_203 - Verify Resolve button on swipe");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         issuePage.tapAllTab();
@@ -1876,8 +1814,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SWIPE_ACTIONS,
             "TC_ISS_204 - Verify tapping Delete from swipe");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Tap All tab and note issue count");
@@ -1950,8 +1886,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SWIPE_ACTIONS,
             "TC_ISS_205 - Verify tapping Resolve from swipe");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Tap Open tab to find an Open issue to resolve");
@@ -2029,8 +1963,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SWIPE_ACTIONS,
             "TC_ISS_206 - Verify swipe actions hide on tap elsewhere");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         issuePage.tapAllTab();
@@ -2105,8 +2037,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SWIPE_ACTIONS,
             "TC_ISS_207 - Verify swipe works on all issue types");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         issuePage.tapAllTab();
@@ -2175,8 +2105,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SWIPE_ACTIONS,
             "TC_ISS_208 - Verify only one issue shows swipe actions at a time");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         issuePage.tapAllTab();
@@ -2247,8 +2175,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SWIPE_ACTIONS,
             "TC_ISS_209 - Verify Resolve is quick action vs opening details");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Tap Open tab to find an Open issue");
@@ -2333,8 +2259,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SWIPE_ACTIONS,
             "TC_ISS_210 - Verify swipe on already Resolved issue");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Navigate to Resolved tab to find a Resolved issue");
@@ -2396,8 +2320,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SWIPE_ACTIONS,
             "TC_ISS_211 - Verify Delete confirmation from swipe");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Tap All tab and note current count");
@@ -2479,8 +2401,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SWIPE_ACTIONS,
             "TC_ISS_212 - Verify issue removed after swipe Delete");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Tap All tab and record initial state");
@@ -2574,8 +2494,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_WITH_PHOTOS_FILTER,
             "TC_ISS_213 - Verify With Photos filter tab is visible");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Tap All tab first to start from known state");
@@ -2626,8 +2544,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_WITH_PHOTOS_FILTER,
             "TC_ISS_214 - Verify With Photos filters issues with photos");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Record All tab count for comparison");
@@ -2717,8 +2633,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_WITH_PHOTOS_FILTER,
             "TC_ISS_215 - Verify With Photos count accuracy");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Navigate to With Photos tab");
@@ -2777,8 +2691,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_MY_SESSION_FILTER,
             "TC_ISS_216 - Verify My Session filter tab appears");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Start from All tab");
@@ -2845,8 +2757,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_MY_SESSION_FILTER,
             "TC_ISS_217 - Verify My Session tab styling");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Navigate to My Session tab");
@@ -2918,8 +2828,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_MY_SESSION_FILTER,
             "TC_ISS_218 - Verify My Session filters session issues");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Record All tab count for comparison");
@@ -2994,8 +2902,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_MY_SESSION_FILTER,
             "TC_ISS_219 - Verify My Session count updates dynamically");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Record initial My Session count");
@@ -3101,8 +3007,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_MY_SESSION_FILTER,
             "TC_ISS_220 - Verify My Session hidden without active job");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Start from All tab");
@@ -3166,8 +3070,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_FILTER_TABS,
             "TC_ISS_221 - Verify filter tabs are scrollable horizontally");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Start from All tab");
@@ -3249,8 +3151,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SORT_ISSUES,
             "TC_ISS_222 - Verify sort icon in Issues header");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Look for sort icon (↕) in the header area");
@@ -3300,8 +3200,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SORT_ISSUES,
             "TC_ISS_223 - Verify tapping sort icon shows options dropdown");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Verify sort icon is present");
@@ -3369,8 +3267,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SORT_ISSUES,
             "TC_ISS_224 - Verify Created Date sort option with icon");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Open sort dropdown");
@@ -3425,8 +3321,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SORT_ISSUES,
             "TC_ISS_225 - Verify Modified Date sort option with icon");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Open sort dropdown");
@@ -3481,8 +3375,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SORT_ISSUES,
             "TC_ISS_226 - Verify Title sort option with icon");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Open sort dropdown");
@@ -3537,8 +3429,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SORT_ISSUES,
             "TC_ISS_227 - Verify Status sort option with icon");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Open sort dropdown");
@@ -3597,8 +3487,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SORT_ISSUES,
             "TC_ISS_228 - Verify sorting by Created Date");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Tap All tab and record current issue order");
@@ -3689,8 +3577,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SORT_ISSUES,
             "TC_ISS_229 - Verify sorting by Modified Date");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Ensure on All tab and record current order");
@@ -3789,8 +3675,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SORT_ISSUES,
             "TC_ISS_230 - Verify sorting by Title");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Tap All tab and record current issue order");
@@ -3897,8 +3781,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SORT_ISSUES,
             "TC_ISS_231 - Verify sorting by Status");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Tap All tab and record current state");
@@ -3985,8 +3867,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SORT_ISSUES,
             "TC_ISS_232 - Verify sort persists across navigation");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Apply Title sort");
@@ -4032,7 +3912,7 @@ public final class Issue_Phase3_Test extends BaseTest {
 
         if (!returnedToIssues) {
             logStep("⚠️ Could not return to Issues screen — attempting via ensureOnIssuesScreen");
-            ensureOnIssuesScreen();
+            issuePage.navigateToIssuesScreen();
             mediumWait();
         }
 
@@ -4074,8 +3954,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SORT_ISSUES,
             "TC_ISS_233 - Verify sort works with filters");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Apply Open filter");
@@ -4174,8 +4052,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SORT_ISSUES,
             "TC_ISS_234 - Verify tapping outside closes sort dropdown");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Record current issue order");
@@ -4248,8 +4124,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SORT_ISSUES,
             "TC_ISS_235 - Verify only one sort active at a time");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         issuePage.tapAllTab();
@@ -4336,8 +4210,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SORT_ISSUES,
             "TC_ISS_236 - Verify Status sort groups by status type");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Tap All tab to show all issues");
@@ -4443,8 +4315,6 @@ public final class Issue_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SORT_ISSUES,
             "TC_ISS_237 - Verify sort applies to All issues view");
 
-        logStep("Step 1: Ensure on Issues screen");
-        assertTrue(ensureOnIssuesScreen(), "Should be on Issues screen");
         mediumWait();
 
         logStep("Step 2: Select All filter tab");

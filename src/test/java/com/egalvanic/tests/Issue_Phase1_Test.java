@@ -66,23 +66,6 @@ public final class Issue_Phase1_Test extends BaseTest {
      * Navigate to Issues screen with retry logic.
      * Ensures the test starts on the Issues screen.
      */
-    private boolean ensureOnIssuesScreen() {
-        // v1.36 (changelog 075) speed: per user feedback, the original method
-        // burned 10-30s per call (modal-dismiss probes + detectCurrentScreen +
-        // login recovery + retries) even on the happy path where the test had
-        // just done loginAndSelectSite(). Fast version: a single nav attempt;
-        // skip recovery (BaseTest.@BeforeMethod already lands us on Dashboard).
-        if (issuePage.isIssuesScreenDisplayed()) {
-            System.out.println("✓ Already on Issues screen");
-            return true;
-        }
-        try {
-            return issuePage.navigateToIssuesScreen();
-        } catch (Exception e) {
-            System.out.println("⚠️ navigateToIssuesScreen failed: " + e.getMessage());
-            return false;
-        }
-    }
 
     /**
      * Navigate to New Issue form (Issues screen → tap + button).
@@ -96,7 +79,7 @@ public final class Issue_Phase1_Test extends BaseTest {
         }
 
         // Navigate to Issues screen first
-        if (!ensureOnIssuesScreen()) {
+        if (!issuePage.navigateToIssuesScreen()) {
             return false;
         }
 
@@ -132,9 +115,6 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         loginAndSelectSite();
         // Ensure on Dashboard
-        logStep("Step 1: Navigate to Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         logStep("Step 2: Verify Issues title is displayed");
         boolean titleDisplayed = issuePage.isIssuesTitleDisplayed();
@@ -168,9 +148,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUES_LIST,
             "TC_ISS_002 - Verify Search bar on Issues screen");
 
-        logStep("Step 1: Navigate to Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         logStep("Step 2: Verify search bar is displayed");
         boolean searchDisplayed = issuePage.isSearchBarDisplayed();
@@ -193,9 +170,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUES_LIST,
             "TC_ISS_003 - Verify filter tabs displayed");
 
-        logStep("Step 1: Navigate to Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         logStep("Step 2: Verify All tab is displayed");
         boolean allTab = issuePage.isAllTabDisplayed();
@@ -229,9 +203,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUES_LIST,
             "TC_ISS_004 - Verify Open tab selected by default");
 
-        logStep("Step 1: Navigate to Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         logStep("Step 2: Verify Open tab is selected by default");
         boolean openSelected = issuePage.isOpenTabSelected();
@@ -253,9 +224,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUES_LIST,
             "TC_ISS_005 - Verify All tab shows all issues");
 
-        logStep("Step 1: Navigate to Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         logStep("Step 2: Note current issue count (Open tab)");
         int openCount = issuePage.getVisibleIssueCount();
@@ -287,9 +255,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUES_LIST,
             "TC_ISS_006 - Verify Resolved and Closed tabs filter correctly");
 
-        logStep("Step 1: Navigate to Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         logStep("Step 2: Tap Resolved tab");
         issuePage.tapResolvedTab();
@@ -332,9 +297,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUES_LIST,
             "TC_ISS_007 - Verify issue count in tabs");
 
-        logStep("Step 1: Navigate to Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         logStep("Step 2: Read counts from all tabs");
         int allCount = issuePage.getAllTabCount();
@@ -377,9 +339,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_ENTRY,
             "TC_ISS_008 - Verify issue entry displays all elements");
 
-        logStep("Step 1: Navigate to Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         logStep("Step 2: Ensure issues exist in the list");
         // Switch to All tab to maximize chance of having entries
@@ -412,9 +371,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_ENTRY,
             "TC_ISS_009 - Verify issue type icons");
 
-        logStep("Step 1: Navigate to Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -439,9 +395,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_ENTRY,
             "TC_ISS_010 - Verify High priority badge");
 
-        logStep("Step 1: Navigate to Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -468,9 +421,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_ENTRY,
             "TC_ISS_011 - Verify Medium priority badge");
     
-        logStep("Step 1: Navigate to Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -497,9 +447,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_ENTRY,
             "TC_ISS_012 - Verify Open status badge");
 
-        logStep("Step 1: Navigate to Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         logStep("Step 2: Ensure Open tab is selected");
         issuePage.tapOpenTab();
@@ -526,9 +473,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_ENTRY,
             "TC_ISS_013 - Verify asset name displayed on issue");
 
-        logStep("Step 1: Navigate to Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -554,9 +498,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_ENTRY,
             "TC_ISS_014 - Verify long title truncation");
 
-        logStep("Step 1: Navigate to Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -590,9 +531,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SEARCH_ISSUES,
             "TC_ISS_015 - Verify search filters issues");
 
-        logStep("Step 1: Navigate to Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -628,9 +566,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SEARCH_ISSUES,
             "TC_ISS_016 - Verify search by asset name");
 
-        logStep("Step 1: Navigate to Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -662,9 +597,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SEARCH_ISSUES,
             "TC_ISS_017 - Verify search no results");
 
-        logStep("Step 1: Navigate to Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -697,9 +629,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SEARCH_ISSUES,
             "TC_ISS_018 - Verify clearing search restores list");
 
-        logStep("Step 1: Navigate to Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -748,9 +677,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SORT_ISSUES,
             "TC_ISS_019 - Verify Sort icon in header");
 
-        logStep("Step 1: Navigate to Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         logStep("Step 2: Verify Sort icon is present in header");
         boolean sortDisplayed = issuePage.isSortIconDisplayed();
@@ -769,9 +695,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_SORT_ISSUES,
             "TC_ISS_020 - Verify tapping Sort opens options");
 
-        logStep("Step 1: Navigate to Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         logStep("Step 2: Tap Sort icon");
         issuePage.tapSortIcon();
@@ -804,9 +727,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_NEW_ISSUE,
             "TC_ISS_021 - Verify + button opens New Issue screen");
 
-        logStep("Step 1: Navigate to Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         logStep("Step 2: Tap + (Add) button");
         issuePage.tapAddButton();
@@ -1705,8 +1625,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_050 - Verify new issue appears in list");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         logStep("Step 2: Switch to All tab to see all issues");
         issuePage.tapAllTab();
@@ -1741,8 +1659,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_051 - Verify issue count increases");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         logStep("Step 2: Read current tab counts");
         int allCount = issuePage.getAllTabCount();
@@ -1771,8 +1687,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_052 - Verify tapping issue opens details");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         logStep("Step 2: Switch to All tab");
         issuePage.tapAllTab();
@@ -1805,8 +1719,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_053 - Verify Issue Details header");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -1841,8 +1753,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_054 - Verify Status dropdown");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -1880,8 +1790,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_055 - Verify changing status to In Progress");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -1916,8 +1824,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_056 - Verify changing status to Resolved");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -1952,8 +1858,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_057 - Verify changing status to Closed");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -1988,8 +1892,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_058 - Verify Priority displayed and editable");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -2024,8 +1926,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_059 - Verify Issue Class displayed and editable");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -2066,8 +1966,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_060 - Verify Issue Details section with completion percentage");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -2113,8 +2011,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_061 - Verify Required fields only toggle");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -2170,8 +2066,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_062 - Verify Subcategory field for NEC Violation");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -2214,8 +2108,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_063 - Verify Subcategory dropdown options for NEC");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -2264,8 +2156,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_064 - Verify selecting NEC subcategory");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -2307,8 +2197,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_065 - Verify all NEC subcategory options");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -2363,8 +2251,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_066 - Verify Subcategory is searchable/typeable");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -2410,8 +2296,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_067 - Verify Description field");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -2454,8 +2338,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_068 - Verify entering description");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -2500,8 +2382,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_069 - Verify Proposed Resolution field");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -2548,8 +2428,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_070 - Verify entering proposed resolution");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -2590,8 +2468,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_071 - Verify Issue Photos section");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -2645,8 +2521,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_072 - Verify Gallery button opens photo picker");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -2687,8 +2561,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_073 - Verify Camera button opens camera");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -2738,8 +2610,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_074 - Verify Delete Issue button");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -2774,8 +2644,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_075 - Verify Delete Issue shows confirmation dialog");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -2821,8 +2689,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         String tempIssueTitle = "TempDeleteTest_" + System.currentTimeMillis();
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         logStep("Step 2: Create a temporary issue for deletion testing");
         logStep("   Temp issue title: " + tempIssueTitle);
@@ -2859,7 +2725,7 @@ public final class Issue_Phase1_Test extends BaseTest {
         } else {
             logStep("ℹ️ May not be on Issues list — checking...");
             // Try navigating back
-            ensureOnIssuesScreen();
+            issuePage.navigateToIssuesScreen();
         }
 
         logStep("Step 8: Verify deleted issue no longer in list");
@@ -2890,8 +2756,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_077 - Verify Save Changes button");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -2936,8 +2800,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_078 - Verify saving changes updates issue");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -2995,8 +2857,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_079 - Verify unsaved changes warning");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -3048,8 +2908,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_080 - Verify Done button returns to previous screen");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         logStep("Step 2: Verify Done button is displayed");
         boolean doneDisplayed = issuePage.isDoneButtonDisplayed();
@@ -3094,8 +2952,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_081 - Verify Close button on Issue Details returns to Issues list");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -3150,8 +3006,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_082 - Verify OSHA Violation has specific subcategories");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -3215,8 +3069,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_083 - Verify Thermal Anomaly has specific subcategories");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -3286,8 +3138,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_084 - Verify creating issue without optional fields");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         logStep("Step 2: Create issue with only asset selected (minimal required field)");
         boolean created = issuePage.createMinimalIssue(null);
@@ -3297,7 +3147,7 @@ public final class Issue_Phase1_Test extends BaseTest {
 
             logStep("Step 3: Verify on Issues list and the issue exists");
             if (!issuePage.isIssuesScreenDisplayed()) {
-                ensureOnIssuesScreen();
+                issuePage.navigateToIssuesScreen();
             }
             issuePage.tapAllTab();
 
@@ -3318,7 +3168,7 @@ public final class Issue_Phase1_Test extends BaseTest {
 
             // Ensure back on Issues screen
             if (!issuePage.isIssuesScreenDisplayed()) {
-                ensureOnIssuesScreen();
+                issuePage.navigateToIssuesScreen();
             }
         }
     }
@@ -3334,8 +3184,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_085 - Verify very long description handling");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -3389,8 +3237,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         String specialTitle = "Test @#$% Issue!";
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         logStep("Step 2: Create issue with special characters in title: '" + specialTitle + "'");
         boolean created = issuePage.createIssueWithTitle(specialTitle, null);
@@ -3400,7 +3246,7 @@ public final class Issue_Phase1_Test extends BaseTest {
 
             logStep("Step 3: Verify issue appears in list");
             if (!issuePage.isIssuesScreenDisplayed()) {
-                ensureOnIssuesScreen();
+                issuePage.navigateToIssuesScreen();
             }
             issuePage.tapAllTab();
 
@@ -3429,7 +3275,7 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Ensure back on Issues screen
         if (!issuePage.isIssuesScreenDisplayed()) {
-            ensureOnIssuesScreen();
+            issuePage.navigateToIssuesScreen();
         }
     }
 
@@ -3452,8 +3298,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_087 - Verify can create issue offline");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         logStep("Step 2: Attempt to go offline (disable connectivity)");
         boolean wentOffline = issuePage.enableAirplaneMode();
@@ -3488,7 +3332,7 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Ensure back on Issues screen
         if (!issuePage.isIssuesScreenDisplayed()) {
-            ensureOnIssuesScreen();
+            issuePage.navigateToIssuesScreen();
         }
     }
 
@@ -3505,8 +3349,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_088 - Verify can edit issue offline");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -3560,7 +3402,7 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         // Ensure back on Issues screen
         if (!issuePage.isIssuesScreenDisplayed()) {
-            ensureOnIssuesScreen();
+            issuePage.navigateToIssuesScreen();
         }
     }
 
@@ -3640,8 +3482,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_090 - Verify scrolling performance");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -3693,8 +3533,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_091 - Verify Subcategory field for NFPA 70B Violation");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -3748,8 +3586,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_092 - Verify NFPA 70B subcategory dropdown opens with chapter options");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -3800,8 +3636,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_093 - Verify Chapter 28.3.2 Motor Control Equipment Cleaning");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -3839,8 +3673,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_094 - Verify Chapter 28.3.1 Visual Inspections");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -3878,8 +3710,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_095 - Verify Chapter 15.3.2 Circuit Breakers");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -3917,8 +3747,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_096 - Verify Chapter 15.3.1 Visual Inspections");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -3956,8 +3784,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_097 - Verify Chapter 25.3.2 UPS Cleaning");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -3995,8 +3821,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_098 - Verify Chapter 25.3.1 Visual Inspections");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -4034,8 +3858,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_099 - Verify Chapter 11.3.2 Power and Distribution Transformer Cleaning");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -4081,8 +3903,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_100 - Verify Chapter 11.3.1 Visual Inspections");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -4120,8 +3940,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_101 - Verify Chapter 12.3.2 Substations and Switchgear Cleaning");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -4159,8 +3977,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_102 - Verify Chapter 12.3.1 Visual Inspections");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -4198,8 +4014,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_103 - Verify Chapter 13.5.2 Panelboards and Switchboards Cleaning");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -4237,8 +4051,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_104 - Verify Chapter 13.3.1 Visual Inspections");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -4276,8 +4088,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_105 - Verify Chapter 17.3.1 Visual Inspections");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -4320,8 +4130,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_106 - Verify selecting NFPA 70B subcategory");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -4370,8 +4178,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_107 - Verify subcategory search/filter with 'Visual'");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -4428,8 +4234,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_108 - Verify subcategory search by chapter number '15.3'");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -4491,8 +4295,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_109 - Verify 100% completion when all required fields filled");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -4567,8 +4369,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_110 - Verify incomplete percentage shown with orange dot");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -4640,8 +4440,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_111 - Verify green checkmark on filled subcategory");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -4703,8 +4501,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_112 - Verify changing Issue Class updates Subcategory options");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -4771,8 +4567,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_113 - Verify Subcategory cleared when Issue Class changes");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -4832,8 +4626,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_114 - Verify OSHA Violation has different subcategories");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -4877,8 +4669,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_115 - Verify Repair Needed subcategories");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -4922,8 +4712,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_116 - Verify Thermal Anomaly subcategories");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -4967,8 +4755,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_117 - Verify Ultrasonic Anomaly subcategories");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -5017,8 +4803,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_118 - Verify clear selected subcategory (X button)");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -5085,8 +4869,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_119 - Verify OSHA Subcategory field verification");
 
         logStep("Step 1: Ensure on Issues screen");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         issuePage.tapAllTab();
 
@@ -5160,9 +4942,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_CLASS,
             "TC_ISS_SAFETY_01 - Verify 'Safety' NOT in Issue Class dropdown");
 
-        logStep("Step 1: Navigate to Issues + open New Issue form");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
         boolean onForm = ensureOnNewIssueForm();
         assertTrue(onForm, "Should be on New Issue form");
 
@@ -5200,8 +4979,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_SAFETY_02 - Verify 'Notification' NOT in Issue Class dropdown");
 
         logStep("Step 1: Navigate to New Issue form");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
         boolean onForm = ensureOnNewIssueForm();
         assertTrue(onForm, "Should be on New Issue form");
 
@@ -5235,8 +5012,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_SAFETY_03 - Verify expected Issue Class list");
 
         logStep("Step 1: Open New Issue form + dropdown");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
         boolean onForm = ensureOnNewIssueForm();
         assertTrue(onForm, "Should be on New Issue form");
         assertTrue(issuePage.openIssueClassDropdown(), "Should open Issue Class dropdown");
@@ -5282,8 +5057,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_SAFETY_04 - Verify Replacement Needed option selectable");
 
         logStep("Step 1: Open New Issue form");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
         boolean onForm = ensureOnNewIssueForm();
         assertTrue(onForm, "Should be on New Issue form");
 
@@ -5313,8 +5086,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_SAFETY_05 - Verify Issue Class option count");
 
         logStep("Step 1: Open dropdown");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
         boolean onForm = ensureOnNewIssueForm();
         assertTrue(onForm, "Should be on New Issue form");
         assertTrue(issuePage.openIssueClassDropdown(), "Should open Issue Class dropdown");
@@ -5346,9 +5117,6 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUES_LIST,
             "TC_ISS_SAFETY_06 - Verify existing issues display regardless of class");
 
-        logStep("Step 1: Navigate to Issues list");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
 
         logStep("Step 2: Verify list renders without crash even if any issue has retired class");
         // We don't assert on specific class — just that the list rendered without an error overlay
@@ -5375,8 +5143,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_IR_01 - Verify IR Photo section state on Issue Details");
 
         logStep("Step 1: Open the first issue from the list");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
         issuePage.tapAllTab();
         issuePage.tapFirstIssue(); boolean opened = issuePage.isIssueDetailsScreenDisplayed();
         skipIfPreconditionMissing(
@@ -5413,8 +5179,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_IR_02 - Verify tap IR photo opens viewer");
 
         logStep("Step 1: Find an issue with IR photos");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
         issuePage.tapAllTab();
 
         // Try the first issue. If no IR photos, skip the test cleanly.
@@ -5457,8 +5221,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_IR_03 - Verify IR photo viewer dismissable");
 
         logStep("Step 1: Get into viewer (relies on TC_ISS_IR_02 path)");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
         issuePage.tapAllTab();
         issuePage.tapFirstIssue(); boolean opened = issuePage.isIssueDetailsScreenDisplayed();
         skipIfPreconditionMissing(
@@ -5502,8 +5264,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_IR_04 - Verify Issues list usable after IR viewer flow");
 
         logStep("Step 1: Run IR viewer flow if data permits");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
         issuePage.tapAllTab();
         issuePage.tapFirstIssue(); if (issuePage.isIssueDetailsScreenDisplayed()) {
             mediumWait();
@@ -5520,7 +5280,7 @@ public final class Issue_Phase1_Test extends BaseTest {
         }
 
         logStep("Step 2: Verify Issues screen still usable");
-        boolean stillOnIssues = ensureOnIssuesScreen();
+        boolean stillOnIssues = issuePage.navigateToIssuesScreen();
         assertTrue(stillOnIssues, "Issues screen should be reachable after IR viewer flow");
         logStep("✓ Issues screen reachable post-IR-flow");
 
@@ -5536,8 +5296,6 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_IR_05 - Verify no empty IR section for issues without IR photos");
 
         logStep("Step 1: Open an issue (any one)");
-        boolean onIssues = ensureOnIssuesScreen();
-        assertTrue(onIssues, "Should be on Issues screen");
         issuePage.tapAllTab();
         issuePage.tapFirstIssue(); boolean opened = issuePage.isIssueDetailsScreenDisplayed();
         skipIfPreconditionMissing(
