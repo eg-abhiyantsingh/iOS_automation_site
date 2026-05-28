@@ -126,7 +126,21 @@ public class IssuePage extends BasePage {
             System.out.println("📋 Tapping on Issues button...");
             int screenHeight = driver.manage().window().getSize().getHeight();
 
-            // Strategy 1: Find Issues button INSIDE the tab bar element (most reliable)
+            // v1.36 (changelog 075): Issues is a Quick Action CARD on Dashboard
+            // (middle of screen), NOT a tab bar item. Try the canonical
+            // accessibilityId("Issues") first — on v1.36 the only element with
+            // this id is the Quick Action button (unambiguous).
+            try {
+                WebElement issuesQA = driver.findElement(AppiumBy.accessibilityId("Issues"));
+                issuesQA.click();
+                sleep(500);
+                System.out.println("✓ Tapped Issues Quick Action (v1.36)");
+                return true;
+            } catch (Exception qaEx) {
+                System.out.println("   accessibilityId('Issues') not found, trying tab-bar fallback...");
+            }
+
+            // Legacy Strategy 1: Find Issues button INSIDE the tab bar element
             try {
                 WebDriverWait barWait = new WebDriverWait(driver, Duration.ofSeconds(3));
                 WebElement tabBar = barWait.until(ExpectedConditions.presenceOfElementLocated(
