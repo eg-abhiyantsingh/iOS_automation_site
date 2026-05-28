@@ -510,12 +510,27 @@ public class SiteSelectionPage extends BasePage {
      * Check if Search bar is displayed - uses multiple fallback strategies
      */
     public boolean isSearchBarDisplayed() {
-        // Try all locators
+        // v1.36 (changelog 075): align with waitForSiteListReady — match any
+        // TextField/SearchField whose placeholderValue or value contains
+        // 'search' (case-insensitive). The original FindBy proxies + visibility
+        // checks can miss the field on iOS 26.2 / 18.5 because visibility
+        // attributes vary; checking the placeholder text is the ground-truth
+        // signal.
+        try {
+            java.util.List<WebElement> fields = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeSearchField') AND " +
+                "(placeholderValue CONTAINS[c] 'search' OR value CONTAINS[c] 'search')"));
+            if (!fields.isEmpty()) {
+                System.out.println("✅ Search bar found by placeholder/value (" + fields.size() + " match)");
+                return true;
+            }
+        } catch (Exception ignored) {}
+
+        // Legacy fallbacks (older builds with proxy-friendly attributes)
         if (isElementDisplayed(searchBar)) return true;
         if (isElementDisplayed(searchBarAlt)) return true;
         if (isElementDisplayed(searchBarGeneric)) return true;
-        
-        // Fallback: Try to find any TextField directly
+
         try {
             List<WebElement> textFields = driver.findElements(AppiumBy.iOSClassChain("**/XCUIElementTypeTextField[`visible == true`]"));
             if (!textFields.isEmpty()) {
@@ -523,8 +538,7 @@ public class SiteSelectionPage extends BasePage {
                 return true;
             }
         } catch (Exception e) {}
-        
-        // Fallback: Try SearchField type
+
         try {
             List<WebElement> searchFields = driver.findElements(AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeSearchField'"));
             if (!searchFields.isEmpty()) {
@@ -532,7 +546,7 @@ public class SiteSelectionPage extends BasePage {
                 return true;
             }
         } catch (Exception e) {}
-        
+
         return false;
     }
 
