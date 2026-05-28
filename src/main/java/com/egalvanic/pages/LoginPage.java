@@ -137,12 +137,40 @@ public class LoginPage extends BasePage {
     }
 
     public void enterEmail(String email) {
+        // v1.36 (changelog 075): iOS sometimes drops sendKeys when the field
+        // loses firstResponder mid-type (observed: email field stays empty,
+        // Sign In button stays disabled). Wrap with a verify-and-retry loop.
+        for (int attempt = 1; attempt <= 3; attempt++) {
+            WebElement field = null;
+            try {
+                // Always re-find fresh — the FindBy proxy can be stale after
+                // any prior navigation or animation.
+                field = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeTextField'"));
+                try { field.click(); } catch (Exception ignored) {}
+                sleep(150);
+                try { field.clear(); } catch (Exception ignored) {}
+                field.sendKeys(email);
+                sleep(200);
+                String got = "";
+                try { got = field.getAttribute("value"); } catch (Exception ignored) {}
+                if (got != null && got.contains(email)) {
+                    if (attempt > 1) System.out.println("✅ Email entered on attempt " + attempt);
+                    return;
+                }
+                System.out.println("⚠️ Email attempt " + attempt + " field value='" + got + "' — retrying");
+            } catch (Exception e) {
+                System.out.println("⚠️ Email attempt " + attempt + " threw: " + e.getMessage());
+            }
+            sleep(300);
+        }
+
+        // Last-ditch: legacy proxy path
         try {
             click(emailField);
             emailField.clear();
             emailField.sendKeys(email);
         } catch (org.openqa.selenium.StaleElementReferenceException e) {
-            // Re-find element if stale
             System.out.println("⚠️ Email field stale, re-finding...");
             WebElement freshEmailField = driver.findElement(
                 io.appium.java_client.AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' AND visible == 1")
