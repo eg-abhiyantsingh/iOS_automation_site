@@ -846,9 +846,29 @@ public class BaseTest {
         if ("SITE_SELECTION".equals(currentScreen)) {
             // Already logged in, just need to select a site
             System.out.println("🔍 Already on Site Selection — skipping login, selecting site...");
-        } else {
-            // On Welcome/Login page or unknown — do full login
+        } else if ("WELCOME_PAGE".equals(currentScreen) || "LOGIN_PAGE".equals(currentScreen)) {
             performLogin();
+        } else {
+            // UNKNOWN or in-app (Locations / Asset Detail / Issues / etc.)
+            // We're already past the Site Selection step — just return so the
+            // test can proceed from wherever it currently is.
+            // Avoids calling performLogin() with no TextField present.
+            try {
+                io.appium.java_client.AppiumDriver d = DriverManager.getDriver();
+                java.util.List<org.openqa.selenium.WebElement> signInOrEmail = d.findElements(
+                    io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeTextField' OR (type == 'XCUIElementTypeButton' AND name == 'Sign In')"));
+                if (!signInOrEmail.isEmpty()) {
+                    System.out.println("⚠️ UNKNOWN screen has Sign-In/TextField — running performLogin");
+                    performLogin();
+                } else {
+                    System.out.println("✅ Appears in-app (no Sign-In / TextField) — skipping login flow");
+                    return;
+                }
+            } catch (Exception e) {
+                System.out.println("⚠️ In-app probe failed (" + e.getMessage() + ") — falling back to performLogin");
+                performLogin();
+            }
         }
 
         // Select first site immediately (combined wait + select)
