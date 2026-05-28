@@ -254,16 +254,39 @@ public class SiteSelectionPage extends BasePage {
      * Wait for dashboard to be ready (after selecting a site)
      */
     public void waitForDashboardReady() {
-        try {
-            wait.until(ExpectedConditions.or(
-                ExpectedConditions.visibilityOf(sitesButton),
-                ExpectedConditions.visibilityOf(refreshButton),
-                ExpectedConditions.visibilityOf(assetsCard)
-            ));
-            System.out.println("✅ Dashboard ready");
-        } catch (Exception e) {
-            System.out.println("⚠️ Dashboard wait timeout, continuing...");
+        // v1.36 (changelog 075): the original locators (sitesButton via flexible
+        // predicate, refreshButton accessibilityId 'arrow.clockwise', assetsCard
+        // predicate) can all return non-visible on iOS 18.5 CI even when the
+        // Dashboard is fully rendered. Poll multiple ground-truth signals
+        // every 500ms for up to 15s: 'Sites' accessibilityId Quick-Action,
+        // 'Welcome to' header text, 'Assets' static text, 'Issues' tab, or
+        // the WO badge.
+        long deadline = System.currentTimeMillis() + 15000;
+        while (System.currentTimeMillis() < deadline) {
+            try {
+                if (!driver.findElements(AppiumBy.accessibilityId("Sites")).isEmpty()) {
+                    System.out.println("✅ Dashboard ready (Sites Quick-Action visible)");
+                    return;
+                }
+            } catch (Exception ignored) {}
+            try {
+                java.util.List<WebElement> welcome = driver.findElements(
+                    AppiumBy.iOSNsPredicateString("label BEGINSWITH 'Welcome' OR name BEGINSWITH 'Welcome'"));
+                if (!welcome.isEmpty()) {
+                    System.out.println("✅ Dashboard ready (Welcome header visible)");
+                    return;
+                }
+            } catch (Exception ignored) {}
+            try {
+                if (!driver.findElements(AppiumBy.accessibilityId("Assets")).isEmpty()
+                    || !driver.findElements(AppiumBy.accessibilityId("Issues")).isEmpty()) {
+                    System.out.println("✅ Dashboard ready (Quick Action tile visible)");
+                    return;
+                }
+            } catch (Exception ignored) {}
+            try { Thread.sleep(500); } catch (InterruptedException e) { Thread.currentThread().interrupt(); break; }
         }
+        System.out.println("⚠️ Dashboard wait timeout (15s), continuing...");
     }
 
     // ================================================================
@@ -500,14 +523,19 @@ public class SiteSelectionPage extends BasePage {
      * Get Search bar placeholder text - flexible for different UI versions
      */
     public String getSearchBarPlaceholder() {
-        // Try multiple strategies to get placeholder
+        // v1.36 (changelog 075): prefer placeholderValue over value (an empty
+        // search bar's 'value' is the empty string but its 'placeholderValue'
+        // is the actual placeholder text "Search sites..." we want to assert on).
+        // Read placeholderValue FIRST on every strategy, and accept label/name as fallback.
         try {
-            // Strategy 1: Primary locator
-            String value = searchBar.getAttribute("value");
-            if (value != null && !value.isEmpty()) return value;
-            
             String placeholder = searchBar.getAttribute("placeholderValue");
             if (placeholder != null && !placeholder.isEmpty()) return placeholder;
+            String label = searchBar.getAttribute("label");
+            if (label != null && !label.isEmpty() && label.toLowerCase().contains("search")) return label;
+            String name = searchBar.getAttribute("name");
+            if (name != null && !name.isEmpty() && name.toLowerCase().contains("search")) return name;
+            String value = searchBar.getAttribute("value");
+            if (value != null && !value.isEmpty()) return value;
         } catch (Exception e) {}
         
         try {
@@ -940,6 +968,16 @@ public class SiteSelectionPage extends BasePage {
      * Check if Sites button is displayed on dashboard (with fallback)
      */
     public boolean isSitesButtonDisplayed() {
+        // v1.36 (changelog 075): the original FindBy predicates
+        // (sitesButton / sitesButtonAlt) return non-visible on iOS 18.5 CI
+        // even when the Quick-Action is on screen. Check the canonical
+        // accessibilityId('Sites') first, then fall back.
+        try {
+            if (!driver.findElements(AppiumBy.accessibilityId("Sites")).isEmpty()) return true;
+        } catch (Exception ignored) {}
+        try {
+            if (!driver.findElements(AppiumBy.accessibilityId("building.2")).isEmpty()) return true;
+        } catch (Exception ignored) {}
         return isElementDisplayed(sitesButton) || isElementDisplayed(sitesButtonAlt);
     }
 
