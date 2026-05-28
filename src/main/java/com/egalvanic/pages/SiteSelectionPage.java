@@ -156,12 +156,12 @@ public class SiteSelectionPage extends BasePage {
     @iOSXCUITFindBy(accessibility = "Quick Count")
     private WebElement quickCountButton;
 
-    // No Active Job Card
-    @iOSXCUITFindBy(iOSNsPredicate = "label CONTAINS 'No Active Job'")
+    // No Active Job Card (v1.36 relabeled to "No Active Work Order")
+    @iOSXCUITFindBy(iOSNsPredicate = "label CONTAINS 'No Active Job' OR label CONTAINS 'No Active Work Order' OR name CONTAINS 'No Active'")
     private WebElement noActiveJobCard;
 
-    // Tap to select a job
-    @iOSXCUITFindBy(iOSNsPredicate = "label CONTAINS 'Tap to select a job'")
+    // Tap to select a job (v1.36 relabeled to "Tap to select a work order")
+    @iOSXCUITFindBy(iOSNsPredicate = "label CONTAINS 'Tap to select' OR name CONTAINS 'Tap to select'")
     private WebElement tapToSelectJobText;
 
     // ================================================================
@@ -2307,11 +2307,34 @@ public class SiteSelectionPage extends BasePage {
      * Get Assets count text
      */
     public String getAssetsCountText() {
+        // v1.36 (changelog 075): the Assets dashboard card splits the label
+        // and the count into two sibling StaticText elements:
+        //   name="958"   (the count)
+        //   name="Assets" (the type label)
+        // The old code returned the parent card's 'label' attribute which is
+        // empty on v1.36. Find any StaticText whose name is purely digits and
+        // sits adjacent to the "Assets" label (Y range ~150-400, the dashboard
+        // cards row). Return "<count> Assets" or the raw count.
         try {
-            return assetsCard.getAttribute("label");
-        } catch (Exception e) {
-            return "";
-        }
+            // Strategy 1: find the digit StaticText near 'Assets' label
+            java.util.List<WebElement> digitTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND name MATCHES '\\\\d+'"));
+            for (WebElement el : digitTexts) {
+                int y = el.getLocation().getY();
+                if (y < 150 || y > 450) continue; // dashboard cards zone
+                String n = el.getAttribute("name");
+                if (n != null && !n.isEmpty()) {
+                    System.out.println("[getAssetsCountText] count=" + n + " at Y=" + y);
+                    return n + " Assets";
+                }
+            }
+        } catch (Exception ignored) {}
+        // Strategy 2: legacy assetsCard.label (older builds)
+        try {
+            String lbl = assetsCard.getAttribute("label");
+            if (lbl != null && !lbl.isEmpty()) return lbl;
+        } catch (Exception e) {}
+        return "";
     }
 
     /**
@@ -2336,6 +2359,19 @@ public class SiteSelectionPage extends BasePage {
      * Check if My Tasks button is displayed
      */
     public boolean isMyTasksDisplayed() {
+        // v1.36 (changelog 075): live DOM shows the tile as name="Tasks"
+        // (StaticText label) with a sibling number badge, OR as a compound
+        // accessibility id like name="694, Tasks". The original
+        // accessibility="My Tasks" never existed. Probe both forms.
+        try {
+            if (!driver.findElements(AppiumBy.accessibilityId("Tasks")).isEmpty()) return true;
+        } catch (Exception ignored) {}
+        try {
+            // Compound name pattern: "<count>, Tasks"
+            java.util.List<WebElement> compound = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "name CONTAINS 'Tasks' AND name CONTAINS ','"));
+            if (!compound.isEmpty()) return true;
+        } catch (Exception ignored) {}
         return isElementDisplayed(myTasksButton);
     }
 
@@ -2490,13 +2526,19 @@ public class SiteSelectionPage extends BasePage {
             return true;
         }
 
-        // Strategy 3: Search by partial label match
+        // Strategy 3: Search by partial label/name match — v1.36 uses
+        // "No Active Work Order" instead of "No Active Job", and "Tap to
+        // select a work order" instead of "Tap to select a job". Match either.
         try {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "(label CONTAINS 'No Active' OR label CONTAINS 'active job' OR label CONTAINS 'select a job' OR label CONTAINS 'Tap to select')"
+                "label CONTAINS 'No Active' OR label CONTAINS 'active job' OR " +
+                "label CONTAINS 'select a job' OR label CONTAINS 'Tap to select' OR " +
+                "label CONTAINS 'Work Order' OR " +
+                "name CONTAINS 'No Active' OR name CONTAINS 'Tap to select' OR " +
+                "name CONTAINS 'Work Order'"
             ));
             if (!elements.isEmpty()) {
-                System.out.println("✅ No Active Job card found via label search (found " + elements.size() + " elements)");
+                System.out.println("✅ No Active Job/Work Order card found via label/name search (" + elements.size() + " elements)");
                 return true;
             }
         } catch (Exception e) {
