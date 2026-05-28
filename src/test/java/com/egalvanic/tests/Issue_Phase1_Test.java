@@ -31,6 +31,12 @@ public final class Issue_Phase1_Test extends BaseTest {
     @BeforeMethod(alwaysRun = true)
     public void issueTestSetup() {
         issuePage = new IssuePage();
+        // v1.36 (changelog 075): every @Test needs to land on Issues screen.
+        // The previous per-test ensureOnIssuesScreen() helper was removed —
+        // do the navigation ONCE per test here instead. Single tap, no recovery dance.
+        try { issuePage.navigateToIssuesScreen(); } catch (Exception e) {
+            System.out.println("⚠️ Pre-test navigation to Issues failed: " + e.getMessage());
+        }
     }
 
     /**
@@ -114,6 +120,8 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_001 - Verify Issues screen header elements");
 
         loginAndSelectSite();
+
+        issuePage.navigateToIssuesScreen();
         // Ensure on Dashboard
 
         logStep("Step 2: Verify Issues title is displayed");

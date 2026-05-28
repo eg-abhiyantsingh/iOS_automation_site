@@ -83,6 +83,12 @@ public class LocationTest extends BaseTest {
             buildingPage = new BuildingPage();
             System.out.println("📋 LocationTest.methodSetup() - BuildingPage initialized after retry");
         }
+        // v1.36 (changelog 075): pre-test navigation to Locations screen.
+        // Replaces the per-test ensureOnLocationsScreen() helper that was
+        // removed for being too slow. Single nav call — no recovery dance.
+        try { buildingPage.navigateToLocationsScreen(); } catch (Exception e) {
+            System.out.println("⚠️ Pre-test navigation to Locations failed: " + e.getMessage());
+        }
     }
 
     // ============================================================

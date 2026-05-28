@@ -30,6 +30,10 @@ public final class Issue_Phase2_Test extends BaseTest {
     @BeforeMethod(alwaysRun = true)
     public void issuePhase2TestSetup() {
         issuePage = new IssuePage();
+        // v1.36 (changelog 075): pre-test navigation to Issues screen
+        try { issuePage.navigateToIssuesScreen(); } catch (Exception e) {
+            System.out.println("⚠️ Pre-test navigation to Issues failed: " + e.getMessage());
+        }
     }
 
     /**
@@ -102,6 +106,7 @@ public final class Issue_Phase2_Test extends BaseTest {
             "TC_ISS_120 - Verify OSHA subcategory dropdown options");
                 loginAndSelectSite();
       
+                issuePage.navigateToIssuesScreen();
         openIssueWithClassAndSubcategory("OSHA Violation");
 
         logStep("Step 5: Verify all 9 OSHA category prefixes are present");
