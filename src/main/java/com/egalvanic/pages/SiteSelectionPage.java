@@ -234,20 +234,37 @@ public class SiteSelectionPage extends BasePage {
     
     /**
      * Wait for site list to be ready (site selection screen loaded)
-     * Fast timeout (2 seconds total max)
      */
     public void waitForSiteListReady() {
-        try {
-            // Wait for search bar and sites (2 seconds total max)
-            WebDriverWait quickWait = new WebDriverWait(driver, Duration.ofSeconds(2));
-            quickWait.until(ExpectedConditions.or(
-                ExpectedConditions.visibilityOf(searchBar),
-                ExpectedConditions.visibilityOf(searchBarAlt)
-            ));
-            System.out.println("✅ Site list ready");
-        } catch (Exception e) {
-            System.out.println("⚠️ Site list wait timeout: " + e.getMessage());
+        // v1.36 (changelog 075): the 2s cap was too aggressive — on fresh
+        // post-login screens the search field + site rows take 2-5s to render.
+        // Poll every 300ms for up to 10s on multiple ground-truth signals:
+        //   - search field by accessibility id / visibility
+        //   - any button with comma-name (site rows)
+        //   - 'Select Site' / 'Sites' header text
+        long deadline = System.currentTimeMillis() + 10000;
+        while (System.currentTimeMillis() < deadline) {
+            try {
+                java.util.List<WebElement> fields = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeSearchField') AND " +
+                    "(placeholderValue CONTAINS[c] 'search' OR value CONTAINS[c] 'search')"));
+                if (!fields.isEmpty()) {
+                    System.out.println("✅ Site list ready (search field visible)");
+                    return;
+                }
+            } catch (Exception ignored) {}
+            try {
+                // Any site row button (compound name with comma)
+                java.util.List<WebElement> rows = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND name CONTAINS ','"));
+                if (rows.size() >= 2) {
+                    System.out.println("✅ Site list ready (" + rows.size() + " site rows visible)");
+                    return;
+                }
+            } catch (Exception ignored) {}
+            try { Thread.sleep(300); } catch (InterruptedException e) { Thread.currentThread().interrupt(); break; }
         }
+        System.out.println("⚠️ Site list wait timeout (10s) — proceeding anyway");
     }
     
     /**
