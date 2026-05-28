@@ -2963,32 +2963,40 @@ public class AssetPage extends BasePage {
             originalWait = java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT);
         }
         try {
-            // Dashboard specific: Has tab bar with Assets/Locations AND building.2 icon
-            // This distinguishes it from Site Selection page
-
-            // Check for Assets tab/button (bottom tab bar)
-            boolean hasAssetsTab = false;
+            // v1.36 (changelog 075): the OLD check used 'building.2' icon as
+            // a Dashboard signal — but that icon ALSO sits on every Site
+            // Selection row, so a Site Selection list with site rows would
+            // falsely register as Dashboard. EXPLICIT REJECT Site Selection
+            // FIRST, then check positive Dashboard signals.
             try {
-                List<WebElement> assetsElements = driver.findElements(
-                    AppiumBy.iOSNsPredicateString(
-                        "(name == 'Assets' OR label == 'Assets') AND type == 'XCUIElementTypeButton'"
-                    )
-                );
-                hasAssetsTab = !assetsElements.isEmpty();
-            } catch (Exception e) {}
+                java.util.List<WebElement> siteSearch = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeSearchField') AND " +
+                    "(placeholderValue CONTAINS[c] 'search sites' OR value CONTAINS[c] 'search sites')"));
+                if (!siteSearch.isEmpty()) {
+                    return false; // 'Search sites' field visible → Site Selection
+                }
+                java.util.List<WebElement> selectSiteTitle = driver.findElements(
+                    AppiumBy.accessibilityId("Select Site"));
+                if (!selectSiteTitle.isEmpty()) {
+                    return false; // 'Select Site' title → Site Selection
+                }
+                java.util.List<WebElement> createNewSite = driver.findElements(
+                    AppiumBy.accessibilityId("Create New Site"));
+                if (!createNewSite.isEmpty()) {
+                    return false; // 'Create New Site' button → Site Selection
+                }
+            } catch (Exception ignored) {}
 
-            // Check for building.2 icon (dashboard indicator)
-            boolean hasBuildingIcon = false;
-            try {
-                driver.findElement(AppiumBy.accessibilityId("building.2"));
-                hasBuildingIcon = true;
-            } catch (Exception e) {}
-
-            // Dashboard = has Assets tab OR building icon
-            boolean isDashboard = hasAssetsTab || hasBuildingIcon;
+            // Positive Dashboard signals: Quick Action accessibility ids that
+            // exist ONLY on Dashboard.
+            boolean hasSitesQA = !driver.findElements(AppiumBy.accessibilityId("Sites")).isEmpty();
+            boolean hasIssuesQA = !driver.findElements(AppiumBy.accessibilityId("Issues")).isEmpty();
+            boolean hasLocationsQA = !driver.findElements(AppiumBy.accessibilityId("Locations")).isEmpty();
+            boolean isDashboard = hasSitesQA || hasIssuesQA || hasLocationsQA;
 
             if (isDashboard) {
-                System.out.println("   Dashboard detected (Assets tab: " + hasAssetsTab + ", Building icon: " + hasBuildingIcon + ")");
+                System.out.println("   Dashboard detected (Sites QA: " + hasSitesQA
+                    + ", Issues QA: " + hasIssuesQA + ", Locations QA: " + hasLocationsQA + ")");
             }
 
             return isDashboard;
