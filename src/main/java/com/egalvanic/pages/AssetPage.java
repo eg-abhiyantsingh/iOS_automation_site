@@ -183,12 +183,31 @@ public class AssetPage extends BasePage {
      * FAST check if on Dashboard (1 second timeout)
      */
     public boolean isDashboardDisplayedFast() {
+        // v1.36 (changelog 075): the previous fast-check used accessibilityId
+        // 'building.2' which is AMBIGUOUS — it's on both Dashboard (Sites
+        // Quick Action icon) AND every Site Selection row icon. That caused
+        // loginAndSelectSite() to falsely report "already on Dashboard" when
+        // we were actually on Site Selection, leaving subsequent nav to fail.
+        //
+        // Use Dashboard-only signals: 'Sites' Quick Action accessibility id,
+        // 'Issues' / 'Assets' / 'Locations' Quick Action ids. These exist ONLY
+        // on the Dashboard. Also EXCLUDE Site Selection by checking for
+        // 'Search sites...' placeholder which only exists on Site Selection.
         try {
-            // Check for building.2 icon OR Assets tab (1 sec max)
+            // First reject Site Selection explicitly — its 'Search sites' field is
+            // a definitive signal we're NOT on Dashboard.
+            boolean siteSearchVisible = !driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeSearchField') AND " +
+                "(placeholderValue CONTAINS[c] 'search sites' OR value CONTAINS[c] 'search sites')")).isEmpty();
+            if (siteSearchVisible) {
+                return false; // 'Search sites' placeholder visible → Site Selection
+            }
             WebDriverWait fastWait = new WebDriverWait(driver, Duration.ofSeconds(1));
             fastWait.until(ExpectedConditions.or(
-                ExpectedConditions.presenceOfElementLocated(AppiumBy.accessibilityId("building.2")),
-                ExpectedConditions.presenceOfElementLocated(AppiumBy.accessibilityId("list.bullet"))
+                ExpectedConditions.presenceOfElementLocated(AppiumBy.accessibilityId("Sites")),
+                ExpectedConditions.presenceOfElementLocated(AppiumBy.accessibilityId("Issues")),
+                ExpectedConditions.presenceOfElementLocated(AppiumBy.accessibilityId("Assets")),
+                ExpectedConditions.presenceOfElementLocated(AppiumBy.accessibilityId("Locations"))
             ));
             return true;
         } catch (Exception e) {
