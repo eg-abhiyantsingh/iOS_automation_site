@@ -30,9 +30,16 @@ public final class Issue_Phase2_Test extends BaseTest {
     @BeforeMethod(alwaysRun = true)
     public void issuePhase2TestSetup() {
         issuePage = new IssuePage();
-        // v1.36 (changelog 075): pre-test navigation to Issues screen
-        try { issuePage.navigateToIssuesScreen(); } catch (Exception e) {
-            System.out.println("⚠️ Pre-test navigation to Issues failed: " + e.getMessage());
+        // v1.36 (changelog 075): land each @Test on Issues screen.
+        // BaseTest.@BeforeMethod soft-restarts the app — sometimes it lands
+        // on Welcome (fresh install) or Dashboard (subsequent test). Use the
+        // smart loginAndSelectSite() which is a no-op when already on Dashboard,
+        // then a single tab tap to Issues.
+        try {
+            loginAndSelectSite();
+            issuePage.navigateToIssuesScreen();
+        } catch (Exception e) {
+            System.out.println("⚠️ Pre-test setup (login + nav to Issues) failed: " + e.getMessage());
         }
     }
 
