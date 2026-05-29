@@ -60,13 +60,16 @@ public class LoginPage extends BasePage {
      */
     public void waitForPageReady() {
         try {
-            // FAST: 3 second timeout with fast polling
-            WebDriverWait fastWait = new WebDriverWait(driver, Duration.ofSeconds(3));
-            fastWait.pollingEvery(Duration.ofMillis(200));
-            // Just wait for email field - password field will be there too
+            // Slow app: bumped 3s → 10s so the email field has time to render
+            // after the Continue-from-Welcome transition. Also sleep 600 ms
+            // after the field is present so the keyboard / focus state
+            // finishes animating before we try to type.
+            WebDriverWait fastWait = new WebDriverWait(driver, Duration.ofSeconds(10));
+            fastWait.pollingEvery(Duration.ofMillis(250));
             fastWait.until(ExpectedConditions.presenceOfElementLocated(
                 io.appium.java_client.AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' AND visible == 1")
             ));
+            try { Thread.sleep(600); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
             System.out.println("✅ Login page ready");
         } catch (Exception e) {
             // Continue anyway - fields might be there
@@ -140,6 +143,15 @@ public class LoginPage extends BasePage {
         // v1.36 (changelog 075): iOS sometimes drops sendKeys when the field
         // loses firstResponder mid-type (observed: email field stays empty,
         // Sign In button stays disabled). Wrap with a verify-and-retry loop.
+        // Slow app: bumped pre/post sleeps so the field has time to be
+        // focused before clear/sendKeys, and the value is committed before
+        // we verify.
+
+        // Up-front settle so the field is rendered and tappable before
+        // we even start looking for it (handles slow app builds where
+        // the page-ready signal fires before keyboard is ready).
+        sleep(800);
+
         for (int attempt = 1; attempt <= 3; attempt++) {
             WebElement field = null;
             try {
@@ -148,10 +160,11 @@ public class LoginPage extends BasePage {
                 field = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeTextField'"));
                 try { field.click(); } catch (Exception ignored) {}
-                sleep(150);
+                sleep(500);  // 150 → 500: focus / keyboard settle
                 try { field.clear(); } catch (Exception ignored) {}
+                sleep(200);  // brief pause after clear before sendKeys
                 field.sendKeys(email);
-                sleep(200);
+                sleep(700);  // 200 → 700: SwiftUI value commit + binding update
                 String got = "";
                 try { got = field.getAttribute("value"); } catch (Exception ignored) {}
                 if (got != null && got.contains(email)) {
@@ -162,22 +175,26 @@ public class LoginPage extends BasePage {
             } catch (Exception e) {
                 System.out.println("⚠️ Email attempt " + attempt + " threw: " + e.getMessage());
             }
-            sleep(300);
+            sleep(800);  // 300 → 800: longer between retries on slow app
         }
 
         // Last-ditch: legacy proxy path
         try {
             click(emailField);
+            sleep(400);
             emailField.clear();
             emailField.sendKeys(email);
+            sleep(500);
         } catch (org.openqa.selenium.StaleElementReferenceException e) {
             System.out.println("⚠️ Email field stale, re-finding...");
             WebElement freshEmailField = driver.findElement(
                 io.appium.java_client.AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' AND visible == 1")
             );
             freshEmailField.click();
+            sleep(400);
             freshEmailField.clear();
             freshEmailField.sendKeys(email);
+            sleep(500);
         }
     }
 
@@ -708,10 +725,13 @@ public void clickShowPassword() {
     public void loginTurbo(String email, String password) {
         long start = System.currentTimeMillis();
 
-        // v1.36 (changelog 075) speed: 500ms → 150ms (email field is ready
-        // immediately after Sign In page renders; small buffer for keyboard).
-        try { Thread.sleep(150); } catch (InterruptedException e) {}
+        // Slow app: 150 → 1500 ms pre-email settle so the Sign In page
+        // is fully rendered + keyboard ready before we tap the email
+        // field. Saves a retry inside enterEmail() and prevents the
+        // "email field stays empty, Sign In disabled" failure mode.
+        try { Thread.sleep(1500); } catch (InterruptedException e) {}
         enterEmail(email);
+        try { Thread.sleep(500); } catch (InterruptedException e) {}  // settle before password tap
         enterPassword(password);
 
         // Accept Terms & Conditions if the checkbox is present (new app versions)
