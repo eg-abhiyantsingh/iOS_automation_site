@@ -107,31 +107,49 @@ public class WelcomePage extends BasePage {
     }
 
     /**
-     * Enter company code with explicit wait (increased timeout for CI)
+     * Enter company code with explicit wait (increased timeout for CI).
+     *
+     * The Welcome screen finishes laying out a beat after the field
+     * becomes "clickable", and the SwiftUI text field occasionally
+     * drops the first keystroke if we type immediately. A short sleep
+     * before clicking + a brief settle after typing makes the entry
+     * reliable on slower app builds.
      */
     public void enterCompanyCode(String companyCode) {
+        // Pre-tap settle — let the Welcome screen fully render before we touch it
+        sleepQuietly(1200);
         try {
             // Try with placeholder first
             WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
             wait.until(ExpectedConditions.elementToBeClickable(companyCodeFieldWithPlaceholder));
             companyCodeFieldWithPlaceholder.click();
+            sleepQuietly(300);
             companyCodeFieldWithPlaceholder.clear();
             companyCodeFieldWithPlaceholder.sendKeys(companyCode);
+            sleepQuietly(400);
         } catch (Exception e) {
             // Fallback to generic text field
             try {
                 WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(3));
                 wait.until(ExpectedConditions.elementToBeClickable(companyCodeField));
                 companyCodeField.click();
+                sleepQuietly(300);
                 companyCodeField.clear();
                 companyCodeField.sendKeys(companyCode);
+                sleepQuietly(400);
             } catch (Exception e2) {
                 // Direct click as last resort
                 companyCodeField.click();
+                sleepQuietly(300);
                 companyCodeField.clear();
                 companyCodeField.sendKeys(companyCode);
+                sleepQuietly(400);
             }
         }
+    }
+
+    private static void sleepQuietly(long millis) {
+        try { Thread.sleep(millis); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
     }
 
     /**
