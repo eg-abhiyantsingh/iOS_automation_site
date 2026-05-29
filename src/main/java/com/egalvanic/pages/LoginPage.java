@@ -60,20 +60,32 @@ public class LoginPage extends BasePage {
      */
     public void waitForPageReady() {
         try {
-            // Slow app: the company-code spinner + server validation can
-            // take 8–12 s before the Login screen even starts to render.
-            // Wait up to 20 s for the email field to appear, then sleep
-            // 800 ms so keyboard / focus animation finishes before
-            // enterEmail starts typing.
-            WebDriverWait fastWait = new WebDriverWait(driver, Duration.ofSeconds(20));
-            fastWait.pollingEvery(Duration.ofMillis(300));
-            fastWait.until(ExpectedConditions.presenceOfElementLocated(
-                io.appium.java_client.AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' AND visible == 1")
+            // CRITICAL: the Welcome screen ALSO has an XCUIElementTypeTextField
+            // (the Company Code input). Waiting for just "any TextField" returns
+            // immediately on Welcome and the caller then types the email into
+            // the Company Code field by mistake. We MUST wait for a Login-screen
+            // signal that does NOT exist on Welcome:
+            //   - XCUIElementTypeSecureTextField (the password field), OR
+            //   - the "Sign In" button.
+            // Slow app: the company-code spinner + server validation can take
+            // 8–15 s before the Login screen renders. Up to 25 s timeout.
+            WebDriverWait fastWait = new WebDriverWait(driver, Duration.ofSeconds(25));
+            fastWait.pollingEvery(Duration.ofMillis(400));
+            fastWait.until(ExpectedConditions.or(
+                ExpectedConditions.presenceOfElementLocated(
+                    io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeSecureTextField'")),
+                ExpectedConditions.presenceOfElementLocated(
+                    io.appium.java_client.AppiumBy.accessibilityId("Sign In")),
+                ExpectedConditions.presenceOfElementLocated(
+                    io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND (name == 'Sign In' OR label == 'Sign In')"))
             ));
             try { Thread.sleep(800); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
-            System.out.println("✅ Login page ready");
+            System.out.println("✅ Login page ready (Sign In / SecureTextField present)");
         } catch (Exception e) {
-            // Continue anyway - fields might be there
+            // Don't proceed silently — log the issue so it's visible in the report
+            System.out.println("⚠️ waitForPageReady timed out waiting for Login screen: " + e.getMessage());
         }
     }
     
@@ -147,6 +159,24 @@ public class LoginPage extends BasePage {
         // Slow app: bumped pre/post sleeps so the field has time to be
         // focused before clear/sendKeys, and the value is committed before
         // we verify.
+
+        // SAFETY: if we're still on the Welcome screen (Company Code field
+        // present, SecureTextField absent), we'd otherwise type the EMAIL
+        // into the Company Code field. Wait up to 25 s for the Login screen
+        // to actually render before touching anything.
+        try {
+            WebDriverWait safetyWait = new WebDriverWait(driver, Duration.ofSeconds(25));
+            safetyWait.pollingEvery(Duration.ofMillis(400));
+            safetyWait.until(d -> !d.findElements(
+                io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeSecureTextField'")).isEmpty()
+                || !d.findElements(
+                    io.appium.java_client.AppiumBy.accessibilityId("Sign In")).isEmpty());
+        } catch (Exception e) {
+            System.out.println("⚠️ enterEmail safety-wait: SecureTextField/Sign-In never appeared — "
+                + "still on Welcome? Aborting email entry to avoid typing into Company Code field.");
+            return;
+        }
 
         // Up-front settle so the field is rendered and tappable before
         // we even start looking for it (handles slow app builds where
