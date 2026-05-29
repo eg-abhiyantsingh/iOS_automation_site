@@ -427,6 +427,14 @@ public class BaseTest {
             } else if (result.getStatus() == ITestResult.SKIP) {
                 String skipReason = (result.getThrowable() != null)
                         ? result.getThrowable().getMessage() : "Unknown reason";
+                // Capture the state at the moment of skip — often the app
+                // is in an unexpected screen and the screenshot makes the
+                // skip reason instantly diagnosable.
+                try {
+                    if (DriverManager.isDriverActive()) {
+                        ExtentReportManager.logStepWithBase64Screenshot("⏭️ Skip state: " + skipReason);
+                    }
+                } catch (Exception ignored) {}
                 ExtentReportManager.logSkip("Test skipped: " + skipReason);
                 System.out.println("⏭️ Test SKIPPED: " + testName + "  [" + timestamp() + "] (" + durationStr + ")");
                 System.out.println("   Skip reason: " + skipReason);
@@ -945,8 +953,11 @@ public class BaseTest {
 
     private static final boolean EVERY_STEP_SCREENSHOTS =
             !"false".equalsIgnoreCase(System.getProperty("screenshots.everyStep", "true"));
+    // Detailed reports live in workflow artifacts now — no email size budget
+    // to respect. Cap raised to 500 so even the longest/most complex tests
+    // never lose a shot. Realistic per-test count is 8–40.
     private static final int MAX_STEP_SCREENSHOTS =
-            Integer.parseInt(System.getProperty("screenshots.maxPerTest", "50"));
+            Integer.parseInt(System.getProperty("screenshots.maxPerTest", "500"));
     private final java.util.concurrent.atomic.AtomicInteger stepScreenshotCount =
             new java.util.concurrent.atomic.AtomicInteger(0);
 
@@ -1036,12 +1047,26 @@ public class BaseTest {
     // ================================================================
 
     /**
+     * Take a moment-of-failure screenshot. Captures the exact state at
+     * the point of assertion failure (before @AfterMethod fires and the
+     * driver may have moved on / been torn down).
+     */
+    private void screenshotOnAssertionFail(String label) {
+        try {
+            if (DriverManager.isDriverActive()) {
+                ExtentReportManager.logStepWithBase64Screenshot("❌ " + label);
+            }
+        } catch (Exception ignored) {}
+    }
+
+    /**
      * Assert true with logging
      */
     protected void assertTrue(boolean condition, String message) {
         if (condition) {
             logStep("✅ Assertion passed: " + message);
         } else {
+            screenshotOnAssertionFail("Assertion failed: " + message);
             ExtentReportManager.logFail("Assertion failed: " + message);
             throw new AssertionError(message);
         }
@@ -1054,6 +1079,7 @@ public class BaseTest {
         if (!condition) {
             logStep("✅ Assertion passed: " + message);
         } else {
+            screenshotOnAssertionFail("Assertion failed: " + message);
             ExtentReportManager.logFail("Assertion failed: " + message);
             throw new AssertionError(message);
         }
@@ -1067,6 +1093,7 @@ public class BaseTest {
             logStep("✅ Assertion passed: " + message);
         } else {
             String errorMsg = message + " - Expected: " + expected + ", Actual: " + actual;
+            screenshotOnAssertionFail(errorMsg);
             ExtentReportManager.logFail(errorMsg);
             throw new AssertionError(errorMsg);
         }
@@ -1079,6 +1106,7 @@ public class BaseTest {
         if (object != null) {
             logStep("✅ Assertion passed: " + message);
         } else {
+            screenshotOnAssertionFail("Assertion failed: " + message + " (Object is null)");
             ExtentReportManager.logFail("Assertion failed: " + message + " (Object is null)");
             throw new AssertionError(message + " - Object is null");
         }

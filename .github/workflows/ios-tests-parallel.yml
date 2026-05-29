@@ -2818,77 +2818,12 @@ jobs:
             echo "Consolidated report generated"
           fi
 
-          # ────────────────────────────────────────────────────────────────────
-          # Attach Detailed Reports with a 22 MB email-size budget
-          # (Gmail caps emails at 25 MB; reserve ~3 MB for client reports + body).
-          # Strategy:
-          #   1. Prefer detailed reports from FAILED modules first (most useful).
-          #   2. Then add passing modules' detailed reports while under budget.
-          #   3. Skip any detailed report that won't fit; list it in summary.
-          # ────────────────────────────────────────────────────────────────────
-          echo ""
-          echo "=== Finding Detailed Reports ==="
-          BUDGET_BYTES=$((22 * 1024 * 1024))
-          USED_BYTES=0
-          # Account for already-attached client reports + consolidated
-          for f in consolidated-reports/*.html; do
-            [ -f "$f" ] || continue
-            FSIZE=$(stat -c%s "$f" 2>/dev/null || stat -f%z "$f")
-            USED_BYTES=$((USED_BYTES + FSIZE))
-          done
-          echo "Client-report bytes already attached: $USED_BYTES"
-
-          DETAILED_COUNT=0
-          DETAILED_SKIPPED=""
-
-          # Build module list ordered by failure first (need PYEOF results)
-          # Pass 1: failed modules; Pass 2: passing modules
-          for pass in failed passing; do
-            for report in $(find all-reports -name "Detailed_Report_*.html" -type f 2>/dev/null | sort); do
-              MODULE=$(echo "$report" | awk -F'/' '{print $2}' | sed 's/-config$//' | sed 's/-report$//')
-              XML_PATH="all-reports/${MODULE}-report/target/surefire-reports/testng-results.xml"
-              [ ! -f "$XML_PATH" ] && XML_PATH=$(find "all-reports/${MODULE}-report" -name "testng-results.xml" -type f 2>/dev/null | head -1)
-              MODULE_FAILED=0
-              if [ -f "$XML_PATH" ]; then
-                MF=$(grep -oE 'failed="[0-9]+"' "$XML_PATH" | head -1 | grep -oE '[0-9]+')
-                [ "${MF:-0}" -gt 0 ] && MODULE_FAILED=1
-              fi
-              # Filter by pass
-              if [ "$pass" = "failed" ] && [ "$MODULE_FAILED" -eq 0 ]; then continue; fi
-              if [ "$pass" = "passing" ] && [ "$MODULE_FAILED" -eq 1 ]; then continue; fi
-              # Skip duplicate (multiple detailed reports per module — pick the largest = most complete)
-              DEST="consolidated-reports/${MODULE}_detailed_report.html"
-              [ -f "$DEST" ] && continue
-
-              FSIZE=$(stat -c%s "$report" 2>/dev/null || stat -f%z "$report")
-              if [ $((USED_BYTES + FSIZE)) -gt $BUDGET_BYTES ]; then
-                FSIZE_MB=$(awk "BEGIN{printf \"%.1f\", $FSIZE/1048576}")
-                echo "  ⚠️ Skipping detailed: $MODULE ($FSIZE_MB MB) — would exceed 22 MB budget"
-                DETAILED_SKIPPED="${DETAILED_SKIPPED}${MODULE} ($FSIZE_MB MB), "
-                continue
-              fi
-
-              cp "$report" "$DEST"
-              ATTACHMENT_LIST="${ATTACHMENT_LIST},${DEST}"
-              USED_BYTES=$((USED_BYTES + FSIZE))
-              DETAILED_COUNT=$((DETAILED_COUNT + 1))
-              FSIZE_MB=$(awk "BEGIN{printf \"%.1f\", $FSIZE/1048576}")
-              FAIL_TAG=""
-              [ "$MODULE_FAILED" -eq 1 ] && FAIL_TAG=" [FAIL]"
-              echo "  ✓ Detailed:$FAIL_TAG $MODULE → ${FSIZE_MB} MB (running total: $(awk "BEGIN{printf \"%.1f MB\", $USED_BYTES/1048576}"))"
-            done
-          done
-
-          echo ""
-          echo "Detailed reports attached: $DETAILED_COUNT"
-          echo "Total attachment payload: $(awk "BEGIN{printf \"%.1f MB\", $USED_BYTES/1048576}") / 22 MB budget"
-          [ -n "$DETAILED_SKIPPED" ] && echo "Skipped (size): $DETAILED_SKIPPED"
-
+          # Detailed reports are NOT attached to the consolidated email any more.
+          # They are linked from per-module emails (see "Send Per-Module Detailed
+          # Reports" step below) so each module can pack as many screenshots as
+          # possible without competing for email-size budget.
+          echo "Detailed reports will be linked via workflow artifacts in per-module emails."
           echo "ATTACHMENT_LIST=$ATTACHMENT_LIST" >> "$GITHUB_OUTPUT"
-          echo "DETAILED_COUNT=$DETAILED_COUNT" >> "$GITHUB_OUTPUT"
-          echo "DETAILED_SKIPPED=$DETAILED_SKIPPED" >> "$GITHUB_OUTPUT"
-          USED_MB=$(awk "BEGIN{printf \"%.1f\", $USED_BYTES/1048576}")
-          echo "EMAIL_PAYLOAD_MB=$USED_MB" >> "$GITHUB_OUTPUT"
 
           ls -la consolidated-reports/ 2>/dev/null || echo "No reports directory"
 
@@ -3082,8 +3017,7 @@ jobs:
                   <b>Total Tests:</b> ~1190 | <b>Passed Jobs:</b> ${SUCCESS} | <b>Failed:</b> ${FAILED}
                   <br><span style="color:#e67e22;">⏱️ TIMEOUT</span> = Job exceeded time limit — tests that ran before timeout are still valid
                   <br><b>Client Reports Attached:</b> ${REPORT_COUNT:-0}
-                  <br><b>Detailed Reports Attached:</b> ${DETAILED_COUNT:-0} (payload ${EMAIL_PAYLOAD_MB:-0} MB / 22 MB budget)
-                  ${SKIPPED_HTML}
+                  <br><b>Detailed Reports:</b> per-module emails will arrive separately with download links — or grab them directly from <a href="${RUN_URL}">workflow artifacts</a>.
                 </div>
 
                 <p style="margin-top: 15px; color: #999; font-size: 11px; text-align: center;">
@@ -3124,12 +3058,13 @@ jobs:
           ACTOR: ${{ github.actor }}
           SUITE_STATUS: ${{ steps.email.outputs.STATUS }}
         run: |
-          # One email per module with that module's full Detailed report
-          # attached. Each email gets the full Gmail 25 MB budget on its
-          # own, so users can review every screenshot per module deeply
-          # without competing with other modules for attachment space.
-          # Modules whose Detailed report exceeds 24 MB include only the
-          # Client report + artifact link in the body.
+          # One email per module with module-level summary + link to
+          # the Detailed report in workflow artifacts. Detailed report
+          # is NOT attached (per user preference) so we can pack each
+          # report with as many screenshots as possible without
+          # competing for any email size budget. Only the small
+          # Client report (~30 KB) is attached for the at-a-glance
+          # pass/fail breakdown.
           pip install --quiet defusedxml || pip3 install --quiet defusedxml
           python3 << 'PYEOF'
           import os, glob, smtplib, ssl, html, sys
@@ -3222,17 +3157,32 @@ jobs:
                       more = f"<li><i>… +{len(failed_names) - 25} more</i></li>" if len(failed_names) > 25 else ""
                       failed_html = f"<h3 style='color:#dc3545;'>Failed tests ({failed})</h3><ul>{lis}{more}</ul>"
 
-                  size_note = ""
-                  attached_detailed = False
+                  # Detailed report is NEVER attached — always linked
+                  artifact_url = f"{run_url}#artifacts"
                   if detailed:
-                      fsize = os.path.getsize(detailed)
-                      if fsize <= MAX_ATTACHMENT:
-                          attached_detailed = True
-                          fsize_mb = fsize / 1048576
-                          size_note = f"<p><b>Detailed report attached:</b> {os.path.basename(detailed)} ({fsize_mb:.1f} MB) — open in a browser to see every screenshot.</p>"
-                      else:
-                          fsize_mb = fsize / 1048576
-                          size_note = f"<p style='color:#dc3545;'><b>Detailed report too large to email ({fsize_mb:.1f} MB)</b> — download it from the <a href='{run_url}'>workflow artifacts</a> ({module}-report).</p>"
+                      fsize_mb = os.path.getsize(detailed) / 1048576
+                      shot_count = 0
+                      try:
+                          with open(detailed, "r", encoding="utf-8", errors="ignore") as fh:
+                              shot_count = fh.read().count("data:image")
+                      except Exception:
+                          pass
+                      detailed_block = f"""
+                      <div style='margin:18px 0; padding:18px; background:#fff8e1; border-left:4px solid #f9a825; border-radius:6px;'>
+                        <h3 style='margin:0 0 8px;'>📥 Download Detailed Report</h3>
+                        <p style='margin:0 0 8px;'>Full step-by-step report with <b>{shot_count} screenshots</b> ({fsize_mb:.1f} MB).</p>
+                        <p style='margin:0;'>
+                          <a href='{artifact_url}' style='display:inline-block; padding:8px 18px; background:#f9a825; color:white; text-decoration:none; border-radius:4px; font-weight:bold;'>Open Workflow Artifacts</a>
+                        </p>
+                        <p style='margin:8px 0 0; font-size:12px; color:#666;'>Look for artifact <code>{html.escape(module_dir)}</code> — download the ZIP and open <code>{html.escape(os.path.basename(detailed))}</code> in a browser.</p>
+                      </div>
+                      """
+                  else:
+                      detailed_block = f"""
+                      <div style='margin:18px 0; padding:12px; background:#ffebee; border-left:4px solid #dc3545; border-radius:6px; color:#dc3545;'>
+                        <b>⚠️ No detailed report was produced for this module</b> (job may have failed before tests ran).
+                      </div>
+                      """
 
                   body = f"""<!DOCTYPE html>
                   <html><body style="font-family: 'Segoe UI', Arial, sans-serif; padding:0; margin:0; background:#f5f5f5;">
@@ -3253,22 +3203,16 @@ jobs:
                         <tr><td>Skipped</td><td align='center' style='color:#ffc107;'>{skipped_tests}</td></tr>
                       </table>
                       {failed_html}
-                      {size_note}
+                      {detailed_block}
                       <p style="margin-top:15px; color:#999; font-size:11px; text-align:center;">
-                        eGalvanic iOS Automation — per-module detailed report email
+                        eGalvanic iOS Automation — per-module summary · detailed report via workflow artifacts
                       </p>
                     </div>
                   </body></html>"""
                   msg.set_content("Open in an HTML-capable client.")
                   msg.add_alternative(body, subtype="html")
 
-                  if attached_detailed and detailed:
-                      with open(detailed, "rb") as f:
-                          msg.add_attachment(
-                              f.read(),
-                              maintype="text", subtype="html",
-                              filename=os.path.basename(detailed),
-                          )
+                  # Detailed report is NOT attached — linked via artifact instead.
                   if client:
                       try:
                           with open(client, "rb") as f:
@@ -3283,7 +3227,7 @@ jobs:
                   try:
                       smtp.send_message(msg)
                       sent += 1
-                      print(f"  ✓ Sent {module}: {passed}/{total} ({'detailed attached' if attached_detailed else 'detailed via artifact link'})")
+                      print(f"  ✓ Sent {module}: {passed}/{total} (detailed linked via artifact)")
                   except Exception as e:
                       skipped += 1
                       print(f"  ✗ Failed {module}: {e}")

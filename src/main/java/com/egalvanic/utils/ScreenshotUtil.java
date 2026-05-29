@@ -177,12 +177,14 @@ public class ScreenshotUtil {
 
     private static final boolean COMPRESS_ENABLED =
         !"false".equalsIgnoreCase(System.getProperty("screenshots.compress", "true"));
-    // Defaults sized so a 50-test module's Detailed report stays under ~5 MB
-    // (10 KB/screenshot × ~12 shots × 50 tests ≈ 6 MB). With 15 modules,
-    // budget headroom permits attaching ~3–4 detailed reports per email,
-    // remainder downloadable via workflow artifacts.
+    // Detailed reports go to workflow artifacts (not email), so we can be
+    // generous with quality. GitHub artifacts cap each file at 2 GB which
+    // is essentially unbounded for our purposes. Quality bumped to .65 +
+    // 0.55× scale → readable text, ~40–50 KB per shot. A 100-test module
+    // with 30 shots/test = ~150 MB detailed report — fast to download
+    // as a single ZIP from the workflow artifacts UI.
     private static final double JPEG_QUALITY =
-        Double.parseDouble(System.getProperty("screenshots.jpegQuality", "0.4"));
+        Double.parseDouble(System.getProperty("screenshots.jpegQuality", "0.65"));
     private static final double SCALE =
-        Double.parseDouble(System.getProperty("screenshots.scale", "0.4"));
+        Double.parseDouble(System.getProperty("screenshots.scale", "0.55"));
 }
