@@ -2,6 +2,7 @@ package com.egalvanic.utils;
 
 import com.aventstack.extentreports.ExtentReports;
 import com.aventstack.extentreports.ExtentTest;
+import com.aventstack.extentreports.MediaEntityBuilder;
 import com.aventstack.extentreports.Status;
 import com.aventstack.extentreports.reporter.ExtentSparkReporter;
 import com.aventstack.extentreports.reporter.configuration.Theme;
@@ -252,16 +253,16 @@ public class ExtentReportManager {
 
         System.out.println("📋 Test created: " + moduleName + " > " + featureName + " > " + testName);
 
-        // Auto-screenshot the initial state at test creation. By this point
-        // @BeforeMethod has already navigated to the relevant screen, so the
-        // shot shows the entry state from which the test runs. Guarded by the
-        // -Dscreenshots.everyStep system property.
+        // Auto-screenshot the initial state at test creation. Attached
+        // inline via MediaEntityBuilder so the image renders directly
+        // below the "Initial state" log row, not as a separate chip at
+        // the top of the test card.
         if (!"false".equalsIgnoreCase(System.getProperty("screenshots.everyStep", "true"))) {
             try {
                 String base64 = ScreenshotUtil.getScreenshotAsBase64Compressed();
                 if (base64 != null) {
-                    detailed.log(Status.INFO, "📸 Initial state");
-                    detailed.addScreenCaptureFromBase64String(base64);
+                    detailed.log(Status.INFO, "📸 Initial state",
+                        MediaEntityBuilder.createScreenCaptureFromBase64String(base64).build());
                 }
             } catch (Exception ignored) {}
         }
@@ -283,38 +284,47 @@ public class ExtentReportManager {
 
     /**
      * Log step with screenshot (Detailed report only) - compressed JPEG for size.
+     *
+     * Uses MediaEntityBuilder so the screenshot is attached to THIS log
+     * row (renders inline below the message in the Details table) rather
+     * than to the test as a whole (which would put a separate "base64 img"
+     * chip at the top of the test card).
      */
     public static void logStepWithScreenshot(String step, String screenshotPath) {
         ExtentTest test = detailedTest.get();
-        if (test != null) {
-            test.log(Status.INFO, step);
-            String base64 = ScreenshotUtil.getScreenshotAsBase64Compressed();
-            if (base64 != null) {
-                try {
-                    test.addScreenCaptureFromBase64String(base64);
-                } catch (Exception e) {
-                    System.out.println("⚠️ Screenshot attachment failed: " + e.getMessage());
-                }
+        if (test == null) return;
+        String base64 = ScreenshotUtil.getScreenshotAsBase64Compressed();
+        if (base64 != null) {
+            try {
+                test.log(Status.INFO, step,
+                    MediaEntityBuilder.createScreenCaptureFromBase64String(base64).build());
+                return;
+            } catch (Exception e) {
+                System.out.println("⚠️ Inline screenshot attach failed: " + e.getMessage());
             }
         }
+        // Fallback: text-only log if screenshot couldn't be captured / attached
+        test.log(Status.INFO, step);
     }
 
     /**
      * Log step with Base64 screenshot directly - compressed JPEG for size.
+     * Same inline-attachment behaviour as logStepWithScreenshot.
      */
     public static void logStepWithBase64Screenshot(String step) {
         ExtentTest test = detailedTest.get();
-        if (test != null) {
-            test.log(Status.INFO, step);
-            String base64 = ScreenshotUtil.getScreenshotAsBase64Compressed();
-            if (base64 != null) {
-                try {
-                    test.addScreenCaptureFromBase64String(base64);
-                } catch (Exception e) {
-                    System.out.println("⚠️ Screenshot attachment failed: " + e.getMessage());
-                }
+        if (test == null) return;
+        String base64 = ScreenshotUtil.getScreenshotAsBase64Compressed();
+        if (base64 != null) {
+            try {
+                test.log(Status.INFO, step,
+                    MediaEntityBuilder.createScreenCaptureFromBase64String(base64).build());
+                return;
+            } catch (Exception e) {
+                System.out.println("⚠️ Inline screenshot attach failed: " + e.getMessage());
             }
         }
+        test.log(Status.INFO, step);
     }
 
     /**
@@ -372,18 +382,25 @@ public class ExtentReportManager {
         // Detailed Report - Full details
         ExtentTest detailed = detailedTest.get();
         if (detailed != null) {
-            detailed.log(Status.FAIL, "❌ " + message);
-            if (throwable != null) {
-                detailed.log(Status.FAIL, throwable);
-            }
-            // Add Base64 screenshot for better portability
-            String base64 = ScreenshotUtil.getScreenshotAsBase64();
+            // Attach the failure screenshot INLINE with the FAIL log row
+            // (MediaEntityBuilder) so it renders directly under the
+            // assertion message rather than as a separate chip.
+            String base64 = ScreenshotUtil.getScreenshotAsBase64Compressed();
+            boolean attached = false;
             if (base64 != null) {
                 try {
-                    detailed.addScreenCaptureFromBase64String(base64);
+                    detailed.log(Status.FAIL, "❌ " + message,
+                        MediaEntityBuilder.createScreenCaptureFromBase64String(base64).build());
+                    attached = true;
                 } catch (Exception e) {
-                    System.out.println("⚠️ Screenshot attachment failed: " + e.getMessage());
+                    System.out.println("⚠️ Inline failure screenshot attach failed: " + e.getMessage());
                 }
+            }
+            if (!attached) {
+                detailed.log(Status.FAIL, "❌ " + message);
+            }
+            if (throwable != null) {
+                detailed.log(Status.FAIL, throwable);
             }
         }
         
