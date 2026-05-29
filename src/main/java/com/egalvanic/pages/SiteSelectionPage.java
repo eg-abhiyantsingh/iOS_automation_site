@@ -268,21 +268,29 @@ public class SiteSelectionPage extends BasePage {
     }
     
     /**
-     * Wait for dashboard to be ready (after selecting a site)
+     * Wait for dashboard to be ready (after selecting a site).
+     *
+     * Slow app builds need a longer leash here — the site selection
+     * transition can take 20–30s before any Dashboard signal renders,
+     * during which any premature interaction hits the still-loading
+     * picker and breaks the test. We:
+     *   1. Sleep 2000 ms up front so the picker dismissal animation
+     *      and initial paint complete before we start polling.
+     *   2. Poll for up to 45s for any Dashboard ground-truth signal.
+     *   3. Once detected, sleep another 1000 ms to let async data
+     *      finish populating cards before the test starts tapping.
      */
     public void waitForDashboardReady() {
-        // v1.36 (changelog 075): the original locators (sitesButton via flexible
-        // predicate, refreshButton accessibilityId 'arrow.clockwise', assetsCard
-        // predicate) can all return non-visible on iOS 18.5 CI even when the
-        // Dashboard is fully rendered. Poll multiple ground-truth signals
-        // every 500ms for up to 15s: 'Sites' accessibilityId Quick-Action,
-        // 'Welcome to' header text, 'Assets' static text, 'Issues' tab, or
-        // the WO badge.
-        long deadline = System.currentTimeMillis() + 15000;
+        // Pre-poll settle — give the site-transition animation room
+        try { Thread.sleep(2000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); return; }
+
+        long timeoutMs = 45000;
+        long deadline = System.currentTimeMillis() + timeoutMs;
         while (System.currentTimeMillis() < deadline) {
             try {
                 if (!driver.findElements(AppiumBy.accessibilityId("Sites")).isEmpty()) {
                     System.out.println("✅ Dashboard ready (Sites Quick-Action visible)");
+                    postReadySettle();
                     return;
                 }
             } catch (Exception ignored) {}
@@ -291,6 +299,7 @@ public class SiteSelectionPage extends BasePage {
                     AppiumBy.iOSNsPredicateString("label BEGINSWITH 'Welcome' OR name BEGINSWITH 'Welcome'"));
                 if (!welcome.isEmpty()) {
                     System.out.println("✅ Dashboard ready (Welcome header visible)");
+                    postReadySettle();
                     return;
                 }
             } catch (Exception ignored) {}
@@ -298,12 +307,20 @@ public class SiteSelectionPage extends BasePage {
                 if (!driver.findElements(AppiumBy.accessibilityId("Assets")).isEmpty()
                     || !driver.findElements(AppiumBy.accessibilityId("Issues")).isEmpty()) {
                     System.out.println("✅ Dashboard ready (Quick Action tile visible)");
+                    postReadySettle();
                     return;
                 }
             } catch (Exception ignored) {}
             try { Thread.sleep(500); } catch (InterruptedException e) { Thread.currentThread().interrupt(); break; }
         }
-        System.out.println("⚠️ Dashboard wait timeout (15s), continuing...");
+        System.out.println("⚠️ Dashboard wait timeout (" + (timeoutMs / 1000) + "s), continuing...");
+    }
+
+    private static void postReadySettle() {
+        // Dashboard widgets (WO card, badge counts, Quick Action tiles)
+        // populate asynchronously after the screen renders. Give them a
+        // second to finish so the next tap lands on a stable target.
+        try { Thread.sleep(1000); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
     }
 
     // ================================================================
@@ -855,10 +872,13 @@ public class SiteSelectionPage extends BasePage {
             // when the screen happened to be Dashboard, not Site Selection.
             // Iterate buttons and reject known non-site names (WO compound,
             // Tasks compound, Search-related).
-            WebDriverWait fastWait = new WebDriverWait(driver, Duration.ofSeconds(3));
+            // Slow app needs longer to render the picker — wait up to 10 s.
+            WebDriverWait fastWait = new WebDriverWait(driver, Duration.ofSeconds(10));
             fastWait.until(ExpectedConditions.presenceOfElementLocated(
                 AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name CONTAINS ','")
             ));
+            // Let the picker finish populating before we scan it (slow app)
+            try { Thread.sleep(800); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
             java.util.List<WebElement> buttons = driver.findElements(
                 AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name CONTAINS ','")
             );
@@ -876,6 +896,9 @@ public class SiteSelectionPage extends BasePage {
                 // Must look like a site: name + address pieces (≥2 commas)
                 if (name.indexOf(',') == name.lastIndexOf(',')) continue;
                 btn.click();
+                // Post-tap settle — picker dismiss + dashboard transition starts.
+                // waitForDashboardReady() handles the rest of the loading wait.
+                try { Thread.sleep(800); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
                 return name;
             }
             System.out.println("⚠️ Fast site select found no valid site row, falling back");
