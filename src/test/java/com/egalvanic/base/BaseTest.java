@@ -896,6 +896,18 @@ public class BaseTest {
 
         // Select first site immediately (combined wait + select)
         System.out.println("🔍 Selecting first available site...");
+        // iOS sometimes pops the "Save Password?" sheet AFTER login lands
+        // on Site Selection (not before, where loginTurbo handles it).
+        // The sheet blocks the picker — selectFirstSiteFast would then
+        // fail to find any tappable site row. Poll briefly for it and
+        // dismiss "Not Now" before scanning the picker.
+        try {
+            // Quick double-check loop — the sheet may take 1–2s to render
+            for (int i = 0; i < 4; i++) {
+                if (loginPage.dismissSavePasswordIfPresent()) break;
+                Thread.sleep(400);
+            }
+        } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
         autoScreenshot("Site Selection screen loaded");
         String selectedSite = siteSelectionPage.selectFirstSiteFast();
         System.out.println("Selecting first site: (s) " + selectedSite);

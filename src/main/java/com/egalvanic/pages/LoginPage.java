@@ -721,6 +721,95 @@ public void clickShowPassword() {
     }
     
     /**
+     * Best-effort: dismiss the iOS "Save Password?" sheet if it is visible
+     * on whatever screen we currently are. Callable from any screen — meant
+     * for cases where the sheet pops AFTER login (e.g. when the Site
+     * Selection screen first renders) and the in-login handler already
+     * gave up.
+     *
+     * Cheap to call repeatedly — short timeouts, no waiting if no popup.
+     * Returns true if anything was actually dismissed.
+     */
+    public boolean dismissSavePasswordIfPresent() {
+        long start = System.currentTimeMillis();
+        java.time.Duration originalWait;
+        try {
+            originalWait = driver.manage().timeouts().getImplicitWaitTimeout();
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(150));
+        } catch (Exception e) {
+            originalWait = java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT);
+        }
+        boolean dismissed = false;
+        try {
+            // Strategy 1: native iOS alert API
+            try {
+                driver.switchTo().alert().dismiss();
+                System.out.println("⚡ Save Password alert dismissed (Site Selection) in "
+                    + (System.currentTimeMillis() - start) + "ms");
+                dismissed = true;
+            } catch (Exception ignored) {}
+
+            // Strategy 2: tap "Not Now" by accessibility id (SwiftUI sheet)
+            if (!dismissed) {
+                try {
+                    java.util.List<WebElement> btns = driver.findElements(
+                        io.appium.java_client.AppiumBy.accessibilityId("Not Now"));
+                    if (!btns.isEmpty()) {
+                        btns.get(0).click();
+                        System.out.println("⚡ 'Not Now' clicked (Site Selection) in "
+                            + (System.currentTimeMillis() - start) + "ms");
+                        dismissed = true;
+                    }
+                } catch (Exception ignored) {}
+            }
+
+            // Strategy 3: predicate-based fallback (some builds expose label only)
+            if (!dismissed) {
+                try {
+                    java.util.List<WebElement> btns = driver.findElements(
+                        io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeButton' AND (name == 'Not Now' OR label == 'Not Now')"));
+                    if (!btns.isEmpty()) {
+                        btns.get(0).click();
+                        System.out.println("⚡ 'Not Now' predicate-clicked (Site Selection) in "
+                            + (System.currentTimeMillis() - start) + "ms");
+                        dismissed = true;
+                    }
+                } catch (Exception ignored) {}
+            }
+
+            // Strategy 4: coordinate tap on the known "Not Now" position
+            // (iOS sometimes renders the sheet at Springboard level where
+            // findElement can't reach it).
+            // Detect-only first — if no "Save Password" header is visible, skip
+            // the coordinate tap so we don't accidentally tap on a site row.
+            if (!dismissed) {
+                try {
+                    java.util.List<WebElement> header = driver.findElements(
+                        io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeStaticText' AND "
+                            + "(name CONTAINS[c] 'Save Password' OR label CONTAINS[c] 'Save Password')"));
+                    if (!header.isEmpty()) {
+                        driver.executeScript("mobile: tap", java.util.Map.of("x", 140, "y", 620));
+                        System.out.println("⚡ Coordinate tap on 'Not Now' (Site Selection) at (140,620)");
+                        try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+                        dismissed = true;
+                    }
+                } catch (Exception ignored) {}
+            }
+
+            if (dismissed) {
+                // Let the sheet finish animating away before the caller
+                // tries to tap underlying UI
+                try { Thread.sleep(600); } catch (InterruptedException ignored) {}
+            }
+        } finally {
+            try { driver.manage().timeouts().implicitlyWait(originalWait); } catch (Exception ignored) {}
+        }
+        return dismissed;
+    }
+
+    /**
      * TURBO: Login with minimal waits (under 3 seconds total for popup handling)
      */
     public void loginTurbo(String email, String password) {
