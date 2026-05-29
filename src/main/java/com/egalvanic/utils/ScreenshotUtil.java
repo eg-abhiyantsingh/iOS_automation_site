@@ -119,4 +119,70 @@ public class ScreenshotUtil {
             return null;
         }
     }
+
+    /**
+     * Get screenshot as compressed JPEG Base64 string.
+     *
+     * iOS sim screenshots are 1290×2796 PNGs (~150–200 KB Base64). Embedding
+     * 50+ of these per test would balloon the Detailed report past the email
+     * size budget. Re-encode to JPEG at 50 % quality + 50 % linear resize so
+     * we can pack many screenshots per test (~15–25 KB each) and still fit
+     * the email's 22 MB attachment cap.
+     *
+     * Toggle with -Dscreenshots.compress=false (default true).
+     * Tune with -Dscreenshots.jpegQuality=0.5 and -Dscreenshots.scale=0.5.
+     */
+    public static String getScreenshotAsBase64Compressed() {
+        if (!COMPRESS_ENABLED) {
+            return getScreenshotAsBase64();
+        }
+        try {
+            TakesScreenshot driver = (TakesScreenshot) DriverManager.getDriver();
+            byte[] pngBytes = driver.getScreenshotAs(OutputType.BYTES);
+            java.awt.image.BufferedImage src =
+                javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(pngBytes));
+            if (src == null) {
+                return java.util.Base64.getEncoder().encodeToString(pngBytes);
+            }
+            int dstW = Math.max(1, (int) Math.round(src.getWidth() * SCALE));
+            int dstH = Math.max(1, (int) Math.round(src.getHeight() * SCALE));
+            java.awt.image.BufferedImage dst = new java.awt.image.BufferedImage(
+                dstW, dstH, java.awt.image.BufferedImage.TYPE_INT_RGB);
+            java.awt.Graphics2D g = dst.createGraphics();
+            g.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
+                java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            g.drawImage(src, 0, 0, dstW, dstH, null);
+            g.dispose();
+
+            // JPEG-encode at configured quality
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            javax.imageio.ImageWriter writer = javax.imageio.ImageIO
+                .getImageWritersByFormatName("jpeg").next();
+            javax.imageio.ImageWriteParam param = writer.getDefaultWriteParam();
+            param.setCompressionMode(javax.imageio.ImageWriteParam.MODE_EXPLICIT);
+            param.setCompressionQuality((float) JPEG_QUALITY);
+            try (javax.imageio.stream.ImageOutputStream ios =
+                     javax.imageio.ImageIO.createImageOutputStream(baos)) {
+                writer.setOutput(ios);
+                writer.write(null, new javax.imageio.IIOImage(dst, null, null), param);
+            }
+            writer.dispose();
+
+            return java.util.Base64.getEncoder().encodeToString(baos.toByteArray());
+        } catch (Exception e) {
+            System.err.println("⚠️ Compressed screenshot failed, falling back to full PNG: " + e.getMessage());
+            return getScreenshotAsBase64();
+        }
+    }
+
+    private static final boolean COMPRESS_ENABLED =
+        !"false".equalsIgnoreCase(System.getProperty("screenshots.compress", "true"));
+    // Defaults sized so a 50-test module's Detailed report stays under ~5 MB
+    // (10 KB/screenshot × ~12 shots × 50 tests ≈ 6 MB). With 15 modules,
+    // budget headroom permits attaching ~3–4 detailed reports per email,
+    // remainder downloadable via workflow artifacts.
+    private static final double JPEG_QUALITY =
+        Double.parseDouble(System.getProperty("screenshots.jpegQuality", "0.4"));
+    private static final double SCALE =
+        Double.parseDouble(System.getProperty("screenshots.scale", "0.4"));
 }

@@ -195,6 +195,9 @@ public class BaseTest {
 
         testStartTime = System.currentTimeMillis();
         System.out.println("✅ Test setup complete  [" + timestamp() + "]\n");
+        // Initial-state screenshot is taken inside ExtentReportManager.createTest()
+        // — it runs after the test method enters and the ExtentTest exists,
+        // so the shot actually attaches. Doing it here would no-op.
     }
 
     /**
@@ -432,6 +435,15 @@ public class BaseTest {
                 }
 
             } else if (result.getStatus() == ITestResult.SUCCESS) {
+                // Final-state screenshot for passing tests too (lets devs see
+                // the end state in the Detailed report). Counts against the
+                // per-test screenshot cap so it doesn't bloat huge tests.
+                try {
+                    if (DriverManager.isDriverActive() && stepScreenshotCount.get() < MAX_STEP_SCREENSHOTS) {
+                        ExtentReportManager.logStepWithBase64Screenshot("✅ Final state — test passed");
+                        stepScreenshotCount.incrementAndGet();
+                    }
+                } catch (Exception ignored) {}
                 ExtentReportManager.logPass("Test passed successfully");
                 System.out.println("✅ Test PASSED: " + testName + "  [" + timestamp() + "] (" + durationStr + ")");
             }
@@ -876,13 +888,29 @@ public class BaseTest {
 
         // Select first site immediately (combined wait + select)
         System.out.println("🔍 Selecting first available site...");
+        autoScreenshot("Site Selection screen loaded");
         String selectedSite = siteSelectionPage.selectFirstSiteFast();
         System.out.println("Selecting first site: (s) " + selectedSite);
 
         // Wait for dashboard to load after site selection
         siteSelectionPage.waitForDashboardReady();
+        autoScreenshot("Dashboard loaded after site selection: " + selectedSite);
 
         System.out.println("✅ Site selected and loaded");
+    }
+
+    /**
+     * Take an auto-screenshot for the Detailed report. Respects the
+     * per-test screenshot cap so it never blows the size budget. Safe to
+     * call anywhere — silently no-ops if cap reached or driver dead.
+     */
+    protected void autoScreenshot(String label) {
+        if (!EVERY_STEP_SCREENSHOTS) return;
+        if (stepScreenshotCount.get() >= MAX_STEP_SCREENSHOTS) return;
+        try {
+            ExtentReportManager.logStepWithBase64Screenshot("📸 " + label);
+            stepScreenshotCount.incrementAndGet();
+        } catch (Exception ignored) {}
     }
 
     // ================================================================
@@ -904,13 +932,13 @@ public class BaseTest {
     protected void logStep(String stepDescription) {
         System.out.println("📝 " + stepDescription);
         if (EVERY_STEP_SCREENSHOTS && stepScreenshotCount.get() < MAX_STEP_SCREENSHOTS) {
-            // Skip noisy assertion-pass logs — those have their own visual via the
-            // next user-facing logStep. Saves ~30% screenshot calls per test.
-            if (stepDescription == null || !stepDescription.startsWith("✅ Assertion passed")) {
-                ExtentReportManager.logStepWithBase64Screenshot(stepDescription);
-                stepScreenshotCount.incrementAndGet();
-                return;
-            }
+            // Compressed JPEG (~15–25 KB each at .5 quality + .5 scale) lets
+            // us pack lots more screenshots per test without blowing the
+            // email size budget. Assertion-pass lines are INCLUDED so every
+            // verified state has its own visual evidence.
+            ExtentReportManager.logStepWithBase64Screenshot(stepDescription);
+            stepScreenshotCount.incrementAndGet();
+            return;
         }
         ExtentReportManager.logInfo(stepDescription);
     }
@@ -918,7 +946,7 @@ public class BaseTest {
     private static final boolean EVERY_STEP_SCREENSHOTS =
             !"false".equalsIgnoreCase(System.getProperty("screenshots.everyStep", "true"));
     private static final int MAX_STEP_SCREENSHOTS =
-            Integer.parseInt(System.getProperty("screenshots.maxPerTest", "12"));
+            Integer.parseInt(System.getProperty("screenshots.maxPerTest", "50"));
     private final java.util.concurrent.atomic.AtomicInteger stepScreenshotCount =
             new java.util.concurrent.atomic.AtomicInteger(0);
 

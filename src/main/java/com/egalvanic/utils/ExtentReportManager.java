@@ -249,8 +249,22 @@ public class ExtentReportManager {
         // Create Test node under Feature
         ExtentTest testNode = featureNode.createNode(testName);
         clientTest.set(testNode);
-        
+
         System.out.println("📋 Test created: " + moduleName + " > " + featureName + " > " + testName);
+
+        // Auto-screenshot the initial state at test creation. By this point
+        // @BeforeMethod has already navigated to the relevant screen, so the
+        // shot shows the entry state from which the test runs. Guarded by the
+        // -Dscreenshots.everyStep system property.
+        if (!"false".equalsIgnoreCase(System.getProperty("screenshots.everyStep", "true"))) {
+            try {
+                String base64 = ScreenshotUtil.getScreenshotAsBase64Compressed();
+                if (base64 != null) {
+                    detailed.log(Status.INFO, "📸 Initial state");
+                    detailed.addScreenCaptureFromBase64String(base64);
+                }
+            } catch (Exception ignored) {}
+        }
     }
 
     // ================================================================
@@ -268,14 +282,13 @@ public class ExtentReportManager {
     }
 
     /**
-     * Log step with screenshot (Detailed report only) - Uses Base64 for portability
+     * Log step with screenshot (Detailed report only) - compressed JPEG for size.
      */
     public static void logStepWithScreenshot(String step, String screenshotPath) {
         ExtentTest test = detailedTest.get();
         if (test != null) {
             test.log(Status.INFO, step);
-            // Add Base64 screenshot for better portability
-            String base64 = ScreenshotUtil.getScreenshotAsBase64();
+            String base64 = ScreenshotUtil.getScreenshotAsBase64Compressed();
             if (base64 != null) {
                 try {
                     test.addScreenCaptureFromBase64String(base64);
@@ -287,13 +300,13 @@ public class ExtentReportManager {
     }
 
     /**
-     * Log step with Base64 screenshot directly
+     * Log step with Base64 screenshot directly - compressed JPEG for size.
      */
     public static void logStepWithBase64Screenshot(String step) {
         ExtentTest test = detailedTest.get();
         if (test != null) {
             test.log(Status.INFO, step);
-            String base64 = ScreenshotUtil.getScreenshotAsBase64();
+            String base64 = ScreenshotUtil.getScreenshotAsBase64Compressed();
             if (base64 != null) {
                 try {
                     test.addScreenCaptureFromBase64String(base64);
