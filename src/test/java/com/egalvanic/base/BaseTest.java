@@ -106,6 +106,9 @@ public class BaseTest {
             @Optional String udid,
             @Optional String appiumPort,
             @Optional String wdaLocalPort) {
+        // Reset per-test screenshot budget so each test gets its own MAX cap.
+        stepScreenshotCount.set(0);
+
         // Skip setup for chained tests
         if (skipNextSetup) {
             // Verify the driver is still alive before reusing it
@@ -887,12 +890,37 @@ public class BaseTest {
     // ================================================================
 
     /**
-     * Log a test step
+     * Log a test step.
+     *
+     * Per-step screenshots are controlled by the system property
+     * 'screenshots.everyStep' (default = true). When enabled, every
+     * logStep() call also embeds a Base64 screenshot in the Detailed
+     * report, giving developers a per-step visual trail without
+     * touching test source. Capped to {@link #MAX_STEP_SCREENSHOTS}
+     * per test to keep report size bounded.
+     *
+     * Disable with -Dscreenshots.everyStep=false (e.g. for slow lanes).
      */
     protected void logStep(String stepDescription) {
-        ExtentReportManager.logInfo(stepDescription);
         System.out.println("📝 " + stepDescription);
+        if (EVERY_STEP_SCREENSHOTS && stepScreenshotCount.get() < MAX_STEP_SCREENSHOTS) {
+            // Skip noisy assertion-pass logs — those have their own visual via the
+            // next user-facing logStep. Saves ~30% screenshot calls per test.
+            if (stepDescription == null || !stepDescription.startsWith("✅ Assertion passed")) {
+                ExtentReportManager.logStepWithBase64Screenshot(stepDescription);
+                stepScreenshotCount.incrementAndGet();
+                return;
+            }
+        }
+        ExtentReportManager.logInfo(stepDescription);
     }
+
+    private static final boolean EVERY_STEP_SCREENSHOTS =
+            !"false".equalsIgnoreCase(System.getProperty("screenshots.everyStep", "true"));
+    private static final int MAX_STEP_SCREENSHOTS =
+            Integer.parseInt(System.getProperty("screenshots.maxPerTest", "12"));
+    private final java.util.concurrent.atomic.AtomicInteger stepScreenshotCount =
+            new java.util.concurrent.atomic.AtomicInteger(0);
 
     /**
      * ╔══════════════════════════════════════════════════════════════╗

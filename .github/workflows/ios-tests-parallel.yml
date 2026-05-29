@@ -2814,11 +2814,95 @@ jobs:
             echo "Consolidated report generated"
           fi
 
+          # ────────────────────────────────────────────────────────────────────
+          # Attach Detailed Reports with a 22 MB email-size budget
+          # (Gmail caps emails at 25 MB; reserve ~3 MB for client reports + body).
+          # Strategy:
+          #   1. Prefer detailed reports from FAILED modules first (most useful).
+          #   2. Then add passing modules' detailed reports while under budget.
+          #   3. Skip any detailed report that won't fit; list it in summary.
+          # ────────────────────────────────────────────────────────────────────
+          echo ""
+          echo "=== Finding Detailed Reports ==="
+          BUDGET_BYTES=$((22 * 1024 * 1024))
+          USED_BYTES=0
+          # Account for already-attached client reports + consolidated
+          for f in consolidated-reports/*.html; do
+            [ -f "$f" ] || continue
+            FSIZE=$(stat -c%s "$f" 2>/dev/null || stat -f%z "$f")
+            USED_BYTES=$((USED_BYTES + FSIZE))
+          done
+          echo "Client-report bytes already attached: $USED_BYTES"
+
+          DETAILED_COUNT=0
+          DETAILED_SKIPPED=""
+
+          # Build module list ordered by failure first (need PYEOF results)
+          # Pass 1: failed modules; Pass 2: passing modules
+          for pass in failed passing; do
+            for report in $(find all-reports -name "Detailed_Report_*.html" -type f 2>/dev/null | sort); do
+              MODULE=$(echo "$report" | awk -F'/' '{print $2}' | sed 's/-config$//' | sed 's/-report$//')
+              XML_PATH="all-reports/${MODULE}-report/target/surefire-reports/testng-results.xml"
+              [ ! -f "$XML_PATH" ] && XML_PATH=$(find "all-reports/${MODULE}-report" -name "testng-results.xml" -type f 2>/dev/null | head -1)
+              MODULE_FAILED=0
+              if [ -f "$XML_PATH" ]; then
+                MF=$(grep -oE 'failed="[0-9]+"' "$XML_PATH" | head -1 | grep -oE '[0-9]+')
+                [ "${MF:-0}" -gt 0 ] && MODULE_FAILED=1
+              fi
+              # Filter by pass
+              if [ "$pass" = "failed" ] && [ "$MODULE_FAILED" -eq 0 ]; then continue; fi
+              if [ "$pass" = "passing" ] && [ "$MODULE_FAILED" -eq 1 ]; then continue; fi
+              # Skip duplicate (multiple detailed reports per module — pick the largest = most complete)
+              DEST="consolidated-reports/${MODULE}_detailed_report.html"
+              [ -f "$DEST" ] && continue
+
+              FSIZE=$(stat -c%s "$report" 2>/dev/null || stat -f%z "$report")
+              if [ $((USED_BYTES + FSIZE)) -gt $BUDGET_BYTES ]; then
+                FSIZE_MB=$(awk "BEGIN{printf \"%.1f\", $FSIZE/1048576}")
+                echo "  ⚠️ Skipping detailed: $MODULE ($FSIZE_MB MB) — would exceed 22 MB budget"
+                DETAILED_SKIPPED="${DETAILED_SKIPPED}${MODULE} ($FSIZE_MB MB), "
+                continue
+              fi
+
+              cp "$report" "$DEST"
+              ATTACHMENT_LIST="${ATTACHMENT_LIST},${DEST}"
+              USED_BYTES=$((USED_BYTES + FSIZE))
+              DETAILED_COUNT=$((DETAILED_COUNT + 1))
+              FSIZE_MB=$(awk "BEGIN{printf \"%.1f\", $FSIZE/1048576}")
+              FAIL_TAG=""
+              [ "$MODULE_FAILED" -eq 1 ] && FAIL_TAG=" [FAIL]"
+              echo "  ✓ Detailed:$FAIL_TAG $MODULE → ${FSIZE_MB} MB (running total: $(awk "BEGIN{printf \"%.1f MB\", $USED_BYTES/1048576}"))"
+            done
+          done
+
+          echo ""
+          echo "Detailed reports attached: $DETAILED_COUNT"
+          echo "Total attachment payload: $(awk "BEGIN{printf \"%.1f MB\", $USED_BYTES/1048576}") / 22 MB budget"
+          [ -n "$DETAILED_SKIPPED" ] && echo "Skipped (size): $DETAILED_SKIPPED"
+
+          echo "ATTACHMENT_LIST=$ATTACHMENT_LIST" >> "$GITHUB_OUTPUT"
+          echo "DETAILED_COUNT=$DETAILED_COUNT" >> "$GITHUB_OUTPUT"
+          echo "DETAILED_SKIPPED=$DETAILED_SKIPPED" >> "$GITHUB_OUTPUT"
+          USED_MB=$(awk "BEGIN{printf \"%.1f\", $USED_BYTES/1048576}")
+          echo "EMAIL_PAYLOAD_MB=$USED_MB" >> "$GITHUB_OUTPUT"
+
           ls -la consolidated-reports/ 2>/dev/null || echo "No reports directory"
 
       - name: Prepare Email Summary
         id: email
+        env:
+          DETAILED_COUNT: ${{ steps.reports.outputs.DETAILED_COUNT }}
+          DETAILED_SKIPPED: ${{ steps.reports.outputs.DETAILED_SKIPPED }}
+          EMAIL_PAYLOAD_MB: ${{ steps.reports.outputs.EMAIL_PAYLOAD_MB }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
+          # Build SKIPPED_HTML for the email body. Plain shell — no untrusted input.
+          if [ -n "$DETAILED_SKIPPED" ]; then
+            SKIPPED_HTML="<br><b style=\"color:#dc3545;\">Detailed Reports Skipped (size budget):</b> ${DETAILED_SKIPPED}— download from <a href=\"${RUN_URL}\">workflow artifacts</a>"
+          else
+            SKIPPED_HTML=""
+          fi
+
           SELECTION="${{ github.event.inputs.job_selection }}"
           SMOKE="${{ needs.smoke-tests.result }}"
           AUTH="${{ needs.auth-tests.result }}"
@@ -2994,6 +3078,8 @@ jobs:
                   <b>Total Tests:</b> ~1190 | <b>Passed Jobs:</b> ${SUCCESS} | <b>Failed:</b> ${FAILED}
                   <br><span style="color:#e67e22;">⏱️ TIMEOUT</span> = Job exceeded time limit — tests that ran before timeout are still valid
                   <br><b>Client Reports Attached:</b> ${REPORT_COUNT:-0}
+                  <br><b>Detailed Reports Attached:</b> ${DETAILED_COUNT:-0} (payload ${EMAIL_PAYLOAD_MB:-0} MB / 22 MB budget)
+                  ${SKIPPED_HTML}
                 </div>
 
                 <p style="margin-top: 15px; color: #999; font-size: 11px; text-align: center;">
