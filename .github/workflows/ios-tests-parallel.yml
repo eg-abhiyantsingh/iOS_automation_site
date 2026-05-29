@@ -304,6 +304,26 @@ jobs:
             reports/
             screenshots/
           retention-days: 7
+      - name: Send Module Email (smoke)
+        if: always() && github.event.inputs.send_email != 'false'
+        env:
+          SMTP_USER: ${{ secrets.EMAIL_USERNAME }}
+          SMTP_PASS: ${{ secrets.EMAIL_PASSWORD }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          MODULE_NAME: smoke
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          # Send a per-module email AS SOON AS this module finishes — no
+          # waiting for the global send-email job. User can review the
+          # Detailed report via the workflow-artifacts download link
+          # immediately on receipt.
+          EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
+          export EMAIL_TO
+          python3 -m pip install --quiet defusedxml
+          python3 .github/scripts/send-module-email.py
+        continue-on-error: true
   # ========================================
   # JOB 1: Auth Tests (38 tests, ~45 min)
   # ========================================
@@ -553,6 +573,26 @@ jobs:
             reports/
             screenshots/
           retention-days: 7
+      - name: Send Module Email (auth)
+        if: always() && github.event.inputs.send_email != 'false'
+        env:
+          SMTP_USER: ${{ secrets.EMAIL_USERNAME }}
+          SMTP_PASS: ${{ secrets.EMAIL_PASSWORD }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          MODULE_NAME: auth
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          # Send a per-module email AS SOON AS this module finishes — no
+          # waiting for the global send-email job. User can review the
+          # Detailed report via the workflow-artifacts download link
+          # immediately on receipt.
+          EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
+          export EMAIL_TO
+          python3 -m pip install --quiet defusedxml
+          python3 .github/scripts/send-module-email.py
+        continue-on-error: true
 
   # ========================================
   # JOB 2: Site Tests (52 tests, ~1.5 hr)
@@ -681,6 +721,26 @@ jobs:
             reports/
             screenshots/
           retention-days: 7
+      - name: Send Module Email (site)
+        if: always() && github.event.inputs.send_email != 'false'
+        env:
+          SMTP_USER: ${{ secrets.EMAIL_USERNAME }}
+          SMTP_PASS: ${{ secrets.EMAIL_PASSWORD }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          MODULE_NAME: site
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          # Send a per-module email AS SOON AS this module finishes — no
+          # waiting for the global send-email job. User can review the
+          # Detailed report via the workflow-artifacts download link
+          # immediately on receipt.
+          EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
+          export EMAIL_TO
+          python3 -m pip install --quiet defusedxml
+          python3 .github/scripts/send-module-email.py
+        continue-on-error: true
 
   # ========================================
   # JOB 3: Asset Part 1 (112 tests, ~1.5 hr)
@@ -811,6 +871,26 @@ jobs:
             reports/
             screenshots/
           retention-days: 7
+      - name: Send Module Email (assets-part1)
+        if: always() && github.event.inputs.send_email != 'false'
+        env:
+          SMTP_USER: ${{ secrets.EMAIL_USERNAME }}
+          SMTP_PASS: ${{ secrets.EMAIL_PASSWORD }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          MODULE_NAME: assets-part1
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          # Send a per-module email AS SOON AS this module finishes — no
+          # waiting for the global send-email job. User can review the
+          # Detailed report via the workflow-artifacts download link
+          # immediately on receipt.
+          EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
+          export EMAIL_TO
+          python3 -m pip install --quiet defusedxml
+          python3 .github/scripts/send-module-email.py
+        continue-on-error: true
 
   # ========================================
   # JOB 4: Asset Part 2 (108 tests, ~1.5 hr)
@@ -941,6 +1021,26 @@ jobs:
             reports/
             screenshots/
           retention-days: 7
+      - name: Send Module Email (assets-part2)
+        if: always() && github.event.inputs.send_email != 'false'
+        env:
+          SMTP_USER: ${{ secrets.EMAIL_USERNAME }}
+          SMTP_PASS: ${{ secrets.EMAIL_PASSWORD }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          MODULE_NAME: assets-part2
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          # Send a per-module email AS SOON AS this module finishes — no
+          # waiting for the global send-email job. User can review the
+          # Detailed report via the workflow-artifacts download link
+          # immediately on receipt.
+          EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
+          export EMAIL_TO
+          python3 -m pip install --quiet defusedxml
+          python3 .github/scripts/send-module-email.py
+        continue-on-error: true
 
   # ========================================
   # JOB 5: Asset Part 3 (109 tests, ~1.5 hr)
@@ -1070,6 +1170,26 @@ jobs:
             reports/
             screenshots/
           retention-days: 7
+      - name: Send Module Email (assets-part3)
+        if: always() && github.event.inputs.send_email != 'false'
+        env:
+          SMTP_USER: ${{ secrets.EMAIL_USERNAME }}
+          SMTP_PASS: ${{ secrets.EMAIL_PASSWORD }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          MODULE_NAME: assets-part3
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          # Send a per-module email AS SOON AS this module finishes — no
+          # waiting for the global send-email job. User can review the
+          # Detailed report via the workflow-artifacts download link
+          # immediately on receipt.
+          EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
+          export EMAIL_TO
+          python3 -m pip install --quiet defusedxml
+          python3 .github/scripts/send-module-email.py
+        continue-on-error: true
 
   # ========================================
   # JOB 6: Asset Part 4 (97 tests, ~1.5 hr)
@@ -1200,6 +1320,26 @@ jobs:
             reports/
             screenshots/
           retention-days: 7
+      - name: Send Module Email (assets-part4)
+        if: always() && github.event.inputs.send_email != 'false'
+        env:
+          SMTP_USER: ${{ secrets.EMAIL_USERNAME }}
+          SMTP_PASS: ${{ secrets.EMAIL_PASSWORD }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          MODULE_NAME: assets-part4
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          # Send a per-module email AS SOON AS this module finishes — no
+          # waiting for the global send-email job. User can review the
+          # Detailed report via the workflow-artifacts download link
+          # immediately on receipt.
+          EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
+          export EMAIL_TO
+          python3 -m pip install --quiet defusedxml
+          python3 .github/scripts/send-module-email.py
+        continue-on-error: true
 
   # ========================================
   # JOB 7: Asset Part 5 (112 tests, ~1.5 hr)
@@ -1331,6 +1471,26 @@ jobs:
             reports/
             screenshots/
           retention-days: 7
+      - name: Send Module Email (assets-part5)
+        if: always() && github.event.inputs.send_email != 'false'
+        env:
+          SMTP_USER: ${{ secrets.EMAIL_USERNAME }}
+          SMTP_PASS: ${{ secrets.EMAIL_PASSWORD }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          MODULE_NAME: assets-part5
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          # Send a per-module email AS SOON AS this module finishes — no
+          # waiting for the global send-email job. User can review the
+          # Detailed report via the workflow-artifacts download link
+          # immediately on receipt.
+          EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
+          export EMAIL_TO
+          python3 -m pip install --quiet defusedxml
+          python3 .github/scripts/send-module-email.py
+        continue-on-error: true
 
   # ========================================
   # JOB 8: Asset Part 6 (114 tests, ~1.5 hr)
@@ -1465,6 +1625,26 @@ jobs:
             reports/
             screenshots/
           retention-days: 7
+      - name: Send Module Email (assets-part6)
+        if: always() && github.event.inputs.send_email != 'false'
+        env:
+          SMTP_USER: ${{ secrets.EMAIL_USERNAME }}
+          SMTP_PASS: ${{ secrets.EMAIL_PASSWORD }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          MODULE_NAME: assets-part6
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          # Send a per-module email AS SOON AS this module finishes — no
+          # waiting for the global send-email job. User can review the
+          # Detailed report via the workflow-artifacts download link
+          # immediately on receipt.
+          EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
+          export EMAIL_TO
+          python3 -m pip install --quiet defusedxml
+          python3 .github/scripts/send-module-email.py
+        continue-on-error: true
 
   # ========================================
   # JOB 9: Issues Phase 1 (119 tests — List, Filter, Search, Creation, Class Change)
@@ -1593,6 +1773,26 @@ jobs:
             reports/
             screenshots/
           retention-days: 7
+      - name: Send Module Email (issues-phase1)
+        if: always() && github.event.inputs.send_email != 'false'
+        env:
+          SMTP_USER: ${{ secrets.EMAIL_USERNAME }}
+          SMTP_PASS: ${{ secrets.EMAIL_PASSWORD }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          MODULE_NAME: issues-phase1
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          # Send a per-module email AS SOON AS this module finishes — no
+          # waiting for the global send-email job. User can review the
+          # Detailed report via the workflow-artifacts download link
+          # immediately on receipt.
+          EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
+          export EMAIL_TO
+          python3 -m pip install --quiet defusedxml
+          python3 .github/scripts/send-module-email.py
+        continue-on-error: true
 
   # ========================================
   # JOB 10: Issues Phase 2 (60 tests — OSHA, Thermal, Severity, Temperature, Ultrasonic)
@@ -1721,6 +1921,26 @@ jobs:
             reports/
             screenshots/
           retention-days: 7
+      - name: Send Module Email (issues-phase2)
+        if: always() && github.event.inputs.send_email != 'false'
+        env:
+          SMTP_USER: ${{ secrets.EMAIL_USERNAME }}
+          SMTP_PASS: ${{ secrets.EMAIL_PASSWORD }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          MODULE_NAME: issues-phase2
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          # Send a per-module email AS SOON AS this module finishes — no
+          # waiting for the global send-email job. User can review the
+          # Detailed report via the workflow-artifacts download link
+          # immediately on receipt.
+          EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
+          export EMAIL_TO
+          python3 -m pip install --quiet defusedxml
+          python3 .github/scripts/send-module-email.py
+        continue-on-error: true
 
   # ========================================
   # JOB 11: Issues Phase 3 (58 tests — Ultrasonic Save, Swipe Delete, Sort, Status, CRUD)
@@ -1849,6 +2069,26 @@ jobs:
             reports/
             screenshots/
           retention-days: 7
+      - name: Send Module Email (issues-phase3)
+        if: always() && github.event.inputs.send_email != 'false'
+        env:
+          SMTP_USER: ${{ secrets.EMAIL_USERNAME }}
+          SMTP_PASS: ${{ secrets.EMAIL_PASSWORD }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          MODULE_NAME: issues-phase3
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          # Send a per-module email AS SOON AS this module finishes — no
+          # waiting for the global send-email job. User can review the
+          # Detailed report via the workflow-artifacts download link
+          # immediately on receipt.
+          EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
+          export EMAIL_TO
+          python3 -m pip install --quiet defusedxml
+          python3 .github/scripts/send-module-email.py
+        continue-on-error: true
 
   # ========================================
   # JOB 12: Location Tests (84 tests, ~2 hr)
@@ -1977,6 +2217,26 @@ jobs:
             reports/
             screenshots/
           retention-days: 7
+      - name: Send Module Email (location)
+        if: always() && github.event.inputs.send_email != 'false'
+        env:
+          SMTP_USER: ${{ secrets.EMAIL_USERNAME }}
+          SMTP_PASS: ${{ secrets.EMAIL_PASSWORD }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          MODULE_NAME: location
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          # Send a per-module email AS SOON AS this module finishes — no
+          # waiting for the global send-email job. User can review the
+          # Detailed report via the workflow-artifacts download link
+          # immediately on receipt.
+          EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
+          export EMAIL_TO
+          python3 -m pip install --quiet defusedxml
+          python3 .github/scripts/send-module-email.py
+        continue-on-error: true
 
 
   # ========================================
@@ -2106,6 +2366,26 @@ jobs:
             reports/
             screenshots/
           retention-days: 7
+      - name: Send Module Email (connections)
+        if: always() && github.event.inputs.send_email != 'false'
+        env:
+          SMTP_USER: ${{ secrets.EMAIL_USERNAME }}
+          SMTP_PASS: ${{ secrets.EMAIL_PASSWORD }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          MODULE_NAME: connections
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          # Send a per-module email AS SOON AS this module finishes — no
+          # waiting for the global send-email job. User can review the
+          # Detailed report via the workflow-artifacts download link
+          # immediately on receipt.
+          EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
+          export EMAIL_TO
+          python3 -m pip install --quiet defusedxml
+          python3 .github/scripts/send-module-email.py
+        continue-on-error: true
 
   # ========================================
   # JOB 14: Offline Tests (35 tests, ~1 hr)
@@ -2252,6 +2532,26 @@ jobs:
             reports/
             screenshots/
           retention-days: 7
+      - name: Send Module Email (offline)
+        if: always() && github.event.inputs.send_email != 'false'
+        env:
+          SMTP_USER: ${{ secrets.EMAIL_USERNAME }}
+          SMTP_PASS: ${{ secrets.EMAIL_PASSWORD }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          MODULE_NAME: offline
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          # Send a per-module email AS SOON AS this module finishes — no
+          # waiting for the global send-email job. User can review the
+          # Detailed report via the workflow-artifacts download link
+          # immediately on receipt.
+          EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
+          export EMAIL_TO
+          python3 -m pip install --quiet defusedxml
+          python3 .github/scripts/send-module-email.py
+        continue-on-error: true
 
   # ========================================
   # JOB 15: Site Visit / Work Orders
@@ -2481,6 +2781,26 @@ jobs:
             reports/
             screenshots/
           retention-days: 7
+      - name: Send Module Email (sitevisit)
+        if: always() && github.event.inputs.send_email != 'false'
+        env:
+          SMTP_USER: ${{ secrets.EMAIL_USERNAME }}
+          SMTP_PASS: ${{ secrets.EMAIL_PASSWORD }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          MODULE_NAME: sitevisit
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          # Send a per-module email AS SOON AS this module finishes — no
+          # waiting for the global send-email job. User can review the
+          # Detailed report via the workflow-artifacts download link
+          # immediately on receipt.
+          EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
+          export EMAIL_TO
+          python3 -m pip install --quiet defusedxml
+          python3 .github/scripts/send-module-email.py
+        continue-on-error: true
 
   # ========================================
   # JOB 16: Rerun Failures (92 tests, ~3 hr)
@@ -2609,6 +2929,26 @@ jobs:
             reports/
             screenshots/
           retention-days: 7
+      - name: Send Module Email (failures-rerun)
+        if: always() && github.event.inputs.send_email != 'false'
+        env:
+          SMTP_USER: ${{ secrets.EMAIL_USERNAME }}
+          SMTP_PASS: ${{ secrets.EMAIL_PASSWORD }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          MODULE_NAME: failures-rerun
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          # Send a per-module email AS SOON AS this module finishes — no
+          # waiting for the global send-email job. User can review the
+          # Detailed report via the workflow-artifacts download link
+          # immediately on receipt.
+          EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
+          export EMAIL_TO
+          python3 -m pip install --quiet defusedxml
+          python3 .github/scripts/send-module-email.py
+        continue-on-error: true
 
   # ========================================
   # FINAL JOB: Merge Reports & Send Email
@@ -3044,195 +3384,6 @@ jobs:
           to: ${{ steps.email_config.outputs.EMAIL_TO }}
           from: "iOS Automation <${{ secrets.EMAIL_USERNAME }}>"
           attachments: ${{ steps.reports.outputs.ATTACHMENT_LIST }}
-        continue-on-error: true
-
-      - name: Send Per-Module Detailed Reports
-        id: send_per_module
-        if: github.event.inputs.send_email != 'false'
-        env:
-          SMTP_USER: ${{ secrets.EMAIL_USERNAME }}
-          SMTP_PASS: ${{ secrets.EMAIL_PASSWORD }}
-          EMAIL_TO: ${{ steps.email_config.outputs.EMAIL_TO }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          BRANCH: ${{ github.ref_name }}
-          ACTOR: ${{ github.actor }}
-          SUITE_STATUS: ${{ steps.email.outputs.STATUS }}
-        run: |
-          # One email per module with module-level summary + link to
-          # the Detailed report in workflow artifacts. Detailed report
-          # is NOT attached (per user preference) so we can pack each
-          # report with as many screenshots as possible without
-          # competing for any email size budget. Only the small
-          # Client report (~30 KB) is attached for the at-a-glance
-          # pass/fail breakdown.
-          pip install --quiet defusedxml || pip3 install --quiet defusedxml
-          python3 << 'PYEOF'
-          import os, glob, smtplib, ssl, html, sys
-          from email.message import EmailMessage
-          from email.utils import formatdate
-          try:
-              import defusedxml.ElementTree as ET  # safe against XXE / billion-laughs
-          except ImportError:
-              import xml.etree.ElementTree as ET  # fallback (testng XML is produced by our own CI)
-
-          user = os.environ["SMTP_USER"]
-          pwd  = os.environ["SMTP_PASS"]
-          to   = os.environ["EMAIL_TO"]
-          run_url = os.environ["RUN_URL"]
-          branch  = os.environ["BRANCH"]
-          actor   = os.environ["ACTOR"]
-          suite_status = os.environ.get("SUITE_STATUS", "")
-
-          # Per-email attachment ceiling (24 MB; leaves 1 MB for headers/body)
-          MAX_ATTACHMENT = 24 * 1024 * 1024
-
-          # Walk every artifact directory looking for module reports
-          base = "all-reports"
-          if not os.path.isdir(base):
-              print(f"No {base}/ directory — skipping per-module emails")
-              sys.exit(0)
-
-          modules = sorted(os.listdir(base))
-          sent, skipped = 0, 0
-
-          context = ssl.create_default_context()
-          with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as smtp:
-              smtp.login(user, pwd)
-              for module_dir in modules:
-                  mpath = os.path.join(base, module_dir)
-                  if not os.path.isdir(mpath):
-                      continue
-                  module = module_dir.removesuffix("-report").removesuffix("-config")
-
-                  detailed_files = sorted(
-                      glob.glob(os.path.join(mpath, "**", "Detailed_Report_*.html"), recursive=True)
-                      + glob.glob(os.path.join(mpath, "Detailed_Report_*.html"))
-                  )
-                  client_files = sorted(
-                      glob.glob(os.path.join(mpath, "**", "Client_Report_*.html"), recursive=True)
-                      + glob.glob(os.path.join(mpath, "Client_Report_*.html"))
-                  )
-                  if not detailed_files and not client_files:
-                      continue
-                  detailed = detailed_files[-1] if detailed_files else None
-                  client   = client_files[-1] if client_files else None
-
-                  # Parse module stats
-                  passed = failed = skipped_tests = 0
-                  failed_names = []
-                  for xml in glob.glob(os.path.join(mpath, "**", "testng-results.xml"), recursive=True):
-                      try:
-                          root = ET.parse(xml).getroot()
-                          passed += int(root.get("passed", 0))
-                          failed += int(root.get("failed", 0))
-                          skipped_tests += int(root.get("skipped", 0))
-                          for tm in root.iter("test-method"):
-                              if tm.get("status") == "FAIL" and tm.get("is-config") != "true":
-                                  failed_names.append(tm.get("name", "unknown"))
-                      except Exception as e:
-                          print(f"  XML parse failed for {module}: {e}")
-                  total = passed + failed + skipped_tests
-                  pass_rate = (passed / total * 100) if total else 0
-
-                  if failed == 0 and total > 0:
-                      status_label = "✅ PASS"
-                      header_color = "#28a745"
-                  elif failed > 0:
-                      status_label = "❌ FAIL"
-                      header_color = "#dc3545"
-                  else:
-                      status_label = "⚠️ NO DATA"
-                      header_color = "#e67e22"
-
-                  msg = EmailMessage()
-                  msg["Subject"] = f"[{status_label}] iOS {module} — Detailed Report ({passed}/{total} passed)"
-                  msg["From"] = f"iOS Automation <{user}>"
-                  msg["To"] = to
-                  msg["Date"] = formatdate(localtime=True)
-
-                  failed_html = ""
-                  if failed_names:
-                      shown = failed_names[:25]
-                      lis = "".join(f"<li><code>{html.escape(n)}</code></li>" for n in shown)
-                      more = f"<li><i>… +{len(failed_names) - 25} more</i></li>" if len(failed_names) > 25 else ""
-                      failed_html = f"<h3 style='color:#dc3545;'>Failed tests ({failed})</h3><ul>{lis}{more}</ul>"
-
-                  # Detailed report is NEVER attached — always linked
-                  artifact_url = f"{run_url}#artifacts"
-                  if detailed:
-                      fsize_mb = os.path.getsize(detailed) / 1048576
-                      shot_count = 0
-                      try:
-                          with open(detailed, "r", encoding="utf-8", errors="ignore") as fh:
-                              shot_count = fh.read().count("data:image")
-                      except Exception:
-                          pass
-                      detailed_block = f"""
-                      <div style='margin:18px 0; padding:18px; background:#fff8e1; border-left:4px solid #f9a825; border-radius:6px;'>
-                        <h3 style='margin:0 0 8px;'>📥 Download Detailed Report</h3>
-                        <p style='margin:0 0 8px;'>Full step-by-step report with <b>{shot_count} screenshots</b> ({fsize_mb:.1f} MB).</p>
-                        <p style='margin:0;'>
-                          <a href='{artifact_url}' style='display:inline-block; padding:8px 18px; background:#f9a825; color:white; text-decoration:none; border-radius:4px; font-weight:bold;'>Open Workflow Artifacts</a>
-                        </p>
-                        <p style='margin:8px 0 0; font-size:12px; color:#666;'>Look for artifact <code>{html.escape(module_dir)}</code> — download the ZIP and open <code>{html.escape(os.path.basename(detailed))}</code> in a browser.</p>
-                      </div>
-                      """
-                  else:
-                      detailed_block = f"""
-                      <div style='margin:18px 0; padding:12px; background:#ffebee; border-left:4px solid #dc3545; border-radius:6px; color:#dc3545;'>
-                        <b>⚠️ No detailed report was produced for this module</b> (job may have failed before tests ran).
-                      </div>
-                      """
-
-                  body = f"""<!DOCTYPE html>
-                  <html><body style="font-family: 'Segoe UI', Arial, sans-serif; padding:0; margin:0; background:#f5f5f5;">
-                    <div style="background:linear-gradient(135deg, {header_color} 0%, #333 100%); color:white; padding:25px; text-align:center;">
-                      <h1 style="margin:0; font-size:22px;">iOS {html.escape(module)} — Detailed Report</h1>
-                      <p style="margin:8px 0 0; opacity:0.9; font-size:14px;">{status_label} · {passed}/{total} passed · {pass_rate:.1f}% pass rate</p>
-                    </div>
-                    <div style="max-width:800px; margin:20px auto; padding:0 20px;">
-                      <table style="width:100%; margin-bottom:15px; font-size:13px;">
-                        <tr><td><b>Branch:</b> {html.escape(branch)}</td><td><b>Triggered by:</b> {html.escape(actor)}</td></tr>
-                        <tr><td><b>Run:</b> <a href='{run_url}'>View Workflow</a></td><td><b>Suite Status:</b> {html.escape(suite_status)}</td></tr>
-                      </table>
-                      <table border='1' cellpadding='8' style='border-collapse:collapse; width:100%; background:white; font-size:13px;'>
-                        <tr style='background:#4a90d9;color:white;'><th>Metric</th><th>Count</th></tr>
-                        <tr><td>Total Tests</td><td align='center'><b>{total}</b></td></tr>
-                        <tr><td>Passed</td><td align='center' style='color:#28a745;'>{passed}</td></tr>
-                        <tr><td>Failed</td><td align='center' style='color:#dc3545;'>{failed}</td></tr>
-                        <tr><td>Skipped</td><td align='center' style='color:#ffc107;'>{skipped_tests}</td></tr>
-                      </table>
-                      {failed_html}
-                      {detailed_block}
-                      <p style="margin-top:15px; color:#999; font-size:11px; text-align:center;">
-                        eGalvanic iOS Automation — per-module summary · detailed report via workflow artifacts
-                      </p>
-                    </div>
-                  </body></html>"""
-                  msg.set_content("Open in an HTML-capable client.")
-                  msg.add_alternative(body, subtype="html")
-
-                  # Detailed report is NOT attached — linked via artifact instead.
-                  if client:
-                      try:
-                          with open(client, "rb") as f:
-                              msg.add_attachment(
-                                  f.read(),
-                                  maintype="text", subtype="html",
-                                  filename=os.path.basename(client),
-                              )
-                      except Exception as e:
-                          print(f"  Couldn't attach client report for {module}: {e}")
-
-                  try:
-                      smtp.send_message(msg)
-                      sent += 1
-                      print(f"  ✓ Sent {module}: {passed}/{total} (detailed linked via artifact)")
-                  except Exception as e:
-                      skipped += 1
-                      print(f"  ✗ Failed {module}: {e}")
-          print(f"\nPer-module emails sent: {sent}, skipped: {skipped}")
-          PYEOF
         continue-on-error: true
 
       - name: Email Summary
