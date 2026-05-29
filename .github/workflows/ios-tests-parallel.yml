@@ -2671,8 +2671,12 @@ jobs:
           # Also build a consolidated summary from TestNG XML results
           echo ""
           echo "=== Parsing TestNG Results ==="
+          pip install --quiet defusedxml || pip3 install --quiet defusedxml
           python3 << 'PYEOF'
-          import xml.etree.ElementTree as ET
+          try:
+              import defusedxml.ElementTree as ET  # safe against XXE / billion-laughs
+          except ImportError:
+              import xml.etree.ElementTree as ET  # fallback
           import os, glob, html
 
           results = []
@@ -3106,6 +3110,185 @@ jobs:
           to: ${{ steps.email_config.outputs.EMAIL_TO }}
           from: "iOS Automation <${{ secrets.EMAIL_USERNAME }}>"
           attachments: ${{ steps.reports.outputs.ATTACHMENT_LIST }}
+        continue-on-error: true
+
+      - name: Send Per-Module Detailed Reports
+        id: send_per_module
+        if: github.event.inputs.send_email != 'false'
+        env:
+          SMTP_USER: ${{ secrets.EMAIL_USERNAME }}
+          SMTP_PASS: ${{ secrets.EMAIL_PASSWORD }}
+          EMAIL_TO: ${{ steps.email_config.outputs.EMAIL_TO }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          SUITE_STATUS: ${{ steps.email.outputs.STATUS }}
+        run: |
+          # One email per module with that module's full Detailed report
+          # attached. Each email gets the full Gmail 25 MB budget on its
+          # own, so users can review every screenshot per module deeply
+          # without competing with other modules for attachment space.
+          # Modules whose Detailed report exceeds 24 MB include only the
+          # Client report + artifact link in the body.
+          pip install --quiet defusedxml || pip3 install --quiet defusedxml
+          python3 << 'PYEOF'
+          import os, glob, smtplib, ssl, html, sys
+          from email.message import EmailMessage
+          from email.utils import formatdate
+          try:
+              import defusedxml.ElementTree as ET  # safe against XXE / billion-laughs
+          except ImportError:
+              import xml.etree.ElementTree as ET  # fallback (testng XML is produced by our own CI)
+
+          user = os.environ["SMTP_USER"]
+          pwd  = os.environ["SMTP_PASS"]
+          to   = os.environ["EMAIL_TO"]
+          run_url = os.environ["RUN_URL"]
+          branch  = os.environ["BRANCH"]
+          actor   = os.environ["ACTOR"]
+          suite_status = os.environ.get("SUITE_STATUS", "")
+
+          # Per-email attachment ceiling (24 MB; leaves 1 MB for headers/body)
+          MAX_ATTACHMENT = 24 * 1024 * 1024
+
+          # Walk every artifact directory looking for module reports
+          base = "all-reports"
+          if not os.path.isdir(base):
+              print(f"No {base}/ directory — skipping per-module emails")
+              sys.exit(0)
+
+          modules = sorted(os.listdir(base))
+          sent, skipped = 0, 0
+
+          context = ssl.create_default_context()
+          with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as smtp:
+              smtp.login(user, pwd)
+              for module_dir in modules:
+                  mpath = os.path.join(base, module_dir)
+                  if not os.path.isdir(mpath):
+                      continue
+                  module = module_dir.removesuffix("-report").removesuffix("-config")
+
+                  detailed_files = sorted(
+                      glob.glob(os.path.join(mpath, "**", "Detailed_Report_*.html"), recursive=True)
+                      + glob.glob(os.path.join(mpath, "Detailed_Report_*.html"))
+                  )
+                  client_files = sorted(
+                      glob.glob(os.path.join(mpath, "**", "Client_Report_*.html"), recursive=True)
+                      + glob.glob(os.path.join(mpath, "Client_Report_*.html"))
+                  )
+                  if not detailed_files and not client_files:
+                      continue
+                  detailed = detailed_files[-1] if detailed_files else None
+                  client   = client_files[-1] if client_files else None
+
+                  # Parse module stats
+                  passed = failed = skipped_tests = 0
+                  failed_names = []
+                  for xml in glob.glob(os.path.join(mpath, "**", "testng-results.xml"), recursive=True):
+                      try:
+                          root = ET.parse(xml).getroot()
+                          passed += int(root.get("passed", 0))
+                          failed += int(root.get("failed", 0))
+                          skipped_tests += int(root.get("skipped", 0))
+                          for tm in root.iter("test-method"):
+                              if tm.get("status") == "FAIL" and tm.get("is-config") != "true":
+                                  failed_names.append(tm.get("name", "unknown"))
+                      except Exception as e:
+                          print(f"  XML parse failed for {module}: {e}")
+                  total = passed + failed + skipped_tests
+                  pass_rate = (passed / total * 100) if total else 0
+
+                  if failed == 0 and total > 0:
+                      status_label = "✅ PASS"
+                      header_color = "#28a745"
+                  elif failed > 0:
+                      status_label = "❌ FAIL"
+                      header_color = "#dc3545"
+                  else:
+                      status_label = "⚠️ NO DATA"
+                      header_color = "#e67e22"
+
+                  msg = EmailMessage()
+                  msg["Subject"] = f"[{status_label}] iOS {module} — Detailed Report ({passed}/{total} passed)"
+                  msg["From"] = f"iOS Automation <{user}>"
+                  msg["To"] = to
+                  msg["Date"] = formatdate(localtime=True)
+
+                  failed_html = ""
+                  if failed_names:
+                      shown = failed_names[:25]
+                      lis = "".join(f"<li><code>{html.escape(n)}</code></li>" for n in shown)
+                      more = f"<li><i>… +{len(failed_names) - 25} more</i></li>" if len(failed_names) > 25 else ""
+                      failed_html = f"<h3 style='color:#dc3545;'>Failed tests ({failed})</h3><ul>{lis}{more}</ul>"
+
+                  size_note = ""
+                  attached_detailed = False
+                  if detailed:
+                      fsize = os.path.getsize(detailed)
+                      if fsize <= MAX_ATTACHMENT:
+                          attached_detailed = True
+                          fsize_mb = fsize / 1048576
+                          size_note = f"<p><b>Detailed report attached:</b> {os.path.basename(detailed)} ({fsize_mb:.1f} MB) — open in a browser to see every screenshot.</p>"
+                      else:
+                          fsize_mb = fsize / 1048576
+                          size_note = f"<p style='color:#dc3545;'><b>Detailed report too large to email ({fsize_mb:.1f} MB)</b> — download it from the <a href='{run_url}'>workflow artifacts</a> ({module}-report).</p>"
+
+                  body = f"""<!DOCTYPE html>
+                  <html><body style="font-family: 'Segoe UI', Arial, sans-serif; padding:0; margin:0; background:#f5f5f5;">
+                    <div style="background:linear-gradient(135deg, {header_color} 0%, #333 100%); color:white; padding:25px; text-align:center;">
+                      <h1 style="margin:0; font-size:22px;">iOS {html.escape(module)} — Detailed Report</h1>
+                      <p style="margin:8px 0 0; opacity:0.9; font-size:14px;">{status_label} · {passed}/{total} passed · {pass_rate:.1f}% pass rate</p>
+                    </div>
+                    <div style="max-width:800px; margin:20px auto; padding:0 20px;">
+                      <table style="width:100%; margin-bottom:15px; font-size:13px;">
+                        <tr><td><b>Branch:</b> {html.escape(branch)}</td><td><b>Triggered by:</b> {html.escape(actor)}</td></tr>
+                        <tr><td><b>Run:</b> <a href='{run_url}'>View Workflow</a></td><td><b>Suite Status:</b> {html.escape(suite_status)}</td></tr>
+                      </table>
+                      <table border='1' cellpadding='8' style='border-collapse:collapse; width:100%; background:white; font-size:13px;'>
+                        <tr style='background:#4a90d9;color:white;'><th>Metric</th><th>Count</th></tr>
+                        <tr><td>Total Tests</td><td align='center'><b>{total}</b></td></tr>
+                        <tr><td>Passed</td><td align='center' style='color:#28a745;'>{passed}</td></tr>
+                        <tr><td>Failed</td><td align='center' style='color:#dc3545;'>{failed}</td></tr>
+                        <tr><td>Skipped</td><td align='center' style='color:#ffc107;'>{skipped_tests}</td></tr>
+                      </table>
+                      {failed_html}
+                      {size_note}
+                      <p style="margin-top:15px; color:#999; font-size:11px; text-align:center;">
+                        eGalvanic iOS Automation — per-module detailed report email
+                      </p>
+                    </div>
+                  </body></html>"""
+                  msg.set_content("Open in an HTML-capable client.")
+                  msg.add_alternative(body, subtype="html")
+
+                  if attached_detailed and detailed:
+                      with open(detailed, "rb") as f:
+                          msg.add_attachment(
+                              f.read(),
+                              maintype="text", subtype="html",
+                              filename=os.path.basename(detailed),
+                          )
+                  if client:
+                      try:
+                          with open(client, "rb") as f:
+                              msg.add_attachment(
+                                  f.read(),
+                                  maintype="text", subtype="html",
+                                  filename=os.path.basename(client),
+                              )
+                      except Exception as e:
+                          print(f"  Couldn't attach client report for {module}: {e}")
+
+                  try:
+                      smtp.send_message(msg)
+                      sent += 1
+                      print(f"  ✓ Sent {module}: {passed}/{total} ({'detailed attached' if attached_detailed else 'detailed via artifact link'})")
+                  except Exception as e:
+                      skipped += 1
+                      print(f"  ✗ Failed {module}: {e}")
+          print(f"\nPer-module emails sent: {sent}, skipped: {skipped}")
+          PYEOF
         continue-on-error: true
 
       - name: Email Summary
