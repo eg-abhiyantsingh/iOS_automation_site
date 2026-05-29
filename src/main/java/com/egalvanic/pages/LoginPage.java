@@ -60,16 +60,17 @@ public class LoginPage extends BasePage {
      */
     public void waitForPageReady() {
         try {
-            // Slow app: bumped 3s → 10s so the email field has time to render
-            // after the Continue-from-Welcome transition. Also sleep 600 ms
-            // after the field is present so the keyboard / focus state
-            // finishes animating before we try to type.
-            WebDriverWait fastWait = new WebDriverWait(driver, Duration.ofSeconds(10));
-            fastWait.pollingEvery(Duration.ofMillis(250));
+            // Slow app: the company-code spinner + server validation can
+            // take 8–12 s before the Login screen even starts to render.
+            // Wait up to 20 s for the email field to appear, then sleep
+            // 800 ms so keyboard / focus animation finishes before
+            // enterEmail starts typing.
+            WebDriverWait fastWait = new WebDriverWait(driver, Duration.ofSeconds(20));
+            fastWait.pollingEvery(Duration.ofMillis(300));
             fastWait.until(ExpectedConditions.presenceOfElementLocated(
                 io.appium.java_client.AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' AND visible == 1")
             ));
-            try { Thread.sleep(600); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
+            try { Thread.sleep(800); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
             System.out.println("✅ Login page ready");
         } catch (Exception e) {
             // Continue anyway - fields might be there

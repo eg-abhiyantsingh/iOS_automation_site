@@ -172,11 +172,20 @@ public class WelcomePage extends BasePage {
     }
 
     /**
-     * Submit company code (no hardcoded sleep)
+     * Submit company code.
+     *
+     * After tapping Continue the app shows a spinner while it validates
+     * the code with the backend — observed to take up to 8 s on slow
+     * builds. Sleep here gives the server response time to complete
+     * and the transition to the Login screen to start, so the next
+     * step (LoginPage.waitForPageReady) finds the email field
+     * immediately instead of polling against a stale Welcome screen.
      */
     public void submitCompanyCode(String companyCode) {
         enterCompanyCode(companyCode);
         clickContinue();
+        // Post-Continue wait — covers spinner + backend round-trip + screen transition
+        sleepQuietly(3000);
     }
 
     /**
