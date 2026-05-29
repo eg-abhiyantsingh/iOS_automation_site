@@ -2430,18 +2430,26 @@ jobs:
           echo "✅ App unzipped from local apps/Z-Platform-QA.zip"
       - name: Boot Simulator
         run: |
+          # Search NEWER iOS versions first. macos-15 runner ships 18.5/18.6,
+          # not 18.4 or older — the old list ("18.4 18.3 18.2 18.1 18.0") found
+          # nothing and the job failed with "No simulator". Walk 19.x first,
+          # then 18.6 → 18.0 so we stay resilient to runner image bumps.
           UDID=""
-          for VERSION in 18.4 18.3 18.2 18.1 18.0; do
-            for MODEL in "iPhone 16 Pro" "iPhone 15 Pro" "iPhone"; do
+          for VERSION in 19.0 18.6 18.5 18.4 18.3 18.2 18.1 18.0; do
+            for MODEL in "iPhone 16 Pro" "iPhone 16" "iPhone 15 Pro" "iPhone 15" "iPhone"; do
               UDID=$(xcrun simctl list devices available | grep -A 100 "iOS $VERSION" | grep "$MODEL" | head -1 | awk -F '[()]' '{print $2}')
               [ -n "$UDID" ] && break 2
             done
           done
-          [ -z "$UDID" ] && echo "No simulator" && exit 1
+          if [ -z "$UDID" ]; then
+            echo "::error::No iOS simulator matched any 18.x/19.x version on this runner. Available:"
+            xcrun simctl list devices available || true
+            exit 1
+          fi
 
           DEVICE_NAME=$(xcrun simctl list devices available | grep "$UDID" | sed 's/(.*//' | xargs)
           PLATFORM_VERSION=$(xcrun simctl list devices available | grep -B 20 "$UDID" | grep "iOS" | tail -1 | sed 's/-- iOS //' | sed 's/ --.*//')
-          [ -z "$PLATFORM_VERSION" ] && PLATFORM_VERSION="18.4"
+          [ -z "$PLATFORM_VERSION" ] && PLATFORM_VERSION="18.5"
           echo "DEVICE_NAME=$DEVICE_NAME" >> $GITHUB_ENV
           echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
           echo "PLATFORM_VERSION=$PLATFORM_VERSION" >> $GITHUB_ENV
