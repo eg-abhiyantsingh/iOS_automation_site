@@ -1,0 +1,28 @@
+<svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Bottom right diagonal line -->
+  <path fill-rule="evenodd" clip-rule="evenodd" d="M14.8641 19.1611L16.4431 20.6348L16.1558 20.9426L14.5769 19.4689L14.8641 19.1611Z" fill="#778899"/>
+
+  <!-- Right vertical segments (top to bottom) -->
+  <path fill-rule="evenodd" clip-rule="evenodd" d="M13.9839 15.7359V18.2623H13.5629V15.7359H13.9839Z" fill="#778899"/>
+  <path fill-rule="evenodd" clip-rule="evenodd" d="M13.9839 11.8412V14.3675H13.5629V11.8412H13.9839Z" fill="#778899"/>
+  <path fill-rule="evenodd" clip-rule="evenodd" d="M13.9839 7.94647V10.6833H13.5629V7.94647H13.9839Z" fill="#778899"/>
+  <path fill-rule="evenodd" clip-rule="evenodd" d="M13.9839 4.157V6.68331H13.5629V4.157H13.9839Z" fill="#778899"/>
+
+  <!-- Top right diagonal line -->
+  <path fill-rule="evenodd" clip-rule="evenodd" d="M16.4486 1.35851L14.5539 3.25324L14.2561 2.95551L16.1509 1.06078L16.4486 1.35851Z" fill="#778899"/>
+
+  <!-- Bottom left diagonal line -->
+  <path fill-rule="evenodd" clip-rule="evenodd" d="M6.93732 19.207L5.35805 20.6895L5.6454 20.9991L7.22467 19.5167L6.93732 19.207Z" fill="#778899"/>
+
+  <!-- Left vertical segments (top to bottom) -->
+  <path fill-rule="evenodd" clip-rule="evenodd" d="M7.81772 15.7615V18.3028H8.23886V15.7615H7.81772Z" fill="#778899"/>
+  <path fill-rule="evenodd" clip-rule="evenodd" d="M7.81772 11.8436V14.3849H8.23886V11.8436H7.81772Z" fill="#778899"/>
+  <path fill-rule="evenodd" clip-rule="evenodd" d="M7.81772 7.92572V10.6788H8.23886V7.92572H7.81772Z" fill="#778899"/>
+  <path fill-rule="evenodd" clip-rule="evenodd" d="M7.81772 4.11372V6.65505H8.23886V4.11372H7.81772Z" fill="#778899"/>
+
+  <!-- Top left diagonal line -->
+  <path fill-rule="evenodd" clip-rule="evenodd" d="M5.35255 1.2986L7.24767 3.2046L7.54546 2.9051L5.65034 0.9991L5.35255 1.2986Z" fill="#778899"/>
+
+  <!-- Main outline combining all elements -->
+  <path fill-rule="evenodd" clip-rule="evenodd" d="M5.65034 0.644531L7.89801 2.9051L7.24767 3.55917L5 1.2986L5.65034 0.644531ZM16.1509 0.707225L16.8022 1.35851L14.5539 3.6068L13.9026 2.95551L16.1509 0.707225ZM7.56772 3.86372H8.48886V6.90505H7.56772V3.86372ZM13.3129 3.907H14.2339V6.93331H13.3129V3.907ZM7.56772 7.67572H8.48886V10.9288H7.56772V7.67572ZM13.3129 7.69647H14.2339V10.9333H13.3129V7.69647ZM13.3129 11.5912H14.2339V14.6175H13.3129V11.5912ZM7.56772 11.5936H8.48886V14.6349H7.56772V11.5936ZM13.3129 15.4859H14.2339V18.5123H13.3129V15.4859ZM7.56772 15.5115H8.48886V18.5528H7.56772V15.5115ZM14.852 18.8078L16.7964 20.6226L16.168 21.2959L14.2235 19.4811L14.852 18.8078ZM6.94954 18.8527L7.57701 19.5288L5.63318 21.3535L5.00571 20.6773L6.94954 18.8527Z" fill="#778899"/>
+</svg>

@@ -2565,7 +2565,7 @@ jobs:
   # JOB 15: Site Visit / Work Orders
   # ========================================
   sitevisit-tests:
-    name: "Site Visit / Work Orders"
+    name: "Site Visit ${{ matrix.phase }}"
     if: >-
       github.event.inputs.job_selection == 'all' ||
       github.event.inputs.job_selection == 'sitevisit-only' ||
@@ -2573,7 +2573,15 @@ jobs:
       github.event.inputs.job_selection == 'sitevisit-phase2' ||
       github.event.inputs.job_selection == 'sitevisit-phase3'
     runs-on: macos-15
-    timeout-minutes: 420
+    timeout-minutes: 360
+    # ROOT-CAUSE FIX (run #26641212845): the all-phases mega-suite (344
+    # tests, ~5.7h+ sequential) exceeded the 6h wall-clock cap and was
+    # CANCELLED — no testng-results.xml was ever written. Split into 3
+    # PARALLEL phase jobs so each finishes comfortably under the cap.
+    strategy:
+      fail-fast: false
+      matrix:
+        phase: [phase1, phase2, phase3]
 
     steps:
       - name: Checkout code
@@ -2760,15 +2768,10 @@ jobs:
         run: |
           BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
 
-          # Select XML based on phase
-          SELECTION="${{ github.event.inputs.job_selection }}"
-          case "$SELECTION" in
-            sitevisit-phase1) XML="src/test/resources/parallel/testng-sitevisit-phase1.xml" ;;
-            sitevisit-phase2) XML="src/test/resources/parallel/testng-sitevisit-phase2.xml" ;;
-            sitevisit-phase3) XML="src/test/resources/parallel/testng-sitevisit-phase3.xml" ;;
-            *) XML="src/test/resources/parallel/testng-sitevisit.xml" ;;
-          esac
-          echo "🧪 Running Site Visit Tests: $XML"
+          # Each matrix leg runs exactly one phase suite (phase1/2/3),
+          # so the 3 phases run as PARALLEL jobs instead of one 6h+ suite.
+          XML="src/test/resources/parallel/testng-sitevisit-${{ matrix.phase }}.xml"
+          echo "🧪 Running Site Visit ${{ matrix.phase }}: $XML"
 
           mvn test -q -B -DsuiteXmlFile="$XML" \
             -DDEVICE_NAME="$DEVICE_NAME" \
@@ -2783,7 +2786,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: sitevisit-report
+          name: sitevisit-${{ matrix.phase }}-report
           path: |
             target/surefire-reports/
             reports/
@@ -2797,7 +2800,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           BRANCH: ${{ github.ref_name }}
           ACTOR: ${{ github.actor }}
-          MODULE_NAME: sitevisit
+          MODULE_NAME: sitevisit-${{ matrix.phase }}
           JOB_STATUS: ${{ job.status }}
         run: |
           # Send a per-module email AS SOON AS this module finishes — no

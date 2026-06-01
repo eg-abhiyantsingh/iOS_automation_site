@@ -1,0 +1,21 @@
+//
+//  Egalvanic.xcconfig
+//  Egalvanic PZ
+//
+//  Created by Kush Jadia on 13/11/25.
+//
+
+
+// Note: Using $() to avoid xcconfig treating // as comment
+//API_BASE_URL = https:/$()/8n283y9wbb.execute-api.us-east-2.amazonaws.com/prod
+API_BASE_URL = https:/$()/eg-pz.egalvanic.ai/api
+//API_BASE_URL = http:/$()/localhost:5001
+
+// Environment identifier for debugging
+ENVIRONMENT_NAME = Production
+
+// Sentry DSN for crash reporting
+SENTRY_DSN = https:/$()/74a5a03926488714678a0f93db4ddd5a@o4509671240105984.ingest.us.sentry.io/4510436760748032
+
+// DevRev SDK App ID for in-app support
+DEVREV_APP_ID = DvRvStPZG9uOmNvcmU6ZHZydi11cy0xOmRldm8vMTFDZmw1U3lTSzpwbHVnX3NldHRpbmcvMV9ffHxfXzIwMjQtMTAtMTUgMTg6MTY6NTkuODc1MjQ2MzI4ICswMDAwIFVUQw==xlxendsDvRv

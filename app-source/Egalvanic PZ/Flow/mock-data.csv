@@ -1,0 +1,47 @@
+Manufacturer,Type,Style,Count,Designation,LeadTime,ReplacementCost
+Square D,Low Voltage Power Circuit Breaker,PowerPact H,847,Circuit Breaker,12-16 weeks,$2450
+Square D,Low Voltage Molded Case Circuit Breaker,QO,3421,Circuit Breaker,4-6 weeks,$180
+Square D,Low Voltage Molded Case Circuit Breaker,Pow-R-Line C,1289,Circuit Breaker,6-8 weeks,$850
+Siemens,Low Voltage Molded Case Circuit Breaker,Sentron WL,956,Circuit Breaker,8-10 weeks,$920
+Siemens,Low Voltage Power Circuit Breaker,Sentron 3WL,623,Circuit Breaker,14-18 weeks,$3200
+Eaton,Low Voltage Molded Case Circuit Breaker,Series C,2134,Circuit Breaker,6-8 weeks,$790
+Eaton,Low Voltage Power Circuit Breaker,Magnum DS,712,Circuit Breaker,12-16 weeks,$2800
+Eaton,Low Voltage Insulated Case Circuit Breaker,Pow-R-Way III,445,Circuit Breaker,10-14 weeks,$4500
+ABB,Low Voltage Molded Case Circuit Breaker,Tmax T7,1567,Circuit Breaker,8-12 weeks,$1150
+ABB,Low Voltage Power Circuit Breaker,SACE Emax 2,534,Circuit Breaker,16-20 weeks,$5200
+GE,Low Voltage Molded Case Circuit Breaker,Spectra RMS,1823,Circuit Breaker,6-10 weeks,$950
+GE,Low Voltage Molded Case Circuit Breaker,THQL,2956,Circuit Breaker,3-5 weeks,$165
+Schneider Electric,Low Voltage Insulated Case Circuit Breaker,Masterpact MTZ,389,Circuit Breaker,12-16 weeks,$6800
+Schneider Electric,Low Voltage Power Circuit Breaker,Masterpact NT,678,Circuit Breaker,14-18 weeks,$4200
+Siemens,Low Voltage Insulated Case Circuit Breaker,SENTRON 3WA,412,Circuit Breaker,10-14 weeks,$5100
+Cutler-Hammer,Low Voltage Molded Case Circuit Breaker,HFD,1045,Circuit Breaker,8-12 weeks,$880
+Square D,Low Voltage Molded Case Circuit Breaker,HOM,2789,Circuit Breaker,2-4 weeks,$145
+Eaton,Low Voltage Molded Case Circuit Breaker,BR,2345,Circuit Breaker,3-5 weeks,$155
+GE,Low Voltage Molded Case Circuit Breaker,EntelliGuard G,567,Circuit Breaker,10-14 weeks,$1850
+ABB,Low Voltage Molded Case Circuit Breaker,Formula A1,892,Circuit Breaker,8-12 weeks,$1050
+Littelfuse,Low Voltage Fuse,POWR-GARD FLSR,1456,Fuse,2-3 weeks,$45
+Bussmann,Low Voltage Fuse,Low-Peak KRP-C,2234,Fuse,1-2 weeks,$38
+Bussmann,Low Voltage Fuse,Limitron KTN-R,1987,Fuse,2-3 weeks,$42
+Ferraz Shawmut,Low Voltage Fuse,A6D,1123,Fuse,3-4 weeks,$52
+Mersen,Low Voltage Fuse,A4BQ,876,Fuse,4-6 weeks,$68
+Cooper,High Voltage Fuse,Voltage Rated Current Limiting,324,Fuse,8-12 weeks,$850
+S&C Electric,High Voltage Fuse,SMD-1A,267,Fuse,10-14 weeks,$1250
+Eaton,High Voltage Fuse,PML,298,Fuse,8-12 weeks,$920
+ABB,High Voltage Fuse,Type VVXO,189,Fuse,12-16 weeks,$1450
+Littelfuse,High Voltage Fuse,POWR-PRO EJO,245,Fuse,10-14 weeks,$1150
+SEL,Microprocessor Relay,SEL-351,534,Relay,6-8 weeks,$2850
+SEL,Microprocessor Relay,SEL-387,423,Relay,8-10 weeks,$3200
+GE,Microprocessor Relay,Multilin 489,678,Relay,6-10 weeks,$2650
+ABB,Microprocessor Relay,REF615,512,Relay,8-12 weeks,$2950
+Siemens,Microprocessor Relay,SIPROTEC 7SJ82,389,Relay,10-14 weeks,$3400
+Schneider Electric,Microprocessor Relay,Sepam Series 80,456,Relay,8-12 weeks,$3100
+Crydom,Solid State Relay,D2D12,723,Relay,4-6 weeks,$185
+Omega,Solid State Relay,SSR240DC25,634,Relay,3-5 weeks,$165
+Hammond,Dry Transformer,NMK Series,567,Transformer,16-20 weeks,$8500
+Square D,Dry Transformer,EE Type,789,Transformer,14-18 weeks,$7200
+ABB,Dry Transformer,Dryformer VPI,456,Transformer,18-22 weeks,$12500
+Federal Pacific,Oil Transformer,3-Phase Pad Mount,234,Transformer,20-26 weeks,$45000
+Eaton,Oil Transformer,Cooper Power Series,312,Transformer,22-28 weeks,$52000
+Schneider Electric,Oil Transformer,Minera Winding,289,Transformer,20-26 weeks,$48000
+GE,Dry Transformer,9T21B,623,Transformer,16-20 weeks,$9500
+Siemens,Dry Transformer,Geafol Cast Resin,534,Transformer,18-22 weeks,$11200
