@@ -1,0 +1,24 @@
+{
+  "originHash" : "334059798e01ad89069e51f3b8d380b79c4cc6830ee5b655f3eb9ccd0eebb1ea",
+  "pins" : [
+    {
+      "identity" : "devrev-sdk-ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/devrev/devrev-sdk-ios",
+      "state" : {
+        "revision" : "446f8bce472b35963356016084e06c9d2b44154d",
+        "version" : "2.3.5"
+      }
+    },
+    {
+      "identity" : "sentry-cocoa",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/getsentry/sentry-cocoa",
+      "state" : {
+        "revision" : "8627bbc0e663238d516b541d8fc7edd62a627fde",
+        "version" : "8.57.3"
+      }
+    }
+  ],
+  "version" : 3
+}

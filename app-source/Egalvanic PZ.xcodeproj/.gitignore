@@ -1,0 +1,23 @@
+# Xcode
+DerivedData/
+build/
+*.xcworkspace
+!default.xcworkspace
+# Track SwiftPM Package.resolved inside xcworkspace
+!*.xcworkspace/
+*.xcworkspace/*
+!*.xcworkspace/xcshareddata/
+*.xcworkspace/xcshareddata/*
+!*.xcworkspace/xcshareddata/swiftpm/
+!*.xcworkspace/xcshareddata/swiftpm/Package.resolved
+*.xcuserdata
+*.xccheckout
+*.moved-aside
+# Swift Package Manager
+Packages/
+.swiftpm/
+# CocoaPods
+Pods/
+# User‐specific settings
+*.swp
+.DS_Store
