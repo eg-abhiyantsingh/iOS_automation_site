@@ -1,4 +1,0 @@
-[submodule "app-source"]
-	path = app-source
-	url = https://github.com/eg-abhiyantsingh/eg-pz-mobile-iOS.git
-	branch = abhiyant/dev
