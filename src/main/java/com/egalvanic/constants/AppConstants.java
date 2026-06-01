@@ -124,6 +124,7 @@ public class AppConstants {
     public static final String FEATURE_SESSION_ISSUES = "Session Issues";
     public static final String FEATURE_LINK_ISSUES = "Link Issues";
     public static final String FEATURE_START_NEW_JOB = "Start New Job";
+    public static final String FEATURE_WORK_ORDER_PLANNING = "Work Order Planning";
     public static final String FEATURE_SHOW_ALL = "Show All";
     public static final String FEATURE_NEW_ISSUE_LINKED = "New Issue Linked";
     public static final String FEATURE_NEW_JOB_SCREEN = "New Job Screen";

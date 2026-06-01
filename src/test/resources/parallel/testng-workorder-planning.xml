@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite time-out="300000" name="Work Order Planning [OPERATIONS] (14 tests)" verbose="0">
+    <!--
+    ============================================================
+    WORK ORDER PLANNING — 14 tests  [OPERATIONS]
+    ============================================================
+      Scope: Plan CRUD, search, edit, totals
+      App domain: Jobs / Work Orders (a "plan" == a Work Order / Job).
+      per-method time-out = 300000ms (5 min), matching the other
+      parallel suites so one hung test fails fast under the runner cap.
+    ============================================================
+    -->
+    <listeners>
+        <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
+    </listeners>
+
+    <test name="Work Order Planning - Plan CRUD, Search, Edit, Totals">
+        <classes>
+            <class name="com.egalvanic.tests.WorkOrderPlanning_Test"/>
+        </classes>
+    </test>
+
+</suite>

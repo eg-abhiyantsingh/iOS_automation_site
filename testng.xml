@@ -82,4 +82,10 @@
             <class name="com.egalvanic.tests.OfflineSyncMultiSite_Test"/>
         </classes>
     </test>
+
+    <test name="Work Order Planning Tests">
+        <classes>
+            <class name="com.egalvanic.tests.WorkOrderPlanning_Test"/>
+        </classes>
+    </test>
 </suite>
