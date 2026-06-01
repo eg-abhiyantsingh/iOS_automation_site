@@ -35,6 +35,30 @@ Smaller siblings of the above: `AC`, `BB`, `B9`, `B0`, `B4` (more EXC_BAD_ACCESS
 
 ---
 
+## ✅ Confirmed root causes — source-verified (2026-06-01)
+
+With `app-source/` now vendored into this repo, the top three are confirmed against the **actual code**, not inferred from stack traces.
+
+### 5S — background `ModelContext` objects escaping to the main-actor UI
+- `BackgroundImporter.swift` spins up throwaway background contexts — `let modelContext = ModelContext(modelContainer)` at lines **35, 131, 622, 780, 869, 956** (file header: *"Creates ModelContext inside each method for 10x performance improvement"*) — and inserts `NodeV2` graphs there (`NodeV2(...)` :288, `modelContext.insert(newNode)` :107).
+- **No `@ModelActor` anywhere in the app (0 occurrences)** — no SwiftData isolation. Nothing stops a background-context `NodeV2` (or a reference into its object graph) from reaching the main context.
+- The UI faults `NodeV2` to-many relationships (`photos`, `defaultPhoto`, `node_terminals`, …) in ~98 `Views/` sites on the main actor. Once the owning background context is gone, faulting the to-many → `EXC_BREAKPOINT: "…resolve a future for a relationship that doesn't have a cached value … toManyRelationship"`.
+- Corroboration: `EditNodeDetailView.swift:193` already *works around* this by avoiding `node.defaultPhoto` ("replicate … using snapshot data").
+- **Fix:** isolate background SwiftData work behind a `@ModelActor`; never pass live models across contexts — return `PersistentIdentifier`s and re-fetch on the consuming (main) context. Add explicit `@Relationship(inverse:)` to the bare to-many arrays (`core_attributes`, `issues`, `ir_photos`).
+
+### DE — missing-file photo uploads are never dead-lettered → infinite retry + silent data loss
+- The *original* trigger (legacy absolute paths with a dead container UUID) is **already mitigated**: `SyncFileManager.resolveStoredPath` (:148) now stores relative paths and recovers legacy ones (`ZP-2-fix-2026-05`, Apple TN2406).
+- Remaining bug: when the preserved file is *genuinely* gone, `PhotoUploadService` throws `SyncError.fileNotFound` (:144); `SyncExecutionService` correctly stops retrying *within the call* (`if case SyncError.fileNotFound = error { break }` :124) and reports via `captureSyncFailure` (:133–145) — **but the queue item is not terminally failed.** It survives across sync cycles (and per the code comments can be rebuilt from `SyncLog`), so each flush re-attempts and re-emits → **2,359 events from 13 users**, and the photo never uploads (silent data loss). *(Exact queue-lifecycle line for the non-terminal handling is the one remaining thing to pin in `SyncQueueService`.)*
+- Minor: the Sentry capture hardcodes `retryCount: maxRetries` (:139) regardless of attempts actually run — so the dashboard's "retry_count: 3" is misleading.
+- **Fix:** on `fileNotFound` after recovery, **dead-letter** the item (mark terminally failed; stop re-enqueueing / `SyncLog` rebuild) and surface "photo couldn't be uploaded" to the user instead of failing silently. Report the true attempt count.
+
+### 8P — `Dictionary(uniqueKeysWithValues:)` over collections containing duplicate UUIDs
+- ~20 sites build `Dictionary(uniqueKeysWithValues: xs.map { ($0.id, $0) })`, which **traps on the first duplicate key** → `SIGTRAP: "Duplicate values for key: '<UUID>'"`.
+- Most exposed: `BackgroundImporter.swift:65` / `:147` build dedup lookups from *existing DB rows* that can already contain duplicate ids (from a prior bad sync/merge) — so the dedup step itself crashes — plus SLD diagram views over server-supplied data (`AssetsTabView:88`, `ConnectionsTabView:475`, `RoomDetailView:69`, `NodeEdgesViewModel:53–54`).
+- **Fix (blanket — kills the whole class):** replace every `Dictionary(uniqueKeysWithValues:)` with `Dictionary(_, uniquingKeysWith: { first, _ in first })` (or `{ _, last in last }`), or a small `keyedById` helper; optionally add a duplicate-id guard in the import dedup.
+
+---
+
 ## Cross‑cutting theme: memory pressure
 Memory shows up across unrelated crashes, so it's likely systemic, not incidental:
 - **Z-PLATFORM-7** is an outright OOM (`WatchdogTermination … overused RAM`).
