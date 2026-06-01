@@ -78,43 +78,65 @@ public class OfflineSyncMultiSite_Test extends BaseTest {
 
     @BeforeMethod(alwaysRun = true)
     public void perTestSetup() {
-        // Defensive: ensure we're online before each test — UNLESS there are
-        // pending sync records from a prior offline operation. In that case
-        // auto-online would silently sync them, invalidating multi-site
-        // offline-persistence tests like UC1. Also auto-online when truly
-        // online but pending=0 is pure waste (~60s per test on iOS 26.2).
-        try {
-            if (siteSelectionPage.isWifiOffline()) {
-                boolean hasPending = false;
-                try { hasPending = siteSelectionPage.hasPendingSyncRecords(); } catch (Exception ignored) {}
-                if (hasPending) {
-                    System.out.println("🌐 Was offline with pending sync — LEAVING AS-IS " +
-                        "(auto-online would sync the queue and break multi-site offline tests)");
-                } else {
-                    System.out.println("🌐 Was offline (no pending) — restoring online state");
-                    siteSelectionPage.goOnline();
-                    shortWait();
-                }
-            }
-        } catch (Exception e) {
-            System.out.println("⚠️ perTestSetup online-restore probe failed: " + e.getMessage());
+        // CASCADE GUARD (run #26641212845): if the Appium session died in a
+        // prior test (e.g. UC1 hung 420s and killed it), every Appium call
+        // here blocks ~90s. Bail immediately when the session isn't active so
+        // we don't add to the cascade.
+        if (!DriverManager.isDriverActive()) {
+            System.out.println("⚠️ perTestSetup: driver/session not active — skipping online-restore probe");
+            return;
         }
+        // Bound the whole probe at 45s so a dead-but-non-null session can't
+        // hang the setup (and thus the test) indefinitely.
+        runWithBudget("offline-perTestSetup", 45, () -> {
+            // Defensive: ensure we're online before each test — UNLESS there are
+            // pending sync records from a prior offline operation. In that case
+            // auto-online would silently sync them, invalidating multi-site
+            // offline-persistence tests like UC1. Also auto-online when truly
+            // online but pending=0 is pure waste (~60s per test on iOS 26.2).
+            try {
+                if (siteSelectionPage.isWifiOffline()) {
+                    boolean hasPending = false;
+                    try { hasPending = siteSelectionPage.hasPendingSyncRecords(); } catch (Exception ignored) {}
+                    if (hasPending) {
+                        System.out.println("🌐 Was offline with pending sync — LEAVING AS-IS " +
+                            "(auto-online would sync the queue and break multi-site offline tests)");
+                    } else {
+                        System.out.println("🌐 Was offline (no pending) — restoring online state");
+                        siteSelectionPage.goOnline();
+                        shortWait();
+                    }
+                }
+            } catch (Exception e) {
+                System.out.println("⚠️ perTestSetup online-restore probe failed: " + e.getMessage());
+            }
+        });
     }
 
     @AfterMethod(alwaysRun = true)
     public void perTestTeardown() {
-        // Best-effort: drain pending sync so the next test starts with empty queue
-        try {
-            if (siteSelectionPage.hasPendingSyncRecords()) {
-                System.out.println("🧹 Pending sync records detected at teardown — flushing");
-                if (siteSelectionPage.isWifiOffline()) {
-                    siteSelectionPage.goOnline();
-                    shortWait();
+        // CASCADE GUARD: when the session is dead, the original teardown made
+        // 4+ Appium calls (each ~90s) plus waitForSyncToComplete's poll loop —
+        // measured at 840s, which timed out and skipped 39 downstream tests.
+        // Skip entirely on a dead session, and hard-cap at 60s otherwise.
+        if (!DriverManager.isDriverActive()) {
+            System.out.println("⚠️ perTestTeardown: driver/session not active — skipping sync drain");
+            return;
+        }
+        runWithBudget("offline-perTestTeardown", 60, () -> {
+            // Best-effort: drain pending sync so the next test starts with empty queue
+            try {
+                if (siteSelectionPage.hasPendingSyncRecords()) {
+                    System.out.println("🧹 Pending sync records detected at teardown — flushing");
+                    if (siteSelectionPage.isWifiOffline()) {
+                        siteSelectionPage.goOnline();
+                        shortWait();
+                    }
+                    siteSelectionPage.syncPendingRecords();
+                    siteSelectionPage.waitForSyncToComplete();
                 }
-                siteSelectionPage.syncPendingRecords();
-                siteSelectionPage.waitForSyncToComplete();
-            }
-        } catch (Exception ignored) {}
+            } catch (Exception ignored) {}
+        });
     }
 
     // ================================================================

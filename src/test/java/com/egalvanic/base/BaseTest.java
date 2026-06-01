@@ -933,6 +933,43 @@ public class BaseTest {
         } catch (Exception ignored) {}
     }
 
+    /**
+     * Run a block with a hard wall-clock budget.
+     *
+     * Root-cause fix for CI cascade skips (run #26641212845): when an Appium
+     * session dies mid-suite, a custom @BeforeMethod / @AfterMethod that makes
+     * several Appium calls (e.g. OfflineSyncMultiSite.perTestTeardown) blocks
+     * ~90s PER call (the driver's HTTP readTimeout) plus any polling loop —
+     * observed at 840s, which blew past the 420s per-test timeout and skipped
+     * 39 downstream tests.
+     *
+     * This caps the WHOLE block: the body runs on a daemon thread; if it
+     * doesn't finish within {@code seconds} we stop waiting and return. The
+     * worker is a daemon (won't block JVM exit) and the 90s readTimeout
+     * guarantees any hung Appium call it's stuck on eventually unwinds — so
+     * the next test starts on time instead of inheriting the hang.
+     */
+    protected static void runWithBudget(String label, int seconds, Runnable body) {
+        Thread worker = new Thread(() -> {
+            try {
+                body.run();
+            } catch (Throwable t) {
+                System.out.println("⚠️ " + label + " threw: " + t.getMessage());
+            }
+        }, "bounded-" + label);
+        worker.setDaemon(true);
+        worker.start();
+        try {
+            worker.join(seconds * 1000L);
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+        }
+        if (worker.isAlive()) {
+            System.out.println("⏱️ " + label + " exceeded " + seconds
+                    + "s budget — abandoning (session likely dead, not blocking the next test)");
+        }
+    }
+
     // ================================================================
     // LOGGING HELPER METHODS
     // ================================================================
