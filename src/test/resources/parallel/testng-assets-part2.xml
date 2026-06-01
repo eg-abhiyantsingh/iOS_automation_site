@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<suite time-out="420000" name="Asset Tests - Part 2 of 6 (120 tests)" verbose="0">
+<suite time-out="300000" name="Asset Tests - Part 2 of 6 (120 tests)" verbose="0">
     <!--
     ============================================================
     ASSET PART 2 — 120 tests

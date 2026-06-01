@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<suite time-out="420000" name="Issues Tests - Phase 1 (103 tests)" verbose="0">
+<suite time-out="300000" name="Issues Tests - Phase 1 (103 tests)" verbose="0">
     <!--
     ============================================================
     ISSUES PHASE 1 — 103 tests (TC_ISS_001 - TC_ISS_119, minus 16 moved to P3)

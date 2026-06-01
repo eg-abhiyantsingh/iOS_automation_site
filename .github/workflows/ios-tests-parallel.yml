@@ -331,7 +331,7 @@ jobs:
     name: "Authentication (38 tests)"
     if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'authentication-only'
     runs-on: macos-15
-    timeout-minutes: 420
+    timeout-minutes: 350
     
     steps:
       - name: Checkout code
@@ -601,7 +601,7 @@ jobs:
     name: "Site Selection (52 tests)"
     if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'site-selection-only'
     runs-on: macos-15
-    timeout-minutes: 420
+    timeout-minutes: 350
     
     steps:
       - name: Checkout code
@@ -751,7 +751,7 @@ jobs:
     name: "Assets P1 - Creation + Edit + Busway + Capacitor + Bug (112 tests)"
     if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p1-creation-edit-busway-capacitor-bug'
     runs-on: macos-15
-    timeout-minutes: 420
+    timeout-minutes: 350
     
     steps:
       - name: Checkout code
@@ -901,7 +901,7 @@ jobs:
     name: "Assets P2 - CB + DS + Fuse + Generator + JunctionBox (108 tests)"
     if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p2-cb-ds-fuse-generator-junctionbox'
     runs-on: macos-15
-    timeout-minutes: 420
+    timeout-minutes: 350
     
     steps:
       - name: Checkout code
@@ -1050,7 +1050,7 @@ jobs:
     name: "Assets P3 - LoadCenter + MCC + MCC Bucket + Motor + Other (109 tests)"
     if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p3-loadcenter-mcc-mccbucket-motor-other'
     runs-on: macos-15
-    timeout-minutes: 420
+    timeout-minutes: 350
     
     steps:
       - name: Checkout code
@@ -1200,7 +1200,7 @@ jobs:
     name: "Assets P4 - OCP + Panelboard + PDU + Relay + SWB + Transformer (97 tests)"
     if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p4-ocp-panelboard-pdu-relay-swb-transformer'
     runs-on: macos-15
-    timeout-minutes: 420
+    timeout-minutes: 350
     
     steps:
       - name: Checkout code
@@ -1351,7 +1351,7 @@ jobs:
     name: "Assets P5 - UPS + Utility + VFD + Subtypes (112 tests)"
     if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p5-ups-utility-vfd-subtypes'
     runs-on: macos-15
-    timeout-minutes: 420
+    timeout-minutes: 350
     
     steps:
       - name: Checkout code
@@ -1505,7 +1505,7 @@ jobs:
     name: "Assets P6 - Subtypes + Tasks + Issues + Connections + Search (114 tests)"
     if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p6-subtypes-tasks-issues-connections-search'
     runs-on: macos-15
-    timeout-minutes: 420
+    timeout-minutes: 350
 
     steps:
       - name: Checkout code
@@ -1653,7 +1653,7 @@ jobs:
     name: "Issues P1 - List + Filter + Search + Creation + ClassChange (119 tests)"
     if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'issues-p1-list-filter-search-creation-classchange'
     runs-on: macos-15
-    timeout-minutes: 420
+    timeout-minutes: 350
 
     steps:
       - name: Checkout code
@@ -1801,7 +1801,7 @@ jobs:
     name: "Issues P2 - OSHA + Thermal + Severity + Temperature + Ultrasonic (60 tests)"
     if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'issues-p2-osha-thermal-severity-temperature-ultrasonic'
     runs-on: macos-15
-    timeout-minutes: 420
+    timeout-minutes: 350
 
     steps:
       - name: Checkout code
@@ -1949,7 +1949,7 @@ jobs:
     name: "Issues P3 - Ultrasonic Save + Swipe Delete + Sort + Status + CRUD (58 tests)"
     if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'issues-p3-ultrasonic-save-swipe-delete-sort-status-crud'
     runs-on: macos-15
-    timeout-minutes: 420
+    timeout-minutes: 350
 
     steps:
       - name: Checkout code
@@ -2097,7 +2097,7 @@ jobs:
     name: "Location (82 tests)"
     if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'location-only'
     runs-on: macos-15
-    timeout-minutes: 420
+    timeout-minutes: 350
     
     steps:
       - name: Checkout code
@@ -2246,7 +2246,7 @@ jobs:
     name: "Connections (94 tests)"
     if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'connections-only'
     runs-on: macos-15
-    timeout-minutes: 420
+    timeout-minutes: 350
     
     steps:
       - name: Checkout code
@@ -2394,7 +2394,7 @@ jobs:
     name: "Offline (35 tests)"
     if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'offline-only'
     runs-on: macos-15
-    timeout-minutes: 420
+    timeout-minutes: 350
 
     steps:
       - name: Checkout code
@@ -2573,7 +2573,7 @@ jobs:
       github.event.inputs.job_selection == 'sitevisit-phase2' ||
       github.event.inputs.job_selection == 'sitevisit-phase3'
     runs-on: macos-15
-    timeout-minutes: 360
+    timeout-minutes: 350
     # ROOT-CAUSE FIX (run #26641212845): the all-phases mega-suite (344
     # tests, ~5.7h+ sequential) exceeded the 6h wall-clock cap and was
     # CANCELLED — no testng-results.xml was ever written. Split into 3
@@ -2820,7 +2820,7 @@ jobs:
     name: "Rerun Failures (92 tests)"
     if: github.event.inputs.job_selection == 'rerun-failures'
     runs-on: macos-15
-    timeout-minutes: 420
+    timeout-minutes: 350
 
     steps:
       - name: Checkout code
@@ -2969,7 +2969,7 @@ jobs:
     needs: [smoke-tests, auth-tests, site-tests, assets-part1, assets-part2, assets-part3, assets-part4, assets-part5, assets-part6, issues-phase1, issues-phase2, issues-phase3, location-tests, connections-tests, offline-tests, sitevisit-tests, rerun-failures]
     if: always()
     runs-on: ubuntu-latest
-    timeout-minutes: 420
+    timeout-minutes: 350
 
     steps:
       - name: Checkout Code (for email config)

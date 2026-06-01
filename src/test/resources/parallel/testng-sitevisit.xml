@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<suite time-out="480000" name="Site Visit / Work Orders - All Phases" verbose="0">
+<suite time-out="300000" name="Site Visit / Work Orders - All Phases" verbose="0">
     <!--
     ============================================================
     SITE VISIT — ALL PHASES (TC_JOB_001 - TC_JOB_344)

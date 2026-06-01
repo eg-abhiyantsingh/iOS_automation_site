@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<suite time-out="480000" name="All Failing Tests - 119 tests across 11 test classes" verbose="0">
+<suite time-out="300000" name="All Failing Tests - 119 tests across 11 test classes" verbose="0">
     <!--
     ============================================================
     ALL FAILING TESTS FROM CI/CD RUN (March 2026)
