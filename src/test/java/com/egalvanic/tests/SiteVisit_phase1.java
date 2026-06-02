@@ -111,8 +111,24 @@ public class SiteVisit_phase1 extends BaseTest {
 
     @BeforeMethod(alwaysRun = true)
     public void initPageObjects() {
-        workOrderPage = new WorkOrderPage();
-        issuePage = new IssuePage();
+        // Construct page objects against the live driver. If the driver isn't
+        // ready yet — e.g. running a single test from the IDE, or a timing gap
+        // before BaseTest.testSetup() has called initDriver() — BasePage's
+        // constructor throws IllegalStateException("Driver not initialized").
+        // Self-heal by ensuring the driver exists, then retry. Same proven
+        // pattern as LocationTest.methodSetup(). initDriver() is idempotent and
+        // never kills an active session, so this is safe in the normal flow too.
+        try {
+            workOrderPage = new WorkOrderPage();
+            issuePage = new IssuePage();
+        } catch (IllegalStateException e) {
+            System.out.println("⚠️ SiteVisit_phase1.initPageObjects — driver not ready ("
+                    + e.getMessage() + "); ensuring driver then retrying...");
+            try { Thread.sleep(1000); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+            DriverManager.initDriver();
+            workOrderPage = new WorkOrderPage();
+            issuePage = new IssuePage();
+        }
     }
 
     // ============================================================

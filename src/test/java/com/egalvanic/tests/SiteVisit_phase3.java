@@ -52,7 +52,19 @@ public class SiteVisit_phase3 extends BaseTest {
 
     @BeforeMethod(alwaysRun = true)
     public void initPageObjects() {
-        workOrderPage = new WorkOrderPage();
+        // Self-heal if the driver isn't ready yet (IDE single-test run, or a
+        // timing gap before BaseTest.testSetup() calls initDriver()). BasePage's
+        // constructor throws IllegalStateException when the driver is null;
+        // ensure the driver exists and retry. Mirrors LocationTest.methodSetup().
+        try {
+            workOrderPage = new WorkOrderPage();
+        } catch (IllegalStateException e) {
+            System.out.println("⚠️ SiteVisit_phase3.initPageObjects — driver not ready ("
+                    + e.getMessage() + "); ensuring driver then retrying...");
+            try { Thread.sleep(1000); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+            DriverManager.initDriver();
+            workOrderPage = new WorkOrderPage();
+        }
     }
 
     // ============================================================
