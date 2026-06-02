@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite time-out="300000" name="Location Tests - Part 2 of 2: Rooms + Location Assignment (~41 tests)" verbose="0">
+    <!--
+    ============================================================
+    LOCATION — PART 2 of 2  (Rooms + Location Assignment)
+    ============================================================
+      Split from the single 82-test Location suite, which hit the
+      350-min runner cap and was CANCELLED (run #26773900131).
+
+      Part 2 = Room CRUD/list/detail (TC_NR / TC_RL / TC_ER /
+             TC_DR / TC_RD) + No-Location & Assign-Location flows
+             (TC_NL / TC_AL).
+      Part 1 covers Buildings + Floors.
+
+      Room tests self-provision their building+floor preconditions
+      via navigateToNewRoom(building, floor), so this part stands
+      alone and is safe to run in parallel with Part 1.
+      Method selection uses TestNG regex <include> on the TC_ prefix.
+      per-method time-out = 300000ms (5 min), matching the other
+      parallel suites so one hung test fails fast under the cap.
+    ============================================================
+    -->
+    <listeners>
+        <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
+    </listeners>
+
+    <test name="Location Part 2 - Rooms + Location Assignment">
+        <classes>
+            <class name="com.egalvanic.tests.LocationTest">
+                <methods>
+                    <include name="TC_NR_.*"/>
+                    <include name="TC_RL_.*"/>
+                    <include name="TC_ER_.*"/>
+                    <include name="TC_DR_.*"/>
+                    <include name="TC_RD_.*"/>
+                    <include name="TC_NL_.*"/>
+                    <include name="TC_AL_.*"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+</suite>
