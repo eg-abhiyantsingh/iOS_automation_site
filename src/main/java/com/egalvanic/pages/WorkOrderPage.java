@@ -375,73 +375,86 @@ public class WorkOrderPage extends BasePage {
      * Get the name of a work order entry by index.
      * Index 0 = first work order in the list.
      */
-    public String getWorkOrderName(int index) {
+    /**
+     * Return the work-order ENTRY TITLE elements in display order.
+     *
+     * v1.36 reality (verified from live DOM 2026-06-02): the Work Orders list
+     * is SwiftUI — there are ZERO XCUIElementTypeCell elements. Each entry's
+     * title is a single XCUIElementTypeStaticText whose label combines name +
+     * date, e.g. "Work Order - Jun 2, 4:03 AM" / "Job - Dec 19, 1:54 pm", or a
+     * custom name like "test job". The old Cell-based scan always returned
+     * null. We now collect the title StaticTexts directly, excluding screen
+     * chrome, in DOM order (which matches top-to-bottom visual order).
+     */
+    private List<WebElement> getWorkOrderTitleElements() {
+        List<WebElement> result = new java.util.ArrayList<>();
         try {
-            // Work order names are typically the first/most prominent text in each cell
-            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell'"
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText'"
             ));
-
-            // Filter to valid work order cells
-            int validIndex = 0;
-            for (WebElement cell : cells) {
-                try {
-                    int y = cell.getLocation().getY();
-                    int h = cell.getSize().getHeight();
-                    if (y > 200 && h > 40) {
-                        if (validIndex == index) {
-                            // Get child static texts within this cell
-                            List<WebElement> texts = cell.findElements(AppiumBy.iOSNsPredicateString(
-                                "type == 'XCUIElementTypeStaticText'"
-                            ));
-                            // Priority pass: look for text containing "Job" or "Work Order" (the name)
-                            for (WebElement text : texts) {
-                                String label = text.getAttribute("label");
-                                if (label != null && (label.contains("Job") || label.contains("Work Order"))) {
-                                    System.out.println("📝 Work order name at index " + index + ": " + label);
-                                    return label;
-                                }
-                            }
-                            // Fallback: first text that isn't a known non-name pattern
-                            for (WebElement text : texts) {
-                                String label = text.getAttribute("label");
-                                if (label != null && !label.isEmpty()
-                                        && !label.equals("AVAILABLE")
-                                        && !label.equals("Start")
-                                        && !label.matches("\\d+ \\| \\d+")
-                                        && !label.matches("\\d+")
-                                        && label.length() > 3) {
-                                    System.out.println("📝 Work order name at index " + index + " (fallback): " + label);
-                                    return label;
-                                }
-                            }
-                        }
-                        validIndex++;
-                    }
-                } catch (Exception e) { /* skip */ }
+            java.util.Set<String> chrome = new java.util.HashSet<>(java.util.Arrays.asList(
+                "Work Orders", "Start New Work Order",
+                "Begin capturing IR photos, issues, and tasks",
+                "Available Work Orders", "Active Work Orders", "Completed Work Orders",
+                "Show All", "Show Less", "Start", "AVAILABLE", "ACTIVE", "Active",
+                "Completed", "View All", "No Active Work Order"
+            ));
+            for (WebElement t : texts) {
+                String label = t.getAttribute("label");
+                if (label == null) label = t.getAttribute("value");
+                if (label == null) continue;
+                String norm = label.replace("\n", ", ").trim();
+                if (norm.isEmpty() || chrome.contains(norm)) continue;
+                if (norm.matches("\\d+") || norm.matches("\\d+\\s*\\|\\s*\\d+")) continue; // counts
+                int y;
+                try { y = t.getLocation().getY(); } catch (Exception e) { continue; }
+                if (y < 200) continue;  // above the list: nav header + "Start New" card + section header
+                result.add(t);
             }
         } catch (Exception e) {
-            System.out.println("⚠️ Error getting work order name at index " + index + ": " + e.getMessage());
+            System.out.println("⚠️ Error collecting work order titles: " + e.getMessage());
+        }
+        return result;
+    }
+
+    public String getWorkOrderName(int index) {
+        List<WebElement> titles = getWorkOrderTitleElements();
+        if (index >= 0 && index < titles.size()) {
+            try {
+                String label = titles.get(index).getAttribute("label");
+                if (label == null) label = titles.get(index).getAttribute("value");
+                String name = (label == null) ? null : label.replace("\n", ", ").trim();
+                System.out.println("📝 Work order name at index " + index + ": " + name);
+                return name;
+            } catch (Exception e) {
+                System.out.println("⚠️ Error reading work order name at index " + index + ": " + e.getMessage());
+            }
         }
         return null;
     }
 
     /**
      * Get the date string of a work order entry by index.
+     *
+     * v1.36: the date is embedded in the combined title ("Work Order - Jun 2,
+     * 4:03 AM"), not a separate field — the old " at " predicate never matched.
+     * Extract the date portion from the title.
      */
     public String getWorkOrderDate(int index) {
-        try {
-            // Date strings contain " at " and "AM"/"PM"
-            List<WebElement> dates = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND label CONTAINS ' at ' AND (label CONTAINS 'AM' OR label CONTAINS 'PM')"
-            ));
-            if (index < dates.size()) {
-                String label = dates.get(index).getAttribute("label");
-                System.out.println("📅 Work order date at index " + index + ": " + label);
-                return label;
-            }
-        } catch (Exception e) {
-            System.out.println("⚠️ Error getting work order date at index " + index + ": " + e.getMessage());
+        String title = getWorkOrderName(index);
+        if (title == null) return null;
+        // e.g. "Jun 2, 4:03 AM" / "Dec 19, 1:54 pm"
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile(
+            "([A-Za-z]{3,9}\\s+\\d{1,2},?\\s*\\d{1,2}:\\d{2}\\s*(?:AM|PM|am|pm))"
+        ).matcher(title);
+        if (m.find()) {
+            System.out.println("📅 Work order date at index " + index + ": " + m.group(1));
+            return m.group(1);
+        }
+        // No embedded timestamp (custom-named order) — fall back to text after the last " - "
+        int dash = title.lastIndexOf(" - ");
+        if (dash >= 0 && dash + 3 < title.length()) {
+            return title.substring(dash + 3).trim();
         }
         return null;
     }
