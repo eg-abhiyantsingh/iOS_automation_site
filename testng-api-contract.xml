@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<!--
+  Backend API contract suite (REST Assured) — no device/Appium needed.
+  Grounded in api.qa.egalvanic.ai/api/swagger.json (Swagger 2.0, Bearer JWT).
+  Run:
+    USER_EMAIL=... USER_PASSWORD=... \
+    mvn test -DsuiteXmlFile=testng-api-contract.xml
+  (auth tests SKIP if creds unset; health + auth-enforcement + validation still run)
+-->
+<suite name="API Contract Suite">
+    <test name="Backend API Contract">
+        <classes>
+            <class name="com.egalvanic.api.ApiContractTest"/>
+        </classes>
+    </test>
+</suite>
