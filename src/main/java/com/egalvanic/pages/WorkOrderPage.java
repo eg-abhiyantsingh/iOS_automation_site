@@ -968,49 +968,38 @@ public class WorkOrderPage extends BasePage {
      * The screen header contains the job title (e.g., "Job - Dec 17, 12:18 PM").
      */
     public boolean isSessionDetailsScreenDisplayed() {
-        // Strategy 1: Look for "Active Session" badge text (unique to this screen)
+        // STRICT detection — must use markers UNIQUE to Session Details.
+        // The old "Tasks + Issues" strategy false-positived on the DASHBOARD,
+        // whose Quick-Action tiles are literally labelled "Tasks" and "Issues"
+        // (verified live DOM 2026-06-03) — that made ensureOnSessionDetailsScreen
+        // return early on the dashboard, so 018/082/083 ran on the wrong screen.
+        // These markers exist ONLY on Session Details, never on the dashboard:
+        //   "WORK ORDER DETAILS" header, "IR Photo Type", "Quick QR Action".
         try {
-            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND (label CONTAINS 'Active Session' OR label CONTAINS 'active session')"
+            List<WebElement> unique = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND ("
+                + "label CONTAINS[c] 'WORK ORDER DETAILS' "
+                + "OR label CONTAINS 'IR Photo Type' "
+                + "OR label CONTAINS 'Quick QR Action')"
             ));
-            if (!texts.isEmpty()) {
-                System.out.println("✅ Session Details screen detected via 'Active Session' text");
+            if (!unique.isEmpty()) {
+                System.out.println("✅ Session Details screen detected (unique marker: "
+                        + unique.get(0).getAttribute("label") + ")");
                 return true;
             }
         } catch (Exception e) { /* continue */ }
 
-        // Strategy 2: Look for session stats cards (Tasks, Issues, IR Photos)
+        // Fallback: INFORMATION header AND a Started/IR-Photo-Type field together
+        // (both present is unique to the session Details tab, unlike a lone tile).
         try {
-            List<WebElement> tasks = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND label == 'Tasks'"
-            ));
-            List<WebElement> issues = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND label == 'Issues'"
-            ));
-            if (!tasks.isEmpty() && !issues.isEmpty()) {
-                System.out.println("✅ Session Details screen detected via Tasks + Issues labels");
-                return true;
-            }
-        } catch (Exception e) { /* continue */ }
-
-        // Strategy 3: Look for "INFORMATION" section header
-        try {
-            List<WebElement> infoHeaders = driver.findElements(AppiumBy.iOSNsPredicateString(
+            boolean info = !driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND (label == 'INFORMATION' OR label == 'Information')"
-            ));
-            if (!infoHeaders.isEmpty()) {
-                System.out.println("✅ Session Details screen detected via INFORMATION header");
-                return true;
-            }
-        } catch (Exception e) { /* continue */ }
-
-        // Strategy 4: Look for "Session Type" or "Started" labels
-        try {
-            List<WebElement> sessionLabels = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND (label CONTAINS 'Session Type' OR label CONTAINS 'Started')"
-            ));
-            if (!sessionLabels.isEmpty()) {
-                System.out.println("✅ Session Details screen detected via Session Type/Started labels");
+            )).isEmpty();
+            boolean started = !driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label == 'Started'"
+            )).isEmpty();
+            if (info && started) {
+                System.out.println("✅ Session Details screen detected (INFORMATION + Started)");
                 return true;
             }
         } catch (Exception e) { /* continue */ }
@@ -1031,6 +1020,41 @@ public class WorkOrderPage extends BasePage {
             System.out.println("⚠️ Timeout waiting for Session Details screen");
             return false;
         }
+    }
+
+    /**
+     * Drive the UI to a KNOWN state: an open Session Details screen with an
+     * active work order. Idempotent and state-agnostic — the durable fix for
+     * the Site Visit tests that depend on suite ordering to already be inside
+     * a session (082/083/018 + Locations cascade). Call from the Work Orders
+     * screen (or already inside a session).
+     *
+     *   already on Session Details        -> done
+     *   active WO present on the list      -> open it
+     *   no active WO                       -> activate the first available, then open
+     *
+     * @return true if we end up on the Session Details screen
+     */
+    public boolean ensureSessionDetailsOpen() {
+        if (isSessionDetailsScreenDisplayed()) {
+            System.out.println("✅ ensureSessionDetailsOpen: already on Session Details");
+            return true;
+        }
+        // Should be on the Work Orders list at this point
+        waitForWorkOrdersScreen();
+
+        if (!isActiveBadgeDisplayed()) {
+            System.out.println("📍 ensureSessionDetailsOpen: no active WO — activating first available");
+            tapActivateButton();
+            sleep(1500);
+        }
+        System.out.println("📍 ensureSessionDetailsOpen: opening the active work order");
+        tapActiveWorkOrder();
+        sleep(1200);
+
+        boolean ok = waitForSessionDetailsScreen();
+        if (!ok) System.out.println("⚠️ ensureSessionDetailsOpen: Session Details not reached");
+        return ok;
     }
 
     /**

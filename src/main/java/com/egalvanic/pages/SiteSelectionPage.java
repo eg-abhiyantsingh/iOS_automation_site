@@ -2656,6 +2656,40 @@ public class SiteSelectionPage extends BasePage {
     /**
      * Click No Active Job card with robust fallback strategies
      */
+    /**
+     * State-AGNOSTIC dashboard work-order card tap.
+     *
+     * The dashboard WO card changes text by state: "WO, No Active Work Order,
+     * Tap to select a work order" (no active) vs "WO, <active session>" (active).
+     * clickNoActiveJobCard() only matches the no-active text, so it fails once a
+     * job is active — the churn that breaks Site Visit navigation in suite order.
+     * This taps the tall card (h>50, name starts with "WO") regardless of state;
+     * the small "WO" status badge (h~27) is excluded by the height filter.
+     *
+     * @return true if a card was tapped
+     */
+    public boolean clickWorkOrderCard() {
+        try {
+            java.util.List<WebElement> cards = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name BEGINSWITH 'WO'"));
+            for (WebElement c : cards) {
+                try {
+                    if (c.getSize().getHeight() > 50 && c.getLocation().getY() > 120) {
+                        System.out.println("✅ Tapped dashboard WO card (state-agnostic): "
+                                + c.getAttribute("name"));
+                        c.click();
+                        return true;
+                    }
+                } catch (Exception ignored) {}
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ clickWorkOrderCard predicate failed: " + e.getMessage());
+        }
+        // Fallback to the legacy no-active-only locator chain
+        clickNoActiveJobCard();
+        return true;
+    }
+
     public void clickNoActiveJobCard() {
         System.out.println("📍 Attempting to click No Active Job card...");
 

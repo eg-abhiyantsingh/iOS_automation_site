@@ -141,13 +141,14 @@ public class SiteVisit_phase1 extends BaseTest {
      */
     private void navigateToWorkOrdersScreen() {
         System.out.println("📍 Navigating to Work Orders screen...");
-        siteSelectionPage.clickNoActiveJobCard();
+        // State-agnostic card tap (handles active-job dashboard card too)
+        siteSelectionPage.clickWorkOrderCard();
         shortWait();
         boolean loaded = workOrderPage.waitForWorkOrdersScreen();
         if (!loaded) {
             // Retry once — card tap may not have registered
             System.out.println("🔄 Retrying navigation to Work Orders screen...");
-            siteSelectionPage.clickNoActiveJobCard();
+            siteSelectionPage.clickWorkOrderCard();
             mediumWait();
             workOrderPage.waitForWorkOrdersScreen();
         }
@@ -710,6 +711,7 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_018 - Verify INFORMATION section"
         );
 
+        ensureOnSessionDetailsScreen();
 
         logStep("Verifying INFORMATION section is displayed");
         boolean infoSection = workOrderPage.isInformationSectionDisplayed();
@@ -4445,6 +4447,7 @@ public class SiteVisit_phase1 extends BaseTest {
         );
 
         // Navigate to Session Details (Details tab)
+        ensureOnSessionDetailsScreen();
 
         boolean onSessionDetails = workOrderPage.isSessionDetailsScreenDisplayed();
         logStep("On Session Details: " + onSessionDetails);
@@ -4510,6 +4513,7 @@ public class SiteVisit_phase1 extends BaseTest {
         );
 
         // Navigate to Session Details (Details tab)
+        ensureOnSessionDetailsScreen();
 
         logStep("Ensuring Details tab is active");
         workOrderPage.tapSessionTab("Details");
@@ -6233,22 +6237,14 @@ public class SiteVisit_phase1 extends BaseTest {
         if (workOrderPage.isSessionDetailsScreenDisplayed()) {
             return;
         }
-
-        // Navigate from dashboard
-        navigateToWorkOrdersScreen();
-        shortWait();
-
-        // Activate a job if none active
-        if (!workOrderPage.isActiveBadgeDisplayed()) {
-            logStep("No active job — activating one for session details");
-            workOrderPage.tapActivateButton();
-            mediumWait();
-        }
-
-        // Tap the active job
-        workOrderPage.tapActiveWorkOrder();
+        // State-agnostic: tap the dashboard WO card (works whether a job is
+        // active or not), then let ensureSessionDetailsOpen() activate+open as
+        // needed. Robust to whatever state the prior test left us in — this is
+        // the fix for the suite-ordering dependency that returned null on
+        // 018/082/083 (they ran on the dashboard, not Session Details).
+        siteSelectionPage.clickWorkOrderCard();
         mediumWait();
-        workOrderPage.waitForSessionDetailsScreen();
+        workOrderPage.ensureSessionDetailsOpen();
     }
 
     // ============================================================
