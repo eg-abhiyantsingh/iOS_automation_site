@@ -443,6 +443,9 @@ public class BaseTest {
                 }
 
             } else if (result.getStatus() == ITestResult.SUCCESS) {
+                // HARDENING (Phase 2): a test that "passed" but left the app dead almost
+                // certainly missed a crash. Convert that false-green into a real failure.
+                failIfAppCrashedDuringSuccessfulTest(testName);
                 // Final-state screenshot for passing tests too (lets devs see
                 // the end state in the Detailed report). Counts against the
                 // per-test screenshot cap so it doesn't bloat huge tests.
@@ -1167,6 +1170,53 @@ public class BaseTest {
     protected void fail(String message) {
         ExtentReportManager.logFail("Test FAILED: " + message);
         throw new AssertionError(message);
+    }
+
+    // ================================================================
+    // HARDENING ENTRY POINTS (Phase 2 verifiers) — call these from tests
+    // ================================================================
+
+    /** Fail the test if the app is not in the foreground after {@code step} (crash/exit). */
+    protected void verifyAppAlive(String step) {
+        new com.egalvanic.verify.CrashDetector().assertAlive(step);
+    }
+
+    /** Fail the test if the named screen is blank/empty. */
+    protected void verifyNotBlank(String screen) {
+        new com.egalvanic.verify.UIStateValidator().assertNotBlank(screen);
+    }
+
+    /** Fail the test if an unexpected error alert is on screen (otherwise auto-accepted away). */
+    protected void verifyNoErrorAlert() {
+        new com.egalvanic.verify.UIStateValidator().assertNoErrorAlert();
+    }
+
+    /** Composite guard to call after a risky action: app alive AND no error alert. */
+    protected void guard(String step) {
+        new com.egalvanic.verify.CrashDetector().assertAlive(step);
+        new com.egalvanic.verify.UIStateValidator().assertNoErrorAlert();
+    }
+
+    /**
+     * HARDENING (Phase 2): detect a crash a presence-only test missed. If a SUCCESS test
+     * ends with the app not running, fail it. Conservative: a probe error (dead session,
+     * which is already handled in teardown) is NOT converted into a manufactured failure.
+     */
+    private void failIfAppCrashedDuringSuccessfulTest(String testName) {
+        if (!DriverManager.isDriverActive()) return;
+        io.appium.java_client.appmanagement.ApplicationState st;
+        try {
+            st = DriverManager.getDriver().queryAppState(AppConstants.APP_BUNDLE_ID);
+        } catch (Exception e) {
+            return;
+        }
+        if (st == io.appium.java_client.appmanagement.ApplicationState.NOT_RUNNING
+                || st == io.appium.java_client.appmanagement.ApplicationState.NOT_INSTALLED) {
+            ExtentReportManager.logFail("App not running at end of '" + testName
+                    + "' (state=" + st + ") — likely an unobserved crash");
+            throw new AssertionError("App crashed/exited during test '" + testName
+                    + "' (state=" + st + ")");
+        }
     }
 
     // ================================================================

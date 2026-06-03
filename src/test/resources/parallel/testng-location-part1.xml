@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite time-out="300000" name="Location Tests - Part 1 of 2: Buildings + Floors (~40 tests)" verbose="0">
+    <!--
+    ============================================================
+    LOCATION — PART 1 of 2  (Buildings + Floors)
+    ============================================================
+      Split from the single 82-test Location suite, which ran the
+      full 350-min runner cap and was CANCELLED before finishing
+      (run #26773900131). Sharded into 2 PARALLEL legs so each
+      finishes well under the cap.
+
+      Part 1 = Building CRUD/list (TC_NB / TC_BL / TC_EB / TC_DB)
+             + Floor   CRUD/list (TC_NF / TC_FL / TC_EF / TC_DF).
+      Part 2 covers Rooms + Location assignment.
+
+      Tests self-provision their preconditions (methodSetup
+      re-navigates to the Locations screen each test, and Floor
+      tests find-or-create a building via navigateToNewFloor), so
+      the two parts are independent and safe to run in parallel.
+      Method selection uses TestNG regex <include> on the TC_ prefix.
+      per-method time-out = 300000ms (5 min), matching the other
+      parallel suites so one hung test fails fast under the cap.
+    ============================================================
+    -->
+    <listeners>
+        <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
+    </listeners>
+
+    <test name="Location Part 1 - Buildings + Floors">
+        <classes>
+            <class name="com.egalvanic.tests.LocationTest">
+                <methods>
+                    <include name="TC_NB_.*"/>
+                    <include name="TC_BL_.*"/>
+                    <include name="TC_EB_.*"/>
+                    <include name="TC_DB_.*"/>
+                    <include name="TC_NF_.*"/>
+                    <include name="TC_FL_.*"/>
+                    <include name="TC_EF_.*"/>
+                    <include name="TC_DF_.*"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+</suite>

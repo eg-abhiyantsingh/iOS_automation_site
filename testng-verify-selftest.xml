@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<!--
+  Driver-free validation suite for the hardening layer (com.egalvanic.verify).
+  Runs on a plain JVM (no Appium/simulator) so the verifier logic can be proven in CI
+  and locally:  mvn -o -DsuiteXmlFile=testng-verify-selftest.xml test
+-->
+<suite name="VerifierSelfTest" verbose="1">
+    <test name="verify-logic">
+        <classes>
+            <class name="com.egalvanic.verify.VerifierSelfTest"/>
+        </classes>
+    </test>
+</suite>
