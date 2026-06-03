@@ -1256,16 +1256,19 @@ public class WorkOrderPage extends BasePage {
             }
         } catch (Exception e) { /* continue */ }
 
-        // Strategy 2: Check for fields within the section (Session Type, Started)
+        // Strategy 2: Check for fields within the section.
+        // v1.36 (verified live DOM 2026-06-03): the app labels the type field
+        // "IR Photo Type" (NOT "Session Type"), with "Started" below it.
         try {
-            List<WebElement> sessionType = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND label CONTAINS 'Session Type'"
+            List<WebElement> typeField = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND (label CONTAINS 'IR Photo Type' "
+                + "OR label CONTAINS 'Photo Type' OR label CONTAINS 'Session Type')"
             ));
             List<WebElement> started = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND label CONTAINS 'Started'"
             ));
-            if (!sessionType.isEmpty() || !started.isEmpty()) {
-                System.out.println("✅ INFORMATION section inferred from Session Type/Started fields");
+            if (!typeField.isEmpty() || !started.isEmpty()) {
+                System.out.println("✅ INFORMATION section inferred from IR Photo Type/Started fields");
                 return true;
             }
         } catch (Exception e) { /* continue */ }
@@ -1278,76 +1281,84 @@ public class WorkOrderPage extends BasePage {
      * Get the Session Type value (e.g., "FLIR-SEP").
      */
     public String getSessionType() {
-        try {
-            // Look for text near "Session Type" label
-            List<WebElement> labels = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND label CONTAINS 'Session Type'"
-            ));
-            if (!labels.isEmpty()) {
-                int labelY = labels.get(0).getLocation().getY();
-                // Value is typically on the same row, to the right, or just below
-                List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText'"
-                ));
-                for (WebElement text : allTexts) {
-                    String label = text.getAttribute("label");
-                    int textY = text.getLocation().getY();
-                    if (label != null && !label.contains("Session Type")
-                            && !label.equals("INFORMATION")
-                            && !label.equals("Started")
-                            && !label.contains("Quick QR")
-                            && Math.abs(textY - labelY) < 30) {
-                        System.out.println("📝 Session Type: " + label);
-                        return label;
-                    }
-                }
-            }
-        } catch (Exception e) {
-            System.out.println("⚠️ Error getting Session Type: " + e.getMessage());
+        // v1.36 (live DOM 2026-06-03): INFORMATION is a SwiftUI stacked form —
+        // the field LABEL sits directly above its VALUE (~21px, same x). The
+        // type field is labelled "IR Photo Type" (not "Session Type") with the
+        // value e.g. "FOTRIC" below it.
+        String v = valueStackedBelowLabel(
+            java.util.Arrays.asList("IR Photo Type", "Photo Type", "Session Type"), 45);
+        if (v != null) {
+            System.out.println("📝 Session Type (IR Photo Type): " + v);
+            return v;
         }
-
-        // Fallback: Look for common session type values
+        // Fallback: known photo-type values seen on this build
         try {
-            List<WebElement> flirsep = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND (label CONTAINS 'FLIR' OR label CONTAINS 'flir')"
+            List<WebElement> vals = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND (label CONTAINS 'FLIR' "
+                + "OR label CONTAINS 'FOTRIC' OR label CONTAINS 'FLUKE' OR label CONTAINS 'flir')"
             ));
-            if (!flirsep.isEmpty()) {
-                String val = flirsep.get(0).getAttribute("label");
-                System.out.println("📝 Session Type (fallback): " + val);
+            if (!vals.isEmpty()) {
+                String val = vals.get(0).getAttribute("label");
+                System.out.println("📝 Session Type (value fallback): " + val);
                 return val;
             }
         } catch (Exception e) { /* continue */ }
-
         return null;
     }
 
     /**
      * Get the "Started" date/time value from the INFORMATION section.
+     * v1.36 layout: "Started" label with value e.g. "2 June 2026 at 8:41:55 PM"
+     * stacked ~21px directly below it.
      */
     public String getStartedDateTime() {
-        try {
-            // Look for date/time text near "Started" label
-            List<WebElement> labels = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND label CONTAINS 'Started'"
-            ));
-            if (!labels.isEmpty()) {
-                int labelY = labels.get(0).getLocation().getY();
-                List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND (label CONTAINS 'AM' OR label CONTAINS 'PM' OR label CONTAINS ',')"
-                ));
-                for (WebElement text : allTexts) {
-                    int textY = text.getLocation().getY();
-                    if (Math.abs(textY - labelY) < 30) {
-                        String val = text.getAttribute("label");
-                        System.out.println("📅 Started: " + val);
-                        return val;
-                    }
-                }
-            }
-        } catch (Exception e) {
-            System.out.println("⚠️ Error getting Started date: " + e.getMessage());
+        String v = valueStackedBelowLabel(java.util.Collections.singletonList("Started"), 45);
+        if (v != null) {
+            System.out.println("📅 Started: " + v);
+            return v;
         }
         return null;
+    }
+
+    /**
+     * Find the VALUE text stacked directly below a field LABEL in a SwiftUI
+     * form row. The value is the nearest StaticText whose Y is just below the
+     * label (gap 3..maxGapPx) and whose X is roughly aligned (within 24px) —
+     * skipping the label itself and other known field headers.
+     */
+    private String valueStackedBelowLabel(java.util.List<String> labelAliases, int maxGapPx) {
+        try {
+            WebElement label = null;
+            for (String alias : labelAliases) {
+                List<WebElement> hits = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND label == '" + alias + "'"));
+                if (!hits.isEmpty()) { label = hits.get(0); break; }
+            }
+            if (label == null) return null;
+            int lx = label.getLocation().getX();
+            int ly = label.getLocation().getY();
+            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText'"));
+            WebElement best = null; int bestDy = Integer.MAX_VALUE;
+            for (WebElement t : texts) {
+                String l;
+                try { l = t.getAttribute("label"); } catch (Exception e) { continue; }
+                if (l == null || l.trim().isEmpty()) continue;
+                if (labelAliases.contains(l) || l.equals("INFORMATION")
+                        || l.equals("Started") || l.contains("Quick QR")) continue;
+                int tx, ty;
+                try { tx = t.getLocation().getX(); ty = t.getLocation().getY(); }
+                catch (Exception e) { continue; }
+                int dy = ty - ly;
+                if (dy > 3 && dy <= maxGapPx && Math.abs(tx - lx) <= 24 && dy < bestDy) {
+                    bestDy = dy; best = t;
+                }
+            }
+            return best == null ? null : best.getAttribute("label");
+        } catch (Exception e) {
+            System.out.println("⚠️ valueStackedBelowLabel error: " + e.getMessage());
+            return null;
+        }
     }
 
     /**
