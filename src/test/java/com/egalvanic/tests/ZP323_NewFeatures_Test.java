@@ -71,8 +71,10 @@ public class ZP323_NewFeatures_Test extends BaseTest {
     public void TC_ZP323_06_01_verifySuggestedShortcutsSectionVisibleOnEdit() {
         ExtentReportManager.createTest(AppConstants.MODULE_ASSET, AppConstants.FEATURE_EDIT_ASSET,
             "TC_ZP323_06_01 - Verify Suggested Shortcuts section visible on Asset Edit");
-        logStep("Step 1: Navigate to Asset Edit screen");
-        assetPage.navigateToAssetList();
+        
+            logStep("Step 1: Navigate to Asset Edit screen");
+        loginAndSelectSite();
+            assetPage.navigateToAssetList();
         shortWait();
         assetPage.selectFirstAsset();
         shortWait();
