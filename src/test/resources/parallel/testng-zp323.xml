@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite time-out="480000" name="ZP-323 New Features (28 tests)" verbose="0">
+    <!--
+    ============================================================
+    ZP-323 NEW FEATURES — 28 tests
+    ============================================================
+      Scope: AI Extract (nameplate-photo-first) + IR Photo upload
+             (active WO + matching IR/Visual filenames) flows.
+      Previously NOT in any parallel suite, so it never ran in CI —
+      added here so the 28 tests are exercised alongside the others.
+    ============================================================
+    -->
+    <listeners>
+        <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
+    </listeners>
+
+    <test name="ZP-323 - AI Extract + IR Photo Upload">
+        <classes>
+            <class name="com.egalvanic.tests.ZP323_NewFeatures_Test"/>
+        </classes>
+    </test>
+
+</suite>

@@ -69,6 +69,7 @@ on:
           - 'sitevisit-phase2'
           - 'sitevisit-phase3'
           - 'workorder-planning-only'
+          - 'zp323-only'
           - 'rerun-failures'
       send_email:
         description: 'Send email with test results'
@@ -2974,6 +2975,149 @@ jobs:
         continue-on-error: true
 
   # ========================================
+  # JOB 15c: ZP-323 New Features (28 tests) — was uncovered by any suite
+  # ========================================
+  zp323-tests:
+    name: "ZP-323 New Features (28 tests)"
+    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'zp323-only'
+    runs-on: macos-15
+    timeout-minutes: 350
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install Appium
+        run: |
+          npm install -g appium@next
+          appium driver install xcuitest
+      - name: Unzip App
+        run: |
+          unzip -o apps/Z-Platform-QA.zip -d apps/
+          if [ -d "apps/Z-Platform-QA.app" ] && [ ! -d "apps/Z Platform-QA.app" ]; then
+            mv "apps/Z-Platform-QA.app" "apps/Z Platform-QA.app"
+            echo "✅ Renamed Z-Platform-QA.app → Z Platform-QA.app"
+          fi
+      - name: Boot Simulator and Wait Until Ready
+        run: |
+          UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && UDID=$(xcrun simctl list devices available | grep -E "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && UDID=$(xcrun simctl list devices available | grep -E "iPhone 1[5-6]" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && exit 1
+          xcrun simctl shutdown "$UDID" 2>/dev/null || true
+          sleep 3
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+          ELAPSED=0
+          while [ $ELAPSED -lt 240 ]; do
+            if xcrun simctl list devices | grep "$UDID" | grep -q "(Booted)"; then
+              echo "✅ Simulator booted after ${ELAPSED}s"
+              sleep 45
+              break
+            fi
+            sleep 5
+            ELAPSED=$((ELAPSED + 5))
+          done
+          [ $ELAPSED -ge 240 ] && exit 1
+          DEVICE=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
+          VERSION=$(xcrun simctl list devices available | grep -B 50 "$UDID" | grep "-- iOS" | tail -1 | sed 's/.*iOS \([0-9.]*\).*/\1/')
+          [ -z "$VERSION" ] && VERSION="18.5"
+          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+          echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
+          echo "PLATFORM_VERSION=$VERSION" >> $GITHUB_ENV
+      - name: Pre-install App
+        run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
+      - name: Pre-build WebDriverAgent
+        run: |
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          if [ -n "$WDA_PATH" ]; then
+            cd "$WDA_PATH"
+            xcodebuild build-for-testing -project WebDriverAgent.xcodeproj -scheme WebDriverAgentRunner -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" -derivedDataPath /tmp/wda-build -quiet || true
+          fi
+      - name: Start Appium Server
+        run: |
+          appium --relaxed-security --log-level error > appium.log 2>&1 &
+          for i in {1..60}; do
+            [ "$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:4723/status 2>/dev/null)" = "200" ] && break
+            sleep 2
+          done
+          sleep 10
+      - name: Warm-up WDA Session
+        env:
+          SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
+          APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
+        run: |
+          WDA_SUCCESS=false
+          for attempt in 1 2 3 4 5; do
+            SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session -H "Content-Type: application/json" -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"$SIMULATOR_UDID"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' --max-time 600 2>&1) || true
+            SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
+            if [ -n "$SESSION_ID" ]; then
+              sleep 10
+              curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true
+              sleep 5
+              WDA_SUCCESS=true
+              break
+            fi
+            [ $attempt -lt 5 ] && sleep 30
+          done
+
+          if [ "$WDA_SUCCESS" = false ]; then
+            echo ""
+            echo "❌ WDA warm-up FAILED after 5 attempts!"
+            echo "─── Appium log (last 50 lines) ───"
+            tail -50 appium.log 2>/dev/null || echo "(no appium log)"
+            echo "─── Simulator status ───"
+            xcrun simctl list devices | grep -A1 "Booted" || echo "(no booted sim)"
+            exit 1
+          fi
+      - name: Run ZP-323 Tests
+        continue-on-error: true
+        run: |
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${{ github.workspace }}/apps/Z Platform-QA.app/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
+
+          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel/testng-zp323.xml \
+            -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
+            -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
+            -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
+            -DAPP_BUNDLE_ID="$BUNDLE_ID" \
+            -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+      - name: Upload ZP-323 Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zp323-report
+          path: |
+            target/surefire-reports/
+            reports/
+            screenshots/
+          retention-days: 7
+      - name: Send Module Email (zp323)
+        if: always() && github.event.inputs.send_email != 'false'
+        env:
+          SMTP_USER: ${{ secrets.EMAIL_USERNAME }}
+          SMTP_PASS: ${{ secrets.EMAIL_PASSWORD }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          MODULE_NAME: zp323
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
+          export EMAIL_TO
+          python3 -m pip install --quiet defusedxml
+          python3 .github/scripts/send-module-email.py
+        continue-on-error: true
+
+  # ========================================
   # JOB 16: Rerun Failures (92 tests, ~3 hr)
   # ========================================
   rerun-failures:
@@ -3126,7 +3270,7 @@ jobs:
   # ========================================
   send-email:
     name: "Summary & Email"
-    needs: [smoke-tests, auth-tests, site-tests, assets-part1, assets-part2, assets-part3, assets-part4, assets-part5, assets-part6, issues-phase1, issues-phase2, issues-phase3, location-tests, connections-tests, offline-tests, sitevisit-tests, workorder-planning-tests, rerun-failures]
+    needs: [smoke-tests, auth-tests, site-tests, assets-part1, assets-part2, assets-part3, assets-part4, assets-part5, assets-part6, issues-phase1, issues-phase2, issues-phase3, location-tests, connections-tests, offline-tests, sitevisit-tests, workorder-planning-tests, zp323-tests, rerun-failures]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 350
@@ -3627,6 +3771,7 @@ jobs:
             echo "  Offline (35):           ${{ needs.offline-tests.result }}"
             echo "  Site Visit:             ${{ needs.sitevisit-tests.result }}"
             echo "  Work Order Planning(14):${{ needs.workorder-planning-tests.result }}"
+            echo "  ZP-323 New Features(28):${{ needs.zp323-tests.result }}"
           fi
 
           echo ""
