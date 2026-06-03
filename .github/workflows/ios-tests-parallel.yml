@@ -3294,6 +3294,25 @@ jobs:
           path: all-reports
         continue-on-error: true
 
+      - name: Build dated failed-test suite
+        continue-on-error: true
+        run: |
+          # Collect every FAILED test across all module reports into one dated,
+          # runnable TestNG suite (failed-suites/failed-<date>.xml) + history.md.
+          python3 -m pip install --quiet defusedxml || true
+          python3 .github/scripts/build-failed-suite.py --from all-reports \
+            --date "$(date +%F)" || echo "⚠️ failed-suite generation skipped"
+          ls -la failed-suites/ 2>/dev/null || true
+
+      - name: Upload failed-test suite
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failed-suite
+          path: failed-suites/
+          retention-days: 30
+        continue-on-error: true
+
       - name: Consolidate Client Reports
         id: reports
         run: |
