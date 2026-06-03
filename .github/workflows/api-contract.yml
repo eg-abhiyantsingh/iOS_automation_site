@@ -1,0 +1,53 @@
+name: API Contract Tests (backend)
+
+# ============================================================
+# Backend API contract suite (REST Assured) against the live Swagger spec
+# at api.qa.egalvanic.ai/api. Pure HTTP — NO iOS simulator / macOS runner
+# needed, so it runs on cheap/fast ubuntu and gates the backend contract
+# independently of the device suite.
+#
+# - health + auth-enforcement + negative/boundary login run WITHOUT creds.
+# - authed contract tests (/me, /accounts/) run only if USER_EMAIL +
+#   USER_PASSWORD secrets are set; otherwise they SKIP (never hardcoded).
+# - BACKEND_API_URL is allowlisted to *.egalvanic.ai inside ApiClient.
+# ============================================================
+on:
+  workflow_dispatch:
+    inputs:
+      backend_api_url:
+        description: 'Backend API base (allowlisted *.egalvanic.ai)'
+        required: true
+        type: choice
+        options:
+          - 'https://api.qa.egalvanic.ai/api'
+          - 'https://api.staging.egalvanic.ai/api'
+        default: 'https://api.qa.egalvanic.ai/api'
+  schedule:
+    - cron: '0 6 * * 1-5'   # weekday 06:00 UTC contract health check
+
+jobs:
+  api-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4.3.1
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4.8.0
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+      - name: Run API contract suite
+        env:
+          BACKEND_API_URL: ${{ inputs.backend_api_url || 'https://api.qa.egalvanic.ai/api' }}
+          USER_EMAIL: ${{ secrets.USER_EMAIL }}
+          USER_PASSWORD: ${{ secrets.USER_PASSWORD }}
+        run: mvn -B test -DsuiteXmlFile=testng-api-contract.xml
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: api-contract-reports
+          path: |
+            target/surefire-reports/
+            reports/
