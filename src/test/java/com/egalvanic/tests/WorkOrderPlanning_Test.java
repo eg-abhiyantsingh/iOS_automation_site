@@ -5,6 +5,7 @@ import com.egalvanic.constants.AppConstants;
 import com.egalvanic.pages.WorkOrderPage;
 import com.egalvanic.utils.DriverManager;
 import com.egalvanic.utils.ExtentReportManager;
+import com.egalvanic.verify.StateIntegrityChecker;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
@@ -115,6 +116,8 @@ public class WorkOrderPlanning_Test extends BaseTest {
         navigateToWorkOrdersScreen();
         boolean onScreen = workOrderPage.waitForWorkOrdersScreen();
         skipIfPreconditionMissing(() -> onScreen, "Work Orders screen not reachable for this site");
+        verifyNotBlank("Work Orders");
+        guard("open Work Orders");
         assertTrue(workOrderPage.isWorkOrdersHeaderCorrect(),
             "Work Orders screen header should be correct. Got: '" + workOrderPage.getWorkOrdersHeaderText() + "'");
         logStepWithScreenshot("TC_WOP_001: Work Orders screen open");
@@ -155,6 +158,7 @@ public class WorkOrderPlanning_Test extends BaseTest {
         boolean created = workOrderPage.tapCreateJobButton();
         assertTrue(created, "Create button should be tappable");
         shortWait();
+        verifyAppAlive("create work-order plan");
         // After creation the app returns to the Work Orders list (or activates the plan).
         assertTrue(workOrderPage.waitForWorkOrdersScreen() || workOrderPage.isWorkOrderActive(),
             "After create, expected the Work Orders list or an active plan");
@@ -173,11 +177,22 @@ public class WorkOrderPlanning_Test extends BaseTest {
         navigateToWorkOrdersScreen();
         skipIfPreconditionMissing(() -> workOrderPage.waitForWorkOrdersScreen(), "Work Orders screen not reachable");
 
-        logStep("Step 2: Verify the available-plans section and read the count");
+        logStep("Step 2: Verify the available-plans section renders real content");
+        verifyNotBlank("Work Orders");
+        guard("Work Orders list");
         boolean sectionVisible = workOrderPage.isAvailableWorkOrdersSectionDisplayed();
-        int count = Math.max(workOrderPage.getWorkOrderEntryCount(), workOrderPage.getJobCardCount());
+        int count = workOrderPage.getWorkOrderEntryCount();
         logStep("Available work-order/plan entries: " + count + " | section visible: " + sectionVisible);
-        assertTrue(sectionVisible || count >= 0, "Plan list should render (section or entries)");
+        if (count > 0) {
+            // Strong: an entry must render a real, non-empty name — catches phantom/blank rows
+            String firstName = workOrderPage.getWorkOrderName(0);
+            assertTrue(firstName != null && !firstName.trim().isEmpty(),
+                "First plan entry must render a non-empty name (no phantom rows). Got: '" + firstName + "'");
+        } else {
+            // No data: the screen must still render its section/header (blankness already ruled out)
+            assertTrue(sectionVisible || workOrderPage.isWorkOrdersHeaderCorrect(),
+                "With no entries, the Work Orders screen must still render its section/header");
+        }
         logStepWithScreenshot("TC_WOP_004: Plan list read");
     }
 
@@ -384,5 +399,48 @@ public class WorkOrderPlanning_Test extends BaseTest {
             "Task totals summary not present on this plan");
         assertNotNull(total, "Task total count should be readable");
         logStepWithScreenshot("TC_WOP_014: Plan task totals verified");
+    }
+
+    // ============================================================
+    // PLAN — STATE INTEGRITY (hardening pilot)
+    // ============================================================
+
+    @Test(priority = 15)
+    public void TC_WOP_015_planListIntegrityAcrossRoundTrip() {
+        ExtentReportManager.createTest(AppConstants.MODULE_JOBS, AppConstants.FEATURE_WORK_ORDER_PLANNING,
+            "TC_WOP_015 - Plan list survives a screen round-trip with no loss/duplication");
+        logStep("Step 1: Open Work Orders and snapshot the plan list");
+        navigateToWorkOrdersScreen();
+        skipIfPreconditionMissing(() -> workOrderPage.waitForWorkOrdersScreen(), "Work Orders screen not reachable");
+        verifyNotBlank("Work Orders");
+        StateIntegrityChecker sic = new StateIntegrityChecker();
+        StateIntegrityChecker.Snapshot before = sic.capture(this::readPlanNames);
+
+        logStep("Step 2: Round-trip to the dashboard and back");
+        smartNavigateToDashboard();
+        guard("dashboard");
+        navigateToWorkOrdersScreen();
+        skipIfPreconditionMissing(() -> workOrderPage.waitForWorkOrdersScreen(),
+            "Work Orders not reachable after round-trip");
+
+        logStep("Step 3: The plan list must be intact (no loss, no duplication)");
+        StateIntegrityChecker.Snapshot after = sic.capture(this::readPlanNames);
+        sic.assertNoLossOrDup(before, after);
+        logStepWithScreenshot("TC_WOP_015: Plan list integrity verified");
+    }
+
+    /**
+     * Read current plan identities positionally ("i:name"). Positional identity keeps each
+     * entry unique, so the integrity check measures loss / round-trip stability without
+     * false-flagging two plans that happen to share a display name.
+     */
+    private java.util.List<String> readPlanNames() {
+        int count = workOrderPage.getWorkOrderEntryCount();
+        java.util.List<String> names = new java.util.ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            String n = workOrderPage.getWorkOrderName(i);
+            names.add(i + ":" + (n == null ? "<null>" : n.trim()));
+        }
+        return names;
     }
 }
