@@ -1998,7 +1998,8 @@ public class SiteVisit_phase1 extends BaseTest {
 
             // Check if a new screen appeared (creation flow)
             boolean stillOnWorkOrders = workOrderPage.isWorkOrdersScreenDisplayed();
-            boolean onSessionDetails = workOrderPage.isSessionDetailsScreenDisplayed();
+            ensureOnSessionDetailsScreen();
+        boolean onSessionDetails = workOrderPage.isSessionDetailsScreenDisplayed();
 
             if (onSessionDetails) {
                 logStep("New job created and session started — navigated to Session Details");
@@ -3009,7 +3010,8 @@ public class SiteVisit_phase1 extends BaseTest {
                 + "a different flow (immediate creation, dialog, etc.).");
 
             // Check if a new session was created directly
-            boolean onSessionDetails = workOrderPage.isSessionDetailsScreenDisplayed();
+            ensureOnSessionDetailsScreen();
+        boolean onSessionDetails = workOrderPage.isSessionDetailsScreenDisplayed();
             if (onSessionDetails) {
                 logStep("Job was created immediately and Session Details opened");
                 workOrderPage.goBack();
@@ -4091,6 +4093,7 @@ public class SiteVisit_phase1 extends BaseTest {
 
         // Ensure we have an active job and are on Session Details
 
+        ensureOnSessionDetailsScreen();
         boolean onSessionDetails = workOrderPage.isSessionDetailsScreenDisplayed();
         logStep("On Session Details screen: " + onSessionDetails);
 
@@ -4449,6 +4452,7 @@ public class SiteVisit_phase1 extends BaseTest {
         // Navigate to Session Details (Details tab)
         ensureOnSessionDetailsScreen();
 
+        ensureOnSessionDetailsScreen();
         boolean onSessionDetails = workOrderPage.isSessionDetailsScreenDisplayed();
         logStep("On Session Details: " + onSessionDetails);
 
@@ -4887,6 +4891,7 @@ public class SiteVisit_phase1 extends BaseTest {
         logStepWithScreenshot("After tapping Done");
 
         // Verify we returned to Session Details with Locations tab
+        ensureOnSessionDetailsScreen();
         boolean onSessionDetails = workOrderPage.isSessionDetailsScreenDisplayed();
         logStep("Back on Session Details: " + onSessionDetails);
 
