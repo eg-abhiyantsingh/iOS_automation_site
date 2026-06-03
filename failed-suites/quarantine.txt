@@ -1,0 +1,44 @@
+# CI test-gate quarantine list — KNOWN failures with a filed bug (see BUGS.md).
+# The test-gate (send-email job) fails the build on any failure whose method
+# name does NOT match a token here. Remove a line once that test is fixed so
+# the gate starts guarding it again. One token per line; matched as a substring
+# of the failed test-method name. '#' = comment.
+#
+# --- B6: Site Visit Locations / Assets-in-Room giant-tree (BUGS.md B6) ---
+TC_JOB_076
+TC_JOB_077
+TC_JOB_078
+TC_JOB_080
+TC_JOB_084
+TC_JOB_085
+TC_JOB_086
+TC_JOB_087
+TC_JOB_088
+TC_JOB_089
+TC_JOB_090
+TC_JOB_091
+TC_JOB_092
+TC_JOB_093
+TC_JOB_094
+TC_JOB_095
+TC_JOB_096
+TC_JOB_097
+TC_JOB_098
+TC_JOB_099
+# --- Session Issues tab / Link Issues / banner / Quick-QR / New-Job info
+#     (open Site Visit groups from the 62/37 phase-1 run; not yet fixed) ---
+TC_JOB_023
+TC_JOB_024
+TC_JOB_027
+TC_JOB_028
+TC_JOB_031
+TC_JOB_032
+TC_JOB_040
+TC_JOB_051
+TC_JOB_052
+TC_JOB_054
+TC_JOB_068
+TC_JOB_072
+TC_JOB_073
+TC_JOB_074
+TC_JOB_075

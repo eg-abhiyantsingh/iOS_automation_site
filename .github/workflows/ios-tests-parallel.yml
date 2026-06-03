@@ -3276,10 +3276,13 @@ jobs:
     timeout-minutes: 350
 
     steps:
-      - name: Checkout Code (for email config)
+      - name: Checkout Code (for email config + failed-suite/gate scripts)
         uses: actions/checkout@v4
         with:
-          sparse-checkout: src/main/java/com/egalvanic/constants/AppConstants.java
+          sparse-checkout: |
+            src/main/java/com/egalvanic/constants/AppConstants.java
+            .github/scripts
+            failed-suites
 
       - name: Extract Email Recipients
         id: email_config
@@ -3797,3 +3800,57 @@ jobs:
           echo "  📧 Consolidated email sent to configured recipients"
           echo "  📎 Client reports attached: ${{ steps.reports.outputs.REPORT_COUNT || '0' }}"
           echo "  🔗 Details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+      # ── TEST GATE ─────────────────────────────────────────────────────────
+      # Runs LAST (after email + report uploads). Fails the build on any test
+      # failure that is NOT quarantined in failed-suites/quarantine.txt — so
+      # real/new regressions turn the run RED, while documented known-failures
+      # (with a filed bug) are tolerated. This closes the "continue-on-error
+      # everywhere → green even when tests fail" gap (BUGS.md B10).
+      - name: Test Gate (fail build on un-quarantined failures)
+        run: |
+          python3 - <<'PYEOF'
+          import glob, os, re, sys
+          try:
+              import defusedxml.ElementTree as ET
+          except ImportError:
+              os.system(sys.executable + " -m pip install --quiet defusedxml")
+              import defusedxml.ElementTree as ET
+
+          # load quarantine tokens (substring match on failed method names)
+          quar = []
+          qf = "failed-suites/quarantine.txt"
+          if os.path.exists(qf):
+              for line in open(qf):
+                  line = line.split("#", 1)[0].strip()
+                  if line:
+                      quar.append(line)
+
+          failed, unexpected = [], []
+          for xml in glob.glob("all-reports/**/testng-results.xml", recursive=True):
+              try:
+                  root = ET.parse(xml).getroot()
+              except Exception:
+                  continue
+              for tm in root.iter("test-method"):
+                  if tm.get("is-config") == "true":
+                      continue
+                  name = tm.get("name", "")
+                  sts = tm.get("status")
+                  if sts == "FAIL":
+                      failed.append(name)
+                      if not any(tok in name for tok in quar):
+                          unexpected.append(name)
+
+          failed = sorted(set(failed)); unexpected = sorted(set(unexpected))
+          print(f"Total failed test methods: {len(failed)}")
+          print(f"Quarantined (known, tolerated): {len(failed) - len(unexpected)}")
+          print(f"UNEXPECTED failures (gate-relevant): {len(unexpected)}")
+          for u in unexpected[:50]:
+              print("   ✗", u)
+          if unexpected:
+              print("\n❌ TEST GATE FAILED — un-quarantined test failures present.")
+              print("   Fix them, or (if a known bug) add the token to failed-suites/quarantine.txt with a BUGS.md entry.")
+              sys.exit(1)
+          print("\n✅ TEST GATE PASSED — no un-quarantined failures.")
+          PYEOF
