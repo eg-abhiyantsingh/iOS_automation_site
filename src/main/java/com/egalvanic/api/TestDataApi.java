@@ -40,9 +40,23 @@ public class TestDataApi {
 
     private String token;
 
-    /** Authenticate with the standard QA test user; caches the bearer token. */
+    /**
+     * Authenticate with the QA test user; caches the bearer token.
+     * Prefers runtime-injected secrets so CI/secret stores can override the
+     * committed local-dev fallback:
+     *   email    -> -Dapi.email    / env QA_API_EMAIL    / AppConstants.VALID_EMAIL
+     *   password -> -Dapi.password / env QA_API_PASSWORD / AppConstants.VALID_PASSWORD
+     */
     public void login() {
-        login(AppConstants.VALID_EMAIL, AppConstants.VALID_PASSWORD, SUBDOMAIN);
+        login(cred("api.email", "QA_API_EMAIL", AppConstants.VALID_EMAIL),
+              cred("api.password", "QA_API_PASSWORD", AppConstants.VALID_PASSWORD),
+              SUBDOMAIN);
+    }
+
+    private static String cred(String sysProp, String envVar, String fallback) {
+        String v = System.getProperty(sysProp);
+        if (v == null || v.isEmpty()) v = System.getenv(envVar);
+        return (v == null || v.isEmpty()) ? fallback : v;
     }
 
     public void login(String email, String password, String subdomain) {
@@ -59,12 +73,12 @@ public class TestDataApi {
         HttpResponse<String> resp = send(req);
         if (resp.statusCode() / 100 != 2) {
             throw new IllegalStateException("Login failed: HTTP " + resp.statusCode()
-                    + " — " + truncate(resp.body(), 300));
+                    + " — " + truncate(redact(resp.body()), 300));
         }
         this.token = extract(resp.body(), "access_token");
         if (token == null || token.isEmpty()) {
             throw new IllegalStateException("Login OK but no access_token in response: "
-                    + truncate(resp.body(), 300));
+                    + truncate(redact(resp.body()), 300));
         }
         System.out.println("🔑 TestDataApi authenticated (token len=" + token.length() + ")");
     }
@@ -117,5 +131,13 @@ public class TestDataApi {
     private static String truncate(String s, int n) {
         if (s == null) return "null";
         return s.length() <= n ? s : s.substring(0, n) + "…";
+    }
+
+    /** Mask token/secret field VALUES so they never reach logs or exceptions. */
+    private static String redact(String s) {
+        if (s == null) return "null";
+        return s.replaceAll(
+            "(?i)(\"(?:access_token|refresh_token|id_token|token|password|mfa|secret)\"\\s*:\\s*\")[^\"]*\"",
+            "$1***\"");
     }
 }
