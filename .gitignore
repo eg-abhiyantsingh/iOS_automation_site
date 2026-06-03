@@ -47,3 +47,6 @@ config/email-credentials.properties
 
 # Backup files
 *.backup
+
+# Mobile security scan outputs
+security/mobsf-report.*

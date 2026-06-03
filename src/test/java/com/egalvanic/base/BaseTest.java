@@ -1197,6 +1197,21 @@ public class BaseTest {
         new com.egalvanic.verify.UIStateValidator().assertNoErrorAlert();
     }
 
+    /** Fail if any visible actionable control on {@code screen} lacks a VoiceOver label. */
+    protected void verifyAccessibility(String screen) {
+        new com.egalvanic.verify.A11yVerifier().assertActionablesLabeled(screen);
+    }
+
+    /** Fail if an on-device store file is empty after a flow that should have persisted data. */
+    protected void verifyPersisted(String relPath, String flow) {
+        new com.egalvanic.verify.PersistenceVerifier().assertFileNonEmpty(relPath, flow);
+    }
+
+    /** Fail if cold launch to {@code readyMarker} exceeds {@code budgetMs}. */
+    protected long verifyLaunchUnder(org.openqa.selenium.By readyMarker, long budgetMs) {
+        return new com.egalvanic.verify.PerfVerifier().assertLaunchUnder(readyMarker, budgetMs);
+    }
+
     /**
      * HARDENING (Phase 2): detect a crash a presence-only test missed. If a SUCCESS test
      * ends with the app not running, fail it. Conservative: a probe error (dead session,
