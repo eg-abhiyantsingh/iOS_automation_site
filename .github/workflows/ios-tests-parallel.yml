@@ -3504,6 +3504,64 @@ jobs:
 
           ls -la consolidated-reports/ 2>/dev/null || echo "No reports directory"
 
+      # ── CONSOLIDATED REPORT ARTIFACTS ─────────────────────────────────────
+      # BUG FIX: the consolidated client report + detailed reports were built/
+      # emailed but never uploaded as downloadable artifacts (run 26881798303
+      # had 17 per-module artifacts and zero consolidated ones). Assemble a
+      # bundle (consolidated client report + every per-module client AND
+      # detailed report + an index.html hub) and upload it.
+      - name: Assemble consolidated report bundle
+        if: always()
+        run: |
+          mkdir -p consolidated-reports/detailed
+          # Gather every module's latest DETAILED report (per-module artifacts
+          # carry reports/detailed/Detailed_Report_*.html).
+          for d in $(find all-reports -path '*reports/detailed/Detailed_Report_*.html' -type f 2>/dev/null | sort); do
+            MODULE=$(echo "$d" | awk -F'/' '{print $2}' | sed 's/-report$//')
+            cp "$d" "consolidated-reports/detailed/${MODULE}_$(basename "$d")" 2>/dev/null || true
+          done
+          # Build an index.html hub linking the consolidated client report +
+          # every per-module client and detailed report.
+          {
+            echo "<!DOCTYPE html><html><head><meta charset='utf-8'><title>iOS Suite — Consolidated Reports</title>"
+            echo "<style>body{font-family:-apple-system,Arial,sans-serif;margin:24px;line-height:1.5}h2{margin-top:22px}a{display:block;padding:3px 0}</style></head><body>"
+            echo "<h1>eGalvanic iOS Automation — Consolidated Reports</h1>"
+            echo "<p>Run ${{ github.run_id }} · branch ${{ github.ref_name }}</p>"
+            echo "<h2>Client (consolidated)</h2>"
+            if [ -f consolidated-reports/Consolidated_Client_Report.html ]; then
+              echo "<a href='Consolidated_Client_Report.html'><b>Consolidated_Client_Report.html</b></a>"
+            else echo "<p>(consolidated client report not generated)</p>"; fi
+            echo "<h2>Per-module client reports</h2>"
+            for f in consolidated-reports/*_client_report.html; do [ -f "$f" ] && echo "<a href='$(basename "$f")'>$(basename "$f")</a>"; done
+            echo "<h2>Per-module detailed reports (with screenshots)</h2>"
+            for f in consolidated-reports/detailed/*.html; do [ -f "$f" ] && echo "<a href='detailed/$(basename "$f")'>detailed/$(basename "$f")</a>"; done
+            echo "</body></html>"
+          } > consolidated-reports/index.html
+          echo "=== consolidated bundle ==="
+          find consolidated-reports -type f | sed 's|^|  |' | head -60
+          du -sh consolidated-reports 2>/dev/null || true
+
+      - name: Upload Consolidated Client Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: consolidated-client-report
+          path: |
+            consolidated-reports/index.html
+            consolidated-reports/Consolidated_Client_Report.html
+            consolidated-reports/*_client_report.html
+          retention-days: 30
+        continue-on-error: true
+
+      - name: Upload Consolidated Detailed Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: consolidated-detailed-reports
+          path: consolidated-reports/detailed/
+          retention-days: 30
+        continue-on-error: true
+
       - name: Prepare Email Summary
         id: email
         env:
