@@ -8579,7 +8579,7 @@ public class AssetPage extends BasePage {
      */
     public void fillAllATSRequiredFields() {
         System.out.println("📋 Filling all ATS required fields (using dropdowns)...");
-        
+
         // Scroll to see fields
         scrollFormDown();
         sleep(300);
@@ -8593,9 +8593,11 @@ public class AssetPage extends BasePage {
             selectDropdownOption("Ampere Rating", "100A");
         } catch (Exception e) {
             System.out.println("⚠️ Could not select Ampere Rating: " + e.getMessage());
-            // Try alternate value
+            // Gold: ATS Ampere Rating ∈ {30A,60A,100A,200A,...}. Use another exact
+            // option — NOT bare "100", which substring-matches "100 kA"
+            // (Interrupting Rating), selecting the WRONG field.
             try {
-                selectDropdownOption("Ampere Rating", "100");
+                selectDropdownOption("Ampere Rating", "200A");
             } catch (Exception e2) {
                 System.out.println("⚠️ Ampere Rating selection failed");
             }
@@ -8622,11 +8624,13 @@ public class AssetPage extends BasePage {
         sleep(200);
         try {
             System.out.println("📝 Selecting Mains Type...");
-            selectDropdownOption("Mains Type", "Normal");
+            // Gold (node_classes): ATS "Mains Type" options are MCB / MLO — NOT
+            // "Normal"/"Emergency" (which never matched and fell back to chrome).
+            selectDropdownOption("Mains Type", "MCB");
         } catch (Exception e) {
             System.out.println("⚠️ Could not select Mains Type: " + e.getMessage());
             try {
-                selectDropdownOption("Mains Type", "Emergency");
+                selectDropdownOption("Mains Type", "MLO");
             } catch (Exception e2) {
                 System.out.println("⚠️ Mains Type selection failed");
             }
@@ -8671,7 +8675,9 @@ public class AssetPage extends BasePage {
             System.out.println("   Current asset class (selected): " +
                 (current == null ? "<undetected>" : "'" + current + "'"));
             if (current == null) return false; // can't confirm → let caller open picker + select (idempotent)
-            return current.equalsIgnoreCase(targetClass.trim());
+            // Space-insensitive compare: the picker/button shows "Load Center"
+            // while callers/tests pass "Loadcenter" (and similar). Normalize both.
+            return normalizeClass(current).equals(normalizeClass(targetClass));
         } catch (Exception e) {
             System.out.println("   Error checking current asset class: " + e.getMessage());
             return false;
@@ -8825,6 +8831,38 @@ public class AssetPage extends BasePage {
             sleep(300);
         }
 
+        // Strategy 5: space-insensitive match — the picker shows "Load Center"
+        // but callers pass "Loadcenter" (and similar). Scroll + match on the
+        // normalized (lower-case, space-stripped) label.
+        String wanted = normalizeClass(className);
+        for (int i = 0; i < 8; i++) {
+            try {
+                driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(1));
+                for (WebElement el : driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton'"))) {
+                    try {
+                        String n = el.getAttribute("label");
+                        if (n == null) n = el.getAttribute("name");
+                        if (n == null || n.contains(",")) continue;
+                        if (normalizeClass(n).equals(wanted) && el.isDisplayed()) {
+                            int tx = el.getLocation().getX() + el.getSize().getWidth() / 2;
+                            int ty = el.getLocation().getY() + el.getSize().getHeight() / 2;
+                            driver.executeScript("mobile: tap", Map.of("x", tx, "y", ty));
+                            System.out.println("   ✓ Tapped '" + n + "' (space-insensitive match for '" + className + "')");
+                            return true;
+                        }
+                    } catch (Exception ignore) {}
+                }
+            } catch (Exception e) {
+            } finally {
+                driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
+            }
+            driver.executeScript("mobile: dragFromToForDuration", Map.of(
+                "fromX", screenWidth / 2, "fromY", screenHeight / 2 + 150,
+                "toX", screenWidth / 2, "toY", screenHeight / 2 - 150, "duration", 0.3));
+            sleep(300);
+        }
+
         System.out.println("   ✗ Could not find '" + className + "' in picker after all strategies");
         return false;
     }
@@ -8903,10 +8941,16 @@ public class AssetPage extends BasePage {
     /** Full set of selectable asset classes (matches the picker options). */
     private static final java.util.Set<String> ASSET_CLASSES = new java.util.HashSet<>(java.util.Arrays.asList(
         "ATS", "Busway", "Capacitor", "Circuit Breaker", "DC Bus", "Default", "Disconnect Switch",
-        "Fuse", "Generator", "Junction Box", "Lightning Controls", "Load", "Loadcenter", "MCC",
+        "Fuse", "Generator", "Junction Box", "Lightning Controls", "Load", "Loadcenter", "Load Center", "MCC",
         "MCC Bucket", "Meter", "Motor", "Motor Starter", "None", "Other", "Other (OCP)", "Panelboard",
         "PDU", "Reactor", "Rectifier", "Relay", "Switchboard", "Transformer", "Transformer (3-Winding)",
         "UPS", "Utility", "VFD"));
+
+    /** Normalize a class name for matching: lower-case, spaces removed.
+     *  Unifies the "Loadcenter" (code) vs "Load Center" (live picker) spelling. */
+    private static String normalizeClass(String s) {
+        return s == null ? "" : s.trim().toLowerCase().replace(" ", "");
+    }
 
     /** Pick the first non-empty, comma-free candidate (asset-LIST rows carry commas). */
     private String cleanClassToken(String... candidates) {

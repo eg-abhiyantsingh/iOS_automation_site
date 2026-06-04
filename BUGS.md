@@ -47,6 +47,24 @@ weakening assertions.
 
 ---
 
+### B11 — Asset-class picker cannot select "Loadcenter"  ⚠️ OPEN
+- **Affects:** all 7 Loadcenter tests (`LC_EAD_10/12/14/18/19/23/25`) — they fail at
+  the class-change step, before any field logic.
+- **Root cause (measured live 2026-06-04):** opening the Asset Class picker works,
+  but selecting Loadcenter fails every strategy — `accessibilityId("Loadcenter")`
+  returns no element, `mobile: scroll` predicate doesn't land it, manual-scroll
+  exact-match and a new **space-insensitive** scan (handles "Load Center" ≡
+  "Loadcenter") both find nothing across 8 scrolls. ATS/Motor select fine, so it's
+  specific to Loadcenter — likely a lazy SwiftUI picker list whose off-screen rows
+  aren't materialized in the a11y tree, plus a scroll gesture that doesn't move
+  that sheet.
+- **Status:** NOT masked — `LC_EAD_12` was corrected to the truthful "Columns is
+  not a Loadcenter field" assertion but still RED here. Gold reconciliation
+  (changelog 076) is done; this picker-navigation fix is a separate task (each live
+  attempt is ~23 min, so it needs a targeted scroll technique, not trial-and-error).
+- **NOTE:** the node_classes gold is INCOMPLETE for Loadcenter (lists 2 of the 7
+  live fields) — use live verification, see memory `node-classes-gold-spec`.
+
 ## Category 2 — audit-surfaced framework gaps
 
 ### B9 — Strong verifiers exist but are NEVER called by real tests  ⚠️ OPEN

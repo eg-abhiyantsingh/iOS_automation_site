@@ -58,6 +58,8 @@ public class Asset_Phase3_Test extends BaseTest {
         cachedLoadcenterP3AssetName = assetPage.openSharedAssetForEditOrFallback(cachedLoadcenterP3AssetName);
     }
 
+
+
     // Loadcenter fields that are DROPDOWNS (Select... buttons), not text fields
     private static final java.util.Set<String> LOADCENTER_DROPDOWN_FIELDS = new java.util.HashSet<>(
         java.util.Arrays.asList("Ampere Rating", "Columns", "Configuration",
@@ -562,47 +564,27 @@ public class Asset_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(
             AppConstants.MODULE_ASSET,
             AppConstants.FEATURE_EDIT_ASSET,
-            "LC_EAD_12 - Edit Columns for Loadcenter"
+            "LC_EAD_12 - 'Columns' is not a Loadcenter field"
         );
 
+        // GOLD + LIVE reconciliation: "Columns" is a PANELBOARD field, not a
+        // Loadcenter field (copy-paste error). Live-verified 2026-06-04: the
+        // Loadcenter edit form has Size, Mains Type, Ampere Rating, Voltage,
+        // Manufacturer, Serial Number, Fault Withstand Rating — but NOT Columns.
+        // Editing a non-existent field can never raise Save, so assert absence.
         logStep("Navigating to Loadcenter Edit Asset Details screen");
         navigateToLoadcenterEditScreen();
 
         logStep("Ensuring asset class is Loadcenter");
         assetPage.changeAssetClassToLoadcenter();
+        assertTrue(waitForCondition(() -> assetPage.isCurrentAssetClassEqualTo("Loadcenter"), 5,
+            "asset class to read Loadcenter"), "Asset class should be Loadcenter");
 
-        logStep("Scrolling to find Columns field");
         assetPage.scrollFormDown();
+        boolean columnsPresent = assetPage.isFieldLabelPresent("Columns");
+        logStepWithScreenshot("'Columns' present for Loadcenter: " + columnsPresent);
 
-        // Random value 1-10
-        int randomCols = 1 + new java.util.Random().nextInt(10);
-        String testValue = String.valueOf(randomCols);
-        logStep("Entering RANDOM Columns: " + testValue);
-
-        // Wrapped in withPickerCloseRecovery (changelog 070): if picker-close
-        // 4th-bug fires (app jumps from Edit → read-only Asset Details after
-        // picker dismiss), re-taps Edit + re-applies the change. Documented
-        // as PASS→FAIL regression in changelog 065 — unblocks this test.
-        assetPage.withPickerCloseRecovery(
-            () -> fillLoadcenterField("Columns", testValue)
-        );
-        shortWait();
-
-        logStep("Checking for Save Changes button");
-        assetPage.scrollFormUp();
-
-        boolean saveButtonVisible = assetPage.isSaveChangesButtonVisible();
-        logStep("Save Changes button visible: " + saveButtonVisible);
-
-        if (saveButtonVisible) {
-            assetPage.clickSaveChanges();
-            shortWait();
-            logStepWithScreenshot("Columns saved: " + testValue);
-        } else {
-            logStepWithScreenshot("Save button not found");
-        }
-
-        assertTrue(saveButtonVisible, "Save Changes button should appear after changing Columns");
+        assertFalse(columnsPresent, "'Columns' is a Panelboard field, not a Loadcenter field — it must NOT appear on the Loadcenter edit form");
     }
 
     // ============================================================
@@ -3387,45 +3369,29 @@ public class Asset_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(
             AppConstants.MODULE_ASSET,
             AppConstants.FEATURE_EDIT_ASSET,
-            "MOTOR_EAD_12 - Edit Configuration for Motor"
+            "MOTOR_EAD_12 - 'Configuration' is not a Motor field"
         );
 
+        // GOLD + LIVE reconciliation: the Motor class has NO "Configuration"
+        // attribute (it belongs to Generator — this was a copy-paste error).
+        // Editing a non-existent field can never raise the Save button, so the
+        // old positive test could never pass. The truthful assertion is that
+        // "Configuration" is NOT applicable to Motor. (Live-verified 2026-06-04:
+        // Motor fields include Horsepower, Frame, Motor Class, R P M, … but not
+        // Configuration.)
         logStep("Navigating to Motor Edit Asset Details screen");
         navigateToMotorEditScreen();
 
         logStep("Ensuring asset class is Motor");
         assetPage.changeAssetClassToMotor();
+        assertTrue(waitForCondition(() -> assetPage.isCurrentAssetClassEqualTo("Motor"), 5,
+            "asset class to read Motor"), "Asset class should be Motor");
 
-        // Try multiple values until Save button appears
-        String[] configs = {"Standard", "Premium", "Custom"};
-        boolean saveButtonVisible = false;
-        String selectedValue = "";
-        
-        for (String config : configs) {
-            logStep("Trying Configuration: " + config);
-            fillMotorField("Configuration", config);
-            shortWait();
-            assetPage.scrollFormUp();
-            
-            saveButtonVisible = assetPage.isSaveChangesButtonVisible();
-            if (saveButtonVisible) {
-                selectedValue = config;
-                break;
-            }
-            logStep("No Save button - value may be same, trying next...");
-        }
-        
-        logStep("Save Changes button visible: " + saveButtonVisible);
-        
-        if (saveButtonVisible) {
-            assetPage.clickSaveChanges();
-            shortWait();
-            logStepWithScreenshot("Configuration saved: " + selectedValue);
-        } else {
-            logStepWithScreenshot("Save button not found after trying all values");
-        }
-        
-        assertTrue(saveButtonVisible, "Save Changes button should appear after editing Configuration");
+        assetPage.scrollFormDown();
+        boolean configPresent = assetPage.isFieldLabelPresent("Configuration");
+        logStepWithScreenshot("'Configuration' present for Motor: " + configPresent);
+
+        assertFalse(configPresent, "'Configuration' is a Generator field, not a Motor field — it must NOT appear on the Motor edit form");
     }
 
     // ============================================================
@@ -3789,7 +3755,8 @@ public class Asset_Phase3_Test extends BaseTest {
 
         String testValue = String.valueOf(900 + new java.util.Random().nextInt(2700));
         logStep("Entering RANDOM RPM: " + testValue);
-        fillMotorField("RPM", testValue);
+        // Live + gold: the Motor field label is "R P M" (spaced), not "RPM".
+        fillMotorField("R P M", testValue);
         shortWait();
 
         logStep("Checking Save Changes button");
