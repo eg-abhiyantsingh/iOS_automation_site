@@ -8067,16 +8067,14 @@ public class AssetPage extends BasePage {
             System.out.println("   🔍 Contains search for '" + searchVal + "': found " + options.size() + " matches");
             for (WebElement opt : options) {
                 String optName = opt.getAttribute("name");
-                // Skip the label itself and navigation elements
-                if (optName != null && optName.contains(fieldName)) continue;
-                if (optName != null && (optName.equals("Close") || optName.equals("Back"))) continue;
+                if (!isSelectablePickerOption(optName, fieldName)) continue;
                 opt.click();
                 System.out.println("✅ Selected option '" + optName + "' for '" + fieldName + "'");
                 return;
             }
         } catch (Exception e) {}
 
-        // Try clicking first non-label option in the dropdown
+        // Try clicking first real option in the dropdown (skip sheet/nav chrome)
         try {
             System.out.println("   🔍 Trying first available option...");
             List<WebElement> allOptions = driver.findElements(
@@ -8085,18 +8083,45 @@ public class AssetPage extends BasePage {
             );
             for (WebElement opt : allOptions) {
                 int y = opt.getLocation().getY();
-                if (y > 100 && y < 800) {
-                    String optName = opt.getAttribute("name");
-                    opt.click();
-                    System.out.println("✅ Selected first available option: '" + optName + "' for '" + fieldName + "'");
-                    return;
-                }
+                if (y <= 100 || y >= 800) continue;
+                String optName = opt.getAttribute("name");
+                // Skip the drag handle, Done/Cancel, SF Symbols, list rows, the label itself
+                if (!isSelectablePickerOption(optName, fieldName)) continue;
+                opt.click();
+                System.out.println("✅ Selected first available option: '" + optName + "' for '" + fieldName + "'");
+                return;
             }
         } catch (Exception e) {}
 
         System.out.println("⚠️ Could not select option '" + optionValue + "' for '" + fieldName + "'");
         // Dismiss the dropdown
         dismissKeyboard();
+    }
+
+    /**
+     * True if a picker row name is a real selectable data value — NOT sheet/nav
+     * chrome (the "Sheet Grabber" drag handle, Done/Cancel/Close), an SF Symbol
+     * glyph (e.g. "list.bullet", "plus.circle.fill"), an asset-LIST row
+     * ("name, loc, class" — commas), or the field's own label.
+     */
+    private boolean isSelectablePickerOption(String name, String fieldName) {
+        if (name == null) return false;
+        String n = name.trim();
+        if (n.isEmpty()) return false;
+        if (n.contains(",")) return false;                              // list rows
+        if (fieldName != null && !fieldName.isEmpty() && n.contains(fieldName)) return false;
+        switch (n) {                                                    // known sheet/nav/tool chrome
+            case "Sheet Grabber": case "Done": case "Cancel": case "Close": case "Back":
+            case "Select...": case "Select": case "More": case "Filter": case "Search":
+            case "Save": case "Save Changes": case "Edit": case "Add":
+            case "Calculator": case "Gallery": case "Camera": case "Scan": case "QR Code":
+                return false;
+            default: break;
+        }
+        // SF Symbol identifiers look like "list.bullet" / "plus.circle.fill":
+        // a dot, no spaces, all lowercase. Real values ("100 kA", "480V") don't.
+        if (n.contains(".") && !n.contains(" ") && n.equals(n.toLowerCase())) return false;
+        return true;
     }
 
     /**
@@ -8638,55 +8663,15 @@ public class AssetPage extends BasePage {
         // Use short timeout — this is a quick detection check, not a wait-for-element
         driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
         try {
-            // Strategy 1: Find "Asset Class" label, then check nearby elements
-            // This is reliable regardless of scroll position or screen layout
-            int labelY = -1;
-            try {
-                WebElement assetClassLabel = driver.findElement(
-                    AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeStaticText' AND " +
-                        "(name CONTAINS 'Asset Class' OR label CONTAINS 'Asset Class')")
-                );
-                labelY = assetClassLabel.getLocation().getY();
-            } catch (Exception e) {
-                // Label not found — fall through to fallback
-            }
-
-            if (labelY > 0) {
-                // Search for BOTH buttons and static texts with target class name
-                // (dropdown value can render as either type depending on iOS version)
-                List<WebElement> matches = driver.findElements(
-                    AppiumBy.iOSNsPredicateString(
-                        "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND " +
-                        "(name CONTAINS[c] '" + targetClass + "' OR label CONTAINS[c] '" + targetClass + "')")
-                );
-                for (WebElement el : matches) {
-                    String elName = el.getAttribute("name");
-                    // Skip the "Asset Class" label itself
-                    if (elName != null && elName.contains("Asset Class")) continue;
-                    int elY = el.getLocation().getY();
-                    // Check proximity to the label (within 80px)
-                    if (Math.abs(elY - labelY) < 80) {
-                        System.out.println("   Current asset class: " + elName + " (Y=" + elY + ", near label Y=" + labelY + ")");
-                        return true;
-                    }
-                }
-            }
-
-            // Strategy 2: Direct button search with wide Y range (if label wasn't found)
-            List<WebElement> btns = driver.findElements(
-                AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND name == '" + targetClass + "'")
-            );
-            for (WebElement btn : btns) {
-                int btnY = btn.getLocation().getY();
-                if (btnY > 100 && btnY < 900) {
-                    System.out.println("   Current asset class: " + targetClass + " (direct match, Y=" + btnY + ")");
-                    return true;
-                }
-            }
-
-            return false;
+            // Read the SELECTED value (picker button below the label), then compare
+            // exactly. We must NOT do a CONTAINS-'targetClass' proximity scan: the
+            // asset LIST screen behind the Edit screen (assets named "ATS 1/2/3…")
+            // would false-positive. See findAssetClassPickerButton().
+            String current = getCurrentAssetClassValue();
+            System.out.println("   Current asset class (selected): " +
+                (current == null ? "<undetected>" : "'" + current + "'"));
+            if (current == null) return false; // can't confirm → let caller open picker + select (idempotent)
+            return current.equalsIgnoreCase(targetClass.trim());
         } catch (Exception e) {
             System.out.println("   Error checking current asset class: " + e.getMessage());
             return false;
@@ -8705,6 +8690,19 @@ public class AssetPage extends BasePage {
      * @return true if picker opened successfully
      */
     private boolean openAssetClassPicker() {
+        // Strategy 0: click the picker BUTTON element directly (most reliable —
+        // a coordinate tap can miss / hit the row behind it).
+        try {
+            WebElement pickerBtn = findAssetClassPickerButton();
+            if (pickerBtn != null) {
+                System.out.println("   Opening picker via button: '" + pickerBtn.getAttribute("label") + "'");
+                pickerBtn.click();
+                sleep(500);
+                return true;
+            }
+        } catch (Exception e) {
+            System.out.println("   Picker-button click failed, trying coordinate tap: " + e.getMessage());
+        }
         try {
             WebElement label = driver.findElement(
                 AppiumBy.iOSNsPredicateString(
@@ -8902,44 +8900,99 @@ public class AssetPage extends BasePage {
         changeAssetClassInternal("Generator");
     }
     
+    /** Full set of selectable asset classes (matches the picker options). */
+    private static final java.util.Set<String> ASSET_CLASSES = new java.util.HashSet<>(java.util.Arrays.asList(
+        "ATS", "Busway", "Capacitor", "Circuit Breaker", "DC Bus", "Default", "Disconnect Switch",
+        "Fuse", "Generator", "Junction Box", "Lightning Controls", "Load", "Loadcenter", "MCC",
+        "MCC Bucket", "Meter", "Motor", "Motor Starter", "None", "Other", "Other (OCP)", "Panelboard",
+        "PDU", "Reactor", "Rectifier", "Relay", "Switchboard", "Transformer", "Transformer (3-Winding)",
+        "UPS", "Utility", "VFD"));
+
+    /** Pick the first non-empty, comma-free candidate (asset-LIST rows carry commas). */
+    private String cleanClassToken(String... candidates) {
+        for (String s : candidates) {
+            if (s == null) continue;
+            s = s.trim();
+            if (s.isEmpty() || s.contains(",")) continue;
+            return s;
+        }
+        return null;
+    }
+
     /**
-     * Get the current asset class value displayed on screen
+     * Locate the Asset Class picker BUTTON on the Edit form — the wide button
+     * rendered directly below the "Asset Class" label at the same x (label x=32,
+     * button x=32, ~25px down), whose label is a single known class.
+     *
+     * Structural (not textual) on purpose: the asset LIST screen stays live in
+     * the DOM behind the pushed Edit screen (rows like "ATS 2, 1, ATS" + a class
+     * column "ATS"), so any CONTAINS-'ATS'/Y-proximity scan reads the wrong
+     * screen. List rows differ by x and carry comma-separated labels.
+     *
+     * @return the picker button element, or null if not found
+     */
+    private WebElement findAssetClassPickerButton() {
+        int labelX, labelY;
+        try {
+            WebElement label = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND (name == 'Asset Class' OR label == 'Asset Class')"));
+            labelX = label.getLocation().getX();
+            labelY = label.getLocation().getY();
+        } catch (Exception e) {
+            return null;
+        }
+        WebElement best = null; int bestDy = Integer.MAX_VALUE;
+        try {
+            for (WebElement b : driver.findElements(AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton'"))) {
+                try {
+                    int dy = b.getLocation().getY() - labelY;
+                    if (dy <= 0 || dy > 55) continue;                       // must be just below the label
+                    if (Math.abs(b.getLocation().getX() - labelX) > 25) continue; // same x as the label
+                    if (b.getSize().getWidth() < 150) continue;             // a full-width field button
+                    String lbl = cleanClassToken(b.getAttribute("label"), b.getAttribute("name"));
+                    if (lbl == null || !ASSET_CLASSES.contains(lbl)) continue; // single known class (no commas)
+                    if (dy < bestDy) { best = b; bestDy = dy; }
+                } catch (Exception ignore) {}
+            }
+        } catch (Exception ignore) {}
+        return best;
+    }
+
+    /**
+     * Get the CURRENTLY SELECTED asset class from the Edit form's picker.
+     * Reads the picker button (see {@link #findAssetClassPickerButton()}); falls
+     * back to the value StaticText indented below the label.
+     *
+     * @return the selected class (e.g. "Motor", "ATS") or null if undetectable
      */
     private String getCurrentAssetClassValue() {
-        String[] possibleClasses = {"ATS", "UPS", "PDU", "Generator", "Busway", "Capacitor", "Circuit Breaker", "Fuse", "None"};
-        
-        // First find the "Asset Class" label position
-        int labelY = -1;
+        WebElement btn = findAssetClassPickerButton();
+        if (btn != null) {
+            String v = cleanClassToken(btn.getAttribute("label"), btn.getAttribute("name"));
+            if (v != null && ASSET_CLASSES.contains(v)) return v;
+        }
+        // Fallback: value StaticText just below + indented from the "Asset Class" label.
+        int labelX, labelY;
         try {
-            WebElement assetClassLabel = driver.findElement(
-                AppiumBy.iOSNsPredicateString("name CONTAINS 'Asset Class' OR label CONTAINS 'Asset Class'")
-            );
-            labelY = assetClassLabel.getLocation().getY();
-        } catch (Exception e) {}
-        
-        // Look for asset class names near the label
+            WebElement label = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND (name == 'Asset Class' OR label == 'Asset Class')"));
+            labelX = label.getLocation().getX();
+            labelY = label.getLocation().getY();
+        } catch (Exception e) {
+            return null;
+        }
         try {
-            List<WebElement> texts = driver.findElements(AppiumBy.className("XCUIElementTypeStaticText"));
-            for (WebElement text : texts) {
-                String name = text.getAttribute("name");
-                if (name != null) {
-                    for (String className : possibleClasses) {
-                        if (name.equals(className)) {
-                            int textY = text.getLocation().getY();
-                            // If we found the label, check if this is near it (within 100 pixels)
-                            if (labelY > 0 && Math.abs(textY - labelY) < 100) {
-                                return className;
-                            }
-                            // If no label found, just return the first class name found
-                            if (labelY < 0) {
-                                return className;
-                            }
-                        }
-                    }
-                }
+            for (WebElement t : driver.findElements(AppiumBy.className("XCUIElementTypeStaticText"))) {
+                try {
+                    int dy = t.getLocation().getY() - labelY;
+                    if (dy <= 0 || dy > 60) continue;
+                    int dx = t.getLocation().getX() - labelX;
+                    if (dx < 0 || dx > 220) continue;   // value is indented right of / below the label
+                    String v = cleanClassToken(t.getAttribute("value"), t.getAttribute("name"));
+                    if (v != null && ASSET_CLASSES.contains(v)) return v;
+                } catch (Exception ignore) {}
             }
-        } catch (Exception e) {}
-        
+        } catch (Exception ignore) {}
         return null;
     }
     

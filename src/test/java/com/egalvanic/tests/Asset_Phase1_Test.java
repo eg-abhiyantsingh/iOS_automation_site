@@ -1275,6 +1275,15 @@ public class Asset_Phase1_Test extends BaseTest {
 
         logStep("Ensuring asset class is ATS");
         assetPage.changeAssetClassToATS();
+        // Regression guard: the class-change used to be silently SKIPPED because
+        // detection read the asset-list screen bleeding through behind the Edit
+        // form (assets named "ATS 1/2/3…") instead of the picker's real value.
+        // A green test then "completed ATS fields" on a non-ATS asset. Assert the
+        // real outcome so a silent skip fails loudly.
+        assertTrue(
+            waitForCondition(() -> assetPage.isCurrentAssetClassEqualTo("ATS"), 5,
+                "asset class to read ATS after changeAssetClassToATS()"),
+            "Asset class should be ATS after changeAssetClassToATS() — a silent skip means the ATS-only required fields won't exist");
 
         logStep("Enabling Required fields toggle");
         assetPage.enableRequiredFieldsOnly();
