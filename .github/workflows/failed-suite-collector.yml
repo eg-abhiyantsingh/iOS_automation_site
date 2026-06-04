@@ -1,0 +1,98 @@
+name: Collect Failed-Test Suite
+
+# ============================================================
+# Commits failed-suites/failed-<date>.xml + latest.xml + history.md back to main
+# after EVERY "iOS Tests - Full Parallel Suite" run — INCLUDING runs that were
+# manually or platform-cancelled (the 6h cap).
+#
+# WHY a separate workflow: the parent run's summary job uses `if: always()`, but
+# a JOB-level `if:` is OVERRIDDEN by a RUN-level cancellation, so on a cancelled
+# run send-email never runs and nothing gets committed. `workflow_run: completed`
+# fires after the parent finishes regardless of its conclusion (success / failure
+# / cancelled), so this collector still publishes the failed-test list.
+#
+# Loop-safe: nothing in this repo triggers on `push`, and this triggers on
+# workflow_run of the PARENT only — committing here cannot re-fire anything.
+# ============================================================
+
+on:
+  workflow_run:
+    workflows: ["iOS Tests - Full Parallel Suite"]
+    types: [completed]
+
+permissions:
+  contents: write   # push failed-suites/ to main
+  actions: read     # download the triggering run's artifacts
+
+# Serialize collectors so two finishing runs can't race the same files.
+concurrency:
+  group: failed-suite-commit
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    name: "Collect + commit failed-suite"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout main (full history, for clean reset on retry)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Download artifacts from the triggering run
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: all-reports
+        continue-on-error: true
+
+      - name: Build + commit failed-suite (conflict-safe)
+        env:
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          CREATED: ${{ github.event.workflow_run.created_at }}
+          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+        run: |
+          python3 -m pip install --quiet defusedxml || true
+
+          # Date the failed-suite by when the RUN happened (not when this fires).
+          DATE="${CREATED%%T*}"
+          [ -z "$DATE" ] && DATE="$(date -u +%F)"
+          echo "Parent run $RUN_ID (conclusion=$CONCLUSION) dated $DATE"
+
+          # If the run produced NO results at all (e.g. cancelled before any module
+          # uploaded), don't publish a misleading "0 failures" — just stop.
+          N=$(find all-reports -name testng-results.xml 2>/dev/null | wc -l | tr -d ' ')
+          echo "testng-results.xml files downloaded: $N"
+          if [ "${N:-0}" = "0" ]; then
+            echo "No results to parse — nothing to commit."
+            exit 0
+          fi
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Regenerate ON TOP of the latest main each attempt: the generator merges
+          # history idempotently (dedupes this run's row) and rewrites latest.xml /
+          # failed-<date>.xml, so a concurrent push just means "reset + regenerate".
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            python3 .github/scripts/build-failed-suite.py \
+              --from all-reports --date "$DATE" --run "$RUN_ID" || { echo "generation failed"; exit 0; }
+            git add failed-suites/
+            if git diff --cached --quiet; then
+              echo "No failed-suites changes to commit."
+              exit 0
+            fi
+            git commit -m "ci(failed-suite): $DATE from run $RUN_ID [skip ci]"
+            if git push origin HEAD:main; then
+              echo "✅ committed failed-suites/ to main"
+              exit 0
+            fi
+            echo "↻ push attempt $attempt failed (concurrent push?) — reset + regenerate"
+            sleep 3
+          done
+          echo "::warning::Could not push failed-suites/ after 5 attempts (branch protection on main?). The failed-suite artifact on the run still has the data."

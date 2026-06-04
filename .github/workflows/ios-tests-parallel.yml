@@ -3297,17 +3297,20 @@ jobs:
           path: all-reports
         continue-on-error: true
 
-      - name: Build dated failed-test suite
+      - name: Build dated failed-test suite (artifact backup)
         continue-on-error: true
         run: |
-          # Collect every FAILED test across all module reports into one dated,
-          # runnable TestNG suite (failed-suites/failed-<date>.xml) + history.md.
+          # Best-effort failed-suite as a downloadable artifact for THIS (non-
+          # cancelled) run. The authoritative, cancel-proof commit of
+          # failed-suites/ back to main is done by the separate
+          # failed-suite-collector.yml (workflow_run trigger), which fires even
+          # when this run is manually/platform-cancelled and send-email is skipped.
           python3 -m pip install --quiet defusedxml || true
           python3 .github/scripts/build-failed-suite.py --from all-reports \
-            --date "$(date +%F)" || echo "⚠️ failed-suite generation skipped"
+            --date "$(date +%F)" --run "${{ github.run_id }}" || echo "⚠️ failed-suite generation skipped"
           ls -la failed-suites/ 2>/dev/null || true
 
-      - name: Upload failed-test suite
+      - name: Upload failed-test suite (artifact backup)
         if: always()
         uses: actions/upload-artifact@v4
         with:

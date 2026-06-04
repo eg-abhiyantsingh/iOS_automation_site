@@ -1,0 +1,331 @@
+name: Rerun Failed Tests (by date)
+
+# ============================================================
+# Re-run EXACTLY the tests that failed in a given full-parallel run.
+#
+# Pick a date (dropdown or type one) and this runs
+#   failed-suites/failed-<date>.xml   (or failed-suites/latest.xml)
+# on the simulator — so you can triage REAL functionality failures vs.
+# SCRIPT/automation failures without re-running the whole ~1,900-test suite.
+#
+# WHERE THE DATED SUITES COME FROM:
+#   failed-suite-collector.yml commits failed-suites/failed-<date>.xml + latest.xml
+#   + history.md back to main after each run (even cancelled ones).
+#   >>> The authoritative list of available dates is failed-suites/history.md. <<<
+#
+# The dropdown below is just a convenience and CAN GO STALE (a PAT-less workflow
+# can't rewrite its own options). `latest` always runs the newest list; use
+# `custom_date` to run ANY date in history.md.
+# ============================================================
+
+on:
+  workflow_dispatch:
+    inputs:
+      failed_date:
+        description: "Convenience picker (may be stale). 'latest' = newest. Real list: failed-suites/history.md"
+        type: choice
+        default: latest
+        options:
+          - latest
+          - "2026-06-04"
+          - "2026-06-03"
+          - "2026-06-02"
+      custom_date:
+        description: "Run ANY date: type YYYY-MM-DD (overrides the dropdown; blank = use dropdown)"
+        type: string
+        required: false
+      send_email:
+        description: "Email the report when done?"
+        type: choice
+        default: "true"
+        options:
+          - "true"
+          - "false"
+
+jobs:
+  # ---- fast gate: resolve the suite file, validate, count (ubuntu) ----
+  resolve:
+    name: "Resolve failed-suite"
+    runs-on: ubuntu-latest
+    outputs:
+      xml: ${{ steps.r.outputs.XML }}
+      label: ${{ steps.r.outputs.LABEL }}
+      count: ${{ steps.r.outputs.COUNT }}
+      run_tests: ${{ steps.r.outputs.RUN_TESTS }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: failed-suites
+
+      - name: Resolve failed-suite file
+        id: r
+        # Inputs come through env (NOT inline ${{ }}) to avoid command injection;
+        # custom_date / failed_date are validated to strict YYYY-MM-DD so they
+        # cannot path-traverse or carry shell metacharacters.
+        env:
+          CUSTOM: ${{ github.event.inputs.custom_date }}
+          PICK: ${{ github.event.inputs.failed_date }}
+        run: |
+          DATE_RE='^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+          if [ -n "$CUSTOM" ]; then
+            printf '%s' "$CUSTOM" | grep -Eq "$DATE_RE" || { echo "::error::custom_date '$CUSTOM' is not a valid YYYY-MM-DD date."; exit 1; }
+            XML="failed-suites/failed-${CUSTOM}.xml"; LABEL="$CUSTOM"
+          elif [ "$PICK" = "latest" ]; then
+            XML="failed-suites/latest.xml"; LABEL="latest"
+          else
+            printf '%s' "$PICK" | grep -Eq "$DATE_RE" || { echo "::error::failed_date '$PICK' is not 'latest' or a valid YYYY-MM-DD date."; exit 1; }
+            XML="failed-suites/failed-${PICK}.xml"; LABEL="$PICK"
+          fi
+          echo "Resolved suite: $XML"
+
+          if [ ! -f "$XML" ]; then
+            echo "::error::$XML does not exist."
+            echo "── Available failed-suite files in the repo: ──"
+            ls -1 failed-suites/failed-*.xml failed-suites/latest.xml 2>/dev/null || echo "  (none yet)"
+            echo ""
+            echo "If there are none, run 'iOS Tests - Full Parallel Suite' once — its"
+            echo "collector commits failed-suites/ back to main. Or bootstrap locally:"
+            echo "   mvn test ...   &&   python3 .github/scripts/build-failed-suite.py --from target/surefire-reports"
+            echo "Dates + counts are tracked in failed-suites/history.md."
+            exit 1
+          fi
+
+          # grep -c always prints ONE number (0 on no match); '|| true' keeps the
+          # exit-1-on-zero-match from aborting (set -e) WITHOUT appending a 2nd line.
+          COUNT=$(grep -c '<include ' "$XML" || true)
+          COUNT=${COUNT:-0}
+
+          if [ "$COUNT" = "0" ]; then
+            echo "RUN_TESTS=false" >> "$GITHUB_OUTPUT"
+            echo "✅ '$LABEL' has 0 failed tests — nothing to re-run (skipping the simulator job)."
+          else
+            echo "RUN_TESTS=true" >> "$GITHUB_OUTPUT"
+            echo "▶️  Will re-run $COUNT failed test(s) from '$LABEL' ($XML)"
+          fi
+          echo "XML=$XML"     >> "$GITHUB_OUTPUT"
+          echo "LABEL=$LABEL" >> "$GITHUB_OUTPUT"
+          echo "COUNT=$COUNT" >> "$GITHUB_OUTPUT"
+
+  # ---- the actual re-run on the simulator (macos), only if there's >0 to run ----
+  rerun:
+    name: "Rerun failed tests"
+    needs: resolve
+    if: needs.resolve.outputs.run_tests == 'true'
+    runs-on: macos-15
+    timeout-minutes: 350
+    env:
+      XML: ${{ needs.resolve.outputs.xml }}
+      LABEL: ${{ needs.resolve.outputs.label }}
+      COUNT: ${{ needs.resolve.outputs.count }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Appium
+        run: |
+          npm install -g appium@next
+          appium driver install xcuitest
+          echo "✅ Appium $(appium --version) installed"
+
+      - name: Unzip App
+        run: |
+          unzip -o apps/Z-Platform-QA.zip -d apps/
+          if [ -d "apps/Z-Platform-QA.app" ] && [ ! -d "apps/Z Platform-QA.app" ]; then
+            mv "apps/Z-Platform-QA.app" "apps/Z Platform-QA.app"
+            echo "✅ Renamed Z-Platform-QA.app → Z Platform-QA.app"
+          fi
+          ls -la apps/
+
+      - name: Boot Simulator and Wait Until Ready
+        run: |
+          UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && UDID=$(xcrun simctl list devices available | grep -E "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && UDID=$(xcrun simctl list devices available | grep -E "iPhone 1[5-6]" | head -1 | awk -F '[()]' '{print $2}')
+
+          if [ -z "$UDID" ]; then
+            echo "❌ No iPhone simulator found!"
+            exit 1
+          fi
+
+          xcrun simctl shutdown "$UDID" 2>/dev/null || true
+          sleep 3
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+
+          BOOT_TIMEOUT=240
+          ELAPSED=0
+          while [ $ELAPSED -lt $BOOT_TIMEOUT ]; do
+            if xcrun simctl list devices | grep "$UDID" | grep -q "(Booted)"; then
+              echo "✅ Simulator booted after ${ELAPSED}s"
+              sleep 45
+              echo "✅ Simulator ready"
+              break
+            fi
+            sleep 5
+            ELAPSED=$((ELAPSED + 5))
+          done
+
+          if [ $ELAPSED -ge $BOOT_TIMEOUT ]; then
+            echo "❌ Simulator failed to boot"
+            exit 1
+          fi
+
+          DEVICE=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
+          VERSION=$(xcrun simctl list devices available | grep -B 50 "$UDID" | grep "-- iOS" | tail -1 | sed 's/.*iOS \([0-9.]*\).*/\1/')
+          [ -z "$VERSION" ] && VERSION="18.5"
+
+          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+          echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
+          echo "PLATFORM_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "📱 $DEVICE | iOS $VERSION | $UDID"
+
+      - name: Pre-install App on Simulator
+        run: |
+          xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
+          echo "✅ App pre-installed"
+
+      - name: Pre-build WebDriverAgent
+        run: |
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          if [ -n "$WDA_PATH" ]; then
+            cd "$WDA_PATH"
+            xcodebuild build-for-testing \
+              -project WebDriverAgent.xcodeproj \
+              -scheme WebDriverAgentRunner \
+              -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" \
+              -derivedDataPath /tmp/wda-build \
+              -quiet || echo "WDA pre-build completed"
+            echo "✅ WDA pre-built"
+          fi
+
+      - name: Start Appium Server
+        run: |
+          appium --relaxed-security --log-level error > appium.log 2>&1 &
+          for i in {1..60}; do
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:4723/status 2>/dev/null || echo "000")
+            if [ "$HTTP_STATUS" = "200" ]; then
+              echo "✅ Appium ready"
+              break
+            fi
+            sleep 2
+          done
+          sleep 10
+
+      - name: Warm-up WDA Session
+        env:
+          SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
+          APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
+        run: |
+          WDA_SUCCESS=false
+          for attempt in 1 2 3 4 5; do
+            echo "Warm-up attempt $attempt/5..."
+            if [ $attempt -le 2 ]; then
+              USE_NEW_WDA="false"
+            else
+              USE_NEW_WDA="true"
+              echo "  ↳ Using fresh WDA build for attempt $attempt"
+            fi
+            SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session \
+              -H "Content-Type: application/json" \
+              -d '{
+                "capabilities": {
+                  "alwaysMatch": {
+                    "platformName": "iOS",
+                    "appium:automationName": "XCUITest",
+                    "appium:deviceName": "'"${{ env.DEVICE_NAME }}"'",
+                    "appium:udid": "'"$SIMULATOR_UDID"'",
+                    "appium:platformVersion": "'"${{ env.PLATFORM_VERSION }}"'",
+                    "appium:app": "'"$APP_PATH"'",
+                    "appium:wdaLaunchTimeout": 600000,
+                    "appium:wdaConnectionTimeout": 300000,
+                    "appium:useNewWDA": '"$USE_NEW_WDA"',
+                    "appium:noReset": false
+                  }
+                }
+              }' --max-time 600 2>&1) || true
+
+            SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
+
+            if [ -n "$SESSION_ID" ]; then
+              echo "✅ WDA warm-up OK"
+              WDA_SUCCESS=true
+              sleep 10
+              curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true
+              sleep 5
+              break
+            else
+              echo "  ❌ Attempt $attempt failed. Response:"
+              echo "$SESSION_RESPONSE" | head -5
+              if [ $attempt -lt 5 ]; then
+                echo "  ↳ Retrying in 30s..."
+                sleep 30
+              fi
+            fi
+          done
+
+          if [ "$WDA_SUCCESS" = false ]; then
+            echo "❌ WDA warm-up FAILED after 5 attempts!"
+            echo "─── Appium log (last 50 lines) ───"
+            tail -50 appium.log 2>/dev/null || echo "(no appium log)"
+            xcrun simctl list devices | grep -A1 "Booted" || echo "(no booted sim)"
+            exit 1
+          fi
+
+      - name: Re-run failed tests
+        continue-on-error: true
+        env:
+          SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
+          PLATFORM_VERSION: ${{ env.PLATFORM_VERSION }}
+          DEVICE_NAME: ${{ env.DEVICE_NAME }}
+          APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
+        run: |
+          echo "🧪 Re-running ${COUNT} failed test(s) from '${LABEL}'"
+          echo "── Suite: $XML ──"
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
+          mvn test -q -B -DsuiteXmlFile="$XML" \
+            -DDEVICE_NAME="$DEVICE_NAME" \
+            -DPLATFORM_VERSION="$PLATFORM_VERSION" \
+            -DSIMULATOR_UDID="$SIMULATOR_UDID" \
+            -DAPP_BUNDLE_ID="$BUNDLE_ID" \
+            -DAPP_PATH="$APP_PATH" || true
+          echo "✅ Re-run complete — review the report to triage REAL vs SCRIPT failures"
+
+      - name: Upload rerun report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rerun-${{ env.LABEL }}-report
+          path: |
+            target/surefire-reports/
+            reports/
+            screenshots/
+          retention-days: 30
+
+      - name: Send Module Email (rerun)
+        if: always() && github.event.inputs.send_email != 'false'
+        env:
+          SMTP_USER: ${{ secrets.EMAIL_USERNAME }}
+          SMTP_PASS: ${{ secrets.EMAIL_PASSWORD }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          MODULE_NAME: rerun-${{ env.LABEL }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
+          export EMAIL_TO
+          python3 -m pip install --quiet defusedxml
+          python3 .github/scripts/send-module-email.py
+        continue-on-error: true
