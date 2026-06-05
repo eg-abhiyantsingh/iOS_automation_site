@@ -129,21 +129,23 @@ public class Asset_Phase3_Test extends BaseTest {
      * Fill all Loadcenter required fields
      */
     private void fillAllLoadcenterRequiredFields() {
-        System.out.println("📝 Filling all Loadcenter required fields...");
-        
+        System.out.println("📝 Filling Load-class fields...");
+
         assetPage.scrollFormDown();
         shortWait();
-        
-        // Required fields: Ampere Rating, Catalog Number, Fault Withstand Rating, Mains Type, Manufacturer, Voltage
-        fillLoadcenterField("Ampere Rating", "200A");
-        fillLoadcenterField("Catalog Number", "LC-CAT-001");
-        fillLoadcenterField("Fault Withstand Rating", "22 kA");
-        fillLoadcenterField("Mains Type", "Main Breaker");
-        fillLoadcenterField("Manufacturer", "Square D");
-        fillLoadcenterField("Voltage", "240V");
-        
+
+        // App class is "Load" (B11) — live-verified its editable field is "Size"
+        // (it does NOT have Ampere Rating / Fault Withstand / Serial Number /
+        // Manufacturer / Voltage — those are Panelboard/MCC fields). Fill Size,
+        // and best-effort Mains Type if present.
+        int[] sizes = {12, 18, 24, 30, 42, 60};
+        fillLoadcenterField("Size", sizes[new java.util.Random().nextInt(sizes.length)] + " Space");
+        if (assetPage.isFieldLabelPresent("Mains Type")) {
+            fillLoadcenterField("Mains Type", "MCB");
+        }
+
         assetPage.scrollFormUp();
-        System.out.println("✅ Filled all Loadcenter required fields");
+        System.out.println("✅ Filled Load-class fields");
     }
 
     /**

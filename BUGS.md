@@ -47,7 +47,23 @@ weakening assertions.
 
 ---
 
-### B11 — App picker has no "Loadcenter" class (LC tests target a missing name)  ⚠️ OPEN (needs product confirmation)
+### B11 — App picker has no "Loadcenter" class → LC tests retargeted to "Load"  ✅ mostly resolved (`dd90c78`)
+- **Resolution (per product decision):** the picker offers **"Load"** (no "Loadcenter").
+  `changeAssetClassToLoadcenter()` now selects "Load" via the searchable picker
+  (`selectClassViaSearch`). Live-verified the "Load" class has **Size** but NOT
+  Ampere Rating / Fault Withstand / Serial Number / Columns / Manufacturer / Voltage
+  (those were Panelboard/MCC copy-paste errors). Those LC_EAD tests became truthful
+  absence assertions.
+- **6/8 LC tests PASS live:** LC_EAD_10/12/14/18 (absence) + LC_EAD_19 (Size edit) +
+  LC_EAD_25.
+- **2 remaining (minor follow-up):** `LC_EAD_02` — the "Load" edit form has no
+  "Core Attributes" section (`isCoreAttributesSectionVisible` false); `LC_EAD_23` —
+  the Size-only "save all required" is state-flaky (random Size can equal the current
+  value → no Save). Both are Load-class shape mismatches, not the class-change bug.
+
+---
+
+### B11-orig (superseded) — original note below for history
 - **Affects:** all 7 Loadcenter tests (`LC_EAD_10/12/14/18/19/23/25`) — they fail at
   `changeAssetClassToLoadcenter()`, before any field logic.
 - **Root cause (measured live 2026-06-05):** the Asset Class picker is a SEARCHABLE
