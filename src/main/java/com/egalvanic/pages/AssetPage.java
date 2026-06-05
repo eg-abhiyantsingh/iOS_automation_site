@@ -9720,7 +9720,9 @@ public class AssetPage extends BasePage {
     }
 
     public final void changeAssetClassToLoadcenter() {
-        changeAssetClassInternal("Loadcenter");
+        // The app's Asset Class picker offers "Load" (there is no "Loadcenter"
+        // option — see BUGS.md B11). The LC_EAD tests operate on this class.
+        changeAssetClassInternal("Load");
     }
 
     public final void changeAssetClassToMCC() {

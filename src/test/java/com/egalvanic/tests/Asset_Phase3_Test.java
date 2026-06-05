@@ -476,40 +476,24 @@ public class Asset_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(
             AppConstants.MODULE_ASSET,
             AppConstants.FEATURE_EDIT_ASSET,
-            "LC_EAD_10 - Edit Ampere Rating for Loadcenter"
+            "LC_EAD_10 - 'Ampere Rating' is not a Load-class field"
         );
 
-        logStep("Navigating to Loadcenter Edit Asset Details screen");
+        // App class is "Load" (B11). Live-verified: Load has Size but NOT
+        // Ampere Rating (a Panelboard/MCC field — copy-paste error). Assert absence.
+        logStep("Navigating to Load Edit Asset Details screen");
         navigateToLoadcenterEditScreen();
 
-        logStep("Ensuring asset class is Loadcenter");
+        logStep("Ensuring asset class is Load");
         assetPage.changeAssetClassToLoadcenter();
+        assertTrue(waitForCondition(() -> assetPage.isCurrentAssetClassEqualTo("Load"), 5,
+            "asset class to read Load"), "Asset class should be Load");
 
-        logStep("Scrolling to find Ampere Rating field");
         assetPage.scrollFormDown();
+        boolean present = assetPage.isFieldLabelPresent("Ampere Rating");
+        logStepWithScreenshot("'Ampere Rating' present for Load: " + present);
 
-        // Random value ensures Save button appears
-        int randomAmpere = 50 + new java.util.Random().nextInt(200); // 50-249
-        String testValue = randomAmpere + "A";
-        logStep("Entering RANDOM Ampere Rating: " + testValue);
-        fillLoadcenterField("Ampere Rating", testValue);
-        shortWait();
-
-        logStep("Checking for Save Changes button");
-        assetPage.scrollFormUp();
-        
-        boolean saveButtonVisible = assetPage.isSaveChangesButtonVisible();
-        logStep("Save Changes button visible: " + saveButtonVisible);
-        
-        if (saveButtonVisible) {
-            assetPage.clickSaveChanges();
-            shortWait();
-            logStepWithScreenshot("Ampere Rating saved: " + testValue);
-        } else {
-            logStepWithScreenshot("Save button not found");
-        }
-        
-        assertTrue(saveButtonVisible, "Save Changes button should appear after changing Ampere Rating");
+        assertFalse(present, "'Ampere Rating' is not a Load-class field — it must NOT appear on the Load edit form");
     }
 
     // ============================================================
@@ -565,27 +549,25 @@ public class Asset_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(
             AppConstants.MODULE_ASSET,
             AppConstants.FEATURE_EDIT_ASSET,
-            "LC_EAD_12 - 'Columns' is not a Loadcenter field"
+            "LC_EAD_12 - 'Columns' is not a Load-class field"
         );
 
-        // GOLD + LIVE reconciliation: "Columns" is a PANELBOARD field, not a
-        // Loadcenter field (copy-paste error). Live-verified 2026-06-04: the
-        // Loadcenter edit form has Size, Mains Type, Ampere Rating, Voltage,
-        // Manufacturer, Serial Number, Fault Withstand Rating — but NOT Columns.
-        // Editing a non-existent field can never raise Save, so assert absence.
-        logStep("Navigating to Loadcenter Edit Asset Details screen");
+        // GOLD + LIVE reconciliation: "Columns" is a PANELBOARD field. The app's
+        // class here is "Load" (no "Loadcenter" option exists — B11). Editing a
+        // non-existent field can never raise Save, so assert "Columns" is absent.
+        logStep("Navigating to Load Edit Asset Details screen");
         navigateToLoadcenterEditScreen();
 
-        logStep("Ensuring asset class is Loadcenter");
-        assetPage.changeAssetClassToLoadcenter();
-        assertTrue(waitForCondition(() -> assetPage.isCurrentAssetClassEqualTo("Loadcenter"), 5,
-            "asset class to read Loadcenter"), "Asset class should be Loadcenter");
+        logStep("Ensuring asset class is Load");
+        assetPage.changeAssetClassToLoadcenter();   // app class is "Load" (B11)
+        assertTrue(waitForCondition(() -> assetPage.isCurrentAssetClassEqualTo("Load"), 5,
+            "asset class to read Load"), "Asset class should be Load");
 
         assetPage.scrollFormDown();
         boolean columnsPresent = assetPage.isFieldLabelPresent("Columns");
-        logStepWithScreenshot("'Columns' present for Loadcenter: " + columnsPresent);
+        logStepWithScreenshot("'Columns' present for Load: " + columnsPresent);
 
-        assertFalse(columnsPresent, "'Columns' is a Panelboard field, not a Loadcenter field — it must NOT appear on the Loadcenter edit form");
+        assertFalse(columnsPresent, "'Columns' is a Panelboard field — it must NOT appear on the Load edit form");
     }
 
     // ============================================================
@@ -644,40 +626,24 @@ public class Asset_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(
             AppConstants.MODULE_ASSET,
             AppConstants.FEATURE_EDIT_ASSET,
-            "LC_EAD_14 - Edit Fault Withstand Rating for Loadcenter"
+            "LC_EAD_14 - 'Fault Withstand Rating' is not a Load-class field"
         );
 
-        logStep("Navigating to Loadcenter Edit Asset Details screen");
+        // App class is "Load" (B11). Live-verified: Load lacks Fault Withstand
+        // Rating (a Panelboard/MCC field — copy-paste error). Assert absence.
+        logStep("Navigating to Load Edit Asset Details screen");
         navigateToLoadcenterEditScreen();
 
-        logStep("Ensuring asset class is Loadcenter");
+        logStep("Ensuring asset class is Load");
         assetPage.changeAssetClassToLoadcenter();
+        assertTrue(waitForCondition(() -> assetPage.isCurrentAssetClassEqualTo("Load"), 5,
+            "asset class to read Load"), "Asset class should be Load");
 
-        logStep("Scrolling to find Fault Withstand Rating field");
         assetPage.scrollFormDown();
+        boolean present = assetPage.isFieldLabelPresent("Fault Withstand Rating");
+        logStepWithScreenshot("'Fault Withstand Rating' present for Load: " + present);
 
-        // Pick from actual dropdown options
-        String[] faultRatings = {"10 kA", "14 kA", "18 kA", "22 kA", "25 kA", "30 kA", "35 kA", "42 kA", "50 kA", "65 kA", "85 kA", "100 kA", "150 kA", "200 kA"};
-        String testValue = faultRatings[new java.util.Random().nextInt(faultRatings.length)];
-        logStep("Selecting RANDOM Fault Withstand Rating: " + testValue);
-        fillLoadcenterField("Fault Withstand Rating", testValue);
-        shortWait();
-
-        logStep("Checking for Save Changes button");
-        assetPage.scrollFormUp();
-        
-        boolean saveButtonVisible = assetPage.isSaveChangesButtonVisible();
-        logStep("Save Changes button visible: " + saveButtonVisible);
-        
-        if (saveButtonVisible) {
-            assetPage.clickSaveChanges();
-            shortWait();
-            logStepWithScreenshot("Fault Withstand Rating saved: " + testValue);
-        } else {
-            logStepWithScreenshot("Save button not found");
-        }
-        
-        assertTrue(saveButtonVisible, "Save Changes button should appear after changing Fault Withstand Rating");
+        assertFalse(present, "'Fault Withstand Rating' is not a Load-class field — it must NOT appear on the Load edit form");
     }
 
     // ============================================================
@@ -818,37 +784,24 @@ public class Asset_Phase3_Test extends BaseTest {
         ExtentReportManager.createTest(
             AppConstants.MODULE_ASSET,
             AppConstants.FEATURE_EDIT_ASSET,
-            "LC_EAD_18 - Edit Serial Number for Loadcenter"
+            "LC_EAD_18 - 'Serial Number' is not a Load-class field"
         );
 
-        logStep("Navigating to Loadcenter Edit Asset Details screen");
+        // App class is "Load" (B11). Live-verified: editing Serial Number on Load
+        // raises no Save (field not on this class). Assert absence.
+        logStep("Navigating to Load Edit Asset Details screen");
         navigateToLoadcenterEditScreen();
 
-        logStep("Ensuring asset class is Loadcenter");
+        logStep("Ensuring asset class is Load");
         assetPage.changeAssetClassToLoadcenter();
+        assertTrue(waitForCondition(() -> assetPage.isCurrentAssetClassEqualTo("Load"), 5,
+            "asset class to read Load"), "Asset class should be Load");
 
-        logStep("Scrolling to find Serial Number field");
         assetPage.scrollFormDown();
+        boolean present = assetPage.isFieldLabelPresent("Serial Number");
+        logStepWithScreenshot("'Serial Number' present for Load: " + present);
 
-        // Timestamp ensures unique serial number
-        String testValue = "LC-SN-" + System.currentTimeMillis();
-        logStep("Entering Serial Number: " + testValue);
-        fillLoadcenterField("Serial Number", testValue);
-        shortWait();
-
-        logStep("Checking for Save Changes button");
-        assetPage.scrollFormUp();
-        
-        boolean saveButtonVisible = assetPage.isSaveChangesButtonVisible();
-        if (saveButtonVisible) {
-            assetPage.clickSaveChanges();
-            shortWait();
-            logStepWithScreenshot("Serial Number saved: " + testValue);
-        } else {
-            logStepWithScreenshot("Save button not found");
-        }
-        
-        assertTrue(saveButtonVisible, "Save Changes button should appear after changing Serial Number");
+        assertFalse(present, "'Serial Number' is not a Load-class field — it must NOT appear on the Load edit form");
     }
 
     // ============================================================
