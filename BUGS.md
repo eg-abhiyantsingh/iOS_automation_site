@@ -47,23 +47,27 @@ weakening assertions.
 
 ---
 
-### B11 — Asset-class picker cannot select "Loadcenter"  ⚠️ OPEN
+### B11 — App picker has no "Loadcenter" class (LC tests target a missing name)  ⚠️ OPEN (needs product confirmation)
 - **Affects:** all 7 Loadcenter tests (`LC_EAD_10/12/14/18/19/23/25`) — they fail at
-  the class-change step, before any field logic.
-- **Root cause (measured live 2026-06-04):** opening the Asset Class picker works,
-  but selecting Loadcenter fails every strategy — `accessibilityId("Loadcenter")`
-  returns no element, `mobile: scroll` predicate doesn't land it, manual-scroll
-  exact-match and a new **space-insensitive** scan (handles "Load Center" ≡
-  "Loadcenter") both find nothing across 8 scrolls. ATS/Motor select fine, so it's
-  specific to Loadcenter — likely a lazy SwiftUI picker list whose off-screen rows
-  aren't materialized in the a11y tree, plus a scroll gesture that doesn't move
-  that sheet.
-- **Status:** NOT masked — `LC_EAD_12` was corrected to the truthful "Columns is
-  not a Loadcenter field" assertion but still RED here. Gold reconciliation
-  (changelog 076) is done; this picker-navigation fix is a separate task (each live
-  attempt is ~23 min, so it needs a targeted scroll technique, not trial-and-error).
-- **NOTE:** the node_classes gold is INCOMPLETE for Loadcenter (lists 2 of the 7
-  live fields) — use live verification, see memory `node-classes-gold-spec`.
+  `changeAssetClassToLoadcenter()`, before any field logic.
+- **Root cause (measured live 2026-06-05):** the Asset Class picker is a SEARCHABLE
+  dropdown (confirmed via screenshot + live). Selection now types into the
+  "Search..." field (`selectClassViaSearch`, commit `d9ce693`). Searching the live
+  picker shows a **"Load"** class but **no "Loadcenter" / "Load Center"** option:
+  typing `center` surfaces nothing; typing `Load` surfaces only `Load`. So the
+  app's picker does not offer "Loadcenter" — the LC tests target a class name the
+  app doesn't have.
+- **Gold vs app:** the node_classes gold lists BOTH `Load` (no core attrs; subtypes
+  General/Resistive Load) and `Loadcenter` (Size, Mains Type) as distinct classes,
+  but the live picker only offers `Load`. Either the class was renamed/merged to
+  `Load` (→ retarget the 7 LC tests + `changeAssetClassToLoadcenter` to `Load`) or
+  `Loadcenter` is genuinely missing from the build (→ real product bug). **Needs
+  product confirmation before retargeting.**
+- **CORRECTION:** an earlier note claimed "gold is incomplete for Loadcenter (lists
+  2 of 7 live fields)" — that was WRONG: that field dump ran right after a *failed*
+  class-change, so it read a different class. Disregard it.
+- **Status:** NOT masked — `LC_EAD_12` carries the truthful "Columns is not a
+  Loadcenter field" assertion but is RED here (blocked by the missing class).
 
 ## Category 2 — audit-surfaced framework gaps
 
