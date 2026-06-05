@@ -60,6 +60,7 @@ public class Asset_Phase3_Test extends BaseTest {
 
 
 
+
     // Loadcenter fields that are DROPDOWNS (Select... buttons), not text fields
     private static final java.util.Set<String> LOADCENTER_DROPDOWN_FIELDS = new java.util.HashSet<>(
         java.util.Arrays.asList("Ampere Rating", "Columns", "Configuration",

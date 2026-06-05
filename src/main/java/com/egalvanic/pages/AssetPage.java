@@ -8753,7 +8753,94 @@ public class AssetPage extends BasePage {
      * @param className the asset class name to select (e.g. "Motor", "UPS")
      * @return true if item was tapped
      */
+    /**
+     * Select an asset class by typing into the picker's "Search..." field, then
+     * tapping the filtered option. The picker is a searchable dropdown whose option
+     * list is lazy — scrolling to off-screen classes (e.g. Loadcenter) fails, but
+     * filtering brings the match into view reliably.
+     */
+    /** The picker's "Search..." field (NOT the asset-list search behind it). */
+    private WebElement findClassSearchField() {
+        for (WebElement sf : driver.findElements(AppiumBy.className("XCUIElementTypeSearchField"))) {
+            try {
+                if (!sf.isDisplayed()) continue;
+                String ph = sf.getAttribute("placeholderValue");
+                String nm = sf.getAttribute("name");
+                if ("Search...".equals(ph) || "Search...".equals(nm)) return sf;
+            } catch (Exception ignore) {}
+        }
+        return null;
+    }
+
+    private boolean selectClassViaSearch(String className) {
+        try {
+            driver.manage().timeouts().implicitlyWait(Duration.ofMillis(800));
+            WebElement search = findClassSearchField();
+            if (search == null) {
+                System.out.println("   (no 'Search...' field — picker not searchable here)");
+                return false;
+            }
+            // Try progressively looser search terms. The app filters by substring,
+            // and the code name ("Loadcenter") may differ from the option label
+            // ("Load Center") — a short prefix like "Load" matches both spellings.
+            String wanted = normalizeClass(className);
+            java.util.LinkedHashSet<String> terms = new java.util.LinkedHashSet<>();
+            terms.add(className);
+            terms.add(className.split(" ")[0]);
+            terms.add(className.substring(0, Math.min(4, className.length())));
+            for (String term : terms) {
+                try { search.click(); } catch (Exception e) { search = findClassSearchField(); if (search == null) break; search.click(); }
+                sleep(150);
+                try { search.clear(); } catch (Exception ignore) {}
+                search.sendKeys(term);
+                sleep(700); // let the list filter
+                driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(1));
+                try {
+                    WebElement opt = driver.findElement(AppiumBy.accessibilityId(className));
+                    opt.click();
+                    System.out.println("   ✓ Searched '" + term + "' + tapped '" + className + "' (accessibilityId)");
+                    return true;
+                } catch (Exception ignore) {}
+                for (WebElement b : driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText'"))) {
+                    try {
+                        String n = b.getAttribute("label");
+                        if (n == null) n = b.getAttribute("name");
+                        if (n == null || n.contains(",")) continue;
+                        if (normalizeClass(n).equals(wanted) && b.isDisplayed()) {
+                            b.click();
+                            System.out.println("   ✓ Searched '" + term + "' + tapped '" + n + "'");
+                            return true;
+                        }
+                    } catch (Exception ignore) {}
+                }
+                driver.manage().timeouts().implicitlyWait(Duration.ofMillis(800));
+                System.out.println("   search term '" + term + "' did not surface '" + className + "', trying looser…");
+            }
+            System.out.println("   search could not surface '" + className + "'");
+            return false;
+        } catch (Exception e) {
+            System.out.println("   selectClassViaSearch failed: " + e.getMessage());
+            return false;
+        } finally {
+            driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
+        }
+    }
+
     private boolean tapAssetClassItem(String className) {
+        // Strategy 0 (preferred): the Asset Class picker is a SEARCHABLE dropdown
+        // (a "Search..." field above the option list). Type to filter — far more
+        // reliable than scrolling a long lazy list (off-screen rows aren't in the
+        // a11y tree until filtered into view).
+        if (selectClassViaSearch(className)) return true;
+        // If the picker IS searchable but search couldn't surface the class, the
+        // legacy scroll strategies are futile (lazy list never materializes the
+        // row) AND slow (~20 min of dragging). Fail fast instead.
+        if (findClassSearchField() != null) {
+            System.out.println("   ✗ '" + className + "' not found via picker search — failing fast (no such option?)");
+            return false;
+        }
+
         // Strategy 1: Direct accessibilityId (works for most visible items)
         try {
             driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(3));
