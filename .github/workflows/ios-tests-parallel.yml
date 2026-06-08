@@ -3319,6 +3319,30 @@ jobs:
           retention-days: 30
         continue-on-error: true
 
+      - name: Generate consolidated all-tests report (web style)
+        id: consolidated
+        if: always()
+        continue-on-error: true
+        run: |
+          # ONE self-contained HTML listing EVERY test (pass/fail/skip), grouped
+          # by module — web-automation report style. Built from all modules'
+          # testng-results.xml. Artifact-only — deliberately NOT emailed (large).
+          python3 -m pip install --quiet defusedxml || true
+          mkdir -p consolidated-reports
+          python3 .github/scripts/consolidated-report.py all-reports \
+            consolidated-reports/Consolidated_Automation_Report.html \
+            || echo "⚠️ consolidated report generation skipped"
+          ls -la consolidated-reports/ 2>/dev/null || true
+
+      - name: Upload Consolidated Report (all tests, NOT emailed)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: consolidated-report
+          path: consolidated-reports/Consolidated_Automation_Report.html
+          retention-days: 30
+        continue-on-error: true
+
       - name: Consolidate Client Reports
         id: reports
         run: |
