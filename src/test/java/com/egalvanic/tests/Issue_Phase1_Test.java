@@ -854,6 +854,7 @@ public final class Issue_Phase1_Test extends BaseTest {
     public void TC_ISS_025_verifyCancelReturnsToIssuesList() {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_NEW_ISSUE,
             "TC_ISS_025 - Verify Cancel returns to Issues list");
+        issuePage.ensureNewIssueFormOpen();
 
 
         logStep("Step 2: Note issue count before cancel");
@@ -1080,6 +1081,7 @@ public final class Issue_Phase1_Test extends BaseTest {
     public void TC_ISS_034_verifyTitleField() {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_TITLE,
             "TC_ISS_034 - Verify Title field");
+        issuePage.ensureNewIssueFormOpen();
 
 
         logStep("Step 2: Verify Title field is displayed");
@@ -1105,6 +1107,7 @@ public final class Issue_Phase1_Test extends BaseTest {
     public void TC_ISS_035_verifyEnteringTitleText() {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_TITLE,
             "TC_ISS_035 - Verify entering Title text");
+        issuePage.ensureNewIssueFormOpen();
 
 
         logStep("Step 2: Enter test title in Title field");
@@ -1134,6 +1137,7 @@ public final class Issue_Phase1_Test extends BaseTest {
     public void TC_ISS_036_verifyPriorityDropdown() {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_PRIORITY,
             "TC_ISS_036 - Verify Priority dropdown");
+        issuePage.ensureNewIssueFormOpen();
 
 
         logStep("Step 2: Verify Priority dropdown is displayed");
@@ -1159,6 +1163,7 @@ public final class Issue_Phase1_Test extends BaseTest {
     public void TC_ISS_037_verifyPriorityOptions() {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_PRIORITY,
             "TC_ISS_037 - Verify Priority options");
+        issuePage.ensureNewIssueFormOpen();
 
 
         logStep("Step 2: Open Priority dropdown");
@@ -1286,6 +1291,7 @@ public final class Issue_Phase1_Test extends BaseTest {
     public void TC_ISS_042_verifyAssetOpensSelectionScreen() {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ASSET_SELECTION,
             "TC_ISS_042 - Verify tapping Asset opens selection");
+        issuePage.ensureNewIssueFormOpen();
 
 
         logStep("Step 2: Tap Select Asset");
@@ -1311,6 +1317,7 @@ public final class Issue_Phase1_Test extends BaseTest {
     public void TC_ISS_043_verifyAssetListDisplayed() {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ASSET_SELECTION,
             "TC_ISS_043 - Verify asset list displayed");
+        issuePage.ensureNewIssueFormOpen();
 
 
         logStep("Step 2: Open Select Asset screen");
@@ -4225,6 +4232,7 @@ public final class Issue_Phase1_Test extends BaseTest {
     public void TC_ISS_109_verify100PercentCompletion() {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_COMPLETION,
             "TC_ISS_109 - Verify 100% completion when all required fields filled");
+        issuePage.ensureNewIssueFormOpen();
 
         logStep("Step 1: Ensure on Issues screen");
 
