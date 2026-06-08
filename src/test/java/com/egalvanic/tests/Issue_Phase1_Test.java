@@ -44,6 +44,7 @@ public final class Issue_Phase1_Test extends BaseTest {
         }
     }
 
+
     /**
      * Dismiss any picker, sheet, or modal left open by a failed test.
      * Prevents state from one test's failure from cascading into the next test.
@@ -765,6 +766,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_NEW_ISSUE,
             "TC_ISS_022 - Verify New Issue screen UI elements");
 
+        logStep("Step 1: Open the New Issue form");
+        assertTrue(issuePage.ensureNewIssueFormOpen(), "New Issue form should open via Add (+)");
 
         logStep("Step 2: Verify 'New Issue' title");
         boolean titleDisplayed = issuePage.isNewIssueFormDisplayed();

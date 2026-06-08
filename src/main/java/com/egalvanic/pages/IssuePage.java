@@ -1179,6 +1179,28 @@ public class IssuePage extends BasePage {
     }
 
     /**
+     * Ensure the New Issue form (sheet) is open. Idempotent: returns true if it's
+     * already open, otherwise taps the Add (+) button and re-checks.
+     *
+     * Root cause this fixes (Part 2): the New Issue tests' @BeforeMethod only lands
+     * on the Issues LIST, and openIssueClassDropdown()/selectIssueClass()/the section
+     * checks all assume the form is ALREADY open (they only act WITHIN it). Tests
+     * that didn't call tapAddButton() were checking the list screen → failed. This
+     * makes opening the form reliable + self-healing for every New Issue test.
+     */
+    public boolean ensureNewIssueFormOpen() {
+        if (isNewIssueFormDisplayed()) return true;
+        System.out.println("   (form not open — tapping Add to open New Issue form)");
+        tapAddButton();
+        sleep(700);
+        if (isNewIssueFormDisplayed()) return true;
+        // one retry — the first tap can land during a list re-render
+        tapAddButton();
+        sleep(800);
+        return isNewIssueFormDisplayed();
+    }
+
+    /**
      * Check if New Issue form is displayed
      */
     public boolean isNewIssueFormDisplayed() {
@@ -1205,6 +1227,9 @@ public class IssuePage extends BasePage {
      */
     public void selectIssueClass(String className) {
         System.out.println("📋 Selecting Issue Class: " + className);
+
+        // Self-heal: the Issue Class picker is inside the New Issue form.
+        ensureNewIssueFormOpen();
 
         // Dismiss keyboard if open — safety for any lingering keyboard from prior interactions
         dismissKeyboard();
@@ -2380,6 +2405,10 @@ public class IssuePage extends BasePage {
      * Returns true if dropdown opened successfully.
      */
     public boolean openIssueClassDropdown() {
+        // Self-heal: the Issue Class picker lives inside the New Issue form, so the
+        // form must be open first (many tests relied on it being open but never
+        // opened it — see ensureNewIssueFormOpen()).
+        ensureNewIssueFormOpen();
         return tryOpenIssueClassPicker();
     }
 
@@ -11059,29 +11088,41 @@ public class IssuePage extends BasePage {
      * Returns a list of option labels in display order.
      */
     public java.util.List<String> readIssueClassOptions() {
-        java.util.List<String> labels = new java.util.ArrayList<>();
+        java.util.List<String> out = new java.util.ArrayList<>();
         try {
-            // Options can be StaticText (sheet/menu), Button (custom), or
-            // PickerWheel values. Read all three patterns and merge.
-            java.util.List<WebElement> texts = driver.findElements(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText'"));
-            for (WebElement t : texts) {
+            // LIVE-VERIFIED (2026-06-08): the open Issue Class picker renders its 7
+            // options as XCUIElementTypeButton (NOT StaticText). The old StaticText
+            // read returned junk like "Safety & Notification" (a form SECTION header)
+            // and never matched the real options. Read the option BUTTONS, and skip
+            // the issue-LIST rows that bleed through behind the form sheet — those
+            // read like "NEC Violation on ATS 2" (contain " on " / a comma).
+            for (WebElement b : driver.findElements(io.appium.java_client.AppiumBy.className("XCUIElementTypeButton"))) {
                 try {
-                    String l = t.getAttribute("label");
-                    if (l == null || l.isEmpty()) continue;
-                    if (l.equalsIgnoreCase("Issue Class")) continue;  // skip the section header
-                    if (looksLikeIssueClass(l)) labels.add(l);
+                    String l = b.getAttribute("label");
+                    if (l == null || l.isEmpty()) l = b.getAttribute("name");
+                    if (l == null) continue;
+                    l = l.trim();
+                    if (l.isEmpty() || l.length() > 30) continue;
+                    if (l.contains(" on ") || l.contains(",")) continue;   // list-row bleed-through
+                    if (l.equalsIgnoreCase("Issue Class")) continue;
+                    if (looksLikeIssueClass(l) && !out.contains(l)) out.add(l);
                 } catch (Exception ignored) {}
             }
-            // De-duplicate while preserving order
-            java.util.List<String> out = new java.util.ArrayList<>();
-            for (String l : labels) {
-                if (!out.contains(l)) out.add(l);
+            // Fallback: some builds may render options as StaticText — only if no
+            // option buttons were found.
+            if (out.isEmpty()) {
+                for (WebElement t : driver.findElements(io.appium.java_client.AppiumBy.className("XCUIElementTypeStaticText"))) {
+                    try {
+                        String l = t.getAttribute("label");
+                        if (l == null || l.isEmpty() || l.length() > 30) continue;
+                        l = l.trim();
+                        if (l.contains(" on ") || l.contains(",") || l.equalsIgnoreCase("Issue Class")) continue;
+                        if (looksLikeIssueClass(l) && !out.contains(l)) out.add(l);
+                    } catch (Exception ignored) {}
+                }
             }
-            return out;
-        } catch (Exception e) {
-            return labels;
-        }
+        } catch (Exception ignored) {}
+        return out;
     }
 
     /**
