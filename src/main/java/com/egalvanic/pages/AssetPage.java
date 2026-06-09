@@ -6021,9 +6021,12 @@ public class AssetPage extends BasePage {
         }
         
         // Skip debugPrintAllElements() — iterates hundreds of elements (60+ seconds on CI)
-        System.out.println("⚠️ All 5 strategies failed to find Asset Subtype button");
-
-        throw new RuntimeException("Failed to click Select Asset Subtype - all strategies exhausted");
+        // No clickable subtype control found. This is EXPECTED for zero-subtype
+        // classes (Junction Box, MCC Bucket, PDU, Utility, VFD) whose Asset Subtype
+        // field shows a non-interactive "None". Return gracefully instead of
+        // throwing, so the *_AST_01 "shows None" tests can verify that state
+        // (callers check isSubtypeDropdownDisplayed() afterward).
+        System.out.println("ℹ️ No clickable Asset Subtype control — class likely has 0 subtypes (shows None)");
     }
 
     /**
