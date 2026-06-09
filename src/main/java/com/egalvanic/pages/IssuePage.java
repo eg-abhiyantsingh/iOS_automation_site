@@ -2880,10 +2880,60 @@ public class IssuePage extends BasePage {
      * Uses cell Y position + height to identify issue cells (labels are often null).
      * Issue cells: Y > 350 (below search bar + filter tabs), H > 60 (taller than nav items).
      */
+    /** True if the Issues list shows the empty-state ("No Issues Found"). */
+    public boolean isIssueListEmpty() {
+        driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(600));
+        try {
+            return !driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND (label CONTAINS[c] 'No Issues Found' OR label CONTAINS[c] 'Create a new issue')")).isEmpty();
+        } catch (Exception e) {
+            return false;
+        } finally {
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
+        }
+    }
+
+    /**
+     * Seed-on-demand: ensure at least one issue exists in the list. The iOS app is
+     * offline-first (SwiftData) — a freshly-selected site can have an EMPTY local
+     * Issues store even though the backend has issues, so list-dependent tests
+     * (open issue / swipe-delete / change-class-on-details) find nothing. If empty,
+     * create one issue using the proven recipe (Class + Title + Asset, per TC_ISS_049).
+     */
+    public boolean ensureAtLeastOneIssueExists() {
+        if (!isIssueListEmpty()) return true;
+        System.out.println("   (Issues list empty — seeding one issue so list-dependent tests can run)");
+        try {
+            if (!ensureNewIssueFormOpen()) return false;
+            selectIssueClass("NEC Violation");
+            sleep(300);
+            enterIssueTitle("Seed_" + System.currentTimeMillis());
+            sleep(300);
+            tapSelectAsset();
+            sleep(500);
+            boolean asset = selectFirstAvailableAsset();
+            if (!asset) { try { tapCancelNewIssue(); } catch (Exception ignored) {} return false; }
+            boolean created = tapCreateIssue();
+            sleep(1000);
+            System.out.println(created ? "   ✅ Seeded one issue" : "   ⚠️ Seed create not confirmed");
+            return created;
+        } catch (Exception e) {
+            System.out.println("   ⚠️ Seed-issue failed: " + e.getMessage());
+            try { tapCancelNewIssue(); } catch (Exception ignored) {}
+            return false;
+        }
+    }
+
     public void tapFirstIssue() {
         System.out.println("📋 Tapping first available issue...");
         resetDetailsScrollCount();
         boolean tapped = false;
+
+        // Seed-on-demand: offline-first sites can have an empty local Issues store.
+        if (isIssueListEmpty()) {
+            ensureAtLeastOneIssueExists();
+            sleep(600);
+        }
 
         try {
             // Strategy 1: Find first cell that looks like an issue cell by dimensions
@@ -2900,12 +2950,37 @@ public class IssuePage extends BasePage {
                 }
             }
 
-            // Strategy 2: Tap a static text with issue title pattern
+            // Strategy 2 (v1.36 SwiftUI: rows are BUTTONS, not cells): tap the first
+            // issue-row button — label looks like an issue title (an Issue Class
+            // keyword and/or " on <asset>"). Exclude dashboard tiles + chrome.
+            if (!tapped) {
+                List<WebElement> btns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND " +
+                    "(label CONTAINS[c] 'Violation' OR label CONTAINS[c] 'Anomaly' OR " +
+                    "label CONTAINS[c] 'Repair Needed' OR label CONTAINS[c] 'Replacement Needed' OR " +
+                    "label CONTAINS ' on ' OR label CONTAINS[c] 'Seed_' OR label CONTAINS 'Test Issue')"));
+                for (WebElement b : btns) {
+                    try {
+                        int y = b.getLocation().getY();
+                        if (y < 150 || y > 820) continue;     // below nav bar, in list area
+                        String label = b.getAttribute("label");
+                        if (label == null || label.contains("Tasks") || label.contains("Assets") ||
+                            label.contains("Connections") || label.contains("Arc Flash") ||
+                            label.contains("Sites") || label.contains("Refresh")) continue;
+                        b.click();
+                        System.out.println("   Tapped issue row button at Y=" + y + ": " + label);
+                        tapped = true;
+                        break;
+                    } catch (Exception ignore) {}
+                }
+            }
+
+            // Strategy 3: Tap a static text with issue title pattern
             if (!tapped) {
                 List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeStaticText' AND " +
-                    "(label CONTAINS 'Test Issue' OR label CONTAINS 'Repair' OR " +
-                    "label CONTAINS 'RepairCount' OR label CONTAINS 'Issue ')"));
+                    "(label CONTAINS 'Test Issue' OR label CONTAINS 'Repair' OR label CONTAINS 'Seed_' OR " +
+                    "label CONTAINS 'Violation' OR label CONTAINS 'Anomaly' OR label CONTAINS 'Issue ')"));
                 for (WebElement text : texts) {
                     int y = text.getLocation().getY();
                     if (y > 350) {
