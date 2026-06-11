@@ -113,6 +113,31 @@ public final class Issue_Phase1_Test extends BaseTest {
         return false;
     }
 
+    /**
+     * Create an issue with a specific priority via the New Issue form.
+     * Uses the live-verified create recipe (Class + Title + Priority + Asset,
+     * per TC_ISS_049). Used by TC_ISS_010/011 to guarantee that an issue with
+     * the priority under test actually exists before asserting on its badge.
+     */
+    private boolean createIssueWithPriority(String priority, String title) {
+        try {
+            if (!issuePage.ensureNewIssueFormOpen()) return false;
+            issuePage.selectIssueClass("NEC Violation");
+            issuePage.enterIssueTitle(title);
+            issuePage.selectPriority(priority);
+            issuePage.tapSelectAsset();
+            if (!issuePage.selectFirstAvailableAsset()) {
+                issuePage.tapCancelNewIssue();
+                return false;
+            }
+            return issuePage.tapCreateIssue();
+        } catch (Exception e) {
+            System.out.println("⚠️ createIssueWithPriority failed: " + e.getMessage());
+            try { issuePage.tapCancelNewIssue(); } catch (Exception ignored) {}
+            return false;
+        }
+    }
+
     // ============================================================
     // ISSUES LIST TESTS (TC_ISS_001 - TC_ISS_007)
     // ============================================================
@@ -222,6 +247,7 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 2: Verify Open tab is selected by default");
         boolean openSelected = issuePage.isOpenTabSelected();
         logStep("Open tab selected: " + openSelected);
+        assertTrue(openSelected, "Open tab should be selected by default when the Issues screen opens");
 
         logStep("Step 3: Verify issues are displayed (Open filter active)");
         int issueCount = issuePage.getVisibleIssueCount();
@@ -277,6 +303,7 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 3: Verify Resolved tab is selected");
         boolean resolvedSelected = issuePage.isResolvedTabSelected();
         logStep("Resolved tab selected: " + resolvedSelected);
+        assertTrue(resolvedSelected, "Resolved tab should be selected after tapping it");
 
         logStep("Step 4: Check visible issue count under Resolved");
         int resolvedCount = issuePage.getVisibleIssueCount();
@@ -288,6 +315,7 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStep("Step 5: Tap Closed tab");
         issuePage.tapClosedTab();
+        assertTrue(issuePage.isClosedTabSelected(), "Closed tab should be selected after tapping it");
 
         logStep("Step 6: Check visible issue count under Closed");
         int closedCount = issuePage.getVisibleIssueCount();
@@ -416,11 +444,16 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 2: Check for High priority badge");
         boolean highBadge = issuePage.isPriorityBadgeDisplayed("High");
         logStep("High priority badge displayed: " + highBadge);
-        if (highBadge) {
-            logStep("✅ High priority badge found");
-        } else {
-            logStep("⚠️ No High priority issue visible (may not exist in current data)");
+
+        if (!highBadge) {
+            logStep("Step 3: No High priority issue visible — seeding one to verify the badge");
+            assertTrue(createIssueWithPriority("High", "HighPriSeed_" + System.currentTimeMillis()),
+                "Should create a High priority issue to verify its badge");
+            issuePage.tapAllTab();
+            highBadge = issuePage.isPriorityBadgeDisplayed("High");
         }
+        assertTrue(highBadge, "Red 'High' priority badge should be displayed on a High priority issue");
+        logStep("✅ High priority badge found");
 
         issuePage.tapOpenTab();
 
@@ -442,11 +475,16 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 2: Check for Medium priority badge");
         boolean mediumBadge = issuePage.isPriorityBadgeDisplayed("Medium");
         logStep("Medium priority badge displayed: " + mediumBadge);
-        if (mediumBadge) {
-            logStep("✅ Medium priority badge found");
-        } else {
-            logStep("⚠️ No Medium priority issue visible (may not exist in current data)");
+
+        if (!mediumBadge) {
+            logStep("Step 3: No Medium priority issue visible — seeding one to verify the badge");
+            assertTrue(createIssueWithPriority("Medium", "MedPriSeed_" + System.currentTimeMillis()),
+                "Should create a Medium priority issue to verify its badge");
+            issuePage.tapAllTab();
+            mediumBadge = issuePage.isPriorityBadgeDisplayed("Medium");
         }
+        assertTrue(mediumBadge, "Orange 'Medium' priority badge should be displayed on a Medium priority issue");
+        logStep("✅ Medium priority badge found");
 
         issuePage.tapOpenTab();
 
@@ -549,22 +587,33 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         issuePage.tapAllTab();
 
-        logStep("Step 2: Note initial issue count");
+        logStep("Step 2: Ensure at least one issue exists and note initial count");
+        issuePage.ensureAtLeastOneIssueExists();
         int initialCount = issuePage.getVisibleIssueCount();
         logStep("Initial issue count: " + initialCount);
 
-        logStep("Step 3: Search for 'Thermal'");
-        issuePage.searchIssues("Thermal");
+        logStep("Step 3: Derive a search token from the first issue's title");
+        String firstTitle = issuePage.getFirstIssueTitle();
+        logStep("First issue title: '" + firstTitle + "'");
+        String token = null;
+        if (firstTitle != null) {
+            for (String word : firstTitle.split("[^A-Za-z0-9_]+")) {
+                if (word.length() >= 4) { token = word; break; }
+            }
+        }
+        final String searchToken = token;
+        skipIfPreconditionMissing(() -> searchToken != null,
+            "No readable issue title to derive a search token from");
 
-        logStep("Step 4: Verify filtered results");
+        logStep("Step 4: Search for '" + searchToken + "' and verify filtered results");
+        issuePage.searchIssues(searchToken);
         int filteredCount = issuePage.getVisibleIssueCount();
         logStep("Filtered issue count: " + filteredCount);
-
-        if (filteredCount > 0) {
-            logStep("✅ Search returned " + filteredCount + " results for 'Thermal'");
-        } else {
-            logStep("ℹ️ No issues matching 'Thermal' found");
-        }
+        assertTrue(filteredCount >= 1,
+            "Searching for '" + searchToken + "' (taken from a visible issue) should return at least one match");
+        assertTrue(filteredCount <= initialCount,
+            "Filtered count (" + filteredCount + ") should not exceed the unfiltered count (" + initialCount + ")");
+        logStep("✅ Search returned " + filteredCount + " results for '" + searchToken + "'");
 
         logStepWithScreenshot("TC_ISS_015: Search filter results");
 
@@ -584,18 +633,26 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         issuePage.tapAllTab();
 
-        logStep("Step 2: Search for 'Busway'");
-        issuePage.searchIssues("Busway");
+        logStep("Step 2: Ensure at least one issue exists and read its asset name");
+        issuePage.ensureAtLeastOneIssueExists();
+        String firstTitle = issuePage.getFirstIssueTitle();
+        logStep("First issue row label: '" + firstTitle + "'");
+        // v1.36 issue rows read "<Title> on <Asset>" — extract the asset name
+        final String assetName = (firstTitle != null && firstTitle.contains(" on "))
+            ? firstTitle.substring(firstTitle.lastIndexOf(" on ") + 4).trim()
+            : null;
+        skipIfPreconditionMissing(() -> assetName != null && !assetName.isEmpty(),
+            "First issue row does not expose an asset name to search for");
 
-        logStep("Step 3: Verify search results");
+        logStep("Step 3: Search for asset name '" + assetName + "'");
+        issuePage.searchIssues(assetName);
+
+        logStep("Step 4: Verify search results");
         int filteredCount = issuePage.getVisibleIssueCount();
-        logStep("Issues matching 'Busway': " + filteredCount);
-
-        if (filteredCount > 0) {
-            logStep("✅ Search by asset name returned results");
-        } else {
-            logStep("ℹ️ No issues matching 'Busway' found (asset may not have issues)");
-        }
+        logStep("Issues matching '" + assetName + "': " + filteredCount);
+        assertTrue(filteredCount >= 1,
+            "Searching by asset name '" + assetName + "' should return the issue(s) on that asset");
+        logStep("✅ Search by asset name returned " + filteredCount + " result(s)");
 
         logStepWithScreenshot("TC_ISS_016: Search by asset name results");
 
@@ -717,11 +774,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 3: Verify sort options are displayed");
         boolean sortOptions = issuePage.isSortOptionsDisplayed();
         logStep("Sort options displayed: " + sortOptions);
-        if (sortOptions) {
-            logStep("✅ Sort options are displayed");
-        } else {
-            logStep("⚠️ Sort options not detected — UI may use a different pattern");
-        }
+        assertTrue(sortOptions, "Sort options should be displayed after tapping the Sort icon");
+        logStep("✅ Sort options are displayed");
 
         logStepWithScreenshot("TC_ISS_020: Sort options after tap");
 
@@ -828,18 +882,21 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_024 - Verify Asset is required validation");
 
 
+        logStep("Step 1: Open the New Issue form");
+        assertTrue(issuePage.ensureNewIssueFormOpen(), "New Issue form should open via Add (+)");
+
         logStep("Step 2: Check for 'Asset is required' validation message");
         boolean assetRequired = issuePage.isAssetRequiredMessageDisplayed();
         logStep("'Asset is required' message displayed: " + assetRequired);
-        if (assetRequired) {
-            logStep("✅ Asset is required validation message is shown");
-        } else {
-            logStep("ℹ️ Validation message may appear only after attempting to create");
-        }
+        assertTrue(assetRequired || !issuePage.isCreateIssueEnabled(),
+            "Asset requirement should be enforced: either the 'Asset is required' message is shown " +
+            "or Create Issue stays disabled while no asset is selected");
+        logStep("✅ Asset requirement is enforced");
 
         logStep("Step 3: Verify Select Asset field is visible");
         boolean selectAsset = issuePage.isSelectAssetDisplayed();
         logStep("Select Asset field displayed: " + selectAsset);
+        assertTrue(selectAsset, "Select Asset field should be displayed on the New Issue form");
 
         logStepWithScreenshot("TC_ISS_024: Asset required validation");
 
@@ -891,6 +948,9 @@ public final class Issue_Phase1_Test extends BaseTest {
             "TC_ISS_026 - Verify Issue Class dropdown");
 
 
+        logStep("Step 1: Open the New Issue form (Issue Class lives inside it)");
+        assertTrue(issuePage.ensureNewIssueFormOpen(), "New Issue form should open via Add (+)");
+
         logStep("Step 2: Verify Issue Class dropdown is displayed");
         boolean dropdownDisplayed = issuePage.isIssueClassDropdownDisplayed();
         assertTrue(dropdownDisplayed, "Issue Class dropdown should be displayed");
@@ -921,19 +981,23 @@ public final class Issue_Phase1_Test extends BaseTest {
         boolean opened = issuePage.openIssueClassDropdown();
         assertTrue(opened, "Issue Class dropdown should open");
 
-        logStep("Step 3: Verify dropdown options");
+        logStep("Step 3: Verify dropdown options (picker renders options as Buttons — read those)");
         String[] expectedOptions = {
             "NEC Violation", "NFPA 70B Violation", "OSHA Violation",
             "Repair Needed", "Thermal Anomaly", "Ultrasonic Anomaly"
         };
 
-        int foundCount = 0;
+        java.util.List<String> options = issuePage.readIssueClassOptions();
+        logStep("Options read from open picker: " + options);
+        java.util.List<String> missing = new java.util.ArrayList<>();
         for (String option : expectedOptions) {
-            boolean found = issuePage.isDropdownOptionDisplayed(option);
+            boolean found = options.stream().anyMatch(o -> o.equalsIgnoreCase(option));
             logStep("   Option '" + option + "': " + (found ? "FOUND" : "NOT FOUND"));
-            if (found) foundCount++;
+            if (!found) missing.add(option);
         }
-        logStep("Found " + foundCount + "/" + expectedOptions.length + " expected options");
+        assertTrue(missing.isEmpty(),
+            "All expected Issue Class options should be listed. Missing: " + missing + " (found: " + options + ")");
+        logStep("✅ Found all " + expectedOptions.length + " expected options");
 
         logStepWithScreenshot("TC_ISS_027: Issue Class options");
 
@@ -957,6 +1021,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 2: Select NEC Violation from Issue Class");
         String selectedValue = issuePage.selectIssueClassAndGetValue("NEC Violation");
         logStep("Selected value: '" + selectedValue + "'");
+        assertTrue(selectedValue != null && selectedValue.contains("NEC"),
+            "Issue Class field should show 'NEC Violation' after selection (was: '" + selectedValue + "')");
         logStep("✅ NEC Violation selection completed");
 
         logStepWithScreenshot("TC_ISS_028: NEC Violation selected");
@@ -978,6 +1044,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 2: Select NFPA 70B Violation from Issue Class");
         String selectedValue = issuePage.selectIssueClassAndGetValue("NFPA 70B Violation");
         logStep("Selected value: '" + selectedValue + "'");
+        assertTrue(selectedValue != null && selectedValue.contains("NFPA"),
+            "Issue Class field should show 'NFPA 70B Violation' after selection (was: '" + selectedValue + "')");
         logStep("✅ NFPA 70B Violation selection completed");
 
         logStepWithScreenshot("TC_ISS_029: NFPA 70B Violation selected");
@@ -999,6 +1067,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 2: Select OSHA Violation from Issue Class");
         String selectedValue = issuePage.selectIssueClassAndGetValue("OSHA Violation");
         logStep("Selected value: '" + selectedValue + "'");
+        assertTrue(selectedValue != null && selectedValue.contains("OSHA"),
+            "Issue Class field should show 'OSHA Violation' after selection (was: '" + selectedValue + "')");
         logStep("✅ OSHA Violation selection completed");
 
         logStepWithScreenshot("TC_ISS_030: OSHA Violation selected");
@@ -1020,6 +1090,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 2: Select Repair Needed from Issue Class");
         String selectedValue = issuePage.selectIssueClassAndGetValue("Repair Needed");
         logStep("Selected value: '" + selectedValue + "'");
+        assertTrue(selectedValue != null && selectedValue.contains("Repair"),
+            "Issue Class field should show 'Repair Needed' after selection (was: '" + selectedValue + "')");
         logStep("✅ Repair Needed selection completed");
 
         logStepWithScreenshot("TC_ISS_031: Repair Needed selected");
@@ -1041,6 +1113,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 2: Select Thermal Anomaly from Issue Class");
         String selectedValue = issuePage.selectIssueClassAndGetValue("Thermal Anomaly");
         logStep("Selected value: '" + selectedValue + "'");
+        assertTrue(selectedValue != null && selectedValue.contains("Thermal"),
+            "Issue Class field should show 'Thermal Anomaly' after selection (was: '" + selectedValue + "')");
         logStep("✅ Thermal Anomaly selection completed");
 
         logStepWithScreenshot("TC_ISS_032: Thermal Anomaly selected");
@@ -1062,6 +1136,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 2: Select Ultrasonic Anomaly from Issue Class");
         String selectedValue = issuePage.selectIssueClassAndGetValue("Ultrasonic Anomaly");
         logStep("Selected value: '" + selectedValue + "'");
+        assertTrue(selectedValue != null && selectedValue.contains("Ultrasonic"),
+            "Issue Class field should show 'Ultrasonic Anomaly' after selection (was: '" + selectedValue + "')");
         logStep("✅ Ultrasonic Anomaly selection completed");
 
         logStepWithScreenshot("TC_ISS_033: Ultrasonic Anomaly selected");
@@ -1082,7 +1158,7 @@ public final class Issue_Phase1_Test extends BaseTest {
     public void TC_ISS_034_verifyTitleField() {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_TITLE,
             "TC_ISS_034 - Verify Title field");
-        issuePage.ensureNewIssueFormOpen();
+        assertTrue(issuePage.ensureNewIssueFormOpen(), "New Issue form should open via Add (+)");
 
 
         logStep("Step 2: Verify Title field is displayed");
@@ -1108,7 +1184,7 @@ public final class Issue_Phase1_Test extends BaseTest {
     public void TC_ISS_035_verifyEnteringTitleText() {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_TITLE,
             "TC_ISS_035 - Verify entering Title text");
-        issuePage.ensureNewIssueFormOpen();
+        assertTrue(issuePage.ensureNewIssueFormOpen(), "New Issue form should open via Add (+)");
 
 
         logStep("Step 2: Enter test title in Title field");
@@ -1138,7 +1214,7 @@ public final class Issue_Phase1_Test extends BaseTest {
     public void TC_ISS_036_verifyPriorityDropdown() {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_PRIORITY,
             "TC_ISS_036 - Verify Priority dropdown");
-        issuePage.ensureNewIssueFormOpen();
+        assertTrue(issuePage.ensureNewIssueFormOpen(), "New Issue form should open via Add (+)");
 
 
         logStep("Step 2: Verify Priority dropdown is displayed");
@@ -1164,7 +1240,7 @@ public final class Issue_Phase1_Test extends BaseTest {
     public void TC_ISS_037_verifyPriorityOptions() {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_PRIORITY,
             "TC_ISS_037 - Verify Priority options");
-        issuePage.ensureNewIssueFormOpen();
+        assertTrue(issuePage.ensureNewIssueFormOpen(), "New Issue form should open via Add (+)");
 
 
         logStep("Step 2: Open Priority dropdown");
@@ -1181,6 +1257,10 @@ public final class Issue_Phase1_Test extends BaseTest {
             if (found) foundCount++;
         }
         logStep("Found " + foundCount + "/" + expectedOptions.length + " expected options");
+        // High / Medium / Low are the spec-required priority levels ('None' is build-dependent)
+        assertTrue(issuePage.isDropdownOptionDisplayed("High"), "'High' priority option should be listed");
+        assertTrue(issuePage.isDropdownOptionDisplayed("Medium"), "'Medium' priority option should be listed");
+        assertTrue(issuePage.isDropdownOptionDisplayed("Low"), "'Low' priority option should be listed");
 
         logStepWithScreenshot("TC_ISS_037: Priority options");
 
@@ -1204,6 +1284,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 2: Select High priority");
         String selectedValue = issuePage.selectPriorityAndGetValue("High");
         logStep("Priority value after selection: '" + selectedValue + "'");
+        assertTrue(selectedValue != null && selectedValue.contains("High"),
+            "Priority field should show 'High' after selection (was: '" + selectedValue + "')");
         logStep("✅ High priority selection completed");
 
         logStepWithScreenshot("TC_ISS_038: High priority selected");
@@ -1225,6 +1307,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 2: Select Medium priority");
         String selectedValue = issuePage.selectPriorityAndGetValue("Medium");
         logStep("Priority value after selection: '" + selectedValue + "'");
+        assertTrue(selectedValue != null && selectedValue.contains("Medium"),
+            "Priority field should show 'Medium' after selection (was: '" + selectedValue + "')");
         logStep("✅ Medium priority selection completed");
 
         logStepWithScreenshot("TC_ISS_039: Medium priority selected");
@@ -1246,6 +1330,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 2: Select Low priority");
         String selectedValue = issuePage.selectPriorityAndGetValue("Low");
         logStep("Priority value after selection: '" + selectedValue + "'");
+        assertTrue(selectedValue != null && selectedValue.contains("Low"),
+            "Priority field should show 'Low' after selection (was: '" + selectedValue + "')");
         logStep("✅ Low priority selection completed");
 
         logStepWithScreenshot("TC_ISS_040: Low priority selected");
@@ -1292,7 +1378,7 @@ public final class Issue_Phase1_Test extends BaseTest {
     public void TC_ISS_042_verifyAssetOpensSelectionScreen() {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ASSET_SELECTION,
             "TC_ISS_042 - Verify tapping Asset opens selection");
-        issuePage.ensureNewIssueFormOpen();
+        assertTrue(issuePage.ensureNewIssueFormOpen(), "New Issue form should open via Add (+)");
 
 
         logStep("Step 2: Tap Select Asset");
@@ -1346,6 +1432,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ASSET_SELECTION,
             "TC_ISS_044 - Verify search assets");
 
+        logStep("Step 1: Open the New Issue form");
+        assertTrue(issuePage.ensureNewIssueFormOpen(), "New Issue form should open via Add (+)");
 
         logStep("Step 2: Open Select Asset screen");
         issuePage.tapSelectAsset();
@@ -1353,6 +1441,7 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 3: Note initial asset count");
         int initialCount = issuePage.getAssetListCount();
         logStep("Initial asset count: " + initialCount);
+        assertTrue(initialCount > 0, "Asset picker should list at least one asset before searching");
 
         logStep("Step 4: Search for 'Busway'");
         issuePage.searchAssetsInPicker("Busway");
@@ -1360,11 +1449,17 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 5: Verify filtered results");
         int filteredCount = issuePage.getAssetListCount();
         logStep("Filtered asset count: " + filteredCount);
-        if (filteredCount > 0 && filteredCount <= initialCount) {
-            logStep("✅ Asset search filtered list (from " + initialCount + " to " + filteredCount + ")");
-        } else {
-            logStep("ℹ️ Search returned " + filteredCount + " assets");
-        }
+        assertTrue(filteredCount <= initialCount,
+            "Filtered asset count (" + filteredCount + ") should not exceed initial count (" + initialCount + ")");
+
+        logStep("Step 6: Re-open picker and search a nonexistent asset — list must filter to zero");
+        issuePage.tapCancelAssetPicker();
+        issuePage.tapSelectAsset();
+        issuePage.searchAssetsInPicker("ZZZNOSUCHASSET999");
+        int noMatchCount = issuePage.getAssetListCount();
+        assertEquals(noMatchCount, 0,
+            "Searching a nonexistent asset name should filter the picker list to zero results");
+        logStep("✅ Asset search filters the list (nonexistent query → 0 results)");
 
         logStepWithScreenshot("TC_ISS_044: Asset search results");
 
@@ -1417,18 +1512,18 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ASSET_SELECTION,
             "TC_ISS_046 - Verify + button to create new asset");
 
+        logStep("Step 1: Open the New Issue form");
+        assertTrue(issuePage.ensureNewIssueFormOpen(), "New Issue form should open via Add (+)");
 
         logStep("Step 2: Open Select Asset screen");
         issuePage.tapSelectAsset();
+        assertTrue(issuePage.isSelectAssetScreenDisplayed(), "Select Asset screen should open");
 
         logStep("Step 3: Verify + (Add) button is displayed");
         boolean addButton = issuePage.isAddAssetButtonOnPickerDisplayed();
         logStep("Add Asset button displayed: " + addButton);
-        if (addButton) {
-            logStep("✅ Add Asset button is available on picker");
-        } else {
-            logStep("ℹ️ Add Asset button not detected");
-        }
+        assertTrue(addButton, "Add Asset (+) button should be available on the asset picker");
+        logStep("✅ Add Asset button is available on picker");
 
         logStepWithScreenshot("TC_ISS_046: Add Asset button on picker");
 
@@ -1446,18 +1541,18 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ASSET_SELECTION,
             "TC_ISS_047 - Verify QR scan button");
 
+        logStep("Step 1: Open the New Issue form");
+        assertTrue(issuePage.ensureNewIssueFormOpen(), "New Issue form should open via Add (+)");
 
         logStep("Step 2: Open Select Asset screen");
         issuePage.tapSelectAsset();
+        assertTrue(issuePage.isSelectAssetScreenDisplayed(), "Select Asset screen should open");
 
         logStep("Step 3: Verify QR scan button is displayed");
         boolean qrButton = issuePage.isQRScanButtonDisplayed();
         logStep("QR scan button displayed: " + qrButton);
-        if (qrButton) {
-            logStep("✅ QR scan button is available on picker");
-        } else {
-            logStep("ℹ️ QR scan button not detected");
-        }
+        assertTrue(qrButton, "QR scan button should be available on the asset picker");
+        logStep("✅ QR scan button is available on picker");
 
         logStepWithScreenshot("TC_ISS_047: QR scan button on picker");
 
@@ -1480,6 +1575,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_CREATE_ISSUE,
             "TC_ISS_048 - Verify Create Issue enabled after required fields");
 
+        logStep("Step 1: Open the New Issue form");
+        assertTrue(issuePage.ensureNewIssueFormOpen(), "New Issue form should open via Add (+)");
 
         logStep("Step 2: Verify Create Issue is initially disabled");
         boolean initiallyDisabled = !issuePage.isCreateIssueEnabled();
@@ -1519,6 +1616,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_CREATE_ISSUE,
             "TC_ISS_049 - Verify issue created successfully");
 
+        logStep("Step 1: Open the New Issue form");
+        assertTrue(issuePage.ensureNewIssueFormOpen(), "New Issue form should open via Add (+)");
 
         logStep("Step 2: Fill Issue Class — NEC Violation");
         issuePage.selectIssueClass("NEC Violation");
@@ -1576,11 +1675,16 @@ public final class Issue_Phase1_Test extends BaseTest {
             logStep("Issue '" + createdIssueTitle + "' found: " + issueFound);
             assertTrue(issueFound, "Created issue '" + createdIssueTitle + "' should appear in the Issues list");
         } else {
-            // TC_ISS_049 didn't run — verify at least one issue exists in the list
-            logStep("   TC_ISS_049 did not run — verifying issues exist in list");
-            int issueCount = issuePage.getAllTabCount();
-            logStep("All tab count: " + issueCount);
-            assertTrue(issueCount > 0, "Issues list should have at least one issue");
+            // TC_ISS_049 didn't run — the offline-first (SwiftData) local store can be
+            // EMPTY even when the backend has issues. Seed-on-demand (proven pattern
+            // from commit 36f7926), then verify the list shows the issue.
+            logStep("   TC_ISS_049 did not run — seeding an issue (offline-first store may be empty)");
+            assertTrue(issuePage.ensureAtLeastOneIssueExists(),
+                "Should have (or seed) at least one issue in the list");
+            issuePage.tapAllTab();
+            int issueCount = issuePage.getVisibleIssueCount();
+            logStep("Visible issues on All tab: " + issueCount);
+            assertTrue(issueCount > 0, "Issues list should show at least one issue after seeding");
         }
 
         logStepWithScreenshot("TC_ISS_050: New issue in list");
@@ -1637,11 +1741,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 4: Verify Issue Details screen is displayed");
         boolean detailsDisplayed = issuePage.isIssueDetailsScreenDisplayed();
         logStep("Issue Details displayed: " + detailsDisplayed);
-        if (detailsDisplayed) {
-            logStep("✅ Issue Details screen opened");
-        } else {
-            logStep("⚠️ Issue Details screen not detected");
-        }
+        assertTrue(detailsDisplayed, "Issue Details screen should open after tapping an issue");
+        logStep("✅ Issue Details screen opened");
 
         logStepWithScreenshot("TC_ISS_052: Issue Details screen");
 
@@ -1664,14 +1765,20 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
+        assertTrue(issuePage.isIssueDetailsScreenDisplayed(),
+            "Issue Details screen should open after tapping an issue");
 
         logStep("Step 3: Verify issue title");
         String title = issuePage.getIssueDetailTitle();
         logStep("Issue title on details: '" + title + "'");
+        assertTrue(title != null && !title.isEmpty(),
+            "Issue Details header should show the issue title");
 
         logStep("Step 4: Verify status badge");
         String status = issuePage.getIssueDetailStatus();
         logStep("Status badge: '" + status + "'");
+        assertTrue(status != null && !status.isEmpty(),
+            "Issue Details header should show a status badge");
 
         logStep("Step 5: Verify asset name");
         String assetName = issuePage.getIssueDetailAssetName();
@@ -1702,6 +1809,7 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 3: Open Status dropdown");
         boolean opened = issuePage.openStatusDropdown();
         logStep("Status dropdown opened: " + opened);
+        assertTrue(opened, "Status dropdown should open on Issue Details");
 
         logStep("Step 4: Verify status options");
         String[] expectedStatuses = {"Open", "In Progress", "Resolved", "Closed"};
@@ -1712,6 +1820,8 @@ public final class Issue_Phase1_Test extends BaseTest {
             if (found) foundCount++;
         }
         logStep("Found " + foundCount + "/" + expectedStatuses.length + " status options");
+        assertEquals(foundCount, expectedStatuses.length,
+            "All status options (Open, In Progress, Resolved, Closed) should be listed");
 
         logStepWithScreenshot("TC_ISS_054: Status dropdown options");
 
@@ -1743,11 +1853,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 4: Verify status changed");
         String newStatus = issuePage.getIssueDetailStatus();
         logStep("New status: '" + newStatus + "'");
-        if ("In Progress".equals(newStatus)) {
-            logStep("✅ Status changed to In Progress");
-        } else {
-            logStep("⚠️ Status is: '" + newStatus + "' (expected 'In Progress')");
-        }
+        assertEquals(newStatus, "In Progress", "Status badge should change to 'In Progress'");
+        logStep("✅ Status changed to In Progress");
 
         logStepWithScreenshot("TC_ISS_055: Status changed to In Progress");
 
@@ -1777,11 +1884,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 4: Verify status changed");
         String newStatus = issuePage.getIssueDetailStatus();
         logStep("New status: '" + newStatus + "'");
-        if ("Resolved".equals(newStatus)) {
-            logStep("✅ Status changed to Resolved");
-        } else {
-            logStep("⚠️ Status is: '" + newStatus + "' (expected 'Resolved')");
-        }
+        assertEquals(newStatus, "Resolved", "Status badge should change to 'Resolved'");
+        logStep("✅ Status changed to Resolved");
 
         logStepWithScreenshot("TC_ISS_056: Status changed to Resolved");
 
@@ -1811,11 +1915,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 4: Verify status changed");
         String newStatus = issuePage.getIssueDetailStatus();
         logStep("New status: '" + newStatus + "'");
-        if ("Closed".equals(newStatus)) {
-            logStep("✅ Status changed to Closed");
-        } else {
-            logStep("⚠️ Status is: '" + newStatus + "' (expected 'Closed')");
-        }
+        assertEquals(newStatus, "Closed", "Status badge should change to 'Closed'");
+        logStep("✅ Status changed to Closed");
 
         logStepWithScreenshot("TC_ISS_057: Status changed to Closed");
 
@@ -1841,15 +1942,13 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 3: Verify Priority field is displayed");
         boolean priorityDisplayed = issuePage.isPriorityDisplayedOnDetails();
         logStep("Priority field displayed: " + priorityDisplayed);
+        assertTrue(priorityDisplayed, "Priority field should be displayed on Issue Details");
 
         logStep("Step 4: Get Priority value");
         String priority = issuePage.getPriorityOnDetails();
         logStep("Priority value: '" + priority + "'");
-        if (priority.contains("High") || priority.contains("high")) {
-            logStep("✅ Priority shows 'High' as expected");
-        } else {
-            logStep("ℹ️ Priority is: '" + priority + "'");
-        }
+        assertTrue(priority != null && !priority.isEmpty(),
+            "Priority field on Issue Details should show a value");
 
         logStepWithScreenshot("TC_ISS_058: Priority on Issue Details");
 
@@ -1875,15 +1974,13 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 3: Verify Issue Class field is displayed");
         boolean classDisplayed = issuePage.isIssueClassDisplayedOnDetails();
         logStep("Issue Class field displayed: " + classDisplayed);
+        assertTrue(classDisplayed, "Issue Class field should be displayed on Issue Details");
 
         logStep("Step 4: Get Issue Class value");
         String issueClass = issuePage.getIssueClassOnDetails();
         logStep("Issue Class value: '" + issueClass + "'");
-        if (issueClass.contains("NEC Violation") || issueClass.contains("NEC")) {
-            logStep("✅ Issue Class shows 'NEC Violation' as expected");
-        } else {
-            logStep("ℹ️ Issue Class is: '" + issueClass + "'");
-        }
+        assertTrue(issueClass != null && !issueClass.isEmpty(),
+            "Issue Class field on Issue Details should show a value");
 
         logStepWithScreenshot("TC_ISS_059: Issue Class on Issue Details");
 
@@ -1915,25 +2012,15 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 3: Verify Issue Details section header is displayed");
         boolean sectionDisplayed = issuePage.isIssueDetailsSectionHeaderDisplayed();
         logStep("Issue Details section header displayed: " + sectionDisplayed);
-        if (sectionDisplayed) {
-            logStep("✅ Issue Details section header is present");
-        } else {
-            logStep("⚠️ Issue Details section header not found — may need scrolling or different label");
-        }
+        assertTrue(sectionDisplayed, "Issue Details section header should be present");
+        logStep("✅ Issue Details section header is present");
 
         logStep("Step 4: Get completion percentage");
         String completionPct = issuePage.getIssueDetailsCompletionPercentage();
         logStep("Completion percentage: '" + completionPct + "'");
-        if (!completionPct.isEmpty()) {
-            logStep("✅ Completion percentage displayed: " + completionPct);
-            if (completionPct.contains("0%")) {
-                logStep("✅ Shows 0% as expected for incomplete issue");
-            } else {
-                logStep("ℹ️ Completion is: " + completionPct + " (expected 0% for empty details)");
-            }
-        } else {
-            logStep("⚠️ Completion percentage not found — may be embedded in section header");
-        }
+        assertTrue(completionPct != null && !completionPct.isEmpty(),
+            "Issue Details section should show a completion percentage");
+        logStep("✅ Completion percentage displayed: " + completionPct);
 
         logStepWithScreenshot("TC_ISS_060: Issue Details section with completion %");
 
@@ -1960,11 +2047,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 3: Verify 'Required fields only' toggle is displayed");
         boolean toggleDisplayed = issuePage.isRequiredFieldsToggleDisplayed();
         logStep("Required fields only toggle displayed: " + toggleDisplayed);
-        if (toggleDisplayed) {
-            logStep("✅ Required fields only toggle is present");
-        } else {
-            logStep("⚠️ Required fields only toggle not found");
-        }
+        assertTrue(toggleDisplayed, "'Required fields only' toggle should be present on Issue Details");
+        logStep("✅ Required fields only toggle is present");
 
         logStep("Step 4: Get toggle count");
         String toggleCount = issuePage.getRequiredFieldsToggleCount();
@@ -2012,14 +2096,17 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 2: Open first issue (NEC Violation class)");
         issuePage.tapFirstIssue();
 
+        logStep("Step 2b: Ensure Issue Class is NEC Violation");
+        String currentClass = issuePage.getIssueClassOnDetails();
+        if (currentClass == null || !currentClass.contains("NEC")) {
+            issuePage.changeIssueClassOnDetails("NEC Violation");
+        }
+
         logStep("Step 3: Verify Subcategory field is displayed");
         boolean subcatDisplayed = issuePage.isSubcategoryFieldDisplayed();
         logStep("Subcategory field displayed: " + subcatDisplayed);
-        if (subcatDisplayed) {
-            logStep("✅ Subcategory field is present for NEC Violation issue");
-        } else {
-            logStep("⚠️ Subcategory field not found — may need scroll or different class issue");
-        }
+        assertTrue(subcatDisplayed, "Subcategory field should be displayed for NEC Violation issues");
+        logStep("✅ Subcategory field is present for NEC Violation issue");
 
         logStep("Step 4: Get Subcategory placeholder");
         String placeholder = issuePage.getSubcategoryPlaceholder();
@@ -2054,6 +2141,12 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
 
+        logStep("Step 2b: Ensure Issue Class is NEC Violation");
+        String currentClass = issuePage.getIssueClassOnDetails();
+        if (currentClass == null || !currentClass.contains("NEC")) {
+            issuePage.changeIssueClassOnDetails("NEC Violation");
+        }
+
         logStep("Step 3: Tap Subcategory field to open dropdown");
         issuePage.tapSubcategoryField();
 
@@ -2070,12 +2163,10 @@ public final class Issue_Phase1_Test extends BaseTest {
             logStep("   Option '" + option + "': " + (found ? "found" : "not found"));
             if (found) foundCount++;
         }
-
-        if (foundCount > 0) {
-            logStep("✅ NEC subcategory options found: " + foundCount + "/" + sampleOptions.length);
-        } else {
-            logStep("⚠️ No NEC subcategory options found — dropdown may not have opened or options have different labels");
-        }
+        assertTrue(foundCount >= 1,
+            "At least one known NEC subcategory option should be listed in the dropdown (found " +
+            foundCount + "/" + sampleOptions.length + ")");
+        logStep("✅ NEC subcategory options found: " + foundCount + "/" + sampleOptions.length);
 
         logStepWithScreenshot("TC_ISS_063: Subcategory dropdown options");
 
@@ -2102,6 +2193,12 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
 
+        logStep("Step 2b: Ensure Issue Class is NEC Violation");
+        String currentClass = issuePage.getIssueClassOnDetails();
+        if (currentClass == null || !currentClass.contains("NEC")) {
+            issuePage.changeIssueClassOnDetails("NEC Violation");
+        }
+
         logStep("Step 3: Tap Subcategory field");
         issuePage.tapSubcategoryField();
 
@@ -2111,13 +2208,10 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 5: Verify subcategory was selected");
         String selectedValue = issuePage.getSubcategoryValue();
         logStep("Selected subcategory value: '" + selectedValue + "'");
-        if (selectedValue.contains("Breaker") || selectedValue.contains("NEC 240.8")) {
-            logStep("✅ Subcategory selected correctly — shows: " + selectedValue);
-        } else if (!selectedValue.isEmpty()) {
-            logStep("ℹ️ Selected value is: '" + selectedValue + "' (may be truncated)");
-        } else {
-            logStep("⚠️ Could not read selected subcategory value");
-        }
+        assertTrue(selectedValue != null &&
+            (selectedValue.contains("Breaker") || selectedValue.contains("240.8")),
+            "Subcategory field should show the selected NEC option (was: '" + selectedValue + "')");
+        logStep("✅ Subcategory selected correctly — shows: " + selectedValue);
 
         logStepWithScreenshot("TC_ISS_064: NEC subcategory selected");
 
@@ -2143,6 +2237,12 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
 
+        logStep("Step 2b: Ensure Issue Class is NEC Violation");
+        String currentClass = issuePage.getIssueClassOnDetails();
+        if (currentClass == null || !currentClass.contains("NEC")) {
+            issuePage.changeIssueClassOnDetails("NEC Violation");
+        }
+
         logStep("Step 3: Tap Subcategory field to open dropdown");
         issuePage.tapSubcategoryField();
 
@@ -2163,14 +2263,10 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         int foundCount = issuePage.verifyNECSubcategoryOptions(expectedOptions);
         logStep("NEC subcategory options verified: " + foundCount + "/" + expectedOptions.length + " found");
-
-        if (foundCount >= 5) {
-            logStep("✅ Majority of NEC subcategory options present (" + foundCount + "/" + expectedOptions.length + ")");
-        } else if (foundCount > 0) {
-            logStep("ℹ️ Some NEC subcategory options found (" + foundCount + "/" + expectedOptions.length + ") — some may need scrolling");
-        } else {
-            logStep("⚠️ No NEC subcategory options found — dropdown may not have opened");
-        }
+        assertTrue(foundCount >= 5,
+            "Majority of expected NEC subcategory options (>=5 of " + expectedOptions.length +
+            ") should be present, found " + foundCount);
+        logStep("✅ Majority of NEC subcategory options present (" + foundCount + "/" + expectedOptions.length + ")");
 
         logStepWithScreenshot("TC_ISS_065: All NEC subcategory options");
 
@@ -2197,6 +2293,12 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 2: Open first issue");
         issuePage.tapFirstIssue();
 
+        logStep("Step 2b: Ensure Issue Class is NEC Violation");
+        String currentClass = issuePage.getIssueClassOnDetails();
+        if (currentClass == null || !currentClass.contains("NEC")) {
+            issuePage.changeIssueClassOnDetails("NEC Violation");
+        }
+
         logStep("Step 3: Tap Subcategory field");
         issuePage.tapSubcategoryField();
 
@@ -2206,12 +2308,9 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 5: Verify filtered results");
         boolean wireOptionDisplayed = issuePage.isSubcategoryOptionDisplayed("Wire");
         logStep("'Wire' related option displayed after filter: " + wireOptionDisplayed);
-
-        if (wireOptionDisplayed) {
-            logStep("✅ Subcategory search/filter is working — 'Wire' option found");
-        } else {
-            logStep("⚠️ Could not verify filtered results — filter may work differently");
-        }
+        assertTrue(wireOptionDisplayed,
+            "Typing 'Wire' in the subcategory search should show a 'Wire' related option");
+        logStep("✅ Subcategory search/filter is working — 'Wire' option found");
 
         logStepWithScreenshot("TC_ISS_066: Subcategory search with 'Wire'");
 
@@ -2245,11 +2344,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 3: Verify Description field is displayed");
         boolean descDisplayed = issuePage.isDescriptionFieldDisplayed();
         logStep("Description field displayed: " + descDisplayed);
-        if (descDisplayed) {
-            logStep("✅ Description section is present");
-        } else {
-            logStep("⚠️ Description field not found — may need scrolling");
-        }
+        assertTrue(descDisplayed, "Description field should be displayed on Issue Details");
+        logStep("✅ Description section is present");
 
         logStep("Step 4: Get Description placeholder");
         String placeholder = issuePage.getDescriptionPlaceholder();
@@ -2294,13 +2390,9 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 4: Verify entered text");
         String descValue = issuePage.getDescriptionValue();
         logStep("Description value: '" + descValue + "'");
-        if ("Test".equals(descValue) || (descValue != null && descValue.contains("Test"))) {
-            logStep("✅ Description text 'Test' entered successfully");
-        } else if (descValue != null && !descValue.isEmpty()) {
-            logStep("ℹ️ Description value is: '" + descValue + "'");
-        } else {
-            logStep("⚠️ Could not read entered description text");
-        }
+        assertTrue(descValue != null && descValue.contains("Test"),
+            "Description field should contain the entered text 'Test' (was: '" + descValue + "')");
+        logStep("✅ Description text 'Test' entered successfully");
 
         logStepWithScreenshot("TC_ISS_068: Description with 'Test' entered");
 
@@ -2331,11 +2423,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 3: Verify Proposed Resolution field is displayed");
         boolean resolutionDisplayed = issuePage.isProposedResolutionFieldDisplayed();
         logStep("Proposed Resolution field displayed: " + resolutionDisplayed);
-        if (resolutionDisplayed) {
-            logStep("✅ Proposed Resolution section is present");
-        } else {
-            logStep("⚠️ Proposed Resolution field not found — may need scrolling");
-        }
+        assertTrue(resolutionDisplayed, "Proposed Resolution field should be displayed on Issue Details");
+        logStep("✅ Proposed Resolution section is present");
 
         logStep("Step 4: Get Proposed Resolution placeholder");
         String placeholder = issuePage.getProposedResolutionPlaceholder();
@@ -2380,13 +2469,9 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 4: Verify entered text");
         String resValue = issuePage.getProposedResolutionValue();
         logStep("Proposed Resolution value: '" + resValue + "'");
-        if ("Test".equals(resValue) || (resValue != null && resValue.contains("Test"))) {
-            logStep("✅ Proposed Resolution text 'Test' entered successfully");
-        } else if (resValue != null && !resValue.isEmpty()) {
-            logStep("ℹ️ Proposed Resolution value is: '" + resValue + "'");
-        } else {
-            logStep("⚠️ Could not read entered resolution text");
-        }
+        assertTrue(resValue != null && resValue.contains("Test"),
+            "Proposed Resolution field should contain the entered text 'Test' (was: '" + resValue + "')");
+        logStep("✅ Proposed Resolution text 'Test' entered successfully");
 
         logStepWithScreenshot("TC_ISS_070: Proposed Resolution with 'Test' entered");
 
@@ -2417,33 +2502,19 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 3: Scroll down to find Issue Photos section");
         boolean photosDisplayed = issuePage.isIssuePhotosSectionDisplayed();
         logStep("Issue Photos section displayed: " + photosDisplayed);
-        if (photosDisplayed) {
-            logStep("✅ Issue Photos section is present");
-        } else {
-            logStep("⚠️ Issue Photos section not found — may need more scrolling or different layout");
-        }
+        assertTrue(photosDisplayed, "Issue Photos section should be present on Issue Details");
+        logStep("✅ Issue Photos section is present");
 
         logStep("Step 4: Verify Gallery button");
         boolean galleryDisplayed = issuePage.isGalleryButtonDisplayed();
         logStep("Gallery button displayed: " + galleryDisplayed);
-        if (galleryDisplayed) {
-            logStep("✅ Gallery button is present");
-        }
+        assertTrue(galleryDisplayed, "Gallery button should be present in the Issue Photos section");
+        logStep("✅ Gallery button is present");
 
         logStep("Step 5: Verify Camera button");
         boolean cameraDisplayed = issuePage.isCameraButtonDisplayed();
-        logStep("Camera button displayed: " + cameraDisplayed);
-        if (cameraDisplayed) {
-            logStep("✅ Camera button is present");
-        }
-
-        if (galleryDisplayed && cameraDisplayed) {
-            logStep("✅ Both Gallery and Camera buttons present in Issue Photos section");
-        } else if (galleryDisplayed || cameraDisplayed) {
-            logStep("ℹ️ Only one photo button found (Gallery: " + galleryDisplayed + ", Camera: " + cameraDisplayed + ")");
-        } else {
-            logStep("⚠️ Neither Gallery nor Camera buttons found");
-        }
+        logStep("Camera button displayed: " + cameraDisplayed +
+            (cameraDisplayed ? "" : " (may be hidden on simulators without a camera)"));
 
         logStepWithScreenshot("TC_ISS_071: Issue Photos section");
 
@@ -2476,11 +2547,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 5: Verify photo picker is displayed");
         boolean pickerDisplayed = issuePage.isPhotoPickerDisplayed();
         logStep("Photo picker displayed: " + pickerDisplayed);
-        if (pickerDisplayed) {
-            logStep("✅ Photo picker opened after tapping Gallery");
-        } else {
-            logStep("⚠️ Photo picker not detected — may need permissions or different detection");
-        }
+        assertTrue(pickerDisplayed, "Photo picker should open after tapping the Gallery button");
+        logStep("✅ Photo picker opened after tapping Gallery");
 
         logStepWithScreenshot("TC_ISS_072: Gallery photo picker");
 
@@ -2510,17 +2578,20 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 3: Scroll to Issue Photos section");
         issuePage.isIssuePhotosSectionDisplayed();
 
+        // Simulators have no camera — apps typically hide/disable the Camera button.
+        // Skip cleanly in that case; on devices the button must work.
+        skipIfPreconditionMissing(() -> issuePage.isCameraButtonDisplayed(),
+            "Camera button not available (no camera on this device/simulator)");
+
         logStep("Step 4: Tap Camera button");
         issuePage.tapCameraButton();
 
         logStep("Step 5: Verify camera is displayed");
         boolean cameraDisplayed = issuePage.isCameraDisplayed();
         logStep("Camera displayed: " + cameraDisplayed);
-        if (cameraDisplayed) {
-            logStep("✅ Camera opened after tapping Camera button");
-        } else {
-            logStep("⚠️ Camera not detected — may show permission dialog on simulator or device-dependent behavior");
-        }
+        assertTrue(cameraDisplayed || issuePage.isPhotoPickerDisplayed(),
+            "Camera (or capture UI) should open after tapping the Camera button");
+        logStep("✅ Camera opened after tapping Camera button");
 
         logStepWithScreenshot("TC_ISS_073: Camera view");
 
@@ -2559,11 +2630,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 3: Scroll to bottom to find Delete Issue button");
         boolean deleteDisplayed = issuePage.isDeleteIssueButtonDisplayed();
         logStep("Delete Issue button displayed: " + deleteDisplayed);
-        if (deleteDisplayed) {
-            logStep("✅ Delete Issue button is present at the bottom");
-        } else {
-            logStep("⚠️ Delete Issue button not found — may need more scrolling");
-        }
+        assertTrue(deleteDisplayed, "Delete Issue button should be present at the bottom of Issue Details");
+        logStep("✅ Delete Issue button is present at the bottom");
 
         logStepWithScreenshot("TC_ISS_074: Delete Issue button");
 
@@ -2596,11 +2664,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 4: Verify confirmation dialog is displayed");
         boolean confirmDisplayed = issuePage.isDeleteConfirmationDisplayed();
         logStep("Delete confirmation dialog displayed: " + confirmDisplayed);
-        if (confirmDisplayed) {
-            logStep("✅ Confirmation dialog appeared before deletion");
-        } else {
-            logStep("⚠️ Confirmation dialog not detected — app may use different confirmation pattern");
-        }
+        assertTrue(confirmDisplayed, "A confirmation dialog should appear before deleting an issue");
+        logStep("✅ Confirmation dialog appeared before deletion");
 
         logStepWithScreenshot("TC_ISS_075: Delete confirmation dialog");
 
@@ -2647,9 +2712,14 @@ public final class Issue_Phase1_Test extends BaseTest {
             issueInList = issuePage.isIssueInList(tempIssueTitle);
             issuePage.clearSearch();
         }
+        // Guard: without this, tapOnIssue() falls back to the FIRST issue and the
+        // test would delete an issue other tests depend on.
+        assertTrue(issueInList, "Temp issue '" + tempIssueTitle + "' should appear in the list before deleting");
 
         logStep("Step 4: Open the temp issue");
         issuePage.tapOnIssue(tempIssueTitle);
+        assertTrue(issuePage.isIssueDetailsScreenDisplayed(),
+            "Issue Details should open for the temp issue before deleting");
 
         logStep("Step 5: Tap Delete Issue");
         issuePage.tapDeleteIssueButton();
@@ -2672,11 +2742,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         issuePage.tapAllTab();
         boolean stillInList = issuePage.isIssueInList(tempIssueTitle);
         logStep("Deleted issue still in list: " + stillInList);
-        if (!stillInList) {
-            logStep("✅ Issue successfully deleted and removed from list");
-        } else {
-            logStep("⚠️ Issue may still be in list — deletion might be async");
-        }
+        assertFalse(stillInList, "Deleted issue '" + tempIssueTitle + "' should be removed from the list");
+        logStep("✅ Issue successfully deleted and removed from list");
 
         logStepWithScreenshot("TC_ISS_076: After issue deletion");
     }
@@ -2713,11 +2780,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 4: Scroll to bottom to find Save Changes button");
         boolean saveDisplayed = issuePage.isSaveChangesButtonDisplayed();
         logStep("Save Changes button displayed: " + saveDisplayed);
-        if (saveDisplayed) {
-            logStep("✅ Save Changes button is present");
-        } else {
-            logStep("⚠️ Save Changes button not found — may auto-save or button at different location");
-        }
+        assertTrue(saveDisplayed, "Save Changes button should appear after modifying the issue");
+        logStep("✅ Save Changes button is present");
 
         logStepWithScreenshot("TC_ISS_077: Save Changes button");
 
@@ -2772,11 +2836,12 @@ public final class Issue_Phase1_Test extends BaseTest {
             logStep("Step 6: Verify description was saved by re-reading");
             String savedDesc = issuePage.getDescriptionValue();
             logStep("Saved description: '" + savedDesc + "'");
-            if (savedDesc != null && savedDesc.contains("Automated test save")) {
-                logStep("✅ Description saved successfully");
-            } else {
-                logStep("ℹ️ Description value after save: '" + savedDesc + "'");
-            }
+            assertTrue(savedDesc != null && savedDesc.contains("Automated test save"),
+                "Description should persist after Save Changes (was: '" + savedDesc + "')");
+            logStep("✅ Description saved successfully");
+        } else {
+            assertTrue(onList,
+                "After Save Changes the app should stay on Issue Details or return to the Issues list");
         }
 
         logStepWithScreenshot("TC_ISS_078: After saving changes");
@@ -2815,17 +2880,15 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 5: Check for unsaved changes warning");
         boolean warningDisplayed = issuePage.isUnsavedChangesWarningDisplayed();
         logStep("Unsaved changes warning displayed: " + warningDisplayed);
+        logStepWithScreenshot("TC_ISS_079: Unsaved-changes-warning state");
 
         if (warningDisplayed) {
-            logStep("✅ Unsaved changes warning dialog appeared");
-            logStepWithScreenshot("TC_ISS_079: Unsaved changes warning dialog");
-
             logStep("Step 6: Discard changes to proceed");
             issuePage.tapDiscardChanges();
-        } else {
-            logStep("ℹ️ No unsaved changes warning — app may auto-save or not show warning");
-            logStepWithScreenshot("TC_ISS_079: No unsaved changes warning (auto-save behavior?)");
         }
+        assertTrue(warningDisplayed,
+            "Unsaved changes warning should appear when closing Issue Details with unsaved edits");
+        logStep("✅ Unsaved changes warning dialog appeared");
 
         // Ensure we're back on Issues list
         if (issuePage.isIssueDetailsScreenDisplayed()) {
@@ -2868,11 +2931,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         boolean onDashboard = issuePage.isDashboardOrPreviousScreenDisplayed();
         logStep("On dashboard/previous screen: " + onDashboard);
 
-        if (leftIssues) {
-            logStep("✅ Done button successfully dismissed Issues screen");
-        } else {
-            logStep("⚠️ Still on Issues screen after tapping Done");
-        }
+        assertTrue(leftIssues, "Done button should dismiss the Issues screen");
+        logStep("✅ Done button successfully dismissed Issues screen");
 
         logStepWithScreenshot("TC_ISS_080: After tapping Done — previous screen");
     }
@@ -2901,11 +2961,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 3: Verify Issue Details screen is displayed");
         boolean detailsDisplayed = issuePage.isIssueDetailsScreenDisplayed();
         logStep("Issue Details screen displayed: " + detailsDisplayed);
-        if (detailsDisplayed) {
-            logStep("✅ Issue Details screen is open");
-        } else {
-            logStep("⚠️ Issue Details screen not detected");
-        }
+        assertTrue(detailsDisplayed, "Issue Details screen should open before testing Close");
+        logStep("✅ Issue Details screen is open");
 
         logStep("Step 4: Tap Close button");
         issuePage.tapCloseIssueDetails();
@@ -2917,13 +2974,9 @@ public final class Issue_Phase1_Test extends BaseTest {
         boolean stillOnDetails = issuePage.isIssueDetailsScreenDisplayed();
         logStep("Still on Issue Details: " + stillOnDetails);
 
-        if (backOnIssues && !stillOnDetails) {
-            logStep("✅ Close button successfully returned to Issues list");
-        } else if (!stillOnDetails) {
-            logStep("ℹ️ Left Issue Details but may not be on Issues list");
-        } else {
-            logStep("⚠️ Still on Issue Details after tapping Close");
-        }
+        assertFalse(stillOnDetails, "Issue Details should close after tapping Close");
+        assertTrue(backOnIssues, "Close button should return to the Issues list");
+        logStep("✅ Close button successfully returned to Issues list");
 
         logStepWithScreenshot("TC_ISS_081: After tapping Close — Issues list");
     }
@@ -2958,37 +3011,28 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 4: Verify Issue Class changed");
         String currentClass = issuePage.getIssueClassOnDetails();
         logStep("Current Issue Class: '" + currentClass + "'");
-        if (currentClass.contains("OSHA")) {
-            logStep("✅ Issue Class changed to OSHA Violation");
-        } else {
-            logStep("⚠️ Issue Class may not have changed — current: '" + currentClass + "'");
-        }
+        assertTrue(currentClass != null && currentClass.contains("OSHA"),
+            "Issue Class should change to OSHA Violation (was: '" + currentClass + "')");
+        logStep("✅ Issue Class changed to OSHA Violation");
 
         logStep("Step 5: Check Subcategory field and open dropdown");
         boolean subcatDisplayed = issuePage.isSubcategoryFieldDisplayed();
         logStep("Subcategory field displayed: " + subcatDisplayed);
+        assertTrue(subcatDisplayed, "Subcategory field should be displayed for OSHA Violation");
 
-        if (subcatDisplayed) {
-            issuePage.tapSubcategoryField();
+        issuePage.tapSubcategoryField();
 
-            logStep("Step 6: Verify OSHA-specific subcategory options");
-            java.util.ArrayList<String> options = issuePage.getVisibleSubcategoryOptions();
-            logStep("Visible OSHA subcategory options: " + options.size());
-            for (String opt : options) {
-                logStep("   - " + opt);
-            }
-
-            if (!options.isEmpty()) {
-                logStep("✅ OSHA-specific subcategory options found: " + options.size());
-            } else {
-                logStep("⚠️ No OSHA subcategory options visible — may need scrolling or different UI");
-            }
-
-            // Dismiss dropdown
-            issuePage.dismissDropdownMenu();
-        } else {
-            logStep("⚠️ Subcategory field not displayed for OSHA Violation");
+        logStep("Step 6: Verify OSHA-specific subcategory options");
+        java.util.ArrayList<String> options = issuePage.getVisibleSubcategoryOptions();
+        logStep("Visible OSHA subcategory options: " + options.size());
+        for (String opt : options) {
+            logStep("   - " + opt);
         }
+        assertTrue(!options.isEmpty(), "OSHA Violation should offer subcategory options");
+        logStep("✅ OSHA-specific subcategory options found: " + options.size());
+
+        // Dismiss dropdown
+        issuePage.dismissDropdownMenu();
 
         logStepWithScreenshot("TC_ISS_082: OSHA Violation subcategories");
 
@@ -3021,13 +3065,11 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 4: Verify Issue Class changed");
         String currentClass = issuePage.getIssueClassOnDetails();
         logStep("Current Issue Class: '" + currentClass + "'");
-        if (currentClass.contains("Thermal")) {
-            logStep("✅ Issue Class changed to Thermal Anomaly");
-        } else {
-            logStep("⚠️ Issue Class may not have changed — current: '" + currentClass + "'");
-        }
+        assertTrue(currentClass != null && currentClass.contains("Thermal"),
+            "Issue Class should change to Thermal Anomaly (was: '" + currentClass + "')");
+        logStep("✅ Issue Class changed to Thermal Anomaly");
 
-        logStep("Step 5: Check Subcategory field and open dropdown");
+        logStep("Step 5: Check Thermal-specific fields (per gold spec Thermal has Severity/Temps, not a subcategory)");
         boolean subcatDisplayed = issuePage.isSubcategoryFieldDisplayed();
         logStep("Subcategory field displayed: " + subcatDisplayed);
 
@@ -3041,17 +3083,13 @@ public final class Issue_Phase1_Test extends BaseTest {
                 logStep("   - " + opt);
             }
 
-            if (!options.isEmpty()) {
-                logStep("✅ Thermal Anomaly subcategory options found: " + options.size());
-            } else {
-                logStep("⚠️ No Thermal Anomaly subcategory options visible");
-            }
-
             // Dismiss dropdown
             issuePage.dismissDropdownMenu();
         } else {
-            logStep("ℹ️ Subcategory field not displayed for Thermal Anomaly — may not have subcategories");
+            logStep("ℹ️ Subcategory field not displayed for Thermal Anomaly — Thermal uses Severity/Temp fields");
         }
+        assertTrue(subcatDisplayed || issuePage.isSeverityFieldDisplayed(),
+            "Thermal Anomaly should show class-specific fields (subcategory or Severity)");
 
         logStepWithScreenshot("TC_ISS_083: Thermal Anomaly subcategories");
 
@@ -3082,35 +3120,20 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 2: Create issue with only asset selected (minimal required field)");
         boolean created = issuePage.createMinimalIssue(null);
 
-        if (created) {
-            logStep("✅ Issue created with only required fields (asset)");
-
-            logStep("Step 3: Verify on Issues list and the issue exists");
-            if (!issuePage.isIssuesScreenDisplayed()) {
-                issuePage.navigateToIssuesScreen();
-            }
-            issuePage.tapAllTab();
-
-            logStepWithScreenshot("TC_ISS_084: Issue created with minimal fields");
-        } else {
-            logStep("ℹ️ Could not create issue with only asset — may require additional fields");
-
-            logStep("Step 3: Try creating with asset + issue class");
-            boolean createdWithClass = issuePage.createQuickIssue("MinimalTest_" + System.currentTimeMillis(), null);
-
-            if (createdWithClass) {
-                logStep("✅ Issue created with asset + issue class (minimal viable set)");
-            } else {
-                logStep("⚠️ Could not create issue — additional required fields may exist");
-            }
-
-            logStepWithScreenshot("TC_ISS_084: Minimal issue creation result");
-
-            // Ensure back on Issues screen
-            if (!issuePage.isIssuesScreenDisplayed()) {
-                issuePage.navigateToIssuesScreen();
-            }
+        if (!created) {
+            logStep("ℹ️ Could not create issue with only asset — retrying with asset + issue class + title");
+            created = issuePage.createQuickIssue("MinimalTest_" + System.currentTimeMillis(), null);
         }
+        assertTrue(created, "Issue should be created with only the required fields (no optional fields)");
+        logStep("✅ Issue created with only required fields");
+
+        logStep("Step 3: Verify on Issues list");
+        if (!issuePage.isIssuesScreenDisplayed()) {
+            issuePage.navigateToIssuesScreen();
+        }
+        issuePage.tapAllTab();
+
+        logStepWithScreenshot("TC_ISS_084: Issue created with minimal fields");
     }
 
     /**
@@ -3145,14 +3168,10 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStep("Step 4: Verify long description was accepted");
         logStep("Read back length: " + (readBack != null ? readBack.length() : 0));
-
-        if (readBack != null && readBack.length() > 100) {
-            logStep("✅ Long description accepted — " + readBack.length() + " characters stored");
-        } else if (readBack != null && !readBack.isEmpty()) {
-            logStep("ℹ️ Description stored but may be truncated — " + readBack.length() + " chars read back");
-        } else {
-            logStep("⚠️ Could not read back long description — may have been accepted but unreadable");
-        }
+        assertTrue(readBack != null && readBack.length() >= 100,
+            "Long (500+ char) description should be accepted and stored — read back " +
+            (readBack != null ? readBack.length() : 0) + " chars");
+        logStep("✅ Long description accepted — " + readBack.length() + " characters stored");
 
         logStepWithScreenshot("TC_ISS_085: Long description entered");
 
@@ -3180,36 +3199,29 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStep("Step 2: Create issue with special characters in title: '" + specialTitle + "'");
         boolean created = issuePage.createIssueWithTitle(specialTitle, null);
+        assertTrue(created, "Issue with special characters in the title should be created");
+        logStep("✅ Issue with special characters created successfully");
 
-        if (created) {
-            logStep("✅ Issue with special characters created successfully");
-
-            logStep("Step 3: Verify issue appears in list");
-            if (!issuePage.isIssuesScreenDisplayed()) {
-                issuePage.navigateToIssuesScreen();
-            }
-            issuePage.tapAllTab();
-
-            // Search for the issue to verify it exists
-            boolean issueFound = issuePage.isIssueInList(specialTitle);
-            logStep("Issue with special chars found in list: " + issueFound);
-
-            if (!issueFound) {
-                // Try partial search
-                issuePage.searchIssues("Test");
-                issueFound = issuePage.isIssueInList("Test");
-                logStep("Issue found via 'Test' search: " + issueFound);
-                issuePage.clearSearch();
-            }
-
-            if (issueFound) {
-                logStep("✅ Issue with special characters visible in list");
-            } else {
-                logStep("ℹ️ Issue may exist but couldn't locate in list — special chars may affect search");
-            }
-        } else {
-            logStep("⚠️ Could not create issue with special characters — may have validation restrictions");
+        logStep("Step 3: Verify issue appears in list");
+        if (!issuePage.isIssuesScreenDisplayed()) {
+            issuePage.navigateToIssuesScreen();
         }
+        issuePage.tapAllTab();
+
+        // Search for the issue to verify it exists
+        boolean issueFound = issuePage.isIssueInList(specialTitle);
+        logStep("Issue with special chars found in list: " + issueFound);
+
+        if (!issueFound) {
+            // Try partial search
+            issuePage.searchIssues("Test");
+            issueFound = issuePage.isIssueInList("Test");
+            logStep("Issue found via 'Test' search: " + issueFound);
+            issuePage.clearSearch();
+        }
+
+        assertTrue(issueFound, "Issue with special characters should be visible in the Issues list");
+        logStep("✅ Issue with special characters visible in list");
 
         logStepWithScreenshot("TC_ISS_086: Special characters in title");
 
@@ -3241,34 +3253,27 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStep("Step 2: Attempt to go offline (disable connectivity)");
         boolean wentOffline = issuePage.enableAirplaneMode();
+        skipIfPreconditionMissing(() -> wentOffline,
+            "Connectivity control (airplane mode) not available on this device/simulator");
+        logStep("✅ Connectivity disabled — device is offline");
 
-        if (wentOffline) {
-            logStep("✅ Connectivity disabled — device is offline");
-
+        boolean created;
+        String offlineTitle = "OfflineTest_" + System.currentTimeMillis();
+        try {
             logStep("Step 3: Create a new issue while offline");
-            String offlineTitle = "OfflineTest_" + System.currentTimeMillis();
-            boolean created = issuePage.createQuickIssue(offlineTitle, null);
-
-            if (created) {
-                logStep("✅ Issue created offline: " + offlineTitle);
-                logStep("   Issue should sync when connectivity is restored");
-            } else {
-                logStep("ℹ️ Could not create issue offline — app may require connectivity");
-            }
-
+            created = issuePage.createQuickIssue(offlineTitle, null);
             logStepWithScreenshot("TC_ISS_087: Offline issue creation");
-
+        } finally {
+            // ALWAYS restore connectivity — leaving airplane mode on wrecks later tests
             logStep("Step 4: Restore connectivity");
             issuePage.disableAirplaneMode();
             sleep(2000); // Wait for connectivity to restore
             logStep("✅ Connectivity restored");
-        } else {
-            logStep("⚠️ Could not disable connectivity programmatically");
-            logStep("   iOS Appium has limited support for airplane mode / connectivity control");
-            logStep("   This test requires manual offline testing or a device with network conditioner");
-
-            logStepWithScreenshot("TC_ISS_087: Offline mode not available for automation");
         }
+
+        assertTrue(created,
+            "Issue '" + offlineTitle + "' should be created while offline (offline-first local store)");
+        logStep("✅ Issue created offline: " + offlineTitle);
 
         // Ensure back on Issues screen
         if (!issuePage.isIssuesScreenDisplayed()) {
@@ -3294,46 +3299,48 @@ public final class Issue_Phase1_Test extends BaseTest {
 
         logStep("Step 2: Attempt to go offline (disable connectivity)");
         boolean wentOffline = issuePage.enableAirplaneMode();
+        skipIfPreconditionMissing(() -> wentOffline,
+            "Connectivity control (airplane mode) not available on this device/simulator");
+        logStep("✅ Connectivity disabled — device is offline");
 
-        if (wentOffline) {
-            logStep("✅ Connectivity disabled — device is offline");
-
+        boolean onDetails;
+        String offlineStatus = "";
+        try {
             logStep("Step 3: Open first issue and make changes");
             issuePage.tapFirstIssue();
 
-            boolean onDetails = issuePage.isIssueDetailsScreenDisplayed();
+            onDetails = issuePage.isIssueDetailsScreenDisplayed();
             logStep("Issue Details opened offline: " + onDetails);
 
             if (onDetails) {
                 logStep("Step 4: Change status while offline");
                 issuePage.openStatusDropdown();
                 issuePage.selectStatus("In Progress");
+                offlineStatus = issuePage.getIssueDetailStatus();
+                logStep("Status after offline edit: '" + offlineStatus + "'");
 
                 logStep("Step 5: Save changes offline");
                 issuePage.tapSaveChangesButton();
-
-                logStep("✅ Issue edited offline — changes saved locally");
                 logStepWithScreenshot("TC_ISS_088: Offline issue editing");
 
                 if (issuePage.isIssueDetailsScreenDisplayed()) {
                     issuePage.tapCloseIssueDetails();
                 }
             } else {
-                logStep("⚠️ Could not open Issue Details offline");
                 logStepWithScreenshot("TC_ISS_088: Issue Details not accessible offline");
             }
-
+        } finally {
+            // ALWAYS restore connectivity — leaving airplane mode on wrecks later tests
             logStep("Step 6: Restore connectivity");
             issuePage.disableAirplaneMode();
             sleep(2000);
             logStep("✅ Connectivity restored");
-        } else {
-            logStep("⚠️ Could not disable connectivity programmatically");
-            logStep("   iOS Appium has limited support for airplane mode / connectivity control");
-            logStep("   Testing offline edit capability requires manual verification");
-
-            logStepWithScreenshot("TC_ISS_088: Offline mode not available for automation");
         }
+
+        assertTrue(onDetails, "Issue Details should open while offline (offline-first local store)");
+        assertTrue(offlineStatus != null && offlineStatus.contains("In Progress"),
+            "Status edit should apply while offline (was: '" + offlineStatus + "')");
+        logStep("✅ Issue edited offline — changes saved locally");
 
         // Handle potential unsaved changes warning
         if (issuePage.isUnsavedChangesWarningDisplayed()) {
@@ -3444,13 +3451,14 @@ public final class Issue_Phase1_Test extends BaseTest {
         } else {
             logStep("⚠️ Scrolling may be laggy — " + avgScrollTime + "ms avg per gesture");
         }
+        assertTrue(avgScrollTime > 0 && avgScrollTime < 2000,
+            "Average scroll gesture should complete in under 2s (was " + avgScrollTime + "ms)");
 
         logStep("Step 5: Verify list is still responsive after rapid scrolling");
         boolean stillDisplayed = issuePage.isIssuesScreenDisplayed();
         logStep("Issues screen still displayed: " + stillDisplayed);
-        if (stillDisplayed) {
-            logStep("✅ Issues list remained stable after rapid scrolling");
-        }
+        assertTrue(stillDisplayed, "Issues list should remain stable and displayed after rapid scrolling");
+        logStep("✅ Issues list remained stable after rapid scrolling");
 
         logStepWithScreenshot("TC_ISS_090: Scrolling performance — " + avgScrollTime + "ms avg");
     }
@@ -3485,20 +3493,15 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 4: Verify Issue Class changed");
         String currentClass = issuePage.getIssueClassOnDetails();
         logStep("Current Issue Class: '" + currentClass + "'");
-        if (currentClass.contains("NFPA") || currentClass.contains("70B")) {
-            logStep("✅ Issue Class changed to NFPA 70B Violation");
-        } else {
-            logStep("⚠️ Issue Class may not have changed — current: '" + currentClass + "'");
-        }
+        assertTrue(currentClass != null && (currentClass.contains("NFPA") || currentClass.contains("70B")),
+            "Issue Class should change to NFPA 70B Violation (was: '" + currentClass + "')");
+        logStep("✅ Issue Class changed to NFPA 70B Violation");
 
         logStep("Step 5: Verify Subcategory field is displayed");
         boolean subcatDisplayed = issuePage.isSubcategoryFieldDisplayed();
         logStep("Subcategory field displayed: " + subcatDisplayed);
-        if (subcatDisplayed) {
-            logStep("✅ Subcategory field appears for NFPA 70B Violation");
-        } else {
-            logStep("⚠️ Subcategory field not found for NFPA 70B Violation");
-        }
+        assertTrue(subcatDisplayed, "Subcategory field should appear for NFPA 70B Violation");
+        logStep("✅ Subcategory field appears for NFPA 70B Violation");
 
         logStep("Step 6: Get Subcategory placeholder");
         String placeholder = issuePage.getSubcategoryPlaceholder();
@@ -3552,11 +3555,9 @@ public final class Issue_Phase1_Test extends BaseTest {
             logStep("   ... and " + (visibleOptions.size() - 5) + " more");
         }
 
-        if (hasChapterOptions || !visibleOptions.isEmpty()) {
-            logStep("✅ NFPA 70B subcategory dropdown opened with chapter-based options");
-        } else {
-            logStep("⚠️ No chapter options visible — dropdown may not have opened properly");
-        }
+        assertTrue(hasChapterOptions,
+            "NFPA 70B subcategory dropdown should list Chapter-based options");
+        logStep("✅ NFPA 70B subcategory dropdown opened with chapter-based options");
 
         logStepWithScreenshot("TC_ISS_092: NFPA 70B subcategory dropdown");
 
@@ -3591,13 +3592,9 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 5: Look for 'Chapter 28.3.2 Motor Control Equipment Cleaning'");
         boolean found = issuePage.isNFPA70BChapterOptionPresent("28.3.2");
         logStep("Chapter 28.3.2 found: " + found);
-
-        if (found) {
-            String fullLabel = issuePage.getChapterOptionFullLabel("28.3.2");
-            logStep("✅ Found: " + fullLabel);
-        } else {
-            logStep("⚠️ Chapter 28.3.2 Motor Control Equipment Cleaning not found");
-        }
+        assertTrue(found, "Chapter 28.3.2 option should be present in the NFPA 70B subcategory list");
+        String fullLabel = issuePage.getChapterOptionFullLabel("28.3.2");
+        logStep("✅ Found: " + fullLabel);
 
         logStepWithScreenshot("TC_ISS_093: Chapter 28.3.2 option");
         issuePage.quickDismissIssueDetails();
@@ -3628,13 +3625,9 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 5: Look for 'Chapter 28.3.1 Visual Inspections'");
         boolean found = issuePage.isNFPA70BChapterOptionPresent("28.3.1");
         logStep("Chapter 28.3.1 found: " + found);
-
-        if (found) {
-            String fullLabel = issuePage.getChapterOptionFullLabel("28.3.1");
-            logStep("✅ Found: " + fullLabel);
-        } else {
-            logStep("⚠️ Chapter 28.3.1 Visual Inspections not found");
-        }
+        assertTrue(found, "Chapter 28.3.1 option should be present in the NFPA 70B subcategory list");
+        String fullLabel = issuePage.getChapterOptionFullLabel("28.3.1");
+        logStep("✅ Found: " + fullLabel);
 
         logStepWithScreenshot("TC_ISS_094: Chapter 28.3.1 option");
         issuePage.quickDismissIssueDetails();
@@ -3665,13 +3658,9 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 5: Look for 'Chapter 15.3.2 Circuit Breakers Low- and Medium Voltage'");
         boolean found = issuePage.isNFPA70BChapterOptionPresent("15.3.2");
         logStep("Chapter 15.3.2 found: " + found);
-
-        if (found) {
-            String fullLabel = issuePage.getChapterOptionFullLabel("15.3.2");
-            logStep("✅ Found: " + fullLabel);
-        } else {
-            logStep("⚠️ Chapter 15.3.2 Circuit Breakers not found");
-        }
+        assertTrue(found, "Chapter 15.3.2 option should be present in the NFPA 70B subcategory list");
+        String fullLabel = issuePage.getChapterOptionFullLabel("15.3.2");
+        logStep("✅ Found: " + fullLabel);
 
         logStepWithScreenshot("TC_ISS_095: Chapter 15.3.2 option");
         issuePage.quickDismissIssueDetails();
@@ -3702,13 +3691,9 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 5: Look for 'Chapter 15.3.1 Visual Inspections'");
         boolean found = issuePage.isNFPA70BChapterOptionPresent("15.3.1");
         logStep("Chapter 15.3.1 found: " + found);
-
-        if (found) {
-            String fullLabel = issuePage.getChapterOptionFullLabel("15.3.1");
-            logStep("✅ Found: " + fullLabel);
-        } else {
-            logStep("⚠️ Chapter 15.3.1 Visual Inspections not found");
-        }
+        assertTrue(found, "Chapter 15.3.1 option should be present in the NFPA 70B subcategory list");
+        String fullLabel = issuePage.getChapterOptionFullLabel("15.3.1");
+        logStep("✅ Found: " + fullLabel);
 
         logStepWithScreenshot("TC_ISS_096: Chapter 15.3.1 option");
         issuePage.quickDismissIssueDetails();
@@ -3739,13 +3724,9 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 5: Look for 'Chapter 25.3.2 UPS Cleaning'");
         boolean found = issuePage.isNFPA70BChapterOptionPresent("25.3.2");
         logStep("Chapter 25.3.2 found: " + found);
-
-        if (found) {
-            String fullLabel = issuePage.getChapterOptionFullLabel("25.3.2");
-            logStep("✅ Found: " + fullLabel);
-        } else {
-            logStep("⚠️ Chapter 25.3.2 UPS Cleaning not found");
-        }
+        assertTrue(found, "Chapter 25.3.2 option should be present in the NFPA 70B subcategory list");
+        String fullLabel = issuePage.getChapterOptionFullLabel("25.3.2");
+        logStep("✅ Found: " + fullLabel);
 
         logStepWithScreenshot("TC_ISS_097: Chapter 25.3.2 option");
         issuePage.quickDismissIssueDetails();
@@ -3776,13 +3757,9 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 5: Look for 'Chapter 25.3.1 Visual Inspections'");
         boolean found = issuePage.isNFPA70BChapterOptionPresent("25.3.1");
         logStep("Chapter 25.3.1 found: " + found);
-
-        if (found) {
-            String fullLabel = issuePage.getChapterOptionFullLabel("25.3.1");
-            logStep("✅ Found: " + fullLabel);
-        } else {
-            logStep("⚠️ Chapter 25.3.1 Visual Inspections not found");
-        }
+        assertTrue(found, "Chapter 25.3.1 option should be present in the NFPA 70B subcategory list");
+        String fullLabel = issuePage.getChapterOptionFullLabel("25.3.1");
+        logStep("✅ Found: " + fullLabel);
 
         logStepWithScreenshot("TC_ISS_098: Chapter 25.3.1 option");
         issuePage.quickDismissIssueDetails();
@@ -3813,13 +3790,9 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 5: Look for 'Chapter 11.3.2 Power and Distribution Transformer Cleaning'");
         boolean found = issuePage.isNFPA70BChapterOptionPresent("11.3.2");
         logStep("Chapter 11.3.2 found: " + found);
-
-        if (found) {
-            String fullLabel = issuePage.getChapterOptionFullLabel("11.3.2");
-            logStep("✅ Found: " + fullLabel);
-        } else {
-            logStep("⚠️ Chapter 11.3.2 Power and Distribution Transformer Cleaning not found");
-        }
+        assertTrue(found, "Chapter 11.3.2 option should be present in the NFPA 70B subcategory list");
+        String fullLabel = issuePage.getChapterOptionFullLabel("11.3.2");
+        logStep("✅ Found: " + fullLabel);
 
         logStepWithScreenshot("TC_ISS_099: Chapter 11.3.2 option");
 
@@ -3858,13 +3831,9 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 5: Look for 'Chapter 11.3.1 Visual Inspections'");
         boolean found = issuePage.isNFPA70BChapterOptionPresent("11.3.1");
         logStep("Chapter 11.3.1 found: " + found);
-
-        if (found) {
-            String fullLabel = issuePage.getChapterOptionFullLabel("11.3.1");
-            logStep("✅ Found: " + fullLabel);
-        } else {
-            logStep("⚠️ Chapter 11.3.1 Visual Inspections not found");
-        }
+        assertTrue(found, "Chapter 11.3.1 option should be present in the NFPA 70B subcategory list");
+        String fullLabel = issuePage.getChapterOptionFullLabel("11.3.1");
+        logStep("✅ Found: " + fullLabel);
 
         logStepWithScreenshot("TC_ISS_100: Chapter 11.3.1 option");
         issuePage.quickDismissIssueDetails();
@@ -3895,13 +3864,9 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 5: Look for 'Chapter 12.3.2 Substations and Switchgear Cleaning'");
         boolean found = issuePage.isNFPA70BChapterOptionPresent("12.3.2");
         logStep("Chapter 12.3.2 found: " + found);
-
-        if (found) {
-            String fullLabel = issuePage.getChapterOptionFullLabel("12.3.2");
-            logStep("✅ Found: " + fullLabel);
-        } else {
-            logStep("⚠️ Chapter 12.3.2 Substations and Switchgear Cleaning not found");
-        }
+        assertTrue(found, "Chapter 12.3.2 option should be present in the NFPA 70B subcategory list");
+        String fullLabel = issuePage.getChapterOptionFullLabel("12.3.2");
+        logStep("✅ Found: " + fullLabel);
 
         logStepWithScreenshot("TC_ISS_101: Chapter 12.3.2 option");
         issuePage.quickDismissIssueDetails();
@@ -3932,13 +3897,9 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 5: Look for 'Chapter 12.3.1 Visual Inspections'");
         boolean found = issuePage.isNFPA70BChapterOptionPresent("12.3.1");
         logStep("Chapter 12.3.1 found: " + found);
-
-        if (found) {
-            String fullLabel = issuePage.getChapterOptionFullLabel("12.3.1");
-            logStep("✅ Found: " + fullLabel);
-        } else {
-            logStep("⚠️ Chapter 12.3.1 Visual Inspections not found");
-        }
+        assertTrue(found, "Chapter 12.3.1 option should be present in the NFPA 70B subcategory list");
+        String fullLabel = issuePage.getChapterOptionFullLabel("12.3.1");
+        logStep("✅ Found: " + fullLabel);
 
         logStepWithScreenshot("TC_ISS_102: Chapter 12.3.1 option");
         issuePage.quickDismissIssueDetails();
@@ -3969,13 +3930,9 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 5: Look for 'Chapter 13.5.2 Panelboards and Switchboards Cleaning'");
         boolean found = issuePage.isNFPA70BChapterOptionPresent("13.5.2");
         logStep("Chapter 13.5.2 found: " + found);
-
-        if (found) {
-            String fullLabel = issuePage.getChapterOptionFullLabel("13.5.2");
-            logStep("✅ Found: " + fullLabel);
-        } else {
-            logStep("⚠️ Chapter 13.5.2 Panelboards and Switchboards Cleaning not found");
-        }
+        assertTrue(found, "Chapter 13.5.2 option should be present in the NFPA 70B subcategory list");
+        String fullLabel = issuePage.getChapterOptionFullLabel("13.5.2");
+        logStep("✅ Found: " + fullLabel);
 
         logStepWithScreenshot("TC_ISS_103: Chapter 13.5.2 option");
         issuePage.quickDismissIssueDetails();
@@ -4006,13 +3963,9 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 5: Look for 'Chapter 13.3.1 Visual Inspections'");
         boolean found = issuePage.isNFPA70BChapterOptionPresent("13.3.1");
         logStep("Chapter 13.3.1 found: " + found);
-
-        if (found) {
-            String fullLabel = issuePage.getChapterOptionFullLabel("13.3.1");
-            logStep("✅ Found: " + fullLabel);
-        } else {
-            logStep("⚠️ Chapter 13.3.1 Visual Inspections not found");
-        }
+        assertTrue(found, "Chapter 13.3.1 option should be present in the NFPA 70B subcategory list");
+        String fullLabel = issuePage.getChapterOptionFullLabel("13.3.1");
+        logStep("✅ Found: " + fullLabel);
 
         logStepWithScreenshot("TC_ISS_104: Chapter 13.3.1 option");
         issuePage.quickDismissIssueDetails();
@@ -4043,13 +3996,9 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 5: Look for 'Chapter 17.3.1 Visual Inspections'");
         boolean found = issuePage.isNFPA70BChapterOptionPresent("17.3.1");
         logStep("Chapter 17.3.1 found: " + found);
-
-        if (found) {
-            String fullLabel = issuePage.getChapterOptionFullLabel("17.3.1");
-            logStep("✅ Found: " + fullLabel);
-        } else {
-            logStep("⚠️ Chapter 17.3.1 Visual Inspections not found");
-        }
+        assertTrue(found, "Chapter 17.3.1 option should be present in the NFPA 70B subcategory list");
+        String fullLabel = issuePage.getChapterOptionFullLabel("17.3.1");
+        logStep("✅ Found: " + fullLabel);
 
         logStepWithScreenshot("TC_ISS_105: Chapter 17.3.1 option");
         issuePage.quickDismissIssueDetails();
@@ -4085,14 +4034,10 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 5: Select 'Chapter 15.3.2 Circuit Breakers Low- and Medium Voltage'");
         String selectedValue = issuePage.selectSubcategoryAndGetValue("15.3.2");
         logStep("Selected subcategory value: '" + selectedValue + "'");
-
-        if (selectedValue.contains("15.3.2") || selectedValue.contains("Circuit Breakers")) {
-            logStep("✅ Subcategory selected correctly: " + selectedValue);
-        } else if (!selectedValue.isEmpty()) {
-            logStep("ℹ️ Selected value: '" + selectedValue + "' (may be truncated)");
-        } else {
-            logStep("⚠️ Could not read selected subcategory value");
-        }
+        assertTrue(selectedValue != null &&
+            (selectedValue.contains("15.3.2") || selectedValue.contains("Circuit Breakers")),
+            "Subcategory field should show the selected Chapter 15.3.2 option (was: '" + selectedValue + "')");
+        logStep("✅ Subcategory selected correctly: " + selectedValue);
 
         logStep("Step 6: Check for green checkmark indicator");
         boolean checkmarkDisplayed = issuePage.isSubcategoryCheckmarkDisplayed();
@@ -4149,11 +4094,10 @@ public final class Issue_Phase1_Test extends BaseTest {
             logStep("✅ Filter correctly shows only Visual Inspections chapters");
         } else if (!filteredOptions.isEmpty()) {
             logStep("ℹ️ Filter shows " + filteredOptions.size() + " results — some may not contain 'Visual'");
-        } else if (matchCount > 0) {
-            logStep("✅ Found " + matchCount + " matches for 'Visual' filter");
-        } else {
-            logStep("⚠️ No filtered results — search may work differently");
         }
+        assertTrue(matchCount >= 1,
+            "Typing 'Visual' in the subcategory search should match at least one option (got " + matchCount + ")");
+        logStep("✅ Found " + matchCount + " matches for 'Visual' filter");
 
         logStepWithScreenshot("TC_ISS_107: Subcategory filtered by 'Visual'");
 
@@ -4205,11 +4149,10 @@ public final class Issue_Phase1_Test extends BaseTest {
             logStep("✅ Filter correctly shows only Chapter 15.3.x options");
         } else if (!filteredOptions.isEmpty()) {
             logStep("ℹ️ Filter shows " + filteredOptions.size() + " results — checking relevance");
-        } else if (matchCount > 0) {
-            logStep("✅ Found " + matchCount + " matches for '15.3' filter");
-        } else {
-            logStep("⚠️ No filtered results — search by chapter number may work differently");
         }
+        assertTrue(matchCount >= 1,
+            "Typing '15.3' in the subcategory search should match at least one chapter option (got " + matchCount + ")");
+        logStep("✅ Found " + matchCount + " matches for '15.3' filter");
 
         logStepWithScreenshot("TC_ISS_108: Subcategory filtered by '15.3'");
 
@@ -4337,13 +4280,9 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 6: Check completion percentage — expect 0%");
         String pct = issuePage.getIssueDetailsCompletionPercentage();
         logStep("Completion percentage: '" + pct + "'");
-        if (pct.contains("0%")) {
-            logStep("✅ Completion shows 0% — incomplete state confirmed");
-        } else if (!pct.isEmpty()) {
-            logStep("ℹ️ Completion is: '" + pct + "' (may be partially filled)");
-        } else {
-            logStep("⚠️ Could not read completion percentage");
-        }
+        assertEquals(pct.replaceAll("[^0-9]", ""), "0",
+            "Completion should show 0% when the required subcategory is empty (was: '" + pct + "')");
+        logStep("✅ Completion shows 0% — incomplete state confirmed");
 
         logStep("Step 7: Check for orange/incomplete indicator");
         boolean orangeIndicator = issuePage.isCompletionIndicatorOrange();
@@ -4413,9 +4352,10 @@ public final class Issue_Phase1_Test extends BaseTest {
         issuePage.scrollUpOnDetailsScreen();
         boolean greenIndicator = issuePage.isCompletionIndicatorGreen();
         logStep("Green completion indicator: " + greenIndicator);
-        if (greenIndicator) {
-            logStep("✅ Green indicator confirms all required fields filled");
-        }
+        assertTrue(checkmark || greenIndicator,
+            "A green checkmark / complete indicator should appear after filling the required subcategory " +
+            "(checkmark=" + checkmark + ", greenIndicator=" + greenIndicator + ")");
+        logStep("✅ Green indicator confirms all required fields filled");
 
         logStepWithScreenshot("TC_ISS_111: Green checkmark on filled subcategory");
 
@@ -4484,13 +4424,11 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 7: Compare — options should be different");
         boolean optionsAreDifferent = !necOptions.equals(nfpaOptions);
         logStep("Options are different between classes: " + optionsAreDifferent);
-        if (optionsAreDifferent) {
-            logStep("✅ Subcategory options updated when Issue Class changed");
-        } else if (necOptions.isEmpty() && nfpaOptions.isEmpty()) {
-            logStep("⚠️ Both option sets empty — dropdown may not have loaded");
-        } else {
-            logStep("⚠️ Options appear the same — unexpected");
-        }
+        assertTrue(!necOptions.isEmpty(), "NEC Violation subcategory options should be listed");
+        assertTrue(!nfpaOptions.isEmpty(), "NFPA 70B subcategory options should be listed");
+        assertTrue(optionsAreDifferent,
+            "Subcategory options should change when the Issue Class changes (NEC vs NFPA 70B)");
+        logStep("✅ Subcategory options updated when Issue Class changed");
 
         logStepWithScreenshot("TC_ISS_112: Subcategory options updated after class change");
         issuePage.quickDismissIssueDetails();
@@ -4529,6 +4467,7 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Subcategory value before class change: '" + filledValue + "'");
         boolean wasFilled = !filledValue.isEmpty() && !filledValue.contains("Type or select");
         logStep("Subcategory was filled: " + wasFilled);
+        assertTrue(wasFilled, "Subcategory should be filled before changing the Issue Class");
 
         logStep("Step 6: Change Issue Class to NFPA 70B Violation");
         issuePage.scrollUpOnDetailsScreen();
@@ -4540,12 +4479,9 @@ public final class Issue_Phase1_Test extends BaseTest {
         String afterValue = issuePage.getSubcategoryValue();
         logStep("Subcategory value after class change: '" + afterValue + "'");
         logStep("Subcategory is empty: " + subcatEmpty);
-
-        if (subcatEmpty) {
-            logStep("✅ Subcategory was cleared when Issue Class changed");
-        } else {
-            logStep("ℹ️ Subcategory still shows: '" + afterValue + "' — may retain value or use different clearing behavior");
-        }
+        assertTrue(subcatEmpty,
+            "Subcategory should be cleared when the Issue Class changes (still shows: '" + afterValue + "')");
+        logStep("✅ Subcategory was cleared when Issue Class changed");
 
         logStepWithScreenshot("TC_ISS_113: Subcategory cleared after class change");
         issuePage.quickDismissIssueDetails();
@@ -4574,7 +4510,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         issuePage.tapFirstIssue();
 
         logStep("Step 3: Change Issue Class to OSHA Violation");
-        issuePage.changeIssueClassOnDetails("OSHA Violation");
+        boolean classChanged = issuePage.changeIssueClassOnDetails("OSHA Violation");
+        assertTrue(classChanged, "Issue Class should change to OSHA Violation");
 
         logStep("Step 4: Scroll down and open Subcategory dropdown");
         issuePage.scrollDownOnDetailsScreen();
@@ -4586,12 +4523,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         for (String opt : oshaOptions) {
             logStep("   OSHA option: " + opt);
         }
-
-        if (!oshaOptions.isEmpty()) {
-            logStep("✅ OSHA Violation has " + oshaOptions.size() + " subcategory options");
-        } else {
-            logStep("⚠️ No OSHA subcategory options found — dropdown may not have loaded");
-        }
+        assertTrue(!oshaOptions.isEmpty(), "OSHA Violation should offer subcategory options");
+        logStep("✅ OSHA Violation has " + oshaOptions.size() + " subcategory options");
 
         issuePage.dismissDropdownMenu();
 
@@ -4617,7 +4550,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         issuePage.tapFirstIssue();
 
         logStep("Step 3: Change Issue Class to Repair Needed");
-        issuePage.changeIssueClassOnDetails("Repair Needed");
+        boolean classChanged = issuePage.changeIssueClassOnDetails("Repair Needed");
+        assertTrue(classChanged, "Issue Class should change to Repair Needed");
 
         logStep("Step 4: Scroll down and open Subcategory dropdown");
         issuePage.scrollDownOnDetailsScreen();
@@ -4660,7 +4594,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         issuePage.tapFirstIssue();
 
         logStep("Step 3: Change Issue Class to Thermal Anomaly");
-        issuePage.changeIssueClassOnDetails("Thermal Anomaly");
+        boolean classChanged = issuePage.changeIssueClassOnDetails("Thermal Anomaly");
+        assertTrue(classChanged, "Issue Class should change to Thermal Anomaly");
 
         logStep("Step 4: Scroll down and open Subcategory dropdown");
         issuePage.scrollDownOnDetailsScreen();
@@ -4703,7 +4638,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         issuePage.tapFirstIssue();
 
         logStep("Step 3: Change Issue Class to Ultrasonic Anomaly");
-        issuePage.changeIssueClassOnDetails("Ultrasonic Anomaly");
+        boolean classChanged = issuePage.changeIssueClassOnDetails("Ultrasonic Anomaly");
+        assertTrue(classChanged, "Issue Class should change to Ultrasonic Anomaly");
 
         logStep("Step 4: Scroll down and open Subcategory dropdown");
         issuePage.scrollDownOnDetailsScreen();
@@ -4765,6 +4701,7 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Subcategory value before clearing: '" + filledValue + "'");
         boolean wasFilled = !filledValue.isEmpty() && !filledValue.contains("Type or select");
         logStep("Subcategory was filled: " + wasFilled);
+        assertTrue(wasFilled, "Subcategory should be filled before testing the clear (X) button");
 
         logStep("Step 6: Tap clear/X button to clear subcategory");
         boolean cleared = issuePage.clearSubcategoryValue();
@@ -4775,12 +4712,10 @@ public final class Issue_Phase1_Test extends BaseTest {
         String afterValue = issuePage.getSubcategoryValue();
         logStep("Subcategory value after clearing: '" + afterValue + "'");
         logStep("Subcategory is empty: " + isEmpty);
-
-        if (isEmpty) {
-            logStep("✅ Subcategory successfully cleared — field returned to placeholder");
-        } else {
-            logStep("ℹ️ Subcategory still shows: '" + afterValue + "' — clear mechanism may differ");
-        }
+        assertTrue(isEmpty,
+            "Subcategory should return to its empty/placeholder state after tapping clear (X) " +
+            "(still shows: '" + afterValue + "')");
+        logStep("✅ Subcategory successfully cleared — field returned to placeholder");
 
         logStep("Step 8: Verify completion drops back to 0%");
         issuePage.scrollUpOnDetailsScreen();
@@ -4817,7 +4752,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         issuePage.tapFirstIssue();
 
         logStep("Step 3: Change Issue Class to OSHA Violation");
-        issuePage.changeIssueClassOnDetails("OSHA Violation");
+        boolean classChanged = issuePage.changeIssueClassOnDetails("OSHA Violation");
+        assertTrue(classChanged, "Issue Class should change to OSHA Violation");
 
         logStep("Step 4: Scroll down to Subcategory field");
         issuePage.scrollDownOnDetailsScreen();
@@ -4825,11 +4761,8 @@ public final class Issue_Phase1_Test extends BaseTest {
         logStep("Step 5: Verify Subcategory field is displayed");
         boolean fieldDisplayed = issuePage.isSubcategoryFieldDisplayed();
         logStep("Subcategory field displayed: " + fieldDisplayed);
-        if (fieldDisplayed) {
-            logStep("✅ Subcategory field is visible for OSHA Violation");
-        } else {
-            logStep("ℹ️ Subcategory field may not be required for OSHA Violation");
-        }
+        assertTrue(fieldDisplayed, "Subcategory field should be displayed for OSHA Violation");
+        logStep("✅ Subcategory field is visible for OSHA Violation");
 
         logStep("Step 6: Check Subcategory placeholder text");
         String placeholder = issuePage.getSubcategoryPlaceholder();
@@ -4846,20 +4779,16 @@ public final class Issue_Phase1_Test extends BaseTest {
             logStep("   OSHA option: " + opt);
         }
 
-        logStep("Step 8: Select first OSHA option if available");
-        if (!oshaOptions.isEmpty()) {
-            String firstOption = oshaOptions.get(0);
-            issuePage.selectSubcategory(firstOption);
+        logStep("Step 8: Select first OSHA option");
+        assertTrue(!oshaOptions.isEmpty(), "OSHA subcategory dropdown should list options to select");
+        String firstOption = oshaOptions.get(0);
+        issuePage.selectSubcategory(firstOption);
 
-            String selectedValue = issuePage.getSubcategoryValue();
-            logStep("Selected OSHA subcategory: '" + selectedValue + "'");
-            if (!selectedValue.isEmpty() && !selectedValue.contains("Type or select")) {
-                logStep("✅ OSHA subcategory selection works: '" + selectedValue + "'");
-            }
-        } else {
-            issuePage.dismissDropdownMenu();
-            logStep("⚠️ No OSHA options available to select");
-        }
+        String selectedValue = issuePage.getSubcategoryValue();
+        logStep("Selected OSHA subcategory: '" + selectedValue + "'");
+        assertTrue(selectedValue != null && !selectedValue.isEmpty() && !selectedValue.contains("Type or select"),
+            "Selecting an OSHA subcategory should populate the field (was: '" + selectedValue + "')");
+        logStep("✅ OSHA subcategory selection works: '" + selectedValue + "'");
 
         logStepWithScreenshot("TC_ISS_119: OSHA Subcategory field verification");
         issuePage.quickDismissIssueDetails();
