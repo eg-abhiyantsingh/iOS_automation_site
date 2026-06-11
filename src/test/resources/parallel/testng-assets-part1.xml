@@ -20,6 +20,7 @@
     -->
 
     <listeners>
+        <listener class-name="com.egalvanic.listeners.GlobalTestTimeout"/>
         <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
     </listeners>
 
