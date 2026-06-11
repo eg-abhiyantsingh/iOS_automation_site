@@ -205,14 +205,21 @@ public class BaseTest {
      * Checks: Dashboard/Asset screens (logged in) OR Welcome/Login page (not logged in)
      */
     private void waitForAppReadyFast() {
+        io.appium.java_client.ios.IOSDriver d0 = com.egalvanic.utils.DriverManager.getDriver();
         try {
+            // Drop the implicit wait for the duration of the probe: each failed
+            // findElement below otherwise burns the global 5s implicit wait, so a
+            // single poll of this "2-second" check could take 4 × 5s = 20s on an
+            // unknown/blank screen (runs in @BeforeMethod — per test!).
+            d0.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(300));
+
             // 2-second fast check for any known screen
-            org.openqa.selenium.support.ui.WebDriverWait fastWait = 
+            org.openqa.selenium.support.ui.WebDriverWait fastWait =
                 new org.openqa.selenium.support.ui.WebDriverWait(
-                    com.egalvanic.utils.DriverManager.getDriver(), 
+                    com.egalvanic.utils.DriverManager.getDriver(),
                     java.time.Duration.ofSeconds(2)
                 );
-            
+
             fastWait.until(driver -> {
                 // Check if on dashboard (already logged in) - FASTEST PATH
                 try {
@@ -246,6 +253,11 @@ public class BaseTest {
             });
         } catch (Exception e) {
             System.out.println("⚠️ Fast app check timeout, continuing...");
+        } finally {
+            try {
+                d0.manage().timeouts().implicitlyWait(
+                    java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
+            } catch (Exception ignored) {}
         }
     }
 

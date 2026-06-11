@@ -1,0 +1,65 @@
+# Fast feedback gate — runs on cheap ubuntu runners in ~3 minutes.
+# Catches compile errors, verifier-logic regressions, and assertion-coverage
+# drift BEFORE any expensive macOS simulator job is dispatched.
+name: Static Checks (fast gate)
+
+on:
+  push:
+    paths:
+      - 'src/**'
+      - 'pom.xml'
+      - 'testng*.xml'
+      - 'scripts/**'
+      - '.github/workflows/static-checks.yml'
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: static-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compile-and-selftest:
+    name: Compile + verifier self-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # framework code only — skip the large app-source tree
+          sparse-checkout: |
+            src
+            pom.xml
+            testng-verify-selftest.xml
+            scripts
+          sparse-checkout-cone-mode: false
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: Compile (main + tests)
+        run: mvn -B -q -DskipTests test-compile
+
+      - name: Verifier self-tests (driver-free, must go RED on injected defects)
+        run: mvn -B -DsuiteXmlFile=testng-verify-selftest.xml test
+
+  assertion-coverage:
+    name: Assertion-coverage gate (informational)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Non-blocking for now: the repo currently has 177 NEW pass-anyway tests
+    # beyond the 291-test baseline. Flip continue-on-error to false once that
+    # regression list is burned down.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            src
+            scripts
+          sparse-checkout-cone-mode: false
+      - name: Check new tests carry real assertions
+        run: python3 scripts/check_assertion_coverage.py --strict

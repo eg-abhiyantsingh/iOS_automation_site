@@ -10,8 +10,10 @@
     <test name="Authentication Tests">
         <classes>
             <class name="com.egalvanic.tests.AuthenticationTest">
-               
+
             </class>
+            <!-- Adversarial input / real-user edge cases (hard assertions, no pass-anyway) -->
+            <class name="com.egalvanic.tests.Security_EdgeCase_Test"/>
         </classes>
     </test>
 </suite>

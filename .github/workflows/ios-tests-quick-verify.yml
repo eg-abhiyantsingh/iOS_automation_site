@@ -94,8 +94,9 @@ jobs:
           while [ $ELAPSED -lt $BOOT_TIMEOUT ]; do
             if xcrun simctl list devices | grep "$UDID" | grep -q "(Booted)"; then
               echo "✅ Simulator is in Booted state after ${ELAPSED}s"
-              echo "Waiting 45s for system services to stabilize..."
-              sleep 45
+              echo "Waiting for system services (bootstatus)..."
+              # bootstatus blocks until boot fully completes (usually <15s) — was a fixed 45s sleep
+              xcrun simctl bootstatus "$UDID" -b 2>/dev/null || sleep 20
               echo "✅ Simulator ready!"
               break
             fi
@@ -224,7 +225,7 @@ jobs:
             
             if [ -n "$SESSION_ID" ]; then
               echo "✅ WDA warm-up session created: $SESSION_ID"
-              sleep 10
+              sleep 3
               curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true
               echo "✅ Warm-up session closed"
               sleep 5
@@ -239,9 +240,9 @@ jobs:
 
               if [ $attempt -lt 5 ]; then
 
-                echo "  ↳ Retrying in 30s..."
+                echo "  ↳ Retrying in 10s..."
 
-                sleep 30
+                sleep 10
 
               fi
             fi
@@ -376,7 +377,7 @@ jobs:
             [ "$HTTP_STATUS" = "200" ] && echo "✅ Appium ready" && break
             sleep 2
           done
-          sleep 10
+          sleep 3
 
       - name: Warm-up WDA Session
         env:
@@ -391,7 +392,7 @@ jobs:
               --max-time 600 2>&1) || true
             SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
             if [ -n "$SESSION_ID" ]; then
-              sleep 10
+              sleep 3
               curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true
               sleep 5
               WDA_SUCCESS=true
@@ -519,7 +520,7 @@ jobs:
             [ "$HTTP_STATUS" = "200" ] && break
             sleep 2
           done
-          sleep 10
+          sleep 3
 
       - name: Warm-up WDA Session
         env:
@@ -531,7 +532,7 @@ jobs:
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session               -H "Content-Type: application/json"               -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"$SIMULATOR_UDID"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}'               --max-time 600 2>&1) || true
             SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
             if [ -n "$SESSION_ID" ]; then
-              sleep 10
+              sleep 3
               curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true
               sleep 5
               WDA_SUCCESS=true
@@ -654,7 +655,7 @@ jobs:
             [ "$HTTP_STATUS" = "200" ] && break
             sleep 2
           done
-          sleep 10
+          sleep 3
 
       - name: Warm-up WDA Session
         env:
@@ -666,7 +667,7 @@ jobs:
             SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session               -H "Content-Type: application/json"               -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"$SIMULATOR_UDID"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}'               --max-time 600 2>&1) || true
             SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
             if [ -n "$SESSION_ID" ]; then
-              sleep 10
+              sleep 3
               curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true
               sleep 5
               WDA_SUCCESS=true
@@ -762,7 +763,7 @@ jobs:
             [ "$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:4723/status 2>/dev/null)" = "200" ] && break
             sleep 2
           done
-          sleep 10
+          sleep 3
       - name: Warm-up WDA
         run: |
           WDA_SUCCESS=false
@@ -858,7 +859,7 @@ jobs:
             [ "$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:4723/status 2>/dev/null)" = "200" ] && break
             sleep 2
           done
-          sleep 10
+          sleep 3
       - name: Warm-up WDA
         run: |
           WDA_SUCCESS=false
@@ -954,7 +955,7 @@ jobs:
             [ "$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:4723/status 2>/dev/null)" = "200" ] && break
             sleep 2
           done
-          sleep 10
+          sleep 3
       - name: Warm-up WDA
         run: |
           WDA_SUCCESS=false

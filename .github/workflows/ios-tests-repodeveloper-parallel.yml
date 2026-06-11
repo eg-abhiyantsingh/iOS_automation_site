@@ -479,7 +479,7 @@ jobs:
 
             if [ -n "$SESSION_ID" ]; then
               echo "✅ WDA session OK"
-              sleep 10
+              sleep 3
               curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true
               sleep 5
               echo "✅ WDA warm-up complete"
@@ -493,9 +493,9 @@ jobs:
 
               if [ $attempt -lt 5 ]; then
 
-                echo "  ↳ Retrying in 30s..."
+                echo "  ↳ Retrying in 10s..."
 
-                sleep 30
+                sleep 10
 
               fi
             fi
@@ -780,7 +780,7 @@ jobs:
 
             if [ -n "$SESSION_ID" ]; then
               echo "✅ WDA session OK"
-              sleep 10
+              sleep 3
               curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true
               sleep 5
               echo "✅ WDA warm-up complete"
@@ -794,9 +794,9 @@ jobs:
 
               if [ $attempt -lt 5 ]; then
 
-                echo "  ↳ Retrying in 30s..."
+                echo "  ↳ Retrying in 10s..."
 
-                sleep 30
+                sleep 10
 
               fi
             fi
@@ -1030,7 +1030,7 @@ jobs:
 
             if [ -n "$SESSION_ID" ]; then
               echo "✅ WDA session OK"
-              sleep 10
+              sleep 3
               curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true
               sleep 5
               echo "✅ WDA warm-up complete"
@@ -1044,9 +1044,9 @@ jobs:
 
               if [ $attempt -lt 5 ]; then
 
-                echo "  ↳ Retrying in 30s..."
+                echo "  ↳ Retrying in 10s..."
 
-                sleep 30
+                sleep 10
 
               fi
             fi
@@ -1215,7 +1215,7 @@ jobs:
             fi
             sleep 2
           done
-          sleep 10
+          sleep 3
 
       - name: Warm-up WDA Session
         run: |
@@ -1241,9 +1241,9 @@ jobs:
 
               if [ $attempt -lt 5 ]; then
 
-                echo "  ↳ Retrying in 30s..."
+                echo "  ↳ Retrying in 10s..."
 
-                sleep 30
+                sleep 10
 
               fi
             fi
@@ -1408,7 +1408,7 @@ jobs:
             fi
             sleep 2
           done
-          sleep 10
+          sleep 3
 
       - name: Warm-up WDA Session
         run: |
@@ -1434,9 +1434,9 @@ jobs:
 
               if [ $attempt -lt 5 ]; then
 
-                echo "  ↳ Retrying in 30s..."
+                echo "  ↳ Retrying in 10s..."
 
-                sleep 30
+                sleep 10
 
               fi
             fi
@@ -1599,7 +1599,7 @@ jobs:
             fi
             sleep 2
           done
-          sleep 10
+          sleep 3
 
       - name: Warm-up WDA Session
         run: |
@@ -1623,9 +1623,9 @@ jobs:
 
               if [ $attempt -lt 5 ]; then
 
-                echo "  ↳ Retrying in 30s..."
+                echo "  ↳ Retrying in 10s..."
 
-                sleep 30
+                sleep 10
 
               fi
             fi
@@ -1790,7 +1790,7 @@ jobs:
             fi
             sleep 2
           done
-          sleep 10
+          sleep 3
 
       - name: Warm-up WDA Session
         run: |
@@ -1814,9 +1814,9 @@ jobs:
 
               if [ $attempt -lt 5 ]; then
 
-                echo "  ↳ Retrying in 30s..."
+                echo "  ↳ Retrying in 10s..."
 
-                sleep 30
+                sleep 10
 
               fi
             fi
@@ -1981,7 +1981,7 @@ jobs:
             fi
             sleep 2
           done
-          sleep 10
+          sleep 3
 
       - name: Warm-up WDA Session
         run: |
@@ -2005,9 +2005,9 @@ jobs:
 
               if [ $attempt -lt 5 ]; then
 
-                echo "  ↳ Retrying in 30s..."
+                echo "  ↳ Retrying in 10s..."
 
-                sleep 30
+                sleep 10
 
               fi
             fi
@@ -2176,7 +2176,7 @@ jobs:
             fi
             sleep 2
           done
-          sleep 10
+          sleep 3
 
       - name: Warm-up WDA Session
         run: |
@@ -2200,9 +2200,9 @@ jobs:
 
               if [ $attempt -lt 5 ]; then
 
-                echo "  ↳ Retrying in 30s..."
+                echo "  ↳ Retrying in 10s..."
 
-                sleep 30
+                sleep 10
 
               fi
             fi
@@ -2365,7 +2365,7 @@ jobs:
             fi
             sleep 2
           done
-          sleep 10
+          sleep 3
 
       - name: Warm-up WDA Session
         run: |
@@ -2389,9 +2389,9 @@ jobs:
 
               if [ $attempt -lt 5 ]; then
 
-                echo "  ↳ Retrying in 30s..."
+                echo "  ↳ Retrying in 10s..."
 
-                sleep 30
+                sleep 10
 
               fi
             fi
@@ -2554,7 +2554,7 @@ jobs:
             fi
             sleep 2
           done
-          sleep 10
+          sleep 3
 
       - name: Warm-up WDA Session
         run: |
@@ -2578,9 +2578,9 @@ jobs:
 
               if [ $attempt -lt 5 ]; then
 
-                echo "  ↳ Retrying in 30s..."
+                echo "  ↳ Retrying in 10s..."
 
-                sleep 30
+                sleep 10
 
               fi
             fi
@@ -2743,7 +2743,7 @@ jobs:
             fi
             sleep 2
           done
-          sleep 10
+          sleep 3
 
       - name: Warm-up WDA Session
         run: |
@@ -2767,9 +2767,9 @@ jobs:
 
               if [ $attempt -lt 5 ]; then
 
-                echo "  ↳ Retrying in 30s..."
+                echo "  ↳ Retrying in 10s..."
 
-                sleep 30
+                sleep 10
 
               fi
             fi
@@ -2931,7 +2931,7 @@ jobs:
             fi
             sleep 2
           done
-          sleep 10
+          sleep 3
 
       - name: Warm-up WDA Session
         run: |
@@ -2955,9 +2955,9 @@ jobs:
 
               if [ $attempt -lt 5 ]; then
 
-                echo "  ↳ Retrying in 30s..."
+                echo "  ↳ Retrying in 10s..."
 
-                sleep 30
+                sleep 10
 
               fi
             fi
@@ -3119,7 +3119,7 @@ jobs:
             fi
             sleep 2
           done
-          sleep 10
+          sleep 3
 
       - name: Warm-up WDA Session
         run: |
@@ -3143,9 +3143,9 @@ jobs:
 
               if [ $attempt -lt 5 ]; then
 
-                echo "  ↳ Retrying in 30s..."
+                echo "  ↳ Retrying in 10s..."
 
-                sleep 30
+                sleep 10
 
               fi
             fi
@@ -3307,7 +3307,7 @@ jobs:
             fi
             sleep 2
           done
-          sleep 10
+          sleep 3
 
       - name: Warm-up WDA Session
         run: |
@@ -3331,9 +3331,9 @@ jobs:
 
               if [ $attempt -lt 5 ]; then
 
-                echo "  ↳ Retrying in 30s..."
+                echo "  ↳ Retrying in 10s..."
 
-                sleep 30
+                sleep 10
 
               fi
             fi
@@ -3500,7 +3500,7 @@ jobs:
             fi
             sleep 2
           done
-          sleep 10
+          sleep 3
 
       - name: Warm-up WDA Session
         run: |
@@ -3524,9 +3524,9 @@ jobs:
 
               if [ $attempt -lt 5 ]; then
 
-                echo "  ↳ Retrying in 30s..."
+                echo "  ↳ Retrying in 10s..."
 
-                sleep 30
+                sleep 10
 
               fi
             fi
@@ -3692,7 +3692,7 @@ jobs:
             fi
             sleep 2
           done
-          sleep 10
+          sleep 3
 
       - name: Warm-up WDA Session
         run: |
