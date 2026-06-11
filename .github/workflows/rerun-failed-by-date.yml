@@ -169,7 +169,8 @@ jobs:
           while [ $ELAPSED -lt $BOOT_TIMEOUT ]; do
             if xcrun simctl list devices | grep "$UDID" | grep -q "(Booted)"; then
               echo "✅ Simulator booted after ${ELAPSED}s"
-              sleep 45
+              # bootstatus blocks until boot fully completes (usually <15s) — was a fixed 45s sleep
+              xcrun simctl bootstatus "$UDID" -b 2>/dev/null || sleep 20
               echo "✅ Simulator ready"
               break
             fi
@@ -261,7 +262,7 @@ jobs:
             if [ -n "$SESSION_ID" ]; then
               echo "✅ WDA warm-up OK"
               WDA_SUCCESS=true
-              sleep 10
+              sleep 3
               curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true
               sleep 5
               break
@@ -269,8 +270,8 @@ jobs:
               echo "  ❌ Attempt $attempt failed. Response:"
               echo "$SESSION_RESPONSE" | head -5
               if [ $attempt -lt 5 ]; then
-                echo "  ↳ Retrying in 30s..."
-                sleep 30
+                echo "  ↳ Retrying in 10s..."
+                sleep 10
               fi
             fi
           done

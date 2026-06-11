@@ -503,7 +503,7 @@ jobs:
             
             if [ -n "$SESSION_ID" ]; then
               echo "✅ WDA warm-up session created: $SESSION_ID"
-              sleep 10
+              sleep 3
               curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true
               echo "✅ Warm-up session closed"
               sleep 5
@@ -518,9 +518,9 @@ jobs:
 
               if [ $attempt -lt 5 ]; then
 
-                echo "  ↳ Retrying in 30s..."
+                echo "  ↳ Retrying in 10s..."
 
-                sleep 30
+                sleep 10
 
               fi
             fi

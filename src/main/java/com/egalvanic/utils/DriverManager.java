@@ -130,6 +130,19 @@ public class DriverManager {
                 options.setCapability("appium:shouldUseSingletonTestManager", false);
                 options.setCapability("appium:waitForIdleTimeout", 0);
 
+                // ========== SNAPSHOT / ANIMATION SPEED SETTINGS ==========
+                // These apply to EVERY element query, so they dominate suite time.
+                // All three are env-overridable via AppConstants for CI rollback.
+                // Don't wait (default 2s) for animations to settle before each snapshot
+                options.setCapability("appium:settings[animationCoolOffTimeout]",
+                        AppConstants.ANIMATION_COOLOFF_TIMEOUT);
+                // Cap single accessibility-snapshot resolution (default 15s)
+                options.setCapability("appium:settings[customSnapshotTimeout]",
+                        AppConstants.CUSTOM_SNAPSHOT_TIMEOUT);
+                // Trim snapshot tree depth 50 → 40 (cheaper page-source/predicate queries)
+                options.setCapability("appium:settings[snapshotMaxDepth]",
+                        AppConstants.SNAPSHOT_MAX_DEPTH);
+
                 // ========== ELEMENT VISIBILITY SETTINGS ==========
                 options.setCapability("appium:simpleIsVisibleCheck", true);
                 options.setCapability("appium:maxTypingFrequency", 60);

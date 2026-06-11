@@ -68,8 +68,9 @@ jobs:
           while [ $ELAPSED -lt $BOOT_TIMEOUT ]; do
             if xcrun simctl list devices | grep "$UDID" | grep -q "(Booted)"; then
               echo "✅ Simulator is in Booted state after ${ELAPSED}s"
-              echo "Waiting 45s for system services to stabilize..."
-              sleep 45
+              echo "Waiting for system services (bootstatus)..."
+              # bootstatus blocks until boot fully completes (usually <15s) — was a fixed 45s sleep
+              xcrun simctl bootstatus "$UDID" -b 2>/dev/null || sleep 20
               echo "✅ Simulator ready!"
               break
             fi
@@ -236,7 +237,7 @@ jobs:
               echo "⚠️ Attempt $attempt failed - session not created"
               if [ $attempt -lt 5 ]; then
                 echo "Waiting 30s before retry..."
-                sleep 30
+                sleep 10
               fi
             fi
           done

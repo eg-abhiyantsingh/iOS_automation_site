@@ -272,6 +272,60 @@ public abstract class BasePage {
     }
 
     // ================================================================
+    // FAST EXISTENCE / ABSENCE CHECKS
+    // These bypass the global implicit wait so a "does X exist?" probe
+    // costs milliseconds instead of 5s per miss. Use existsNow() inside
+    // multi-strategy fallbacks and isElementGone() for negative asserts —
+    // the classic "wait full timeout to return false" killers.
+    // ================================================================
+
+    /**
+     * Zero-wait existence check via findElements (no implicit-wait penalty on absence).
+     */
+    protected boolean existsNow(By locator) {
+        return withImplicitWait(0, () -> !driver.findElements(locator).isEmpty());
+    }
+
+    /**
+     * Displayed-check with a caller-chosen short timeout (polls every 250ms,
+     * no implicit-wait penalty). Use 1-2s for absence-tolerant probes instead
+     * of letting a miss burn the global implicit wait per strategy.
+     */
+    protected boolean isElementDisplayed(By locator, int timeoutSeconds) {
+        return withImplicitWait(0, () ->
+            com.egalvanic.utils.Waits.until(() -> {
+                var found = driver.findElements(locator);
+                return !found.isEmpty() && found.get(0).isDisplayed();
+            }, timeoutSeconds * 1000L));
+    }
+
+    /**
+     * Negative assertion helper: true once the element is absent/not displayed.
+     */
+    protected boolean isElementGone(By locator, int timeoutSeconds) {
+        return withImplicitWait(0, () ->
+            com.egalvanic.utils.Waits.until(() -> {
+                var found = driver.findElements(locator);
+                return found.isEmpty() || !found.get(0).isDisplayed();
+            }, timeoutSeconds * 1000L));
+    }
+
+    /**
+     * Run an action with a temporary implicit wait, always restoring the global one.
+     */
+    protected <T> T withImplicitWait(long millis, java.util.function.Supplier<T> action) {
+        try {
+            driver.manage().timeouts().implicitlyWait(Duration.ofMillis(millis));
+            return action.get();
+        } finally {
+            try {
+                driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+    // ================================================================
     // UTILITY METHODS (CI-safe explicit waits)
     // ================================================================
 

@@ -123,6 +123,25 @@ weakening assertions.
 ---
 
 ## Category 3 — REAL PRODUCT BUGS
+
+### SLD source audit 2026-06-11 — 8 confirmed bugs (SLD-1..8) + 7 suspicions
+Full write-up with file:line evidence and repro steps:
+`docs/sld-bug-audit-2026-06-11.md`. Highlights:
+- **SLD-1 (HIGH):** view→view link navigation never re-renders the WKWebView
+  (`WebViewBridge.updateUIView` is empty; coordinator closures frozen) → stale
+  diagram + node drags written to the WRONG view's mapping.
+- **SLD-2 (HIGH):** offline enclosure resize dropped in sync replay —
+  `SyncExecutionService.swift:1110` omits width/height the queue carries.
+- **SLD-3 (HIGH):** site switch never deletes `Mapping*SLDView` rows →
+  duplicate mappings accumulate; nodes snap back to stale positions.
+- **SLD-4/5/6 (MED):** ghost edge after rejected connection; unfiltered
+  full-site graph pushed into view-filtered webview during edits; webview
+  search hook is English-only.
+- **SLD-7 (MED, security):** Agent web app calls a hardcoded unauthenticated
+  API Gateway endpoint with no tenant scoping.
+- **SLD-8 (LOW, security):** `webView.isInspectable = true` in release builds.
+
+### Prior session note
 None **confirmed** this session — failures traced to automation defects (per
 the convention above). One item to **watch** (possible product concern, not
 yet confirmed a bug): the Assets/Locations session tab's element tree is

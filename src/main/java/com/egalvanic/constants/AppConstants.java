@@ -52,8 +52,23 @@ public class AppConstants {
     // ============================================
     // TIMEOUTS (in seconds)
     // ============================================
-    public static final int IMPLICIT_WAIT = 5; // Fast timeout
+    public static final int IMPLICIT_WAIT = getEnvInt("IMPLICIT_WAIT", 5); // Fast timeout
     public static final int EXPLICIT_WAIT = 10; // Fast explicit wait
+
+    // ============================================
+    // XCUITEST SNAPSHOT / ANIMATION SPEED SETTINGS
+    // (env/-D overridable so CI can tune or roll back without a code change)
+    // ============================================
+    // Seconds WDA waits for animations to settle before EVERY accessibility
+    // snapshot (driver default: 2). 0 = act immediately; the suite already
+    // polls/retries, so the per-query 0-2s tax buys nothing.
+    public static final int ANIMATION_COOLOFF_TIMEOUT = getEnvInt("ANIMATION_COOLOFF_TIMEOUT", 0);
+    // Cap for resolving one accessibility snapshot (driver default: 15s).
+    public static final int CUSTOM_SNAPSHOT_TIMEOUT = getEnvInt("CUSTOM_SNAPSHOT_TIMEOUT", 10);
+    // Max element-tree depth per snapshot (driver default: 50). 40 still covers
+    // this app's deepest SwiftUI screens but trims predicate-query/page-source
+    // cost on complex screens (Connections, SiteVisit). Set 50 to restore default.
+    public static final int SNAPSHOT_MAX_DEPTH = getEnvInt("SNAPSHOT_MAX_DEPTH", 40);
     public static final int PAGE_LOAD_TIMEOUT = 45; // Increased for page loads
     public static final int AJAX_TIMEOUT = 10; // Page Factory element lookup timeout
     public static final int SITE_LOAD_TIMEOUT = 90; // Increased for site loading
@@ -344,6 +359,15 @@ public class AppConstants {
         String fallback = "com.egalvanic.zplatform-QA";
         System.out.println("📦 Bundle ID (fallback): " + fallback);
         return fallback;
+    }
+
+    private static int getEnvInt(String key, int defaultValue) {
+        try {
+            return Integer.parseInt(getEnv(key, String.valueOf(defaultValue)).trim());
+        } catch (NumberFormatException e) {
+            System.out.println("⚠️ Non-numeric value for " + key + ", using default " + defaultValue);
+            return defaultValue;
+        }
     }
 
     private static String getEnv(String key, String defaultValue) {

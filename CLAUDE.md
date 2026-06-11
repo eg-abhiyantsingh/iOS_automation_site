@@ -43,6 +43,31 @@ locators are predicate-heavy (2,944 predicate vs 257 accessibility-id).
 - Pilot: `WorkOrderPlanning_Test` hardened (tautology removed, crash/blank guards, new
   `TC_WOP_015` integrity check).
 
+## Session 2026-06-11 — speed + SLD bug audit + security tests (branch `claude/ios-automation-testing-optimization-53umv7`)
+- **SLD source audit:** 8 confirmed product bugs (SLD-1..8, incl. 2 HIGH data-loss
+  + 2 security) + 7 suspicions — full evidence in `docs/sld-bug-audit-2026-06-11.md`,
+  summary in `BUGS.md` Category 3. Note: there is no literal "SLDv3" in code; the
+  current stack is SLDV2 entities + Views layer + React Flow webview (detail views
+  are `*ViewV3`).
+- **Speed (framework):** XCUITest settings in `DriverManager` —
+  `animationCoolOffTimeout=0`, `customSnapshotTimeout=10`, `snapshotMaxDepth=40`
+  (all env/-D overridable via `AppConstants`, e.g. `SNAPSHOT_MAX_DEPTH=50` to roll
+  back); fixed implicit-wait leak in `BaseTest.waitForAppReadyFast` (each failed
+  probe burned the 5s implicit wait → up to 20s/poll); new `utils/Waits` (condition
+  polling) + `BasePage.existsNow/isElementDisplayed(By,sec)/isElementGone/withImplicitWait`
+  for fast absence checks — use these instead of new Thread.sleep / implicit-wait burns.
+- **Speed (CI):** all iOS workflows — post-boot fixed `sleep 45` → `simctl bootstatus -b`
+  (blocks only as long as boot needs), Appium-ready pad 10s→3s, WDA warm-up soak
+  10s→3s, retry backoff 30s→10s (~45-60s saved per job × 16 jobs/run). New
+  `static-checks.yml`: ubuntu fast gate (compile + verifier self-tests, ~3 min)
+  before any macOS spend; assertion-coverage job included as informational.
+- **Known red flag:** `scripts/check_assertion_coverage.py --strict` FAILS on this
+  tree — 177 NEW pass-anyway tests beyond the 291 baseline (mostly Connections/
+  Issue/SiteVisit). Burn-down needed before flipping the gate to blocking.
+- **New tests:** `Security_EdgeCase_Test` (TC_SEC_001-010; injection/XSS/oversize/
+  unicode/whitespace/double-tap/backgrounding, all hard-asserted) wired into
+  `parallel/testng-auth.xml` + `testng.xml` (runs in the `authentication-only` CI job).
+
 ## How to run
 - Self-tests (no device): `mvn -o -DsuiteXmlFile=testng-verify-selftest.xml test`
 - Exploratory crawl (macOS + live session): `RUN_EXPLORATORY=true mvn -Dtest=ExploratoryCrawlTest test`
