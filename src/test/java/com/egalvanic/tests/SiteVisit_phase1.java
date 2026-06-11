@@ -857,6 +857,8 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_023 - Verify session issues summary"
         );
 
+        logStep("Ensuring we are on the Session Issues tab");
+        ensureOnSessionIssuesTab();
 
         logStep("Checking Total, Open, Closed summary counts");
         java.util.Map<String, String> summary = workOrderPage.getIssuesSummary();
@@ -892,6 +894,8 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_024 - Verify Manage Issues button"
         );
 
+        logStep("Ensuring we are on the Session Issues tab");
+        ensureOnSessionIssuesTab();
 
         logStep("Checking for 'Manage Issues' button");
         boolean manageButtonVisible = workOrderPage.isManageIssuesButtonDisplayed();
@@ -968,6 +972,8 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_027 - Verify tapping Manage Issues opens Link screen"
         );
 
+        logStep("Ensuring we are on the Session Issues tab");
+        ensureOnSessionIssuesTab();
 
         logStep("Tapping Manage Issues button");
         boolean tapped = workOrderPage.tapManageIssuesButton();
@@ -994,6 +1000,8 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_028 - Verify Link Issues screen UI"
         );
 
+        logStep("Ensuring we are on the Link Issues screen");
+        ensureOnLinkIssuesScreen();
 
         logStep("Verifying Cancel button");
         boolean cancelBtn = workOrderPage.isLinkIssuesCancelButtonDisplayed();
@@ -1120,6 +1128,8 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_031 - Verify Link Issues entry shows title, asset, status, date"
         );
 
+        logStep("Ensuring we are on the Link Issues screen");
+        ensureOnLinkIssuesScreen();
 
         int totalIssues = workOrderPage.getLinkIssuesListCount();
         logStep("Total issues in list: " + totalIssues);
@@ -1163,6 +1173,8 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_032 - Verify tapping unlinked issue selects it (fills checkmark)"
         );
 
+        logStep("Ensuring we are on the Link Issues screen");
+        ensureOnLinkIssuesScreen();
 
         int totalIssues = workOrderPage.getLinkIssuesListCount();
         if (totalIssues == 0) {
@@ -1656,6 +1668,8 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_040 - Verify tapping My Session filters to show only linked issues"
         );
 
+        logStep("Ensuring we are on the Session Issues tab");
+        ensureOnSessionIssuesTab();
 
         // Record the total linked issue count from the session BEFORE applying filter
         logStep("Getting linked issue count from session");
@@ -2553,8 +2567,10 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_051 - Verify 'Linked to active session' banner on New Issue screen"
         );
 
-        // Ensure a job is activated first
-        logStep("On Session Details — active session confirmed");
+        // Ensure a job is activated and we are on Session Details (chronic 051
+        // fix — the comment claimed it, but no navigation actually happened).
+        logStep("Ensuring an active session and Session Details screen");
+        ensureOnSessionDetailsScreen();
 
         // Get session header for later comparison
         String sessionHeader = workOrderPage.getSessionDetailsHeaderText();
@@ -2624,6 +2640,11 @@ public class SiteVisit_phase1 extends BaseTest {
             AppConstants.FEATURE_NEW_ISSUE_LINKED,
             "TC_JOB_052 - Verify session link banner shows correct session name"
         );
+
+        // Ensure an active session first (chronic 052 fix — same missing
+        // navigation as 051; the test assumed suite ordering).
+        logStep("Ensuring an active session and Session Details screen");
+        ensureOnSessionDetailsScreen();
 
         // Get the active session name for comparison
         String sessionName = workOrderPage.getSessionDetailsHeaderText();
@@ -3638,6 +3659,8 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_068 - Verify informational message about job behavior"
         );
 
+        logStep("Ensuring we are on the New Job screen");
+        ensureOnNewJobScreen();
 
         logStep("Checking for informational text about job behavior");
         boolean infoTextVisible = workOrderPage.isNewJobInfoTextDisplayed();
@@ -3972,6 +3995,8 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_072 - Verify Quick QR Action dropdown shows all options"
         );
 
+        logStep("Ensuring we are on the New Job screen");
+        ensureOnNewJobScreen();
 
         // Open the Quick QR Action dropdown
         logStep("Tapping Quick QR Action dropdown to open options");
@@ -4148,7 +4173,9 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_077 - Verify building list shows icons, names, and floor counts"
         );
 
-        // Navigate to Locations tab
+        // Navigate to Locations tab — must be inside a session first (B5/0d7915a
+        // pattern; without this the tab tap silently no-ops on the dashboard)
+        ensureOnSessionDetailsScreen();
 
         logStep("Tapping Locations tab");
         workOrderPage.tapSessionTab("Assets");
@@ -4229,7 +4256,8 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_078 - Verify buildings are expandable with chevron indicator"
         );
 
-        // Navigate to Locations tab
+        // Navigate to Locations tab — must be inside a session first
+        ensureOnSessionDetailsScreen();
 
         logStep("Tapping Locations tab");
         workOrderPage.tapSessionTab("Assets");
@@ -4360,7 +4388,8 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_080 - Verify + button on each building row to add floor/asset"
         );
 
-        // Navigate to Locations tab
+        // Navigate to Locations tab — must be inside a session first
+        ensureOnSessionDetailsScreen();
 
         logStep("Tapping Locations tab");
         workOrderPage.tapSessionTab("Assets");
@@ -4578,7 +4607,8 @@ public class SiteVisit_phase1 extends BaseTest {
             "TC_JOB_084 - Verify tapping a room navigates to Assets in Room screen"
         );
 
-        // Navigate to Locations tab
+        // Navigate to Locations tab — must be inside a session first
+        ensureOnSessionDetailsScreen();
 
         logStep("Tapping Locations tab");
         workOrderPage.tapSessionTab("Assets");
@@ -5956,7 +5986,11 @@ public class SiteVisit_phase1 extends BaseTest {
     private void navigateToAssetsInRoom() {
         logStep("Starting navigation to Assets in Room...");
 
-        // Step 1: Get to Session Details → Assets tab
+        // Step 1: Get to Session Details → Assets tab.
+        // The "→ Session Details" half was missing (chronic 084-099 cluster):
+        // tapSessionTab only works if we're already inside a session, which
+        // depends on what the previous test left behind. Drive there first.
+        ensureOnSessionDetailsScreen();
         workOrderPage.tapSessionTab("Assets");
         try { Thread.sleep(800); } catch (InterruptedException ignored) {}
 
@@ -5970,18 +6004,13 @@ public class SiteVisit_phase1 extends BaseTest {
         }
 
         workOrderPage.tapLocationsBuildingAtIndex(0);
-        try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
 
-        // Step 3: Expand first floor
+        // Step 3: Expand first floor — poll for floors instead of fixed sleeps
+        // (returns the moment they render; only pays 3s when they never do)
+        com.egalvanic.utils.Waits.until(
+            () -> !workOrderPage.getLocationsFloorEntries().isEmpty(), 3000, 500);
         java.util.List<String> floors = workOrderPage.getLocationsFloorEntries();
         logStep("Floors found: " + floors.size());
-
-        if (floors.isEmpty()) {
-            // Retry once after a longer wait
-            try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
-            floors = workOrderPage.getLocationsFloorEntries();
-            logStep("Floors (retry): " + floors.size());
-        }
 
         if (floors.isEmpty()) {
             logWarning("No floors found after expanding building");
@@ -5989,18 +6018,12 @@ public class SiteVisit_phase1 extends BaseTest {
         }
 
         workOrderPage.tapLocationsFloorAtIndex(0);
-        try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
 
-        // Step 4: Tap first room
+        // Step 4: Tap first room — poll for rooms instead of fixed sleeps
+        com.egalvanic.utils.Waits.until(
+            () -> !workOrderPage.getLocationsRoomEntries().isEmpty(), 3000, 500);
         java.util.List<String> rooms = workOrderPage.getLocationsRoomEntries();
         logStep("Rooms found: " + rooms.size());
-
-        if (rooms.isEmpty()) {
-            // Retry once after a longer wait
-            try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
-            rooms = workOrderPage.getLocationsRoomEntries();
-            logStep("Rooms (retry): " + rooms.size());
-        }
 
         if (rooms.isEmpty()) {
             logWarning("No rooms found after expanding floor");
@@ -6008,9 +6031,8 @@ public class SiteVisit_phase1 extends BaseTest {
         }
 
         workOrderPage.tapLocationsRoomAtIndex(0);
-        try { Thread.sleep(800); } catch (InterruptedException ignored) {}
 
-        // Wait for Assets in Room screen
+        // Wait for Assets in Room screen (condition-based, max 10s)
         workOrderPage.waitForAssetsInRoomScreen();
         logStep("Navigation to Assets in Room complete");
     }
@@ -6025,6 +6047,11 @@ public class SiteVisit_phase1 extends BaseTest {
      * or that the dropdown value updated.
      */
     private void verifyQuickQRActionSelection(String actionName) {
+        // Chronic 073/074/075 fix: the doc said "Opens New Job screen" but the
+        // helper never navigated — it read the dropdown on whatever screen the
+        // previous test left. Make it self-contained.
+        logStep("Ensuring we are on the New Job screen");
+        ensureOnNewJobScreen();
 
         // Record current value before changing
         String valueBefore = workOrderPage.getQuickQRActionValue();
@@ -6266,8 +6293,10 @@ public class SiteVisit_phase1 extends BaseTest {
             return;
         }
 
-        // Get to Session Details screen first
-        shortWait();
+        // Root cause of the chronic 023/024/027/040 failures: this helper
+        // assumed the previous test left us inside a session. Make it truly
+        // self-contained — drive to Session Details first, THEN tap Issues.
+        ensureOnSessionDetailsScreen();
 
         // Tap the Issues tab
         workOrderPage.tapSessionTab("Issues");
@@ -6288,8 +6317,9 @@ public class SiteVisit_phase1 extends BaseTest {
             return;
         }
 
-        // Get to Session Issues tab first
-        shortWait();
+        // Self-contained navigation (chronic 028/031/032 fix): get to the
+        // Session Issues tab first instead of assuming the prior test did.
+        ensureOnSessionIssuesTab();
 
         // Tap Manage Issues button
         workOrderPage.tapManageIssuesButton();
