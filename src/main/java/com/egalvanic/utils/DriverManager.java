@@ -105,21 +105,26 @@ public class DriverManager {
                     options.setCapability("appium:wdaLocalPort", Integer.parseInt(wdaLocalPort));
                 }
 
-                // ========== CRITICAL: WDA TIMEOUT FIXES FOR CI ==========
-                // Simulator boot timeout - 5 minutes (CI simulators can be slow to boot)
-                options.setCapability("appium:simulatorBootTimeout", 300000);
-                // WDA launch timeout (build + start) - 10 minutes for CI environments (first run needs to build WDA)
-                options.setWdaLaunchTimeout(Duration.ofMillis(600000));
-                // WDA connection timeout - 5 minutes
-                options.setWdaConnectionTimeout(Duration.ofMillis(300000));
-                // App launch timeout - 5 minutes
-                options.setCapability("appium:launchTimeout", 300000);
+                // ========== WDA / LAUNCH TIMEOUTS (hang-capped for CI) ==========
+                // CI pre-boots the simulator and pre-builds + warms up WDA before any
+                // test runs, so the old worst-case budgets (10-min WDA launch, 5 WDA
+                // retries x 60s) only ever bought 15+ minute hangs on dead sessions.
+                // Healthy startups use seconds of these budgets.
+                // Simulator boot timeout - 3 minutes (CI sim is already booted)
+                options.setCapability("appium:simulatorBootTimeout", 180000);
+                // WDA launch timeout (build + start) - 6 minutes (first local run builds WDA)
+                options.setWdaLaunchTimeout(Duration.ofMillis(360000));
+                // WDA connection timeout - 3 minutes
+                options.setWdaConnectionTimeout(Duration.ofMillis(180000));
+                // App launch timeout - 3 minutes
+                options.setCapability("appium:launchTimeout", 180000);
                 // Command timeout - 10 minutes idle (for long operations)
                 options.setNewCommandTimeout(Duration.ofSeconds(600));
 
-                // WDA startup retry settings - more retries for CI stability
-                options.setCapability("appium:wdaStartupRetries", 5);
-                options.setCapability("appium:wdaStartupRetryInterval", 60000);
+                // WDA startup retries: 2 x 20s — a WDA that failed twice with a warm
+                // cache won't be saved by attempts 3-5; fail fast and re-init instead
+                options.setCapability("appium:wdaStartupRetries", 2);
+                options.setCapability("appium:wdaStartupRetryInterval", 20000);
 
                 // ========== PERFORMANCE OPTIMIZATIONS ==========
                 // Don't rebuild WDA each time (saves 60-90 seconds)

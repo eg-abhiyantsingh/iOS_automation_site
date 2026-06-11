@@ -50,3 +50,4 @@ config/email-credentials.properties
 
 # Mobile security scan outputs
 security/mobsf-report.*
+.claude/

@@ -267,8 +267,12 @@ public class WorkOrderPlanning_Test extends BaseTest {
         boolean tapped = workOrderPage.tapScheduleField();
         skipIfPreconditionMissing(() -> tapped && workOrderPage.isDatePickerDisplayed(),
             "Schedule field / date picker not present in this build");
-        workOrderPage.confirmDatePicker();
-        logStep("Scheduled date now: '" + workOrderPage.getScheduledDateValue() + "'");
+        boolean confirmed = workOrderPage.confirmDatePicker();
+        String scheduled = workOrderPage.getScheduledDateValue();
+        logStep("Scheduled date now: '" + scheduled + "'");
+        assertTrue(confirmed, "Date picker should confirm the selected schedule date");
+        assertTrue(scheduled != null && !scheduled.trim().isEmpty(),
+            "Schedule field should show a date after confirming the picker. Got: '" + scheduled + "'");
         logStepWithScreenshot("TC_WOP_008: Plan schedule edited");
     }
 
@@ -426,6 +430,11 @@ public class WorkOrderPlanning_Test extends BaseTest {
         logStep("Step 3: The plan list must be intact (no loss, no duplication)");
         StateIntegrityChecker.Snapshot after = sic.capture(this::readPlanNames);
         sic.assertNoLossOrDup(before, after);
+        // Explicit size invariant on top of the integrity check: a pure UI
+        // round-trip must neither lose nor invent plan entries.
+        assertTrue(after.size() == before.size(),
+            "Plan list size must be identical after a dashboard round-trip. Before="
+            + before.size() + " after=" + after.size());
         logStepWithScreenshot("TC_WOP_015: Plan list integrity verified");
     }
 

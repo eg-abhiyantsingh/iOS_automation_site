@@ -3054,6 +3054,24 @@ public class IssuePage extends BasePage {
             return;
         } catch (Exception ignored) {}
 
+        // Strategy 2b (v1.36 SwiftUI: issue rows are BUTTONS, not Cells — same root
+        // cause fixed in tapFirstIssue, commit 36f7926): tap the row button whose
+        // label contains the title. Skip nav-bar buttons (Y < 150).
+        try {
+            List<WebElement> rowBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label CONTAINS '" + title + "'"));
+            for (WebElement btn : rowBtns) {
+                try {
+                    int y = btn.getLocation().getY();
+                    if (y < 150) continue; // nav bar / header chrome
+                    btn.click();
+                    sleep(500);
+                    System.out.println("✅ Tapped issue row button at Y=" + y + ": " + title);
+                    return;
+                } catch (Exception ignore) {}
+            }
+        } catch (Exception ignored) {}
+
         // Strategy 3: Named issue not found — tap the first issue cell in the list.
         // Cell labels are often null in iOS, so use Y position + cell height to identify
         // issue cells (they're below the filter tabs and taller than nav/header cells).
@@ -5741,17 +5759,26 @@ public class IssuePage extends BasePage {
                     }
                 } catch (Exception e) {}
 
-                // Try case-insensitive CONTAINS
+                // Try case-insensitive CONTAINS — but skip issue-LIST rows that bleed
+                // through behind the sheet ("NEC Violation on ATS 2") and long labels.
+                // Same exclusion pattern as readIssueClassOptions (commit 0ae447f):
+                // clicking a bleed-through row instead of the picker option was why
+                // changeIssueClassOnDetails silently failed to change the class.
                 try {
                     List<WebElement> options = driver.findElements(AppiumBy.iOSNsPredicateString(
                         typeFilter + " AND label CONTAINS[c] '" + newClass + "'"));
-                    if (!options.isEmpty()) {
-                        options.get(0).click();
+                    for (WebElement opt : options) {
+                        String l = opt.getAttribute("label");
+                        if (l == null) continue;
+                        l = l.trim();
+                        if (l.contains(" on ") || l.contains(",") || l.length() > 35) continue;
+                        opt.click();
                         sleep(300);
                         selected = true;
-                        System.out.println("✅ Selected Issue Class: " + newClass + " (contains match)");
+                        System.out.println("✅ Selected Issue Class: " + newClass + " (contains match: '" + l + "')");
                         break;
                     }
+                    if (selected) break;
                 } catch (Exception e2) {}
 
                 if (!selected && attempt < 2) {

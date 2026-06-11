@@ -1192,40 +1192,48 @@ public class WorkOrderPage extends BasePage {
     }
 
     /**
-     * Check if session stats cards are displayed (Tasks, Issues, IR Photos).
-     * Returns true if at least Tasks and Issues stats are visible.
+     * Check if session stats cards are displayed (Assets / Tasks / Issues / IR Photos —
+     * the exact card set varies by build; current builds show an Assets card).
+     * Returns true if at least two stat-card labels are visible.
+     *
+     * TC_WOP_012 root cause: this used to require exactly Tasks && Issues — the
+     * current build's cards are Assets/Issues/IR Photos, so it reported "no
+     * stats" on a perfectly good Session Details screen (and, per B3, a bare
+     * Tasks+Issues label match can also false-positive on the dashboard
+     * Quick-Action tiles, which carry no numeric counts — so we additionally
+     * require a numeric count near at least one matched label).
      */
     public boolean isSessionStatsDisplayed() {
-        boolean hasTasks = false;
-        boolean hasIssues = false;
-        boolean hasIRPhotos = false;
+        String[] statCards = {"Assets", "Tasks", "Issues", "IR Photos"};
+        java.util.List<String> found = new java.util.ArrayList<>();
 
-        // Check "Tasks" stat card
-        try {
-            List<WebElement> taskLabels = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND label == 'Tasks'"
-            ));
-            hasTasks = !taskLabels.isEmpty();
-        } catch (Exception e) { /* continue */ }
+        for (String stat : statCards) {
+            try {
+                List<WebElement> labels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND "
+                    + ("IR Photos".equals(stat)
+                        ? "(label == 'IR Photos' OR label CONTAINS 'IR Photo')"
+                        : "label == '" + stat + "'")
+                ));
+                if (!labels.isEmpty()) {
+                    found.add(stat);
+                }
+            } catch (Exception e) { /* continue */ }
+        }
 
-        // Check "Issues" stat card
-        try {
-            List<WebElement> issueLabels = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND label == 'Issues'"
-            ));
-            hasIssues = !issueLabels.isEmpty();
-        } catch (Exception e) { /* continue */ }
+        // B3 guard: dashboard Quick-Action tiles are also labelled Tasks/Issues.
+        // Real stat cards render a numeric count next to/above the label.
+        boolean anyNumeric = false;
+        for (String stat : found) {
+            if (getStatCardCount(stat) != null) {
+                anyNumeric = true;
+                break;
+            }
+        }
 
-        // Check "IR Photos" stat card
-        try {
-            List<WebElement> irLabels = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND (label == 'IR Photos' OR label CONTAINS 'IR Photo')"
-            ));
-            hasIRPhotos = !irLabels.isEmpty();
-        } catch (Exception e) { /* continue */ }
-
-        System.out.println("📊 Session stats: Tasks=" + hasTasks + ", Issues=" + hasIssues + ", IR Photos=" + hasIRPhotos);
-        return hasTasks && hasIssues;
+        System.out.println("📊 Session stats labels found: " + found
+            + ", numeric count near a label: " + anyNumeric);
+        return found.size() >= 2 && anyNumeric;
     }
 
     /**
@@ -1262,6 +1270,27 @@ public class WorkOrderPage extends BasePage {
         } catch (Exception e) {
             System.out.println("⚠️ Error getting stat count for '" + statName + "': " + e.getMessage());
         }
+
+        // SwiftUI combined-label variant (B1 pattern): the count and the label can
+        // render as ONE StaticText, e.g. "5 Assets" or "Issues: 2".
+        try {
+            List<WebElement> combined = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label MATCHES '^\\\\d+\\\\s*" + statName + ".*' "
+                + "OR label MATCHES '^" + statName + "\\\\s*:?\\\\s*\\\\d+$')"
+            ));
+            for (WebElement el : combined) {
+                String label = el.getAttribute("label");
+                if (label != null) {
+                    String digits = label.replaceAll("[^0-9]", "");
+                    if (!digits.isEmpty()) {
+                        System.out.println("📊 Stat '" + statName + "' count (combined label): " + digits);
+                        return digits;
+                    }
+                }
+            }
+        } catch (Exception e) { /* continue */ }
+
         return null;
     }
 
@@ -2012,22 +2041,16 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Checking if Locations tab content is displayed...");
 
         // Strategy 1: Look for building entries (text containing "floor" or "floors")
-        try {
-            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND "
-                + "(label CONTAINS ' floor' OR label CONTAINS ' Floor' "
-                + "OR label CONTAINS 'building' OR label CONTAINS 'Building' "
-                + "OR label CONTAINS 'No Location')"
-            ));
-            for (WebElement el : elements) {
-                int y = el.getLocation().getY();
-                if (y > 200) { // Below nav bar and tabs
-                    System.out.println("✅ Locations tab content found: "
-                        + el.getAttribute("label"));
-                    return true;
-                }
-            }
-        } catch (Exception e) { /* continue */ }
+        if (hasLocationsContentMarker()) {
+            return true;
+        }
+
+        // Strategy 1b (B6): building rows can sit pages below the fold on the
+        // giant session Assets/Locations tree — scroll them into view natively
+        // (no whole-tree snapshot) and re-probe.
+        if (ensureLocationsBuildingsVisible() && hasLocationsContentMarker()) {
+            return true;
+        }
 
         // Strategy 2: Look for cells in content area below tabs
         try {
@@ -2068,6 +2091,95 @@ public class WorkOrderPage extends BasePage {
         return false;
     }
 
+    /** Locator for a building row's "N floor(s)" sub-label on the Locations tab. */
+    private static final String LOCATIONS_FLOOR_ROW_PREDICATE =
+        "type == 'XCUIElementTypeStaticText' AND "
+        + "(label CONTAINS ' floor' OR label CONTAINS ' Floor')";
+
+    /**
+     * Quick (zero-implicit-wait) probe for Locations tab content markers:
+     * building rows, "No Location" section, or "building" texts below the tabs.
+     */
+    private boolean hasLocationsContentMarker() {
+        return withImplicitWait(0, () -> {
+            try {
+                List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND "
+                    + "(label CONTAINS ' floor' OR label CONTAINS ' Floor' "
+                    + "OR label CONTAINS 'building' OR label CONTAINS 'Building' "
+                    + "OR label CONTAINS 'No Location')"
+                ));
+                for (WebElement el : elements) {
+                    int y = el.getLocation().getY();
+                    if (y > 200) { // Below nav bar and tabs
+                        System.out.println("✅ Locations tab content found: "
+                            + el.getAttribute("label"));
+                        return true;
+                    }
+                }
+            } catch (Exception e) { /* fall through */ }
+            return false;
+        });
+    }
+
+    /**
+     * B6 root-cause helper: the session Assets/Locations tab renders a giant,
+     * deeply nested SwiftUI tree AND the building rows sit several pages below
+     * the fold, so whole-tree queries at the global implicit wait can crawl or
+     * time out and "0 buildings" comes back even though buildings exist.
+     *
+     * This uses the project's documented deep-element technique — native
+     * {@code mobile: scroll} with a predicateString (XCUIElementQuery, no
+     * whole-tree snapshot) — to bring a building row ("N floors" label) into
+     * view, then falls back to bounded page swipes (buildings were measured
+     * ~6 pages down) probing each page at zero implicit wait.
+     *
+     * @return true if a building row is now on screen
+     */
+    private boolean ensureLocationsBuildingsVisible() {
+        org.openqa.selenium.By floorRow =
+            AppiumBy.iOSNsPredicateString(LOCATIONS_FLOOR_ROW_PREDICATE);
+
+        // Already visible? (miss costs milliseconds, not the implicit wait)
+        if (existsNow(floorRow)) {
+            return true;
+        }
+
+        // Strategy 1: native scroll-to-element — evaluated inside XCUITest,
+        // avoids dumping the giant tree over HTTP.
+        try {
+            java.util.Map<String, Object> scrollParams = new java.util.HashMap<>();
+            scrollParams.put("predicateString", LOCATIONS_FLOOR_ROW_PREDICATE);
+            scrollParams.put("direction", "down");
+            driver.executeScript("mobile: scroll", scrollParams);
+            sleep(300);
+            if (existsNow(floorRow)) {
+                System.out.println("✅ Building rows reached via mobile:scroll");
+                return true;
+            }
+        } catch (Exception e) {
+            System.out.println("  mobile:scroll to buildings failed: " + e.getMessage());
+        }
+
+        // Strategy 2: bounded page swipes with a cheap probe per page.
+        for (int page = 0; page < 6; page++) {
+            try {
+                driver.executeScript("mobile: swipe",
+                    java.util.Map.of("direction", "up"));
+            } catch (Exception e) {
+                break;
+            }
+            sleep(400); // let the list settle
+            if (existsNow(floorRow)) {
+                System.out.println("✅ Building rows reached after " + (page + 1) + " swipe(s)");
+                return true;
+            }
+        }
+
+        System.out.println("⚠️ Could not bring building rows into view");
+        return false;
+    }
+
     /**
      * Get building entries on the Locations tab.
      * Each building is identified by its cell or text containing floor count.
@@ -2077,8 +2189,13 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Getting building names on Assets tab...");
         java.util.List<String> buildings = new java.util.ArrayList<>();
 
-        // Reduce implicit wait for faster element searches during this method
-        driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(500));
+        // B6: bring building rows into view first (they can be pages below the
+        // fold) — otherwise the queries below legitimately find 0 buildings.
+        ensureLocationsBuildingsVisible();
+
+        // Zero implicit wait: rows are confirmed present (or absent) above, so
+        // a miss here must cost milliseconds, not the global implicit wait.
+        driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(0));
         try {
             // Step 1: Collect floor text Y positions
             List<WebElement> floorTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
@@ -2240,6 +2357,19 @@ public class WorkOrderPage extends BasePage {
     public java.util.Map<String, String> getLocationsBuildingInfo(int index) {
         System.out.println("📍 Getting building info at index " + index + "...");
 
+        // Strategy 1 (SwiftUI — B1 root cause): the v1.36+ build renders ZERO
+        // XCUIElementTypeCell; building rows are Other/StaticText. Anchor on
+        // the "N floors" sub-label and read the row's name/icon/chevron by Y
+        // proximity (same proven pattern as getLocationsBuildingNames).
+        try {
+            java.util.Map<String, String> swiftUiInfo = getBuildingInfoFromFloorRow(index);
+            if (swiftUiInfo != null) {
+                System.out.println("📊 Building " + index + " info (SwiftUI row): " + swiftUiInfo);
+                return swiftUiInfo;
+            }
+        } catch (Exception e) { /* fall through to legacy cell strategy */ }
+
+        // Strategy 2 (legacy UIKit cells)
         try {
             // Find cells that represent buildings (have floor count text)
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
@@ -2338,11 +2468,94 @@ public class WorkOrderPage extends BasePage {
     }
 
     /**
+     * SwiftUI building-row reader: anchors on the index-th "N floors" label and
+     * collects name / floorCount / hasIcon / hasChevron from elements in the same
+     * row band (±60px). Runs at zero implicit wait so misses cost milliseconds.
+     * @return the info map, or null if the index-th building row isn't on screen
+     */
+    private java.util.Map<String, String> getBuildingInfoFromFloorRow(int index) {
+        ensureLocationsBuildingsVisible();
+        return withImplicitWait(0, () -> {
+            List<WebElement> floorTexts = driver.findElements(
+                AppiumBy.iOSNsPredicateString(LOCATIONS_FLOOR_ROW_PREDICATE));
+            java.util.List<WebElement> valid = new java.util.ArrayList<>();
+            for (WebElement ft : floorTexts) {
+                try {
+                    if (ft.getLocation().getY() > 150) valid.add(ft);
+                } catch (Exception ignored) { /* stale */ }
+            }
+            if (index >= valid.size()) {
+                System.out.println("⚠️ Building index " + index
+                    + " out of bounds (found " + valid.size() + " SwiftUI building rows)");
+                return null;
+            }
+
+            WebElement floorText = valid.get(index);
+            int floorY = floorText.getLocation().getY();
+            String floorLabel = floorText.getAttribute("label");
+            String digits = floorLabel == null ? "" : floorLabel.replaceAll("[^0-9]", "");
+
+            java.util.Map<String, String> info = new java.util.HashMap<>();
+            info.put("floorCount", digits.isEmpty() ? "0" : digits);
+
+            // Building name: nearest non-count StaticText in the row band
+            String name = null;
+            try {
+                List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' "
+                    + "AND NOT (label CONTAINS ' floor') AND NOT (label CONTAINS ' Floor') "
+                    + "AND NOT (label CONTAINS ' room') AND NOT (label CONTAINS ' asset') "
+                    + "AND label.length > 2"
+                ));
+                for (WebElement t : texts) {
+                    try {
+                        if (Math.abs(t.getLocation().getY() - floorY) < 60) {
+                            String label = t.getAttribute("label");
+                            if (label != null && !label.matches("\\d+")) {
+                                name = label;
+                                break;
+                            }
+                        }
+                    } catch (Exception ignored) { /* stale */ }
+                }
+            } catch (Exception ignored) { /* keep name == null */ }
+            info.put("name", name != null ? name : "Unknown");
+
+            // Icon / chevron: images (or disclosure indicators) in the row band
+            boolean hasIcon = false;
+            boolean hasChevron = false;
+            try {
+                List<WebElement> indicators = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeImage' OR type == 'XCUIElementTypeDisclosureIndicator'"
+                ));
+                for (WebElement img : indicators) {
+                    try {
+                        if (Math.abs(img.getLocation().getY() - floorY) >= 60) continue;
+                        String n = img.getAttribute("name");
+                        if (n != null && (n.contains("chevron") || n.contains("disclosure")
+                                || n.contains("arrow"))) {
+                            hasChevron = true;
+                        } else {
+                            hasIcon = true;
+                        }
+                    } catch (Exception ignored) { /* stale */ }
+                }
+            } catch (Exception ignored) { /* defaults stay false */ }
+            info.put("hasIcon", hasIcon ? "true" : "false");
+            info.put("hasChevron", hasChevron ? "true" : "false");
+            return info;
+        });
+    }
+
+    /**
      * Tap on a building at a specific index on the Locations tab to expand/collapse it.
      * Returns true if tapped successfully.
      */
     public boolean tapLocationsBuildingAtIndex(int index) {
         System.out.println("📍 Tapping building at index " + index + "...");
+
+        // B6: make sure the building rows are actually on screen first
+        ensureLocationsBuildingsVisible();
 
         // Strategy 1: Find "N floors" text, use parent to find and tap building name
         try {
@@ -2435,6 +2648,45 @@ public class WorkOrderPage extends BasePage {
      */
     public boolean isLocationsBuildingExpanded(int index) {
         System.out.println("📍 Checking if building " + index + " is expanded...");
+
+        // Strategy 0 (SwiftUI — B1): zero cells in the v1.36+ build. Anchor on the
+        // index-th "N floors" label; the building is expanded when floor entries
+        // ("Floor ..." / "N room(s)" labels) render just below it.
+        try {
+            Boolean expanded = withImplicitWait(0, () -> {
+                List<WebElement> floorTexts = driver.findElements(
+                    AppiumBy.iOSNsPredicateString(LOCATIONS_FLOOR_ROW_PREDICATE));
+                java.util.List<WebElement> valid = new java.util.ArrayList<>();
+                for (WebElement ft : floorTexts) {
+                    try {
+                        if (ft.getLocation().getY() > 150) valid.add(ft);
+                    } catch (Exception ignored) { /* stale */ }
+                }
+                if (index >= valid.size()) return false;
+                int rowY = valid.get(index).getLocation().getY();
+
+                List<WebElement> floorEntries = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' "
+                    + "AND (label CONTAINS ' room' OR label CONTAINS 'Room' "
+                    + "OR label CONTAINS 'Floor_' OR label BEGINSWITH 'Floor ')"
+                ));
+                for (WebElement entry : floorEntries) {
+                    try {
+                        int y = entry.getLocation().getY();
+                        if (y > rowY + 10 && y < rowY + 300) {
+                            System.out.println("✅ Building " + index
+                                + " is expanded (SwiftUI) — floor entry at Y=" + y
+                                + ": " + entry.getAttribute("label"));
+                            return true;
+                        }
+                    } catch (Exception ignored) { /* stale */ }
+                }
+                return false;
+            });
+            if (Boolean.TRUE.equals(expanded)) {
+                return true;
+            }
+        } catch (Exception e) { /* fall through to legacy cell strategy */ }
 
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
@@ -2675,6 +2927,44 @@ public class WorkOrderPage extends BasePage {
      */
     public boolean isBuildingRowAddButtonDisplayed(int index) {
         System.out.println("📍 Checking + button on building row " + index + "...");
+
+        // Strategy 0 (SwiftUI — B1): zero cells in the v1.36+ build. Anchor on
+        // the index-th "N floors" label and look for a plus button/icon in the
+        // same row band (±60px). Zero implicit wait so misses cost ms.
+        try {
+            ensureLocationsBuildingsVisible();
+            Boolean found = withImplicitWait(0, () -> {
+                List<WebElement> floorTexts = driver.findElements(
+                    AppiumBy.iOSNsPredicateString(LOCATIONS_FLOOR_ROW_PREDICATE));
+                java.util.List<WebElement> valid = new java.util.ArrayList<>();
+                for (WebElement ft : floorTexts) {
+                    try {
+                        if (ft.getLocation().getY() > 150) valid.add(ft);
+                    } catch (Exception ignored) { /* stale */ }
+                }
+                if (index >= valid.size()) return false;
+                int rowY = valid.get(index).getLocation().getY();
+
+                List<WebElement> plusEls = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeImage') AND "
+                    + "(label == '+' OR label == 'Add' OR label == 'plus' "
+                    + "OR name CONTAINS 'plus' OR name CONTAINS 'add')"
+                ));
+                for (WebElement plus : plusEls) {
+                    try {
+                        if (Math.abs(plus.getLocation().getY() - rowY) < 60) {
+                            System.out.println("✅ + button found on SwiftUI building row "
+                                + index + " (name='" + plus.getAttribute("name") + "')");
+                            return true;
+                        }
+                    } catch (Exception ignored) { /* stale */ }
+                }
+                return false;
+            });
+            if (Boolean.TRUE.equals(found)) {
+                return true;
+            }
+        } catch (Exception e) { /* fall through to legacy cell strategies */ }
 
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
@@ -3155,12 +3445,15 @@ public class WorkOrderPage extends BasePage {
      * Wait for the Assets in Room screen to appear (up to 10 seconds).
      */
     public boolean waitForAssetsInRoomScreen() {
-        for (int i = 0; i < 20; i++) {
-            if (isAssetsInRoomScreenDisplayed()) return true;
-            try { Thread.sleep(500); } catch (InterruptedException e) { break; }
+        // Condition-based wait at ZERO implicit wait: each probe runs 3 fallback
+        // findElements, so one polling pass used to burn 3 × implicit wait (15s+)
+        // when the screen wasn't there — the loop's worst case was minutes.
+        boolean shown = withImplicitWait(0, () ->
+            com.egalvanic.utils.Waits.until(this::isAssetsInRoomScreenDisplayed, 10_000, 250));
+        if (!shown) {
+            System.out.println("⚠️ Assets in Room screen did not appear within 10 seconds");
         }
-        System.out.println("⚠️ Assets in Room screen did not appear within 10 seconds");
-        return false;
+        return shown;
     }
 
     /**
@@ -4486,12 +4779,14 @@ public class WorkOrderPage extends BasePage {
      * Wait for the Add Assets screen to appear (up to 10 seconds).
      */
     public boolean waitForAddAssetsScreen() {
-        for (int i = 0; i < 20; i++) {
-            if (isAddAssetsScreenDisplayed()) return true;
-            try { Thread.sleep(500); } catch (InterruptedException e) { break; }
+        // Condition-based wait at zero implicit wait (probe misses cost ms, not
+        // the multi-strategy × implicit-wait worst case).
+        boolean shown = withImplicitWait(0, () ->
+            com.egalvanic.utils.Waits.until(this::isAddAssetsScreenDisplayed, 10_000, 250));
+        if (!shown) {
+            System.out.println("⚠️ Add Assets screen did not appear within 10 seconds");
         }
-        System.out.println("⚠️ Add Assets screen did not appear within 10 seconds");
-        return false;
+        return shown;
     }
 
     /**
@@ -5738,17 +6033,19 @@ public class WorkOrderPage extends BasePage {
      * If the sheet doesn't appear, retries tapping the Add Asset Type button once.
      */
     public boolean waitForSelectAssetTypeSheet() {
-        // Wait up to 2 seconds for sheet to appear
-        for (int i = 0; i < 4; i++) {
-            if (isSelectAssetTypeSheetDisplayed()) return true;
-            try { Thread.sleep(500); } catch (InterruptedException e) { break; }
+        // Wait up to 2 seconds for sheet to appear (zero implicit wait — the old
+        // double sleep-loop probed 4-6 fallback locators per pass, each miss
+        // burning the global implicit wait)
+        if (withImplicitWait(0, () ->
+                com.egalvanic.utils.Waits.until(this::isSelectAssetTypeSheetDisplayed, 2_000, 250))) {
+            return true;
         }
         // Retry: tap button again and wait up to 2 seconds
         System.out.println("📍 Retrying tap on Add Asset Type button...");
         tapAddAssetTypeButton();
-        for (int i = 0; i < 4; i++) {
-            if (isSelectAssetTypeSheetDisplayed()) return true;
-            try { Thread.sleep(500); } catch (InterruptedException e) { break; }
+        if (withImplicitWait(0, () ->
+                com.egalvanic.utils.Waits.until(this::isSelectAssetTypeSheetDisplayed, 2_000, 250))) {
+            return true;
         }
         System.out.println("⚠️ Select Asset Type sheet did not appear after retry");
         return false;
@@ -9118,12 +9415,13 @@ public class WorkOrderPage extends BasePage {
      * Wait for the New Asset form to appear (up to 10 seconds).
      */
     public boolean waitForSessionNewAssetForm() {
-        for (int i = 0; i < 20; i++) {
-            if (isSessionNewAssetFormDisplayed()) return true;
-            try { Thread.sleep(500); } catch (InterruptedException e) { break; }
+        // Condition-based wait at zero implicit wait.
+        boolean shown = withImplicitWait(0, () ->
+            com.egalvanic.utils.Waits.until(this::isSessionNewAssetFormDisplayed, 10_000, 250));
+        if (!shown) {
+            System.out.println("⚠️ New Asset form did not appear within 10 seconds");
         }
-        System.out.println("⚠️ New Asset form did not appear within 10 seconds");
-        return false;
+        return shown;
     }
 
     /**
@@ -12783,6 +13081,37 @@ public class WorkOrderPage extends BasePage {
     public boolean deactivateActiveJob() {
         System.out.println("📍 Attempting to deactivate active job...");
 
+        // Strategy 0 (TC_WOP_009 root cause): the app's real control is the
+        // red "END" button (dashboard Active-Job banner / Session Details) —
+        // there is no button labelled "Deactivate"/"End Session"/"End Job" on
+        // screen, so the old label search never matched. Tap END, then confirm
+        // the "Clear Active Job?" dialog via its Deactivate button.
+        try {
+            List<WebElement> endBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') "
+                + "AND (label == 'END' OR label == 'End')"
+            ));
+            if (!endBtns.isEmpty()) {
+                endBtns.get(0).click();
+                System.out.println("✅ Tapped END button on active-job banner/session");
+                sleep(600);
+                // Confirm "Clear Active Job?" dialog (Cancel | Deactivate)
+                if (!tapClearActiveJobDeactivate()) {
+                    // Some builds confirm with End / End Session instead
+                    try {
+                        WebElement confirm = driver.findElement(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeButton' AND "
+                            + "(label == 'End' OR label == 'END' OR label CONTAINS 'End Session')"
+                        ));
+                        confirm.click();
+                        System.out.println("✅ Confirmed end-session dialog");
+                    } catch (Exception noDialog) { /* END acted directly */ }
+                }
+                sleep(800);
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
         // Strategy 1: "Deactivate" button on the Work Orders list screen
         try {
             List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
@@ -12846,14 +13175,37 @@ public class WorkOrderPage extends BasePage {
      * Returns true if an ACTIVE badge is found.
      */
     public boolean isAnyJobActive() {
+        // Work Orders list variant: an ACTIVE badge on a row
         try {
             List<WebElement> activeBadges = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND (label == 'ACTIVE' OR label == 'Active')"
             ));
-            return !activeBadges.isEmpty();
-        } catch (Exception e) {
-            return false;
-        }
+            if (!activeBadges.isEmpty()) {
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        // Dashboard variant (state-agnostic, B5): the "Active Job" banner with
+        // its END button. Must exclude the "No Active Job/Work Order" empty
+        // card, whose label also CONTAINS 'Active'.
+        try {
+            List<WebElement> banner = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label CONTAINS 'Active Job' OR label CONTAINS 'Active Work Order') "
+                + "AND NOT (label CONTAINS[c] 'no active')"
+            ));
+            if (!banner.isEmpty()) {
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        try {
+            if (isActiveJobEndButtonDisplayed()) {
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
+        return false;
     }
 
     // ================================================================
@@ -13497,14 +13849,12 @@ public class WorkOrderPage extends BasePage {
      */
     public boolean waitForNewJobScreen() {
         System.out.println("📍 Waiting for New Job screen...");
-        for (int i = 0; i < 20; i++) {
-            if (isNewJobScreenDisplayed()) {
-                return true;
-            }
-            try { Thread.sleep(500); } catch (InterruptedException e) { break; }
+        boolean shown = withImplicitWait(0, () ->
+            com.egalvanic.utils.Waits.until(this::isNewJobScreenDisplayed, 10_000, 250));
+        if (!shown) {
+            System.out.println("⚠️ New Job screen did not appear within 10 seconds");
         }
-        System.out.println("⚠️ New Job screen did not appear within 10 seconds");
-        return false;
+        return shown;
     }
 
     /**
@@ -17909,12 +18259,12 @@ public class WorkOrderPage extends BasePage {
      */
     public boolean waitForLinkTasksScreen() {
         System.out.println("📍 Waiting for Link Tasks screen...");
-        for (int i = 0; i < 20; i++) {
-            if (isLinkTasksScreenDisplayed()) return true;
-            try { Thread.sleep(500); } catch (InterruptedException e) { break; }
+        boolean shown = withImplicitWait(0, () ->
+            com.egalvanic.utils.Waits.until(this::isLinkTasksScreenDisplayed, 10_000, 250));
+        if (!shown) {
+            System.out.println("⚠️ Link Tasks screen did not appear within 10s");
         }
-        System.out.println("⚠️ Link Tasks screen did not appear within 10s");
-        return false;
+        return shown;
     }
 
     /**
@@ -18768,12 +19118,12 @@ public class WorkOrderPage extends BasePage {
      */
     public boolean waitForCreateTaskDialog() {
         System.out.println("📍 Waiting for Create Task dialog...");
-        for (int i = 0; i < 10; i++) {
-            if (isCreateTaskDialogDisplayed()) return true;
-            try { Thread.sleep(500); } catch (InterruptedException e) { break; }
+        boolean shown = withImplicitWait(0, () ->
+            com.egalvanic.utils.Waits.until(this::isCreateTaskDialogDisplayed, 5_000, 250));
+        if (!shown) {
+            System.out.println("⚠️ Create Task dialog did not appear within timeout");
         }
-        System.out.println("⚠️ Create Task dialog did not appear within timeout");
-        return false;
+        return shown;
     }
 
     /**
@@ -19146,12 +19496,12 @@ public class WorkOrderPage extends BasePage {
      */
     public boolean waitForNewSimpleTaskScreen() {
         System.out.println("📍 Waiting for New Simple Task screen...");
-        for (int i = 0; i < 10; i++) {
-            if (isNewSimpleTaskScreenDisplayed()) return true;
-            try { Thread.sleep(500); } catch (InterruptedException e) { break; }
+        boolean shown = withImplicitWait(0, () ->
+            com.egalvanic.utils.Waits.until(this::isNewSimpleTaskScreenDisplayed, 5_000, 250));
+        if (!shown) {
+            System.out.println("⚠️ New Simple Task screen did not appear");
         }
-        System.out.println("⚠️ New Simple Task screen did not appear");
-        return false;
+        return shown;
     }
 
     /**
@@ -19695,12 +20045,12 @@ public class WorkOrderPage extends BasePage {
      */
     public boolean waitForNewComplexTaskScreen() {
         System.out.println("📍 Waiting for New Complex Task screen...");
-        for (int i = 0; i < 10; i++) {
-            if (isNewComplexTaskScreenDisplayed()) return true;
-            try { Thread.sleep(500); } catch (InterruptedException e) { break; }
+        boolean shown = withImplicitWait(0, () ->
+            com.egalvanic.utils.Waits.until(this::isNewComplexTaskScreenDisplayed, 5_000, 250));
+        if (!shown) {
+            System.out.println("⚠️ New Complex Task screen did not appear");
         }
-        System.out.println("⚠️ New Complex Task screen did not appear");
-        return false;
+        return shown;
     }
 
     /**
@@ -21075,12 +21425,12 @@ public class WorkOrderPage extends BasePage {
      */
     public boolean waitForNewIssueScreen() {
         System.out.println("📍 Waiting for New Issue screen...");
-        for (int i = 0; i < 10; i++) {
-            if (isNewIssueScreenDisplayed()) return true;
-            try { Thread.sleep(500); } catch (InterruptedException e) { break; }
+        boolean shown = withImplicitWait(0, () ->
+            com.egalvanic.utils.Waits.until(this::isNewIssueScreenDisplayed, 5_000, 250));
+        if (!shown) {
+            System.out.println("⚠️ New Issue screen did not appear");
         }
-        System.out.println("⚠️ New Issue screen did not appear");
-        return false;
+        return shown;
     }
 
     /**
