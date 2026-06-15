@@ -331,14 +331,34 @@ public abstract class BasePage {
 
     /**
      * Wait for a condition to be true (generic explicit wait)
+     *
+     * The polling loop owns the timeout, so the implicit wait is dropped to 0 for
+     * its duration — otherwise every findElement miss inside the condition burns
+     * the global 5s implicit wait and a "10s" wait polls at most twice. The
+     * caller-supplied timeoutSeconds cap is unchanged.
      */
     protected boolean waitForCondition(java.util.function.Supplier<Boolean> condition, int timeoutSeconds) {
-        try {
-            WebDriverWait conditionWait = new WebDriverWait(driver, Duration.ofSeconds(timeoutSeconds));
-            return conditionWait.until(d -> condition.get());
-        } catch (Exception e) {
+        return withImplicitWait(0, () -> {
+            long deadline = System.currentTimeMillis() + (timeoutSeconds * 1000L);
+            while (System.currentTimeMillis() < deadline) {
+                try {
+                    if (Boolean.TRUE.equals(condition.get())) {
+                        return true;
+                    }
+                } catch (Exception ignored) {
+                    // Element may not exist yet — keep polling
+                }
+                // Real pause between probes — sleep() below is an intentional no-op,
+                // and a WebDriverWait-on-no-op delay busy-spins the loop.
+                try {
+                    Thread.sleep(250);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
             return false;
-        }
+        });
     }
 
     /**
@@ -367,6 +387,9 @@ public abstract class BasePage {
 
     /**
      * Custom wait - uses explicit wait polling (CI-safe)
+     * NOTE: until(d -> true) returns immediately — this is an INTENTIONAL no-op kept
+     * for the 1,100+ legacy call sites (real pauses would add ~6 min/run). Never use
+     * it as a polling delay; loops must pause with a real Thread.sleep or utils/Waits.
      */
     protected void sleep(int milliseconds) {
         new WebDriverWait(driver, Duration.ofMillis(milliseconds))

@@ -22,14 +22,61 @@ public final class Issue_Phase1_Test extends BaseTest {
     // SETUP / TEARDOWN
     // ================================================================
 
+    /** Title of the API-seeded issue (B6); null when API seeding was unavailable. */
+    private static String apiSeededIssueTitle;
+    /** One-shot guard for the UI fallback seed in issueTestSetup. */
+    private static boolean uiSeedChecked;
+
     @BeforeClass(alwaysRun = true)
     public void issueTestSuiteSetup() {
         System.out.println("\n📋 Issues Test Suite - Starting");
         DriverManager.setNoReset(true);
+        seedIssueViaApi();
+    }
+
+    /**
+     * B6 (deterministic test data): one CI job ran all 26 Phase1 tests against
+     * an EMPTY issue list (earlier swipe-delete tests had emptied it) and they
+     * passed vacuously. Seed one known issue through the backend before any UI
+     * runs. Never fails the class: with no API reachability (offline CI,
+     * sandbox) we fall through to the one-shot UI seed in issueTestSetup, and
+     * tests that truly need an issue SKIP via openFirstIssueOrSkip().
+     */
+    private void seedIssueViaApi() {
+        try {
+            com.egalvanic.api.TestDataApi api = new com.egalvanic.api.TestDataApi();
+            api.login();
+            // loginAndSelectSite() picks the FIRST site, so default to the first
+            // SLD; -Dseed.sldName pins a specific site when orderings diverge.
+            String sldName = System.getProperty("seed.sldName");
+            String sldId = (sldName != null && !sldName.isEmpty())
+                    ? api.findSldIdByName(sldName) : api.firstSldId();
+            if (sldId == null) {
+                System.out.println("⚠️ Issue seeding: no SLD visible to the QA user — skipping API seed");
+                return;
+            }
+            // node_id is optional server-side; attach a known asset when present
+            String nodeId = api.findAssetIdByNameFragment(sldId, "TestAsset");
+            if (nodeId == null) nodeId = api.findAssetIdByNameFragment(sldId, "Trim");
+            String title = "Seed_API_" + System.currentTimeMillis();
+            api.createIssue(sldId, nodeId, title, "medium");
+            apiSeededIssueTitle = title;
+            System.out.println("✅ Seeded issue via API: " + title
+                    + (api.getIssueByTitle(sldId, title) != null ? " (verified in SLD details)" : ""));
+        } catch (Exception e) {
+            System.out.println("⚠️ API issue seeding unavailable (" + e.getMessage()
+                    + ") — will fall back to UI seed");
+        }
     }
 
     @BeforeMethod(alwaysRun = true)
     public void issueTestSetup() {
+        // Dead-session guard: every page-object call against a dead session
+        // blocks ~90s (driver HTTP readTimeout) — bail before touching any.
+        if (!DriverManager.isDriverActive()) {
+            System.out.println("⚠️ Pre-test setup skipped — no active driver session");
+            return;
+        }
         issuePage = new IssuePage();
         // v1.36 (changelog 075): land each @Test on Issues screen.
         // BaseTest.@BeforeMethod soft-restarts the app — sometimes it lands
@@ -39,6 +86,14 @@ public final class Issue_Phase1_Test extends BaseTest {
         try {
             loginAndSelectSite();
             issuePage.navigateToIssuesScreen();
+            // B6 UI fallback (one-shot): if API seeding didn't run and the local
+            // store is empty, create one issue so list tests have real data.
+            if (!uiSeedChecked) {
+                uiSeedChecked = true;
+                if (apiSeededIssueTitle == null && issuePage.isIssueListEmpty()) {
+                    issuePage.ensureAtLeastOneIssueExists();
+                }
+            }
         } catch (Exception e) {
             System.out.println("⚠️ Pre-test setup (login + nav to Issues) failed: " + e.getMessage());
         }
@@ -53,16 +108,24 @@ public final class Issue_Phase1_Test extends BaseTest {
      */
     @AfterMethod(alwaysRun = true)
     public void dismissAnyOpenPickerOrSheet() {
-        try {
-            if (issuePage == null) return;
-            if (issuePage.isIssuesScreenDisplayed()) return;
-            // Close Select Asset picker if open
-            try { issuePage.tapCancelAssetPicker(); } catch (Exception ignored) {}
-            // Close New Issue form if open
-            try { issuePage.tapCancelNewIssue(); } catch (Exception ignored) {}
-        } catch (Exception ignored) {
-            // Never let cleanup throw — it would mask the real test failure
-        }
+        // Zombie-skip root cause (195 min burned in one CI run): with a DEAD
+        // session each page-object call below blocks ~90s (driver HTTP
+        // readTimeout) — two of them ground 55+ consecutive ~3min skips until
+        // the 6h cancel. Bail out first; budget-cap the live-session path so a
+        // session that dies mid-cleanup can't stall the next test either.
+        if (!com.egalvanic.utils.DriverManager.isDriverActive()) return;
+        runWithBudget("issues-cleanup", 30, () -> {
+            try {
+                if (issuePage == null) return;
+                if (issuePage.isIssuesScreenDisplayed()) return;
+                // Close Select Asset picker if open
+                try { issuePage.tapCancelAssetPicker(); } catch (Exception ignored) {}
+                // Close New Issue form if open
+                try { issuePage.tapCancelNewIssue(); } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+                // Never let cleanup throw — it would mask the real test failure
+            }
+        });
     }
 
     @AfterClass(alwaysRun = true)

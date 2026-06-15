@@ -415,7 +415,7 @@ jobs:
       - name: Pre-build WebDriverAgent
         run: |
           echo "Pre-building WebDriverAgent to avoid timeout on first test..."
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           
           if [ -n "$WDA_PATH" ]; then
             echo "Found WDA at: $WDA_PATH"
@@ -614,7 +614,7 @@ jobs:
               echo "✅ Traffic was captured!"
               
               # Install mitmproxy Python library for parsing
-              pip3 install mitmproxy --quiet 2>/dev/null || true
+              pip3 install --break-system-packages mitmproxy --quiet 2>/dev/null || pip3 install mitmproxy --quiet 2>/dev/null || true
               
               # Create parser script (sed strips leading 10 spaces for YAML compatibility)
               sed 's/^          //' > scripts/parse_api.py << 'PYSCRIPT'

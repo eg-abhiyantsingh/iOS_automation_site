@@ -36,6 +36,62 @@ public final class SiteSelectionTest extends BaseTest {
     @BeforeClass(alwaysRun = true)
     public void classSetup() {
         System.out.println("\n📋 Site Selection Test Suite - Starting");
+
+        // Skip app reinstall between tests — the login session survives the
+        // relaunch, so tests resume from Schedule/Dashboard instead of paying
+        // a full reinstall + UI login per test. Audited 2026-06-11: no test in
+        // this suite depends on fresh-install state (no Welcome-screen or
+        // first-launch-permission cases); if Welcome does appear (first run on
+        // a clean simulator), goToSiteSelection() falls back to the full login.
+        com.egalvanic.utils.DriverManager.setNoReset(true);
+    }
+
+    // ============================================================
+    // NAVIGATION HELPER
+    // ============================================================
+
+    /**
+     * Land on the Select Site picker from whatever screen the relaunched app
+     * resumes on. With noReset=true a full UI login is the exception
+     * (Welcome/Login only appear on a clean simulator or after a session
+     * expiry), so detect the current screen first:
+     *   - SITE_SELECTION: already there
+     *   - DASHBOARD: Sites Quick-Action opens the picker
+     *   - WELCOME/LOGIN: full login (loginAndGoToDashboard lands on the picker)
+     *   - anything else: usually the post-login Schedule screen — View Sites
+     */
+    private void goToSiteSelection() {
+        String screen = detectCurrentScreen();
+        if ("SITE_SELECTION".equals(screen)) {
+            siteSelectionPage.waitForSiteListReady();
+            return;
+        }
+        if ("DASHBOARD".equals(screen)) {
+            siteSelectionPage.clickSitesButton();
+            siteSelectionPage.waitForSiteListReady();
+            return;
+        }
+        if ("WELCOME_PAGE".equals(screen) || "LOGIN_PAGE".equals(screen)) {
+            loginAndGoToDashboard();
+            return;
+        }
+        // Most likely the post-login Schedule screen (resumed session) —
+        // View Sites lands on the picker.
+        siteSelectionPage.handleScheduleScreenIfPresent();
+        if (siteSelectionPage.isSelectSiteScreenDisplayed()) {
+            siteSelectionPage.waitForSiteListReady();
+            return;
+        }
+        // In-app somewhere else — the Sites button path knows how to return
+        // to Dashboard and open the picker; only if that fails do we pay for
+        // the full login flow.
+        try {
+            siteSelectionPage.clickSitesButton();
+            siteSelectionPage.waitForSiteListReady();
+        } catch (Exception e) {
+            System.out.println("⚠️ Sites-button recovery failed (" + e.getMessage() + ") — full login");
+            loginAndGoToDashboard();
+        }
     }
 
     // ============================================================
@@ -49,7 +105,7 @@ public final class SiteSelectionTest extends BaseTest {
                 AppConstants.FEATURE_SELECT_SITE_SCREEN,
                 "TC_SS_001 - Verify Select Site screen UI elements");
         logStep("Logging in and navigating to Sites screen");
-        loginAndGoToDashboard();
+        goToSiteSelection();
         logStepWithScreenshot("Verifying Select Site screen elements");
         assertTrue(siteSelectionPage.isSearchBarDisplayed(), "Search bar should be displayed");
         assertTrue(siteSelectionPage.isCreateNewSiteButtonDisplayed(), "Create New Site button should be displayed");
@@ -64,7 +120,7 @@ public final class SiteSelectionTest extends BaseTest {
                 "TC_SS_002 - Verify Cancel button clears search and returns to full site list");
 
         logStep("Logging in - will land on Sites selection screen");
-        loginAndGoToDashboard();
+        goToSiteSelection();
 
         logStep("Verifying site selection screen is displayed");
         assertTrue(siteSelectionPage.isSearchBarDisplayed(), "Search bar should be visible on site selection screen");
@@ -94,7 +150,7 @@ public final class SiteSelectionTest extends BaseTest {
                 "TC_SS_003 - Verify site list displays all available sites");
 
         logStep("Logging in - will land on Sites selection screen");
-        loginAndGoToDashboard();
+        goToSiteSelection();
 
         logStepWithScreenshot("Checking site list");
         int siteCount = siteSelectionPage.getSiteCount();
@@ -116,7 +172,7 @@ public final class SiteSelectionTest extends BaseTest {
                 "TC_SS_004 - Verify site entry shows name and address");
 
         logStep("Logging in - will land on Sites selection screen");
-        loginAndGoToDashboard();
+        goToSiteSelection();
 
         logStepWithScreenshot("Observing site entries");
         assertTrue(siteSelectionPage.isSiteListDisplayed(), "Site entries should be displayed with name and address");
@@ -135,7 +191,7 @@ public final class SiteSelectionTest extends BaseTest {
                 "TC_SS_005 - Verify site with info icon (Partial - color verification limited)");
 
         logStep("Logging in - will land on Sites selection screen");
-        loginAndGoToDashboard();
+        goToSiteSelection();
 
         logStepWithScreenshot("Observing site icons");
         assertTrue(siteSelectionPage.isSiteListDisplayed(), "Sites with icons should be displayed");
@@ -150,7 +206,7 @@ public final class SiteSelectionTest extends BaseTest {
                 "TC_SS_006 - Verify chevron/arrow on site entries");
 
         logStep("Logging in - will land on Sites selection screen");
-        loginAndGoToDashboard();
+        goToSiteSelection();
 
         logStepWithScreenshot("Verifying site entries have chevron");
         assertTrue(siteSelectionPage.siteHasChevron(0), "Site entries should have chevron indicating tappable");
@@ -168,7 +224,7 @@ public final class SiteSelectionTest extends BaseTest {
                 "TC_SS_007 - Verify search bar placeholder text");
 
         logStep("Logging in - will land on Sites selection screen");
-        loginAndGoToDashboard();
+        goToSiteSelection();
 
         logStepWithScreenshot("Verifying search bar placeholder");
         String placeholder = siteSelectionPage.getSearchBarPlaceholder();
@@ -183,7 +239,7 @@ public final class SiteSelectionTest extends BaseTest {
                 "TC_SS_008 - Verify search filters site list");
 
         logStep("Logging in - will land on Sites selection screen");
-        loginAndGoToDashboard();
+        goToSiteSelection();
 
         int initialCount = siteSelectionPage.getSiteCount();
         logStep("Initial site count: " + initialCount);
@@ -203,7 +259,7 @@ public final class SiteSelectionTest extends BaseTest {
                 "TC_SS_009 - Verify search is case-insensitive");
 
         logStep("Logging in - will land on Sites selection screen");
-        loginAndGoToDashboard();
+        goToSiteSelection();
 
         logStep("Searching for 'TEST' (uppercase)");
         siteSelectionPage.searchSite("TEST");
@@ -230,7 +286,7 @@ public final class SiteSelectionTest extends BaseTest {
                 "TC_SS_010 - Verify search no results state");
 
         logStep("Logging in - will land on Sites selection screen");
-        loginAndGoToDashboard();
+        goToSiteSelection();
 
         logStep("Searching for non-existent site");
         siteSelectionPage.searchSite(AppConstants.NON_EXISTENT_SITE);
@@ -248,7 +304,7 @@ public final class SiteSelectionTest extends BaseTest {
                 "TC_SS_011 - Verify clearing search shows all sites");
 
         logStep("Logging in - will land on Sites selection screen");
-        loginAndGoToDashboard();
+        goToSiteSelection();
 
         int initialCount = siteSelectionPage.getSiteCount();
         logStep("Initial site count: " + initialCount);
@@ -276,7 +332,7 @@ public final class SiteSelectionTest extends BaseTest {
                 "TC_SS_012 - Verify tapping site initiates loading");
 
         logStep("Logging in and navigating to Sites screen");
-        loginAndGoToDashboard();
+        goToSiteSelection();
 
         logStep("Tapping on a site");
         String siteName = siteSelectionPage.selectRandomSite();
@@ -295,7 +351,7 @@ public final class SiteSelectionTest extends BaseTest {
                 "TC_SS_013 - Verify loading progress indicator");
 
         logStep("Logging in and navigating to Sites screen");
-        loginAndGoToDashboard();
+        goToSiteSelection();
 
         logStep("Selecting a site to observe loading indicator");
         String siteName = siteSelectionPage.selectRandomSite();
@@ -314,7 +370,7 @@ public final class SiteSelectionTest extends BaseTest {
                 "TC_SS_014 - Verify successful site load navigates to dashboard");
 
         logStep("Logging in and navigating to Sites screen");
-        loginAndGoToDashboard();
+        goToSiteSelection();
 
         logStep("Clicking Sites button");
         siteSelectionPage.clickSitesButton();
@@ -886,7 +942,7 @@ public final class SiteSelectionTest extends BaseTest {
                 "TC_SS_038 - Verify site list loads quickly");
 
         logStep("Logging in first");
-        loginAndGoToDashboard();
+        goToSiteSelection();
 
         // Now measure how quickly the site list appears (it should already be visible)
         logStep("Checking if site list is displayed");
@@ -914,7 +970,7 @@ public final class SiteSelectionTest extends BaseTest {
                 "TC_SS_039 - Verify large site loads within reasonable time (Partial - performance depends on network)");
 
         logStep("Logging in - lands on Sites selection screen");
-        loginAndGoToDashboard();
+        goToSiteSelection();
 
         // Handle Save Password popup after login (CI/CD safe)
         dismissAnyAlert();
@@ -969,7 +1025,7 @@ public final class SiteSelectionTest extends BaseTest {
                 "TC_SS_040 - Verify small site loads quickly (Partial - performance depends on network)");
 
         logStep("Logging in - lands on Sites selection screen");
-        loginAndGoToDashboard();
+        goToSiteSelection();
 
         logStep("Waiting for site list to be ready");
         siteSelectionPage.waitForSiteListReady();
@@ -1007,7 +1063,7 @@ public final class SiteSelectionTest extends BaseTest {
                 "TC_SS_041 - Verify search performance with many sites (Partial - requires many sites)");
 
         logStep("Logging in - lands on Sites selection screen");
-        loginAndGoToDashboard();
+        goToSiteSelection();
 
         logStep("Waiting for site list to be ready");
         siteSelectionPage.waitForSiteListReady();
@@ -1081,7 +1137,7 @@ public final class SiteSelectionTest extends BaseTest {
                 "TC_SS_045 - Verify badge counts update on site change");
 
         logStep("Logging in - lands on Sites selection screen");
-        loginAndGoToDashboard();
+        goToSiteSelection();
 
         logStep("Selecting first site from list");
         siteSelectionPage.waitForSiteListReady();
@@ -1126,7 +1182,7 @@ public final class SiteSelectionTest extends BaseTest {
                 "TC_SS_047 - Verify switching to same site already loaded");
 
         logStep("Logging in - lands on Sites selection screen");
-        loginAndGoToDashboard();
+        goToSiteSelection();
 
         logStep("Searching for 'test QA 16' site");
         siteSelectionPage.waitForSiteListReady();
@@ -1167,7 +1223,7 @@ public final class SiteSelectionTest extends BaseTest {
                 "TC_SS_048 - Verify site with long name displays correctly");
 
         logStep("Logging in - lands on Sites selection screen");
-        loginAndGoToDashboard();
+        goToSiteSelection();
 
         logStep("Waiting for site list to be ready");
         siteSelectionPage.waitForSiteListReady();
@@ -1184,7 +1240,7 @@ public final class SiteSelectionTest extends BaseTest {
                 "TC_SS_049 - Verify site with long address displays correctly");
 
         logStep("Logging in - lands on Sites selection screen");
-        loginAndGoToDashboard();
+        goToSiteSelection();
 
         logStep("Waiting for site list to be ready");
         siteSelectionPage.waitForSiteListReady();
@@ -1201,7 +1257,7 @@ public final class SiteSelectionTest extends BaseTest {
                 "TC_SS_050 - Verify site with no address displays correctly");
 
         logStep("Logging in - lands on Sites selection screen");
-        loginAndGoToDashboard();
+        goToSiteSelection();
 
         logStep("Waiting for site list to be ready");
         siteSelectionPage.waitForSiteListReady();

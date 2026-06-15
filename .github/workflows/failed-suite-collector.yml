@@ -55,7 +55,7 @@ jobs:
           CREATED: ${{ github.event.workflow_run.created_at }}
           CONCLUSION: ${{ github.event.workflow_run.conclusion }}
         run: |
-          python3 -m pip install --quiet defusedxml || true
+          python3 -m pip install --quiet --break-system-packages defusedxml || python3 -m pip install --quiet defusedxml || true
 
           # Date the failed-suite by when the RUN happened (not when this fires).
           DATE="${CREATED%%T*}"

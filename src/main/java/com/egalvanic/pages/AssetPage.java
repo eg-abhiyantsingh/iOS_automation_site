@@ -2,7 +2,10 @@ package com.egalvanic.pages;
 
 import com.egalvanic.base.BasePage;
 import com.egalvanic.constants.AppConstants;
+import com.egalvanic.utils.Waits;
+import com.egalvanic.verify.VerificationError;
 import io.appium.java_client.AppiumBy;
+import org.openqa.selenium.By;
 import io.appium.java_client.pagefactory.iOSXCUITFindBy;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
@@ -147,6 +150,20 @@ public class AssetPage extends BasePage {
     private boolean toggleSearchExhausted = false;
     private static final long TOGGLE_SEARCH_MAX_MS = 15_000; // 15 seconds max total
 
+    /**
+     * Rate-limit for the cache-skip log line: callers poll findRequiredFieldsToggle()
+     * in tight loops, and the per-call println once produced 149,888 lines (95.6% of
+     * a 32MB CI log). Log the skip once per cache lifetime; reset with the cache.
+     */
+    private boolean toggleCacheSkipLogged = false;
+
+    /**
+     * Set true only when THIS page object actually clicked a Save/Save Changes
+     * button. isAssetSavedAfterEdit() must not treat "Save Changes button gone"
+     * as success when the button was never found/clicked (vacuous pass).
+     */
+    private boolean saveButtonClickedThisFlow = false;
+
     // ================================================================
     // CONSTRUCTOR
     // ================================================================
@@ -160,6 +177,7 @@ public class AssetPage extends BasePage {
      */
     public void resetToggleSearchCache() {
         this.toggleSearchExhausted = false;
+        this.toggleCacheSkipLogged = false;
     }
 
     // ================================================================
@@ -243,69 +261,340 @@ public class AssetPage extends BasePage {
     }
     
     /**
-     * TURBO: Navigate to Asset List - ultra fast (1 second timeout)
+     * TURBO: Navigate to Asset List.
+     *
+     * Step 0 — site context: the Assets tab only exists INSIDE a site. When the
+     * app is stuck on Dashboard / Site Selection / behind a sheet, every tab
+     * strategy grinds on the wrong screen ("Could not find Assets tab by label"
+     * 62/62 in the cancelled Assets P1 run, 3-8 min per test, 'Create New Site'
+     * clicked as an "asset"). Recover the site context first, then click the
+     * tab, then VERIFY the list actually rendered.
+     *
+     * Throws {@link VerificationError} when every strategy fails — it extends
+     * AssertionError so callers' catch(Exception) cannot swallow it, turning an
+     * 8-minute wrong-screen grind into a ~20s clean failure.
      */
     public void navigateToAssetListTurbo() {
         System.out.println("📦 Navigating to Asset List...");
-        
-        // First, check if we're inside an Asset Detail (Tab Bar hidden)
-        // If so, we need to close it first by clicking "Close" button
-        try {
-            WebElement closeBtn = driver.findElement(AppiumBy.accessibilityId("Close"));
-            if (closeBtn.isDisplayed()) {
+
+        // An open Asset Detail hides the tab bar — close it first (0-implicit probe)
+        if (existsNow(AppiumBy.accessibilityId("Close"))) {
+            try {
                 System.out.println("🔙 Found Close button - closing Asset Detail first...");
-                closeBtn.click();
-                sleep(300); // OPTIMIZED: 500ms -> 300ms
+                driver.findElement(AppiumBy.accessibilityId("Close")).click();
+                sleep(300);
+            } catch (Exception e) {
+                // Raced closed — fine
             }
-        } catch (Exception e) {
-            // No Close button, that's fine - we might already be on Asset List
         }
-        
-        // CORRECT WAY: Assets tab button has name="list.bullet" and label="Assets"
-        // Must use predicate to find button by label, not accessibility ID
-        try {
-            WebElement assetsTab = driver.findElement(
-                AppiumBy.iOSNsPredicateString("label == 'Assets' AND type == 'XCUIElementTypeButton'")
-            );
-            assetsTab.click();
-            sleep(300); // OPTIMIZED: 500ms -> 300ms
-            System.out.println("✅ Asset List opened");
-            return;
-        } catch (Exception e) {
-            System.out.println("⚠️ Could not find Assets tab by label: " + e.getMessage());
+
+        // STEP 0: bounded check for the bottom-nav Assets tab; absent → not in
+        // site context, so recover BEFORE running the tab-click strategies.
+        if (!isAssetsTabPresent(3)) {
+            recoverSiteContext();
         }
-        
-        // Fallback: try by accessibility ID "list.bullet" (the icon name)
-        try {
-            WebElement assetsTab = driver.findElement(AppiumBy.accessibilityId("list.bullet"));
-            assetsTab.click();
-            sleep(300); // OPTIMIZED: 500ms -> 300ms
-            System.out.println("✅ Asset List opened (via list.bullet)");
-            return;
-        } catch (Exception e2) {
-            System.out.println("⚠️ Could not find list.bullet: " + e2.getMessage());
+
+        // Click strategies + render verification; one recovery retry between passes.
+        for (int attempt = 0; attempt < 2; attempt++) {
+            if (clickAssetsTabStrategies() && verifyOnAssetList(5)) {
+                System.out.println("✅ Asset List opened");
+                return;
+            }
+            if (attempt == 0) {
+                recoverSiteContext();
+            }
         }
-        
-        // Last resort: Try clicking Site/house tab first, then Assets
-        try {
-            System.out.println("⚠️ Trying Site tab first...");
-            WebElement siteTab = driver.findElement(
-                AppiumBy.iOSNsPredicateString("label == 'Site' AND type == 'XCUIElementTypeButton'")
-            );
-            siteTab.click();
-            sleep(300); // OPTIMIZED: 500ms -> 300ms
-            
-            WebElement assetsTab = driver.findElement(
-                AppiumBy.iOSNsPredicateString("label == 'Assets' AND type == 'XCUIElementTypeButton'")
-            );
-            assetsTab.click();
-            sleep(300); // OPTIMIZED: 500ms -> 300ms
-            System.out.println("✅ Asset List opened (via Site tab)");
-        } catch (Exception e3) {
-            System.out.println("⚠️ Could not open Asset List: " + e3.getMessage());
+
+        throw new VerificationError(
+            "navigateToAssetList: could not reach the Asset List. assetsTab="
+            + isAssetsTabPresent(0) + ", sitePicker=" + isOnSiteSelectionScreen()
+            + " — aborting instead of grinding on the wrong screen.");
+    }
+
+    /**
+     * Bounded poll for the bottom-nav Assets tab (label 'Assets' / icon
+     * 'list.bullet'). Presence of this tab is the marker for "in site context".
+     */
+    private boolean isAssetsTabPresent(int timeoutSeconds) {
+        By byLabel = AppiumBy.iOSNsPredicateString("label == 'Assets' AND type == 'XCUIElementTypeButton'");
+        By byIcon = AppiumBy.accessibilityId("list.bullet");
+        return Waits.until(() -> existsNow(byLabel) || existsNow(byIcon),
+            Math.max(0, timeoutSeconds) * 1000L);
+    }
+
+    /**
+     * True when the Site Selection screen (or its sheet) is in front: the
+     * 'Search sites' field, 'Create New Site' button or 'Select Site' title.
+     * All probes are 0-implicit — this is an absence-style cascade check.
+     */
+    private boolean isOnSiteSelectionScreen() {
+        return existsNow(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeSearchField') AND " +
+                "(placeholderValue CONTAINS[c] 'search sites' OR value CONTAINS[c] 'search sites')"))
+            || existsNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND (name == 'Create New Site' OR label == 'Create New Site')"))
+            || existsNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND (name == 'Select Site' OR label == 'Select Site')"));
+    }
+
+    /**
+     * Labels that belong to the Site Selection / Site Information screens.
+     * These must NEVER be treated (or cached) as asset names — the cancelled
+     * Assets P1 run cached 'Create New Site' as the shared asset.
+     */
+    private boolean isSiteScreenLabel(String name) {
+        if (name == null) return false;
+        String n = name.trim().toLowerCase();
+        return n.equals("create new site") || n.equals("select site")
+            || n.equals("site information") || n.contains("search sites");
+    }
+
+    /**
+     * Re-establish site context: dismiss any sheet, hop to the Site (house)
+     * tab from Dashboard, and if the site picker is showing select the first
+     * available site. Ends with a bounded wait for the Assets tab.
+     */
+    private void recoverSiteContext() {
+        System.out.println("🧭 No Assets tab — not in site context. Recovering...");
+
+        // 1. Dismiss any sheet/alert hiding the tab bar (0-implicit probes)
+        for (String dismiss : new String[]{"Cancel", "Close", "xmark.circle.fill", "xmark"}) {
+            By by = AppiumBy.accessibilityId(dismiss);
+            if (existsNow(by)) {
+                try {
+                    driver.findElement(by).click();
+                    sleep(300);
+                    System.out.println("   Dismissed sheet via '" + dismiss + "'");
+                    break;
+                } catch (Exception ignored) {}
+            }
+        }
+        // Sheet without a Cancel button: swipe it down
+        if (!isAssetsTabPresent(1) && existsNow(AppiumBy.accessibilityId("Sheet Grabber"))) {
+            try {
+                driver.executeScript("mobile: swipe", Map.of("direction", "down"));
+                sleep(300);
+            } catch (Exception ignored) {}
+        }
+        if (isAssetsTabPresent(1)) {
+            return; // dismissal alone restored the tab bar
+        }
+
+        // 2. Site picker already in front? Select a site and we're in.
+        if (isOnSiteSelectionScreen()) {
+            selectFirstSiteInline();
+        } else {
+            // 3. From Dashboard: tap the Site (house) tab / Sites Quick Action
+            boolean tapped = false;
+            for (String tab : new String[]{"house.fill", "house"}) {
+                By by = AppiumBy.accessibilityId(tab);
+                if (existsNow(by)) {
+                    try { driver.findElement(by).click(); tapped = true; break; } catch (Exception ignored) {}
+                }
+            }
+            if (!tapped) {
+                By siteTab = AppiumBy.iOSNsPredicateString("label == 'Site' AND type == 'XCUIElementTypeButton'");
+                if (existsNow(siteTab)) {
+                    try { driver.findElement(siteTab).click(); tapped = true; } catch (Exception ignored) {}
+                }
+            }
+            if (!tapped) {
+                // Dashboard 'Sites' Quick Action opens the site picker
+                By sitesQuickAction = AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND (name == 'Sites' OR label == 'Sites')");
+                if (existsNow(sitesQuickAction)) {
+                    try { driver.findElement(sitesQuickAction).click(); tapped = true; } catch (Exception ignored) {}
+                }
+            }
+            if (tapped) {
+                sleep(400);
+                if (isOnSiteSelectionScreen()) {
+                    selectFirstSiteInline();
+                }
+            } else {
+                System.out.println("⚠️ Recovery: no Site tab / Sites Quick Action found on this screen");
+            }
+        }
+
+        // 4. Site dashboards load slowly — bounded wait for the tab to materialize
+        if (!isAssetsTabPresent(8)) {
+            System.out.println("⚠️ Site-context recovery did not surface the Assets tab");
         }
     }
-    
+
+    /**
+     * Select the first available site on the Site Selection screen.
+     * Mirrors SiteSelectionPage.selectFirstSiteFast(): site rows are buttons
+     * named "name, address, ..." — reject Dashboard/WO/chrome rows.
+     */
+    private String selectFirstSiteInline() {
+        System.out.println("🏢 Site picker in front — selecting first available site...");
+        // Slow app needs time to render the rows — single bounded wait on the winner.
+        Waits.until(() -> existsNow(AppiumBy.iOSNsPredicateString(
+            "type == 'XCUIElementTypeButton' AND name CONTAINS ','")), 10_000);
+        sleep(500); // rows keep populating after the first appears
+
+        // Strategy 1: full site rows (>= 2 commas), known non-site rows rejected
+        try {
+            List<WebElement> rows = withImplicitWait(0, () -> driver.findElements(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name CONTAINS ','")));
+            int scanned = 0;
+            for (WebElement row : rows) {
+                if (++scanned > 25) break; // bounded: each getAttribute is a round-trip
+                String name = row.getAttribute("name");
+                if (name == null) continue;
+                String lower = name.toLowerCase();
+                if (lower.startsWith("wo,")) continue;
+                if (lower.contains("no active work order") || lower.contains("tap to select")) continue;
+                if (lower.matches("^\\d+,\\s*tasks.*")) continue;
+                if (isSiteScreenLabel(name) || lower.equals("cancel") || lower.equals("xmark.circle.fill")) continue;
+                if (name.indexOf(',') == name.lastIndexOf(',')) continue; // needs name + address pieces
+                row.click();
+                sleep(800); // picker dismiss + dashboard transition
+                System.out.println("✅ Selected site: " + name);
+                return name;
+            }
+        } catch (Exception ignored) {}
+
+        // Strategy 2: single-comma site rows (short addresses)
+        try {
+            List<WebElement> rows = withImplicitWait(0, () -> driver.findElements(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name CONTAINS ','")));
+            int scanned = 0;
+            for (WebElement row : rows) {
+                if (++scanned > 25) break;
+                String name = row.getAttribute("name");
+                if (name == null) continue;
+                String lower = name.toLowerCase();
+                if (lower.startsWith("wo,") || lower.contains("no active work order")
+                    || lower.contains("tap to select") || lower.matches("^\\d+,\\s*tasks.*")) continue;
+                if (isSiteScreenLabel(name) || lower.equals("cancel") || lower.equals("xmark.circle.fill")) continue;
+                row.click();
+                sleep(800);
+                System.out.println("✅ Selected site (single-comma row): " + name);
+                return name;
+            }
+        } catch (Exception ignored) {}
+
+        // Strategy 3: first cell in the picker list
+        try {
+            List<WebElement> cells = withImplicitWait(0, () -> driver.findElements(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeCell'")));
+            if (!cells.isEmpty()) {
+                cells.get(0).click();
+                sleep(800);
+                System.out.println("✅ Selected site (first cell)");
+                return "site";
+            }
+        } catch (Exception ignored) {}
+
+        // Strategy 4: first row-like StaticText below the 'Search sites' field
+        try {
+            List<WebElement> texts = withImplicitWait(0, () -> driver.findElements(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText'")));
+            int scanned = 0;
+            for (WebElement text : texts) {
+                if (++scanned > 25) break;
+                String name = text.getAttribute("name");
+                if (name == null || name.length() < 4 || isSiteScreenLabel(name)) continue;
+                if (text.getLocation().getY() < 150) continue; // skip nav/search area
+                text.click();
+                sleep(800);
+                System.out.println("✅ Selected site (text row): " + name);
+                return name;
+            }
+        } catch (Exception ignored) {}
+
+        System.out.println("⚠️ Could not select any site from the picker");
+        return null;
+    }
+
+    /**
+     * One pass over the Assets-tab click strategies. All probes are
+     * 0-implicit existsNow checks — same coverage as before, milliseconds per
+     * miss instead of an implicit-wait burn each.
+     */
+    private boolean clickAssetsTabStrategies() {
+        // Strategy 1: tab by label (Assets tab is name='list.bullet', label='Assets')
+        By byLabel = AppiumBy.iOSNsPredicateString("label == 'Assets' AND type == 'XCUIElementTypeButton'");
+        if (existsNow(byLabel)) {
+            try {
+                driver.findElement(byLabel).click();
+                sleep(300);
+                return true;
+            } catch (Exception e) {
+                System.out.println("⚠️ Could not click Assets tab by label: " + e.getMessage());
+            }
+        }
+
+        // Strategy 2: by icon accessibility ID
+        By byIcon = AppiumBy.accessibilityId("list.bullet");
+        if (existsNow(byIcon)) {
+            try {
+                driver.findElement(byIcon).click();
+                sleep(300);
+                return true;
+            } catch (Exception e) {
+                System.out.println("⚠️ Could not click list.bullet: " + e.getMessage());
+            }
+        }
+
+        // Strategy 3: hop through the Site (house) tab, then Assets
+        try {
+            By siteTab = AppiumBy.iOSNsPredicateString("label == 'Site' AND type == 'XCUIElementTypeButton'");
+            boolean hopped = false;
+            for (String tab : new String[]{"house.fill", "house"}) {
+                By by = AppiumBy.accessibilityId(tab);
+                if (existsNow(by)) {
+                    driver.findElement(by).click();
+                    hopped = true;
+                    break;
+                }
+            }
+            if (!hopped && existsNow(siteTab)) {
+                driver.findElement(siteTab).click();
+                hopped = true;
+            }
+            if (hopped) {
+                sleep(300);
+                if (existsNow(byLabel)) {
+                    driver.findElement(byLabel).click();
+                    sleep(300);
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not open Asset List via Site tab: " + e.getMessage());
+        }
+        return false;
+    }
+
+    /**
+     * Bounded poll that the Asset List actually RENDERED (plus button /
+     * Assets nav bar / the asset search field) — clicking the tab is not
+     * proof. Early-exits false when the site picker is in front.
+     */
+    private boolean verifyOnAssetList(int timeoutSeconds) {
+        long deadline = System.currentTimeMillis() + timeoutSeconds * 1000L;
+        By plus = AppiumBy.accessibilityId("plus");
+        By navBar = AppiumBy.iOSNsPredicateString(
+            "type == 'XCUIElementTypeNavigationBar' AND (name == 'Assets' OR label == 'Assets')");
+        By assetSearch = AppiumBy.accessibilityId("Search by name, type, location, or QR code");
+        while (true) {
+            if (isOnSiteSelectionScreen()) {
+                return false; // wrong screen — polling longer cannot help
+            }
+            if (existsNow(plus) || existsNow(navBar) || existsNow(assetSearch)) {
+                return true;
+            }
+            if (System.currentTimeMillis() >= deadline) {
+                return false;
+            }
+            sleep(250);
+        }
+    }
+
+
 
     /**
      * Click the Assets tab in the tab bar to navigate to Asset List
@@ -3189,6 +3478,18 @@ public class AssetPage extends BasePage {
     public boolean selectAssetByName(String assetName) {
         System.out.println("📦 Looking for asset: " + assetName);
 
+        // Wrong-screen early exit: on Site Selection the whole-tree scans below
+        // can only ever match site rows — and once burned ~2 min per call doing it.
+        if (isOnSiteSelectionScreen()) {
+            System.out.println("⚠️ selectAssetByName: site picker in front — not on Asset List, aborting scan");
+            return false;
+        }
+        // Never click/return site-screen chrome as an asset
+        if (isSiteScreenLabel(assetName)) {
+            System.out.println("⚠️ selectAssetByName: '" + assetName + "' is a site-screen label, not an asset");
+            return false;
+        }
+
         // Fast-fail (changelog 064): cap implicit wait to 1s for the duration
         // of this method. 4 strategies × 5s = 20s per miss → ~5s after fix.
         java.time.Duration originalWait;
@@ -3199,6 +3500,10 @@ public class AssetPage extends BasePage {
             originalWait = java.time.Duration.ofSeconds(AppConstants.IMPLICIT_WAIT);
         }
 
+        // Cap whole-tree iteration: each getAttribute is a WDA round-trip, and
+        // huge trees (site picker / Locations) turned these loops into minutes.
+        final int SCAN_CAP = 40;
+
         try {
         // Strategy 1: Find by accessibility ID
         try {
@@ -3208,13 +3513,16 @@ public class AssetPage extends BasePage {
             sleep(200);
             return true;
         } catch (Exception e) {}
-        
+
         // Strategy 2: Find StaticText with matching name
         try {
-            List<WebElement> texts = driver.findElements(AppiumBy.className("XCUIElementTypeStaticText"));
+            List<WebElement> texts = withImplicitWait(0, () ->
+                driver.findElements(AppiumBy.className("XCUIElementTypeStaticText")));
+            int scanned = 0;
             for (WebElement text : texts) {
+                if (++scanned > SCAN_CAP) break;
                 String name = text.getAttribute("name");
-                if (name != null && name.contains(assetName)) {
+                if (name != null && name.contains(assetName) && !isSiteScreenLabel(name)) {
                     text.click();
                     System.out.println("✅ Selected asset (text): " + name);
                     sleep(200);
@@ -3222,16 +3530,20 @@ public class AssetPage extends BasePage {
                 }
             }
         } catch (Exception e) {}
-        
+
         // Strategy 3: Find Cell containing asset name
         try {
-            List<WebElement> cells = driver.findElements(AppiumBy.className("XCUIElementTypeCell"));
+            List<WebElement> cells = withImplicitWait(0, () ->
+                driver.findElements(AppiumBy.className("XCUIElementTypeCell")));
+            int cellsScanned = 0;
             for (WebElement cell : cells) {
+                if (++cellsScanned > SCAN_CAP) break;
                 try {
-                    List<WebElement> textsInCell = cell.findElements(AppiumBy.className("XCUIElementTypeStaticText"));
+                    List<WebElement> textsInCell = withImplicitWait(0, () ->
+                        cell.findElements(AppiumBy.className("XCUIElementTypeStaticText")));
                     for (WebElement text : textsInCell) {
                         String name = text.getAttribute("name");
-                        if (name != null && name.contains(assetName)) {
+                        if (name != null && name.contains(assetName) && !isSiteScreenLabel(name)) {
                             text.click();
                             System.out.println("✅ Selected asset (cell text): " + name);
                             sleep(200);
@@ -3241,13 +3553,16 @@ public class AssetPage extends BasePage {
                 } catch (Exception inner) {}
             }
         } catch (Exception e) {}
-        
+
         // Strategy 4: Find any button containing asset name
         try {
-            List<WebElement> buttons = driver.findElements(AppiumBy.className("XCUIElementTypeButton"));
+            List<WebElement> buttons = withImplicitWait(0, () ->
+                driver.findElements(AppiumBy.className("XCUIElementTypeButton")));
+            int scanned = 0;
             for (WebElement btn : buttons) {
+                if (++scanned > SCAN_CAP) break;
                 String name = btn.getAttribute("name");
-                if (name != null && name.contains(assetName)) {
+                if (name != null && name.contains(assetName) && !isSiteScreenLabel(name)) {
                     btn.click();
                     System.out.println("✅ Selected asset (button): " + name);
                     sleep(200);
@@ -3255,7 +3570,7 @@ public class AssetPage extends BasePage {
                 }
             }
         } catch (Exception e) {}
-        
+
         System.out.println("⚠️ Could not find asset: " + assetName);
         return false;
         } finally {
@@ -3292,6 +3607,12 @@ public class AssetPage extends BasePage {
      */
     public String openSharedAssetForEditOrFallback(String cachedName) {
         navigateToAssetListTurbo();
+        // A poisoned cache ('Create New Site' was once cached as an asset) would
+        // search/click site chrome forever — drop it and re-select fresh.
+        if (isSiteScreenLabel(cachedName)) {
+            System.out.println("⚠️ Shared-asset cache poisoned with site-screen label '" + cachedName + "' — discarding");
+            cachedName = null;
+        }
         if (cachedName != null && !cachedName.isEmpty()) {
             if (openAssetByNameForEdit(cachedName)) {
                 return cachedName;
@@ -3301,6 +3622,11 @@ public class AssetPage extends BasePage {
         String name = selectFirstAsset();
         sleep(200);
         clickEditTurbo();
+        if (isSiteScreenLabel(name)) {
+            // Site-screen chrome must never be cached or returned as an asset name
+            System.out.println("⚠️ selectFirstAsset returned site-screen label '" + name + "' — not caching");
+            return null;
+        }
         if (name != null && !name.isEmpty()) {
             System.out.println("📌 Cached shared asset: '" + name + "'");
         }
@@ -3378,20 +3704,31 @@ public class AssetPage extends BasePage {
     public String selectFirstAsset() {
         System.out.println("📦 Selecting first asset...");
 
-        // Fast-fail cap (changelog 070): 7 fallback strategies × 5s default
-        // implicit wait = up to 35s per call on miss. 53 callers across asset
-        // suites × ~20s avg miss = ~17 min wasted. Cap to 1s on miss.
+        // Wrong-screen early exit: on Site Selection there are no assets — the
+        // scans below would click 'Create New Site' and call it an asset.
+        if (isOnSiteSelectionScreen()) {
+            System.out.println("⚠️ selectFirstAsset: site picker in front — not on Asset List, aborting");
+            return null;
+        }
+
+        // Single bounded wait on the expected winner (a rendered list row),
+        // then the whole cascade runs at 0 implicit wait: 7 strategies × 5s
+        // default implicit = up to 35s per call on miss (53 callers ≈ ~17 min).
+        Waits.until(() ->
+            existsNow(AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeCell'"))
+            || existsNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name CONTAINS ', ' AND NOT name CONTAINS 'Search'")),
+            4_000);
+
         java.time.Duration originalWait;
         try {
             originalWait = driver.manage().timeouts().getImplicitWaitTimeout();
-            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(1));
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ZERO);
         } catch (Exception e) {
             originalWait = java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT);
         }
 
         try {
-            // Wait for list to fully load
-            sleep(500);
 
         // =====================================================================
         // IMPORTANT: Must click on STATIC TEXT (asset name), NOT on Button/Cell!
@@ -3423,9 +3760,10 @@ public class AssetPage extends BasePage {
                 if (textsInCell.size() > 0) {
                     WebElement assetNameText = textsInCell.get(0);
                     String assetName = assetNameText.getAttribute("name");
-                    
-                    // Skip if this looks like a section header (like "Assets" title)
-                    if (assetName != null && !assetName.equals("Assets") && !assetName.isEmpty()) {
+
+                    // Skip section headers ("Assets" title) and site-screen chrome
+                    if (assetName != null && !assetName.equals("Assets") && !assetName.isEmpty()
+                            && !isSiteScreenLabel(assetName)) {
                         System.out.println("   🎯 Asset name text: " + assetName);
                         assetNameText.click();
                         System.out.println("✅ Clicked asset name StaticText");
@@ -3441,21 +3779,30 @@ public class AssetPage extends BasePage {
         // STRATEGY 2: Find StaticText elements in asset list area (y > 100 to skip header)
         try {
             System.out.println("   Strategy 2: Finding StaticText in list area...");
-            
+
             List<WebElement> allTexts = driver.findElements(
                 AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText'")
             );
             System.out.println("   Found " + allTexts.size() + " StaticText elements");
-            
+
+            // Bounded scan: this is a whole-tree query, and each
+            // getLocation/getAttribute is a WDA round-trip — on a huge tree
+            // (site picker bleed-through) the unbounded loop once ran ~84s.
+            int scanned = 0;
             for (WebElement text : allTexts) {
+                if (++scanned > 30) {
+                    System.out.println("   Strategy 2: scan cap (30) reached");
+                    break;
+                }
                 int y = text.getLocation().getY();
                 String name = text.getAttribute("name");
-                
+
                 // Skip header area (y < 110) and tab bar area (y > 780)
-                // Skip common non-asset texts
-                if (y >= 110 && y <= 780 && name != null && !name.isEmpty()) {
+                // Skip common non-asset texts and site-screen chrome
+                if (y >= 110 && y <= 780 && name != null && !name.isEmpty()
+                        && !isSiteScreenLabel(name)) {
                     String lower = name.toLowerCase();
-                    if (!lower.equals("assets") && !lower.equals("search") && 
+                    if (!lower.equals("assets") && !lower.equals("search") &&
                         !lower.contains("task") && !lower.equals("no location") &&
                         !lower.equals("android") && !lower.equals("ios") &&
                         !name.equals("ATS") && !name.equals("UPS") && !name.equals("PDU") &&
@@ -3482,10 +3829,14 @@ public class AssetPage extends BasePage {
                 AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name CONTAINS ', ' AND NOT name CONTAINS 'Search' AND NOT name BEGINSWITH 'Completed Task' AND NOT name BEGINSWITH 'Test Task' AND NOT name CONTAINS 'This task'")
             );
             System.out.println("   Found " + buttons.size() + " asset buttons");
-            
+
             if (buttons.size() > 0) {
                 WebElement firstAsset = buttons.get(0);
                 String assetName = firstAsset.getAttribute("name");
+                if (isSiteScreenLabel(assetName)) {
+                    System.out.println("   ⚠️ First button is site-screen chrome ('" + assetName + "') — skipping strategy");
+                    throw new IllegalStateException("site-screen label, not an asset row");
+                }
                 int x = firstAsset.getLocation().getX();
                 int y = firstAsset.getLocation().getY();
                 int width = firstAsset.getSize().getWidth();
@@ -4781,135 +5132,104 @@ public class AssetPage extends BasePage {
      */
     private boolean createLocationItem(String itemName, String textFieldPlaceholder, int plusButtonIndex) {
         System.out.println("   Creating location item: " + itemName + " (placeholder: " + textFieldPlaceholder + ")");
-        
+
+        // Each step gets ONE bounded wait on its expected winner, then the
+        // fallback cascade runs as 0-implicit existsNow probes: 9 finds × 5s
+        // implicit = up to ~45s per miss before; same strategy coverage now
+        // costs milliseconds per miss.
         try {
             // STEP 1: Click the plus button using multiple strategies
+            By plusByChain = AppiumBy.iOSClassChain(
+                "**/XCUIElementTypeButton[`name == \"plus.circle.fill\"`][" + plusButtonIndex + "]");
+            By plusByName = AppiumBy.iOSNsPredicateString("name == 'plus.circle.fill'");
+            By plusPlain = AppiumBy.iOSNsPredicateString("name == 'plus' AND type == 'XCUIElementTypeButton'");
+            By addById = AppiumBy.accessibilityId("Add");
+            By plusOrAdd = AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND (name CONTAINS 'plus' OR name CONTAINS 'add' OR label CONTAINS 'Add')");
+
+            // Expected winner: the indexed plus.circle.fill (or any plus variant)
+            Waits.until(() -> existsNow(plusByName) || existsNow(plusPlain) || existsNow(addById), 3_000);
+
             boolean plusClicked = false;
-            
-            // Strategy 1: iOSClassChain with index
-            if (!plusClicked) {
+            String[] plusLabels = {"ClassChain[" + plusButtonIndex + "]", "predicate 'plus.circle.fill'",
+                                   "predicate 'plus'", "accessibility 'Add'", "contains 'plus/add'"};
+            By[] plusStrategies = {plusByChain, plusByName, plusPlain, addById, plusOrAdd};
+            for (int i = 0; i < plusStrategies.length && !plusClicked; i++) {
+                By by = plusStrategies[i];
+                if (!existsNow(by)) continue;
                 try {
-                    driver.findElement(AppiumBy.iOSClassChain(
-                        "**/XCUIElementTypeButton[`name == \"plus.circle.fill\"`][" + plusButtonIndex + "]")).click();
-                    System.out.println("   Plus clicked via ClassChain[" + plusButtonIndex + "]");
+                    driver.findElement(by).click();
+                    System.out.println("   Plus clicked via " + plusLabels[i]);
                     plusClicked = true;
                 } catch (Exception e) {
                     // Continue to next strategy
                 }
             }
-            
-            // Strategy 2: Find by exact name 'plus.circle.fill'
             if (!plusClicked) {
-                try {
-                    driver.findElement(AppiumBy.iOSNsPredicateString("name == 'plus.circle.fill'")).click();
-                    System.out.println("   Plus clicked via predicate 'plus.circle.fill'");
-                    plusClicked = true;
-                } catch (Exception e) {
-                    // Continue to next strategy
-                }
+                System.out.println("⚠️ Could not find plus button with any strategy");
+                return false;
             }
-            
-            // Strategy 3: Find by name 'plus'
-            if (!plusClicked) {
-                try {
-                    driver.findElement(AppiumBy.iOSNsPredicateString("name == 'plus' AND type == 'XCUIElementTypeButton'")).click();
-                    System.out.println("   Plus clicked via predicate 'plus'");
-                    plusClicked = true;
-                } catch (Exception e) {
-                    // Continue to next strategy
-                }
-            }
-            
-            // Strategy 4: Find by accessibility ID 'Add'
-            if (!plusClicked) {
-                try {
-                    driver.findElement(AppiumBy.accessibilityId("Add")).click();
-                    System.out.println("   Plus clicked via accessibility 'Add'");
-                    plusClicked = true;
-                } catch (Exception e) {
-                    // Continue to next strategy
-                }
-            }
-            
-            // Strategy 5: Find any button with 'plus' or 'add' in name
-            if (!plusClicked) {
-                try {
-                    driver.findElement(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeButton' AND (name CONTAINS 'plus' OR name CONTAINS 'add' OR label CONTAINS 'Add')")).click();
-                    System.out.println("   Plus clicked via contains 'plus/add'");
-                    plusClicked = true;
-                } catch (Exception e) {
-                    System.out.println("⚠️ Could not find plus button with any strategy");
-                    return false;
-                }
-            }
-            
+
             sleep(200);
-            
+
             // STEP 2: Enter the name in text field
+            By fieldByPlaceholder = AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeTextField' AND (value == '" + textFieldPlaceholder
+                + "' OR placeholderValue == '" + textFieldPlaceholder + "')");
+            By anyTextField = AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField'");
+
+            // Expected winner: the new-item text field appearing
+            Waits.until(() -> existsNow(anyTextField), 3_000);
+
             boolean nameEntered = false;
-            
-            // Strategy 1: Find by placeholder value
-            if (!nameEntered) {
+            for (By by : new By[]{fieldByPlaceholder, anyTextField}) {
+                if (nameEntered || !existsNow(by)) continue;
                 try {
-                    WebElement textField = driver.findElement(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeTextField' AND (value == '" + textFieldPlaceholder + "' OR placeholderValue == '" + textFieldPlaceholder + "')"));
-                    textField.sendKeys(itemName);
-                    System.out.println("   Name entered via placeholder match");
+                    driver.findElement(by).sendKeys(itemName);
+                    System.out.println("   Name entered via " + (by == fieldByPlaceholder ? "placeholder match" : "visible text field"));
                     nameEntered = true;
                 } catch (Exception e) {
                     // Continue to next strategy
                 }
             }
-            
-            // Strategy 2: Find any visible text field
             if (!nameEntered) {
-                try {
-                    WebElement textField = driver.findElement(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeTextField'"));
-                    textField.sendKeys(itemName);
-                    System.out.println("   Name entered via visible text field");
-                    nameEntered = true;
-                } catch (Exception e) {
-                    System.out.println("⚠️ Could not find text field");
-                    return false;
-                }
+                System.out.println("⚠️ Could not find text field");
+                return false;
             }
-            
+
+            // Keyboard occludes the Save button — dismiss before tapping it
+            dismissKeyboard();
             sleep(300);
-            
+
             // STEP 3: Click Save button
+            By saveById = AppiumBy.accessibilityId("Save");
+            By saveByPredicate = AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND (label == 'Save' OR name == 'Save')");
+
+            // Expected winner: the Save button enabled after typing
+            Waits.until(() -> existsNow(saveById) || existsNow(saveByPredicate), 3_000);
+
             boolean saved = false;
-            
-            // Strategy 1: Accessibility ID 'Save'
-            if (!saved) {
+            for (By by : new By[]{saveById, saveByPredicate}) {
+                if (saved || !existsNow(by)) continue;
                 try {
-                    driver.findElement(AppiumBy.accessibilityId("Save")).click();
-                    System.out.println("   Saved via accessibility 'Save'");
+                    driver.findElement(by).click();
+                    System.out.println("   Saved via " + (by == saveById ? "accessibility 'Save'" : "button predicate"));
                     saved = true;
                 } catch (Exception e) {
-                    // Continue
+                    // Continue to next strategy
                 }
             }
-            
-            // Strategy 2: Button with label 'Save'
             if (!saved) {
-                try {
-                    driver.findElement(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeButton' AND (label == 'Save' OR name == 'Save')")).click();
-                    System.out.println("   Saved via button predicate");
-                    saved = true;
-                } catch (Exception e) {
-                    System.out.println("⚠️ Could not find Save button");
-                    return false;
-                }
+                System.out.println("⚠️ Could not find Save button");
+                return false;
             }
-            
+
             sleep(300);
-            
+
             System.out.println("✅ Created: " + itemName);
             return true;
-            
+
         } catch (Exception e) {
             System.out.println("⚠️ Error creating location item: " + e.getMessage());
             return false;
@@ -6618,6 +6938,7 @@ public class AssetPage extends BasePage {
 
     public void clickSave() {
         click(saveButton);
+        saveButtonClickedThisFlow = true;
         System.out.println("✅ Clicked Save");
     }
 
@@ -6972,97 +7293,67 @@ public class AssetPage extends BasePage {
      */
     public void clickEdit() {
         System.out.println("📝 Preparing edit mode...");
-        
-        // Try to find explicit Edit button first (in case UI changes)
-        try {
-            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(2));
-            WebElement editBtn = wait.until(ExpectedConditions.elementToBeClickable(
-                AppiumBy.accessibilityId("Edit")
-            ));
-            editBtn.click();
-            System.out.println("✅ Clicked Edit button");
-            return;
-        } catch (Exception e) {}
-        
-        // Try predicate for Edit button
-        try {
-            WebElement editBtn = driver.findElement(
-                AppiumBy.iOSNsPredicateString("name == 'Edit' OR label == 'Edit'")
-            );
-            editBtn.click();
-            System.out.println("✅ Clicked Edit button (predicate)");
-            return;
-        } catch (Exception e) {}
-        
-        // Try pencil icon
-        try {
-            WebElement editBtn = driver.findElement(AppiumBy.accessibilityId("square.and.pencil"));
-            editBtn.click();
-            System.out.println("✅ Clicked Edit button (icon)");
-            return;
-        } catch (Exception e) {}
-        
-        // The Asset Detail screen IS the edit screen - no explicit Edit button exists
-        // Verify we're on the edit screen by checking for editable fields
-        boolean onEditScreen = false;
-        
-        // Check for Asset Details navigation bar
-        try {
-            onEditScreen = driver.findElements(
-                AppiumBy.iOSNsPredicateString("name == 'Asset Details'")
-            ).size() > 0;
-        } catch (Exception e) {}
-        
-        // Check for editable text field (Asset Name)
-        if (!onEditScreen) {
-            try {
-                onEditScreen = driver.findElements(
-                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField'")
-                ).size() > 0;
-            } catch (Exception e) {}
-        }
-        
-        // Check for Asset Class button
-        if (!onEditScreen) {
-            try {
-                onEditScreen = driver.findElements(
-                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND (name == 'MCC' OR name == 'ATS' OR name CONTAINS 'Select asset')")
-                ).size() > 0;
-            } catch (Exception e) {}
-        }
-        
-        // Check 4: Look for form labels
-        if (!onEditScreen) {
-            try {
-                onEditScreen = driver.findElements(
-                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText' AND (name == 'Name' OR name == 'Asset Class' OR name == 'Location')")
-                ).size() > 0;
-            } catch (Exception e) {}
-        }
-        
-        // Check 5: Look for Save Changes button
-        if (!onEditScreen) {
-            try {
-                onEditScreen = driver.findElements(
-                    AppiumBy.iOSNsPredicateString("(name CONTAINS 'Save' OR label CONTAINS 'Save')")
-                ).size() > 0;
-            } catch (Exception e) {}
-        }
-        
-        // Check 6: Back button indicates we're on a detail screen
-        if (!onEditScreen) {
-            try {
-                onEditScreen = driver.findElements(
-                    AppiumBy.iOSNsPredicateString("(name == 'Back' OR name == 'Assets') AND type == 'XCUIElementTypeButton'")
-                ).size() > 0;
-            } catch (Exception e) {}
-        }
-        
+
+        // v1.36+: Asset Detail IS the edit screen — there is no Edit button, so
+        // probing it first could NEVER match and burned ~12s per call (43+ call
+        // sites). Probe today's reality first; legacy Edit-button strategies are
+        // kept LAST as 0-implicit probes for older builds.
+        //
+        // Single bounded wait on the expected winner (screen still rendering):
+        Waits.until(() ->
+            existsNow(AppiumBy.iOSNsPredicateString("name == 'Asset Details'"))
+            || existsNow(AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField'")),
+            3_000);
+
+        boolean onEditScreen =
+            // Check 1: Asset Details navigation bar
+            existsNow(AppiumBy.iOSNsPredicateString("name == 'Asset Details'"))
+            // Check 2: editable text field (Asset Name)
+            || existsNow(AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField'"))
+            // Check 3: Asset Class button
+            || existsNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND (name == 'MCC' OR name == 'ATS' OR name CONTAINS 'Select asset')"))
+            // Check 4: form labels
+            || existsNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND (name == 'Name' OR name == 'Asset Class' OR name == 'Location')"))
+            // Check 5: Save Changes button
+            || existsNow(AppiumBy.iOSNsPredicateString("(name CONTAINS 'Save' OR label CONTAINS 'Save')"))
+            // Check 6: Back button — at least on a detail screen
+            || existsNow(AppiumBy.iOSNsPredicateString(
+                "(name == 'Back' OR name == 'Assets') AND type == 'XCUIElementTypeButton'"));
+
         if (onEditScreen) {
             System.out.println("✅ On Asset Details edit screen");
-        } else {
-            System.out.println("⚠️ Could not verify edit screen");
+            return;
         }
+
+        // LEGACY (pre-v1.36 separate Edit mode) — 0-implicit probes, click if present
+        By editById = AppiumBy.accessibilityId("Edit");
+        if (existsNow(editById)) {
+            try {
+                driver.findElement(editById).click();
+                System.out.println("✅ Clicked Edit button");
+                return;
+            } catch (Exception e) {}
+        }
+        By editByPredicate = AppiumBy.iOSNsPredicateString("name == 'Edit' OR label == 'Edit'");
+        if (existsNow(editByPredicate)) {
+            try {
+                driver.findElement(editByPredicate).click();
+                System.out.println("✅ Clicked Edit button (predicate)");
+                return;
+            } catch (Exception e) {}
+        }
+        By editByIcon = AppiumBy.accessibilityId("square.and.pencil");
+        if (existsNow(editByIcon)) {
+            try {
+                driver.findElement(editByIcon).click();
+                System.out.println("✅ Clicked Edit button (icon)");
+                return;
+            } catch (Exception e) {}
+        }
+
+        System.out.println("⚠️ Could not verify edit screen");
     }
     
     /**
@@ -7072,100 +7363,75 @@ public class AssetPage extends BasePage {
         // Reset toggle cache since we're entering a (potentially different) edit screen
         resetToggleSearchCache();
 
-        // Asset Detail screen is DIRECTLY editable - no separate Edit button exists
-        // The screen already shows editable fields (TextField for name, Buttons for class, etc.)
-        sleep(500); // Wait for screen to fully load
-        
-        // Try to find and click Edit button if it exists (some UI versions have it)
-        try {
-            WebElement editBtn = driver.findElement(AppiumBy.accessibilityId("Edit"));
-            editBtn.click();
-            System.out.println("✅ Clicked Edit button");
-            sleep(300);
-        } catch (Exception e) {
-            // No Edit button - that's OK, screen might be directly editable
-        }
-        
-        // Verify we're on the Asset Details screen (which IS the edit screen)
+        // v1.36+: Asset Detail screen is DIRECTLY editable — no separate Edit
+        // button exists, so probing accessibilityId("Edit") FIRST with the full
+        // implicit wait could never match and cost ~5s on every one of the 43+
+        // call sites. Wait (bounded) for the screen's real markers instead.
+        Waits.until(() ->
+            existsNow(AppiumBy.iOSNsPredicateString(
+                "(name == 'Asset Details' OR name CONTAINS 'Asset Detail' OR label CONTAINS 'Asset Detail')"))
+            || existsNow(AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField'")),
+            3_000);
+
+        // Verify we're on the Asset Details screen (which IS the edit screen).
+        // All probes are 0-implicit — coverage unchanged, misses cost ms not 5s.
         boolean onEditScreen = false;
-        
+
         // Check 1: Asset Details navigation bar
-        try {
-            List<WebElement> navBar = driver.findElements(
-                AppiumBy.iOSNsPredicateString("(name == 'Asset Details' OR name CONTAINS 'Asset Detail' OR label CONTAINS 'Asset Detail')")
-            );
-            if (!navBar.isEmpty()) {
-                onEditScreen = true;
-                System.out.println("   ✓ Found Asset Details navigation");
-            }
-        } catch (Exception e) {}
-        
+        if (existsNow(AppiumBy.iOSNsPredicateString(
+                "(name == 'Asset Details' OR name CONTAINS 'Asset Detail' OR label CONTAINS 'Asset Detail')"))) {
+            onEditScreen = true;
+            System.out.println("   ✓ Found Asset Details navigation");
+        }
+
         // Check 2: Editable text field (Asset Name field)
-        if (!onEditScreen) {
-            try {
-                List<WebElement> textFields = driver.findElements(
-                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField'")
-                );
-                if (!textFields.isEmpty()) {
-                    onEditScreen = true;
-                    System.out.println("   ✓ Found " + textFields.size() + " editable text fields");
-                }
-            } catch (Exception e) {}
+        if (!onEditScreen && existsNow(AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField'"))) {
+            onEditScreen = true;
+            System.out.println("   ✓ Found editable text field");
         }
-        
+
         // Check 3: Asset Class buttons
-        if (!onEditScreen) {
-            try {
-                List<WebElement> classButtons = driver.findElements(
-                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND (name == 'MCC' OR name == 'ATS' OR name == 'UPS' OR name == 'PDU' OR name == 'Generator' OR name == 'Busway' OR name == 'Fuse' OR name == 'Motor' OR name == 'Loadcenter' OR name == 'Panelboard' OR name == 'Relay' OR name == 'Transformer' OR name == 'VFD' OR name == 'Utility' OR name CONTAINS 'Select asset' OR name CONTAINS 'Disconnect' OR name CONTAINS 'Circuit Breaker' OR name CONTAINS 'Junction Box' OR name CONTAINS 'Switchboard' OR name CONTAINS 'MCC Bucket')")
-                );
-                if (!classButtons.isEmpty()) {
-                    onEditScreen = true;
-                    System.out.println("   ✓ Found Asset Class button");
-                }
-            } catch (Exception e) {}
+        if (!onEditScreen && existsNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND (name == 'MCC' OR name == 'ATS' OR name == 'UPS' OR name == 'PDU' OR name == 'Generator' OR name == 'Busway' OR name == 'Fuse' OR name == 'Motor' OR name == 'Loadcenter' OR name == 'Panelboard' OR name == 'Relay' OR name == 'Transformer' OR name == 'VFD' OR name == 'Utility' OR name CONTAINS 'Select asset' OR name CONTAINS 'Disconnect' OR name CONTAINS 'Circuit Breaker' OR name CONTAINS 'Junction Box' OR name CONTAINS 'Switchboard' OR name CONTAINS 'MCC Bucket')"))) {
+            onEditScreen = true;
+            System.out.println("   ✓ Found Asset Class button");
         }
-        
+
         // Check 4: Look for "Name" or "Asset Class" labels (form labels)
-        if (!onEditScreen) {
-            try {
-                List<WebElement> formLabels = driver.findElements(
-                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText' AND (name == 'Name' OR name == 'Asset Class' OR name == 'Location' OR name == 'Subtype' OR name CONTAINS 'Required')")
-                );
-                if (!formLabels.isEmpty()) {
-                    onEditScreen = true;
-                    System.out.println("   ✓ Found form labels: " + formLabels.size());
-                }
-            } catch (Exception e) {}
+        if (!onEditScreen && existsNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND (name == 'Name' OR name == 'Asset Class' OR name == 'Location' OR name == 'Subtype' OR name CONTAINS 'Required')"))) {
+            onEditScreen = true;
+            System.out.println("   ✓ Found form labels");
         }
-        
+
         // Check 5: Look for Save Changes button
-        if (!onEditScreen) {
-            try {
-                List<WebElement> saveBtn = driver.findElements(
-                    AppiumBy.iOSNsPredicateString("(name CONTAINS 'Save' OR label CONTAINS 'Save')")
-                );
-                if (!saveBtn.isEmpty()) {
-                    onEditScreen = true;
-                    System.out.println("   ✓ Found Save button");
-                }
-            } catch (Exception e) {}
+        if (!onEditScreen && existsNow(AppiumBy.iOSNsPredicateString(
+                "(name CONTAINS 'Save' OR label CONTAINS 'Save')"))) {
+            onEditScreen = true;
+            System.out.println("   ✓ Found Save button");
         }
-        
+
         // Check 6: Look for Back button (indicates we navigated somewhere)
-        if (!onEditScreen) {
-            try {
-                List<WebElement> backBtn = driver.findElements(
-                    AppiumBy.iOSNsPredicateString("(name == 'Back' OR name == 'Assets' OR name CONTAINS 'chevron') AND type == 'XCUIElementTypeButton'")
-                );
-                if (!backBtn.isEmpty()) {
-                    // We're on some detail screen, probably the edit screen
-                    onEditScreen = true;
-                    System.out.println("   ✓ Found Back button - on detail screen");
-                }
-            } catch (Exception e) {}
+        if (!onEditScreen && existsNow(AppiumBy.iOSNsPredicateString(
+                "(name == 'Back' OR name == 'Assets' OR name CONTAINS 'chevron') AND type == 'XCUIElementTypeButton'"))) {
+            // We're on some detail screen, probably the edit screen
+            onEditScreen = true;
+            System.out.println("   ✓ Found Back button - on detail screen");
         }
-        
+
+        // LEGACY: explicit Edit button (pre-v1.36 builds only) — probed LAST,
+        // 0-implicit, only when the direct-edit markers were all absent.
+        if (!onEditScreen && existsNow(AppiumBy.accessibilityId("Edit"))) {
+            try {
+                driver.findElement(AppiumBy.accessibilityId("Edit")).click();
+                System.out.println("✅ Clicked Edit button (legacy)");
+                sleep(300);
+                onEditScreen = true;
+            } catch (Exception e) {
+                // No clickable Edit button — fall through to debug dump
+            }
+        }
+
         if (onEditScreen) {
             System.out.println("✅ On Edit Asset screen");
         } else {
@@ -7328,17 +7594,25 @@ public class AssetPage extends BasePage {
      * in case the app changed the toggle's element type.
      */
     private WebElement findRequiredFieldsToggle() {
-        // CACHE: if a previous search already exhausted all strategies, return null instantly
+        // CACHE: if a previous search already exhausted all strategies, return null instantly.
+        // Log the skip ONCE per cache lifetime — callers poll this in tight loops and the
+        // per-call println once produced 149,888 lines (95.6% of a 32MB CI log).
         if (toggleSearchExhausted) {
-            System.out.println("🔍 Toggle search cached as not-found — skipping (call resetToggleSearchCache() on new asset)");
+            if (!toggleCacheSkipLogged) {
+                System.out.println("🔍 Toggle search cached as not-found — skipping silently until resetToggleSearchCache()");
+                toggleCacheSkipLogged = true;
+            }
             return null;
         }
 
         System.out.println("🔍 Finding Required Fields Only toggle...");
         long searchStart = System.currentTimeMillis();
 
-        // Use short implicit wait to avoid 5s blocks per failed findElement call
-        driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
+        // Single bounded wait on the expected winner (a rendered Switch), then
+        // the whole cascade runs at 0 implicit wait — 8 finds × 800ms misses
+        // cost ~6.4s before; same coverage now costs milliseconds per miss.
+        Waits.until(() -> existsNow(AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeSwitch'")), 3_000);
+        driver.manage().timeouts().implicitlyWait(java.time.Duration.ZERO);
         try {
 
         // Helper: element type predicate that covers both Switch and Button
@@ -8149,12 +8423,14 @@ public class AssetPage extends BasePage {
         // and its label is "Save Changes" (or just "Save" on older builds). Pure
         // accessibilityId("Save") is too narrow — delegate to clickSaveChanges
         // which already handles name-CONTAINS + scroll-into-view.
+        saveButtonClickedThisFlow = false;
         try {
             WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(2));
             WebElement saveBtn = wait.until(ExpectedConditions.elementToBeClickable(
                 AppiumBy.accessibilityId("Save")
             ));
             saveBtn.click();
+            saveButtonClickedThisFlow = true;
             System.out.println("✅ Clicked Save on Edit screen");
             sleep(400);
             return;
@@ -8171,6 +8447,7 @@ public class AssetPage extends BasePage {
      */
     public void clickSaveChanges() {
         System.out.println("💾 Looking for Save Changes button...");
+        saveButtonClickedThisFlow = false;
 
         // Try 1: Find Save button in DOM (no visible == true — may be off-screen)
         try {
@@ -8191,6 +8468,7 @@ public class AssetPage extends BasePage {
                 );
                 if (!saveBtns.isEmpty()) {
                     saveBtns.get(0).click();
+                    saveButtonClickedThisFlow = true;
                     System.out.println("✅ Clicked Save Changes");
                     sleep(400);
                     return;
@@ -8210,6 +8488,7 @@ public class AssetPage extends BasePage {
                 );
                 if (!saveBtns.isEmpty()) {
                     saveBtns.get(0).click();
+                    saveButtonClickedThisFlow = true;
                     System.out.println("✅ Clicked Save Changes (after scroll)");
                     sleep(400);
                     return;
@@ -8224,6 +8503,7 @@ public class AssetPage extends BasePage {
         try {
             WebElement saveChangesBtn = driver.findElement(AppiumBy.accessibilityId("Save Changes"));
             saveChangesBtn.click();
+            saveButtonClickedThisFlow = true;
             System.out.println("✅ Clicked Save Changes (accessibilityId)");
             sleep(400);
             return;
@@ -9935,6 +10215,7 @@ public class AssetPage extends BasePage {
      */
     public void clickSaveButton() {
         System.out.println("💾 Clicking Save button...");
+        saveButtonClickedThisFlow = false;
         try {
             WebElement saveBtn = null;
             
@@ -9980,6 +10261,7 @@ public class AssetPage extends BasePage {
             
             if (saveBtn != null) {
                 saveBtn.click();
+                saveButtonClickedThisFlow = true;
                 sleep(500);
                 System.out.println("✅ Clicked Save button");
             } else {
@@ -10007,9 +10289,10 @@ public class AssetPage extends BasePage {
         // fallback strategies × 5s implicit wait = 25s waste per call.
         // ============================================================
         if (!isEditAssetScreenDisplayed() && !isSaveChangesButtonVisible()) {
-            System.out.println("⚠️ FAST-FAIL: Not on Edit Asset screen — aborting editTextField('"
-                + fieldName + "'). Caller's screen-state assumption is broken.");
-            return false;
+            // VerificationError: callers' catch(Exception) cannot swallow this,
+            // so no test can proceed believing the field was edited.
+            throw new VerificationError("editTextField('" + fieldName + "'): not on Edit Asset screen — "
+                + "caller's screen-state assumption is broken (sitePicker=" + isOnSiteSelectionScreen() + ")");
         }
 
         // Try to find and edit the field, scroll if needed (max 5 scrolls)
@@ -10265,12 +10548,18 @@ public class AssetPage extends BasePage {
     }
     
     /**
-     * Verify asset was saved successfully after edit
+     * Verify asset was saved successfully after edit.
+     *
+     * Button-ABSENCE ("Save Changes" gone) is only evidence when this page
+     * object actually clicked a Save button this flow — otherwise the button
+     * may simply never have existed (wrong screen, nothing edited) and the
+     * old "gone = saved" logic passed vacuously. With no positive evidence
+     * and no real click, this now throws {@link VerificationError}.
      */
     public boolean isAssetSavedAfterEdit() {
         sleep(600);  // Wait for save to complete
-        
-        // Strategy 1: Check if Edit button is visible (view mode)
+
+        // Strategy 1: Edit button visible (legacy view mode) — positive evidence
         try {
             WebElement editBtn = driver.findElement(AppiumBy.accessibilityId("Edit"));
             if (editBtn.isDisplayed()) {
@@ -10278,18 +10567,18 @@ public class AssetPage extends BasePage {
                 return true;
             }
         } catch (Exception e) {}
-        
-        // Strategy 2: Check if Save Changes button is gone
-        try {
-            driver.findElement(AppiumBy.accessibilityId("Save Changes"));
-            // Still in edit mode - might be validation error
-            System.out.println("   Save Changes still visible - checking for errors...");
-        } catch (Exception e) {
-            // Save Changes gone = save successful
+
+        // Strategy 2: Save Changes button gone — counts ONLY after a real click
+        boolean saveChangesGone = !existsNow(AppiumBy.accessibilityId("Save Changes"));
+        if (saveChangesGone && saveButtonClickedThisFlow) {
             System.out.println("✅ Save successful - Save Changes button gone");
             return true;
         }
-        
+        if (!saveChangesGone) {
+            // Still in edit mode - might be validation error
+            System.out.println("   Save Changes still visible - checking for errors...");
+        }
+
         // Strategy 3: Check if we're back on Asset List
         try {
             WebElement plusBtn = driver.findElement(AppiumBy.accessibilityId("plus"));
@@ -10298,11 +10587,14 @@ public class AssetPage extends BasePage {
                 return true;
             }
         } catch (Exception e) {}
-        
-        // Strategy 4: Check for success toast/message
+
+        // Strategy 4: Check for success toast/message (bounded scan)
         try {
-            List<WebElement> texts = driver.findElements(AppiumBy.className("XCUIElementTypeStaticText"));
+            List<WebElement> texts = withImplicitWait(0, () ->
+                driver.findElements(AppiumBy.className("XCUIElementTypeStaticText")));
+            int scanned = 0;
             for (WebElement text : texts) {
+                if (++scanned > 30) break;
                 String name = text.getAttribute("name");
                 if (name != null && (name.toLowerCase().contains("saved") || name.toLowerCase().contains("success"))) {
                     System.out.println("✅ Save successful - success message found");
@@ -10310,10 +10602,12 @@ public class AssetPage extends BasePage {
                 }
             }
         } catch (Exception e) {}
-        
-        // If none of the above, assume save was successful if no error visible
-        System.out.println("   Assuming save successful (no error visible)");
-        return true;
+
+        throw new VerificationError(
+            "isAssetSavedAfterEdit: no positive save evidence (Edit button / Asset List / toast) and "
+            + (saveButtonClickedThisFlow
+                ? "'Save Changes' is still visible after a real Save click — save likely failed (validation error?)."
+                : "Save was never found/clicked this flow — 'button gone' would be a vacuous pass."));
     }
     
     /**

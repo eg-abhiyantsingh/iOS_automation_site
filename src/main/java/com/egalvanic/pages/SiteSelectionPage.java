@@ -1,6 +1,7 @@
 package com.egalvanic.pages;
 
 import com.egalvanic.base.BasePage;
+import com.egalvanic.utils.Waits;
 import io.appium.java_client.AppiumBy;
 import io.appium.java_client.pagefactory.iOSXCUITFindBy;
 import org.openqa.selenium.By;
@@ -241,27 +242,32 @@ public class SiteSelectionPage extends BasePage {
         // Poll every 300ms for up to 10s on multiple ground-truth signals:
         //   - search field by accessibility id / visibility
         //   - any button with comma-name (site rows)
-        //   - 'Select Site' / 'Sites' header text
+        // Probes run with implicit wait OFF — a not-yet-rendered screen costs
+        // one 300ms tick, not 2 × 5s implicit-wait burns per iteration.
         long deadline = System.currentTimeMillis() + 10000;
         while (System.currentTimeMillis() < deadline) {
-            try {
-                java.util.List<WebElement> fields = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeSearchField') AND " +
-                    "(placeholderValue CONTAINS[c] 'search' OR value CONTAINS[c] 'search')"));
-                if (!fields.isEmpty()) {
-                    System.out.println("✅ Site list ready (search field visible)");
-                    return;
-                }
-            } catch (Exception ignored) {}
-            try {
-                // Any site row button (compound name with comma)
-                java.util.List<WebElement> rows = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND name CONTAINS ','"));
-                if (rows.size() >= 2) {
-                    System.out.println("✅ Site list ready (" + rows.size() + " site rows visible)");
-                    return;
-                }
-            } catch (Exception ignored) {}
+            boolean ready = withImplicitWait(0, () -> {
+                try {
+                    java.util.List<WebElement> fields = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeSearchField') AND " +
+                        "(placeholderValue CONTAINS[c] 'search' OR value CONTAINS[c] 'search')"));
+                    if (!fields.isEmpty()) {
+                        System.out.println("✅ Site list ready (search field visible)");
+                        return true;
+                    }
+                } catch (Exception ignored) {}
+                try {
+                    // Any site row button (compound name with comma)
+                    java.util.List<WebElement> rows = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND name CONTAINS ','"));
+                    if (rows.size() >= 2) {
+                        System.out.println("✅ Site list ready (" + rows.size() + " site rows visible)");
+                        return true;
+                    }
+                } catch (Exception ignored) {}
+                return false;
+            });
+            if (ready) return;
             try { Thread.sleep(300); } catch (InterruptedException e) { Thread.currentThread().interrupt(); break; }
         }
         System.out.println("⚠️ Site list wait timeout (10s) — proceeding anyway");
@@ -273,54 +279,56 @@ public class SiteSelectionPage extends BasePage {
      * Slow app builds need a longer leash here — the site selection
      * transition can take 20–30s before any Dashboard signal renders,
      * during which any premature interaction hits the still-loading
-     * picker and breaks the test. We:
-     *   1. Sleep 2000 ms up front so the picker dismissal animation
-     *      and initial paint complete before we start polling.
-     *   2. Poll for up to 45s for any Dashboard ground-truth signal.
-     *   3. Once detected, sleep another 1000 ms to let async data
-     *      finish populating cards before the test starts tapping.
+     * picker and breaks the test. Poll for up to 45s for any Dashboard
+     * ground-truth signal (probes with implicit wait OFF, so a still-loading
+     * screen costs one 500ms tick, not 4 × 5s implicit-wait burns), then
+     * give async card data a bounded settle poll before returning.
      */
     public void waitForDashboardReady() {
-        // Pre-poll settle — give the site-transition animation room
-        try { Thread.sleep(2000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); return; }
-
         long timeoutMs = 45000;
         long deadline = System.currentTimeMillis() + timeoutMs;
         while (System.currentTimeMillis() < deadline) {
-            try {
-                if (!driver.findElements(AppiumBy.accessibilityId("Sites")).isEmpty()) {
-                    System.out.println("✅ Dashboard ready (Sites Quick-Action visible)");
-                    postReadySettle();
-                    return;
-                }
-            } catch (Exception ignored) {}
-            try {
-                java.util.List<WebElement> welcome = driver.findElements(
-                    AppiumBy.iOSNsPredicateString("label BEGINSWITH 'Welcome' OR name BEGINSWITH 'Welcome'"));
-                if (!welcome.isEmpty()) {
-                    System.out.println("✅ Dashboard ready (Welcome header visible)");
-                    postReadySettle();
-                    return;
-                }
-            } catch (Exception ignored) {}
-            try {
-                if (!driver.findElements(AppiumBy.accessibilityId("Assets")).isEmpty()
-                    || !driver.findElements(AppiumBy.accessibilityId("Issues")).isEmpty()) {
-                    System.out.println("✅ Dashboard ready (Quick Action tile visible)");
-                    postReadySettle();
-                    return;
-                }
-            } catch (Exception ignored) {}
+            String signal = withImplicitWait(0, () -> {
+                try {
+                    if (!driver.findElements(AppiumBy.accessibilityId("Sites")).isEmpty()) {
+                        return "Sites Quick-Action visible";
+                    }
+                } catch (Exception ignored) {}
+                try {
+                    java.util.List<WebElement> welcome = driver.findElements(
+                        AppiumBy.iOSNsPredicateString("label BEGINSWITH 'Welcome' OR name BEGINSWITH 'Welcome'"));
+                    if (!welcome.isEmpty()) {
+                        return "Welcome header visible";
+                    }
+                } catch (Exception ignored) {}
+                try {
+                    if (!driver.findElements(AppiumBy.accessibilityId("Assets")).isEmpty()
+                        || !driver.findElements(AppiumBy.accessibilityId("Issues")).isEmpty()) {
+                        return "Quick Action tile visible";
+                    }
+                } catch (Exception ignored) {}
+                return null;
+            });
+            if (signal != null) {
+                System.out.println("✅ Dashboard ready (" + signal + ")");
+                postReadySettle();
+                return;
+            }
             try { Thread.sleep(500); } catch (InterruptedException e) { Thread.currentThread().interrupt(); break; }
         }
         System.out.println("⚠️ Dashboard wait timeout (" + (timeoutMs / 1000) + "s), continuing...");
     }
 
-    private static void postReadySettle() {
+    private void postReadySettle() {
         // Dashboard widgets (WO card, badge counts, Quick Action tiles)
-        // populate asynchronously after the screen renders. Give them a
-        // second to finish so the next tap lands on a stable target.
-        try { Thread.sleep(1000); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
+        // populate asynchronously after the first signal renders. Poll for a
+        // stable widget (3s cap) instead of a fixed sleep — typically <500ms —
+        // so the next tap lands on a stable target.
+        withImplicitWait(0, () -> Waits.until(() ->
+            !driver.findElements(AppiumBy.accessibilityId("Assets")).isEmpty()
+                || !driver.findElements(AppiumBy.iOSNsPredicateString(
+                       "name BEGINSWITH 'WO,' OR label BEGINSWITH 'WO,'")).isEmpty(),
+            3000));
     }
 
     // ================================================================
@@ -352,126 +360,134 @@ public class SiteSelectionPage extends BasePage {
     
     /**
      * Helper method to check for Select Site screen elements
-     * Returns true if ANY identifying element is found
+     * Returns true if ANY identifying element is found.
+     *
+     * Every probe runs with implicit wait OFF (findElements, zero-wait), so a
+     * miss costs milliseconds and the next strategy fires immediately — the
+     * old findElement chain burned the 5s implicit wait per miss (~45-55s
+     * when the screen was absent). Presence-over-time is handled by the
+     * polling loop in isSelectSiteScreenDisplayed().
      */
     private boolean checkSelectSiteScreenElements() {
         try {
-            // Method 1: Check for Select Site title by accessibility ID
-            try {
-                WebElement title = driver.findElement(AppiumBy.accessibilityId("Select Site"));
-                if (title != null && title.isDisplayed()) {
-                    System.out.println("✅ Found Select Site title (accessibility ID)");
-                    return true;
-                }
-            } catch (Exception e) {}
-            
-            // Method 2: Check for Select Site title by predicate
-            try {
-                WebElement title = driver.findElement(AppiumBy.iOSNsPredicateString("label == 'Select Site'"));
-                if (title != null && title.isDisplayed()) {
-                    System.out.println("✅ Found Select Site title (predicate)");
-                    return true;
-                }
-            } catch (Exception e) {}
-            
-            // Method 3: Check for search bar with "Search" placeholder (case-insensitive, partial match)
-            try {
-                WebElement search = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeSearchField') AND " +
-                    "(value CONTAINS[c] 'search' OR placeholderValue CONTAINS[c] 'search')"
-                ));
-                if (search != null && search.isDisplayed()) {
-                    System.out.println("✅ Found search bar with Search placeholder");
-                    return true;
-                }
-            } catch (Exception e) {}
-            
-            // Method 3b: Check for any visible TextField (search bar in new UI)
-            try {
-                WebElement textField = driver.findElement(AppiumBy.iOSClassChain("**/XCUIElementTypeTextField[`visible == true`]"));
-                if (textField != null && textField.isDisplayed()) {
-                    System.out.println("✅ Found visible TextField on site selection screen");
-                    return true;
-                }
-            } catch (Exception e) {}
-            
-            // Method 4: Check for any visible TextField (search bar)
-            try {
-                WebElement textField = driver.findElement(AppiumBy.iOSClassChain("**/XCUIElementTypeTextField[`visible == true`]"));
-                if (textField != null && textField.isDisplayed()) {
-                    System.out.println("✅ Found visible TextField (search bar)");
-                    return true;
-                }
-            } catch (Exception e) {}
-            
-            // Method 5: Check for Create New Site button (flexible - may be plus icon now)
-            try {
-                WebElement createBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND " +
-                    "(name == 'Create New Site' OR name CONTAINS 'plus' OR " +
-                    "label CONTAINS[c] 'new site' OR label CONTAINS[c] 'add site' OR label CONTAINS[c] 'create')"
-                ));
-                if (createBtn != null && createBtn.isDisplayed()) {
-                    System.out.println("✅ Found Create/Add button");
-                    return true;
-                }
-            } catch (Exception e) {}
-            
-            // Method 6: Check for site list items (buttons containing comma - "Site Name, Address")
-            try {
-                List<WebElement> siteButtons = driver.findElements(AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND label CONTAINS ','"));
-                if (siteButtons != null && siteButtons.size() > 0) {
-                    System.out.println("✅ Found site list items (" + siteButtons.size() + " sites with comma in label)");
-                    return true;
-                }
-            } catch (Exception e) {}
-            
-            // Method 7: Check for navigation bar with Sites or Select Site
-            try {
-                WebElement navBar = driver.findElement(AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeNavigationBar' AND (name CONTAINS 'Site' OR label CONTAINS 'Site')"));
-                if (navBar != null && navBar.isDisplayed()) {
-                    System.out.println("✅ Found navigation bar with Site text");
-                    return true;
-                }
-            } catch (Exception e) {}
-            
-            // Method 8: Check for Cancel button (only visible on Select Site screen)
-            try {
-                WebElement cancel = driver.findElement(AppiumBy.accessibilityId("Cancel"));
-                if (cancel != null && cancel.isDisplayed()) {
-                    System.out.println("✅ Found Cancel button (Select Site screen indicator)");
-                    return true;
-                }
-            } catch (Exception e) {}
-            
-            // Method 9: Check if dashboard elements are NOT visible (flexible)
-            // If dashboard is hidden, we might be on Select Site screen
-            try {
-                // Try original building.2 first
-                WebElement sitesBtn = driver.findElement(AppiumBy.accessibilityId("building.2"));
-                if (sitesBtn != null && !sitesBtn.isDisplayed()) {
-                    System.out.println("✅ Dashboard Sites button hidden (likely on Select Site screen)");
-                    return true;
-                }
-            } catch (Exception e) {
-                // building.2 not found - try flexible search
+            return withImplicitWait(0, () -> {
+                // Method 1: Check for Select Site title by accessibility ID
                 try {
-                    List<WebElement> dashButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeButton' AND " +
-                        "(name CONTAINS 'building' OR label CONTAINS[c] 'sites')"
-                    ));
-                    if (dashButtons.isEmpty()) {
-                        System.out.println("✅ Dashboard buttons not found (likely on Select Site screen)");
+                    List<WebElement> title = driver.findElements(AppiumBy.accessibilityId("Select Site"));
+                    if (!title.isEmpty() && title.get(0).isDisplayed()) {
+                        System.out.println("✅ Found Select Site title (accessibility ID)");
                         return true;
                     }
-                } catch (Exception e2) {
+                } catch (Exception e) {}
+
+                // Method 2: Check for Select Site title by predicate
+                try {
+                    List<WebElement> title = driver.findElements(AppiumBy.iOSNsPredicateString("label == 'Select Site'"));
+                    if (!title.isEmpty() && title.get(0).isDisplayed()) {
+                        System.out.println("✅ Found Select Site title (predicate)");
+                        return true;
+                    }
+                } catch (Exception e) {}
+
+                // Method 3: Check for search bar with "Search" placeholder (case-insensitive, partial match)
+                try {
+                    List<WebElement> search = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeSearchField') AND " +
+                        "(value CONTAINS[c] 'search' OR placeholderValue CONTAINS[c] 'search')"
+                    ));
+                    if (!search.isEmpty() && search.get(0).isDisplayed()) {
+                        System.out.println("✅ Found search bar with Search placeholder");
+                        return true;
+                    }
+                } catch (Exception e) {}
+
+                // Method 3b: Check for any visible TextField (search bar in new UI)
+                try {
+                    List<WebElement> textField = driver.findElements(AppiumBy.iOSClassChain("**/XCUIElementTypeTextField[`visible == true`]"));
+                    if (!textField.isEmpty() && textField.get(0).isDisplayed()) {
+                        System.out.println("✅ Found visible TextField on site selection screen");
+                        return true;
+                    }
+                } catch (Exception e) {}
+
+                // Method 4: Check for any visible TextField (search bar)
+                try {
+                    List<WebElement> textField = driver.findElements(AppiumBy.iOSClassChain("**/XCUIElementTypeTextField[`visible == true`]"));
+                    if (!textField.isEmpty() && textField.get(0).isDisplayed()) {
+                        System.out.println("✅ Found visible TextField (search bar)");
+                        return true;
+                    }
+                } catch (Exception e) {}
+
+                // Method 5: Check for Create New Site button (flexible - may be plus icon now)
+                try {
+                    List<WebElement> createBtn = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND " +
+                        "(name == 'Create New Site' OR name CONTAINS 'plus' OR " +
+                        "label CONTAINS[c] 'new site' OR label CONTAINS[c] 'add site' OR label CONTAINS[c] 'create')"
+                    ));
+                    if (!createBtn.isEmpty() && createBtn.get(0).isDisplayed()) {
+                        System.out.println("✅ Found Create/Add button");
+                        return true;
+                    }
+                } catch (Exception e) {}
+
+                // Method 6: Check for site list items (buttons containing comma - "Site Name, Address")
+                try {
+                    List<WebElement> siteButtons = driver.findElements(AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND label CONTAINS ','"));
+                    if (siteButtons != null && siteButtons.size() > 0) {
+                        System.out.println("✅ Found site list items (" + siteButtons.size() + " sites with comma in label)");
+                        return true;
+                    }
+                } catch (Exception e) {}
+
+                // Method 7: Check for navigation bar with Sites or Select Site
+                try {
+                    List<WebElement> navBar = driver.findElements(AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeNavigationBar' AND (name CONTAINS 'Site' OR label CONTAINS 'Site')"));
+                    if (!navBar.isEmpty() && navBar.get(0).isDisplayed()) {
+                        System.out.println("✅ Found navigation bar with Site text");
+                        return true;
+                    }
+                } catch (Exception e) {}
+
+                // Method 8: Check for Cancel button (only visible on Select Site screen)
+                try {
+                    List<WebElement> cancel = driver.findElements(AppiumBy.accessibilityId("Cancel"));
+                    if (!cancel.isEmpty() && cancel.get(0).isDisplayed()) {
+                        System.out.println("✅ Found Cancel button (Select Site screen indicator)");
+                        return true;
+                    }
+                } catch (Exception e) {}
+
+                // Method 9: Check if dashboard elements are NOT visible (flexible)
+                // If dashboard is hidden, we might be on Select Site screen
+                try {
+                    // Try original building.2 first
+                    List<WebElement> sitesBtn = driver.findElements(AppiumBy.accessibilityId("building.2"));
+                    if (!sitesBtn.isEmpty()) {
+                        if (!sitesBtn.get(0).isDisplayed()) {
+                            System.out.println("✅ Dashboard Sites button hidden (likely on Select Site screen)");
+                            return true;
+                        }
+                    } else {
+                        // building.2 not found - try flexible search
+                        List<WebElement> dashButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeButton' AND " +
+                            "(name CONTAINS 'building' OR label CONTAINS[c] 'sites')"
+                        ));
+                        if (dashButtons.isEmpty()) {
+                            System.out.println("✅ Dashboard buttons not found (likely on Select Site screen)");
+                            return true;
+                        }
+                    }
+                } catch (Exception e) {
                     System.out.println("✅ Dashboard check failed - assuming Select Site screen");
                     return true;
                 }
-            }
-            
-            return false;
-            
+
+                return false;
+            });
+
         } catch (Exception e) {
             return false;
         }
@@ -866,21 +882,44 @@ public class SiteSelectionPage extends BasePage {
      */
     public String selectFirstSiteFast() {
         try {
-            // v1.36 (changelog 075): the previous predicate matched ANY button
-            // with a comma in its name, which picked up Dashboard's WO Work
-            // Order card "WO, No Active Work Order, Tap to select a work order"
-            // when the screen happened to be Dashboard, not Site Selection.
-            // Iterate buttons and reject known non-site names (WO compound,
-            // Tasks compound, Search-related).
+            // v1.36 (changelog 075): a bare comma-name predicate matched
+            // Dashboard's WO card "WO, No Active Work Order, Tap to select a
+            // work order" when the screen happened to be Dashboard, not Site
+            // Selection. The rejections live in the predicate itself
+            // (NSPredicate supports AND NOT) so the first match IS a site row
+            // — no client-side scan over every button. Site rows carry name +
+            // address pieces, i.e. at least two commas.
+            String anyCommaRow = "type == 'XCUIElementTypeButton' AND name CONTAINS ','";
+            String siteRow = anyCommaRow
+                + " AND NOT (name BEGINSWITH[c] 'WO,')"
+                + " AND NOT (name CONTAINS[c] 'No Active Work Order')"
+                + " AND NOT (name CONTAINS[c] 'Tap to select')"
+                + " AND NOT (name MATCHES[c] '\\\\d+,\\\\s*tasks.*')"   // "694, Tasks"
+                + " AND name MATCHES '(?s)[^,]*,[^,]*,.*'";             // >= 2 commas
             // Slow app needs longer to render the picker — wait up to 10 s.
             WebDriverWait fastWait = new WebDriverWait(driver, Duration.ofSeconds(10));
             fastWait.until(ExpectedConditions.presenceOfElementLocated(
-                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name CONTAINS ','")
+                AppiumBy.iOSNsPredicateString(anyCommaRow)
             ));
-            // Let the picker finish populating before we scan it (slow app)
-            try { Thread.sleep(800); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+            // Picker is rendering — the filtered probe is a cheap zero-wait
+            // refinement of the row that presence-wait already found.
+            java.util.List<WebElement> rows;
+            try {
+                rows = withImplicitWait(0,
+                    () -> driver.findElements(AppiumBy.iOSNsPredicateString(siteRow)));
+            } catch (Exception predicateQuirk) {
+                rows = java.util.Collections.emptyList();
+            }
+            if (!rows.isEmpty()) {
+                String name = rows.get(0).getAttribute("name");
+                rows.get(0).click();
+                waitForSitePickerDismissed();
+                return name;
+            }
+            // Fallback: client-side rejection scan (kept in case MATCHES
+            // filtering misbehaves on some WDA/iOS combination).
             java.util.List<WebElement> buttons = driver.findElements(
-                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name CONTAINS ','")
+                AppiumBy.iOSNsPredicateString(anyCommaRow)
             );
             for (WebElement btn : buttons) {
                 String name = btn.getAttribute("name");
@@ -896,9 +935,7 @@ public class SiteSelectionPage extends BasePage {
                 // Must look like a site: name + address pieces (≥2 commas)
                 if (name.indexOf(',') == name.lastIndexOf(',')) continue;
                 btn.click();
-                // Post-tap settle — picker dismiss + dashboard transition starts.
-                // waitForDashboardReady() handles the rest of the loading wait.
-                try { Thread.sleep(800); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+                waitForSitePickerDismissed();
                 return name;
             }
             System.out.println("⚠️ Fast site select found no valid site row, falling back");
@@ -907,6 +944,20 @@ public class SiteSelectionPage extends BasePage {
             System.out.println("⚠️ Fast site select failed, using standard method");
             return selectFirstSite();
         }
+    }
+
+    /**
+     * Bounded post-tap settle: poll until the picker's search field is gone
+     * (picker dismissed, dashboard transition starting) instead of a fixed
+     * sleep — typically a couple hundred ms, 3s worst case.
+     * waitForDashboardReady() handles the rest of the loading wait.
+     */
+    private void waitForSitePickerDismissed() {
+        withImplicitWait(0, () -> Waits.until(() -> driver.findElements(
+            AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeSearchField') AND " +
+                "(placeholderValue CONTAINS[c] 'search' OR value CONTAINS[c] 'search')")).isEmpty(),
+            3000));
     }
 
     /**
@@ -3083,45 +3134,50 @@ public class SiteSelectionPage extends BasePage {
      * Schedule screen has: "View Sites" button, "Schedule" text, calendar view
      */
     public boolean isScheduleScreenDisplayed() {
-        try {
-            WebDriverWait quickWait = new WebDriverWait(driver, Duration.ofSeconds(2));
-            return quickWait.until(d -> {
-                try {
-                    // Check for "View Sites" button
-                    List<WebElement> viewSites = d.findElements(
-                        AppiumBy.iOSNsPredicateString("label == 'View Sites' OR name == 'View Sites'")
-                    );
-                    if (!viewSites.isEmpty()) {
-                        System.out.println("📅 Schedule screen detected (View Sites button found)");
-                        return true;
+        // Probes run with implicit wait OFF — otherwise every findElements
+        // miss inside the poll burned the global 5s wait (3 probes ≈ 15s per
+        // tick for a "quick" check). True 3s cap, three cheap probes per tick.
+        return withImplicitWait(0, () -> {
+            try {
+                WebDriverWait quickWait = new WebDriverWait(driver, Duration.ofSeconds(3));
+                return quickWait.until(d -> {
+                    try {
+                        // Check for "View Sites" button
+                        List<WebElement> viewSites = d.findElements(
+                            AppiumBy.iOSNsPredicateString("label == 'View Sites' OR name == 'View Sites'")
+                        );
+                        if (!viewSites.isEmpty()) {
+                            System.out.println("📅 Schedule screen detected (View Sites button found)");
+                            return true;
+                        }
+
+                        // Check for "Schedule" text
+                        List<WebElement> schedule = d.findElements(
+                            AppiumBy.iOSNsPredicateString("label == 'Schedule' OR name == 'Schedule'")
+                        );
+                        if (!schedule.isEmpty()) {
+                            System.out.println("📅 Schedule screen detected (Schedule text found)");
+                            return true;
+                        }
+
+                        // Check for "No scheduled work today" text
+                        List<WebElement> noWork = d.findElements(
+                            AppiumBy.iOSNsPredicateString("label CONTAINS 'No scheduled work' OR name CONTAINS 'No scheduled work'")
+                        );
+                        if (!noWork.isEmpty()) {
+                            System.out.println("📅 Schedule screen detected (No scheduled work text found)");
+                            return true;
+                        }
+
+                        return false;
+                    } catch (Exception e) {
+                        return false;
                     }
-                    
-                    // Check for "Schedule" text
-                    List<WebElement> schedule = d.findElements(
-                        AppiumBy.iOSNsPredicateString("label == 'Schedule' OR name == 'Schedule'")
-                    );
-                    if (!schedule.isEmpty()) {
-                        System.out.println("📅 Schedule screen detected (Schedule text found)");
-                        return true;
-                    }
-                    
-                    // Check for "No scheduled work today" text
-                    List<WebElement> noWork = d.findElements(
-                        AppiumBy.iOSNsPredicateString("label CONTAINS 'No scheduled work' OR name CONTAINS 'No scheduled work'")
-                    );
-                    if (!noWork.isEmpty()) {
-                        System.out.println("📅 Schedule screen detected (No scheduled work text found)");
-                        return true;
-                    }
-                    
-                    return false;
-                } catch (Exception e) {
-                    return false;
-                }
-            });
-        } catch (Exception e) {
-            return false;
-        }
+                });
+            } catch (Exception e) {
+                return false;
+            }
+        });
     }
 
     /**
@@ -3218,7 +3274,7 @@ public class SiteSelectionPage extends BasePage {
         System.out.println("🔍 Checking for Schedule screen...");
         
         try {
-            // Quick check for Schedule screen (2 seconds max)
+            // Quick check for Schedule screen (3 seconds max)
             if (isScheduleScreenDisplayed()) {
                 System.out.println("📅 Schedule screen detected - clicking 'View Sites'");
                 clickViewSites();

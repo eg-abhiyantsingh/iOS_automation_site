@@ -112,7 +112,7 @@ jobs:
     needs: resolve
     if: needs.resolve.outputs.run_tests == 'true'
     runs-on: macos-15
-    timeout-minutes: 350
+    timeout-minutes: 360
     env:
       XML: ${{ needs.resolve.outputs.xml }}
       LABEL: ${{ needs.resolve.outputs.label }}
@@ -199,7 +199,7 @@ jobs:
 
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             xcodebuild build-for-testing \
@@ -327,6 +327,6 @@ jobs:
         run: |
           EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
           export EMAIL_TO
-          python3 -m pip install --quiet defusedxml
+          python3 -m pip install --quiet --break-system-packages defusedxml || python3 -m pip install --quiet defusedxml
           python3 .github/scripts/send-module-email.py
         continue-on-error: true

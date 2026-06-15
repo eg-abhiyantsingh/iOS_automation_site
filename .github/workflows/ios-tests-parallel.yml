@@ -88,7 +88,7 @@ jobs:
     name: "Smoke - CRUD Tests (17 tests)"
     if: github.event.inputs.job_selection == 'smoke'
     runs-on: macos-15
-    timeout-minutes: 120
+    timeout-minutes: 360
 
     steps:
       - name: Checkout code
@@ -171,7 +171,7 @@ jobs:
 
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             xcodebuild build-for-testing \
@@ -287,7 +287,7 @@ jobs:
             src/test/resources/smoke/testng-smoke-connection-crud.xml \
             src/test/resources/smoke/testng-smoke-issue-crud.xml; do
             echo "── Running: $XML ──"
-            mvn test -q -B -DsuiteXmlFile="$XML" \
+            mvn test -ntp -B -DfailIfNoTests=true -DsuiteXmlFile="$XML" \
               -DDEVICE_NAME="$DEVICE_NAME" \
               -DPLATFORM_VERSION="$PLATFORM_VERSION" \
               -DSIMULATOR_UDID="$SIMULATOR_UDID" \
@@ -324,9 +324,14 @@ jobs:
           # immediately on receipt.
           EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
           export EMAIL_TO
-          python3 -m pip install --quiet defusedxml
+          python3 -m pip install --quiet --break-system-packages defusedxml || python3 -m pip install --quiet defusedxml
           python3 .github/scripts/send-module-email.py
         continue-on-error: true
+      # Loud gate runs LAST (after report upload + module email) so evidence
+      # always ships first. No continue-on-error here: this step is what turns
+      # "0 tests ran / tests failed but mvn was tolerated" jobs RED.
+      - name: Test Result Gate
+        run: bash .github/scripts/test-result-gate.sh target/surefire-reports
   # ========================================
   # JOB 1: Auth Tests (38 tests, ~45 min)
   # ========================================
@@ -334,7 +339,7 @@ jobs:
     name: "Authentication (38 tests)"
     if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'authentication-only'
     runs-on: macos-15
-    timeout-minutes: 350
+    timeout-minutes: 360
     
     steps:
       - name: Checkout code
@@ -428,7 +433,7 @@ jobs:
       - name: Pre-build WebDriverAgent
         run: |
           echo "Pre-building WebDriverAgent to avoid timeout on first test..."
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           
           if [ -n "$WDA_PATH" ]; then
             echo "Found WDA at: $WDA_PATH"
@@ -560,7 +565,7 @@ jobs:
           # Extract bundle ID from built app so soft restart uses correct ID
           BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
 
-          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel/testng-auth.xml \
+          mvn test -ntp -B -DfailIfNoTests=true -DsuiteXmlFile=src/test/resources/parallel/testng-auth.xml \
             -DDEVICE_NAME="$DEVICE_NAME" \
             -DPLATFORM_VERSION="$PLATFORM_VERSION" \
             -DSIMULATOR_UDID="$SIMULATOR_UDID" \
@@ -594,9 +599,14 @@ jobs:
           # immediately on receipt.
           EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
           export EMAIL_TO
-          python3 -m pip install --quiet defusedxml
+          python3 -m pip install --quiet --break-system-packages defusedxml || python3 -m pip install --quiet defusedxml
           python3 .github/scripts/send-module-email.py
         continue-on-error: true
+      # Loud gate runs LAST (after report upload + module email) so evidence
+      # always ships first. No continue-on-error here: this step is what turns
+      # "0 tests ran / tests failed but mvn was tolerated" jobs RED.
+      - name: Test Result Gate
+        run: bash .github/scripts/test-result-gate.sh target/surefire-reports
 
   # ========================================
   # JOB 2: Site Tests (52 tests, ~1.5 hr)
@@ -605,7 +615,7 @@ jobs:
     name: "Site Selection (52 tests)"
     if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'site-selection-only'
     runs-on: macos-15
-    timeout-minutes: 350
+    timeout-minutes: 360
     
     steps:
       - name: Checkout code
@@ -663,7 +673,7 @@ jobs:
         run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             xcodebuild build-for-testing -project WebDriverAgent.xcodeproj -scheme WebDriverAgentRunner -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" -derivedDataPath /tmp/wda-build -quiet || true
@@ -710,7 +720,7 @@ jobs:
           # Extract bundle ID from built app so soft restart uses correct ID
           BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${{ github.workspace }}/apps/Z Platform-QA.app/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
 
-          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel/testng-site.xml \
+          mvn test -ntp -B -DfailIfNoTests=true -DsuiteXmlFile=src/test/resources/parallel/testng-site.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
@@ -743,9 +753,14 @@ jobs:
           # immediately on receipt.
           EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
           export EMAIL_TO
-          python3 -m pip install --quiet defusedxml
+          python3 -m pip install --quiet --break-system-packages defusedxml || python3 -m pip install --quiet defusedxml
           python3 .github/scripts/send-module-email.py
         continue-on-error: true
+      # Loud gate runs LAST (after report upload + module email) so evidence
+      # always ships first. No continue-on-error here: this step is what turns
+      # "0 tests ran / tests failed but mvn was tolerated" jobs RED.
+      - name: Test Result Gate
+        run: bash .github/scripts/test-result-gate.sh target/surefire-reports
 
   # ========================================
   # JOB 3: Asset Part 1 (112 tests, ~1.5 hr)
@@ -756,7 +771,7 @@ jobs:
     name: "Assets P1 - Creation + Edit + Busway + Capacitor + Bug (112 tests)"
     if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p1-creation-edit-busway-capacitor-bug'
     runs-on: macos-15
-    timeout-minutes: 350
+    timeout-minutes: 360
     
     steps:
       - name: Checkout code
@@ -814,7 +829,7 @@ jobs:
         run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             xcodebuild build-for-testing -project WebDriverAgent.xcodeproj -scheme WebDriverAgentRunner -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" -derivedDataPath /tmp/wda-build -quiet || true
@@ -861,7 +876,7 @@ jobs:
           # Extract bundle ID from built app so soft restart uses correct ID
           BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${{ github.workspace }}/apps/Z Platform-QA.app/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
 
-          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel/testng-assets-part1.xml \
+          mvn test -ntp -B -DfailIfNoTests=true -DsuiteXmlFile=src/test/resources/parallel/testng-assets-part1.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
@@ -894,9 +909,14 @@ jobs:
           # immediately on receipt.
           EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
           export EMAIL_TO
-          python3 -m pip install --quiet defusedxml
+          python3 -m pip install --quiet --break-system-packages defusedxml || python3 -m pip install --quiet defusedxml
           python3 .github/scripts/send-module-email.py
         continue-on-error: true
+      # Loud gate runs LAST (after report upload + module email) so evidence
+      # always ships first. No continue-on-error here: this step is what turns
+      # "0 tests ran / tests failed but mvn was tolerated" jobs RED.
+      - name: Test Result Gate
+        run: bash .github/scripts/test-result-gate.sh target/surefire-reports
 
   # ========================================
   # JOB 4: Asset Part 2 (108 tests, ~1.5 hr)
@@ -907,7 +927,7 @@ jobs:
     name: "Assets P2 - CB + DS + Fuse + Generator + JunctionBox (108 tests)"
     if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p2-cb-ds-fuse-generator-junctionbox'
     runs-on: macos-15
-    timeout-minutes: 350
+    timeout-minutes: 360
     
     steps:
       - name: Checkout code
@@ -965,7 +985,7 @@ jobs:
         run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             xcodebuild build-for-testing -project WebDriverAgent.xcodeproj -scheme WebDriverAgentRunner -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" -derivedDataPath /tmp/wda-build -quiet || true
@@ -1012,7 +1032,7 @@ jobs:
           # Extract bundle ID from built app so soft restart uses correct ID
           BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${{ github.workspace }}/apps/Z Platform-QA.app/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
 
-          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel/testng-assets-part2.xml \
+          mvn test -ntp -B -DfailIfNoTests=true -DsuiteXmlFile=src/test/resources/parallel/testng-assets-part2.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
@@ -1045,9 +1065,14 @@ jobs:
           # immediately on receipt.
           EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
           export EMAIL_TO
-          python3 -m pip install --quiet defusedxml
+          python3 -m pip install --quiet --break-system-packages defusedxml || python3 -m pip install --quiet defusedxml
           python3 .github/scripts/send-module-email.py
         continue-on-error: true
+      # Loud gate runs LAST (after report upload + module email) so evidence
+      # always ships first. No continue-on-error here: this step is what turns
+      # "0 tests ran / tests failed but mvn was tolerated" jobs RED.
+      - name: Test Result Gate
+        run: bash .github/scripts/test-result-gate.sh target/surefire-reports
 
   # ========================================
   # JOB 5: Asset Part 3 (109 tests, ~1.5 hr)
@@ -1057,7 +1082,7 @@ jobs:
     name: "Assets P3 - LoadCenter + MCC + MCC Bucket + Motor + Other (109 tests)"
     if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p3-loadcenter-mcc-mccbucket-motor-other'
     runs-on: macos-15
-    timeout-minutes: 350
+    timeout-minutes: 360
     
     steps:
       - name: Checkout code
@@ -1115,7 +1140,7 @@ jobs:
         run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             xcodebuild build-for-testing -project WebDriverAgent.xcodeproj -scheme WebDriverAgentRunner -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" -derivedDataPath /tmp/wda-build -quiet || true
@@ -1162,7 +1187,7 @@ jobs:
           # Extract bundle ID from built app so soft restart uses correct ID
           BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${{ github.workspace }}/apps/Z Platform-QA.app/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
 
-          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel/testng-assets-part3.xml \
+          mvn test -ntp -B -DfailIfNoTests=true -DsuiteXmlFile=src/test/resources/parallel/testng-assets-part3.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
@@ -1195,9 +1220,14 @@ jobs:
           # immediately on receipt.
           EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
           export EMAIL_TO
-          python3 -m pip install --quiet defusedxml
+          python3 -m pip install --quiet --break-system-packages defusedxml || python3 -m pip install --quiet defusedxml
           python3 .github/scripts/send-module-email.py
         continue-on-error: true
+      # Loud gate runs LAST (after report upload + module email) so evidence
+      # always ships first. No continue-on-error here: this step is what turns
+      # "0 tests ran / tests failed but mvn was tolerated" jobs RED.
+      - name: Test Result Gate
+        run: bash .github/scripts/test-result-gate.sh target/surefire-reports
 
   # ========================================
   # JOB 6: Asset Part 4 (97 tests, ~1.5 hr)
@@ -1208,7 +1238,7 @@ jobs:
     name: "Assets P4 - OCP + Panelboard + PDU + Relay + SWB + Transformer (97 tests)"
     if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p4-ocp-panelboard-pdu-relay-swb-transformer'
     runs-on: macos-15
-    timeout-minutes: 350
+    timeout-minutes: 360
     
     steps:
       - name: Checkout code
@@ -1266,7 +1296,7 @@ jobs:
         run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             xcodebuild build-for-testing -project WebDriverAgent.xcodeproj -scheme WebDriverAgentRunner -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" -derivedDataPath /tmp/wda-build -quiet || true
@@ -1313,7 +1343,7 @@ jobs:
           # Extract bundle ID from built app so soft restart uses correct ID
           BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${{ github.workspace }}/apps/Z Platform-QA.app/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
 
-          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel/testng-assets-part4.xml \
+          mvn test -ntp -B -DfailIfNoTests=true -DsuiteXmlFile=src/test/resources/parallel/testng-assets-part4.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
@@ -1346,9 +1376,14 @@ jobs:
           # immediately on receipt.
           EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
           export EMAIL_TO
-          python3 -m pip install --quiet defusedxml
+          python3 -m pip install --quiet --break-system-packages defusedxml || python3 -m pip install --quiet defusedxml
           python3 .github/scripts/send-module-email.py
         continue-on-error: true
+      # Loud gate runs LAST (after report upload + module email) so evidence
+      # always ships first. No continue-on-error here: this step is what turns
+      # "0 tests ran / tests failed but mvn was tolerated" jobs RED.
+      - name: Test Result Gate
+        run: bash .github/scripts/test-result-gate.sh target/surefire-reports
 
   # ========================================
   # JOB 7: Asset Part 5 (112 tests, ~1.5 hr)
@@ -1360,7 +1395,7 @@ jobs:
     name: "Assets P5 - UPS + Utility + VFD + Subtypes (112 tests)"
     if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p5-ups-utility-vfd-subtypes'
     runs-on: macos-15
-    timeout-minutes: 350
+    timeout-minutes: 360
     
     steps:
       - name: Checkout code
@@ -1418,7 +1453,7 @@ jobs:
         run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             xcodebuild build-for-testing -project WebDriverAgent.xcodeproj -scheme WebDriverAgentRunner -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" -derivedDataPath /tmp/wda-build -quiet || true
@@ -1465,7 +1500,7 @@ jobs:
           # Extract bundle ID from built app so soft restart uses correct ID
           BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${{ github.workspace }}/apps/Z Platform-QA.app/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
 
-          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel/testng-assets-part5.xml \
+          mvn test -ntp -B -DfailIfNoTests=true -DsuiteXmlFile=src/test/resources/parallel/testng-assets-part5.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
@@ -1498,9 +1533,14 @@ jobs:
           # immediately on receipt.
           EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
           export EMAIL_TO
-          python3 -m pip install --quiet defusedxml
+          python3 -m pip install --quiet --break-system-packages defusedxml || python3 -m pip install --quiet defusedxml
           python3 .github/scripts/send-module-email.py
         continue-on-error: true
+      # Loud gate runs LAST (after report upload + module email) so evidence
+      # always ships first. No continue-on-error here: this step is what turns
+      # "0 tests ran / tests failed but mvn was tolerated" jobs RED.
+      - name: Test Result Gate
+        run: bash .github/scripts/test-result-gate.sh target/surefire-reports
 
   # ========================================
   # JOB 8: Asset Part 6 (114 tests, ~1.5 hr)
@@ -1515,7 +1555,7 @@ jobs:
     name: "Assets P6 - Subtypes + Tasks + Issues + Connections + Search (114 tests)"
     if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p6-subtypes-tasks-issues-connections-search'
     runs-on: macos-15
-    timeout-minutes: 350
+    timeout-minutes: 360
 
     steps:
       - name: Checkout code
@@ -1573,7 +1613,7 @@ jobs:
         run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             xcodebuild build-for-testing -project WebDriverAgent.xcodeproj -scheme WebDriverAgentRunner -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" -derivedDataPath /tmp/wda-build -quiet || true
@@ -1620,7 +1660,7 @@ jobs:
           # Extract bundle ID from built app so soft restart uses correct ID
           BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${{ github.workspace }}/apps/Z Platform-QA.app/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
 
-          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel/testng-assets-part6.xml \
+          mvn test -ntp -B -DfailIfNoTests=true -DsuiteXmlFile=src/test/resources/parallel/testng-assets-part6.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
@@ -1653,9 +1693,14 @@ jobs:
           # immediately on receipt.
           EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
           export EMAIL_TO
-          python3 -m pip install --quiet defusedxml
+          python3 -m pip install --quiet --break-system-packages defusedxml || python3 -m pip install --quiet defusedxml
           python3 .github/scripts/send-module-email.py
         continue-on-error: true
+      # Loud gate runs LAST (after report upload + module email) so evidence
+      # always ships first. No continue-on-error here: this step is what turns
+      # "0 tests ran / tests failed but mvn was tolerated" jobs RED.
+      - name: Test Result Gate
+        run: bash .github/scripts/test-result-gate.sh target/surefire-reports
 
   # ========================================
   # JOB 9: Issues Phase 1 (119 tests — List, Filter, Search, Creation, Class Change)
@@ -1664,7 +1709,7 @@ jobs:
     name: "Issues P1 - List + Filter + Search + Creation + ClassChange (119 tests)"
     if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'issues-p1-list-filter-search-creation-classchange'
     runs-on: macos-15
-    timeout-minutes: 350
+    timeout-minutes: 360
 
     steps:
       - name: Checkout code
@@ -1722,7 +1767,7 @@ jobs:
         run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             xcodebuild build-for-testing -project WebDriverAgent.xcodeproj -scheme WebDriverAgentRunner -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" -derivedDataPath /tmp/wda-build -quiet || true
@@ -1769,7 +1814,7 @@ jobs:
           # Extract bundle ID from built app so soft restart uses correct ID
           BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${{ github.workspace }}/apps/Z Platform-QA.app/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
 
-          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel/testng-issues-phase1.xml \
+          mvn test -ntp -B -DfailIfNoTests=true -DsuiteXmlFile=src/test/resources/parallel/testng-issues-phase1.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
@@ -1802,9 +1847,14 @@ jobs:
           # immediately on receipt.
           EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
           export EMAIL_TO
-          python3 -m pip install --quiet defusedxml
+          python3 -m pip install --quiet --break-system-packages defusedxml || python3 -m pip install --quiet defusedxml
           python3 .github/scripts/send-module-email.py
         continue-on-error: true
+      # Loud gate runs LAST (after report upload + module email) so evidence
+      # always ships first. No continue-on-error here: this step is what turns
+      # "0 tests ran / tests failed but mvn was tolerated" jobs RED.
+      - name: Test Result Gate
+        run: bash .github/scripts/test-result-gate.sh target/surefire-reports
 
   # ========================================
   # JOB 10: Issues Phase 2 (60 tests — OSHA, Thermal, Severity, Temperature, Ultrasonic)
@@ -1813,7 +1863,7 @@ jobs:
     name: "Issues P2 - OSHA + Thermal + Severity + Temperature + Ultrasonic (60 tests)"
     if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'issues-p2-osha-thermal-severity-temperature-ultrasonic'
     runs-on: macos-15
-    timeout-minutes: 350
+    timeout-minutes: 360
 
     steps:
       - name: Checkout code
@@ -1871,7 +1921,7 @@ jobs:
         run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             xcodebuild build-for-testing -project WebDriverAgent.xcodeproj -scheme WebDriverAgentRunner -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" -derivedDataPath /tmp/wda-build -quiet || true
@@ -1918,7 +1968,7 @@ jobs:
           # Extract bundle ID from built app so soft restart uses correct ID
           BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${{ github.workspace }}/apps/Z Platform-QA.app/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
 
-          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel/testng-issues-phase2.xml \
+          mvn test -ntp -B -DfailIfNoTests=true -DsuiteXmlFile=src/test/resources/parallel/testng-issues-phase2.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
@@ -1951,9 +2001,14 @@ jobs:
           # immediately on receipt.
           EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
           export EMAIL_TO
-          python3 -m pip install --quiet defusedxml
+          python3 -m pip install --quiet --break-system-packages defusedxml || python3 -m pip install --quiet defusedxml
           python3 .github/scripts/send-module-email.py
         continue-on-error: true
+      # Loud gate runs LAST (after report upload + module email) so evidence
+      # always ships first. No continue-on-error here: this step is what turns
+      # "0 tests ran / tests failed but mvn was tolerated" jobs RED.
+      - name: Test Result Gate
+        run: bash .github/scripts/test-result-gate.sh target/surefire-reports
 
   # ========================================
   # JOB 11: Issues Phase 3 (58 tests — Ultrasonic Save, Swipe Delete, Sort, Status, CRUD)
@@ -1962,7 +2017,7 @@ jobs:
     name: "Issues P3 - Ultrasonic Save + Swipe Delete + Sort + Status + CRUD (58 tests)"
     if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'issues-p3-ultrasonic-save-swipe-delete-sort-status-crud'
     runs-on: macos-15
-    timeout-minutes: 350
+    timeout-minutes: 360
 
     steps:
       - name: Checkout code
@@ -2020,7 +2075,7 @@ jobs:
         run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             xcodebuild build-for-testing -project WebDriverAgent.xcodeproj -scheme WebDriverAgentRunner -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" -derivedDataPath /tmp/wda-build -quiet || true
@@ -2067,7 +2122,7 @@ jobs:
           # Extract bundle ID from built app so soft restart uses correct ID
           BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${{ github.workspace }}/apps/Z Platform-QA.app/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
 
-          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel/testng-issues-phase3.xml \
+          mvn test -ntp -B -DfailIfNoTests=true -DsuiteXmlFile=src/test/resources/parallel/testng-issues-phase3.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
@@ -2100,9 +2155,14 @@ jobs:
           # immediately on receipt.
           EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
           export EMAIL_TO
-          python3 -m pip install --quiet defusedxml
+          python3 -m pip install --quiet --break-system-packages defusedxml || python3 -m pip install --quiet defusedxml
           python3 .github/scripts/send-module-email.py
         continue-on-error: true
+      # Loud gate runs LAST (after report upload + module email) so evidence
+      # always ships first. No continue-on-error here: this step is what turns
+      # "0 tests ran / tests failed but mvn was tolerated" jobs RED.
+      - name: Test Result Gate
+        run: bash .github/scripts/test-result-gate.sh target/surefire-reports
 
   # ========================================
   # JOB 12: Location Tests (84 tests, ~2 hr)
@@ -2111,7 +2171,7 @@ jobs:
     name: "Location ${{ matrix.part }}"
     if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'location-only'
     runs-on: macos-15
-    timeout-minutes: 350
+    timeout-minutes: 360
     # ROOT-CAUSE FIX (run #26773900131): the single Location suite (82 tests)
     # ran the full 350-min cap and was CANCELLED before finishing. Split into
     # 2 PARALLEL legs — part1 = Buildings+Floors, part2 = Rooms+Location-assign
@@ -2178,7 +2238,7 @@ jobs:
         run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             xcodebuild build-for-testing -project WebDriverAgent.xcodeproj -scheme WebDriverAgentRunner -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" -derivedDataPath /tmp/wda-build -quiet || true
@@ -2230,7 +2290,7 @@ jobs:
           XML="src/test/resources/parallel/testng-location-${{ matrix.part }}.xml"
           echo "🧪 Running Location ${{ matrix.part }}: $XML"
 
-          mvn test -q -B -DsuiteXmlFile="$XML" \
+          mvn test -ntp -B -DfailIfNoTests=true -DsuiteXmlFile="$XML" \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
@@ -2263,9 +2323,14 @@ jobs:
           # immediately on receipt.
           EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
           export EMAIL_TO
-          python3 -m pip install --quiet defusedxml
+          python3 -m pip install --quiet --break-system-packages defusedxml || python3 -m pip install --quiet defusedxml
           python3 .github/scripts/send-module-email.py
         continue-on-error: true
+      # Loud gate runs LAST (after report upload + module email) so evidence
+      # always ships first. No continue-on-error here: this step is what turns
+      # "0 tests ran / tests failed but mvn was tolerated" jobs RED.
+      - name: Test Result Gate
+        run: bash .github/scripts/test-result-gate.sh target/surefire-reports
 
 
   # ========================================
@@ -2275,7 +2340,7 @@ jobs:
     name: "Connections (94 tests)"
     if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'connections-only'
     runs-on: macos-15
-    timeout-minutes: 350
+    timeout-minutes: 360
     
     steps:
       - name: Checkout code
@@ -2333,7 +2398,7 @@ jobs:
         run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             xcodebuild build-for-testing -project WebDriverAgent.xcodeproj -scheme WebDriverAgentRunner -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" -derivedDataPath /tmp/wda-build -quiet || true
@@ -2380,7 +2445,7 @@ jobs:
           # Extract bundle ID from built app so soft restart uses correct ID
           BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${{ github.workspace }}/apps/Z Platform-QA.app/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
 
-          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel/testng-connections.xml \
+          mvn test -ntp -B -DfailIfNoTests=true -DsuiteXmlFile=src/test/resources/parallel/testng-connections.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
@@ -2413,9 +2478,14 @@ jobs:
           # immediately on receipt.
           EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
           export EMAIL_TO
-          python3 -m pip install --quiet defusedxml
+          python3 -m pip install --quiet --break-system-packages defusedxml || python3 -m pip install --quiet defusedxml
           python3 .github/scripts/send-module-email.py
         continue-on-error: true
+      # Loud gate runs LAST (after report upload + module email) so evidence
+      # always ships first. No continue-on-error here: this step is what turns
+      # "0 tests ran / tests failed but mvn was tolerated" jobs RED.
+      - name: Test Result Gate
+        run: bash .github/scripts/test-result-gate.sh target/surefire-reports
 
   # ========================================
   # JOB 14: Offline Tests (35 tests, ~1 hr)
@@ -2424,7 +2494,7 @@ jobs:
     name: "Offline (35 tests)"
     if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'offline-only'
     runs-on: macos-15
-    timeout-minutes: 350
+    timeout-minutes: 360
 
     steps:
       - name: Checkout code
@@ -2500,7 +2570,7 @@ jobs:
           xcrun simctl install "$SIMULATOR_UDID" "apps/$APP_FILE"
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             set +e
@@ -2554,7 +2624,7 @@ jobs:
           # Extract bundle ID from built app so soft restart uses correct ID
           BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${{ github.workspace }}/apps/Z Platform-QA.app/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
 
-          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel/testng-offline.xml \
+          mvn test -ntp -B -DfailIfNoTests=true -DsuiteXmlFile=src/test/resources/parallel/testng-offline.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
@@ -2587,9 +2657,14 @@ jobs:
           # immediately on receipt.
           EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
           export EMAIL_TO
-          python3 -m pip install --quiet defusedxml
+          python3 -m pip install --quiet --break-system-packages defusedxml || python3 -m pip install --quiet defusedxml
           python3 .github/scripts/send-module-email.py
         continue-on-error: true
+      # Loud gate runs LAST (after report upload + module email) so evidence
+      # always ships first. No continue-on-error here: this step is what turns
+      # "0 tests ran / tests failed but mvn was tolerated" jobs RED.
+      - name: Test Result Gate
+        run: bash .github/scripts/test-result-gate.sh target/surefire-reports
 
   # ========================================
   # JOB 15: Site Visit / Work Orders
@@ -2603,7 +2678,7 @@ jobs:
       github.event.inputs.job_selection == 'sitevisit-phase2' ||
       github.event.inputs.job_selection == 'sitevisit-phase3'
     runs-on: macos-15
-    timeout-minutes: 350
+    timeout-minutes: 360
     # ROOT-CAUSE FIX (run #26641212845): the all-phases mega-suite (344
     # tests, ~5.7h+ sequential) exceeded the 6h wall-clock cap and was
     # CANCELLED — no testng-results.xml was ever written. Split into 3
@@ -2694,7 +2769,7 @@ jobs:
 
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             xcodebuild build-for-testing \
@@ -2804,7 +2879,7 @@ jobs:
           XML="src/test/resources/parallel/testng-sitevisit-${{ matrix.phase }}.xml"
           echo "🧪 Running Site Visit ${{ matrix.phase }}: $XML"
 
-          mvn test -q -B -DsuiteXmlFile="$XML" \
+          mvn test -ntp -B -DfailIfNoTests=true -DsuiteXmlFile="$XML" \
             -DDEVICE_NAME="$DEVICE_NAME" \
             -DPLATFORM_VERSION="$PLATFORM_VERSION" \
             -DSIMULATOR_UDID="$SIMULATOR_UDID" \
@@ -2840,9 +2915,14 @@ jobs:
           # immediately on receipt.
           EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
           export EMAIL_TO
-          python3 -m pip install --quiet defusedxml
+          python3 -m pip install --quiet --break-system-packages defusedxml || python3 -m pip install --quiet defusedxml
           python3 .github/scripts/send-module-email.py
         continue-on-error: true
+      # Loud gate runs LAST (after report upload + module email) so evidence
+      # always ships first. No continue-on-error here: this step is what turns
+      # "0 tests ran / tests failed but mvn was tolerated" jobs RED.
+      - name: Test Result Gate
+        run: bash .github/scripts/test-result-gate.sh target/surefire-reports
 
   # ========================================
   # JOB 15b: Work Order Planning (14 tests, [OPERATIONS])
@@ -2851,7 +2931,7 @@ jobs:
     name: "Work Order Planning (14 tests)"
     if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'workorder-planning-only'
     runs-on: macos-15
-    timeout-minutes: 350
+    timeout-minutes: 360
 
     steps:
       - name: Checkout code
@@ -2909,7 +2989,7 @@ jobs:
         run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             xcodebuild build-for-testing -project WebDriverAgent.xcodeproj -scheme WebDriverAgentRunner -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" -derivedDataPath /tmp/wda-build -quiet || true
@@ -2955,7 +3035,7 @@ jobs:
         run: |
           BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${{ github.workspace }}/apps/Z Platform-QA.app/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
 
-          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel/testng-workorder-planning.xml \
+          mvn test -ntp -B -DfailIfNoTests=true -DsuiteXmlFile=src/test/resources/parallel/testng-workorder-planning.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
@@ -2986,9 +3066,14 @@ jobs:
           # waiting for the global send-email job.
           EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
           export EMAIL_TO
-          python3 -m pip install --quiet defusedxml
+          python3 -m pip install --quiet --break-system-packages defusedxml || python3 -m pip install --quiet defusedxml
           python3 .github/scripts/send-module-email.py
         continue-on-error: true
+      # Loud gate runs LAST (after report upload + module email) so evidence
+      # always ships first. No continue-on-error here: this step is what turns
+      # "0 tests ran / tests failed but mvn was tolerated" jobs RED.
+      - name: Test Result Gate
+        run: bash .github/scripts/test-result-gate.sh target/surefire-reports
 
   # ========================================
   # JOB 15c: ZP-323 New Features (28 tests) — was uncovered by any suite
@@ -2997,7 +3082,7 @@ jobs:
     name: "ZP-323 New Features (28 tests)"
     if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'zp323-only'
     runs-on: macos-15
-    timeout-minutes: 350
+    timeout-minutes: 360
 
     steps:
       - name: Checkout code
@@ -3055,7 +3140,7 @@ jobs:
         run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             xcodebuild build-for-testing -project WebDriverAgent.xcodeproj -scheme WebDriverAgentRunner -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" -derivedDataPath /tmp/wda-build -quiet || true
@@ -3101,7 +3186,7 @@ jobs:
         run: |
           BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${{ github.workspace }}/apps/Z Platform-QA.app/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
 
-          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel/testng-zp323.xml \
+          mvn test -ntp -B -DfailIfNoTests=true -DsuiteXmlFile=src/test/resources/parallel/testng-zp323.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
@@ -3130,9 +3215,14 @@ jobs:
         run: |
           EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
           export EMAIL_TO
-          python3 -m pip install --quiet defusedxml
+          python3 -m pip install --quiet --break-system-packages defusedxml || python3 -m pip install --quiet defusedxml
           python3 .github/scripts/send-module-email.py
         continue-on-error: true
+      # Loud gate runs LAST (after report upload + module email) so evidence
+      # always ships first. No continue-on-error here: this step is what turns
+      # "0 tests ran / tests failed but mvn was tolerated" jobs RED.
+      - name: Test Result Gate
+        run: bash .github/scripts/test-result-gate.sh target/surefire-reports
 
   # ========================================
   # JOB 16: Rerun Failures (92 tests, ~3 hr)
@@ -3141,7 +3231,7 @@ jobs:
     name: "Rerun Failures (92 tests)"
     if: github.event.inputs.job_selection == 'rerun-failures'
     runs-on: macos-15
-    timeout-minutes: 350
+    timeout-minutes: 360
 
     steps:
       - name: Checkout code
@@ -3199,7 +3289,7 @@ jobs:
         run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             xcodebuild build-for-testing -project WebDriverAgent.xcodeproj -scheme WebDriverAgentRunner -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" -derivedDataPath /tmp/wda-build -quiet || true
@@ -3246,7 +3336,7 @@ jobs:
           BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${{ github.workspace }}/apps/Z Platform-QA.app/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
 
           echo "🔄 Rerunning 92 previously failed tests across 10 test classes"
-          mvn test -q -B -DsuiteXmlFile=src/test/resources/parallel/testng-failures.xml \
+          mvn test -ntp -B -DfailIfNoTests=true -DsuiteXmlFile=src/test/resources/parallel/testng-failures.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
@@ -3279,7 +3369,7 @@ jobs:
           # immediately on receipt.
           EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
           export EMAIL_TO
-          python3 -m pip install --quiet defusedxml
+          python3 -m pip install --quiet --break-system-packages defusedxml || python3 -m pip install --quiet defusedxml
           python3 .github/scripts/send-module-email.py
         continue-on-error: true
 
@@ -3323,7 +3413,7 @@ jobs:
           # failed-suites/ back to main is done by the separate
           # failed-suite-collector.yml (workflow_run trigger), which fires even
           # when this run is manually/platform-cancelled and send-email is skipped.
-          python3 -m pip install --quiet defusedxml || true
+          python3 -m pip install --quiet --break-system-packages defusedxml || python3 -m pip install --quiet defusedxml || true
           python3 .github/scripts/build-failed-suite.py --from all-reports \
             --date "$(date +%F)" --run "${{ github.run_id }}" || echo "⚠️ failed-suite generation skipped"
           ls -la failed-suites/ 2>/dev/null || true
@@ -3345,7 +3435,7 @@ jobs:
           # ONE self-contained HTML listing EVERY test (pass/fail/skip), grouped
           # by module — web-automation report style. Built from all modules'
           # testng-results.xml. Artifact-only — deliberately NOT emailed (large).
-          python3 -m pip install --quiet defusedxml || true
+          python3 -m pip install --quiet --break-system-packages defusedxml || python3 -m pip install --quiet defusedxml || true
           mkdir -p consolidated-reports
           python3 .github/scripts/consolidated-report.py all-reports \
             consolidated-reports/Consolidated_Automation_Report.html \
@@ -3393,7 +3483,7 @@ jobs:
           # Also build a consolidated summary from TestNG XML results
           echo ""
           echo "=== Parsing TestNG Results ==="
-          pip install --quiet defusedxml || pip3 install --quiet defusedxml
+          python3 -m pip install --quiet --break-system-packages defusedxml || python3 -m pip install --quiet defusedxml
           python3 << 'PYEOF'
           try:
               import defusedxml.ElementTree as ET  # safe against XXE / billion-laughs
@@ -3917,7 +4007,9 @@ jobs:
           try:
               import defusedxml.ElementTree as ET
           except ImportError:
-              os.system(sys.executable + " -m pip install --quiet defusedxml")
+              # PEP-668 runners need --break-system-packages; older pips don't know the flag
+              if os.system(sys.executable + " -m pip install --quiet --break-system-packages defusedxml") != 0:
+                  os.system(sys.executable + " -m pip install --quiet defusedxml")
               import defusedxml.ElementTree as ET
 
           # load quarantine tokens (substring match on failed method names)

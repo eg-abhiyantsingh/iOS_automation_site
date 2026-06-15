@@ -471,7 +471,7 @@ jobs:
       # ============================================================
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
 
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
@@ -767,7 +767,7 @@ jobs:
           networksetup -setsecurewebproxystate "Wi-Fi" off 2>/dev/null || true
 
           if [ -f "api_traffic.flow" ]; then
-            pip install mitmproxy --quiet 2>/dev/null || true
+            pip install --break-system-packages mitmproxy --quiet 2>/dev/null || pip install mitmproxy --quiet 2>/dev/null || true
             python qa-automation/scripts/parse_api.py api_traffic.flow || true
           fi
 

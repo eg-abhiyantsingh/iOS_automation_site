@@ -111,7 +111,7 @@ jobs:
         run: |
           echo "Pre-building WebDriverAgent to avoid timeout on first test..."
           # Find WDA path
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           
           if [ -n "$WDA_PATH" ]; then
             echo "Found WDA at: $WDA_PATH"

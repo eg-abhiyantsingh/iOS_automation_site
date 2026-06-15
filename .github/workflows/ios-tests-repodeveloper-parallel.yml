@@ -408,7 +408,7 @@ jobs:
 
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             set +e
@@ -709,7 +709,7 @@ jobs:
 
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             set +e
@@ -959,7 +959,7 @@ jobs:
 
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             set +e
@@ -1189,7 +1189,7 @@ jobs:
 
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             set +e
@@ -1382,7 +1382,7 @@ jobs:
 
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             set +e
@@ -1573,7 +1573,7 @@ jobs:
 
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             set +e
@@ -1764,7 +1764,7 @@ jobs:
 
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             set +e
@@ -1955,7 +1955,7 @@ jobs:
 
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             set +e
@@ -2150,7 +2150,7 @@ jobs:
 
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             set +e
@@ -2339,7 +2339,7 @@ jobs:
 
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             set +e
@@ -2528,7 +2528,7 @@ jobs:
 
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             set +e
@@ -2717,7 +2717,7 @@ jobs:
 
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             set +e
@@ -2905,7 +2905,7 @@ jobs:
 
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             set +e
@@ -3093,7 +3093,7 @@ jobs:
 
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             set +e
@@ -3281,7 +3281,7 @@ jobs:
 
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             set +e
@@ -3474,7 +3474,7 @@ jobs:
 
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             set +e
@@ -3673,7 +3673,7 @@ jobs:
 
       - name: Pre-build WebDriverAgent
         run: |
-          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type f 2>/dev/null | head -1 | xargs dirname)
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
           if [ -n "$WDA_PATH" ]; then
             cd "$WDA_PATH"
             set +e

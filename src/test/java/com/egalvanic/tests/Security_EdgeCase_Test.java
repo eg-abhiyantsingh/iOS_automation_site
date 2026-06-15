@@ -4,6 +4,7 @@ import com.egalvanic.base.BaseTest;
 import com.egalvanic.constants.AppConstants;
 import com.egalvanic.utils.DriverManager;
 import com.egalvanic.utils.ExtentReportManager;
+import com.egalvanic.utils.Waits;
 import io.appium.java_client.AppiumBy;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -53,6 +54,27 @@ public final class Security_EdgeCase_Test extends BaseTest {
     /** Welcome screen has no SecureTextField — its presence means we reached Login. */
     private boolean reachedLoginScreen() {
         return loginPage.isPasswordFieldDisplayed();
+    }
+
+    /**
+     * Cheap probe: login screen has re-rendered after a sign-in attempt (form fields
+     * back, or an error alert up). While the round trip is in flight the form can be
+     * replaced by a spinner/overlay — this stays false until the response landed.
+     */
+    private boolean loginScreenRendered() {
+        var d = DriverManager.getDriver();
+        try {
+            d.manage().timeouts().implicitlyWait(Duration.ofMillis(500));
+            return !d.findElements(AppiumBy.iOSNsPredicateString(
+                    "visible == 1 AND (type == 'XCUIElementTypeSecureTextField' "
+                  + "OR type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeAlert')")).isEmpty();
+        } catch (Exception e) {
+            return false;
+        } finally {
+            try {
+                d.manage().timeouts().implicitlyWait(Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
+            } catch (Exception ignored) {}
+        }
     }
 
     private void goToLoginScreen() {
@@ -237,7 +259,14 @@ public final class Security_EdgeCase_Test extends BaseTest {
         } catch (Exception e) {
             logStep("Second tap rejected by app (button disabled) — acceptable: " + e.getMessage());
         }
-        mediumWait();
+
+        // The invalid-credential round trip runs ~61s on CI — judging the screen
+        // mid-flight reads the in-flight overlay as blank (false RED). Wait, bounded,
+        // for the response to land: login re-rendered or (defect) dashboard reached.
+        logStep("Waiting for the sign-in round trip to settle (login re-render or dashboard)");
+        boolean settled = Waits.until(() -> loginScreenRendered() || isOnDashboard(), 90_000, 1_000);
+        logStep(settled ? "Sign-in round trip settled"
+                        : "Round trip unsettled after 90s — letting the verifiers judge the screen");
 
         verifyAppAlive("after double-tap Sign In");
         verifyNotBlank("Login screen");

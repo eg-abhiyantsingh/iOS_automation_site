@@ -38,7 +38,6 @@ import java.util.Set;
  * when the feature is reinstated. Remove the class-level
  * `@Test(enabled = false)` and the suite-XML comments to re-enable.
  */
-@Test(enabled = false)
 public final class Connections_Test extends BaseTest {
 
     // Page Objects

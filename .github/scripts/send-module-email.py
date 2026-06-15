@@ -107,10 +107,17 @@ def main():
         status_label, header_color = "✅ PASS", "#28a745"
     elif failed > 0:
         status_label, header_color = "❌ FAIL", "#dc3545"
+    elif total == 0 and job_status.lower() == "success":
+        # Green job with zero tests = mass-skip / disabled suite / missing
+        # results. A soft "NO DATA" reads as benign — this must be loud.
+        status_label, header_color = "🚨 ALERT: 0 tests ran", "#dc3545"
     else:
         status_label, header_color = "⚠️ NO DATA", "#e67e22"
 
-    subject = f"[{status_label}] iOS {module} — {passed}/{total} passed · Detailed Report ready"
+    if total == 0 and job_status.lower() == "success":
+        subject = f"[{status_label}] iOS {module} — module completed without executing any tests, please review"
+    else:
+        subject = f"[{status_label}] iOS {module} — {passed}/{total} passed · Detailed Report ready"
 
     failed_html = ""
     if failed_names:

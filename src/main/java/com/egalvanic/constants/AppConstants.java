@@ -76,6 +76,30 @@ public class AppConstants {
     public static final int WDA_CONNECTION_TIMEOUT = 180; // 3 minutes for WDA connection
 
     // ============================================
+    // SESSION LIFECYCLE / RESILIENCE
+    // (env/-D overridable so CI can tune or roll back without a code change)
+    // ============================================
+    // Keep the Appium session alive across PASSING tests. Quit+recreate costs
+    // 11-30s/test (plus a full UI login in login-dependent suites); the
+    // @BeforeMethod soft restart (terminateApp+activateApp) already isolates
+    // app state. Failed tests and dead sessions still quit. Set
+    // KEEP_SESSION_ALIVE=false to restore quit-every-test.
+    public static final boolean KEEP_SESSION_ALIVE = Boolean.parseBoolean(
+        getEnv("KEEP_SESSION_ALIVE", "true"));
+    // Dead-session circuit breaker: after N consecutive tests ending on a dead
+    // Appium session, skip the remainder of the run instead of burning the
+    // per-test timeout on every survivor (failed-suites/ rerun triages them).
+    public static final boolean DEAD_SESSION_BREAKER = Boolean.parseBoolean(
+        getEnv("DEAD_SESSION_BREAKER", "true"));
+    public static final int DEAD_SESSION_BREAKER_N = getEnvInt("DEAD_SESSION_BREAKER_N", 5);
+    // Prebuilt-WDA consumption: CI can build WebDriverAgent once per runner and
+    // point Appium at the bundle, skipping the per-session xcodebuild (~60-90s).
+    // Both stay unset by default so local runs keep the build-on-demand path.
+    public static final boolean USE_PREBUILT_WDA = Boolean.parseBoolean(
+        getEnv("USE_PREBUILT_WDA", "false"));
+    public static final String WDA_DERIVED_DATA_PATH = getEnv("WDA_DERIVED_DATA_PATH", "");
+
+    // ============================================
     // REPORT PATHS
     // ============================================
     public static final String DETAILED_REPORT_PATH = "reports/detailed/";

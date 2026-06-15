@@ -99,7 +99,11 @@ public class BaseTest {
     // TEST LEVEL SETUP/TEARDOWN
     // ================================================================
 
-    @BeforeMethod
+    // alwaysRun=true is load-bearing: without it, ONE config-method failure makes
+    // TestNG skip this setup for every remaining test, so nobody ever reaches the
+    // dead-session recovery inside DriverManager.initDriver() and the whole run
+    // dies on the dead session (65 tests thrown away in run 27320962984).
+    @BeforeMethod(alwaysRun = true)
     @Parameters({ "deviceName", "udid", "appiumPort", "wdaLocalPort" })
     public void testSetup(
             @Optional String deviceName,
@@ -484,6 +488,18 @@ public class BaseTest {
                 // Session is dead — don't send any HTTP commands, just null the reference
                 DriverManager.forceNullDriver();
                 System.out.println("🧹 Test cleanup complete (fast — session was dead)\n");
+            } else if (result.getStatus() == ITestResult.SUCCESS
+                    && AppConstants.KEEP_SESSION_ALIVE
+                    && DriverManager.isDriverActive()) {
+                // Test PASSED on a healthy session — keep the driver alive. The
+                // @BeforeMethod soft restart (terminateApp+activateApp) provides
+                // app-state isolation; quit+recreate costs 11-30s per test plus a
+                // full UI login in login-dependent suites. initDriver() is a no-op
+                // on an alive driver, so the next test reuses this session, and
+                // page objects' cached driver references stay valid (never quit an
+                // active driver that page objects still point at).
+                // Failures, skips, and dead sessions still take the quit paths.
+                System.out.println("♻️ Session kept alive for next test (KEEP_SESSION_ALIVE=true)\n");
             } else {
                 // On FAILURE: force terminate app so next test starts fresh
                 // Without this, noReset=true leaves the app on the failed screen
@@ -917,10 +933,13 @@ public class BaseTest {
         // fail to find any tappable site row. Poll briefly for it and
         // dismiss "Not Now" before scanning the picker.
         try {
-            // Quick double-check loop — the sheet may take 1–2s to render
-            for (int i = 0; i < 4; i++) {
-                if (loginPage.dismissSavePasswordIfPresent()) break;
-                Thread.sleep(400);
+            // One attempt + one retry max — dismissSavePasswordIfPresent already
+            // cascades alert + accessibility-id + predicate strategies internally
+            // (at 150ms implicit wait), so 4 polling rounds only added three extra
+            // switchTo().alert() round trips per test on the no-sheet happy path.
+            if (!loginPage.dismissSavePasswordIfPresent()) {
+                Thread.sleep(800); // sheet renders within ~1-2s when it appears at all
+                loginPage.dismissSavePasswordIfPresent();
             }
         } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
         autoScreenshot("Site Selection screen loaded");
@@ -1252,6 +1271,9 @@ public class BaseTest {
 
     /**
      * Wait for specified milliseconds using explicit wait (CI-safe)
+     * NOTE: until(d -> true) returns immediately — this is an INTENTIONAL no-op kept
+     * for 1,100+ legacy call sites (real pauses would add ~6 min/run). Never use it
+     * as a polling delay; loops must pause with a real Thread.sleep (see waitForCondition).
      */
     protected void sleep(int milliseconds) {
         try {
@@ -1348,7 +1370,14 @@ public class BaseTest {
             } catch (Exception ignored) {
                 // Element may not exist yet — keep polling
             }
-            sleep(250);
+            // Real pause between probes. sleep(250) here is the no-op above, which made
+            // this loop busy-spin (measured 2,800 log lines/sec — 95.6% of a 32MB log).
+            try {
+                Thread.sleep(250);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                break;
+            }
         }
         System.out.println("⚠️ Condition NOT met within " + timeoutSec + "s: " + description);
         return false;

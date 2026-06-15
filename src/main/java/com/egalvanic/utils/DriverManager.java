@@ -130,6 +130,18 @@ public class DriverManager {
                 // Don't rebuild WDA each time (saves 60-90 seconds)
                 options.setUseNewWDA(false);
                 options.setCapability("appium:usePreinstalledWDA", false);
+
+                // ========== PREBUILT WDA CONSUMPTION (CI) ==========
+                // CI can build WebDriverAgent once per runner and point Appium at the
+                // bundle, skipping the per-session xcodebuild. Both env-overridable via
+                // AppConstants (USE_PREBUILT_WDA / WDA_DERIVED_DATA_PATH) and only set
+                // when configured, so local build-on-demand runs are unaffected.
+                if (AppConstants.USE_PREBUILT_WDA) {
+                    options.setCapability("appium:usePrebuiltWDA", true);
+                }
+                if (!AppConstants.WDA_DERIVED_DATA_PATH.isEmpty()) {
+                    options.setCapability("appium:derivedDataPath", AppConstants.WDA_DERIVED_DATA_PATH);
+                }
                 // Don't wait for app to be idle (faster element detection)
                 options.setWaitForQuiescence(false);
                 options.setCapability("appium:shouldUseSingletonTestManager", false);

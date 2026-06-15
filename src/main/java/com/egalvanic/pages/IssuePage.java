@@ -238,96 +238,78 @@ public class IssuePage extends BasePage {
 
     /**
      * Check if Issues screen is displayed.
-     * Uses reduced implicit wait (1s) for each check to avoid blocking.
+     * Zero-implicit-wait probes — callers poll this in their own loops, so a
+     * miss must cost milliseconds, not an implicit-wait burn per strategy.
      * Multiple strategies: nav bar, title text, filter tabs, Done+Sort+Add buttons,
      * "No Issues Found" empty state.
      */
     public boolean isIssuesScreenDisplayed() {
-        // Temporarily reduce implicit wait so each strategy fails fast
-        Duration originalTimeout = Duration.ofSeconds(10);
         try {
-            driver.manage().timeouts().implicitlyWait(Duration.ofMillis(1500));
-
             // Strategy 1: Navigation bar with "Issues"/"Problèmes" title.
             // Locale-agnostic per changelog 071 — dev-repo CI run 25904342238
             // was French-locale, failing 50 Issues P2 tests because the actual
             // label was 'Problèmes' not 'Issues'.
-            try {
-                WebElement navBar = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeNavigationBar' AND " +
-                    "(name == 'Issues' OR label == 'Issues' OR " +
-                    " name == 'Problèmes' OR label == 'Problèmes' OR " +
-                    " name == 'Problemes' OR label == 'Problemes')"));
-                if (navBar.isDisplayed()) {
-                    System.out.println("✓ Issues screen detected (nav bar)");
-                    return true;
-                }
-            } catch (Exception e1) {}
+            org.openqa.selenium.By navBar = AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeNavigationBar' AND " +
+                "(name == 'Issues' OR label == 'Issues' OR " +
+                " name == 'Problèmes' OR label == 'Problèmes' OR " +
+                " name == 'Problemes' OR label == 'Problemes')");
+            if (existsNow(navBar) && driver.findElement(navBar).isDisplayed()) {
+                System.out.println("✓ Issues screen detected (nav bar)");
+                return true;
+            }
 
             // Strategy 2: Large title text near top of screen
-            try {
-                List<WebElement> titles = driver.findElements(AppiumBy.iOSNsPredicateString(
+            List<WebElement> titles = withImplicitWait(0, () -> driver.findElements(
+                AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeStaticText' AND " +
-                    "(label == 'Issues' OR label == 'Problèmes' OR label == 'Problemes')"));
-                for (WebElement title : titles) {
+                    "(label == 'Issues' OR label == 'Problèmes' OR label == 'Problemes')")));
+            for (WebElement title : titles) {
+                try {
                     int y = title.getLocation().getY();
                     if (y < 200) {
                         System.out.println("✓ Issues screen detected (title text at y=" + y + ")");
                         return true;
                     }
-                }
-            } catch (Exception e2) {}
+                } catch (Exception ignored) {}
+            }
 
             // Strategy 3: Search bar + filter tabs (All/Open/Resolved/Closed)
-            try {
-                WebElement searchBar = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeSearchField'"));
-                WebElement tab = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND " +
-                    "(label BEGINSWITH 'All' OR label BEGINSWITH 'Open' OR label CONTAINS 'Resolved')"));
-                if (searchBar.isDisplayed() && tab.isDisplayed()) {
-                    System.out.println("✓ Issues screen detected (search + filter tabs)");
-                    return true;
-                }
-            } catch (Exception e3) {}
+            org.openqa.selenium.By searchBar = AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeSearchField'");
+            org.openqa.selenium.By filterTab = AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(label BEGINSWITH 'All' OR label BEGINSWITH 'Open' OR label CONTAINS 'Resolved')");
+            if (existsNow(searchBar) && existsNow(filterTab)
+                    && driver.findElement(searchBar).isDisplayed()
+                    && driver.findElement(filterTab).isDisplayed()) {
+                System.out.println("✓ Issues screen detected (search + filter tabs)");
+                return true;
+            }
 
             // Strategy 4: "No Issues Found" empty state (valid Issues screen with no data)
-            try {
-                WebElement noIssues = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND " +
-                    "(label CONTAINS 'No Issues' OR label CONTAINS 'No issues')"));
-                if (noIssues.isDisplayed()) {
-                    System.out.println("✓ Issues screen detected (empty state: No Issues Found)");
-                    return true;
-                }
-            } catch (Exception e4) {}
+            org.openqa.selenium.By noIssues = AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "(label CONTAINS 'No Issues' OR label CONTAINS 'No issues')");
+            if (existsNow(noIssues) && driver.findElement(noIssues).isDisplayed()) {
+                System.out.println("✓ Issues screen detected (empty state: No Issues Found)");
+                return true;
+            }
 
             // Strategy 5: Combination of Done + Sort + Add buttons in header
             // (unique to Issues screen — Dashboard doesn't have this combo)
-            try {
-                boolean hasDone = false;
-                boolean hasAdd = false;
-                try {
-                    driver.findElement(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeButton' AND label == 'Done'"));
-                    hasDone = true;
-                } catch (Exception ignored) {}
-                try {
-                    driver.findElement(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeButton' AND (label == 'Add' OR name == 'plus')"));
-                    hasAdd = true;
-                } catch (Exception ignored) {}
-                if (hasDone && hasAdd) {
-                    System.out.println("✓ Issues screen detected (Done + Add buttons)");
-                    return true;
-                }
-            } catch (Exception e5) {}
+            boolean hasDone = existsNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == 'Done'"));
+            boolean hasAdd = existsNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND (label == 'Add' OR name == 'plus')"));
+            if (hasDone && hasAdd) {
+                System.out.println("✓ Issues screen detected (Done + Add buttons)");
+                return true;
+            }
 
             return false;
         } catch (Exception e) {
             return false;
-        } finally {
-            driver.manage().timeouts().implicitlyWait(originalTimeout);
         }
     }
 
@@ -1556,20 +1538,22 @@ public class IssuePage extends BasePage {
         }
         System.out.println("📋 Selecting asset: " + assetName);
         try {
-            // Verify we're on the Select Asset picker before proceeding
-            boolean onPicker = false;
-            try {
-                driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeNavigationBar' AND name == 'Select Asset'"));
+            // Verify we're on the Select Asset picker before proceeding.
+            // Picker presence is EXPECTED here — the nav-bar winner gets the
+            // bounded >=3s wait; the static-text variant is a zero-wait fallback.
+            org.openqa.selenium.By pickerNavBar = AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeNavigationBar' AND name == 'Select Asset'");
+            org.openqa.selenium.By pickerTitle = AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label == 'Select Asset'");
+            boolean onPicker;
+            if (isElementDisplayed(pickerNavBar, 3)) {
                 onPicker = true;
                 System.out.println("   Select Asset picker confirmed (navigation bar)");
-            } catch (Exception e1) {
-                try {
-                    driver.findElement(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeStaticText' AND label == 'Select Asset'"));
-                    onPicker = true;
-                    System.out.println("   Select Asset picker confirmed (static text)");
-                } catch (Exception ignored) {}
+            } else if (existsNow(pickerTitle)) {
+                onPicker = true;
+                System.out.println("   Select Asset picker confirmed (static text)");
+            } else {
+                onPicker = false;
             }
             if (!onPicker) {
                 System.out.println("⚠️ Not on Select Asset picker — cannot select asset");
@@ -1577,25 +1561,27 @@ public class IssuePage extends BasePage {
             }
 
             // Determine the Y boundary of the picker header so we only tap cells below it
+            org.openqa.selenium.By searchLocator = AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeSearchField' OR " +
+                "(type == 'XCUIElementTypeTextField' AND " +
+                "(value CONTAINS 'Search' OR label CONTAINS 'Search'))");
             int pickerContentStartY = 150; // default: below nav bar + search field
-            try {
-                WebElement searchField = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeSearchField' OR " +
-                    "(type == 'XCUIElementTypeTextField' AND " +
-                    "(value CONTAINS 'Search' OR label CONTAINS 'Search'))"));
+            if (existsNow(searchLocator)) {
+                WebElement searchField = driver.findElement(searchLocator);
                 int searchY = searchField.getLocation().getY();
                 int searchH = searchField.getSize().getHeight();
                 pickerContentStartY = searchY + searchH + 5;
                 System.out.println("   Search field ends at Y=" + pickerContentStartY);
-            } catch (Exception ignored) {
+            } else {
                 System.out.println("   No search field found, using default Y=" + pickerContentStartY);
             }
 
             // Strategy 1: Find a cell containing the exact asset name within the picker area
             // Use XCUIElementTypeStaticText scoped to text that matches and is below the search field
             try {
-                List<WebElement> matchingTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND label CONTAINS '" + assetName + "'"));
+                List<WebElement> matchingTexts = withImplicitWait(0, () -> driver.findElements(
+                    AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND label CONTAINS '" + assetName + "'")));
                 for (WebElement text : matchingTexts) {
                     int y = text.getLocation().getY();
                     String label = text.getAttribute("label");
@@ -1618,18 +1604,16 @@ public class IssuePage extends BasePage {
             // Strategy 2: Use the search field to find the asset
             // Type the asset name (or partial) and tap the first result
             try {
-                WebElement searchField = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeSearchField' OR " +
-                    "(type == 'XCUIElementTypeTextField' AND " +
-                    "(value CONTAINS 'Search' OR label CONTAINS 'Search'))"));
+                if (!existsNow(searchLocator)) throw new IllegalStateException("no search field");
+                WebElement searchField = driver.findElement(searchLocator);
                 searchField.click();
                 sleep(300);
                 searchField.sendKeys(assetName);
                 sleep(800); // Wait for search results to filter
 
-                // Check if any cells appeared in results
-                List<WebElement> resultCells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeCell'"));
+                // Check if any cells appeared in results (cascade probe — 2b follows on miss)
+                List<WebElement> resultCells = withImplicitWait(0, () -> driver.findElements(
+                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeCell'")));
                 System.out.println("   Strategy 2: Search for '" + assetName + "' found " + resultCells.size() + " cells");
                 if (!resultCells.isEmpty()) {
                     String cellLabel = resultCells.get(0).getAttribute("label");
@@ -1645,8 +1629,8 @@ public class IssuePage extends BasePage {
                 searchField.sendKeys("Test");
                 sleep(800);
 
-                resultCells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeCell'"));
+                resultCells = withImplicitWait(0, () -> driver.findElements(
+                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeCell'")));
                 System.out.println("   Strategy 2b: Search for 'Test' found " + resultCells.size() + " cells");
                 if (!resultCells.isEmpty()) {
                     String cellLabel = resultCells.get(0).getAttribute("label");
@@ -1666,8 +1650,8 @@ public class IssuePage extends BasePage {
             // Strategy 3: Tap the first asset cell in the picker
             // Cells below the search field are asset cells
             final int contentStartY = pickerContentStartY;
-            List<WebElement> allCells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell'"));
+            List<WebElement> allCells = withImplicitWait(0, () -> driver.findElements(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeCell'")));
             System.out.println("   Strategy 3: Found " + allCells.size() + " total cells");
             for (WebElement cell : allCells) {
                 try {
@@ -1687,10 +1671,11 @@ public class IssuePage extends BasePage {
             // Strategy 4: Find static text that looks like an asset name in the picker area
             // Asset names typically contain underscores or digits (TestAsset_xxx, Trim000xxx)
             try {
-                List<WebElement> assetTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND " +
-                    "(label CONTAINS 'TestAsset' OR label CONTAINS 'Trim' OR " +
-                    "label CONTAINS 'Asset' OR label CONTAINS 'ATS')"));
+                List<WebElement> assetTexts = withImplicitWait(0, () -> driver.findElements(
+                    AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND " +
+                        "(label CONTAINS 'TestAsset' OR label CONTAINS 'Trim' OR " +
+                        "label CONTAINS 'Asset' OR label CONTAINS 'ATS')")));
                 for (WebElement text : assetTexts) {
                     int y = text.getLocation().getY();
                     String label = text.getAttribute("label");
@@ -1872,28 +1857,36 @@ public class IssuePage extends BasePage {
     /**
      * Check if sort options are displayed after tapping sort icon.
      * Looks for any sort-related buttons/options that appeared.
+     *
+     * v1.36 (changelog: SwiftUI Sheet picker pattern): sheet rows render as
+     * XCUIElementTypeOther, not Button — that row type is the expected winner,
+     * so it alone carries the bounded render wait; everything after it is a
+     * zero-implicit-wait cascade probe (next strategy follows immediately).
      */
     public boolean isSortOptionsDisplayed() {
         try {
-            // Strategy 1: Exact match for the 4 sort options from the app:
-            // "Created Date", "Modified Date", "Title", "Status"
-            List<WebElement> options = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND " +
+            // Strategy 1 (expected winner, bounded >=3s): exact match for the 4
+            // sort options — "Created Date", "Modified Date", "Title", "Status".
+            org.openqa.selenium.By exactRows = AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeOther' OR type == 'XCUIElementTypeButton' OR " +
+                "type == 'XCUIElementTypeStaticText') AND " +
                 "(label == 'Created Date' OR label == 'Modified Date' OR " +
-                "label == 'Title' OR label == 'Status')"));
-            if (options.size() >= 2) {
+                "label == 'Title' OR label == 'Status')");
+            if (isElementDisplayed(exactRows, 3)) {
+                List<WebElement> options = withImplicitWait(0, () -> driver.findElements(exactRows));
                 for (WebElement opt : options) {
                     System.out.println("   Sort option found: " + opt.getAttribute("label"));
                 }
-                return true;
+                if (options.size() >= 2) return true;
             }
 
             // Strategy 2: Broader search including partial matches
-            List<WebElement> broadOptions = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND " +
-                "(label CONTAINS 'Created' OR label CONTAINS 'Modified' OR " +
-                "label CONTAINS 'Date' OR label CONTAINS 'Status' OR " +
-                "label CONTAINS 'Ascending' OR label CONTAINS 'Descending')"));
+            List<WebElement> broadOptions = withImplicitWait(0, () -> driver.findElements(
+                AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeOther' OR type == 'XCUIElementTypeButton') AND " +
+                    "(label CONTAINS 'Created' OR label CONTAINS 'Modified' OR " +
+                    "label CONTAINS 'Date' OR label CONTAINS 'Status' OR " +
+                    "label CONTAINS 'Ascending' OR label CONTAINS 'Descending')")));
             if (!broadOptions.isEmpty()) {
                 for (WebElement opt : broadOptions) {
                     System.out.println("   Sort option found (broad): " + opt.getAttribute("label"));
@@ -1902,17 +1895,15 @@ public class IssuePage extends BasePage {
             }
 
             // Strategy 3: Check for action sheet or popover
-            List<WebElement> sheets = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeSheet' OR type == 'XCUIElementTypeActionSheet'"));
-            if (!sheets.isEmpty()) {
+            if (existsNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeSheet' OR type == 'XCUIElementTypeActionSheet'"))) {
                 System.out.println("   Sort action sheet found");
                 return true;
             }
 
             // Strategy 4: Any new menu/popover containing sort-like options
-            List<WebElement> menus = driver.findElements(AppiumBy.iOSNsPredicateString(
+            return existsNow(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeOther' AND label CONTAINS 'Sort'"));
-            return !menus.isEmpty();
         } catch (Exception e) {
             return false;
         }
@@ -1951,30 +1942,54 @@ public class IssuePage extends BasePage {
      */
     public java.util.ArrayList<String> getSortOptionLabels() {
         java.util.ArrayList<String> labels = new java.util.ArrayList<>();
+        String sortLabelClause =
+            "(label CONTAINS 'Created' OR label CONTAINS 'Modified' OR " +
+            "label CONTAINS 'Title' OR label CONTAINS 'Status' OR " +
+            "label CONTAINS 'Priority' OR label CONTAINS 'Date' OR " +
+            "label CONTAINS 'Name' OR label CONTAINS 'Newest' OR " +
+            "label CONTAINS 'Oldest')";
         try {
-            // Strategy 1: Look for buttons with sort-related labels
-            List<WebElement> options = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND " +
-                "(label CONTAINS 'Created' OR label CONTAINS 'Modified' OR " +
-                "label CONTAINS 'Title' OR label CONTAINS 'Status' OR " +
-                "label CONTAINS 'Priority' OR label CONTAINS 'Date' OR " +
-                "label CONTAINS 'Name' OR label CONTAINS 'Newest' OR " +
-                "label CONTAINS 'Oldest')"));
-            for (WebElement opt : options) {
-                String label = opt.getAttribute("label");
-                if (label != null && !label.isEmpty()) {
+            // Bounded render wait (>=3s) on the expected winner only — v1.36
+            // sheet rows are XCUIElementTypeOther; everything below is a
+            // zero-implicit-wait collection pass.
+            isElementDisplayed(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeOther' OR type == 'XCUIElementTypeButton') AND " +
+                sortLabelClause), 3);
+
+            // Strategy 1 (v1.36): sheet rows render as XCUIElementTypeOther
+            List<WebElement> rows = withImplicitWait(0, () -> driver.findElements(
+                AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeOther' AND " + sortLabelClause)));
+            for (WebElement row : rows) {
+                String label = row.getAttribute("label");
+                if (label != null && !label.isEmpty() && !labels.contains(label)) {
                     labels.add(label);
-                    System.out.println("   Sort option: '" + label + "'");
+                    System.out.println("   Sort option (row): '" + label + "'");
                 }
             }
 
-            // Strategy 2: If no buttons found, check static text elements in dropdown area
+            // Strategy 2: pre-v1.36 buttons with sort-related labels
             if (labels.isEmpty()) {
-                List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND " +
-                    "(label CONTAINS 'Created' OR label CONTAINS 'Modified' OR " +
-                    "label CONTAINS 'Title' OR label CONTAINS 'Status' OR " +
-                    "label CONTAINS 'Priority' OR label CONTAINS 'Date')"));
+                List<WebElement> options = withImplicitWait(0, () -> driver.findElements(
+                    AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND " + sortLabelClause)));
+                for (WebElement opt : options) {
+                    String label = opt.getAttribute("label");
+                    if (label != null && !label.isEmpty()) {
+                        labels.add(label);
+                        System.out.println("   Sort option: '" + label + "'");
+                    }
+                }
+            }
+
+            // Strategy 3: static text elements in dropdown area
+            if (labels.isEmpty()) {
+                List<WebElement> texts = withImplicitWait(0, () -> driver.findElements(
+                    AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND " +
+                        "(label CONTAINS 'Created' OR label CONTAINS 'Modified' OR " +
+                        "label CONTAINS 'Title' OR label CONTAINS 'Status' OR " +
+                        "label CONTAINS 'Priority' OR label CONTAINS 'Date')")));
                 for (WebElement text : texts) {
                     String label = text.getAttribute("label");
                     if (label != null && !label.isEmpty()) {
@@ -1984,10 +1999,11 @@ public class IssuePage extends BasePage {
                 }
             }
 
-            // Strategy 3: Check for menu items (SwiftUI Menu style)
+            // Strategy 4: menu items / cells (SwiftUI Menu style)
             if (labels.isEmpty()) {
-                List<WebElement> menuItems = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeMenuItem' OR type == 'XCUIElementTypeCell'"));
+                List<WebElement> menuItems = withImplicitWait(0, () -> driver.findElements(
+                    AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeMenuItem' OR type == 'XCUIElementTypeCell'")));
                 for (WebElement item : menuItems) {
                     String label = item.getAttribute("label");
                     if (label != null && !label.isEmpty() &&
@@ -2014,29 +2030,35 @@ public class IssuePage extends BasePage {
      */
     public boolean isSortOptionVisible(String optionName) {
         try {
-            // Strategy 1: Button with matching label
-            try {
-                driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND label CONTAINS '" + optionName + "'"));
+            // Strategy 1 (expected winner, bounded >=3s): v1.36 sheet row
+            // (XCUIElementTypeOther) or pre-v1.36 button with matching label.
+            if (isElementDisplayed(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeOther' OR type == 'XCUIElementTypeButton') AND " +
+                    "label CONTAINS '" + optionName + "'"), 3)) {
+                System.out.println("   Sort option '" + optionName + "' found (row/button)");
+                return true;
+            }
+
+            // Strategy 2: Button only (covers rows iOS reports as not-displayed)
+            if (existsNow(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND label CONTAINS '" + optionName + "'"))) {
                 System.out.println("   Sort option '" + optionName + "' found (button)");
                 return true;
-            } catch (Exception ignored) {}
+            }
 
-            // Strategy 2: Static text with matching label
-            try {
-                driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND label CONTAINS '" + optionName + "'"));
+            // Strategy 3: Static text with matching label
+            if (existsNow(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND label CONTAINS '" + optionName + "'"))) {
                 System.out.println("   Sort option '" + optionName + "' found (text)");
                 return true;
-            } catch (Exception ignored) {}
+            }
 
-            // Strategy 3: Any element containing the option name
-            try {
-                driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "label CONTAINS '" + optionName + "'"));
+            // Strategy 4: Any element containing the option name
+            if (existsNow(AppiumBy.iOSNsPredicateString(
+                    "label CONTAINS '" + optionName + "'"))) {
                 System.out.println("   Sort option '" + optionName + "' found (any type)");
                 return true;
-            } catch (Exception ignored) {}
+            }
 
             return false;
         } catch (Exception e) {
@@ -2052,16 +2074,19 @@ public class IssuePage extends BasePage {
      */
     public String getSortOptionIcon(String optionName) {
         try {
-            // Find the option element to get its Y position
+            // Find the option element to get its Y position. Expected winner
+            // (v1.36 Other row / button) gets the bounded wait; the static-text
+            // fallback is a zero-wait cascade probe.
+            org.openqa.selenium.By winner = AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeOther' OR type == 'XCUIElementTypeButton') AND " +
+                "label CONTAINS '" + optionName + "'");
+            org.openqa.selenium.By textFallback = AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label CONTAINS '" + optionName + "'");
             WebElement option = null;
-            try {
-                option = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND label CONTAINS '" + optionName + "'"));
-            } catch (Exception ignored) {
-                try {
-                    option = driver.findElement(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeStaticText' AND label CONTAINS '" + optionName + "'"));
-                } catch (Exception ignored2) {}
+            if (isElementDisplayed(winner, 3)) {
+                option = driver.findElement(winner);
+            } else if (existsNow(textFallback)) {
+                option = driver.findElement(textFallback);
             }
 
             if (option != null) {
@@ -2077,8 +2102,8 @@ public class IssuePage extends BasePage {
 
                 // Look for images near this option's Y position
                 int optionY = option.getLocation().getY();
-                List<WebElement> images = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeImage'"));
+                List<WebElement> images = withImplicitWait(0, () -> driver.findElements(
+                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeImage'")));
                 for (WebElement img : images) {
                     int imgY = img.getLocation().getY();
                     if (Math.abs(imgY - optionY) < 30) {
@@ -2107,35 +2132,47 @@ public class IssuePage extends BasePage {
     public boolean tapSortOption(String optionName) {
         System.out.println("📋 Tapping sort option: '" + optionName + "'...");
         try {
-            // Strategy 1: Button with matching label
-            try {
-                WebElement option = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND label CONTAINS '" + optionName + "'"));
-                option.click();
+            // Strategy 1 (expected winner, bounded >=3s): v1.36 sheet row
+            // (XCUIElementTypeOther) or pre-v1.36 button with matching label.
+            org.openqa.selenium.By rowOrButton = AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeOther' OR type == 'XCUIElementTypeButton') AND " +
+                "label CONTAINS '" + optionName + "'");
+            if (isElementDisplayed(rowOrButton, 3)) {
+                driver.findElement(rowOrButton).click();
+                sleep(500);
+                System.out.println("✅ Tapped sort option: '" + optionName + "' (row/button)");
+                return true;
+            }
+
+            // Strategy 2: Button-only probe (covers rows iOS reports as not-displayed)
+            org.openqa.selenium.By button = AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label CONTAINS '" + optionName + "'");
+            if (existsNow(button)) {
+                driver.findElement(button).click();
                 sleep(500);
                 System.out.println("✅ Tapped sort option: '" + optionName + "' (button)");
                 return true;
-            } catch (Exception ignored) {}
+            }
 
-            // Strategy 2: Static text with matching label (in some dropdown styles, text is tappable)
-            try {
-                WebElement option = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND label CONTAINS '" + optionName + "'"));
-                option.click();
+            // Strategy 3: Static text with matching label (in some dropdown styles, text is tappable)
+            org.openqa.selenium.By text = AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label CONTAINS '" + optionName + "'");
+            if (existsNow(text)) {
+                driver.findElement(text).click();
                 sleep(500);
                 System.out.println("✅ Tapped sort option: '" + optionName + "' (text)");
                 return true;
-            } catch (Exception ignored) {}
+            }
 
-            // Strategy 3: Any element with matching label
-            try {
-                WebElement option = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "label CONTAINS '" + optionName + "'"));
-                option.click();
+            // Strategy 4: Any element with matching label
+            org.openqa.selenium.By any = AppiumBy.iOSNsPredicateString(
+                "label CONTAINS '" + optionName + "'");
+            if (existsNow(any)) {
+                driver.findElement(any).click();
                 sleep(500);
                 System.out.println("✅ Tapped sort option: '" + optionName + "' (any type)");
                 return true;
-            } catch (Exception ignored) {}
+            }
 
             System.out.println("⚠️ Sort option '" + optionName + "' not found");
             return false;
@@ -2876,21 +2913,40 @@ public class IssuePage extends BasePage {
     }
 
     /**
-     * Tap the first available issue in the list to open Issue Details.
-     * Uses cell Y position + height to identify issue cells (labels are often null).
-     * Issue cells: Y > 350 (below search bar + filter tabs), H > 60 (taller than nav items).
+     * True if the Issues list has no issue rows. Empty-state copy alone is NOT
+     * reliable for the inverse case: v1.36 rows are cells/buttons with often-NULL
+     * labels, so row presence is detected by GEOMETRY (list area Y, row height)
+     * rather than by label text.
      */
-    /** True if the Issues list shows the empty-state ("No Issues Found"). */
     public boolean isIssueListEmpty() {
-        driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(600));
-        try {
-            return !driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND (label CONTAINS[c] 'No Issues Found' OR label CONTAINS[c] 'Create a new issue')")).isEmpty();
-        } catch (Exception e) {
-            return false;
-        } finally {
-            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
-        }
+        return Boolean.TRUE.equals(withImplicitWait(0, () -> {
+            try {
+                // 1) Explicit empty-state copy → definitely empty
+                if (!driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND " +
+                    "(label CONTAINS[c] 'No Issues Found' OR label CONTAINS[c] 'Create a new issue')")).isEmpty()) {
+                    return true;
+                }
+                // 2) Real issue rows: cells or row buttons in the list area
+                //    (below search + filter tabs), taller than chrome elements.
+                for (WebElement row : driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeButton'"))) {
+                    try {
+                        int y = row.getLocation().getY();
+                        int h = row.getSize().getHeight();
+                        if (y > 300 && y < 850 && h > 60) return false;
+                    } catch (Exception ignored) {}
+                }
+                // 3) No rows and no empty-state copy: only call it empty if the
+                //    filter tabs prove we are actually ON the Issues list —
+                //    otherwise we can't tell (off-screen → preserve old "false").
+                return !driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND " +
+                    "(label BEGINSWITH 'All' OR label BEGINSWITH 'Open' OR label CONTAINS 'Resolved')")).isEmpty();
+            } catch (Exception e) {
+                return false;
+            }
+        }));
     }
 
     /**
@@ -2924,7 +2980,12 @@ public class IssuePage extends BasePage {
         }
     }
 
-    public void tapFirstIssue() {
+    /**
+     * @return true only when an issue row was tapped AND the Issue Details
+     *         screen was confirmed — callers must SKIP (precondition missing)
+     *         on false instead of proceeding against nothing.
+     */
+    public boolean tapFirstIssue() {
         System.out.println("📋 Tapping first available issue...");
         resetDetailsScrollCount();
         boolean tapped = false;
@@ -2936,29 +2997,16 @@ public class IssuePage extends BasePage {
         }
 
         try {
-            // Strategy 1: Find first cell that looks like an issue cell by dimensions
-            List<WebElement> allCells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell'"));
-            for (WebElement cell : allCells) {
-                int y = cell.getLocation().getY();
-                int h = cell.getSize().getHeight();
-                if (y > 350 && h > 60) {
-                    cell.click();
-                    System.out.println("   Tapped first issue cell at Y=" + y + ", H=" + h);
-                    tapped = true;
-                    break;
-                }
-            }
-
-            // Strategy 2 (v1.36 SwiftUI: rows are BUTTONS, not cells): tap the first
-            // issue-row button — label looks like an issue title (an Issue Class
-            // keyword and/or " on <asset>"). Exclude dashboard tiles + chrome.
-            if (!tapped) {
-                List<WebElement> btns = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND " +
-                    "(label CONTAINS[c] 'Violation' OR label CONTAINS[c] 'Anomaly' OR " +
-                    "label CONTAINS[c] 'Repair Needed' OR label CONTAINS[c] 'Replacement Needed' OR " +
-                    "label CONTAINS ' on ' OR label CONTAINS[c] 'Seed_' OR label CONTAINS 'Test Issue')"));
+            // Strategy 1 (v1.36 SwiftUI: rows are BUTTONS, not cells — try first):
+            // tap the first issue-row button — label looks like an issue title (an
+            // Issue Class keyword and/or " on <asset>"). Exclude dashboard tiles + chrome.
+            org.openqa.selenium.By rowButtons = AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                "(label CONTAINS[c] 'Violation' OR label CONTAINS[c] 'Anomaly' OR " +
+                "label CONTAINS[c] 'Repair Needed' OR label CONTAINS[c] 'Replacement Needed' OR " +
+                "label CONTAINS ' on ' OR label CONTAINS[c] 'Seed_' OR label CONTAINS 'Test Issue')");
+            if (existsNow(rowButtons)) {
+                List<WebElement> btns = withImplicitWait(0, () -> driver.findElements(rowButtons));
                 for (WebElement b : btns) {
                     try {
                         int y = b.getLocation().getY();
@@ -2975,12 +3023,30 @@ public class IssuePage extends BasePage {
                 }
             }
 
+            // Strategy 2 (pre-v1.36): first cell that looks like an issue cell by
+            // dimensions (cells often have NULL labels — geometry, not text).
+            if (!tapped && existsNow(AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeCell'"))) {
+                List<WebElement> allCells = withImplicitWait(0, () -> driver.findElements(
+                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeCell'")));
+                for (WebElement cell : allCells) {
+                    int y = cell.getLocation().getY();
+                    int h = cell.getSize().getHeight();
+                    if (y > 350 && h > 60) {
+                        cell.click();
+                        System.out.println("   Tapped first issue cell at Y=" + y + ", H=" + h);
+                        tapped = true;
+                        break;
+                    }
+                }
+            }
+
             // Strategy 3: Tap a static text with issue title pattern
             if (!tapped) {
-                List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND " +
-                    "(label CONTAINS 'Test Issue' OR label CONTAINS 'Repair' OR label CONTAINS 'Seed_' OR " +
-                    "label CONTAINS 'Violation' OR label CONTAINS 'Anomaly' OR label CONTAINS 'Issue ')"));
+                List<WebElement> texts = withImplicitWait(0, () -> driver.findElements(
+                    AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND " +
+                        "(label CONTAINS 'Test Issue' OR label CONTAINS 'Repair' OR label CONTAINS 'Seed_' OR " +
+                        "label CONTAINS 'Violation' OR label CONTAINS 'Anomaly' OR label CONTAINS 'Issue ')")));
                 for (WebElement text : texts) {
                     int y = text.getLocation().getY();
                     if (y > 350) {
@@ -2995,7 +3061,7 @@ public class IssuePage extends BasePage {
 
             if (!tapped) {
                 System.out.println("⚠️ No issue cells found in the list");
-                return;
+                return false;
             }
 
             // Wait for Issue Details screen to load (up to 3 seconds)
@@ -3003,13 +3069,15 @@ public class IssuePage extends BasePage {
                 sleep(500);
                 if (isIssueDetailsScreenDisplayed()) {
                     System.out.println("✅ Issue Details screen loaded");
-                    return;
+                    return true;
                 }
             }
-            System.out.println("⚠️ Issue Details screen not detected after tap (proceeding anyway)");
+            System.out.println("⚠️ Issue Details screen not detected after tap");
+            return false;
 
         } catch (Exception e) {
             System.out.println("⚠️ Could not tap first issue: " + e.getMessage());
+            return false;
         }
     }
 
@@ -3847,42 +3915,50 @@ public class IssuePage extends BasePage {
             // STEP B: Try to tap the subcategory input field using multiple
             // strategies. All strategies verify Y > 120 before tapping to
             // prevent accidentally hitting nav bar elements (Close button, etc.)
+            // Step A already proved the label is on screen, so every probe here
+            // is a zero-implicit-wait cascade (next strategy follows immediately).
             // ================================================================
+            org.openqa.selenium.By subcatLabelBy = AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label == 'Subcategory'");
 
             // Strategy 1: TextField/TextVIew with subcategory-related attributes
             try {
-                WebElement field = driver.findElement(AppiumBy.iOSNsPredicateString(
+                org.openqa.selenium.By fieldBy = AppiumBy.iOSNsPredicateString(
                     "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeTextView') AND " +
                     "(name CONTAINS 'Subcategory' OR name CONTAINS 'subcategory' OR " +
-                    "value CONTAINS 'Type or select' OR label CONTAINS 'Type or select')"));
-                int fieldY = field.getLocation().getY();
-                if (fieldY > 120) {
-                    field.click();
-                    sleep(300);
-                    System.out.println("✅ Strategy 1: Tapped Subcategory text field at Y=" + fieldY);
-                    return;
+                    "value CONTAINS 'Type or select' OR label CONTAINS 'Type or select')");
+                if (existsNow(fieldBy)) {
+                    WebElement field = driver.findElement(fieldBy);
+                    int fieldY = field.getLocation().getY();
+                    if (fieldY > 120) {
+                        field.click();
+                        sleep(300);
+                        System.out.println("✅ Strategy 1: Tapped Subcategory text field at Y=" + fieldY);
+                        return;
+                    }
+                    System.out.println("   Strategy 1: Field found at Y=" + fieldY + " but too close to nav bar");
                 }
-                System.out.println("   Strategy 1: Field found at Y=" + fieldY + " but too close to nav bar");
             } catch (Exception ignored) {}
 
             // Strategy 2: Button with subcategory attributes OR "Select..." dropdown near label
             try {
                 // First try: direct subcategory-named button
                 WebElement picker = null;
-                try {
-                    picker = driver.findElement(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeButton' AND " +
-                        "(name CONTAINS 'Subcategory' OR label CONTAINS 'Type or select' OR " +
-                        "label CONTAINS 'Subcategory')"));
-                } catch (Exception ignored2) {}
+                org.openqa.selenium.By pickerBy = AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND " +
+                    "(name CONTAINS 'Subcategory' OR label CONTAINS 'Type or select' OR " +
+                    "label CONTAINS 'Subcategory')");
+                if (existsNow(pickerBy)) {
+                    picker = driver.findElement(pickerBy);
+                }
 
                 // Second try: "Select..." button near the Subcategory label
-                if (picker == null) {
-                    WebElement subcatLbl = driver.findElement(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeStaticText' AND label == 'Subcategory'"));
+                if (picker == null && existsNow(subcatLabelBy)) {
+                    WebElement subcatLbl = driver.findElement(subcatLabelBy);
                     int lblY = subcatLbl.getLocation().getY();
-                    List<WebElement> selectBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeButton' AND label BEGINSWITH 'Select'"));
+                    List<WebElement> selectBtns = withImplicitWait(0, () -> driver.findElements(
+                        AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeButton' AND label BEGINSWITH 'Select'")));
                     for (WebElement btn : selectBtns) {
                         int btnY = btn.getLocation().getY();
                         if (btnY > lblY && btnY <= lblY + 80 && btnY > 120) {
@@ -3909,16 +3985,17 @@ public class IssuePage extends BasePage {
             // Includes XCUIElementTypeOther (SwiftUI custom views) but with strict
             // Y > 120 filtering and preference for real interactive element types.
             try {
-                WebElement subcatLabel = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND label == 'Subcategory'"));
+                if (!existsNow(subcatLabelBy)) throw new IllegalStateException("Subcategory label gone");
+                WebElement subcatLabel = driver.findElement(subcatLabelBy);
                 subcatY = subcatLabel.getLocation().getY();
                 System.out.println("   Strategy 3: Subcategory label at Y=" + subcatY);
 
                 if (subcatY > 120) {
-                    List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                        "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeButton' OR " +
-                        "type == 'XCUIElementTypeTextView' OR type == 'XCUIElementTypeComboBox' OR " +
-                        "type == 'XCUIElementTypeOther')"));
+                    List<WebElement> elements = withImplicitWait(0, () -> driver.findElements(
+                        AppiumBy.iOSNsPredicateString(
+                            "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeButton' OR " +
+                            "type == 'XCUIElementTypeTextView' OR type == 'XCUIElementTypeComboBox' OR " +
+                            "type == 'XCUIElementTypeOther')")));
 
                     // Score candidates: prefer text fields/buttons, closest below label
                     // EXCLUDE info icon buttons (label "Info") — they sit next to the label
@@ -3967,14 +4044,15 @@ public class IssuePage extends BasePage {
 
             // Strategy 4: Tap the Subcategory label itself (some apps open picker on label tap)
             try {
-                WebElement subcatLabel = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND label == 'Subcategory'"));
-                int labelY = subcatLabel.getLocation().getY();
-                if (labelY > 120) {
-                    subcatLabel.click();
-                    sleep(300);
-                    System.out.println("✅ Strategy 4: Tapped Subcategory label at Y=" + labelY);
-                    return;
+                if (existsNow(subcatLabelBy)) {
+                    WebElement subcatLabel = driver.findElement(subcatLabelBy);
+                    int labelY = subcatLabel.getLocation().getY();
+                    if (labelY > 120) {
+                        subcatLabel.click();
+                        sleep(300);
+                        System.out.println("✅ Strategy 4: Tapped Subcategory label at Y=" + labelY);
+                        return;
+                    }
                 }
             } catch (Exception ignored) {}
 
@@ -3982,8 +4060,8 @@ public class IssuePage extends BasePage {
             // Uses dynamic screenWidth/2 instead of hardcoded X=200 to work
             // correctly across all iPhone screen sizes (SE, Pro, Pro Max).
             try {
-                WebElement subcatLabel = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND label == 'Subcategory'"));
+                if (!existsNow(subcatLabelBy)) throw new IllegalStateException("Subcategory label gone");
+                WebElement subcatLabel = driver.findElement(subcatLabelBy);
                 int labelY = subcatLabel.getLocation().getY();
                 if (labelY > 120) {
                     int tapX = driver.manage().window().getSize().getWidth() / 2;
@@ -5563,15 +5641,56 @@ public class IssuePage extends BasePage {
      */
     private void scrollToTopOfDetails() {
         System.out.println("   Scrolling to top of details form...");
-        int screenHeight = driver.manage().window().getSize().getHeight();
-        int screenWidth = driver.manage().window().getSize().getWidth();
-        int centerX = screenWidth / 2;
+        org.openqa.selenium.By issueClassLabel = AppiumBy.iOSNsPredicateString(
+            "type == 'XCUIElementTypeStaticText' AND label CONTAINS[c] 'issue class'");
 
-        // Manual swipe gestures (drag from top to bottom = scroll content up)
+        // Early exit 1: if a keyboard dismiss tapped the nav-bar "Done" we may
+        // already be back on the Issues LIST — swiping there is pure waste
+        // (observed 0/28 successes at ~53s each before this check moved up).
+        boolean onListScreen = Boolean.TRUE.equals(withImplicitWait(0, () -> {
+            boolean navTexts = !driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label == 'Issues'")).isEmpty();
+            boolean allTab = !driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton') AND " +
+                "(label == 'All' OR label BEGINSWITH 'All ')")).isEmpty();
+            return navTexts && allTab;
+        }));
+        if (onListScreen) {
+            System.out.println("   ⚠️ NOT on Issue Details — landed on Issues LIST screen, skipping scroll");
+            detailsScrollDownDepth = 0;
+            return;
+        }
+
+        // Early exit 2: already at the top
+        if (existsNow(issueClassLabel)) {
+            System.out.println("   Issue Class label already in DOM — no scroll needed");
+            detailsScrollDownDepth = 0;
+            return;
+        }
+
+        // One native scroll reaches the target from ANY depth (project pattern:
+        // mobile:scroll + predicateString — manual swipes move only ~350-500px each).
+        try {
+            Map<String, Object> params = new HashMap<>();
+            params.put("direction", "up");
+            params.put("predicateString", "label CONTAINS[c] 'issue class'");
+            driver.executeScript("mobile: scroll", params);
+            sleep(300);
+            if (existsNow(issueClassLabel)) {
+                System.out.println("   Issue Class label found via mobile:scroll");
+                detailsScrollDownDepth = 0;
+                return;
+            }
+        } catch (Exception e) {
+            System.out.println("   mobile:scroll to Issue Class failed: " + e.getMessage());
+        }
+
+        // Fallback: manual swipes (drag from top to bottom = scroll content up).
         // DO NOT tap status bar (Y=10) — on iPhone 17 Pro with Dynamic Island,
         // it closes the Issue Details sheet instead of scrolling to top.
-        // Use up to 8 swipes to ensure we reach the top even from deeper scrolls.
-        for (int i = 0; i < 8; i++) {
+        int screenHeight = driver.manage().window().getSize().getHeight();
+        int centerX = driver.manage().window().getSize().getWidth() / 2;
+        for (int i = 0; i < 3; i++) {
             try {
                 int startY = (int) (screenHeight * 0.30);
                 int endY = (int) (screenHeight * 0.80);
@@ -5594,29 +5713,13 @@ public class IssuePage extends BasePage {
                 System.out.println("   Swipe up failed on iteration " + (i + 1));
             }
 
-            // Check if Issue Class label is now in DOM
-            try {
-                List<WebElement> labels = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND label CONTAINS[c] 'issue class'"));
-                if (!labels.isEmpty()) {
-                    System.out.println("   Issue Class label found after " + (i + 1) + " swipe(s) up");
-                    detailsScrollDownDepth = 0;
-                    return;
-                }
-            } catch (Exception e) {}
+            if (existsNow(issueClassLabel)) {
+                System.out.println("   Issue Class label found after " + (i + 1) + " swipe(s) up");
+                detailsScrollDownDepth = 0;
+                return;
+            }
         }
 
-        // Check what screen we're actually on — if keyboard dismiss tapped nav bar "Done",
-        // we may have exited Issue Details entirely
-        try {
-            List<WebElement> navTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND label == 'Issues'"));
-            List<WebElement> allTab = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND label == 'All'"));
-            if (!navTexts.isEmpty() && !allTab.isEmpty()) {
-                System.out.println("   ⚠️ NOT on Issue Details — landed on Issues LIST screen");
-            }
-        } catch (Exception ignored) {}
         System.out.println("   ⚠️ Issue Class label not found after scrolling to top");
         detailsScrollDownDepth = 0;
     }

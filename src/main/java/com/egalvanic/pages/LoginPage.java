@@ -294,6 +294,21 @@ public class LoginPage extends BasePage {
         }
     }
 
+    // T&C checkbox render style (Switch vs custom button vs coordinate-tap row)
+    // is fixed per app build, so the winning strategy is cached and later logins
+    // jump straight to it (the all-miss scan measured ~11.9s under the implicit
+    // wait). All strategies remain as fallbacks behind the cache.
+    private static volatile int termsStrategyWinner = -1;
+
+    // Shared candidate query for strategies 2 and 3.
+    // NOTE: No "visible == true" constraint — elements may be in DOM but marked non-visible
+    // due to scroll position or recent keyboard dismissal. Appium can still interact with them.
+    // IMPORTANT: "label CONTAINS 'Terms'" is excluded — it matches the "Terms & Conditions"
+    // hyperlink (blue text) which opens the T&C page instead of toggling the checkbox.
+    private static final org.openqa.selenium.By TERMS_CANDIDATES_BY =
+        io.appium.java_client.AppiumBy.iOSNsPredicateString(
+            "(label CONTAINS[c] 'I agree' OR name CONTAINS 'checkbox' OR name CONTAINS 'square' OR name CONTAINS 'agree')");
+
     /**
      * Accept Terms & Conditions checkbox if present and not already checked.
      * Uses multiple strategies because the checkbox renders differently across app versions:
@@ -306,31 +321,65 @@ public class LoginPage extends BasePage {
         // CRITICAL: Dismiss keyboard first! After enterPassword(), the keyboard covers the
         // T&C checkbox area at the bottom of the login screen. Elements behind the keyboard
         // are not "visible" in iOS accessibility, so all visible-based searches fail.
-        try {
-            driver.hideKeyboard();
-            System.out.println("⌨️ Keyboard dismissed before T&C check");
-        } catch (Exception e) {
-            // Keyboard might not be open — that's fine
+        // Only when a keyboard is actually up (0-implicit probe) — calls with no
+        // keyboard skip the whole dismiss dance.
+        if (existsNow(KEYBOARD_BY)) {
             try {
-                // Fallback: tap on a neutral area above the keyboard to dismiss it
-                org.openqa.selenium.Dimension screenSize = driver.manage().window().getSize();
-                tapAtCoordinates(screenSize.getWidth() / 2, 200);
-                System.out.println("⌨️ Tapped neutral area to dismiss keyboard");
-            } catch (Exception ignored) {}
+                driver.hideKeyboard();
+                System.out.println("⌨️ Keyboard dismissed before T&C check");
+            } catch (Exception e) {
+                try {
+                    // Fallback: tap on a neutral area above the keyboard to dismiss it
+                    org.openqa.selenium.Dimension screenSize = driver.manage().window().getSize();
+                    tapAtCoordinates(screenSize.getWidth() / 2, 200);
+                    System.out.println("⌨️ Tapped neutral area to dismiss keyboard");
+                } catch (Exception ignored) {}
+            }
+            // CRITICAL: the iOS accessibility tree refresh lags the visual dismissal —
+            // elements behind the keyboard stay marked invisible for a beat. Poll the
+            // actual condition (keyboard gone), then a short fixed settle for the tree.
+            isElementGone(KEYBOARD_BY, 2);
+            sleep(300);
         }
 
-        // CRITICAL: Wait for keyboard dismiss animation (~300ms) and iOS accessibility
-        // tree refresh. Without this, elements behind the keyboard are still marked
-        // invisible in the DOM even though the keyboard is gone visually.
-        try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+        // Whole scan under 0-implicit: each probe is a findElements check and the
+        // next strategy follows immediately, so misses cost milliseconds not 2s.
+        boolean handled = withImplicitWait(0, () -> {
+            if (termsStrategyWinner >= 1 && tryTermsStrategy(termsStrategyWinner)) {
+                return true;
+            }
+            // Full cascade, re-polled: the checkbox can render a beat after the
+            // keyboard drops, so presence keeps the standard 3s window before we
+            // conclude it isn't part of this build.
+            return com.egalvanic.utils.Waits.until(() -> {
+                for (int i = 1; i <= 4; i++) {
+                    if (tryTermsStrategy(i)) {
+                        termsStrategyWinner = i;
+                        return true;
+                    }
+                }
+                return false;
+            }, 3000);
+        });
+        if (!handled) {
+            System.out.println("ℹ️ No Terms & Conditions checkbox found (may not be present in this app version)");
+        }
+    }
 
-        // Temporarily reduce implicit wait so failed searches don't hang
-        try {
-            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(2));
-        } catch (Exception ignored) {}
+    /** Dispatch one acceptTermsIfPresent() strategy. Runs under withImplicitWait(0). */
+    private boolean tryTermsStrategy(int index) {
+        switch (index) {
+            case 1: return tryTermsAnnotatedCheckbox();
+            case 2: return tryTermsTappableCandidate();
+            case 3: return tryTermsCoordinateTapLeftOfLabel();
+            case 4: return tryTermsAnySwitch();
+            default: return false;
+        }
+    }
 
+    /** Strategy 1: Direct match via annotated element. */
+    private boolean tryTermsAnnotatedCheckbox() {
         try {
-            // Strategy 1: Direct match via annotated element
             if (isElementDisplayed(termsCheckbox)) {
                 String value = termsCheckbox.getAttribute("value");
                 if ("0".equals(value) || "false".equalsIgnoreCase(value) || value == null) {
@@ -339,24 +388,19 @@ public class LoginPage extends BasePage {
                 } else {
                     System.out.println("✅ Terms & Conditions already accepted");
                 }
-                restoreImplicitWait();
-                return;
+                return true;
             }
         } catch (Exception e) {
             // Not found via annotated element
         }
+        return false;
+    }
 
-        // Strategy 2: Find any tappable element with agree/terms/checkbox labels.
-        // NOTE: No "visible == true" constraint — elements may be in DOM but marked non-visible
-        // due to scroll position or recent keyboard dismissal. Appium can still interact with them.
-        // IMPORTANT: "label CONTAINS 'Terms'" is excluded — it matches the "Terms & Conditions"
-        // hyperlink (blue text) which opens the T&C page instead of toggling the checkbox.
+    /** Strategy 2: any tappable element with agree/terms/checkbox labels —
+     *  skipping StaticText (strategy 3 handles it) and hyperlinks. */
+    private boolean tryTermsTappableCandidate() {
         try {
-            List<WebElement> candidates = driver.findElements(
-                io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                    "(label CONTAINS[c] 'I agree' OR name CONTAINS 'checkbox' OR name CONTAINS 'square' OR name CONTAINS 'agree')"
-                )
-            );
+            List<WebElement> candidates = driver.findElements(TERMS_CANDIDATES_BY);
             System.out.println("🔍 T&C search found " + candidates.size() + " candidate elements");
             for (WebElement el : candidates) {
                 String type = el.getAttribute("type");
@@ -366,13 +410,20 @@ public class LoginPage extends BasePage {
                 if (type != null && !type.contains("StaticText") && !type.contains("Link")) {
                     el.click();
                     System.out.println("✅ Terms element tapped (strategy 2): type=" + type + " label=" + label);
-                    restoreImplicitWait();
-                    return;
+                    return true;
                 }
             }
+        } catch (Exception e) {
+            System.out.println("⚠️ Strategy 2 failed: " + e.getMessage());
+        }
+        return false;
+    }
 
-            // Strategy 3: Found static text "I agree..." — tap to its LEFT where checkbox icon sits.
-            // In iOS, checkbox is typically rendered to the left of its label text.
+    /** Strategy 3: static text "I agree..." found — tap to its LEFT where the
+     *  checkbox icon sits (iOS renders the checkbox left of its label text). */
+    private boolean tryTermsCoordinateTapLeftOfLabel() {
+        try {
+            List<WebElement> candidates = driver.findElements(TERMS_CANDIDATES_BY);
             for (WebElement el : candidates) {
                 String type = el.getAttribute("type");
                 if (type != null && type.contains("StaticText")) {
@@ -385,15 +436,17 @@ public class LoginPage extends BasePage {
                     System.out.println("📍 Terms label found at (" + labelX + "," + labelY + "), tapping checkbox at (" + tapX + "," + tapY + ")");
                     tapAtCoordinates(tapX, tapY);
                     System.out.println("✅ Terms checkbox tapped (strategy 3: coordinate tap left of label)");
-                    restoreImplicitWait();
-                    return;
+                    return true;
                 }
             }
         } catch (Exception e) {
-            System.out.println("⚠️ Strategy 2/3 failed: " + e.getMessage());
+            System.out.println("⚠️ Strategy 3 failed: " + e.getMessage());
         }
+        return false;
+    }
 
-        // Strategy 4: Look for any Switch on the login screen (T&C is usually the only switch)
+    /** Strategy 4: any Switch on the login screen (T&C is usually the only switch). */
+    private boolean tryTermsAnySwitch() {
         try {
             List<WebElement> switches = driver.findElements(
                 io.appium.java_client.AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeSwitch'")
@@ -407,22 +460,12 @@ public class LoginPage extends BasePage {
                 } else {
                     System.out.println("✅ Switch already on (strategy 4)");
                 }
-                restoreImplicitWait();
-                return;
+                return true;
             }
         } catch (Exception e) {
             // No switch found
         }
-
-        System.out.println("ℹ️ No Terms & Conditions checkbox found (may not be present in this app version)");
-        restoreImplicitWait();
-    }
-
-    /** Restore implicit wait to default after temporary reduction */
-    private void restoreImplicitWait() {
-        try {
-            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(5));
-        } catch (Exception ignored) {}
+        return false;
     }
 
     /** Tap at specific screen coordinates using W3C Actions API */
@@ -462,37 +505,70 @@ public void clickShowPassword() {
     }
 }
 
+    // Keyboard dismissal: the winning strategy is stable for a given app
+    // build/keyboard type, so it is cached and later calls jump straight to it
+    // instead of re-walking the hideKeyboard cascade (measured ~8.9s/walk).
+    // All original strategies remain as fallbacks behind the cache.
+    private static final org.openqa.selenium.By KEYBOARD_BY =
+        io.appium.java_client.AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeKeyboard'");
+    private static volatile int keyboardDismissWinner = -1;
+
     /**
      * Dismiss the keyboard to prevent click issues - Using W3C Actions
      */
     public void dismissKeyboard() {
-        try {
-            driver.hideKeyboard();
-            shortWait();
-        } catch (Exception e) {
-            try {
-                driver.hideKeyboard("Done");
-                shortWait();
-            } catch (Exception ex1) {
-                try {
-                    driver.hideKeyboard("Return");
-                    shortWait();
-                } catch (Exception ex2) {
-                    try {
-                        driver.hideKeyboard("Go");
-                        shortWait();
-                    } catch (Exception ex3) {
-                        try {
-                            // Use W3C Actions instead of deprecated TouchAction
-                            performTap(100, 100);
-                            shortWait();
-                        } catch (Exception ex4) {
-                            System.out.println("Could not dismiss keyboard, continuing test...");
-                        }
-                    }
-                }
+        // Absence fast-path: no keyboard up, nothing to dismiss (0-implicit probe).
+        if (!existsNow(KEYBOARD_BY)) {
+            return;
+        }
+        // Cached winner first; full cascade only if it misses on this keyboard.
+        if (keyboardDismissWinner >= 0 && tryDismissKeyboardStrategy(keyboardDismissWinner)) {
+            return;
+        }
+        for (int i = 0; i <= 5; i++) {
+            if (i == keyboardDismissWinner) continue; // already tried above
+            if (tryDismissKeyboardStrategy(i)) {
+                keyboardDismissWinner = i;
+                return;
             }
         }
+        System.out.println("Could not dismiss keyboard, continuing test...");
+    }
+
+    /**
+     * One keyboard-dismiss strategy; true only when the keyboard is verifiably
+     * gone afterwards (0-implicit absence poll, bounded by the dismiss animation).
+     * Strategy 0 taps the keyboard's own dismiss/return key by name — the
+     * consistent winner on this app. 'Go' is excluded there (it submits the
+     * form) and stays on the hideKeyboard("Go") fallback; French key names
+     * (Retour) are included since the app may run localized.
+     */
+    private boolean tryDismissKeyboardStrategy(int index) {
+        try {
+            switch (index) {
+                case 0:
+                    List<WebElement> keys = withImplicitWait(0, () -> driver.findElements(
+                        io.appium.java_client.AppiumBy.iOSClassChain(
+                            "**/XCUIElementTypeKeyboard/**/XCUIElementTypeButton"
+                            + "[`name IN {'Hide keyboard','Dismiss','Done','Return','return','OK','Retour','retour','Masquer le clavier'}`]")));
+                    if (keys.isEmpty()) return false;
+                    keys.get(0).click();
+                    break;
+                case 1: driver.hideKeyboard(); break;
+                case 2: driver.hideKeyboard("Done"); break;
+                case 3: driver.hideKeyboard("Return"); break;
+                case 4: driver.hideKeyboard("Go"); break;
+                case 5:
+                    // Use W3C Actions instead of deprecated TouchAction
+                    performTap(100, 100);
+                    break;
+                default: return false;
+            }
+        } catch (Exception e) {
+            return false;
+        }
+        // Verify the keyboard actually went away (replaces the old fixed shortWait()).
+        return isElementGone(KEYBOARD_BY, 2);
     }
     
     /**
@@ -845,13 +921,26 @@ public void clickShowPassword() {
     public void loginTurbo(String email, String password) {
         long start = System.currentTimeMillis();
 
-        // Slow app: 150 → 1500 ms pre-email settle so the Sign In page
-        // is fully rendered + keyboard ready before we tap the email
-        // field. Saves a retry inside enterEmail() and prevents the
-        // "email field stays empty, Sign In disabled" failure mode.
-        try { Thread.sleep(1500); } catch (InterruptedException e) {}
+        // Slow app: the Sign In page must be fully rendered before we tap the
+        // email field, else enterEmail() burns a retry on the "email field
+        // stays empty, Sign In disabled" failure mode. Poll the actual
+        // readiness signal (email TextField + a Login-screen marker) instead
+        // of a fixed 1500ms — 3s cap, exits the moment it holds; enterEmail()
+        // keeps its own 25s safety net for the very-slow case.
+        withImplicitWait(0, () -> com.egalvanic.utils.Waits.until(() ->
+            !driver.findElements(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeTextField' AND visible == 1")).isEmpty()
+            && (!driver.findElements(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeSecureTextField'")).isEmpty()
+                || !driver.findElements(io.appium.java_client.AppiumBy.accessibilityId("Sign In")).isEmpty()),
+            3000));
         enterEmail(email);
-        try { Thread.sleep(500); } catch (InterruptedException e) {}  // settle before password tap
+        // Settle before password tap: poll for the password field itself (3s cap)
+        // instead of a fixed 500ms — enterPassword() taps it next.
+        withImplicitWait(0, () -> com.egalvanic.utils.Waits.until(() ->
+            !driver.findElements(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeSecureTextField'")).isEmpty(),
+            3000));
         enterPassword(password);
 
         // Accept Terms & Conditions if the checkbox is present (new app versions)
@@ -907,12 +996,12 @@ public void clickShowPassword() {
      */
     public void waitForNoSavePasswordPopup() {
         long start = System.currentTimeMillis();
-        long timeout = 5000; // 5 seconds
+        long deadline = start + 5000; // hard 5s budget, shared with the dismiss cascade
         boolean popupFound = false;
         int attempts = 0;
-        while (System.currentTimeMillis() - start < timeout) {
+        while (System.currentTimeMillis() < deadline) {
             attempts++;
-            boolean dismissed = tryHandleSavePasswordPopup();
+            boolean dismissed = tryHandleSavePasswordPopup(deadline);
             if (dismissed) {
                 popupFound = true;
                 System.out.println("[SavePasswordPopup] Dismissed on attempt " + attempts);
@@ -936,48 +1025,66 @@ public void clickShowPassword() {
     /**
      * Attempts to handle the Save Password popup using multiple methods
      * Returns true if popup was found and handled, false otherwise
+     *
+     * The whole cascade runs with implicit wait 0: every probe asks "is the
+     * popup there right now?" and the next strategy follows immediately, so a
+     * miss must cost milliseconds — under the global 5s implicit wait the
+     * all-miss cascade measured ~61s, blowing the caller's 5s budget 12x.
+     * The deadline is re-checked between strategies so the budget holds even
+     * when individual probes are slow.
      */
     private boolean tryHandleSavePasswordPopup() {
+        return tryHandleSavePasswordPopup(System.currentTimeMillis() + 5000);
+    }
+
+    private boolean tryHandleSavePasswordPopup(long deadlineMs) {
+        return withImplicitWait(0, () -> {
         // METHOD 1: iOS Native Alert (dismiss)
         try {
             driver.switchTo().alert().dismiss();
             System.out.println("✅ Native alert dismissed");
             return true;
         } catch (Exception e) {}
-        
+
         // METHOD 2: iOS Native Alert (accept)
         try {
             driver.switchTo().alert().accept();
             System.out.println("✅ Native alert accepted");
             return true;
         } catch (Exception e) {}
-        
+        if (System.currentTimeMillis() >= deadlineMs) return false;
+
         // METHOD 3: "Not Now" button by accessibility ID
         try {
-            WebElement btn = driver.findElement(
+            java.util.List<WebElement> notNow = driver.findElements(
                 io.appium.java_client.AppiumBy.accessibilityId("Not Now")
             );
-            btn.click();
-            System.out.println("✅ Clicked 'Not Now' button");
-            return true;
+            if (!notNow.isEmpty()) {
+                notNow.get(0).click();
+                System.out.println("✅ Clicked 'Not Now' button");
+                return true;
+            }
         } catch (Exception e) {}
-        
+
         // METHOD 4: Common dismiss button names
         String[] buttonNames = {"Not Now", "Don't Save", "Never", "Cancel", "No", "Later", "Skip"};
         for (String btnName : buttonNames) {
+            if (System.currentTimeMillis() >= deadlineMs) return false;
             try {
-                WebElement btn = driver.findElement(
+                java.util.List<WebElement> btns = driver.findElements(
                     io.appium.java_client.AppiumBy.accessibilityId(btnName)
                 );
-                btn.click();
-                System.out.println("✅ Clicked: " + btnName);
-                return true;
+                if (!btns.isEmpty()) {
+                    btns.get(0).click();
+                    System.out.println("✅ Clicked: " + btnName);
+                    return true;
+                }
             } catch (Exception e) {}
         }
-        
+
         // METHOD 5: Find button by label containing keywords
         try {
-            WebElement btn = driver.findElement(
+            java.util.List<WebElement> btns = driver.findElements(
                 io.appium.java_client.AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeButton' AND visible == true AND " +
                     "(label CONTAINS[c] 'not now' OR label CONTAINS[c] 'never' OR " +
@@ -985,11 +1092,14 @@ public void clickShowPassword() {
                     "label CONTAINS[c] 'skip' OR label CONTAINS[c] 'later')"
                 )
             );
-            btn.click();
-            System.out.println("✅ Clicked dismiss button by label");
-            return true;
+            if (!btns.isEmpty()) {
+                btns.get(0).click();
+                System.out.println("✅ Clicked dismiss button by label");
+                return true;
+            }
         } catch (Exception e) {}
-        
+        if (System.currentTimeMillis() >= deadlineMs) return false;
+
         // METHOD 6: Find ANY button in a popup sheet
         try {
             java.util.List<WebElement> buttons = driver.findElements(
@@ -1004,7 +1114,7 @@ public void clickShowPassword() {
                 return true;
             }
         } catch (Exception e) {}
-        
+
         // METHOD 7: Find buttons in Alert container
         try {
             java.util.List<WebElement> buttons = driver.findElements(
@@ -1019,37 +1129,41 @@ public void clickShowPassword() {
                 return true;
             }
         } catch (Exception e) {}
-        
+        if (System.currentTimeMillis() >= deadlineMs) return false;
+
         // METHOD 8: Find "Other" element type
         try {
-            WebElement btn = driver.findElement(
+            java.util.List<WebElement> others = driver.findElements(
                 io.appium.java_client.AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeOther' AND visible == true AND " +
                     "(label CONTAINS[c] 'not now' OR label CONTAINS[c] 'never')"
                 )
             );
-            btn.click();
-            System.out.println("✅ Clicked 'Other' element");
-            return true;
+            if (!others.isEmpty()) {
+                others.get(0).click();
+                System.out.println("✅ Clicked 'Other' element");
+                return true;
+            }
         } catch (Exception e) {}
-        
+
         // METHOD 9: Tap coordinates (center-left area for "Not Now")
         try {
             org.openqa.selenium.Dimension size = driver.manage().window().getSize();
             int x = size.width / 4;
             int y = size.height / 2;
-            
+
             new io.appium.java_client.TouchAction<>((io.appium.java_client.PerformsTouchActions) driver)
                 .tap(io.appium.java_client.touch.offset.PointOption.point(x, y))
                 .perform();
             System.out.println("✅ Tapped at coordinates (" + x + ", " + y + ")");
             return true;
         } catch (Exception e) {}
-        
+
         // METHOD 10: Skip - navigate().back() is too slow
         // Removed for performance
 
         return false; // No popup found
+        });
     }
 
     // ================================================================
@@ -1070,43 +1184,54 @@ public void clickShowPassword() {
      * checkboxes use `name` containing "checkmark" or `value="checked"`.
      */
     public String getTermsCheckboxState() {
-        try {
-            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(2));
-        } catch (Exception ignored) {}
-        try {
-            // Strategy A: SwiftUI Switch element
-            try {
-                WebElement sw = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeSwitch'"));
-                String v = sw.getAttribute("value");
-                if ("1".equals(v) || "true".equalsIgnoreCase(v)) return "checked";
-                if ("0".equals(v) || "false".equalsIgnoreCase(v)) return "unchecked";
-            } catch (Exception ignored) {}
+        // 0-implicit cascade probes with an outer 3s presence window: a strategy
+        // miss costs milliseconds (was 2s implicit each), while a late-rendering
+        // checkbox still gets the standard 3s to appear before "missing".
+        return withImplicitWait(0, () -> {
+            long deadline = System.currentTimeMillis() + 3000;
+            while (true) {
+                // Strategy A: SwiftUI Switch element
+                try {
+                    List<WebElement> sw = driver.findElements(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeSwitch'"));
+                    if (!sw.isEmpty()) {
+                        String v = sw.get(0).getAttribute("value");
+                        if ("1".equals(v) || "true".equalsIgnoreCase(v)) return "checked";
+                        if ("0".equals(v) || "false".equalsIgnoreCase(v)) return "unchecked";
+                    }
+                } catch (Exception ignored) {}
 
-            // Strategy B: Custom checkbox button — name contains "checkmark.square" or "square"
-            try {
-                WebElement btn = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND " +
-                    "(name CONTAINS 'checkmark' OR name CONTAINS 'checkbox' OR name CONTAINS 'square')"));
-                String name = btn.getAttribute("name");
-                if (name != null && name.contains("checkmark")) return "checked";
-                if (name != null && (name.contains("square") && !name.contains("checkmark"))) return "unchecked";
-            } catch (Exception ignored) {}
+                // Strategy B: Custom checkbox button — name contains "checkmark.square" or "square"
+                try {
+                    List<WebElement> btns = driver.findElements(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND " +
+                        "(name CONTAINS 'checkmark' OR name CONTAINS 'checkbox' OR name CONTAINS 'square')"));
+                    if (!btns.isEmpty()) {
+                        String name = btns.get(0).getAttribute("name");
+                        if (name != null && name.contains("checkmark")) return "checked";
+                        if (name != null && (name.contains("square") && !name.contains("checkmark"))) return "unchecked";
+                    }
+                } catch (Exception ignored) {}
 
-            // Strategy C: Image element with checkmark/square name
-            try {
-                WebElement img = driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeImage' AND " +
-                    "(name CONTAINS 'checkmark' OR name CONTAINS 'square')"));
-                String name = img.getAttribute("name");
-                if (name != null && name.contains("checkmark")) return "checked";
-                return "unchecked";
-            } catch (Exception ignored) {}
+                // Strategy C: Image element with checkmark/square name
+                try {
+                    List<WebElement> imgs = driver.findElements(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeImage' AND " +
+                        "(name CONTAINS 'checkmark' OR name CONTAINS 'square')"));
+                    if (!imgs.isEmpty()) {
+                        String name = imgs.get(0).getAttribute("name");
+                        if (name != null && name.contains("checkmark")) return "checked";
+                        return "unchecked";
+                    }
+                } catch (Exception ignored) {}
 
-            return "missing";
-        } finally {
-            restoreImplicitWait();
-        }
+                if (System.currentTimeMillis() >= deadline) return "missing";
+                try { Thread.sleep(250); } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    return "missing";
+                }
+            }
+        });
     }
 
     /**
@@ -1157,29 +1282,20 @@ public void clickShowPassword() {
      * OR as a presented modal containing long static text. We check for either.
      */
     public boolean isLegalDocumentDisplayed() {
-        try {
-            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofSeconds(3));
-        } catch (Exception ignored) {}
-        try {
-            // Strategy A: WebView present
-            try {
-                driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeWebView'"));
-                return true;
-            } catch (Exception ignored) {}
-            // Strategy B: a Done/Close button + long body text (modal sheet pattern)
-            try {
-                driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                    "(type == 'XCUIElementTypeButton') AND (label == 'Done' OR label == 'Close')"));
-                // Plus must NOT see Sign In button (we're not on login screen anymore)
-                List<WebElement> signIns = driver.findElements(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND label == 'Sign In'"));
-                return signIns.isEmpty();
-            } catch (Exception ignored) {}
-            return false;
-        } finally {
-            restoreImplicitWait();
+        // Strategy A: WebView present — expected element, standard 3s presence cap
+        if (isElementDisplayed(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeWebView'"), 3)) {
+            return true;
         }
+        // Strategy B: a Done/Close button + long body text (modal sheet pattern)
+        if (isElementDisplayed(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton') AND (label == 'Done' OR label == 'Close')"), 3)) {
+            // Plus must NOT see Sign In button (we're not on login screen anymore).
+            // Absence check — instant 0-implicit probe, never burns the implicit wait.
+            return !existsNow(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == 'Sign In'"));
+        }
+        return false;
     }
 
     /**
