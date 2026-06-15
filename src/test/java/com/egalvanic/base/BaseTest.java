@@ -147,6 +147,11 @@ public class BaseTest {
             System.out.println("⚠️ Driver init failed: " + e.getMessage());
             System.out.println("🔄 Retrying driver initialization after cleanup...");
             forceDriverCleanup();
+            // "Could not start a new session" almost always means WDA is wedged from
+            // a prior heavy-query hang — retrying against the same WDA keeps failing
+            // (the 120/44/32 skip cascades in run 27557701204). Force a WDA rebuild
+            // on the retry so the next test recovers instead of cascading.
+            DriverManager.forceWdaRebuildOnce();
             try { Thread.sleep(3000); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
             DriverManager.initDriver(deviceName, udid, appiumPort, wdaLocalPort);
         }
@@ -178,6 +183,8 @@ public class BaseTest {
                     DriverManager.quitDriver();
                 } catch (Exception ignored) {}
                 try { Thread.sleep(2000); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+                // A dead session at setup time usually means WDA wedged — rebuild it.
+                DriverManager.forceWdaRebuildOnce();
                 DriverManager.initDriver(deviceName, udid, appiumPort, wdaLocalPort);
             }
         }

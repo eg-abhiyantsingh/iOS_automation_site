@@ -27,6 +27,26 @@ public class DriverManager {
     private static boolean noResetOverride = false;
     private static boolean useNoResetOverride = false;
 
+    // One-shot WDA-rebuild flag. When a heavy a11y query wedges WebDriverAgent,
+    // the session dies and the NEXT initDriver fails with "Could not start a new
+    // session" — and retrying against the SAME wedged WDA keeps failing (CI run
+    // 27557701204: a single Assets P6 wedge produced 120 such skips; 372 failed
+    // inits vs 123 successful). Forcing useNewWDA=true on the recovery attempt
+    // tears the wedged WDA down and rebuilds it — the standard Appium recovery —
+    // turning a 30-120 test skip cascade into a single test's rebuild. Set via
+    // forceWdaRebuildOnce() on the retry path; auto-clears after one init.
+    private static volatile boolean forceWdaRebuild = false;
+
+    /**
+     * Request that the NEXT initDriver() rebuild WebDriverAgent (useNewWDA=true)
+     * instead of reusing the cached one. Call this on a driver-init RETRY after a
+     * "Could not start a new session" failure to recover a wedged WDA. One-shot.
+     */
+    public static void forceWdaRebuildOnce() {
+        forceWdaRebuild = true;
+        System.out.println("🔧 WDA rebuild armed for next initDriver (wedged-session recovery)");
+    }
+
     /**
      * Set noReset override for Edit Asset tests (skip app reinstall)
      * Call this BEFORE driver initialization in @BeforeClass
@@ -130,6 +150,18 @@ public class DriverManager {
                 // Don't rebuild WDA each time (saves 60-90 seconds)
                 options.setUseNewWDA(false);
                 options.setCapability("appium:usePreinstalledWDA", false);
+
+                // Recovery path: a prior session wedged WDA and this is the retry —
+                // force a fresh WDA so we don't reconnect to the corpse. One-shot;
+                // costs ~30-60s here but avoids a 30-120 test skip cascade.
+                boolean rebuildWda = forceWdaRebuild;
+                forceWdaRebuild = false;
+                if (rebuildWda) {
+                    System.out.println("🔧 Rebuilding WebDriverAgent (useNewWDA=true) for wedged-session recovery");
+                    options.setUseNewWDA(true);
+                    options.setCapability("appium:usePreinstalledWDA", false);
+                    options.setCapability("appium:usePrebuiltWDA", false);
+                }
 
                 // ========== PREBUILT WDA CONSUMPTION (CI) ==========
                 // CI can build WebDriverAgent once per runner and point Appium at the

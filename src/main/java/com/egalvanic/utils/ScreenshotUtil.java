@@ -170,7 +170,19 @@ public class ScreenshotUtil {
 
             return java.util.Base64.getEncoder().encodeToString(baos.toByteArray());
         } catch (Exception e) {
-            System.err.println("⚠️ Compressed screenshot failed, falling back to full PNG: " + e.getMessage());
+            // If the session is DEAD, the full-PNG fallback would just hit another
+            // 90s readTimeout (and ExtentReport calls this per step + at teardown),
+            // padding every WDA-death hang by minutes — the screenshot retry storm
+            // seen in Location/Offline (CI run 27557701204). Skip the fallback on a
+            // session-death signature; only retry for genuine compression errors.
+            String msg = e.getMessage() == null ? "" : e.getMessage();
+            if (msg.contains("may have died") || msg.contains("Session")
+                    || msg.contains("ECONNREFUSED") || msg.contains("timeout")
+                    || msg.contains("not created") || msg.contains("terminated")) {
+                System.err.println("⚠️ Screenshot skipped — session appears dead: " + msg);
+                return "";
+            }
+            System.err.println("⚠️ Compressed screenshot failed, falling back to full PNG: " + msg);
             return getScreenshotAsBase64();
         }
     }
