@@ -92,6 +92,17 @@ public class AppConstants {
     public static final boolean DEAD_SESSION_BREAKER = Boolean.parseBoolean(
         getEnv("DEAD_SESSION_BREAKER", "true"));
     public static final int DEAD_SESSION_BREAKER_N = getEnvInt("DEAD_SESSION_BREAKER_N", 5);
+    // Asset class-change wall-clock budget (ms). The class-change path snapshots a
+    // bleed-through Edit-screen DOM several times; on a busy CI runner each snapshot
+    // can take up to CUSTOM_SNAPSHOT_TIMEOUT (10s), so a legitimate change runs
+    // 60-120s. The budget must let a slow-but-working change FINISH yet still cap
+    // before the ~360s WDA-death zone. (60s was too tight — fast-failed 63 passing
+    // Assets P3 changes in run 27557701204; raised to 180s.) Env-overridable.
+    public static final int CLASS_CHANGE_BUDGET_SEC = getEnvInt("CLASS_CHANGE_BUDGET_SEC", 180);
+    // Per-step picker-button enumeration budget (ms). A single bleed-through
+    // snapshot can take ~10s, so 8s risked bailing mid-enumeration; 20s gives a
+    // couple of snapshots' headroom while still bounding a wedged query.
+    public static final int PICKER_ENUM_BUDGET_SEC = getEnvInt("PICKER_ENUM_BUDGET_SEC", 20);
     // Prebuilt-WDA consumption: CI can build WebDriverAgent once per runner and
     // point Appium at the bundle, skipping the per-session xcodebuild (~60-90s).
     // Both stay unset by default so local runs keep the build-on-demand path.

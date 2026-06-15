@@ -9441,7 +9441,8 @@ public class AssetPage extends BasePage {
      *  its helper budget; this end-to-end deadline guarantees a fast VerificationError
      *  in ~1 min instead of grinding to the 360s per-test cap and hammering WDA into
      *  the "Could not start a new session" cascade (assetsP6 run, 2026-06-15). */
-    private static final long CLASS_CHANGE_BUDGET_MS = 60_000L;
+    private static final long CLASS_CHANGE_BUDGET_MS =
+        com.egalvanic.constants.AppConstants.CLASS_CHANGE_BUDGET_SEC * 1000L;
 
     private void changeAssetClassInternal(String className) {
         System.out.println("📋 Changing asset class to " + className + "...");
@@ -9594,7 +9595,8 @@ public class AssetPage extends BasePage {
      *  global 5s implicit wait active, getLocation/getSize/getAttribute per button
      *  on a wedging WDA dragged GEN_01/TC_DS_ST_16/TC_FUSE_ST_03 into the 360s cap
      *  (assetsP6 run, 2026-06-15). Bound the loop and bail to null fast. */
-    private static final long PICKER_BUTTON_ENUM_BUDGET_MS = 8_000L;
+    private static final long PICKER_BUTTON_ENUM_BUDGET_MS =
+        com.egalvanic.constants.AppConstants.PICKER_ENUM_BUDGET_SEC * 1000L;
 
     /** Cached Asset-Class picker button, populated by findAssetClassPickerButton()
      *  within a single changeAssetClassInternal() call so the equality-read and the
