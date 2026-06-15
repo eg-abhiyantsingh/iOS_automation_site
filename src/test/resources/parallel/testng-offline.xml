@@ -20,6 +20,14 @@
         <classes>
             <class name="com.egalvanic.tests.OfflineTest"/>
             <class name="com.egalvanic.tests.OfflineSyncMultiSite_Test"/>
+            <!--
+                E2E_OfflineSyncIntegrity_Test (changelog 078): the FIRST tests that
+                assert post-sync DATA (field durability after replay, cross-site
+                landing) rather than queue counts — targets confirmed SLD-2 (silent
+                field loss in sync replay) + cross-site write corruption. Environmental
+                gaps (read-only data, no Site B, API egress blocked) skip cleanly.
+            -->
+            <class name="com.egalvanic.tests.E2E_OfflineSyncIntegrity_Test"/>
         </classes>
     </test>
 </suite>

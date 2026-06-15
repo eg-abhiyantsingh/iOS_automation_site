@@ -256,12 +256,55 @@ public class BaseTest {
                 return false;
             });
         } catch (Exception e) {
-            System.out.println("⚠️ Fast app check timeout, continuing...");
+            // Fast check timed out. On iOS 26.2 (local) the app can still be on the
+            // launch SPLASH ("Z Platform / Your Electrical Copilot") ~8s after
+            // activateApp — the 2s probe fires before it clears, and navigation then
+            // runs against the splash (no Assets tab, no Sites picker → false abort).
+            // If we detect the splash, give it a longer bounded settle to reach a
+            // real screen rather than proceeding on the splash.
+            if (isOnSplashScreen(d0)) {
+                System.out.println("⏳ App still on launch splash — waiting for it to clear (cold start)...");
+                try {
+                    org.openqa.selenium.support.ui.WebDriverWait splashWait =
+                        new org.openqa.selenium.support.ui.WebDriverWait(d0, java.time.Duration.ofSeconds(15));
+                    splashWait.until(driver -> !isOnSplashScreen(d0));
+                    System.out.println("⚡ Splash cleared — app reached a real screen");
+                } catch (Exception splashEx) {
+                    System.out.println("⚠️ App still on splash after 15s — likely the documented iOS-26.2 launch stall");
+                }
+            } else {
+                System.out.println("⚠️ Fast app check timeout, continuing...");
+            }
         } finally {
             try {
                 d0.manage().timeouts().implicitlyWait(
                     java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
             } catch (Exception ignored) {}
+        }
+    }
+
+    /**
+     * True when the app is showing only the launch splash ("Z Platform" /
+     * "Your Electrical Copilot" with the Logo image and no interactive controls).
+     * On a cold/slow start (notably iOS 26.2 local) the splash lingers several
+     * seconds; proceeding while it's up makes every navigator fail on the wrong
+     * screen. Cheap probe — implicit wait already lowered by the caller.
+     */
+    private boolean isOnSplashScreen(io.appium.java_client.ios.IOSDriver d) {
+        try {
+            boolean copilot = !d.findElements(io.appium.java_client.AppiumBy
+                .iOSNsPredicateString("label CONTAINS 'Your Electrical Copilot' "
+                    + "OR name CONTAINS 'Your Electrical Copilot'")).isEmpty();
+            if (!copilot) return false;
+            // Splash has NO interactive controls; once Continue/Sign In/dashboard
+            // chrome appears we are past it.
+            boolean hasControls = !d.findElements(io.appium.java_client.AppiumBy
+                .iOSNsPredicateString("(name == 'Continue' OR name == 'Sign In' "
+                    + "OR name == 'building.2' OR name == 'plus') "
+                    + "AND type == 'XCUIElementTypeButton'")).isEmpty();
+            return !hasControls;
+        } catch (Exception e) {
+            return false;
         }
     }
 

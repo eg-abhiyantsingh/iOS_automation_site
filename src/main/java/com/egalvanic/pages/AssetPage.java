@@ -6359,13 +6359,67 @@ public class AssetPage extends BasePage {
 
         // Reuse shared picker item selection (same full-screen table UI as Asset Class)
         if (!tapAssetClassItem(subtypeName)) {
-            System.out.println("⚠️ Could not select asset subtype: " + subtypeName);
+            // If the WDA session died mid-selection (observed locally on iOS 26.2:
+            // 'Error communicating with the remote browser. It may have died.'),
+            // every further command — describeVisiblePickerOptions / tapDoneOnPicker
+            // / screenshot — blocks on the dead session until the 360s test cap.
+            // Short-circuit: don't hammer a corpse. The DeadSessionCircuitBreaker
+            // + teardown recovery handle the dead session at the suite level.
+            if (!com.egalvanic.utils.DriverManager.isDriverActive()) {
+                throw new VerificationError(
+                    "selectAssetSubtype: WDA session died while selecting subtype '"
+                    + subtypeName + "' (remote browser unresponsive) — failing fast"
+                    + " instead of blocking on the dead session.");
+            }
+            // Capture what IS on screen so the failure is diagnosable, then dismiss
+            // the picker to restore a sane state for teardown.
+            String visible = describeVisiblePickerOptions();
             tapDoneOnPicker();
-            return;
+            // Hard-fail (un-swallowable) instead of silently continuing. A silent
+            // continue here is what produced the run 27485736625 hangs masquerading
+            // as slow tests — a clean ~20-45s fail with evidence beats a 6min hang.
+            throw new VerificationError(
+                "selectAssetSubtype: could not select subtype '" + subtypeName
+                + "' in the picker. On-screen option rows: " + visible);
         }
         sleep(300);
         tapDoneOnPicker();
         System.out.println("✅ Selected asset subtype: " + subtypeName);
+    }
+
+    /**
+     * Snapshot the comma-free StaticText/Button rows currently on the picker
+     * (the candidate option labels) for diagnostic failure messages. Cheap:
+     * implicit-wait 0, capped at the first ~25 rows. Best-effort only.
+     */
+    private String describeVisiblePickerOptions() {
+        try {
+            return withImplicitWait(0, () -> {
+                // Dump ALL visible elements with type+label so the failure message
+                // reveals the REAL option element type. Production reported
+                // "(none readable)" with the StaticText/Button-only filter — meaning
+                // the subtype options render as Cell / Other / something else. This
+                // wider dump tells us exactly what (and is the CI source of truth
+                // since the local iOS 26.2 sim is flaky).
+                java.util.List<String> opts = new java.util.ArrayList<>();
+                for (WebElement el : driver.findElements(
+                        AppiumBy.iOSNsPredicateString("visible == true"))) {
+                    try {
+                        String n = el.getAttribute("label");
+                        if (n == null || n.trim().isEmpty()) n = el.getAttribute("name");
+                        if (n == null || n.trim().isEmpty() || n.contains(",")) continue;
+                        String type = el.getAttribute("type");
+                        String shortType = type == null ? "?"
+                            : type.replace("XCUIElementType", "");
+                        opts.add(shortType + ":" + n.trim());
+                        if (opts.size() >= 30) break;
+                    } catch (Exception ignore) {}
+                }
+                return opts.isEmpty() ? "(none readable)" : String.join(" | ", opts);
+            });
+        } catch (Exception e) {
+            return "(could not read picker: " + e.getMessage() + ")";
+        }
     }
 
     public boolean isQRCodeFieldDisplayed() {
@@ -9044,15 +9098,20 @@ public class AssetPage extends BasePage {
      */
     /** The picker's "Search..." field (NOT the asset-list search behind it). */
     private WebElement findClassSearchField() {
-        for (WebElement sf : driver.findElements(AppiumBy.className("XCUIElementTypeSearchField"))) {
-            try {
-                if (!sf.isDisplayed()) continue;
-                String ph = sf.getAttribute("placeholderValue");
-                String nm = sf.getAttribute("name");
-                if ("Search...".equals(ph) || "Search...".equals(nm)) return sf;
-            } catch (Exception ignore) {}
-        }
-        return null;
+        // 0-implicit probe: on the NON-searchable subtype picker there is no
+        // search field, and this is called as a fast guard in tapAssetClassItem —
+        // a 5s implicit-wait miss here is pure waste.
+        return withImplicitWait(0, () -> {
+            for (WebElement sf : driver.findElements(AppiumBy.className("XCUIElementTypeSearchField"))) {
+                try {
+                    if (!sf.isDisplayed()) continue;
+                    String ph = sf.getAttribute("placeholderValue");
+                    String nm = sf.getAttribute("name");
+                    if ("Search...".equals(ph) || "Search...".equals(nm)) return sf;
+                } catch (Exception ignore) {}
+            }
+            return null;
+        });
     }
 
     private boolean selectClassViaSearch(String className) {
@@ -9110,7 +9169,16 @@ public class AssetPage extends BasePage {
         }
     }
 
+    /** Overall wall-clock budget for selecting ONE picker option. Every scroll
+     *  loop checks this and bails — the SUBTYPE picker is non-searchable and
+     *  long, and the legacy 8+8 drag-scrolls at implicit-wait 1s/miss could burn
+     *  the whole 360s per-test cap (run 27485736625: 18 tests killed at 6m0s,
+     *  HUNG here, not asserting). A clean ~45s fail beats a 6-minute hang. */
+    private static final long TAP_OPTION_BUDGET_MS = 45_000L;
+
     private boolean tapAssetClassItem(String className) {
+        long deadline = System.currentTimeMillis() + TAP_OPTION_BUDGET_MS;
+
         // Strategy 0 (preferred): the Asset Class picker is a SEARCHABLE dropdown
         // (a "Search..." field above the option list). Type to filter — far more
         // reliable than scrolling a long lazy list (off-screen rows aren't in the
@@ -9119,122 +9187,169 @@ public class AssetPage extends BasePage {
         // If the picker IS searchable but search couldn't surface the class, the
         // legacy scroll strategies are futile (lazy list never materializes the
         // row) AND slow (~20 min of dragging). Fail fast instead.
+        // NOTE: the SUBTYPE picker is NON-searchable (no "Search..." field), so
+        // findClassSearchField() returns null and we fall through to the cheap,
+        // bounded, special-char-robust strategies below.
         if (findClassSearchField() != null) {
             System.out.println("   ✗ '" + className + "' not found via picker search — failing fast (no such option?)");
             return false;
         }
 
-        // Strategy 1: Direct accessibilityId (works for most visible items)
+        String wanted = normalizeClass(className);          // space-insensitive (Load Center vs Loadcenter)
+        String wantedOpt = normalizeOption(className);      // special-char-robust ((<= 200hp), (> 1000V), dashes)
+        String safePrefix = safeContainsPrefix(className);  // CONTAINS pre-filter (part before first '(')
+
+        // Strategy 1: Direct accessibilityId (works for visible, plain-named items).
+        // Cheap probe — implicit-wait 0; a miss costs ~ms, not 3s.
         try {
-            driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(3));
-            WebElement item = driver.findElement(AppiumBy.accessibilityId(className));
-            item.click();
-            System.out.println("   ✓ Tapped '" + className + "' (accessibilityId)");
-            return true;
+            List<WebElement> hits = withImplicitWait(0, () -> driver.findElements(AppiumBy.accessibilityId(className)));
+            if (!hits.isEmpty()) {
+                hits.get(0).click();
+                System.out.println("   ✓ Tapped '" + className + "' (accessibilityId)");
+                return true;
+            }
         } catch (Exception e) {
             System.out.println("   accessibilityId('" + className + "') failed, trying alternatives...");
-        } finally {
-            driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
         }
 
-        // Strategy 2: Predicate match on label (handles different element types)
+        // Strategy 2: Exact predicate match on label (handles different element types).
         try {
-            driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));
-            WebElement item = driver.findElement(
-                AppiumBy.iOSNsPredicateString("label == '" + className + "'")
-            );
-            item.click();
-            System.out.println("   ✓ Tapped '" + className + "' (predicate)");
-            return true;
-        } catch (Exception e) {
-        } finally {
-            driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
-        }
+            String pred = "label == '" + className + "' OR name == '" + className + "'";
+            List<WebElement> hits = withImplicitWait(0, () -> driver.findElements(AppiumBy.iOSNsPredicateString(pred)));
+            if (!hits.isEmpty()) {
+                hits.get(0).click();
+                System.out.println("   ✓ Tapped '" + className + "' (exact predicate)");
+                return true;
+            }
+        } catch (Exception ignore) {}
 
-        // Strategy 3: mobile: scroll to off-screen item, then tap
+        // Strategy 3: CONTAINS pre-filter + normalized full compare (special-char
+        // robust). This is the one that catches "Low-Voltage Machine (<= 200hp)",
+        // "Motor Control Equipment (> 1000V)", "Oil-Filled Transformer", etc. that
+        // exact equality misses on '(', '<=', '/', dashes, or whitespace variants.
+        // The CONTAINS uses only the quote/paren-free head (safePrefix) so the
+        // predicate string is always well-formed; normalizeOption() then does the
+        // precise discriminating compare in Java (keeps <= vs > distinct).
         try {
-            driver.executeScript("mobile: scroll", Map.of(
-                "direction", "down",
-                "predicateString", "label == '" + className + "' OR name == '" + className + "'"
-            ));
-            sleep(300);
-            driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(3));
-            WebElement item = driver.findElement(AppiumBy.accessibilityId(className));
-            item.click();
-            System.out.println("   ✓ Scrolled to and tapped '" + className + "'");
-            return true;
-        } catch (Exception e) {
-            System.out.println("   mobile:scroll failed for '" + className + "'");
-        } finally {
-            driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
-        }
+            if (tapByNormalizedOption(safePrefix, wantedOpt, className)) return true;
+        } catch (Exception ignore) {}
 
-        // Strategy 4: Manual scroll + coordinate tap on StaticText
-        int screenWidth = driver.manage().window().getSize().width;
-        int screenHeight = driver.manage().window().getSize().height;
-        for (int i = 0; i < 8; i++) {
+        // Strategy 4: ONE mobile:scroll using the safe CONTAINS substring (handles
+        // an off-screen row), then re-run the normalized compare. Prefer this
+        // single native scroll over manual drags. predicateString carries only
+        // the quote/paren-free head, so no special-char escaping issues.
+        if (System.currentTimeMillis() < deadline && safePrefix != null && !safePrefix.isEmpty()) {
             try {
-                driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(1));
-                List<WebElement> texts = driver.findElements(
-                    AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeStaticText' AND label == '" + className + "'")
-                );
-                if (!texts.isEmpty() && texts.get(0).isDisplayed()) {
-                    WebElement text = texts.get(0);
-                    int tx = text.getLocation().getX() + text.getSize().getWidth() / 2;
-                    int ty = text.getLocation().getY() + text.getSize().getHeight() / 2;
-                    driver.executeScript("mobile: tap", Map.of("x", tx, "y", ty));
-                    System.out.println("   ✓ Coordinate-tapped '" + className + "' at (" + tx + ", " + ty + ") after " + i + " scrolls");
+                driver.executeScript("mobile: scroll", Map.of(
+                    "direction", "down",
+                    "predicateString", "label CONTAINS '" + safePrefix + "' OR name CONTAINS '" + safePrefix + "'"
+                ));
+                sleep(200);
+                if (tapByNormalizedOption(safePrefix, wantedOpt, className)) {
+                    System.out.println("   ✓ (after mobile:scroll on '" + safePrefix + "')");
                     return true;
                 }
             } catch (Exception e) {
-            } finally {
-                driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
+                System.out.println("   mobile:scroll on '" + safePrefix + "' failed");
             }
-            driver.executeScript("mobile: dragFromToForDuration", Map.of(
-                "fromX", screenWidth / 2,
-                "fromY", screenHeight / 2 + 150,
-                "toX", screenWidth / 2,
-                "toY", screenHeight / 2 - 150,
-                "duration", 0.3
-            ));
-            sleep(300);
         }
 
-        // Strategy 5: space-insensitive match — the picker shows "Load Center"
-        // but callers pass "Loadcenter" (and similar). Scroll + match on the
-        // normalized (lower-case, space-stripped) label.
-        String wanted = normalizeClass(className);
-        for (int i = 0; i < 8; i++) {
-            try {
-                driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(1));
-                for (WebElement el : driver.findElements(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton'"))) {
-                    try {
-                        String n = el.getAttribute("label");
-                        if (n == null) n = el.getAttribute("name");
-                        if (n == null || n.contains(",")) continue;
-                        if (normalizeClass(n).equals(wanted) && el.isDisplayed()) {
-                            int tx = el.getLocation().getX() + el.getSize().getWidth() / 2;
-                            int ty = el.getLocation().getY() + el.getSize().getHeight() / 2;
-                            driver.executeScript("mobile: tap", Map.of("x", tx, "y", ty));
-                            System.out.println("   ✓ Tapped '" + n + "' (space-insensitive match for '" + className + "')");
-                            return true;
-                        }
-                    } catch (Exception ignore) {}
-                }
-            } catch (Exception e) {
-            } finally {
-                driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
+        // Strategy 5: bounded manual drag-scroll + normalized compare. Capped at
+        // MAX_SCROLL_ITERS and gated on the overall deadline so it can NEVER run
+        // away into the 360s test cap. Every findElements runs at implicit-wait 0.
+        int screenWidth = driver.manage().window().getSize().width;
+        int screenHeight = driver.manage().window().getSize().height;
+        final int MAX_SCROLL_ITERS = 12;
+        for (int i = 0; i < MAX_SCROLL_ITERS && System.currentTimeMillis() < deadline; i++) {
+            if (tapByNormalizedOption(safePrefix, wantedOpt, className)) {
+                System.out.println("   ✓ (after " + i + " manual scrolls)");
+                return true;
             }
+            // Also accept a plain space-insensitive match for non-special-char
+            // labels (e.g. "Load Center" vs "Loadcenter").
+            try {
+                Boolean tapped = withImplicitWait(0, () -> {
+                    for (WebElement el : driver.findElements(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton'"))) {
+                        try {
+                            String n = el.getAttribute("label");
+                            if (n == null) n = el.getAttribute("name");
+                            if (n == null || n.contains(",")) continue;
+                            if (normalizeClass(n).equals(wanted) && el.isDisplayed()) {
+                                int tx = el.getLocation().getX() + el.getSize().getWidth() / 2;
+                                int ty = el.getLocation().getY() + el.getSize().getHeight() / 2;
+                                driver.executeScript("mobile: tap", Map.of("x", tx, "y", ty));
+                                System.out.println("   ✓ Tapped '" + n + "' (space-insensitive match for '" + className + "')");
+                                return true;
+                            }
+                        } catch (Exception ignore) {}
+                    }
+                    return false;
+                });
+                if (Boolean.TRUE.equals(tapped)) return true;
+            } catch (Exception ignore) {}
+
             driver.executeScript("mobile: dragFromToForDuration", Map.of(
                 "fromX", screenWidth / 2, "fromY", screenHeight / 2 + 150,
                 "toX", screenWidth / 2, "toY", screenHeight / 2 - 150, "duration", 0.3));
-            sleep(300);
+            sleep(250);
         }
 
-        System.out.println("   ✗ Could not find '" + className + "' in picker after all strategies");
+        if (System.currentTimeMillis() >= deadline) {
+            System.out.println("   ✗ '" + className + "' not selected within " + (TAP_OPTION_BUDGET_MS / 1000)
+                + "s budget — bailing (NOT hanging the test cap)");
+        } else {
+            System.out.println("   ✗ Could not find '" + className + "' in picker after all strategies");
+        }
         return false;
+    }
+
+    /**
+     * Cheap, special-char-robust option matcher: scan the currently-rendered
+     * StaticText/Button rows whose label CONTAINS the safe (quote/paren-free)
+     * pre-filter substring, and tap the first whose normalizeOption() exactly
+     * equals the wanted normalized form. Runs entirely at implicit-wait 0 so a
+     * miss costs ~ms. Keeps "(<= 1000V)" vs "(> 1000V)" siblings distinct via
+     * normalizeOption(). Returns true iff a row was tapped.
+     */
+    private boolean tapByNormalizedOption(String safePrefix, String wantedOpt, String original) {
+        if (wantedOpt == null || wantedOpt.isEmpty()) return false;
+        return Boolean.TRUE.equals(withImplicitWait(0, () -> {
+            String pred;
+            if (safePrefix != null && !safePrefix.isEmpty()) {
+                // Pre-filter to rows whose label/name contains the safe head — far
+                // fewer candidates to normalize-compare than the whole tree.
+                pred = "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton') AND "
+                     + "(label CONTAINS[c] '" + safePrefix + "' OR name CONTAINS[c] '" + safePrefix + "')";
+            } else {
+                pred = "type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton'";
+            }
+            List<WebElement> candidates;
+            try {
+                candidates = driver.findElements(AppiumBy.iOSNsPredicateString(pred));
+            } catch (Exception e) {
+                candidates = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton'"));
+            }
+            for (WebElement el : candidates) {
+                try {
+                    String n = el.getAttribute("label");
+                    if (n == null) n = el.getAttribute("name");
+                    // Asset-LIST rows (live behind the pushed picker) carry commas;
+                    // option rows are single values. Skip comma rows to avoid the
+                    // previous-screen bleed-through trap.
+                    if (n == null || n.contains(",")) continue;
+                    if (normalizeOption(n).equals(wantedOpt) && el.isDisplayed()) {
+                        int tx = el.getLocation().getX() + el.getSize().getWidth() / 2;
+                        int ty = el.getLocation().getY() + el.getSize().getHeight() / 2;
+                        driver.executeScript("mobile: tap", Map.of("x", tx, "y", ty));
+                        System.out.println("   ✓ Tapped '" + n + "' (normalized match for '" + original + "')");
+                        return true;
+                    }
+                } catch (Exception ignore) {}
+            }
+            return false;
+        }));
     }
 
     /**
@@ -9320,6 +9435,57 @@ public class AssetPage extends BasePage {
      *  Unifies the "Loadcenter" (code) vs "Load Center" (live picker) spelling. */
     private static String normalizeClass(String s) {
         return s == null ? "" : s.trim().toLowerCase().replace(" ", "");
+    }
+
+    /**
+     * Special-char-robust option normalizer for SUBTYPE labels (and any option
+     * with parens / comparators / punctuation, e.g. "Low-Voltage Machine (<= 200hp)",
+     * "Motor Control Equipment (> 1000V)", "Oil-Filled Transformer").
+     *
+     * Exact predicate equality fails on these: the picker's rendered label can
+     * differ from the code string in whitespace, dash style, or non-breaking
+     * variants of "<=" / ">", and the SUBTYPE picker is NON-searchable so the
+     * searchable fast path doesn't apply. We compare on a canonical form instead.
+     *
+     * Crucially we DO NOT just strip everything: "(<= 1000V)" and "(> 1000V)"
+     * must stay distinct (they're sibling subtypes that differ ONLY by the
+     * comparator). So comparators are mapped to words FIRST, then we lower-case
+     * and drop the remaining non-alphanumerics.
+     *   "Motor Control Equipment (<= 1000V)" -> "motorcontrolequipmentle1000v"
+     *   "Motor Control Equipment (> 1000V)"  -> "motorcontrolequipmentgt1000v"
+     */
+    private static String normalizeOption(String s) {
+        if (s == null) return "";
+        String t = s.trim().toLowerCase();
+        // Map comparators to words before stripping punctuation so sibling
+        // subtypes that differ only by "<=" vs ">" don't collapse together.
+        t = t.replace("<=", " le ").replace(">=", " ge ")
+             .replace("<", " lt ").replace(">", " gt ");
+        // Drop every non-alphanumeric (spaces, dashes, parens, dots, NBSP, …).
+        StringBuilder sb = new StringBuilder(t.length());
+        for (int i = 0; i < t.length(); i++) {
+            char c = t.charAt(i);
+            if (Character.isLetterOrDigit(c)) sb.append(c);
+        }
+        return sb.toString();
+    }
+
+    /**
+     * The "safe" CONTAINS pre-filter substring for a picker option: the part of
+     * the label before the first '(' (or the whole label if no paren), trimmed.
+     * For "Low-Voltage Machine (<= 200hp)" -> "Low-Voltage Machine". Used in an
+     * iOS predicate CONTAINS clause (no special-char escaping headaches: '(',
+     * '<', '>' never reach the predicate) to cheaply narrow candidates before
+     * the precise normalizeOption() compare in Java.
+     */
+    private static String safeContainsPrefix(String s) {
+        if (s == null) return "";
+        int paren = s.indexOf('(');
+        String head = (paren >= 0 ? s.substring(0, paren) : s).trim();
+        // A predicate string can't safely carry a single quote; if the head has
+        // one, fall back to the longest quote-free leading token-run.
+        if (head.contains("'")) head = head.substring(0, head.indexOf('\'')).trim();
+        return head;
     }
 
     /** Pick the first non-empty, comma-free candidate (asset-LIST rows carry commas). */

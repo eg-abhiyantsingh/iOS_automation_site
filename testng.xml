@@ -81,12 +81,24 @@
         <classes>
             <class name="com.egalvanic.tests.OfflineTest"/>
             <class name="com.egalvanic.tests.OfflineSyncMultiSite_Test"/>
+            <class name="com.egalvanic.tests.E2E_OfflineSyncIntegrity_Test"/>
         </classes>
     </test>
 
     <test name="Work Order Planning Tests">
         <classes>
             <class name="com.egalvanic.tests.WorkOrderPlanning_Test"/>
+        </classes>
+    </test>
+
+    <!--
+        Cross-module data-integrity E2E (changelog 078): chains Assets+Issues to
+        catch orphaned-reference / ghost-record bugs that per-module tests miss.
+        Environmental gaps skip cleanly (read-only data, no API egress).
+    -->
+    <test name="E2E Cross-Module Integrity Tests">
+        <classes>
+            <class name="com.egalvanic.tests.E2E_CrossModuleIntegrity_Test"/>
         </classes>
     </test>
 </suite>
