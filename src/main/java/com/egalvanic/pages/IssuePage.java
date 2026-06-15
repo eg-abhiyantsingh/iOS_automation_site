@@ -54,6 +54,20 @@ public class IssuePage extends BasePage {
     private static final int MAX_DETAILS_SCROLL_DOWN = 4;
 
     // ================================================================
+    // SUBCATEGORY WALL-CLOCK BUDGET (CI-hang guard — run 27557701204)
+    // ================================================================
+    // The OSHA Issue-Details DOM is huge + has "previous-screen bleed-through",
+    // so a whole-tree a11y enumeration at the full implicit wait can block until
+    // newCommandTimeout and KILL the WDA session (cascading 44 SKIPs). Every
+    // subcategory enumeration/scroll method below runs probes at implicit-wait 0
+    // and is gated by this hard per-call wall-clock budget so it fast-fails in
+    // ~45s instead of wedging WDA for 7-13 min. Mirrors AssetPage.TAP_OPTION_BUDGET_MS.
+    private static final long SUBCAT_BUDGET_MS = 45_000L;
+    // Tighter budget for the label-reposition helper (called at the top of
+    // tapSubcategoryField — must leave headroom under SUBCAT_BUDGET_MS).
+    private static final long SUBCAT_LABEL_BUDGET_MS = 20_000L;
+
+    // ================================================================
     // PAGE ELEMENTS
     // ================================================================
 
@@ -3898,6 +3912,10 @@ public class IssuePage extends BasePage {
      */
     public void tapSubcategoryField() {
         System.out.println("📋 Tapping Subcategory field...");
+        // Hard per-call wall-clock budget so a wedged a11y query on the heavy OSHA
+        // DOM fast-fails (~45s) instead of blocking until newCommandTimeout and
+        // killing WDA (CI run 27557701204 — 7-13 min hangs → 44 cascade SKIPs).
+        long deadline = System.currentTimeMillis() + SUBCAT_BUDGET_MS;
         try {
             // ================================================================
             // STEP A: Find the Subcategory label and ensure it's positioned
@@ -3923,6 +3941,7 @@ public class IssuePage extends BasePage {
 
             // Strategy 1: TextField/TextVIew with subcategory-related attributes
             try {
+                if (System.currentTimeMillis() >= deadline) throw new IllegalStateException("budget exhausted");
                 org.openqa.selenium.By fieldBy = AppiumBy.iOSNsPredicateString(
                     "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeTextView') AND " +
                     "(name CONTAINS 'Subcategory' OR name CONTAINS 'subcategory' OR " +
@@ -3942,6 +3961,7 @@ public class IssuePage extends BasePage {
 
             // Strategy 2: Button with subcategory attributes OR "Select..." dropdown near label
             try {
+                if (System.currentTimeMillis() >= deadline) throw new IllegalStateException("budget exhausted");
                 // First try: direct subcategory-named button
                 WebElement picker = null;
                 org.openqa.selenium.By pickerBy = AppiumBy.iOSNsPredicateString(
@@ -3984,7 +4004,10 @@ public class IssuePage extends BasePage {
             // Strategy 3: Find interactive elements near the Subcategory label.
             // Includes XCUIElementTypeOther (SwiftUI custom views) but with strict
             // Y > 120 filtering and preference for real interactive element types.
+            // This whole-tree enumeration is the documented WDA-wedge spot — gate it
+            // on the deadline and run the enumeration at implicit-wait 0 (already does).
             try {
+                if (System.currentTimeMillis() >= deadline) throw new IllegalStateException("budget exhausted");
                 if (!existsNow(subcatLabelBy)) throw new IllegalStateException("Subcategory label gone");
                 WebElement subcatLabel = driver.findElement(subcatLabelBy);
                 subcatY = subcatLabel.getLocation().getY();
@@ -4044,6 +4067,7 @@ public class IssuePage extends BasePage {
 
             // Strategy 4: Tap the Subcategory label itself (some apps open picker on label tap)
             try {
+                if (System.currentTimeMillis() >= deadline) throw new IllegalStateException("budget exhausted");
                 if (existsNow(subcatLabelBy)) {
                     WebElement subcatLabel = driver.findElement(subcatLabelBy);
                     int labelY = subcatLabel.getLocation().getY();
@@ -4060,6 +4084,7 @@ public class IssuePage extends BasePage {
             // Uses dynamic screenWidth/2 instead of hardcoded X=200 to work
             // correctly across all iPhone screen sizes (SE, Pro, Pro Max).
             try {
+                if (System.currentTimeMillis() >= deadline) throw new IllegalStateException("budget exhausted");
                 if (!existsNow(subcatLabelBy)) throw new IllegalStateException("Subcategory label gone");
                 WebElement subcatLabel = driver.findElement(subcatLabelBy);
                 int labelY = subcatLabel.getLocation().getY();
@@ -4087,7 +4112,12 @@ public class IssuePage extends BasePage {
                 System.out.println("   Strategy 5 failed: " + e.getMessage());
             }
 
-            System.out.println("⚠️ All strategies failed — could not tap Subcategory field");
+            if (System.currentTimeMillis() >= deadline) {
+                System.out.println("⚠️ Subcategory tap abandoned after " + (SUBCAT_BUDGET_MS / 1000)
+                    + "s budget — NOT hanging the test cap / wedging WDA");
+            } else {
+                System.out.println("⚠️ All strategies failed — could not tap Subcategory field");
+            }
         } catch (Exception e) {
             System.out.println("⚠️ Could not tap Subcategory: " + e.getMessage());
         }
@@ -4102,17 +4132,23 @@ public class IssuePage extends BasePage {
      * 3. Returns the final Y position, or -1 if label not found
      */
     private int ensureSubcategoryLabelPositioned() {
+        // Hard wall-clock budget: the bare findElement probes below run at the
+        // full implicit wait and the reposition loop scrolls — on the huge OSHA
+        // DOM a wedged snapshot query here can kill WDA. Bail before that.
+        long deadline = System.currentTimeMillis() + SUBCAT_LABEL_BUDGET_MS;
+        org.openqa.selenium.By subcatBy = AppiumBy.iOSNsPredicateString(
+            "type == 'XCUIElementTypeStaticText' AND label == 'Subcategory'");
         try {
             WebElement subcatLabel;
             int subcatY;
 
-            // Try to find the label in the current DOM
-            try {
-                subcatLabel = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND label == 'Subcategory'"));
+            // Try to find the label in the current DOM. Cheap absence probe first
+            // (implicit-wait 0) — only resolve the element when it actually exists.
+            if (existsNow(subcatBy)) {
+                subcatLabel = driver.findElement(subcatBy);
                 subcatY = subcatLabel.getLocation().getY();
                 System.out.println("   Subcategory label found at Y=" + subcatY);
-            } catch (Exception e) {
+            } else {
                 // Label not found — try native scroll-to to find it
                 System.out.println("   Subcategory not in DOM — scrolling down to find it");
                 try {
@@ -4123,12 +4159,11 @@ public class IssuePage extends BasePage {
                     sleep(400);
                 } catch (Exception ignored) {}
 
-                try {
-                    subcatLabel = driver.findElement(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeStaticText' AND label == 'Subcategory'"));
+                if (existsNow(subcatBy)) {
+                    subcatLabel = driver.findElement(subcatBy);
                     subcatY = subcatLabel.getLocation().getY();
                     System.out.println("   After scroll-to, Subcategory label at Y=" + subcatY);
-                } catch (Exception e2) {
+                } else {
                     System.out.println("   Subcategory label not found even after scrolling");
                     return -1;
                 }
@@ -4137,10 +4172,11 @@ public class IssuePage extends BasePage {
             // If the label is in the nav bar zone (Y < 150), the prior
             // scrollDownOnDetailsScreen() overshot. We need to scroll the content
             // BACK (swipe down on screen = content moves down) to bring the
-            // Subcategory section back into the safe visible area.
+            // Subcategory section back into the safe visible area. Loop is bounded
+            // by BOTH an attempt cap AND the wall-clock deadline.
             int maxAttempts = 3;
             int attempt = 0;
-            while (subcatY < 150 && attempt < maxAttempts) {
+            while (subcatY < 150 && attempt < maxAttempts && System.currentTimeMillis() < deadline) {
                 attempt++;
                 System.out.println("   Label at Y=" + subcatY + " (nav bar zone) — "
                     + "scrolling content back down (attempt " + attempt + "/" + maxAttempts + ")");
@@ -4166,9 +4202,13 @@ public class IssuePage extends BasePage {
                     driver.perform(java.util.Collections.singletonList(swipe));
                     sleep(400);
 
-                    // Re-find the label after scroll
-                    subcatLabel = driver.findElement(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeStaticText' AND label == 'Subcategory'"));
+                    // Re-find the label after scroll (cheap absence probe; if it
+                    // vanished, stop repositioning rather than burn the implicit wait).
+                    if (!existsNow(subcatBy)) {
+                        System.out.println("   Subcategory label gone after reposition swipe — stopping");
+                        break;
+                    }
+                    subcatLabel = driver.findElement(subcatBy);
                     subcatY = subcatLabel.getLocation().getY();
                     System.out.println("   After repositioning, Subcategory label at Y=" + subcatY);
                 } catch (Exception scrollE) {
@@ -4189,10 +4229,14 @@ public class IssuePage extends BasePage {
      */
     public boolean isSubcategoryOptionDisplayed(String option) {
         try {
-            WebElement optionEl = driver.findElement(AppiumBy.iOSNsPredicateString(
+            // Implicit-wait 0 — a miss on the heavy OSHA bleed-through DOM costs ~ms,
+            // not the full implicit wait (known WDA-wedge spot).
+            org.openqa.selenium.By optionBy = AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' OR " +
-                "type == 'XCUIElementTypeCell') AND label CONTAINS '" + option + "'"));
-            return optionEl.isDisplayed();
+                "type == 'XCUIElementTypeCell') AND label CONTAINS '" + option + "'");
+            List<WebElement> options = withImplicitWait(0, () ->
+                driver.findElements(optionBy));
+            return !options.isEmpty() && options.get(0).isDisplayed();
         } catch (Exception e) {
             return false;
         }
@@ -4203,14 +4247,18 @@ public class IssuePage extends BasePage {
      */
     public void selectSubcategory(String subcategory) {
         System.out.println("📋 Selecting subcategory: " + subcategory);
+        // Hard per-call wall-clock budget — the scroll loop + whole-tree CONTAINS
+        // enumeration over the OSHA bleed-through DOM is a known WDA-wedge spot.
+        long deadline = System.currentTimeMillis() + SUBCAT_BUDGET_MS;
         // Use findElements (instant return) to avoid 5s implicit wait on each miss
         String predicate =
             "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' OR " +
             "type == 'XCUIElementTypeCell') AND label CONTAINS '" + subcategory + "'";
 
         try {
-            // Strategy 1: Direct find (instant — no implicit wait hang)
-            List<WebElement> options = driver.findElements(AppiumBy.iOSNsPredicateString(predicate));
+            // Strategy 1: Direct find (implicit-wait 0 — a miss costs ~ms, not 5s)
+            List<WebElement> options = withImplicitWait(0, () ->
+                driver.findElements(AppiumBy.iOSNsPredicateString(predicate)));
             if (!options.isEmpty()) {
                 options.get(0).click();
                 sleep(400);
@@ -4218,12 +4266,16 @@ public class IssuePage extends BasePage {
                 return;
             }
 
-            // Strategy 2: Scroll within the picker to find the option (with timeout guard)
+            // Strategy 2: Scroll within the picker to find the option. Loop is bounded
+            // by BOTH the iteration cap AND the wall-clock deadline so it can never
+            // run away into the 360s test cap. scrollDownOnDetailsScreen() is itself
+            // capped at MAX_DETAILS_SCROLL_DOWN.
             System.out.println("   Subcategory not visible, scrolling to find it...");
-            for (int scroll = 0; scroll < 5; scroll++) {
+            for (int scroll = 0; scroll < 5 && System.currentTimeMillis() < deadline; scroll++) {
                 scrollDownOnDetailsScreen();
                 sleep(200);
-                options = driver.findElements(AppiumBy.iOSNsPredicateString(predicate));
+                options = withImplicitWait(0, () ->
+                    driver.findElements(AppiumBy.iOSNsPredicateString(predicate)));
                 if (!options.isEmpty()) {
                     options.get(0).click();
                     sleep(400);
@@ -4234,11 +4286,12 @@ public class IssuePage extends BasePage {
 
             // Strategy 3: Try partial match (first word only)
             String firstWord = subcategory.contains(" ") ? subcategory.substring(0, subcategory.indexOf(' ')) : subcategory;
-            if (!firstWord.equals(subcategory)) {
+            if (!firstWord.equals(subcategory) && System.currentTimeMillis() < deadline) {
                 String partialPredicate =
                     "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' OR " +
                     "type == 'XCUIElementTypeCell') AND label CONTAINS '" + firstWord + "'";
-                options = driver.findElements(AppiumBy.iOSNsPredicateString(partialPredicate));
+                options = withImplicitWait(0, () ->
+                    driver.findElements(AppiumBy.iOSNsPredicateString(partialPredicate)));
                 for (WebElement opt : options) {
                     String label = opt.getAttribute("label");
                     if (label != null && label.length() > 3) {
@@ -4251,19 +4304,26 @@ public class IssuePage extends BasePage {
             }
 
             // Strategy 4: Select the first available option in the dropdown
-            System.out.println("   Exact subcategory not found, selecting first available option...");
-            options = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' OR " +
-                "type == 'XCUIElementTypeCell') AND label CONTAINS 'Chapter'"));
-            if (!options.isEmpty()) {
-                String label = options.get(0).getAttribute("label");
-                options.get(0).click();
-                sleep(400);
-                System.out.println("✅ Selected first available subcategory: " + label);
-                return;
+            if (System.currentTimeMillis() < deadline) {
+                System.out.println("   Exact subcategory not found, selecting first available option...");
+                options = withImplicitWait(0, () -> driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' OR " +
+                    "type == 'XCUIElementTypeCell') AND label CONTAINS 'Chapter'")));
+                if (!options.isEmpty()) {
+                    String label = options.get(0).getAttribute("label");
+                    options.get(0).click();
+                    sleep(400);
+                    System.out.println("✅ Selected first available subcategory: " + label);
+                    return;
+                }
             }
 
-            System.out.println("⚠️ Could not select subcategory: " + subcategory + " — no options found");
+            if (System.currentTimeMillis() >= deadline) {
+                System.out.println("⚠️ Subcategory selection abandoned after " + (SUBCAT_BUDGET_MS / 1000)
+                    + "s budget — NOT hanging the test cap / wedging WDA");
+            } else {
+                System.out.println("⚠️ Could not select subcategory: " + subcategory + " — no options found");
+            }
         } catch (Exception e) {
             System.out.println("⚠️ Error selecting subcategory: " + e.getMessage());
         }
@@ -4309,15 +4369,20 @@ public class IssuePage extends BasePage {
                 }
             }
 
-            // Strategy 2: Read from text field (if subcategory uses a text input)
+            // Strategy 2: Read from text field (if subcategory uses a text input).
+            // Cheap absence probe first (implicit-wait 0) — only resolve when present
+            // so a miss on the heavy OSHA DOM doesn't burn the full implicit wait.
             try {
-                WebElement field = driver.findElement(AppiumBy.iOSNsPredicateString(
+                org.openqa.selenium.By fieldBy = AppiumBy.iOSNsPredicateString(
                     "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeTextView') AND " +
-                    "(name CONTAINS 'Subcategory' OR name CONTAINS 'subcategory')"));
-                String value = field.getAttribute("value");
-                if (value != null && !value.isEmpty() && !value.contains("Type or select")) {
-                    System.out.println("   Subcategory value (field): " + value);
-                    return value;
+                    "(name CONTAINS 'Subcategory' OR name CONTAINS 'subcategory')");
+                if (existsNow(fieldBy)) {
+                    WebElement field = driver.findElement(fieldBy);
+                    String value = field.getAttribute("value");
+                    if (value != null && !value.isEmpty() && !value.contains("Type or select")) {
+                        System.out.println("   Subcategory value (field): " + value);
+                        return value;
+                    }
                 }
             } catch (Exception ignored) {}
 
@@ -4361,10 +4426,15 @@ public class IssuePage extends BasePage {
         int found = 0;
         for (String option : expectedOptions) {
             try {
-                // Check if the option is visible or accessible in the DOM
-                List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
+                // Check if the option is visible or accessible in the DOM.
+                // Implicit-wait 0 — each missing option would otherwise burn the full
+                // implicit wait on a whole-tree scan over the heavy OSHA DOM, so a run
+                // of misses (per-option loop) could stack into the test wall-clock cap.
+                org.openqa.selenium.By optionBy = AppiumBy.iOSNsPredicateString(
                     "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' OR " +
-                    "type == 'XCUIElementTypeCell') AND label CONTAINS '" + option + "'"));
+                    "type == 'XCUIElementTypeCell') AND label CONTAINS '" + option + "'");
+                List<WebElement> elements = withImplicitWait(0, () ->
+                    driver.findElements(optionBy));
                 if (!elements.isEmpty()) {
                     found++;
                     System.out.println("   ✓ NEC option found: " + option);
@@ -4384,37 +4454,49 @@ public class IssuePage extends BasePage {
      */
     public void searchSubcategory(String searchText) {
         System.out.println("🔍 Searching subcategory: " + searchText);
+        // Hard per-call wall-clock budget — the whole-tree text-field probes over
+        // the OSHA bleed-through DOM can wedge WDA at the full implicit wait.
+        long deadline = System.currentTimeMillis() + SUBCAT_BUDGET_MS;
         try {
-            // Strategy 1: Find a text field in the subcategory area
+            // Strategy 1: Find a text field in the subcategory area. Cheap absence
+            // probe first (implicit-wait 0); only resolve the field when present.
             try {
-                WebElement searchField = driver.findElement(AppiumBy.iOSNsPredicateString(
+                org.openqa.selenium.By searchBy = AppiumBy.iOSNsPredicateString(
                     "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeSearchField') AND " +
                     "(name CONTAINS 'Subcategory' OR name CONTAINS 'subcategory' OR " +
                     "value CONTAINS 'Type or select' OR label CONTAINS 'Type or select' OR " +
-                    "label CONTAINS 'Search' OR label CONTAINS 'search')"));
-                searchField.clear();
-                searchField.sendKeys(searchText);
-                sleep(400);
-                System.out.println("✅ Typed '" + searchText + "' in subcategory search");
-                return;
+                    "label CONTAINS 'Search' OR label CONTAINS 'search')");
+                if (existsNow(searchBy)) {
+                    WebElement searchField = driver.findElement(searchBy);
+                    searchField.clear();
+                    searchField.sendKeys(searchText);
+                    sleep(400);
+                    System.out.println("✅ Typed '" + searchText + "' in subcategory search");
+                    return;
+                }
             } catch (Exception ignored) {}
 
             // Strategy 2: The subcategory field itself might be the search field
             try {
-                WebElement field = driver.findElement(AppiumBy.iOSNsPredicateString(
+                if (System.currentTimeMillis() >= deadline) throw new IllegalStateException("budget exhausted");
+                org.openqa.selenium.By fieldBy = AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeTextField' AND " +
                     "(value CONTAINS 'Type' OR value CONTAINS 'select' OR " +
-                    "label CONTAINS 'Type' OR label CONTAINS 'select')"));
-                field.clear();
-                field.sendKeys(searchText);
-                sleep(400);
-                System.out.println("✅ Typed in subcategory field");
-                return;
+                    "label CONTAINS 'Type' OR label CONTAINS 'select')");
+                if (existsNow(fieldBy)) {
+                    WebElement field = driver.findElement(fieldBy);
+                    field.clear();
+                    field.sendKeys(searchText);
+                    sleep(400);
+                    System.out.println("✅ Typed in subcategory field");
+                    return;
+                }
             } catch (Exception ignored) {}
 
-            // Strategy 3: Find any active text field on screen (if dropdown is open)
-            List<WebElement> fields = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeTextField'"));
+            // Strategy 3: Find any active text field on screen (if dropdown is open).
+            // Implicit-wait 0 — instant return whether or not any field exists.
+            List<WebElement> fields = withImplicitWait(0, () -> driver.findElements(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField'")));
             for (WebElement field : fields) {
                 int y = field.getLocation().getY();
                 if (y > 200) {
@@ -5967,8 +6049,15 @@ public class IssuePage extends BasePage {
             // Subcategory dropdown options appear below the field as an autocomplete/popover list
             int subcatY = -1;
             try {
-                WebElement subcatLabel = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND label == 'Subcategory'"));
+                // Cheap absence probe first (implicit-wait 0); only resolve when present
+                // so a miss on the heavy OSHA DOM doesn't burn the full implicit wait.
+                org.openqa.selenium.By subcatBy = AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND label == 'Subcategory'");
+                if (!existsNow(subcatBy)) {
+                    System.out.println("   Subcategory label not found — dropdown may not have opened");
+                    return options;
+                }
+                WebElement subcatLabel = driver.findElement(subcatBy);
                 subcatY = subcatLabel.getLocation().getY();
                 System.out.println("   Subcategory label at Y=" + subcatY);
                 // If the label is in the nav bar zone, the scroll state is wrong —
@@ -6440,29 +6529,36 @@ public class IssuePage extends BasePage {
      */
     public String selectSubcategoryAndGetValue(String optionPartialText) {
         System.out.println("📋 Selecting subcategory containing: " + optionPartialText);
+        // Hard per-call wall-clock budget — the CONTAINS resolve + mobile:scroll
+        // over the OSHA bleed-through DOM is the documented WDA-wedge family.
+        long deadline = System.currentTimeMillis() + SUBCAT_BUDGET_MS;
+        org.openqa.selenium.By optionBy = AppiumBy.iOSNsPredicateString(
+            "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' OR " +
+            "type == 'XCUIElementTypeCell') AND label CONTAINS '" + optionPartialText + "'");
         try {
-            // Find and tap the option
-            try {
-                WebElement option = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' OR " +
-                    "type == 'XCUIElementTypeCell') AND label CONTAINS '" + optionPartialText + "'"));
+            // Find and tap the option. Cheap absence probe first (implicit-wait 0);
+            // only resolve+tap when present, else fall through to a bounded scroll.
+            if (existsNow(optionBy)) {
+                WebElement option = driver.findElement(optionBy);
                 option.click();
                 sleep(500);
                 System.out.println("✅ Tapped subcategory option: " + option.getAttribute("label"));
-            } catch (Exception e) {
-                // Scroll to find it first
+            } else if (System.currentTimeMillis() < deadline) {
+                // Scroll to find it first (single native scroll), then re-probe cheaply.
                 Map<String, Object> scrollParams = new HashMap<>();
                 scrollParams.put("direction", "down");
                 scrollParams.put("predicateString", "label CONTAINS '" + optionPartialText + "'");
                 driver.executeScript("mobile: scroll", scrollParams);
                 sleep(300);
 
-                WebElement option = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' OR " +
-                    "type == 'XCUIElementTypeCell') AND label CONTAINS '" + optionPartialText + "'"));
-                option.click();
-                sleep(500);
-                System.out.println("✅ Tapped subcategory option after scroll");
+                if (existsNow(optionBy)) {
+                    WebElement option = driver.findElement(optionBy);
+                    option.click();
+                    sleep(500);
+                    System.out.println("✅ Tapped subcategory option after scroll");
+                } else {
+                    System.out.println("⚠️ Subcategory option '" + optionPartialText + "' not found after scroll");
+                }
             }
 
             // Read back the selected value
@@ -6532,11 +6628,13 @@ public class IssuePage extends BasePage {
         searchSubcategory(searchText);
         sleep(500);
 
-        // Count visible results
+        // Count visible results — implicit-wait 0 so an empty result set returns
+        // instantly instead of burning the full implicit wait on the heavy DOM.
         try {
-            List<WebElement> results = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' OR " +
-                "type == 'XCUIElementTypeCell') AND label CONTAINS '" + searchText + "'"));
+            List<WebElement> results = withImplicitWait(0, () -> driver.findElements(
+                AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' OR " +
+                    "type == 'XCUIElementTypeCell') AND label CONTAINS '" + searchText + "'")));
 
             // Filter out non-option elements
             int count = 0;
@@ -6563,10 +6661,13 @@ public class IssuePage extends BasePage {
     public java.util.ArrayList<String> getFilteredSubcategoryOptions() {
         java.util.ArrayList<String> options = new java.util.ArrayList<>();
         try {
-            // Search for subcategory dropdown items — typically cells or static text in the picker area
-            List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' OR " +
-                "type == 'XCUIElementTypeCell')"));
+            // Search for subcategory dropdown items — typically cells or static text in the picker area.
+            // Implicit-wait 0 — an empty result set returns instantly instead of burning
+            // the full implicit wait on a whole-tree scan over the heavy OSHA DOM.
+            List<WebElement> elements = withImplicitWait(0, () -> driver.findElements(
+                AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' OR " +
+                    "type == 'XCUIElementTypeCell')")));
             for (WebElement el : elements) {
                 String label = el.getAttribute("label");
                 int y = el.getLocation().getY();
