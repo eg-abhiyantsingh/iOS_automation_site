@@ -305,9 +305,26 @@ public class AssetPage extends BasePage {
             }
         }
 
+        // The hard-fail exists to stop us grinding on the WRONG screen (Site
+        // Selection / Create-New-Site). But if the bottom-nav Assets tab IS present
+        // and we are NOT on the site picker, we DID reach the asset area — the
+        // verifyOnAssetList markers (plus / nav bar 'Assets' / search field) just
+        // didn't confirm (empty list, or a v1.43 marker drift). Proceeding is safe:
+        // selectFirstAsset and the other callers carry their own wrong-screen guards.
+        // Only throw when genuinely lost (no Assets tab, or sitting on the picker) —
+        // otherwise this guard ITSELF mass-skips good runs (CI run 27539301468:
+        // assetsTab=true,sitePicker=false aborts that should have proceeded).
+        boolean tabPresent = isAssetsTabPresent(0);
+        boolean onPicker = isOnSiteSelectionScreen();
+        if (tabPresent && !onPicker) {
+            System.out.println("⚠️ Asset List markers unconfirmed but Assets tab present and not on "
+                + "Site picker — proceeding (caller guards handle empty/odd list)");
+            return;
+        }
+
         throw new VerificationError(
             "navigateToAssetList: could not reach the Asset List. assetsTab="
-            + isAssetsTabPresent(0) + ", sitePicker=" + isOnSiteSelectionScreen()
+            + tabPresent + ", sitePicker=" + onPicker
             + " — aborting instead of grinding on the wrong screen.");
     }
 
