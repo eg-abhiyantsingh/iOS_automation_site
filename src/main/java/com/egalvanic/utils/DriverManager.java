@@ -235,7 +235,35 @@ public class DriverManager {
                         .baseUrl(appiumServer)
                         .connectionTimeout(Duration.ofSeconds(60))
                         .readTimeout(Duration.ofSeconds(90));
-                IOSDriver newDriver = new IOSDriver(httpConfig, options);
+
+                // INLINE WDA-rebuild recovery (the cascade killer). A heavy a11y query
+                // wedges WDA; the session dies and creation fails with "Could not start
+                // a new session." Retrying against the SAME wedged WDA keeps failing —
+                // run 27571754122: Assets P1 logged 153 init failures / 49 skips while
+                // the caller-side rebuild (forceWdaRebuildOnce) fired only once because
+                // most failures bypass that wrapped path. Doing the rebuild HERE, at the
+                // creation point, guarantees EVERY init failure gets one useNewWDA=true
+                // retry regardless of caller. ~30-60s on the retry vs a 50-test cascade.
+                IOSDriver newDriver;
+                try {
+                    newDriver = new IOSDriver(httpConfig, options);
+                } catch (Exception firstErr) {
+                    String em = firstErr.getMessage() == null ? "" : firstErr.getMessage();
+                    boolean sessionCreationFailed = forceWdaRebuild
+                        || em.contains("Could not start a new session")
+                        || em.contains("WebDriverAgent")
+                        || em.contains("xcodebuild")
+                        || em.contains("Unable to launch");
+                    if (!sessionCreationFailed) throw firstErr;
+                    System.out.println("🔧 Session creation failed — rebuilding WDA (useNewWDA=true) and retrying once: " + em);
+                    forceWdaRebuild = false;
+                    options.setUseNewWDA(true);
+                    options.setCapability("appium:usePreinstalledWDA", false);
+                    options.setCapability("appium:usePrebuiltWDA", false);
+                    try { Thread.sleep(2000); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+                    newDriver = new IOSDriver(httpConfig, options); // if this throws, outer catch handles it (WDA now rebuilding for next test)
+                    System.out.println("✅ WDA rebuilt — session recovered");
+                }
                 newDriver.manage().timeouts().implicitlyWait(Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
 
                 driver = newDriver;
