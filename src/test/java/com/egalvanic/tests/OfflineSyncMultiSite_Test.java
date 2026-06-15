@@ -86,9 +86,18 @@ public class OfflineSyncMultiSite_Test extends BaseTest {
             System.out.println("⚠️ perTestSetup: driver/session not active — skipping online-restore probe");
             return;
         }
-        // Bound the whole probe at 45s so a dead-but-non-null session can't
+        // CI HANG FIX: if the Wi-Fi network mode can't be toggled (CI sim, no real
+        // Wi-Fi), the online-restore branch below would call goOnline() against a
+        // popup that never opens and waste the setup budget. Nothing to restore in
+        // that case — bail cheaply. canToggleWifi() is a 0-implicit probe.
+        if (!siteSelectionPage.canToggleWifi()) {
+            System.out.println("⚠️ perTestSetup: Wi-Fi network mode not toggleable in this env "
+                    + "— skipping online-restore probe");
+            return;
+        }
+        // Bound the whole probe at 30s so a dead-but-non-null session can't
         // hang the setup (and thus the test) indefinitely.
-        runWithBudget("offline-perTestSetup", 45, () -> {
+        runWithBudget("offline-perTestSetup", 30, () -> {
             // Defensive: ensure we're online before each test — UNLESS there are
             // pending sync records from a prior offline operation. In that case
             // auto-online would silently sync them, invalidating multi-site
@@ -118,13 +127,28 @@ public class OfflineSyncMultiSite_Test extends BaseTest {
         // CASCADE GUARD: when the session is dead, the original teardown made
         // 4+ Appium calls (each ~90s) plus waitForSyncToComplete's poll loop —
         // measured at 840s, which timed out and skipped 39 downstream tests.
-        // Skip entirely on a dead session, and hard-cap at 60s otherwise.
+        // Skip entirely on a dead session, and hard-cap at 30s otherwise.
         if (!DriverManager.isDriverActive()) {
             System.out.println("⚠️ perTestTeardown: driver/session not active — skipping sync drain");
             return;
         }
-        runWithBudget("offline-perTestTeardown", 60, () -> {
-            // Best-effort: drain pending sync so the next test starts with empty queue
+        // CI HANG FIX (offline 7-min teardown): on CI simulators there is no real
+        // Wi-Fi toggle, so goOnline()'s 2-attempt × 5-strategy popup search runs
+        // against a popup that never opens and consumed the FULL 60s budget
+        // (360s body cap + 60s teardown = the observed 7m1s). When the toggle is
+        // not functional there is nothing to flush via the UI, so cheaply
+        // early-return instead of spending the budget. canToggleWifi() is a
+        // 0-implicit probe (no popup open), so this costs milliseconds.
+        if (!siteSelectionPage.canToggleWifi()) {
+            System.out.println("⚠️ perTestTeardown: Wi-Fi network mode not toggleable in this env "
+                    + "(no real Wi-Fi on CI sim) — skipping go-online/sync-drain to avoid the 60s burn");
+            return;
+        }
+        runWithBudget("offline-perTestTeardown", 30, () -> {
+            // Best-effort: drain pending sync so the next test starts with empty queue.
+            // Each probe below is a fast existsNow/0-implicit check (hasPendingSyncRecords,
+            // isWifiOffline); the go-online popup search is now 0-implicit too, so a
+            // missing popup costs ms, not seconds.
             try {
                 if (siteSelectionPage.hasPendingSyncRecords()) {
                     System.out.println("🧹 Pending sync records detected at teardown — flushing");

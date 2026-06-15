@@ -850,11 +850,20 @@ public final class Connections_Test extends BaseTest {
             shortWait();
         }
 
+        // PRECONDITION: the search field must actually exist and accept text,
+        // otherwise "0 == 0" below is a tautology that passes without testing
+        // anything (the v1.43 search-drift bug hid this for a whole month).
+        // Assert the field is reachable and that typing succeeds before comparing.
+        boolean searchFieldPresent = connectionsPage.isSearchBarDisplayed();
+        assertTrue(searchFieldPresent, "Search field must be present to test case-insensitivity");
+
         // Step 1: Search with lowercase
         String lowercase = searchTerm.toLowerCase();
         logStep("Step 1: Searching with lowercase '" + lowercase + "'");
-        connectionsPage.tapOnSearchBar();
-        connectionsPage.enterSearchText(lowercase);
+        boolean tapped = connectionsPage.tapOnSearchBar();
+        boolean typedLower = connectionsPage.enterSearchText(lowercase);
+        assertTrue(tapped && typedLower,
+            "Must be able to tap the search field and enter lowercase text (search ran)");
         mediumWait();
 
         int lowercaseCount = connectionsPage.getFilteredConnectionCount();
@@ -868,7 +877,8 @@ public final class Connections_Test extends BaseTest {
         // Step 2: Search with uppercase
         String uppercase = searchTerm.toUpperCase();
         logStep("Step 2: Searching with uppercase '" + uppercase + "'");
-        connectionsPage.enterSearchText(uppercase);
+        boolean typedUpper = connectionsPage.enterSearchText(uppercase);
+        assertTrue(typedUpper, "Must be able to enter uppercase text (search ran)");
         mediumWait();
 
         int uppercaseCount = connectionsPage.getFilteredConnectionCount();
@@ -877,7 +887,7 @@ public final class Connections_Test extends BaseTest {
 
         // Compare results
         logStep("Comparing results: lowercase=" + lowercaseCount + ", uppercase=" + uppercaseCount);
-        
+
         if (lowercaseCount == uppercaseCount) {
             logStep("✓ Search is case-insensitive - both return " + lowercaseCount + " results");
         } else {
@@ -5069,62 +5079,52 @@ public final class Connections_Test extends BaseTest {
         logStep("Initial connection count: " + initialCount);
         logStepWithScreenshot("Before rapid creation");
 
-        // Step 1: Create first connection
-        logStep("Step 1: Creating first connection");
-        connectionsPage.tapOnAddButton();
-        shortWait();
-        boolean fields1 = connectionsPage.fillAllConnectionFields();
-        logStep("Connection 1 fields filled: " + fields1);
-        connectionsPage.tapOnCreateButton();
-        longWait();
-        mediumWait();
+        // HANG GUARD: if the "+" / New-Connection-form path is broken (the v1.43
+        // drift root cause), opening the form fails. WITHOUT this guard the 3
+        // sequential creates each retry/burn implicit waits until TestNG kills
+        // the method at 360s (the observed 9m14s hang). Bail fast on the FIRST
+        // failed open instead of spinning into the timeout.
+        boolean firstCreated = false;
+        boolean secondCreated = false;
+        boolean thirdCreated = false;
 
-        boolean firstCreated = connectionsPage.isConnectionsScreenDisplayed();
-        if (!firstCreated) {
-            if (connectionsPage.isNewConnectionScreenDisplayed()) {
+        for (int n = 1; n <= 3; n++) {
+            logStep("Step " + n + ": Creating connection " + n);
+
+            if (!connectionsPage.tapOnAddButton()) {
+                logWarning("Could not open New Connection form on attempt " + n + " — bailing fast (no retry-into-timeout)");
+                break;
+            }
+            shortWait();
+            // Confirm we actually landed on the form before filling — a missed
+            // open otherwise fills the wrong screen and wastes time.
+            if (!connectionsPage.isNewConnectionScreenDisplayed()) {
+                logWarning("New Connection form did not open on attempt " + n + " — bailing fast");
+                break;
+            }
+
+            boolean fields = connectionsPage.fillAllConnectionFields();
+            logStep("Connection " + n + " fields filled: " + fields);
+            connectionsPage.tapOnCreateButton();
+            longWait();
+            mediumWait();
+
+            boolean created = connectionsPage.isConnectionsScreenDisplayed();
+            if (!created && connectionsPage.isNewConnectionScreenDisplayed()) {
+                // Create did not dismiss the form (e.g. duplicate / validation) —
+                // cancel out so the next iteration starts clean, don't loop on it.
                 connectionsPage.tapOnCancelButton();
                 shortWait();
             }
+            logStep("Connection " + n + " created: " + created);
+
+            if (n == 1) firstCreated = created;
+            else if (n == 2) secondCreated = created;
+            else thirdCreated = created;
         }
-        logStep("First connection created: " + firstCreated);
-
-        // Step 2: Immediately create second connection
-        logStep("Step 2: Creating second connection immediately");
-        connectionsPage.tapOnAddButton();
-        shortWait();
-        boolean fields2 = connectionsPage.fillAllConnectionFields();
-        logStep("Connection 2 fields filled: " + fields2);
-        connectionsPage.tapOnCreateButton();
-        longWait();
-        mediumWait();
-
-        boolean secondCreated = connectionsPage.isConnectionsScreenDisplayed();
-        if (!secondCreated) {
-            if (connectionsPage.isNewConnectionScreenDisplayed()) {
-                connectionsPage.tapOnCancelButton();
-                shortWait();
-            }
-        }
-        logStep("Second connection created: " + secondCreated);
-
-        // Step 3: Create third connection
-        logStep("Step 3: Creating third connection");
-        connectionsPage.tapOnAddButton();
-        shortWait();
-        boolean fields3 = connectionsPage.fillAllConnectionFields();
-        logStep("Connection 3 fields filled: " + fields3);
-        connectionsPage.tapOnCreateButton();
-        longWait();
-        mediumWait();
-
-        boolean thirdCreated = connectionsPage.isConnectionsScreenDisplayed();
-        if (!thirdCreated) {
-            if (connectionsPage.isNewConnectionScreenDisplayed()) {
-                connectionsPage.tapOnCancelButton();
-                shortWait();
-            }
-        }
-        logStep("Third connection created: " + thirdCreated);
+        // Reference secondCreated/thirdCreated so intent is clear in logs.
+        logStep("Creation results — first: " + firstCreated +
+            ", second: " + secondCreated + ", third: " + thirdCreated);
 
         logStepWithScreenshot("After rapid connection creation");
 

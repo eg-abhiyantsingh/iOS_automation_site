@@ -4014,24 +4014,34 @@ public class AssetPage extends BasePage {
         // INSERTS at the cursor position, producing garbage like
         // "CB-FMC SUITE 140__UC1_1779870990046seL-UC1_1779376830230_...".
         // Always CLEAR the field first before typing.
-        try {
-            WebElement nameField = driver.findElement(
-                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' AND value == 'Enter name'")
-            );
-            try { nameField.clear(); } catch (Exception ignored) {}
-            nameField.sendKeys(name);
-            System.out.println("✅ Entered asset name: " + name);
-            // v1.36: keyboard occludes Save Changes + bottom-nav Sites button;
-            // dismiss before any further interaction.
-            dismissKeyboard();
-            return;
-        } catch (Exception e) {}
+        // 0-implicit probe: on a pre-filled (offline self-seeded) field the value is
+        // the existing name, NOT 'Enter name', so this predicate MISSES — and at the
+        // global 5s implicit wait every miss × the downstream retries was the 228s
+        // sink behind the UC*/UC33 offline 6-7min hangs. Probe at implicit-0 so a
+        // miss costs ms, and locate the first TextField directly on miss.
+        java.util.List<WebElement> nameHit = withImplicitWait(0, () -> driver.findElements(
+            AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' AND value == 'Enter name'")));
+        if (!nameHit.isEmpty()) {
+            try {
+                WebElement nameField = nameHit.get(0);
+                try { nameField.clear(); } catch (Exception ignored) {}
+                nameField.sendKeys(name);
+                System.out.println("✅ Entered asset name: " + name);
+                // v1.36: keyboard occludes Save Changes + bottom-nav Sites button;
+                // dismiss before any further interaction.
+                dismissKeyboard();
+                return;
+            } catch (Exception e) {}
+        }
 
         // Fallback: first TextField on screen (Edit mode where placeholder
         // 'Enter name' is replaced by the current value, so above predicate
-        // misses it).
-        if (allTextFields.size() > 0) {
-            WebElement f = allTextFields.get(0);
+        // misses it). Locate directly at implicit-0 instead of the stale
+        // PageFactory allTextFields cache.
+        java.util.List<WebElement> textFields = withImplicitWait(0, () ->
+            driver.findElements(AppiumBy.className("XCUIElementTypeTextField")));
+        if (textFields.size() > 0) {
+            WebElement f = textFields.get(0);
             try { f.clear(); } catch (Exception ignored) {}
             // If clear() didn't empty it (iOS quirk on long pre-filled values),
             // fall back to select-all + delete via the field's clear() retry.
@@ -9051,9 +9061,15 @@ public class AssetPage extends BasePage {
      */
     private boolean openAssetClassPicker() {
         // Strategy 0: click the picker BUTTON element directly (most reliable —
-        // a coordinate tap can miss / hit the row behind it).
+        // a coordinate tap can miss / hit the row behind it). Reuse the button the
+        // preceding isCurrentAssetClassEqualTo() read already found (cached) so we
+        // don't re-run the bounded-but-still-costly enumeration a second time in the
+        // same class-change call.
         try {
-            WebElement pickerBtn = findAssetClassPickerButton();
+            WebElement pickerBtn = cachedAssetClassPickerButton;
+            if (pickerBtn == null) {
+                pickerBtn = findAssetClassPickerButton();
+            }
             if (pickerBtn != null) {
                 System.out.println("   Opening picker via button: '" + pickerBtn.getAttribute("label") + "'");
                 pickerBtn.click();
@@ -9061,6 +9077,9 @@ public class AssetPage extends BasePage {
                 return true;
             }
         } catch (Exception e) {
+            // A stale cached element (screen changed) lands here — drop it and fall
+            // through to the textual/coordinate strategies below.
+            cachedAssetClassPickerButton = null;
             System.out.println("   Picker-button click failed, trying coordinate tap: " + e.getMessage());
         }
         try {
@@ -9131,10 +9150,18 @@ public class AssetPage extends BasePage {
         });
     }
 
+    /** Tri-state recorded by selectClassViaSearch() so tapAssetClassItem() does NOT
+     *  re-probe for the search field (the documented double findClassSearchField()
+     *  call — each one iterates every XCUIElementTypeSearchField). Reset to null on
+     *  every entry into tapAssetClassItem(). TRUE = picker is searchable,
+     *  FALSE = not searchable (subtype picker), null = unknown. */
+    private Boolean lastPickerSearchable;
+
     private boolean selectClassViaSearch(String className) {
         try {
             driver.manage().timeouts().implicitlyWait(Duration.ofMillis(800));
-            WebElement search = findClassSearchField();
+            WebElement search = findClassSearchField();   // self-bounded at implicit-wait 0
+            lastPickerSearchable = (search != null);      // cache so tapAssetClassItem need not re-probe
             if (search == null) {
                 System.out.println("   (no 'Search...' field — picker not searchable here)");
                 return false;
@@ -9195,6 +9222,7 @@ public class AssetPage extends BasePage {
 
     private boolean tapAssetClassItem(String className) {
         long deadline = System.currentTimeMillis() + TAP_OPTION_BUDGET_MS;
+        lastPickerSearchable = null;   // selectClassViaSearch() will set it; reset per call
 
         // Strategy 0 (preferred): the Asset Class picker is a SEARCHABLE dropdown
         // (a "Search..." field above the option list). Type to filter — far more
@@ -9205,9 +9233,16 @@ public class AssetPage extends BasePage {
         // legacy scroll strategies are futile (lazy list never materializes the
         // row) AND slow (~20 min of dragging). Fail fast instead.
         // NOTE: the SUBTYPE picker is NON-searchable (no "Search..." field), so
-        // findClassSearchField() returns null and we fall through to the cheap,
-        // bounded, special-char-robust strategies below.
-        if (findClassSearchField() != null) {
+        // the search path returns false and we fall through to the cheap, bounded,
+        // special-char-robust strategies below.
+        // Reuse the searchable tri-state selectClassViaSearch() just recorded — do
+        // NOT re-probe with findClassSearchField() here (that was the documented
+        // double search-field enumeration). Only fall back to a probe if, somehow,
+        // the flag was never set (defensive; e.g. an early throw).
+        boolean searchable = (lastPickerSearchable != null)
+            ? lastPickerSearchable.booleanValue()
+            : (findClassSearchField() != null);
+        if (searchable) {
             System.out.println("   ✗ '" + className + "' not found via picker search — failing fast (no such option?)");
             return false;
         }
@@ -9400,28 +9435,53 @@ public class AssetPage extends BasePage {
      * Unified asset class change: open picker → select item → tap Done.
      * Replaces all individual changeAssetClassTo*() implementations.
      */
+    /** Hard wall-clock budget for the ENTIRE class change (read → open → select →
+     *  Done). Each helper is now individually bounded (implicit-wait 0 + per-step
+     *  budgets), but a wedging/half-dead WDA can still stall a single command past
+     *  its helper budget; this end-to-end deadline guarantees a fast VerificationError
+     *  in ~1 min instead of grinding to the 360s per-test cap and hammering WDA into
+     *  the "Could not start a new session" cascade (assetsP6 run, 2026-06-15). */
+    private static final long CLASS_CHANGE_BUDGET_MS = 60_000L;
+
     private void changeAssetClassInternal(String className) {
         System.out.println("📋 Changing asset class to " + className + "...");
+        // Never trust a button cached from a previous class change / screen.
+        cachedAssetClassPickerButton = null;
+        long deadline = System.currentTimeMillis() + CLASS_CHANGE_BUDGET_MS;
 
         if (isCurrentAssetClassEqualTo(className)) {
             System.out.println("✅ Already " + className);
             return;
         }
+        assertClassChangeDeadline(className, deadline, "after reading current class");
 
         if (!openAssetClassPicker()) {
             System.out.println("⚠️ Failed to open Asset Class picker for " + className);
             return;
         }
+        assertClassChangeDeadline(className, deadline, "after opening picker");
 
         if (!tapAssetClassItem(className)) {
             System.out.println("⚠️ Could not select " + className + " — dismissing picker");
             tapDoneOnPicker();
             return;
         }
+        assertClassChangeDeadline(className, deadline, "after selecting class");
 
         sleep(300);
         tapDoneOnPicker();
         System.out.println("✅ Changed asset class to " + className);
+    }
+
+    /** Throw a fast VerificationError (NOT swallowable by catch(Exception)) if the
+     *  class-change wall-clock budget is exhausted, so the test fails in seconds
+     *  rather than wedging WDA to the per-test cap. */
+    private void assertClassChangeDeadline(String className, long deadline, String phase) {
+        if (System.currentTimeMillis() >= deadline) {
+            throw new VerificationError("Asset class change to '" + className
+                + "' exceeded " + (CLASS_CHANGE_BUDGET_MS / 1000) + "s budget (" + phase
+                + ") — failing fast to avoid a 6-min WDA hang.");
+        }
     }
 
     // ================================================================
@@ -9528,31 +9588,61 @@ public class AssetPage extends BasePage {
      *
      * @return the picker button element, or null if not found
      */
+    /** Wall-clock budget for ONE picker-button enumeration. The Edit screen keeps
+     *  the asset LIST live behind it (bleed-through), so a full
+     *  type=='XCUIElementTypeButton' scan can surface dozens of buttons; with the
+     *  global 5s implicit wait active, getLocation/getSize/getAttribute per button
+     *  on a wedging WDA dragged GEN_01/TC_DS_ST_16/TC_FUSE_ST_03 into the 360s cap
+     *  (assetsP6 run, 2026-06-15). Bound the loop and bail to null fast. */
+    private static final long PICKER_BUTTON_ENUM_BUDGET_MS = 8_000L;
+
+    /** Cached Asset-Class picker button, populated by findAssetClassPickerButton()
+     *  within a single changeAssetClassInternal() call so the equality-read and the
+     *  open-picker step don't enumerate the button twice. Always cleared at the
+     *  start of a class change — never trust it across screens. */
+    private WebElement cachedAssetClassPickerButton;
+
     private WebElement findAssetClassPickerButton() {
-        int labelX, labelY;
-        try {
-            WebElement label = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND (name == 'Asset Class' OR label == 'Asset Class')"));
-            labelX = label.getLocation().getX();
-            labelY = label.getLocation().getY();
-        } catch (Exception e) {
-            return null;
-        }
-        WebElement best = null; int bestDy = Integer.MAX_VALUE;
-        try {
-            for (WebElement b : driver.findElements(AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton'"))) {
-                try {
-                    int dy = b.getLocation().getY() - labelY;
-                    if (dy <= 0 || dy > 55) continue;                       // must be just below the label
-                    if (Math.abs(b.getLocation().getX() - labelX) > 25) continue; // same x as the label
-                    if (b.getSize().getWidth() < 150) continue;             // a full-width field button
-                    String lbl = cleanClassToken(b.getAttribute("label"), b.getAttribute("name"));
-                    if (lbl == null || !ASSET_CLASSES.contains(lbl)) continue; // single known class (no commas)
-                    if (dy < bestDy) { best = b; bestDy = dy; }
-                } catch (Exception ignore) {}
+        // Run the WHOLE enumeration at implicit-wait 0: every getLocation/getSize/
+        // getAttribute below would otherwise pay the global 5s implicit wait per
+        // miss across a bleed-through DOM of many buttons (the documented hang).
+        // A single snapshot is then read cheaply; a hard wall-clock budget bails
+        // to null so a wedging WDA can never grind us to the per-test cap.
+        WebElement found = withImplicitWait(0, () -> {
+            long deadline = System.currentTimeMillis() + PICKER_BUTTON_ENUM_BUDGET_MS;
+            int labelX, labelY;
+            try {
+                WebElement label = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND (name == 'Asset Class' OR label == 'Asset Class')"));
+                labelX = label.getLocation().getX();
+                labelY = label.getLocation().getY();
+            } catch (Exception e) {
+                return null;
             }
-        } catch (Exception ignore) {}
-        return best;
+            WebElement best = null; int bestDy = Integer.MAX_VALUE;
+            try {
+                for (WebElement b : driver.findElements(AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton'"))) {
+                    if (System.currentTimeMillis() >= deadline) {
+                        System.out.println("   ⏱️ Asset-class picker-button scan hit "
+                            + (PICKER_BUTTON_ENUM_BUDGET_MS / 1000) + "s budget — bailing");
+                        break;
+                    }
+                    try {
+                        int dy = b.getLocation().getY() - labelY;
+                        if (dy <= 0 || dy > 55) continue;                       // must be just below the label
+                        if (Math.abs(b.getLocation().getX() - labelX) > 25) continue; // same x as the label
+                        if (b.getSize().getWidth() < 150) continue;             // a full-width field button
+                        String lbl = cleanClassToken(b.getAttribute("label"), b.getAttribute("name"));
+                        if (lbl == null || !ASSET_CLASSES.contains(lbl)) continue; // single known class (no commas)
+                        if (dy < bestDy) { best = b; bestDy = dy; }
+                    } catch (Exception ignore) {}
+                }
+            } catch (Exception ignore) {}
+            return best;
+        });
+        // Cache for reuse within the same changeAssetClassInternal() call.
+        if (found != null) cachedAssetClassPickerButton = found;
+        return found;
     }
 
     /**
@@ -9563,34 +9653,43 @@ public class AssetPage extends BasePage {
      * @return the selected class (e.g. "Motor", "ATS") or null if undetectable
      */
     private String getCurrentAssetClassValue() {
-        WebElement btn = findAssetClassPickerButton();
+        WebElement btn = findAssetClassPickerButton();   // already self-bounded (implicit-wait 0 + budget)
         if (btn != null) {
             String v = cleanClassToken(btn.getAttribute("label"), btn.getAttribute("name"));
             if (v != null && ASSET_CLASSES.contains(v)) return v;
         }
-        // Fallback: value StaticText just below + indented from the "Asset Class" label.
-        int labelX, labelY;
-        try {
-            WebElement label = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND (name == 'Asset Class' OR label == 'Asset Class')"));
-            labelX = label.getLocation().getX();
-            labelY = label.getLocation().getY();
-        } catch (Exception e) {
-            return null;
-        }
-        try {
-            for (WebElement t : driver.findElements(AppiumBy.className("XCUIElementTypeStaticText"))) {
-                try {
-                    int dy = t.getLocation().getY() - labelY;
-                    if (dy <= 0 || dy > 60) continue;
-                    int dx = t.getLocation().getX() - labelX;
-                    if (dx < 0 || dx > 220) continue;   // value is indented right of / below the label
-                    String v = cleanClassToken(t.getAttribute("value"), t.getAttribute("name"));
-                    if (v != null && ASSET_CLASSES.contains(v)) return v;
-                } catch (Exception ignore) {}
+        // Fallback: value StaticText just below + indented from the "Asset Class"
+        // label. Bound the whole enumeration at implicit-wait 0 — the bleed-through
+        // asset LIST behind the Edit screen makes XCUIElementTypeStaticText huge, and
+        // a per-element getLocation/getSize/getAttribute miss at the global 5s
+        // implicit wait is exactly what stretched the "Current asset class" read to
+        // 60-70s in the assetsP6 hangs.
+        return withImplicitWait(0, () -> {
+            long deadline = System.currentTimeMillis() + PICKER_BUTTON_ENUM_BUDGET_MS;
+            int labelX, labelY;
+            try {
+                WebElement label = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND (name == 'Asset Class' OR label == 'Asset Class')"));
+                labelX = label.getLocation().getX();
+                labelY = label.getLocation().getY();
+            } catch (Exception e) {
+                return null;
             }
-        } catch (Exception ignore) {}
-        return null;
+            try {
+                for (WebElement t : driver.findElements(AppiumBy.className("XCUIElementTypeStaticText"))) {
+                    if (System.currentTimeMillis() >= deadline) break;
+                    try {
+                        int dy = t.getLocation().getY() - labelY;
+                        if (dy <= 0 || dy > 60) continue;
+                        int dx = t.getLocation().getX() - labelX;
+                        if (dx < 0 || dx > 220) continue;   // value is indented right of / below the label
+                        String v = cleanClassToken(t.getAttribute("value"), t.getAttribute("name"));
+                        if (v != null && ASSET_CLASSES.contains(v)) return v;
+                    } catch (Exception ignore) {}
+                }
+            } catch (Exception ignore) {}
+            return null;
+        });
     }
     
     /**
@@ -11608,22 +11707,27 @@ public class AssetPage extends BasePage {
      */
     public String getTextFieldValue(String fieldName) {
         System.out.println("📝 Getting value of field: " + fieldName);
-        
+
         try {
-            // First scroll down to make sure field is visible
-            scrollFormDown();
-            sleep(300);
-            
+            // Probe-first at implicit-0: only scroll if the label isn't already on
+            // screen. The old unconditional scrollFormDown()+sleep(300) + 5s-implicit
+            // label miss, run in discoverEditableAttribute()'s 10-label loop, was an
+            // ~80s sink behind the offline TC_E2E hangs. A present field costs ms now.
+            By labelBy = AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND " +
+                "(name CONTAINS[c] '" + fieldName + "' OR label CONTAINS[c] '" + fieldName + "')");
+            if (!existsNow(labelBy)) {
+                scrollFormDown();
+                sleep(300);
+            }
+
             // Strategy 1: Find label, then look for nearby text field
             try {
-                WebElement label = driver.findElement(
-                    AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeStaticText' AND " +
-                        "(name CONTAINS[c] '" + fieldName + "' OR label CONTAINS[c] '" + fieldName + "')"
-                    )
-                );
-                
-                if (label.isDisplayed()) {
+                java.util.List<WebElement> labelHits = withImplicitWait(0,
+                    () -> driver.findElements(labelBy));
+                WebElement label = labelHits.isEmpty() ? null : labelHits.get(0);
+
+                if (label != null && label.isDisplayed()) {
                     int labelY = label.getLocation().getY();
                     System.out.println("   Found label '" + fieldName + "' at Y=" + labelY);
                     

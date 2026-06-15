@@ -1565,7 +1565,14 @@ public class SiteSelectionPage extends BasePage {
      * Returns true if successfully clicked.
      */
     private boolean findAndClickPopupOption(String keyword) {
-        driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(1500));
+        // CI hang fix (offline 7-min): on simulators with no real Wi-Fi the popup
+        // never opens, so every strategy below finds 0 elements. At 1500ms implicit
+        // wait that was 5 strategies × 1.5s × 2 outer attempts + a debug dump per
+        // miss — seconds of pure waste per goOnline/goOffline call, and the dominant
+        // sink in the 60s teardown budget. The popup, WHEN present, is matched
+        // instantly by findElements; a 0ms implicit wait makes the absent case cost
+        // milliseconds without reducing locator coverage (all 5 strategies still run).
+        driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(0));
         try {
             // Strategy 1: Exact label/name match (works on iOS 26.2)
             System.out.println("[DEBUG-POPUP] Strategy 1: searching label/name == 'Go " + keyword + "'");
@@ -1938,6 +1945,49 @@ public class SiteSelectionPage extends BasePage {
             System.out.println("⚠️ goOffline error: " + e.getMessage());
             throw e;
         }
+    }
+
+    /**
+     * Cheap (0-implicit) capability probe: can the WiFi network mode actually be
+     * toggled in THIS environment?
+     *
+     * Why this exists: on CI simulators there is no real Wi-Fi radio, so tapping
+     * the WiFi button never surfaces the inline "Go Online"/"Go Offline" option.
+     * {@code goOnline()}/{@code goOffline()} then burn their entire retry budget
+     * (2 attempts × 5 popup strategies + coordinate fallback + debug dumps) on a
+     * popup that will never appear — the dominant sink in the offline-suite 7-min
+     * teardown hangs. Callers (e.g. {@code OfflineSyncMultiSite_Test.perTestTeardown})
+     * use this to early-return instead of spending the 60s budget.
+     *
+     * The probe is deliberately cheap and side-effect-free: it only checks (under a
+     * 0ms implicit wait) whether a WiFi button is present in the top nav. It does
+     * NOT open the popup. A missing WiFi button means there is nothing to toggle.
+     *
+     * @return true if a WiFi (network-mode) button is present and could be toggled.
+     */
+    public boolean canToggleWifi() {
+        return withImplicitWait(0, () -> {
+            try {
+                // Definitive: a named Wi-Fi / Wi-Fi Off button, OR the wifi/wifi.slash
+                // SF-symbol image, present in the top nav (Y <= 120) means a toggle exists.
+                if (!driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND (name == 'Wi-Fi' OR name == 'Wi-Fi Off')"))
+                        .isEmpty()) {
+                    return true;
+                }
+                java.util.List<WebElement> icons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "name == 'wifi' OR name == 'wifi.slash'"));
+                for (WebElement el : icons) {
+                    try {
+                        if (el.getLocation().getY() <= 120) return true;
+                    } catch (Exception ignored) { /* stale */ }
+                }
+                return false;
+            } catch (Exception e) {
+                // A throwing probe (dead/wedged session) means we cannot toggle.
+                return false;
+            }
+        });
     }
 
     /**

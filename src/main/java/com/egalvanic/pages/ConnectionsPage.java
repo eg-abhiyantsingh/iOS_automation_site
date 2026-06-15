@@ -50,6 +50,70 @@ public class ConnectionsPage {
     }
 
     // ============================================
+    // FAST PROBE HELPERS (this class does NOT extend BasePage, so it has no
+    // access to BasePage.existsNow/withImplicitWait — mirror them here).
+    //
+    // Every multi-strategy fallback that "looks for an element that might not
+    // be there" must use these so a MISS costs ~0s instead of burning the 5s
+    // global implicit wait (AppConstants.IMPLICIT_WAIT) per strategy. A screen
+    // with 5 strategies that all miss otherwise costs 25s (the v1.43 drift bug).
+    // ============================================
+
+    /**
+     * Run an action with a temporary implicit wait, always restoring the global one.
+     */
+    private <T> T withImplicitWait(long millis, java.util.function.Supplier<T> action) {
+        try {
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(millis));
+            return action.get();
+        } finally {
+            try {
+                driver.manage().timeouts().implicitlyWait(
+                    java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+    /**
+     * Zero-wait list query (no implicit-wait penalty on absence). Returns an
+     * empty list rather than throwing, so callers can iterate safely.
+     */
+    private List<WebElement> findAllNow(org.openqa.selenium.By locator) {
+        return withImplicitWait(0, () -> {
+            try {
+                return driver.findElements(locator);
+            } catch (Exception e) {
+                return new java.util.ArrayList<WebElement>();
+            }
+        });
+    }
+
+    /**
+     * Zero-wait single-element fetch (no implicit-wait penalty on absence).
+     * Returns null instead of throwing when nothing matches.
+     */
+    private WebElement findFirstNow(org.openqa.selenium.By locator) {
+        List<WebElement> found = findAllNow(locator);
+        return found.isEmpty() ? null : found.get(0);
+    }
+
+    private boolean existsNow(org.openqa.selenium.By locator) {
+        return !findAllNow(locator).isEmpty();
+    }
+
+    /**
+     * True if the element is on-screen (displayed). Null-safe and exception-safe.
+     */
+    private boolean isShown(WebElement el) {
+        try {
+            return el != null && el.isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    // ============================================
     // NAVIGATION METHODS
     // ============================================
 
@@ -309,36 +373,77 @@ public class ConnectionsPage {
     }
 
     public boolean isAddButtonDisplayed() {
+        return findHeaderAddElement() != null;
+    }
+
+    /**
+     * Locate the header "+" / Add-Connection control (returns null if not found).
+     *
+     * v1.43 drifted the toolbar "+" away from the old token set
+     * (label=='+' / name=='plus' / label=='Add'). It is now most likely an
+     * SF-Symbol whose name contains "plus" (e.g. "plus", "plus.circle",
+     * "plus.circle.fill") and/or a localized "Add Connection" label, and it may
+     * be exposed as an XCUIElementTypeImage rather than a Button.
+     *
+     * Strategy order (cheapest, most specific first; every probe is 0-implicit-wait):
+     *   1. Direct token / SF-symbol / "add connection" predicate (Button or Image).
+     *   2. Positional fallback: the right-most header control (y < 120). The
+     *      Connections header has WiFi/emoji/broadcast/+ buttons; the "+" sits at
+     *      the trailing (largest-x) edge of the nav bar. isEmojiIconDisplayed()
+     *      already proves header buttons exist, so this can't false-miss the way
+     *      the token-only predicate did.
+     */
+    private WebElement findHeaderAddElement() {
         try {
-            try {
-                WebElement addBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label == '+' OR label == 'Add' OR name == 'plus' OR name == 'add')"));
-                int y = addBtn.getLocation().getY();
-                if (y < 150) {
-                    System.out.println("✓ Add button found");
-                    return true;
-                }
-            } catch (Exception e1) {}
-            
-            try {
-                List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton'"));
-                for (WebElement btn : buttons) {
-                    int y = btn.getLocation().getY();
-                    if (y < 150) {
-                        String name = btn.getAttribute("name");
-                        String label = btn.getAttribute("label");
-                        if ((name != null && (name.contains("add") || name.contains("plus") || name.equals("+"))) ||
-                            (label != null && (label.equals("+") || label.equalsIgnoreCase("add")))) {
-                            return true;
-                        }
+            // Strategy 1: token + SF-symbol + connection-specific predicate.
+            // Cover Button AND Image; allow name CONTAINS 'plus'/'add' and the
+            // common SF-symbol names; allow label/name CONTAINS[c] 'add connection'.
+            WebElement direct = findFirstNow(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeImage') AND (" +
+                "label == '+' OR name == '+' OR " +
+                "name CONTAINS[c] 'plus' OR name CONTAINS[c] 'add' OR " +
+                "label CONTAINS[c] 'add connection' OR name CONTAINS[c] 'add connection' OR " +
+                "label ==[c] 'add' OR name == 'plus.circle' OR name == 'plus.circle.fill')"));
+            if (direct != null) {
+                try {
+                    if (direct.getLocation().getY() < 150) {
+                        System.out.println("✓ Add button found (token/SF-symbol predicate)");
+                        return direct;
                     }
+                } catch (Exception ignored) {
+                    // location read failed but element exists — accept it
+                    System.out.println("✓ Add button found (predicate, no y)");
+                    return direct;
                 }
-            } catch (Exception e2) {}
-            
-            return false;
+            }
+
+            // Strategy 2: positional — right-most header control (button or image).
+            // The "+" lives at the trailing edge of the nav bar; pick the header
+            // element with the largest x. Exclude WiFi/status-bar items (y very
+            // small) by requiring y in the nav-bar band, and avoid the title text.
+            List<WebElement> headerEls = findAllNow(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeImage')"));
+            WebElement rightMost = null;
+            int maxX = -1;
+            for (WebElement el : headerEls) {
+                try {
+                    int y = el.getLocation().getY();
+                    if (y < 0 || y >= 120) continue;       // nav-bar band only
+                    int x = el.getLocation().getX();
+                    if (x > maxX) {
+                        maxX = x;
+                        rightMost = el;
+                    }
+                } catch (Exception ignored) {}
+            }
+            if (rightMost != null) {
+                System.out.println("✓ Add button found (positional: right-most header control @x=" + maxX + ")");
+                return rightMost;
+            }
+
+            return null;
         } catch (Exception e) {
-            return false;
+            return null;
         }
     }
 
@@ -376,63 +481,128 @@ public class ConnectionsPage {
     // ============================================
 
     public boolean isSearchBarDisplayed() {
-        try {
-            try {
-                WebElement searchField = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(type == 'XCUIElementTypeSearchField' OR type == 'XCUIElementTypeTextField')"));
-                if (searchField.isDisplayed()) {
-                    System.out.println("✓ Search bar found");
-                    return true;
-                }
-            } catch (Exception e1) {}
-            
-            try {
-                WebElement searchPlaceholder = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label CONTAINS 'Search' OR value CONTAINS 'Search')"));
-                if (searchPlaceholder.isDisplayed()) {
-                    System.out.println("✓ Search bar found (placeholder)");
-                    return true;
-                }
-            } catch (Exception e2) {}
-            
-            return false;
-        } catch (Exception e) {
-            return false;
+        return findSearchField() != null || isSearchIconOnly();
+    }
+
+    /**
+     * Locate the Connections-list search field (returns null if not present).
+     *
+     * v1.43 no longer guarantees the box is a SearchField/TextField at top level.
+     * Multi-strategy, all 0-implicit-wait so misses are free:
+     *   1. SearchField / TextField anywhere in the tree (no visible== filter).
+     *   2. Any field whose placeholder value/label contains "Search".
+     *   3. A TextField descendant of the top ScrollView / Other container
+     *      (SwiftUI sometimes nests the search box inside an Other).
+     * Use revealAndGetSearchField() first if the field only materializes on tap
+     * of a magnifier icon.
+     */
+    private WebElement findSearchField() {
+        // Strategy 1: search/text field anywhere.
+        WebElement field = findFirstNow(AppiumBy.iOSNsPredicateString(
+            "type == 'XCUIElementTypeSearchField' OR type == 'XCUIElementTypeTextField'"));
+        if (isShown(field)) {
+            System.out.println("✓ Search field found (SearchField/TextField)");
+            return field;
         }
+
+        // Strategy 2: field identified by its "Search" placeholder (value or label).
+        // NB: only name/label/value are queryable in WDA's NSPredicate engine —
+        // placeholderValue is read post-hoc via getAttribute(), not in the predicate.
+        WebElement byPlaceholder = findFirstNow(AppiumBy.iOSNsPredicateString(
+            "(type == 'XCUIElementTypeSearchField' OR type == 'XCUIElementTypeTextField' OR " +
+            "type == 'XCUIElementTypeOther') AND " +
+            "(value CONTAINS[c] 'search' OR label CONTAINS[c] 'search' OR " +
+            "name CONTAINS[c] 'search')"));
+        if (isShown(byPlaceholder)) {
+            System.out.println("✓ Search field found (placeholder/value)");
+            return byPlaceholder;
+        }
+
+        // Strategy 3: TextField nested inside the top scroll/Other container.
+        for (String container : new String[]{
+                "XCUIElementTypeScrollView", "XCUIElementTypeOther", "XCUIElementTypeCollectionView"}) {
+            WebElement parent = findFirstNow(AppiumBy.className(container));
+            if (parent == null) continue;
+            try {
+                List<WebElement> nested = withImplicitWait(0, () -> parent.findElements(
+                    AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeSearchField' OR type == 'XCUIElementTypeTextField'")));
+                for (WebElement n : nested) {
+                    if (isShown(n)) {
+                        System.out.println("✓ Search field found (nested in " + container + ")");
+                        return n;
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+
+        return null;
+    }
+
+    /**
+     * True if only a magnifier/search icon is present (field hidden until tapped).
+     */
+    private boolean isSearchIconOnly() {
+        return existsNow(AppiumBy.iOSNsPredicateString(
+            "(type == 'XCUIElementTypeImage' OR type == 'XCUIElementTypeButton') AND " +
+            "(name CONTAINS[c] 'search' OR name CONTAINS[c] 'magnify' OR label CONTAINS[c] 'search')"));
+    }
+
+    /**
+     * If the search field is hidden behind a magnifier icon, tap the icon to
+     * reveal it. Returns the now-visible field, or whatever findSearchField()
+     * resolves (which may already be visible).
+     */
+    private WebElement revealAndGetSearchField() {
+        WebElement field = findSearchField();
+        if (field != null) return field;
+
+        // No field yet — try tapping a search/magnifier icon to surface it.
+        WebElement icon = findFirstNow(AppiumBy.iOSNsPredicateString(
+            "(type == 'XCUIElementTypeImage' OR type == 'XCUIElementTypeButton') AND " +
+            "(name CONTAINS[c] 'search' OR name CONTAINS[c] 'magnify' OR label CONTAINS[c] 'search')"));
+        if (icon != null) {
+            try {
+                icon.click();
+                sleep(300);
+                System.out.println("👆 Tapped search icon to reveal field");
+            } catch (Exception ignored) {}
+            return findSearchField();
+        }
+        return null;
     }
 
     public boolean isSearchIconDisplayed() {
-        try {
-            List<WebElement> images = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeImage'"));
-            for (WebElement img : images) {
-                String name = img.getAttribute("name");
-                if (name != null && (name.contains("search") || name.contains("magnify"))) {
-                    return true;
-                }
-            }
-            return isSearchBarDisplayed();
-        } catch (Exception e) {
-            return false;
+        // Cheap predicate match for a magnifier icon by name; fall back to the
+        // search field being present (the glass is usually inside the field).
+        if (isSearchIconOnly()) {
+            return true;
         }
+        return findSearchField() != null;
     }
 
     public String getSearchBarPlaceholder() {
+        WebElement searchField = findSearchField();
+        if (searchField == null) return "";
         try {
-            WebElement searchField = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(type == 'XCUIElementTypeSearchField' OR type == 'XCUIElementTypeTextField')"));
             String value = searchField.getAttribute("value");
+            if (value != null && !value.isEmpty()) return value;
+            String placeholder = searchField.getAttribute("placeholderValue");
+            if (placeholder != null && !placeholder.isEmpty()) return placeholder;
             String label = searchField.getAttribute("label");
-            return value != null && !value.isEmpty() ? value : (label != null ? label : "");
+            return label != null ? label : "";
         } catch (Exception e) {
             return "";
         }
     }
 
     public boolean tapOnSearchBar() {
+        WebElement searchField = revealAndGetSearchField();
+        if (searchField == null) {
+            System.out.println("⚠️ Could not tap search bar: search field not found");
+            return false;
+        }
         try {
-            WebElement searchField = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(type == 'XCUIElementTypeSearchField' OR type == 'XCUIElementTypeTextField')"));
             searchField.click();
             sleep(300);
             System.out.println("✓ Tapped on search bar");
@@ -444,10 +614,14 @@ public class ConnectionsPage {
     }
 
     public boolean enterSearchText(String text) {
+        WebElement searchField = revealAndGetSearchField();
+        if (searchField == null) {
+            System.out.println("⚠️ Could not enter search text: search field not found");
+            return false;
+        }
         try {
-            WebElement searchField = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(type == 'XCUIElementTypeSearchField' OR type == 'XCUIElementTypeTextField')"));
-            searchField.clear();
+            try { searchField.click(); } catch (Exception ignored) {}
+            try { searchField.clear(); } catch (Exception ignored) {}
             searchField.sendKeys(text);
             sleep(300);
             System.out.println("✓ Entered search text: " + text);
@@ -459,45 +633,119 @@ public class ConnectionsPage {
     }
 
     public boolean clearSearchText() {
-        try {
-            WebElement searchField = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(type == 'XCUIElementTypeSearchField' OR type == 'XCUIElementTypeTextField')"));
-            searchField.clear();
-            sleep(300);
-            System.out.println("✓ Cleared search text");
-            return true;
-        } catch (Exception e) {
+        WebElement searchField = findSearchField();
+        if (searchField != null) {
             try {
-                WebElement clearBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "label == 'Clear text' OR name == 'clear'"));
+                searchField.clear();
+                sleep(300);
+                System.out.println("✓ Cleared search text");
+                return true;
+            } catch (Exception ignored) {}
+        }
+        // Fallback: tap the field's clear ("x") button if present.
+        WebElement clearBtn = findFirstNow(AppiumBy.iOSNsPredicateString(
+            "label == 'Clear text' OR name == 'Clear text' OR name CONTAINS[c] 'clear'"));
+        if (clearBtn != null) {
+            try {
                 clearBtn.click();
                 sleep(300);
+                System.out.println("✓ Cleared search text (clear button)");
                 return true;
-            } catch (Exception e2) {}
-            return false;
+            } catch (Exception ignored) {}
         }
+        return false;
     }
 
     // ============================================
     // CONNECTION LIST METHODS
     // ============================================
 
+    /**
+     * Return the connection-list row elements, v1.43-aware.
+     *
+     * Historically each connection was an XCUIElementTypeCell. The v1.36+ SwiftUI
+     * shift renders list rows as XCUIElementTypeOther (sometimes Button) instead,
+     * so a Cell-only count reads 0 even when rows exist. Detection order:
+     *   1. Cells (legacy / still used on some screens).
+     *   2. Rows inside the list ScrollView/CollectionView/Table that carry the
+     *      structural "source → target" signature (an arrow char, OR 2+ static
+     *      text children = source name + target name). This reuses the same
+     *      grouping doesConnectionShowSourceToTargetFormat() already relies on.
+     * All probes are 0-implicit-wait so an empty list returns fast.
+     */
+    private List<WebElement> getConnectionRows() {
+        // Strategy 1: classic cells.
+        List<WebElement> cells = findAllNow(AppiumBy.iOSNsPredicateString(
+            "type == 'XCUIElementTypeCell'"));
+        if (!cells.isEmpty()) {
+            return cells;
+        }
+
+        // Strategy 2: structural rows. Anchor on the list container so we don't
+        // sweep the whole tree; if no container, fall back to whole-tree.
+        WebElement container = findFirstNow(AppiumBy.iOSNsPredicateString(
+            "type == 'XCUIElementTypeScrollView' OR type == 'XCUIElementTypeCollectionView' OR " +
+            "type == 'XCUIElementTypeTable'"));
+
+        // Candidate rows: Other/Button elements (SwiftUI list rows).
+        List<WebElement> candidates;
+        if (container != null) {
+            candidates = withImplicitWait(0, () -> {
+                try {
+                    return container.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeOther' OR type == 'XCUIElementTypeButton'"));
+                } catch (Exception e) {
+                    return new java.util.ArrayList<WebElement>();
+                }
+            });
+        } else {
+            candidates = findAllNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeOther' OR type == 'XCUIElementTypeButton'"));
+        }
+
+        List<WebElement> rows = new java.util.ArrayList<>();
+        for (WebElement el : candidates) {
+            try {
+                // An arrow in the row's own label is a strong source→target signal.
+                String label = el.getAttribute("label");
+                boolean hasArrow = label != null &&
+                    (label.contains("→") || label.contains("->") ||
+                     label.contains("➜") || label.contains("➔"));
+                if (hasArrow) {
+                    rows.add(el);
+                    continue;
+                }
+                // Otherwise require 2+ static-text descendants (source + target names).
+                List<WebElement> texts = withImplicitWait(0, () -> {
+                    try {
+                        return el.findElements(AppiumBy.className("XCUIElementTypeStaticText"));
+                    } catch (Exception e) {
+                        return new java.util.ArrayList<WebElement>();
+                    }
+                });
+                if (texts.size() >= 2) {
+                    rows.add(el);
+                }
+            } catch (Exception ignored) {}
+        }
+        return rows;
+    }
+
     public boolean isConnectionListDisplayed() {
         try {
-            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell'"));
-            if (!cells.isEmpty()) {
-                System.out.println("✓ Connection list displayed (" + cells.size() + " items)");
+            List<WebElement> rows = getConnectionRows();
+            if (!rows.isEmpty()) {
+                System.out.println("✓ Connection list displayed (" + rows.size() + " items)");
                 return true;
             }
-            
-            List<WebElement> arrows = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "label CONTAINS '→'"));
-            if (!arrows.isEmpty()) {
-                System.out.println("✓ Connection entries found (" + arrows.size() + " items)");
+
+            // Last resort: any element carrying the source→target arrow.
+            if (existsNow(AppiumBy.iOSNsPredicateString(
+                    "label CONTAINS '→' OR label CONTAINS '➜' OR label CONTAINS '➔'"))) {
+                System.out.println("✓ Connection entries found (arrow)");
                 return true;
             }
-            
+
             return false;
         } catch (Exception e) {
             return false;
@@ -505,15 +753,9 @@ public class ConnectionsPage {
     }
 
     public int getConnectionCount() {
-        try {
-            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell'"));
-            int count = cells.size();
-            System.out.println("📊 Connection count: " + count);
-            return count;
-        } catch (Exception e) {
-            return 0;
-        }
+        int count = getConnectionRows().size();
+        System.out.println("📊 Connection count: " + count);
+        return count;
     }
 
     /**
@@ -538,16 +780,8 @@ public class ConnectionsPage {
     }
 
     public WebElement getFirstConnectionEntry() {
-        try {
-            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell'"));
-            if (!cells.isEmpty()) {
-                return cells.get(0);
-            }
-            return null;
-        } catch (Exception e) {
-            return null;
-        }
+        List<WebElement> rows = getConnectionRows();
+        return rows.isEmpty() ? null : rows.get(0);
     }
 
     public boolean doesConnectionShowSourceToTargetFormat() {
@@ -829,23 +1063,32 @@ public class ConnectionsPage {
 
     public WebElement getMissingNodeEntry() {
         try {
-            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell'"));
-            
-            for (WebElement cell : cells) {
-                String label = cell.getAttribute("label");
+            // v1.43-aware: rows may be Other/Button, not Cell. Scan the row's
+            // own label AND its static-text descendants for "missing".
+            for (WebElement row : getConnectionRows()) {
+                String label = row.getAttribute("label");
                 if (label != null && label.toLowerCase().contains("missing")) {
-                    return cell;
+                    return row;
+                }
+                List<WebElement> texts = withImplicitWait(0, () -> {
+                    try {
+                        return row.findElements(AppiumBy.className("XCUIElementTypeStaticText"));
+                    } catch (Exception e) {
+                        return new java.util.ArrayList<WebElement>();
+                    }
+                });
+                for (WebElement t : texts) {
+                    String tl = t.getAttribute("label");
+                    if (tl != null && tl.toLowerCase().contains("missing")) {
+                        return row;
+                    }
                 }
             }
-            
-            List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "label CONTAINS 'Missing Node'"));
-            if (!texts.isEmpty()) {
-                return texts.get(0);
-            }
-            
-            return null;
+
+            // Fallback: any element whose label mentions Missing Node.
+            WebElement byText = findFirstNow(AppiumBy.iOSNsPredicateString(
+                "label CONTAINS[c] 'missing node' OR label CONTAINS[c] 'missing'"));
+            return byText;
         } catch (Exception e) {
             return null;
         }
@@ -1063,44 +1306,44 @@ public class ConnectionsPage {
         try {
             System.out.println("➕ Tapping Add button...");
 
-            // Strategy 1: Direct accessibility ID
-            try {
-                WebElement addBtn = driver.findElement(AppiumBy.accessibilityId("Add"));
-                addBtn.click();
-                sleep(300);
-                System.out.println("✓ Tapped Add button (accessibility ID)");
-                return true;
-            } catch (Exception e1) {}
-
-            // Strategy 2: Find + button by label
-            try {
-                WebElement addBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label == '+' OR label == 'Add' OR name == 'plus' OR name == 'add') AND type == 'XCUIElementTypeButton'"));
-                addBtn.click();
-                sleep(300);
-                System.out.println("✓ Tapped + button");
-                return true;
-            } catch (Exception e2) {}
-
-            // Strategy 3: Find button in header area with + or add
-            try {
-                List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton'"));
-                for (WebElement btn : buttons) {
-                    int y = btn.getLocation().getY();
-                    if (y < 150) {
-                        String name = btn.getAttribute("name");
-                        String label = btn.getAttribute("label");
-                        if ((name != null && (name.contains("add") || name.contains("plus") || name.equals("+"))) ||
-                            (label != null && (label.equals("+") || label.equalsIgnoreCase("add")))) {
-                            btn.click();
-                            sleep(300);
-                            System.out.println("✓ Tapped Add button in header");
-                            return true;
-                        }
-                    }
+            // Strategy 1: Direct accessibility ID (cheap, exact) — try a few ids.
+            for (String id : new String[]{"Add", "Add Connection", "addConnection", "plus"}) {
+                WebElement addBtn = findFirstNow(AppiumBy.accessibilityId(id));
+                if (addBtn != null) {
+                    try {
+                        addBtn.click();
+                        sleep(300);
+                        System.out.println("✓ Tapped Add button (accessibility id '" + id + "')");
+                        return true;
+                    } catch (Exception ignored) {}
                 }
-            } catch (Exception e3) {}
+            }
+
+            // Strategy 2: Shared v1.43-aware header locator (token / SF-symbol /
+            // 'add connection' label / positional right-most control). This is the
+            // same widened logic isAddButtonDisplayed() uses, so the check and the
+            // tap can never disagree.
+            WebElement headerAdd = findHeaderAddElement();
+            if (headerAdd != null) {
+                try {
+                    headerAdd.click();
+                    sleep(300);
+                    System.out.println("✓ Tapped Add button (header locator)");
+                    return true;
+                } catch (Exception eClick) {
+                    // Element resolved but click failed — tap its center via mobile: tap.
+                    try {
+                        org.openqa.selenium.Point p = headerAdd.getLocation();
+                        org.openqa.selenium.Dimension d = headerAdd.getSize();
+                        int cx = p.getX() + d.getWidth() / 2;
+                        int cy = p.getY() + d.getHeight() / 2;
+                        driver.executeScript("mobile: tap", java.util.Map.of("x", cx, "y", cy));
+                        sleep(300);
+                        System.out.println("✓ Tapped Add button (mobile: tap @" + cx + "," + cy + ")");
+                        return true;
+                    } catch (Exception ignored) {}
+                }
+            }
 
             System.out.println("⚠️ Could not tap Add button");
             return false;
@@ -1114,37 +1357,36 @@ public class ConnectionsPage {
      */
     public boolean isNewConnectionScreenDisplayed() {
         try {
-            // Strategy 1: Check navigation bar title
-            try {
-                WebElement navBar = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeNavigationBar' AND (name == 'New Connection' OR label == 'New Connection')"));
-                if (navBar.isDisplayed()) {
-                    System.out.println("✓ New Connection screen detected (nav bar)");
-                    return true;
-                }
-            } catch (Exception e1) {}
+            // Strategy 1: Nav bar / title text. v1.43 may title this "Add Connection"
+            // (the toolbar control and the screen often share the localized string)
+            // as well as the legacy "New Connection". Accept either, on nav bar or
+            // static text, in one cheap predicate.
+            if (existsNow(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeNavigationBar' OR type == 'XCUIElementTypeStaticText') AND " +
+                    "(name ==[c] 'New Connection' OR label ==[c] 'New Connection' OR " +
+                    "name ==[c] 'Add Connection' OR label ==[c] 'Add Connection')"))) {
+                System.out.println("✓ New Connection screen detected (title)");
+                return true;
+            }
 
-            // Strategy 2: Check for StaticText 'New Connection'
-            try {
-                WebElement title = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND label == 'New Connection'"));
-                if (title.isDisplayed()) {
-                    System.out.println("✓ New Connection screen detected (title)");
-                    return true;
-                }
-            } catch (Exception e2) {}
+            // Strategy 2: Create button + a Source-Node affordance both present.
+            boolean hasCreate = existsNow(AppiumBy.iOSNsPredicateString(
+                "label ==[c] 'Create' OR name ==[c] 'Create'"));
+            boolean hasSource = existsNow(AppiumBy.iOSNsPredicateString(
+                "label CONTAINS[c] 'source' OR name CONTAINS[c] 'source' OR " +
+                "label CONTAINS[c] 'select source'"));
+            if (hasCreate && hasSource) {
+                System.out.println("✓ New Connection screen detected (Create + Source Node)");
+                return true;
+            }
 
-            // Strategy 3: Check for Create button + Source Node field
-            try {
-                WebElement createBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label == 'Create' OR name == 'Create')"));
-                WebElement sourceNode = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label CONTAINS 'Source' OR label CONTAINS 'source')"));
-                if (createBtn.isDisplayed() && sourceNode.isDisplayed()) {
-                    System.out.println("✓ New Connection screen detected (Create + Source Node)");
-                    return true;
-                }
-            } catch (Exception e3) {}
+            // Strategy 3: the form's section headers / both node fields present.
+            boolean hasTarget = existsNow(AppiumBy.iOSNsPredicateString(
+                "label CONTAINS[c] 'target' OR label CONTAINS[c] 'select target'"));
+            if (hasSource && hasTarget) {
+                System.out.println("✓ New Connection screen detected (Source + Target fields)");
+                return true;
+            }
 
             return false;
         } catch (Exception e) {
@@ -1258,63 +1500,33 @@ public class ConnectionsPage {
      * Check if Source Node field is displayed
      */
     public boolean isSourceNodeFieldDisplayed() {
-        try {
-            // Strategy 1: Look for Source Node label
-            try {
-                WebElement sourceNode = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label CONTAINS 'Source Node' OR label CONTAINS 'Source' OR name CONTAINS 'Source')"));
-                if (sourceNode.isDisplayed()) {
-                    System.out.println("✓ Source Node field found");
-                    return true;
-                }
-            } catch (Exception e1) {}
-
-            // Strategy 2: Look for "Select source node" placeholder
-            try {
-                WebElement placeholder = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label CONTAINS 'Select source' OR value CONTAINS 'Select source')"));
-                if (placeholder.isDisplayed()) {
-                    System.out.println("✓ Source Node field found (placeholder)");
-                    return true;
-                }
-            } catch (Exception e2) {}
-
-            return false;
-        } catch (Exception e) {
-            return false;
-        }
+        boolean found = existsNow(AppiumBy.iOSNsPredicateString(
+            "label CONTAINS[c] 'source node' OR label CONTAINS[c] 'source' OR " +
+            "name CONTAINS[c] 'source' OR label CONTAINS[c] 'select source' OR " +
+            "value CONTAINS[c] 'select source'"));
+        if (found) System.out.println("✓ Source Node field found");
+        return found;
     }
 
     /**
      * Check if Target Node field is displayed
      */
     public boolean isTargetNodeFieldDisplayed() {
-        try {
-            WebElement targetNode = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(label CONTAINS 'Target Node' OR label CONTAINS 'Target' OR name CONTAINS 'Target')"));
-            return targetNode.isDisplayed();
-        } catch (Exception e) {
-            try {
-                WebElement placeholder = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label CONTAINS 'Select target' OR value CONTAINS 'Select target')"));
-                return placeholder.isDisplayed();
-            } catch (Exception e2) {
-                return false;
-            }
-        }
+        boolean found = existsNow(AppiumBy.iOSNsPredicateString(
+            "label CONTAINS[c] 'target node' OR label CONTAINS[c] 'target' OR " +
+            "name CONTAINS[c] 'target' OR label CONTAINS[c] 'select target' OR " +
+            "value CONTAINS[c] 'select target'"));
+        if (found) System.out.println("✓ Target Node field found");
+        return found;
     }
 
     /**
      * Check if Connection Type field is displayed
      */
     public boolean isConnectionTypeFieldDisplayed() {
-        try {
-            WebElement connectionType = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(label CONTAINS 'Connection Type' OR label CONTAINS 'Type' OR name CONTAINS 'Type')"));
-            return connectionType.isDisplayed();
-        } catch (Exception e) {
-            return false;
-        }
+        return existsNow(AppiumBy.iOSNsPredicateString(
+            "label CONTAINS[c] 'connection type' OR label CONTAINS[c] 'type' OR " +
+            "name CONTAINS[c] 'type'"));
     }
 
     /**
@@ -3330,57 +3542,41 @@ public class ConnectionsPage {
      * Tap on Connection Type field to open dropdown
      */
     public boolean tapOnConnectionTypeField() {
-        try {
-            System.out.println("👆 Tapping Connection Type field...");
+        // Delegate to the dropdown-opener, which targets the BUTTON (not the
+        // StaticText label) and is the canonical, cheap, multi-strategy path.
+        if (tapOnConnectionTypeDropdown()) {
+            return true;
+        }
 
-            // Strategy 1: Find button with Type or Select type
+        // Extra fallbacks if the button-specific opener missed: a "Select type"
+        // placeholder, or a Cell/Other carrying the type text.
+        WebElement selectType = findFirstNow(AppiumBy.iOSNsPredicateString(
+            "(label CONTAINS[c] 'select type' OR name CONTAINS[c] 'select type') AND " +
+            "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeOther' OR " +
+            "type == 'XCUIElementTypeStaticText')"));
+        if (selectType != null) {
             try {
-                WebElement typeBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label CONTAINS 'Type' OR label CONTAINS 'Select type') AND " +
-                    "type == 'XCUIElementTypeButton'"));
-                typeBtn.click();
-                sleep(200);
-                System.out.println("✓ Tapped Connection Type field (button)");
-                return true;
-            } catch (Exception e1) {}
-
-            // Strategy 2: Find any element with Connection Type label
-            try {
-                WebElement typeField = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(label CONTAINS 'Connection Type' OR name CONTAINS 'type')"));
-                typeField.click();
-                sleep(200);
-                System.out.println("✓ Tapped Connection Type field");
-                return true;
-            } catch (Exception e2) {}
-
-            // Strategy 3: Find cell containing Type via predicate filter
-            try {
-                List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeCell' AND label CONTAINS[cd] 'type'"));
-                if (!cells.isEmpty()) {
-                    cells.get(0).click();
-                    sleep(200);
-                    System.out.println("✓ Tapped Connection Type cell");
-                    return true;
-                }
-            } catch (Exception e3) {}
-
-            // Strategy 4: Look for blue text with "Select type"
-            try {
-                WebElement selectType = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "label == 'Select type'"));
                 selectType.click();
                 sleep(200);
-                System.out.println("✓ Tapped 'Select type' text");
+                System.out.println("✓ Tapped 'Select type' placeholder");
                 return true;
-            } catch (Exception e4) {}
-
-            System.out.println("⚠️ Could not tap Connection Type field");
-            return false;
-        } catch (Exception e) {
-            return false;
+            } catch (Exception ignored) {}
         }
+
+        WebElement typeCell = findFirstNow(AppiumBy.iOSNsPredicateString(
+            "(type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeOther') AND " +
+            "label CONTAINS[c] 'connection type'"));
+        if (typeCell != null) {
+            try {
+                typeCell.click();
+                sleep(200);
+                System.out.println("✓ Tapped Connection Type row");
+                return true;
+            } catch (Exception ignored) {}
+        }
+
+        System.out.println("⚠️ Could not tap Connection Type field");
+        return false;
     }
 
     /**
@@ -3388,34 +3584,22 @@ public class ConnectionsPage {
      */
     public boolean isConnectionTypeDropdownOpen() {
         try {
-            // Check for dropdown options (Busway, Cable, Select type)
-            String[] typeOptions = {"Busway", "Cable", "Select type"};
-            int foundOptions = 0;
-
-            for (String option : typeOptions) {
-                try {
-                    WebElement optionElement = driver.findElement(AppiumBy.iOSNsPredicateString(
-                        "label == '" + option + "'"));
-                    if (optionElement.isDisplayed()) {
-                        foundOptions++;
-                    }
-                } catch (Exception e) {}
-            }
-
-            if (foundOptions >= 2) {
-                System.out.println("✓ Connection Type dropdown is open (" + foundOptions + " options visible)");
+            // The dropdown is "open" when the actual option values (not the
+            // placeholder) are on screen. "Busway" + "Cable" both visible is the
+            // strong signal — the closed field only shows "Select type". Match on
+            // any element type (option rows are Cell/Button/Other in v1.43).
+            boolean hasBusway = existsNow(AppiumBy.iOSNsPredicateString("label ==[c] 'Busway'"));
+            boolean hasCable = existsNow(AppiumBy.iOSNsPredicateString("label ==[c] 'Cable'"));
+            if (hasBusway && hasCable) {
+                System.out.println("✓ Connection Type dropdown is open (Busway + Cable visible)");
                 return true;
             }
 
-            // Alternative: Check for picker or list with type options in cells
-            try {
-                List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeCell' AND (label CONTAINS 'Busway' OR label CONTAINS 'Cable')"));
-                if (!cells.isEmpty()) {
-                    System.out.println("✓ Connection Type dropdown open with options in cells");
-                    return true;
-                }
-            } catch (Exception e) {}
+            // A live picker wheel also indicates an open type selector.
+            if (existsNow(AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypePickerWheel'"))) {
+                System.out.println("✓ Connection Type dropdown open (picker wheel)");
+                return true;
+            }
 
             return false;
         } catch (Exception e) {
@@ -3431,33 +3615,31 @@ public class ConnectionsPage {
         try {
             System.out.println("📋 Getting Connection Type options...");
 
-            // Look for known connection type options
+            // Cheap presence checks (0 implicit wait) for the known option values.
+            // Match any element type — option rows are Cell/Button/Other in v1.43.
             String[] knownTypes = {"Select type", "Busway", "Cable"};
-
             for (String type : knownTypes) {
-                try {
-                    WebElement option = driver.findElement(AppiumBy.iOSNsPredicateString(
-                        "label == '" + type + "'"));
-                    if (option.isDisplayed()) {
-                        options.add(type);
-                        System.out.println("  Found option: " + type);
-                    }
-                } catch (Exception e) {}
+                if (existsNow(AppiumBy.iOSNsPredicateString("label ==[c] '" + type + "'"))) {
+                    options.add(type);
+                    System.out.println("  Found option: " + type);
+                }
             }
 
-            // Also check cells for any options
-            try {
-                List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeCell'"));
-                for (WebElement cell : cells) {
-                    String label = cell.getAttribute("label");
-                    if (label != null && !options.contains(label) &&
-                        (label.contains("Busway") || label.contains("Cable") || label.contains("type"))) {
+            // Also harvest any option rows (Cell/Button/Other) that carry a type
+            // keyword, in case the live values differ from the known set.
+            List<WebElement> rows = findAllNow(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeButton' OR " +
+                "type == 'XCUIElementTypeOther') AND " +
+                "(label CONTAINS[c] 'busway' OR label CONTAINS[c] 'cable' OR label CONTAINS[c] 'type')"));
+            for (WebElement row : rows) {
+                try {
+                    String label = row.getAttribute("label");
+                    if (label != null && !label.isEmpty() && !options.contains(label)) {
                         options.add(label);
-                        System.out.println("  Found option in cell: " + label);
+                        System.out.println("  Found option in row: " + label);
                     }
-                }
-            } catch (Exception e) {}
+                } catch (Exception ignored) {}
+            }
 
             System.out.println("📋 Total Connection Type options found: " + options.size());
             return options;
@@ -3474,84 +3656,61 @@ public class ConnectionsPage {
             System.out.println("👆 Selecting Connection Type: " + typeName);
             sleep(300);
 
-            // Strategy 1: Exact label match
-            try {
-                WebElement typeOption = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "label == '" + typeName + "'"));
-                typeOption.click();
-                sleep(200);
-                System.out.println("✓ Selected Connection Type: " + typeName);
-                return true;
-            } catch (Exception e1) {
-                System.out.println("   Strategy 1 (exact label): not found");
+            // Strategy 1: SwiftUI Sheet picker — option rows are XCUIElementTypeOther
+            // / Button / Cell carrying the type label (the v1.36+ menu pattern).
+            // Prefer a tappable container over a bare StaticText so the tap lands.
+            WebElement optionRow = findFirstNow(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeCell' OR " +
+                "type == 'XCUIElementTypeOther') AND " +
+                "(label ==[c] '" + typeName + "' OR label CONTAINS[c] '" + typeName + "' OR " +
+                "name CONTAINS[c] '" + typeName + "')"));
+            if (optionRow != null) {
+                try {
+                    optionRow.click();
+                    sleep(200);
+                    System.out.println("✓ Selected Connection Type (sheet row): " + typeName);
+                    return true;
+                } catch (Exception ignored) {}
             }
 
-            // Strategy 2: Partial label match
-            try {
-                WebElement typeOption = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "label CONTAINS '" + typeName + "'"));
-                typeOption.click();
-                sleep(200);
-                System.out.println("✓ Selected Connection Type (partial match): " + typeName);
-                return true;
-            } catch (Exception e2) {
-                System.out.println("   Strategy 2 (partial label): not found");
+            // Strategy 2: Exact label match on any element type.
+            WebElement exact = findFirstNow(AppiumBy.iOSNsPredicateString(
+                "label ==[c] '" + typeName + "'"));
+            if (exact != null) {
+                try {
+                    exact.click();
+                    sleep(200);
+                    System.out.println("✓ Selected Connection Type (exact label): " + typeName);
+                    return true;
+                } catch (Exception ignored) {}
             }
 
-            // Strategy 3: Native iOS PickerWheel
-            try {
-                List<WebElement> pickerWheels = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypePickerWheel'"));
-                if (!pickerWheels.isEmpty()) {
-                    for (WebElement wheel : pickerWheels) {
-                        wheel.sendKeys(typeName);
-                        sleep(300);
-                        String newValue = wheel.getAttribute("value");
-                        if (newValue != null && newValue.toLowerCase().contains(typeName.toLowerCase())) {
-                            System.out.println("✓ Selected Connection Type via PickerWheel: " + typeName);
-                            return true;
-                        }
+            // Strategy 3: Native iOS PickerWheel.
+            List<WebElement> pickerWheels = findAllNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypePickerWheel'"));
+            for (WebElement wheel : pickerWheels) {
+                try {
+                    wheel.sendKeys(typeName);
+                    sleep(300);
+                    String newValue = wheel.getAttribute("value");
+                    if (newValue != null && newValue.toLowerCase().contains(typeName.toLowerCase())) {
+                        System.out.println("✓ Selected Connection Type via PickerWheel: " + typeName);
+                        return true;
                     }
-                }
-            } catch (Exception e3) {
-                System.out.println("   Strategy 3 (PickerWheel): failed");
+                } catch (Exception ignored) {}
             }
 
-            // Strategy 4: Search through cells with matching label
-            try {
-                List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeCell' AND label CONTAINS[cd] '" + typeName + "'"));
-                if (!cells.isEmpty()) {
-                    cells.get(0).click();
+            // Strategy 4: Partial label match on any element (last resort).
+            WebElement partial = findFirstNow(AppiumBy.iOSNsPredicateString(
+                "label CONTAINS[c] '" + typeName + "' OR value CONTAINS[c] '" + typeName + "'"));
+            if (partial != null) {
+                try {
+                    partial.click();
                     sleep(200);
-                    System.out.println("✓ Selected Connection Type from cell: " + typeName);
+                    System.out.println("✓ Selected Connection Type (partial match): " + typeName);
                     return true;
-                }
-            } catch (Exception e4) {}
-
-            // Strategy 5: Search through buttons with matching label
-            try {
-                List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND label CONTAINS[cd] '" + typeName + "'"));
-                if (!buttons.isEmpty()) {
-                    buttons.get(0).click();
-                    sleep(200);
-                    System.out.println("✓ Selected Connection Type from button: " + typeName);
-                    return true;
-                }
-            } catch (Exception e5) {}
-
-            // Strategy 6: Broad search (last resort)
-            try {
-                List<WebElement> allVisible = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "(label CONTAINS[cd] '" + typeName + "' OR value CONTAINS[cd] '" + typeName + "')"));
-                if (!allVisible.isEmpty()) {
-                    allVisible.get(0).click();
-                    sleep(200);
-                    System.out.println("✓ Selected Connection Type (broad search): " + typeName);
-                    return true;
-                }
-            } catch (Exception e6) {}
+                } catch (Exception ignored) {}
+            }
 
             System.out.println("⚠️ Could not select Connection Type: " + typeName);
             return false;
@@ -4191,37 +4350,50 @@ public class ConnectionsPage {
         try {
             System.out.println("🔽 Tapping on Connection Type dropdown...");
 
-            // Strategy 1: Target the BUTTON element specifically.
             // The screen has a StaticText "Connection Type" label AND a Button
-            // "Connection Type, Select type". We must tap the Button, not the label.
-            try {
-                WebElement typeButton = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND label BEGINSWITH 'Connection Type'"));
-                typeButton.click();
-                sleep(300);  // Native menu animation
-                System.out.println("✓ Tapped on Connection Type button");
-                return true;
-            } catch (Exception e1) {}
+            // "Connection Type, Select type". We must tap the Button, never the
+            // bare label. v1.43 may also render the control as XCUIElementTypeOther
+            // (SwiftUI menu). All probes are 0-implicit-wait so misses are free.
 
-            // Strategy 2: Look for button containing "Select type"
-            try {
-                WebElement typeButton = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND label CONTAINS 'Select type'"));
-                typeButton.click();
-                sleep(300);
-                System.out.println("✓ Tapped on Select type button");
-                return true;
-            } catch (Exception e2) {}
+            // Strategy 1: Button whose label starts with / contains "Connection Type".
+            WebElement byTitle = findFirstNow(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeOther') AND " +
+                "(label BEGINSWITH[c] 'connection type' OR label CONTAINS[c] 'connection type' OR " +
+                "name CONTAINS[c] 'connection type')"));
+            if (byTitle != null) {
+                try {
+                    byTitle.click();
+                    sleep(300);  // Native menu animation
+                    System.out.println("✓ Tapped on Connection Type button (title)");
+                    return true;
+                } catch (Exception ignored) {}
+            }
 
-            // Strategy 3: Look by name attribute (button only)
-            try {
-                WebElement typeField = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "(name CONTAINS 'type' OR name CONTAINS 'Type') AND type == 'XCUIElementTypeButton'"));
-                typeField.click();
-                sleep(300);
-                System.out.println("✓ Tapped on Connection Type button (by name)");
-                return true;
-            } catch (Exception e3) {}
+            // Strategy 2: Button containing the "Select type" placeholder.
+            WebElement byPlaceholder = findFirstNow(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeOther') AND " +
+                "(label CONTAINS[c] 'select type' OR value CONTAINS[c] 'select type' OR " +
+                "name CONTAINS[c] 'select type')"));
+            if (byPlaceholder != null) {
+                try {
+                    byPlaceholder.click();
+                    sleep(300);
+                    System.out.println("✓ Tapped on Connection Type button (placeholder)");
+                    return true;
+                } catch (Exception ignored) {}
+            }
+
+            // Strategy 3: Button identified by name containing 'type'.
+            WebElement byName = findFirstNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND (name CONTAINS[c] 'type' OR label CONTAINS[c] 'type')"));
+            if (byName != null) {
+                try {
+                    byName.click();
+                    sleep(300);
+                    System.out.println("✓ Tapped on Connection Type button (by name)");
+                    return true;
+                } catch (Exception ignored) {}
+            }
 
             System.out.println("⚠️ Could not find Connection Type dropdown button");
             return false;
