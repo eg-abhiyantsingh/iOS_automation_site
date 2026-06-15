@@ -4014,11 +4014,20 @@ public class IssuePage extends BasePage {
                 System.out.println("   Strategy 3: Subcategory label at Y=" + subcatY);
 
                 if (subcatY > 120) {
+                    // CRITICAL: do NOT include XCUIElementTypeOther in this whole-tree
+                    // scan. On the OSHA Issue-Details screen (previous-screen bleed-through)
+                    // matching 'Other' resolves a massive snapshot that blocks the full 90s
+                    // readTimeout — the budget can't interrupt a single in-flight command,
+                    // so multi-step OSHA tests still hit the 360s cap and wedge WDA
+                    // (run 27571754122: TC_ISS_131/133/134 still hung even after the 45s
+                    // budget bail fired). The scoring below already treats Other as a last
+                    // resort (+1000 penalty), so dropping it from this scan loses ~nothing —
+                    // real dropdowns are TextField/Button/ComboBox, and Strategy 4 (tap the
+                    // label) covers the custom-view case. This keeps the query fast.
                     List<WebElement> elements = withImplicitWait(0, () -> driver.findElements(
                         AppiumBy.iOSNsPredicateString(
                             "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeButton' OR " +
-                            "type == 'XCUIElementTypeTextView' OR type == 'XCUIElementTypeComboBox' OR " +
-                            "type == 'XCUIElementTypeOther')")));
+                            "type == 'XCUIElementTypeTextView' OR type == 'XCUIElementTypeComboBox')")));
 
                     // Score candidates: prefer text fields/buttons, closest below label
                     // EXCLUDE info icon buttons (label "Info") — they sit next to the label
