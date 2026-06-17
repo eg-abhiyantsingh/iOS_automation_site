@@ -9621,9 +9621,25 @@ public class AssetPage extends BasePage {
             } catch (Exception e) {
                 return null;
             }
+            // SCOPED query (perf fix, 2026-06-17): the old approach enumerated EVERY
+            // XCUIElementTypeButton and did ~5 getLocation/getSize/getAttribute round-trips
+            // PER button. On the bleed-through Edit DOM (front form + asset list behind)
+            // that is dozens of buttons × 5 HTTP calls ≈ 25s → hit the budget, the class
+            // change never completed (MOT_AST_03: stayed 'ATS', then the Motor subtype pick
+            // hung WDA to the 360s cap). Instead, ask WDA directly for ONLY the buttons whose
+            // label/name is a known asset class — the picker button's label IS the current
+            // class, and bleed-through list rows are NOT buttons-labelled-as-a-class. This
+            // returns ~1 element, so we iterate a handful, not the whole tree.
             WebElement best = null; int bestDy = Integer.MAX_VALUE;
             try {
-                for (WebElement b : driver.findElements(AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton'"))) {
+                StringBuilder inList = new StringBuilder();
+                for (String cls : ASSET_CLASSES) {
+                    if (inList.length() > 0) inList.append(", ");
+                    inList.append("'").append(cls).append("'");   // class names contain no single-quotes
+                }
+                String pred = "type == 'XCUIElementTypeButton' AND (label IN {" + inList
+                    + "} OR name IN {" + inList + "})";
+                for (WebElement b : driver.findElements(AppiumBy.iOSNsPredicateString(pred))) {
                     if (System.currentTimeMillis() >= deadline) {
                         System.out.println("   ⏱️ Asset-class picker-button scan hit "
                             + (PICKER_BUTTON_ENUM_BUDGET_MS / 1000) + "s budget — bailing");
@@ -9634,8 +9650,6 @@ public class AssetPage extends BasePage {
                         if (dy <= 0 || dy > 55) continue;                       // must be just below the label
                         if (Math.abs(b.getLocation().getX() - labelX) > 25) continue; // same x as the label
                         if (b.getSize().getWidth() < 150) continue;             // a full-width field button
-                        String lbl = cleanClassToken(b.getAttribute("label"), b.getAttribute("name"));
-                        if (lbl == null || !ASSET_CLASSES.contains(lbl)) continue; // single known class (no commas)
                         if (dy < bestDy) { best = b; bestDy = dy; }
                     } catch (Exception ignore) {}
                 }
