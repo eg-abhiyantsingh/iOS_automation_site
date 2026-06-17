@@ -138,7 +138,27 @@ public class TestDataApi {
 
     /** First SLD id in the user's list — deterministic fallback when no name given. */
     public String firstSldId() {
-        return extract(listSlds(), "id");
+        java.util.List<String> ids = accessibleSldIds();
+        if (!ids.isEmpty()) return ids.get(0);
+        return extract(listSlds(), "id");  // legacy fallback
+    }
+
+    /** SLD ids the current user can access, from /auth/v2/me's "accessible_sld_ids".
+     *  The legacy GET /users/{id}/slds returns [] for admin/RBAC accounts, so this is
+     *  the reliable source (confirmed live 2026-06-17). */
+    public java.util.List<String> accessibleSldIds() {
+        HttpResponse<String> resp = get("/auth/v2/me");
+        java.util.List<String> ids = new java.util.ArrayList<>();
+        if (resp.statusCode() / 100 != 2) return ids;
+        java.util.regex.Matcher block = java.util.regex.Pattern
+                .compile("\"accessible_sld_ids\"\\s*:\\s*\\[(.*?)\\]", java.util.regex.Pattern.DOTALL)
+                .matcher(resp.body());
+        if (block.find()) {
+            java.util.regex.Matcher id = java.util.regex.Pattern
+                    .compile("\"([0-9a-fA-F-]{36})\"").matcher(block.group(1));
+            while (id.find()) ids.add(id.group(1));
+        }
+        return ids;
     }
 
     /** Full SLD details JSON (GET /sld/v3/{id}) — nodes + issues; cached per id. */

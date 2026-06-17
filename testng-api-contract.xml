@@ -12,6 +12,7 @@
     <test name="Backend API Contract">
         <classes>
             <class name="com.egalvanic.api.ApiContractTest"/>
+            <class name="com.egalvanic.api.ApiDataContractTest"/>
         </classes>
     </test>
 </suite>
