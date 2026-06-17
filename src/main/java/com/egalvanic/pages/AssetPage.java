@@ -9502,12 +9502,24 @@ public class AssetPage extends BasePage {
     }
     
     /** Full set of selectable asset classes (matches the picker options). */
+    // Aligned to the LIVE backend's 43 class options (captured 2026-06-17 from the web
+    // app acme.qa.egalvanic.ai, same data model). The old set had a TYPO ("Lightning
+    // Controls" → real is "Lighting Controls") and was missing many classes (Battery,
+    // Busduct, Cable, Capacitor Bank, Motor Controller, Series/Shunt Reactor, Switch,
+    // Tie Breaker, VFD Panel, …). Since this set feeds the picker-button IN-predicate,
+    // a missing/misspelled class meant the picker button was never found → that class's
+    // change silently failed. Extra/legacy entries are harmless (just never match).
     private static final java.util.Set<String> ASSET_CLASSES = new java.util.HashSet<>(java.util.Arrays.asList(
-        "ATS", "Busway", "Capacitor", "Circuit Breaker", "DC Bus", "Default", "Disconnect Switch",
-        "Fuse", "Generator", "Junction Box", "Lightning Controls", "Load", "Loadcenter", "Load Center", "MCC",
-        "MCC Bucket", "Meter", "Motor", "Motor Starter", "None", "Other", "Other (OCP)", "Panelboard",
-        "PDU", "Reactor", "Rectifier", "Relay", "Switchboard", "Transformer", "Transformer (3-Winding)",
-        "UPS", "Utility", "VFD"));
+        // live (web-confirmed) 43:
+        "ATS", "Battery", "Busduct", "Busway", "Cable", "Capacitor", "Capacitor Bank",
+        "Circuit Breaker", "Default", "Disconnect Switch", "Fuse", "Generator", "Junction Box",
+        "Lighting Controls", "Load", "Loadcenter", "MCC", "MCC Bucket", "Meter", "Motor",
+        "Motor Controller", "Motor Starter", "Other", "Other (OCP)", "Panelboard", "PDU",
+        "QA_ATS1", "QANode", "Rectifier", "Relay", "Series Reactor", "Shunt Reactor", "Switch",
+        "Switchboard", "Test", "Tie Breaker", "Transformer", "Transformer (3-Winding)", "UPS",
+        "Utility", "VFD", "VFD Panel",
+        // legacy/defensive (kept in case a screen still renders these spellings):
+        "DC Bus", "Lightning Controls", "Load Center", "None", "Reactor"));
 
     /** Normalize a class name for matching: lower-case, spaces removed.
      *  Unifies the "Loadcenter" (code) vs "Load Center" (live picker) spelling. */
