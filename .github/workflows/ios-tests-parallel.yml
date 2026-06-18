@@ -3655,6 +3655,12 @@ jobs:
             MODULE=$(echo "$d" | awk -F'/' '{print $2}' | sed 's/-report$//')
             cp "$d" "consolidated-reports/detailed/${MODULE}_$(basename "$d")" 2>/dev/null || true
           done
+          # Merge every per-module detailed report into ONE self-contained HTML
+          # (sidebar module switcher + lazy iframes + inline screenshots).
+          python3 scripts/combine_detailed_reports.py \
+            consolidated-reports/detailed/ \
+            consolidated-reports/Combined_Detailed_Report.html \
+            || echo "⚠️ combined detailed report generation skipped"
           # Build an index.html hub linking the consolidated client report +
           # every per-module client and detailed report.
           {
@@ -3662,6 +3668,10 @@ jobs:
             echo "<style>body{font-family:-apple-system,Arial,sans-serif;margin:24px;line-height:1.5}h2{margin-top:22px}a{display:block;padding:3px 0}</style></head><body>"
             echo "<h1>eGalvanic iOS Automation — Consolidated Reports</h1>"
             echo "<p>Run ${{ github.run_id }} · branch ${{ github.ref_name }}</p>"
+            echo "<h2>Combined detailed report (all modules, one file)</h2>"
+            if [ -f consolidated-reports/Combined_Detailed_Report.html ]; then
+              echo "<a href='Combined_Detailed_Report.html'><b>Combined_Detailed_Report.html</b> (all modules + inline screenshots)</a>"
+            else echo "<p>(combined detailed report not generated)</p>"; fi
             echo "<h2>Client (consolidated)</h2>"
             if [ -f consolidated-reports/Consolidated_Client_Report.html ]; then
               echo "<a href='Consolidated_Client_Report.html'><b>Consolidated_Client_Report.html</b></a>"
@@ -3694,6 +3704,15 @@ jobs:
         with:
           name: consolidated-detailed-reports
           path: consolidated-reports/detailed/
+          retention-days: 30
+        continue-on-error: true
+
+      - name: Upload Combined Detailed Report (single file)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: combined-detailed-report
+          path: consolidated-reports/Combined_Detailed_Report.html
           retention-days: 30
         continue-on-error: true
 
