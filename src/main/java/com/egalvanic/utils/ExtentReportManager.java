@@ -2,7 +2,6 @@ package com.egalvanic.utils;
 
 import com.aventstack.extentreports.ExtentReports;
 import com.aventstack.extentreports.ExtentTest;
-import com.aventstack.extentreports.MediaEntityBuilder;
 import com.aventstack.extentreports.Status;
 import com.aventstack.extentreports.reporter.ExtentSparkReporter;
 import com.aventstack.extentreports.reporter.configuration.Theme;
@@ -253,17 +252,13 @@ public class ExtentReportManager {
 
         System.out.println("📋 Test created: " + moduleName + " > " + featureName + " > " + testName);
 
-        // Auto-screenshot the initial state at test creation. Attached
-        // inline via MediaEntityBuilder so the image renders directly
-        // below the "Initial state" log row, not as a separate chip at
-        // the top of the test card.
+        // Auto-screenshot the initial state at test creation. Embedded as an
+        // inline <img> data-URI (see inlineImgHtml) so the picture renders
+        // directly below the "Initial state" log row, not as a "base64 img" badge.
         if (!"false".equalsIgnoreCase(System.getProperty("screenshots.everyStep", "true"))) {
             try {
-                String base64 = ScreenshotUtil.getScreenshotAsBase64Compressed();
-                if (base64 != null) {
-                    detailed.log(Status.INFO, "📸 Initial state",
-                        MediaEntityBuilder.createScreenCaptureFromBase64String(base64).build());
-                }
+                detailed.log(Status.INFO,
+                    "📸 Initial state" + inlineImgHtml(ScreenshotUtil.getScreenshotAsBase64Compressed()));
             } catch (Exception ignored) {}
         }
     }
@@ -283,48 +278,42 @@ public class ExtentReportManager {
     }
 
     /**
+     * Build inline-image HTML for a base64 screenshot. ExtentReports' Spark theme
+     * renders MediaEntityBuilder screenshots as a clickable "base64 img" BADGE (not
+     * the picture). Embedding an <img> data-URI directly in the log message instead
+     * makes the screenshot render DIRECTLY inline (Spark renders HTML in log text).
+     * Click to open full-size. Returns "" when there's no usable screenshot.
+     */
+    private static String inlineImgHtml(String base64) {
+        if (base64 == null || base64.isEmpty()) return "";
+        // data-URI mime must match the bytes: getScreenshotAsBase64Compressed() is
+        // JPEG by default but falls back to PNG (which starts with the "iVBOR" sig).
+        String mime = base64.startsWith("iVBOR") ? "image/png" : "image/jpeg";
+        return "<div class=\"eg-shot\" style=\"margin-top:8px\">"
+            + "<img src=\"data:" + mime + ";base64," + base64 + "\""
+            + " style=\"max-width:480px;width:100%;border:1px solid #d0d0d0;border-radius:6px;cursor:zoom-in\""
+            + " loading=\"lazy\" onclick=\"window.open(this.src,'_blank')\"/></div>";
+    }
+
+    /**
      * Log step with screenshot (Detailed report only) - compressed JPEG for size.
-     *
-     * Uses MediaEntityBuilder so the screenshot is attached to THIS log
-     * row (renders inline below the message in the Details table) rather
-     * than to the test as a whole (which would put a separate "base64 img"
-     * chip at the top of the test card).
+     * The screenshot is embedded as an inline <img> so it renders DIRECTLY under the
+     * step message (not as a "base64 img" badge).
      */
     public static void logStepWithScreenshot(String step, String screenshotPath) {
         ExtentTest test = detailedTest.get();
         if (test == null) return;
-        String base64 = ScreenshotUtil.getScreenshotAsBase64Compressed();
-        if (base64 != null) {
-            try {
-                test.log(Status.INFO, step,
-                    MediaEntityBuilder.createScreenCaptureFromBase64String(base64).build());
-                return;
-            } catch (Exception e) {
-                System.out.println("⚠️ Inline screenshot attach failed: " + e.getMessage());
-            }
-        }
-        // Fallback: text-only log if screenshot couldn't be captured / attached
-        test.log(Status.INFO, step);
+        test.log(Status.INFO, step + inlineImgHtml(ScreenshotUtil.getScreenshotAsBase64Compressed()));
     }
 
     /**
      * Log step with Base64 screenshot directly - compressed JPEG for size.
-     * Same inline-attachment behaviour as logStepWithScreenshot.
+     * Same inline-image rendering as logStepWithScreenshot.
      */
     public static void logStepWithBase64Screenshot(String step) {
         ExtentTest test = detailedTest.get();
         if (test == null) return;
-        String base64 = ScreenshotUtil.getScreenshotAsBase64Compressed();
-        if (base64 != null) {
-            try {
-                test.log(Status.INFO, step,
-                    MediaEntityBuilder.createScreenCaptureFromBase64String(base64).build());
-                return;
-            } catch (Exception e) {
-                System.out.println("⚠️ Inline screenshot attach failed: " + e.getMessage());
-            }
-        }
-        test.log(Status.INFO, step);
+        test.log(Status.INFO, step + inlineImgHtml(ScreenshotUtil.getScreenshotAsBase64Compressed()));
     }
 
     /**
@@ -382,23 +371,10 @@ public class ExtentReportManager {
         // Detailed Report - Full details
         ExtentTest detailed = detailedTest.get();
         if (detailed != null) {
-            // Attach the failure screenshot INLINE with the FAIL log row
-            // (MediaEntityBuilder) so it renders directly under the
-            // assertion message rather than as a separate chip.
-            String base64 = ScreenshotUtil.getScreenshotAsBase64Compressed();
-            boolean attached = false;
-            if (base64 != null) {
-                try {
-                    detailed.log(Status.FAIL, "❌ " + message,
-                        MediaEntityBuilder.createScreenCaptureFromBase64String(base64).build());
-                    attached = true;
-                } catch (Exception e) {
-                    System.out.println("⚠️ Inline failure screenshot attach failed: " + e.getMessage());
-                }
-            }
-            if (!attached) {
-                detailed.log(Status.FAIL, "❌ " + message);
-            }
+            // Embed the failure screenshot INLINE (data-URI <img>) so it renders
+            // directly under the assertion message, not as a "base64 img" badge.
+            detailed.log(Status.FAIL,
+                "❌ " + message + inlineImgHtml(ScreenshotUtil.getScreenshotAsBase64Compressed()));
             if (throwable != null) {
                 detailed.log(Status.FAIL, throwable);
             }
