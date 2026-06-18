@@ -49,37 +49,41 @@ on:
           - release/stage
           - release/prod
       job_selection:
-        description: 'Which jobs to run'
+        description: 'Jobs to run — COMMA-SEPARATED, NO spaces (multi-select), or "all" for everything. Example: authentication-only,connections-only,api-contract  |  Tokens: smoke, authentication-only, site-selection-only, assets-p1-creation-edit-busway-capacitor-bug, assets-p2-cb-ds-fuse-generator-junctionbox, assets-p3-loadcenter-mcc-mccbucket-motor-other, assets-p4-ocp-panelboard-pdu-relay-swb-transformer, assets-p5-ups-utility-vfd-subtypes, assets-p6-subtypes-tasks-issues-connections-search, issues-p1-list-filter-search-creation-classchange, issues-p2-osha-thermal-severity-temperature-ultrasonic, issues-p3-ultrasonic-save-swipe-delete-sort-status-crud, location-only, connections-only, offline-only, sitevisit-only, sitevisit-phase1, sitevisit-phase2, sitevisit-phase3, workorder-planning-only, zp323-only, api-contract, rerun-failures'
         required: false
         default: 'all'
-        type: choice
-        options:
-          - 'all'
-          - 'smoke'
-          - 'authentication-only'
-          - 'site-selection-only'
-          - 'assets-p1-creation-edit-busway-capacitor-bug'
-          - 'assets-p2-cb-ds-fuse-generator-junctionbox'
-          - 'assets-p3-loadcenter-mcc-mccbucket-motor-other'
-          - 'assets-p4-ocp-panelboard-pdu-relay-swb-transformer'
-          - 'assets-p5-ups-utility-vfd-subtypes'
-          - 'assets-p6-subtypes-tasks-issues-connections-search'
-          - 'issues-p1-list-filter-search-creation-classchange'
-          - 'issues-p2-osha-thermal-severity-temperature-ultrasonic'
-          - 'issues-p3-ultrasonic-save-swipe-delete-sort-status-crud'
-          - 'location-only'
-          - 'connections-only'
-          - 'offline-only'
-          - 'sitevisit-only'
-          - 'sitevisit-phase1'
-          - 'sitevisit-phase2'
-          - 'sitevisit-phase3'
-          - 'zp323-only'
+        type: string
 
 # ============================================================
 # JOB 0: Build iOS App from Source
 # ============================================================
 jobs:
+  # API tests — pure HTTP, NO simulator/macOS. Select with 'api-contract'; also under 'all'.
+  api-contract-tests:
+    name: "API Contract + Data Integrity (no sim)"
+    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',all,') || contains(format(',{0},', github.event.inputs.job_selection), ',api-contract,') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+      - name: Run API contract + data-integrity tests
+        run: mvn -B -ntp test -DsuiteXmlFile=testng-api-contract.xml
+      - name: Upload API report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-contract-report
+          path: target/surefire-reports/
+          retention-days: 30
+        continue-on-error: true
+
   build-app:
     name: "Build App"
     runs-on: macos-15
@@ -308,7 +312,7 @@ jobs:
   smoke-tests:
     name: "Smoke - CRUD Tests (17 tests)"
     needs: [build-app]
-    if: github.event.inputs.job_selection == 'smoke'
+    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',smoke,') }}
     runs-on: macos-15
     timeout-minutes: 120
 
@@ -609,7 +613,7 @@ jobs:
   auth-tests:
     name: "Authentication (38 tests)"
     needs: [build-app]
-    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'authentication-only'
+    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',all,') || contains(format(',{0},', github.event.inputs.job_selection), ',authentication-only,') }}
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -859,7 +863,7 @@ jobs:
   site-tests:
     name: "Site Selection (52 tests)"
     needs: [build-app]
-    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'site-selection-only'
+    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',all,') || contains(format(',{0},', github.event.inputs.job_selection), ',site-selection-only,') }}
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -1112,7 +1116,7 @@ jobs:
   assets-part1:
     name: "Assets P1 - Creation + Edit + Busway + Capacitor + Bug (112 tests)"
     needs: [build-app]
-    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p1-creation-edit-busway-capacitor-bug'
+    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',all,') || contains(format(',{0},', github.event.inputs.job_selection), ',assets-p1-creation-edit-busway-capacitor-bug,') }}
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -1308,7 +1312,7 @@ jobs:
   assets-part2:
     name: "Assets P2 - CB + DS + Fuse + Generator + JunctionBox (108 tests)"
     needs: [build-app]
-    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p2-cb-ds-fuse-generator-junctionbox'
+    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',all,') || contains(format(',{0},', github.event.inputs.job_selection), ',assets-p2-cb-ds-fuse-generator-junctionbox,') }}
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -1500,7 +1504,7 @@ jobs:
   assets-part3:
     name: "Assets P3 - LoadCenter + MCC + MCC Bucket + Motor + Other (109 tests)"
     needs: [build-app]
-    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p3-loadcenter-mcc-mccbucket-motor-other'
+    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',all,') || contains(format(',{0},', github.event.inputs.job_selection), ',assets-p3-loadcenter-mcc-mccbucket-motor-other,') }}
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -1691,7 +1695,7 @@ jobs:
   assets-part4:
     name: "Assets P4 - OCP + Panelboard + PDU + Relay + SWB + Transformer (97 tests)"
     needs: [build-app]
-    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p4-ocp-panelboard-pdu-relay-swb-transformer'
+    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',all,') || contains(format(',{0},', github.event.inputs.job_selection), ',assets-p4-ocp-panelboard-pdu-relay-swb-transformer,') }}
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -1882,7 +1886,7 @@ jobs:
   assets-part5:
     name: "Assets P5 - UPS + Utility + VFD + Subtypes (112 tests)"
     needs: [build-app]
-    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p5-ups-utility-vfd-subtypes'
+    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',all,') || contains(format(',{0},', github.event.inputs.job_selection), ',assets-p5-ups-utility-vfd-subtypes,') }}
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -2076,7 +2080,7 @@ jobs:
   assets-part6:
     name: "Assets P6 - Subtypes + Tasks + Issues + Connections + Search (114 tests)"
     needs: [build-app]
-    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'assets-p6-subtypes-tasks-issues-connections-search'
+    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',all,') || contains(format(',{0},', github.event.inputs.job_selection), ',assets-p6-subtypes-tasks-issues-connections-search,') }}
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -2265,7 +2269,7 @@ jobs:
   issues-phase1:
     name: "Issues P1 - List + Filter + Search + Creation + ClassChange (119 tests)"
     needs: [build-app]
-    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'issues-p1-list-filter-search-creation-classchange'
+    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',all,') || contains(format(',{0},', github.event.inputs.job_selection), ',issues-p1-list-filter-search-creation-classchange,') }}
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -2454,7 +2458,7 @@ jobs:
   issues-phase2:
     name: "Issues P2 - OSHA + Thermal + Severity + Temperature + Ultrasonic (60 tests)"
     needs: [build-app]
-    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'issues-p2-osha-thermal-severity-temperature-ultrasonic'
+    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',all,') || contains(format(',{0},', github.event.inputs.job_selection), ',issues-p2-osha-thermal-severity-temperature-ultrasonic,') }}
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -2643,7 +2647,7 @@ jobs:
   issues-phase3:
     name: "Issues P3 - Ultrasonic Save + Swipe Delete + Sort + Status + CRUD (58 tests)"
     needs: [build-app]
-    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'issues-p3-ultrasonic-save-swipe-delete-sort-status-crud'
+    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',all,') || contains(format(',{0},', github.event.inputs.job_selection), ',issues-p3-ultrasonic-save-swipe-delete-sort-status-crud,') }}
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -2832,7 +2836,7 @@ jobs:
   location-tests:
     name: "Location (82 tests)"
     needs: [build-app]
-    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'location-only'
+    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',all,') || contains(format(',{0},', github.event.inputs.job_selection), ',location-only,') }}
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -3020,7 +3024,7 @@ jobs:
   connections-tests:
     name: "Connections (94 tests)"
     needs: [build-app]
-    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'connections-only'
+    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',all,') || contains(format(',{0},', github.event.inputs.job_selection), ',connections-only,') }}
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -3208,7 +3212,7 @@ jobs:
   offline-tests:
     name: "Offline (35 tests)"
     needs: [build-app]
-    if: github.event.inputs.job_selection == 'all' || github.event.inputs.job_selection == 'offline-only'
+    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',all,') || contains(format(',{0},', github.event.inputs.job_selection), ',offline-only,') }}
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -3396,12 +3400,7 @@ jobs:
   sitevisit-tests:
     name: "Site Visit / Work Orders"
     needs: [build-app]
-    if: >-
-      github.event.inputs.job_selection == 'all' ||
-      github.event.inputs.job_selection == 'sitevisit-only' ||
-      github.event.inputs.job_selection == 'sitevisit-phase1' ||
-      github.event.inputs.job_selection == 'sitevisit-phase2' ||
-      github.event.inputs.job_selection == 'sitevisit-phase3'
+    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',all,') || contains(format(',{0},', github.event.inputs.job_selection), ',sitevisit-only,') || contains(format(',{0},', github.event.inputs.job_selection), ',sitevisit-phase1,') || contains(format(',{0},', github.event.inputs.job_selection), ',sitevisit-phase2,') || contains(format(',{0},', github.event.inputs.job_selection), ',sitevisit-phase3,') }}
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -3598,9 +3597,7 @@ jobs:
   zp323-tests:
     name: "ZP-323 New Features (28 tests)"
     needs: [build-app]
-    if: >-
-      github.event.inputs.job_selection == 'all' ||
-      github.event.inputs.job_selection == 'zp323-only'
+    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',all,') || contains(format(',{0},', github.event.inputs.job_selection), ',zp323-only,') }}
     runs-on: macos-15
     timeout-minutes: 420
 
