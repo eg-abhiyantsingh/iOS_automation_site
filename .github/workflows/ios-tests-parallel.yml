@@ -83,7 +83,7 @@ on:
         default: false
         type: boolean
       run_api:
-        description: 'API tests — contract + data integrity (no simulator, ~30s)'
+        description: 'API contract + S3 bucket-policy drift (no simulator, ~1 min)'
         required: false
         default: false
         type: boolean
@@ -120,6 +120,51 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: api-contract-report
+          path: target/surefire-reports/
+          retention-days: 30
+        continue-on-error: true
+
+  # ========================================
+  # S3 Bucket Policy Drift (ZP-774) — pure AWS check, NO simulator/macOS.
+  # Verifies all 40 S3 bucket policies across 5 environments (dev/qa/staging/
+  # prod/bces-iq) against the version-controlled baselines/ JSON. Runs under the
+  # 'run_api' (no-simulator checks) toggle and 'run_all'. Same AWS-creds pattern
+  # as ios-tests-smoke.yml — needs repo secrets AWS_ACCESS_KEY_ID /
+  # AWS_SECRET_ACCESS_KEY (read-only cicd user). S3PolicyChecker uses the default
+  # credential chain when AWS_ACCESS_KEY_ID is set (no named profile needed).
+  # ========================================
+  s3-drift-tests:
+    name: "S3 Bucket Policy Drift (42 checks, no sim)"
+    if: ${{ inputs.run_all || inputs.run_api }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+      - name: Verify AWS Access
+        run: |
+          echo "Verifying AWS CLI access for S3 drift detection..."
+          aws sts get-caller-identity || { echo "❌ AWS credentials not configured. Add secrets: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY"; exit 1; }
+          echo "✅ AWS access verified"
+      - name: Run S3 bucket-policy drift tests (all 5 environments, 42 checks)
+        run: mvn -B -ntp test -DsuiteXmlFile=src/test/resources/smoke/testng-smoke-s3drift.xml
+      - name: Upload S3 drift report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: s3-drift-report
           path: target/surefire-reports/
           retention-days: 30
         continue-on-error: true
