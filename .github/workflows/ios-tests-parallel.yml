@@ -147,21 +147,32 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
           cache: 'maven'
+      # configure-aws-credentials self-verifies via STS and would HARD-FAIL the job on
+      # missing/expired creds. We don't want selecting S3 to break the whole run over an
+      # environment-creds issue, so tolerate it and gate the actual test on a real check below.
       - name: Configure AWS Credentials
+        id: aws_creds
+        continue-on-error: true
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-2
       - name: Verify AWS Access
+        id: aws_check
         run: |
-          echo "Verifying AWS CLI access for S3 drift detection..."
-          aws sts get-caller-identity || { echo "❌ AWS credentials not configured. Add secrets: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY"; exit 1; }
-          echo "✅ AWS access verified"
+          if aws sts get-caller-identity >/dev/null 2>&1; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+            echo "✅ AWS access verified"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=S3 drift skipped::AWS credentials missing/invalid — skipping S3 bucket-policy drift. Add valid read-only repo secrets AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY (cicd-devops user, us-east-2) to enable it."
+          fi
       - name: Run S3 bucket-policy drift tests (all 5 environments, 42 checks)
+        if: ${{ steps.aws_check.outputs.ok == 'true' }}
         run: mvn -B -ntp test -DsuiteXmlFile=src/test/resources/smoke/testng-smoke-s3drift.xml
       - name: Upload S3 drift report
-        if: always()
+        if: ${{ always() && steps.aws_check.outputs.ok == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: s3-drift-report
