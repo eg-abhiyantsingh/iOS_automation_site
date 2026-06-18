@@ -48,11 +48,51 @@ on:
           - release/qa
           - release/stage
           - release/prod
-      job_selection:
-        description: 'Jobs to run — COMMA-SEPARATED, NO spaces (multi-select), or "all" for everything. Example: authentication-only,connections-only,api-contract  |  Tokens: smoke, authentication-only, site-selection-only, assets-p1-creation-edit-busway-capacitor-bug, assets-p2-cb-ds-fuse-generator-junctionbox, assets-p3-loadcenter-mcc-mccbucket-motor-other, assets-p4-ocp-panelboard-pdu-relay-swb-transformer, assets-p5-ups-utility-vfd-subtypes, assets-p6-subtypes-tasks-issues-connections-search, issues-p1-list-filter-search-creation-classchange, issues-p2-osha-thermal-severity-temperature-ultrasonic, issues-p3-ultrasonic-save-swipe-delete-sort-status-crud, location-only, connections-only, offline-only, sitevisit-only, sitevisit-phase1, sitevisit-phase2, sitevisit-phase3, workorder-planning-only, zp323-only, api-contract, rerun-failures'
+      run_all:
+        description: '✅ Run ALL test suites (overrides the checkboxes below)'
         required: false
-        default: 'all'
-        type: string
+        default: false
+        type: boolean
+      run_smoke:
+        description: 'Smoke — quick CRUD sanity'
+        required: false
+        default: false
+        type: boolean
+      run_auth_site:
+        description: 'Auth + Site Selection (login, site selection)'
+        required: false
+        default: false
+        type: boolean
+      run_assets:
+        description: 'Assets — Parts 1–6 (creation, edit, subtypes, all classes)'
+        required: false
+        default: false
+        type: boolean
+      run_issues:
+        description: 'Issues — Phases 1–3 (list/filter/create, OSHA/Thermal, CRUD/status)'
+        required: false
+        default: false
+        type: boolean
+      run_connections_location:
+        description: 'Connections + Location'
+        required: false
+        default: false
+        type: boolean
+      run_sitevisit_workorders:
+        description: 'Site Visit (sitevisit phases)'
+        required: false
+        default: false
+        type: boolean
+      run_offline_zp323:
+        description: 'Offline + ZP-323'
+        required: false
+        default: false
+        type: boolean
+      run_api:
+        description: 'API tests — contract + data integrity (no simulator, ~30s)'
+        required: false
+        default: false
+        type: boolean
 
 # ============================================================
 # JOB 0: Build iOS App from Source
@@ -61,7 +101,7 @@ jobs:
   # API tests — pure HTTP, NO simulator/macOS. Select with 'api-contract'; also under 'all'.
   api-contract-tests:
     name: "API Contract + Data Integrity (no sim)"
-    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',all,') || contains(format(',{0},', github.event.inputs.job_selection), ',api-contract,') }}
+    if: ${{ inputs.run_all || inputs.run_api }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -312,7 +352,7 @@ jobs:
   smoke-tests:
     name: "Smoke - CRUD Tests (17 tests)"
     needs: [build-app]
-    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',smoke,') }}
+    if: ${{ inputs.run_all || inputs.run_smoke }}
     runs-on: macos-15
     timeout-minutes: 120
 
@@ -613,7 +653,7 @@ jobs:
   auth-tests:
     name: "Authentication (38 tests)"
     needs: [build-app]
-    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',all,') || contains(format(',{0},', github.event.inputs.job_selection), ',authentication-only,') }}
+    if: ${{ inputs.run_all || inputs.run_auth_site }}
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -863,7 +903,7 @@ jobs:
   site-tests:
     name: "Site Selection (52 tests)"
     needs: [build-app]
-    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',all,') || contains(format(',{0},', github.event.inputs.job_selection), ',site-selection-only,') }}
+    if: ${{ inputs.run_all || inputs.run_auth_site }}
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -1116,7 +1156,7 @@ jobs:
   assets-part1:
     name: "Assets P1 - Creation + Edit + Busway + Capacitor + Bug (112 tests)"
     needs: [build-app]
-    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',all,') || contains(format(',{0},', github.event.inputs.job_selection), ',assets-p1-creation-edit-busway-capacitor-bug,') }}
+    if: ${{ inputs.run_all || inputs.run_assets }}
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -1312,7 +1352,7 @@ jobs:
   assets-part2:
     name: "Assets P2 - CB + DS + Fuse + Generator + JunctionBox (108 tests)"
     needs: [build-app]
-    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',all,') || contains(format(',{0},', github.event.inputs.job_selection), ',assets-p2-cb-ds-fuse-generator-junctionbox,') }}
+    if: ${{ inputs.run_all || inputs.run_assets }}
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -1504,7 +1544,7 @@ jobs:
   assets-part3:
     name: "Assets P3 - LoadCenter + MCC + MCC Bucket + Motor + Other (109 tests)"
     needs: [build-app]
-    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',all,') || contains(format(',{0},', github.event.inputs.job_selection), ',assets-p3-loadcenter-mcc-mccbucket-motor-other,') }}
+    if: ${{ inputs.run_all || inputs.run_assets }}
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -1695,7 +1735,7 @@ jobs:
   assets-part4:
     name: "Assets P4 - OCP + Panelboard + PDU + Relay + SWB + Transformer (97 tests)"
     needs: [build-app]
-    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',all,') || contains(format(',{0},', github.event.inputs.job_selection), ',assets-p4-ocp-panelboard-pdu-relay-swb-transformer,') }}
+    if: ${{ inputs.run_all || inputs.run_assets }}
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -1886,7 +1926,7 @@ jobs:
   assets-part5:
     name: "Assets P5 - UPS + Utility + VFD + Subtypes (112 tests)"
     needs: [build-app]
-    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',all,') || contains(format(',{0},', github.event.inputs.job_selection), ',assets-p5-ups-utility-vfd-subtypes,') }}
+    if: ${{ inputs.run_all || inputs.run_assets }}
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -2080,7 +2120,7 @@ jobs:
   assets-part6:
     name: "Assets P6 - Subtypes + Tasks + Issues + Connections + Search (114 tests)"
     needs: [build-app]
-    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',all,') || contains(format(',{0},', github.event.inputs.job_selection), ',assets-p6-subtypes-tasks-issues-connections-search,') }}
+    if: ${{ inputs.run_all || inputs.run_assets }}
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -2269,7 +2309,7 @@ jobs:
   issues-phase1:
     name: "Issues P1 - List + Filter + Search + Creation + ClassChange (119 tests)"
     needs: [build-app]
-    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',all,') || contains(format(',{0},', github.event.inputs.job_selection), ',issues-p1-list-filter-search-creation-classchange,') }}
+    if: ${{ inputs.run_all || inputs.run_issues }}
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -2458,7 +2498,7 @@ jobs:
   issues-phase2:
     name: "Issues P2 - OSHA + Thermal + Severity + Temperature + Ultrasonic (60 tests)"
     needs: [build-app]
-    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',all,') || contains(format(',{0},', github.event.inputs.job_selection), ',issues-p2-osha-thermal-severity-temperature-ultrasonic,') }}
+    if: ${{ inputs.run_all || inputs.run_issues }}
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -2647,7 +2687,7 @@ jobs:
   issues-phase3:
     name: "Issues P3 - Ultrasonic Save + Swipe Delete + Sort + Status + CRUD (58 tests)"
     needs: [build-app]
-    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',all,') || contains(format(',{0},', github.event.inputs.job_selection), ',issues-p3-ultrasonic-save-swipe-delete-sort-status-crud,') }}
+    if: ${{ inputs.run_all || inputs.run_issues }}
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -2836,7 +2876,7 @@ jobs:
   location-tests:
     name: "Location (82 tests)"
     needs: [build-app]
-    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',all,') || contains(format(',{0},', github.event.inputs.job_selection), ',location-only,') }}
+    if: ${{ inputs.run_all || inputs.run_connections_location }}
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -3024,7 +3064,7 @@ jobs:
   connections-tests:
     name: "Connections (94 tests)"
     needs: [build-app]
-    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',all,') || contains(format(',{0},', github.event.inputs.job_selection), ',connections-only,') }}
+    if: ${{ inputs.run_all || inputs.run_connections_location }}
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -3212,7 +3252,7 @@ jobs:
   offline-tests:
     name: "Offline (35 tests)"
     needs: [build-app]
-    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',all,') || contains(format(',{0},', github.event.inputs.job_selection), ',offline-only,') }}
+    if: ${{ inputs.run_all || inputs.run_offline_zp323 }}
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -3400,7 +3440,7 @@ jobs:
   sitevisit-tests:
     name: "Site Visit / Work Orders"
     needs: [build-app]
-    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',all,') || contains(format(',{0},', github.event.inputs.job_selection), ',sitevisit-only,') || contains(format(',{0},', github.event.inputs.job_selection), ',sitevisit-phase1,') || contains(format(',{0},', github.event.inputs.job_selection), ',sitevisit-phase2,') || contains(format(',{0},', github.event.inputs.job_selection), ',sitevisit-phase3,') }}
+    if: ${{ inputs.run_all || inputs.run_sitevisit_workorders }}
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -3551,7 +3591,7 @@ jobs:
           BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
 
           # Select XML based on phase
-          SELECTION="${{ github.event.inputs.job_selection }}"
+          SELECTION="${{ inputs.run_all && 'ALL' || format('{0}{1}{2}{3}{4}{5}{6}{7}', inputs.run_smoke && 'smoke ' || '', inputs.run_auth_site && 'auth+site ' || '', inputs.run_assets && 'assets ' || '', inputs.run_issues && 'issues ' || '', inputs.run_connections_location && 'conn+loc ' || '', inputs.run_sitevisit_workorders && 'sitevisit ' || '', inputs.run_offline_zp323 && 'offline+zp323 ' || '', inputs.run_api && 'api ' || '') }}"
           case "$SELECTION" in
             sitevisit-phase1) XML="src/test/resources/parallel/testng-sitevisit-phase1.xml" ;;
             sitevisit-phase2) XML="src/test/resources/parallel/testng-sitevisit-phase2.xml" ;;
@@ -3597,7 +3637,7 @@ jobs:
   zp323-tests:
     name: "ZP-323 New Features (28 tests)"
     needs: [build-app]
-    if: ${{ contains(format(',{0},', github.event.inputs.job_selection), ',all,') || contains(format(',{0},', github.event.inputs.job_selection), ',zp323-only,') }}
+    if: ${{ inputs.run_all || inputs.run_offline_zp323 }}
     runs-on: macos-15
     timeout-minutes: 420
 
@@ -3790,7 +3830,7 @@ jobs:
       - name: Prepare Summary
         id: summary
         run: |
-          SELECTION="${{ github.event.inputs.job_selection }}"
+          SELECTION="${{ inputs.run_all && 'ALL' || format('{0}{1}{2}{3}{4}{5}{6}{7}', inputs.run_smoke && 'smoke ' || '', inputs.run_auth_site && 'auth+site ' || '', inputs.run_assets && 'assets ' || '', inputs.run_issues && 'issues ' || '', inputs.run_connections_location && 'conn+loc ' || '', inputs.run_sitevisit_workorders && 'sitevisit ' || '', inputs.run_offline_zp323 && 'offline+zp323 ' || '', inputs.run_api && 'api ' || '') }}"
           SMOKE="${{ needs.smoke-tests.result }}"
           AUTH="${{ needs.auth-tests.result }}"
           SITE="${{ needs.site-tests.result }}"
@@ -3916,7 +3956,7 @@ jobs:
               <div style="max-width: 800px; margin: 20px auto; padding: 0 20px;">
                 <table style="width: 100%; margin-bottom: 15px; font-size: 13px;">
                   <tr><td><b>Branch:</b> ${{ github.event.inputs.branch }}</td><td><b>Triggered by:</b> ${{ github.actor }}</td></tr>
-                  <tr><td><b>Selection:</b> ${{ github.event.inputs.job_selection }}</td><td><b>Run:</b> <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Details</a></td></tr>
+                  <tr><td><b>Selection:</b> ${{ inputs.run_all && 'ALL' || format('{0}{1}{2}{3}{4}{5}{6}{7}', inputs.run_smoke && 'smoke ' || '', inputs.run_auth_site && 'auth+site ' || '', inputs.run_assets && 'assets ' || '', inputs.run_issues && 'issues ' || '', inputs.run_connections_location && 'conn+loc ' || '', inputs.run_sitevisit_workorders && 'sitevisit ' || '', inputs.run_offline_zp323 && 'offline+zp323 ' || '', inputs.run_api && 'api ' || '') }}</td><td><b>Run:</b> <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Details</a></td></tr>
                 </table>
 
                 <table border="1" cellpadding="8" style="border-collapse: collapse; width: 100%; background: white; font-size: 13px;">
@@ -3995,7 +4035,7 @@ jobs:
 
       - name: Print Summary
         run: |
-          SELECTION="${{ github.event.inputs.job_selection }}"
+          SELECTION="${{ inputs.run_all && 'ALL' || format('{0}{1}{2}{3}{4}{5}{6}{7}', inputs.run_smoke && 'smoke ' || '', inputs.run_auth_site && 'auth+site ' || '', inputs.run_assets && 'assets ' || '', inputs.run_issues && 'issues ' || '', inputs.run_connections_location && 'conn+loc ' || '', inputs.run_sitevisit_workorders && 'sitevisit ' || '', inputs.run_offline_zp323 && 'offline+zp323 ' || '', inputs.run_api && 'api ' || '') }}"
           echo ""
           echo "╔══════════════════════════════════════════════════════════════════════════════╗"
           echo "║            DEVELOPER REPO - TEST SUITE COMPLETE                              ║"
