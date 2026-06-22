@@ -2903,6 +2903,15 @@ public final class Connections_Test extends BaseTest {
             logWarning("'Cable' option not found in visible options");
         }
 
+        // "DC Cable" is the 3rd live connection (edge) class (edge_classes API, 2026-06-22).
+        boolean hasDcCable = options.stream().anyMatch(o -> o.equalsIgnoreCase("DC Cable")
+            || o.toLowerCase().contains("dc cable"));
+        if (hasDcCable) {
+            logStep("✓ 'DC Cable' option found");
+        } else {
+            logWarning("'DC Cable' option not found in visible options (live edge class — may be off-screen)");
+        }
+
         if (hasSelectType) {
             logStep("✓ 'Select type' option found");
 
@@ -8311,13 +8320,26 @@ public final class Connections_Test extends BaseTest {
             logStep("  - " + l);
         }
 
-        // We require at least 1 edge property field to render after type selection.
-        // The exact field names depend on product spec for each type, so we don't
-        // hardcode specific labels here.
-        assertTrue(labels.size() >= 1,
-            "At least one edge property field should be displayed after selecting Connection Type 'Busway' " +
-            "(found " + labels.size() + " fields)");
-        logStep("✓ " + labels.size() + " edge property field(s) displayed for Busway");
+        // Verify the SPEC fields render (edge_classes API, 2026-06-22). This used to be a
+        // pass-anyway "labels.size() >= 1" check; now we verify Busway's OWN edge-property
+        // fields appear. Substring + case-insensitive match tolerates iOS label rendering
+        // (e.g. "Length (ft)"); ">= 2 of 7" is robust when the form renders but fails for real
+        // if no Busway fields appear.
+        int buswayFieldsFound = 0;
+        for (String expected : com.egalvanic.pages.ConnectionsPage.BUSWAY_EDGE_FIELDS) {
+            boolean present = labels.stream().anyMatch(l ->
+                l != null && l.toLowerCase().contains(expected.toLowerCase()));
+            logStep((present ? "  ✓ " : "  · missing: ") + expected);
+            if (present) buswayFieldsFound++;
+        }
+        logStep("Busway edge fields present: " + buswayFieldsFound + "/"
+            + com.egalvanic.pages.ConnectionsPage.BUSWAY_EDGE_FIELDS.size());
+        assertTrue(buswayFieldsFound >= 2,
+            "Busway's spec edge-property fields (Conductor Material, Length, Amperage of Busway, " +
+            "Wire Sizes) should render after selecting 'Busway' — found " + buswayFieldsFound +
+            " of " + com.egalvanic.pages.ConnectionsPage.BUSWAY_EDGE_FIELDS.size() +
+            " (labels=" + labels + ")");
+        logStep("✓ Busway edge-property fields verified per spec (" + buswayFieldsFound + " present)");
 
         logStepWithScreenshot("TC_CONN_099: Edge properties displayed for Busway");
 

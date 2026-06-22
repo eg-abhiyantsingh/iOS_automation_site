@@ -3607,6 +3607,24 @@ public class ConnectionsPage {
         }
     }
 
+    /** Live connection (edge) classes — the "Connection Type" dropdown options.
+     *  Source: GET /api/edge_classes/user/{id}, 2026-06-22. Live also returns junk
+     *  "DEVTOOL_TEST EdgeClass Updated" rows that the dropdown shows, so any count
+     *  check must be >= (never ==). */
+    public static final java.util.List<String> EXPECTED_CONNECTION_TYPES =
+        java.util.Arrays.asList("Busway", "Cable", "DC Cable");
+
+    /** Live Busway edge-class fields (edge_classes API, 2026-06-22). Substring-friendly
+     *  forms ("Length" not "Length (ft)") so they match the iOS label rendering. */
+    public static final java.util.List<String> BUSWAY_EDGE_FIELDS = java.util.Arrays.asList(
+        "Conductor Material", "Length", "Neutral Wire Size", "Amperage of Busway",
+        "Phase A Wire Size", "Phase B Wire Size", "Phase C Wire Size");
+
+    /** Live Cable edge-class fields (edge_classes API, 2026-06-22). */
+    public static final java.util.List<String> CABLE_EDGE_FIELDS = java.util.Arrays.asList(
+        "Conductors Description", "Parallel Sets", "Conductor Material", "Wire Size",
+        "Diameter", "Raceway Material", "Length", "Comments", "Notes");
+
     /**
      * Get list of Connection Type options from dropdown
      */
@@ -3617,7 +3635,8 @@ public class ConnectionsPage {
 
             // Cheap presence checks (0 implicit wait) for the known option values.
             // Match any element type — option rows are Cell/Button/Other in v1.43.
-            String[] knownTypes = {"Select type", "Busway", "Cable"};
+            // "DC Cable" added 2026-06-22 (live edge_classes API — was missing).
+            String[] knownTypes = {"Select type", "Busway", "Cable", "DC Cable"};
             for (String type : knownTypes) {
                 if (existsNow(AppiumBy.iOSNsPredicateString("label ==[c] '" + type + "'"))) {
                     options.add(type);
@@ -8854,9 +8873,11 @@ public class ConnectionsPage {
                 sectionY = header.getLocation().y;
             } catch (Exception ignored) {}
 
-            // Collect all StaticText labels visible on the screen below section header
-            java.util.List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText'"));
+            // Collect all StaticText labels visible on the screen below section header.
+            // implicit-wait 0: this whole-tree StaticText scan must not burn the 5s default
+            // on a heavy/bleed-through connection-edit DOM.
+            java.util.List<WebElement> texts = withImplicitWait(0, () -> driver.findElements(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText'")));
             for (WebElement t : texts) {
                 try {
                     int y = t.getLocation().y;
