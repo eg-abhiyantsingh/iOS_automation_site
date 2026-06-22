@@ -7582,23 +7582,27 @@ public class AssetPage extends BasePage {
      * Check if Core Attributes section is visible
      */
     public boolean isCoreAttributesSectionVisible() {
-        // First scroll down to find Core Attributes
+        // All probes run at implicit-wait 0: on a bleed-through Edit DOM (or a class like Loadcenter
+        // that lacks these fields), the old whole-tree CONTAINS finds burned the full 5s implicit
+        // wait per miss × 5 fields × 3 scrolls and wedged WDA (LC_EAD_02 6m0s hang). Same elements
+        // are matched — just no 5s burn per miss.
         for (int i = 0; i < 3; i++) {
             try {
-                List<WebElement> elements = driver.findElements(
+                List<WebElement> elements = withImplicitWait(0, () -> driver.findElements(
                     AppiumBy.iOSNsPredicateString("name CONTAINS 'Core Attributes' OR label CONTAINS 'Core Attributes'")
-                );
+                ));
                 if (!elements.isEmpty()) {
                     System.out.println("✅ Core Attributes section visible");
                     return true;
                 }
-                
+
                 // Also check for specific attribute fields
                 String[] attributeFields = {"Serial Number", "Phase", "Manufacturer", "Model"};
                 for (String field : attributeFields) {
-                    List<WebElement> fieldElements = driver.findElements(
-                        AppiumBy.iOSNsPredicateString("name CONTAINS '" + field + "' OR label CONTAINS '" + field + "'")
-                    );
+                    final String f = field;
+                    List<WebElement> fieldElements = withImplicitWait(0, () -> driver.findElements(
+                        AppiumBy.iOSNsPredicateString("name CONTAINS '" + f + "' OR label CONTAINS '" + f + "'")
+                    ));
                     if (!fieldElements.isEmpty()) {
                         System.out.println("✅ Core Attributes section visible (found " + field + ")");
                         return true;

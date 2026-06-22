@@ -5937,13 +5937,18 @@ public class IssuePage extends BasePage {
 
             // Select the new class — broad type filter for popover menu items
             boolean selected = false;
-            String typeFilter = "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' OR " +
+            final String typeFilter = "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' OR " +
                 "type == 'XCUIElementTypeMenuItem' OR type == 'XCUIElementTypeOther')";
-            for (int attempt = 1; attempt <= 2 && !selected; attempt++) {
+            // Wall-clock budget + implicit-wait-0 scans: on the bleed-through Issue-Details DOM these
+            // whole-tree predicates burned the full 5s implicit wait per miss and wedged WDA
+            // (TC_ISS_063..108 6m0s hangs). Budget converts a wedge into a fast, honest outcome.
+            final long classDeadline = System.currentTimeMillis() + SUBCAT_BUDGET_MS;
+            for (int attempt = 1; attempt <= 2 && !selected && System.currentTimeMillis() < classDeadline; attempt++) {
                 // Try exact match first
                 try {
-                    List<WebElement> options = driver.findElements(AppiumBy.iOSNsPredicateString(
-                        typeFilter + " AND label == '" + newClass + "'"));
+                    final String exactPred = typeFilter + " AND label == '" + newClass + "'";
+                    List<WebElement> options = withImplicitWait(0, () -> driver.findElements(
+                        AppiumBy.iOSNsPredicateString(exactPred)));
                     if (!options.isEmpty()) {
                         options.get(0).click();
                         sleep(300);
@@ -5959,8 +5964,9 @@ public class IssuePage extends BasePage {
                 // clicking a bleed-through row instead of the picker option was why
                 // changeIssueClassOnDetails silently failed to change the class.
                 try {
-                    List<WebElement> options = driver.findElements(AppiumBy.iOSNsPredicateString(
-                        typeFilter + " AND label CONTAINS[c] '" + newClass + "'"));
+                    final String containsPred = typeFilter + " AND label CONTAINS[c] '" + newClass + "'";
+                    List<WebElement> options = withImplicitWait(0, () -> driver.findElements(
+                        AppiumBy.iOSNsPredicateString(containsPred)));
                     for (WebElement opt : options) {
                         String l = opt.getAttribute("label");
                         if (l == null) continue;
