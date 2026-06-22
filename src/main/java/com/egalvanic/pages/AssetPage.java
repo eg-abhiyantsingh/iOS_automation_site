@@ -6244,59 +6244,29 @@ public class AssetPage extends BasePage {
         
         // Strategy 3: Find button with known subtype names
         System.out.println("   📌 Strategy 3: Looking for known subtype button names...");
-        String[] knownSubtypes = {
-            // Disconnect Switch subtypes
-            "Disconnect Switch (<= 1000V)",
-            "Disconnect Switch (> 1000V)",
-            "Fused Disconnect Switch (<= 1000V)",
-            "Fused Disconnect Switch (> 1000V)",
-            "Bolted-Pressure Switch (BPS)",
-            "Bypass-Isolation Switch (<= 1000V)",
-            "Bypass-Isolation Switch (> 1000V)",
-            "High-Pressure Contact Switch (HPC)",
-            "Load Interrupter Switch (LIS)",
-            "Molded-Case Switch (<= 1000V)",
-            "Molded-Case Switch (> 1000V)",
-            "Non-Fused Disconnect Switch (<= 1000V)",
-            "Non-Fused Disconnect Switch (> 1000V)",
-            "Safety Switch (<= 1000V)",
-            "Safety Switch (> 1000V)",
-            // Fuse subtypes
-            "Current-Limiting Fuse",
-            "Expulsion Fuse",
-            "High-Speed Fuse",
-            "Power Fuse",
-            // Circuit Breaker subtypes
-            "Air Circuit Breaker (ACB)",
-            "Insulated-Case Circuit Breaker (ICCB)",
-            "Low-Voltage Power Circuit Breaker (LVPCB)",
-            "Molded-Case Circuit Breaker (MCCB)",
-            "Miniature Circuit Breaker (MCB)",
-            "Vacuum Circuit Breaker",
-            "Oil Circuit Breaker",
-            "SF6 Circuit Breaker",
-            // Common
-            "None",
-            "Select asset subtype"
-        };
-        
-        // Use reduced implicit wait — 30+ subtypes × 5s default = 150s+ if none match
-        driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(500));
+        // Find the button whose name is a known LIVE subtype via ONE scoped IN-predicate over the
+        // full live subtype set (LIVE_SUBTYPES; source: node_classes API / node_classes_template v14).
+        // Replaces the old 29-entry N×500ms loop (which was missing 58 live subtypes and fell through
+        // to the slow whole-tree Strategy 4). Single query at implicit-wait 0 — mirrors the proven
+        // class-picker IN-predicate fix, so it stays fast even on bleed-through DOMs.
+        driver.manage().timeouts().implicitlyWait(java.time.Duration.ZERO);
         try {
-            for (String subtype : knownSubtypes) {
+            StringBuilder inList = new StringBuilder();
+            for (String s : LIVE_SUBTYPES) {
+                if (inList.length() > 0) inList.append(", ");
+                inList.append("'").append(s.replace("'", "\\'")).append("'");
+            }
+            String pred = "type == 'XCUIElementTypeButton' AND name IN {" + inList + "}";
+            for (WebElement btn : driver.findElements(AppiumBy.iOSNsPredicateString(pred))) {
                 try {
-                    WebElement btn = driver.findElement(
-                        AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name == '" + subtype + "'")
-                    );
                     if (btn.isDisplayed()) {
-                        System.out.println("      ✓ Found known subtype: '" + subtype + "'");
+                        String nm = btn.getAttribute("name");
+                        System.out.println("      ✓ Found known subtype: '" + nm + "'");
                         btn.click();
                         System.out.println("   ✅ Clicked subtype button to open dropdown");
                         return;
                     }
-                } catch (Exception e) {
-                    // Subtype not found, continue to next
-                }
+                } catch (Exception ignore) {}
             }
             System.out.println("      ✗ No known subtype buttons found on screen");
         } finally {
@@ -9509,6 +9479,76 @@ public class AssetPage extends BasePage {
     // Tie Breaker, VFD Panel, …). Since this set feeds the picker-button IN-predicate,
     // a missing/misspelled class meant the picker button was never found → that class's
     // change silently failed. Extra/legacy entries are harmless (just never match).
+    /** Live asset SUBTYPES (source: node_classes API / node_classes_template v14, 2026-06-22).
+     *  Used by the subtype-dropdown open helper as a single scoped IN-predicate. */
+    private static final String[] LIVE_SUBTYPES = {
+        "Automatic Transfer Switch (<= 1000V)",
+        "Automatic Transfer Switch (> 1000V)",
+        "Battery Energy Storage System (ESS)",
+        "Bolted-Pressure Switch (BPS)",
+        "Branch Panel",
+        "Bypass-Isolation Switch (<= 1000V)",
+        "Bypass-Isolation Switch (> 1000V)",
+        "Control Panel",
+        "Disconnect Switch (<= 1000V)",
+        "Disconnect Switch (> 1000V)",
+        "Distribution Panelboard",
+        "Dry Transformer",
+        "Dry-Type Transformer (<= 600V)",
+        "Dry-Type Transformer (> 600V)",
+        "Electrical Vehicle Charging Station",
+        "Electromechanical Relay",
+        "Fuse (<= 1000V)",
+        "Fuse (> 1000V)",
+        "Fused Disconnect Switch (<= 1000V)",
+        "Fused Disconnect Switch (>1000V)",
+        "General Load",
+        "High-Pressure Contact Switch (HPC)",
+        "Hybrid UPS System",
+        "I don't node",
+        "Lithium-Ion",
+        "Load-Interruptor Switch",
+        "Low-Voltage Insulated Case Circuit Breaker",
+        "Low-Voltage Machine (<= 200hp)",
+        "Low-Voltage Machine (>200hp)",
+        "Low-Voltage Molded Case Circuit Breaker (<= 225A)",
+        "Low-Voltage Molded Case Circuit Breaker (> 225A)",
+        "Low-Voltage Power Circuit Breaker",
+        "Medium-Voltage Air Magnetic Circuit Breaker",
+        "Medium-Voltage Gas Insulated Circuit Breaker",
+        "Medium-Voltage Induction Machine",
+        "Medium-Voltage Oil Insulated Circuit Breaker",
+        "Medium-Voltage Synchronous Machine",
+        "Medium-Voltage Vacuum Circuit Breaker",
+        "Microprocessor Relay",
+        "Motor Circuit Protector",
+        "Motor Control Equipment (<= 1000V)",
+        "Motor Control Equipment (> 1000V)",
+        "Ni-Cad Battery",
+        "Oil-Filled Transformer",
+        "Panelboard",
+        "Power Factor Correction",
+        "Power Panel",
+        "Recloser (<= 1000V)",
+        "Recloser (> 1000V)",
+        "Resistive Load",
+        "Rotary UPS System",
+        "Scrubtype",
+        "Solar Photovoltaic System",
+        "Solid-State Relay",
+        "Static UPS System",
+        "Switchboard",
+        "Switchgear (<= 1000V)",
+        "Switchgear (> 1000V)",
+        "Transfer Switch (<= 1000V)",
+        "Transfer Switch (> 1000V)",
+        "Unitized Substation (USS) (<= 1000V)",
+        "Unitized Substation (USS) (> 1000V)",
+        "Valve-Regulated Lead-Acid Battery",
+        "Vented Lead-Acid Battery",
+        "Wind Power System"
+    };
+
     private static final java.util.Set<String> ASSET_CLASSES = new java.util.HashSet<>(java.util.Arrays.asList(
         // live (web-confirmed) 43:
         "ATS", "Battery", "Busduct", "Busway", "Cable", "Capacitor", "Capacitor Bank",

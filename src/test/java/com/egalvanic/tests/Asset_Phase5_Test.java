@@ -2793,8 +2793,8 @@ public class Asset_Phase5_Test extends BaseTest {
             shortWait();
 
             logStep("Verifying Circuit Breaker subtype options are displayed");
-            // Circuit Breaker subtypes: None, Low-Voltage Insulated Case, Low-Voltage Molded Case (≤250A),
-            // Low-Voltage Molded Case (>250A), Low-Voltage Power, Medium-Voltage subtypes
+            // Circuit Breaker subtypes: None, Low-Voltage Insulated Case, Low-Voltage Molded Case (≤225A),
+            // Low-Voltage Molded Case (>225A), Low-Voltage Power, Medium-Voltage subtypes
             boolean optionsDisplayed = assetPage.isSubtypeDropdownDisplayed();
             logStep("Subtype dropdown displayed: " + optionsDisplayed);
 
@@ -2849,7 +2849,7 @@ public class Asset_Phase5_Test extends BaseTest {
     }
 
     // ============================================================
-    // TC-CB-ST-05 - Select Low-Voltage Molded Case Circuit Breaker (≤ 250A) (Yes)
+    // TC-CB-ST-05 - Select Low-Voltage Molded Case Circuit Breaker (≤ 225A) (Yes)
     // ============================================================
 
     @Test(priority = 67)
@@ -2857,7 +2857,7 @@ public class Asset_Phase5_Test extends BaseTest {
         ExtentReportManager.createTest(
             AppConstants.MODULE_ASSET,
             AppConstants.FEATURE_EDIT_ASSET,
-            "TC-CB-ST-05 - Select Low-Voltage Molded Case Circuit Breaker (≤ 250A)"
+            "TC-CB-ST-05 - Select Low-Voltage Molded Case Circuit Breaker (≤ 225A)"
         );
         try {
             logStep("Navigating to Circuit Breaker Edit Asset Details screen");
@@ -2871,8 +2871,8 @@ public class Asset_Phase5_Test extends BaseTest {
             assetPage.clickSelectAssetSubtype();
             shortWait();
 
-            logStep("Selecting Low-Voltage Molded Case Circuit Breaker (≤ 250A)");
-            assetPage.selectAssetSubtype("Low-Voltage Molded Case Circuit Breaker (≤ 250A)");
+            logStep("Selecting Low-Voltage Molded Case Circuit Breaker (≤ 225A)");
+            assetPage.selectAssetSubtype("Low-Voltage Molded Case Circuit Breaker (≤ 225A)");
             shortWait();
 
             logStep("Verifying selection is displayed correctly");
@@ -2881,7 +2881,7 @@ public class Asset_Phase5_Test extends BaseTest {
                 onEditScreen = assetPage.isSaveChangesButtonVisible();
             }
             assertTrue(onEditScreen, "Should be on edit screen after selecting subtype");
-            logStepWithScreenshot("Low-Voltage Molded Case Circuit Breaker (≤ 250A) selected successfully");
+            logStepWithScreenshot("Low-Voltage Molded Case Circuit Breaker (≤ 225A) selected successfully");
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
@@ -2889,7 +2889,7 @@ public class Asset_Phase5_Test extends BaseTest {
     }
 
     // ============================================================
-    // TC-CB-ST-06 - Select Low-Voltage Molded Case Circuit Breaker (> 250A) (Yes)
+    // TC-CB-ST-06 - Select Low-Voltage Molded Case Circuit Breaker (> 225A) (Yes)
     // ============================================================
 
     @Test(priority = 68)
@@ -2897,7 +2897,7 @@ public class Asset_Phase5_Test extends BaseTest {
         ExtentReportManager.createTest(
             AppConstants.MODULE_ASSET,
             AppConstants.FEATURE_EDIT_ASSET,
-            "TC-CB-ST-06 - Select Low-Voltage Molded Case Circuit Breaker (> 250A)"
+            "TC-CB-ST-06 - Select Low-Voltage Molded Case Circuit Breaker (> 225A)"
         );
         try {
             logStep("Navigating to Circuit Breaker Edit Asset Details screen");
@@ -2911,8 +2911,8 @@ public class Asset_Phase5_Test extends BaseTest {
             assetPage.clickSelectAssetSubtype();
             shortWait();
 
-            logStep("Selecting Low-Voltage Molded Case Circuit Breaker (> 250A)");
-            assetPage.selectAssetSubtype("Low-Voltage Molded Case Circuit Breaker (> 250A)");
+            logStep("Selecting Low-Voltage Molded Case Circuit Breaker (> 225A)");
+            assetPage.selectAssetSubtype("Low-Voltage Molded Case Circuit Breaker (> 225A)");
             shortWait();
 
             logStep("Verifying selection is displayed correctly");
@@ -2921,7 +2921,7 @@ public class Asset_Phase5_Test extends BaseTest {
                 onEditScreen = assetPage.isSaveChangesButtonVisible();
             }
             assertTrue(onEditScreen, "Should be on edit screen after selecting subtype");
-            logStepWithScreenshot("Low-Voltage Molded Case Circuit Breaker (> 250A) selected successfully");
+            logStepWithScreenshot("Low-Voltage Molded Case Circuit Breaker (> 225A) selected successfully");
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());
             throw e;
@@ -2993,8 +2993,8 @@ public class Asset_Phase5_Test extends BaseTest {
             shortWait();
 
             logStep("Selecting Medium-Voltage Circuit Breaker subtype");
-            // Try selecting Medium-Voltage Air Circuit Breaker or similar
-            assetPage.selectAssetSubtype("Medium-Voltage Air Circuit Breaker");
+            // Try selecting Medium-Voltage Air Magnetic Circuit Breaker or similar
+            assetPage.selectAssetSubtype("Medium-Voltage Air Magnetic Circuit Breaker");
             shortWait();
 
             logStep("Verifying selection is displayed correctly");
@@ -3088,9 +3088,9 @@ public class Asset_Phase5_Test extends BaseTest {
         String[] subtypes = {
             "Low-Voltage Power Circuit Breaker",
             "Low-Voltage Insulated Case Circuit Breaker",
-            "Low-Voltage Molded Case Circuit Breaker (≤ 250A)",
-            "Low-Voltage Molded Case Circuit Breaker (> 250A)",
-            "Medium-Voltage Air Circuit Breaker"
+            "Low-Voltage Molded Case Circuit Breaker (≤ 225A)",
+            "Low-Voltage Molded Case Circuit Breaker (> 225A)",
+            "Medium-Voltage Air Magnetic Circuit Breaker"
         };
         
         boolean saveButtonVisible = false;
@@ -3150,9 +3150,9 @@ public class Asset_Phase5_Test extends BaseTest {
         String[] subtypes = {
             "Low-Voltage Power Circuit Breaker",
             "Low-Voltage Insulated Case Circuit Breaker",
-            "Low-Voltage Molded Case Circuit Breaker (≤ 250A)",
-            "Low-Voltage Molded Case Circuit Breaker (> 250A)",
-            "Medium-Voltage Air Circuit Breaker"
+            "Low-Voltage Molded Case Circuit Breaker (≤ 225A)",
+            "Low-Voltage Molded Case Circuit Breaker (> 225A)",
+            "Medium-Voltage Air Magnetic Circuit Breaker"
         };
         
         boolean saveButtonVisible = false;
@@ -4016,10 +4016,10 @@ public class Asset_Phase5_Test extends BaseTest {
             assetPage.selectAssetSubtype("Fused Disconnect Switch (<= 1000V)");
             shortWait();
             logStep("First subtype selected: Fused Disconnect Switch (<= 1000V)");
-            logStep("Selecting Fused Disconnect Switch (> 1000V) - Second selection");
-            assetPage.selectAssetSubtype("Fused Disconnect Switch (> 1000V)");
+            logStep("Selecting Fused Disconnect Switch (>1000V) - Second selection");
+            assetPage.selectAssetSubtype("Fused Disconnect Switch (>1000V)");
             shortWait();
-            logStep("Second subtype selected: Fused Disconnect Switch (> 1000V)");
+            logStep("Second subtype selected: Fused Disconnect Switch (>1000V)");
             boolean onEditScreen = assetPage.isEditAssetScreenDisplayed();
             if (!onEditScreen) { onEditScreen = assetPage.isSaveChangesButtonVisible(); }
             assertTrue(onEditScreen, "Should be on edit screen after selecting subtypes");
