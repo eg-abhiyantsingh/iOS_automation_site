@@ -11417,7 +11417,9 @@ public class IssuePage extends BasePage {
             // and never matched the real options. Read the option BUTTONS, and skip
             // the issue-LIST rows that bleed through behind the form sheet — those
             // read like "NEC Violation on ATS 2" (contain " on " / a comma).
-            for (WebElement b : driver.findElements(io.appium.java_client.AppiumBy.className("XCUIElementTypeButton"))) {
+            List<WebElement> classBtns = withImplicitWait(0, () -> driver.findElements(
+                io.appium.java_client.AppiumBy.className("XCUIElementTypeButton")));
+            for (WebElement b : classBtns) {
                 try {
                     String l = b.getAttribute("label");
                     if (l == null || l.isEmpty()) l = b.getAttribute("name");
@@ -11432,7 +11434,9 @@ public class IssuePage extends BasePage {
             // Fallback: some builds may render options as StaticText — only if no
             // option buttons were found.
             if (out.isEmpty()) {
-                for (WebElement t : driver.findElements(io.appium.java_client.AppiumBy.className("XCUIElementTypeStaticText"))) {
+                List<WebElement> classTexts = withImplicitWait(0, () -> driver.findElements(
+                    io.appium.java_client.AppiumBy.className("XCUIElementTypeStaticText")));
+                for (WebElement t : classTexts) {
                     try {
                         String l = t.getAttribute("label");
                         if (l == null || l.isEmpty() || l.length() > 30) continue;

@@ -8172,6 +8172,10 @@ public class AssetPage extends BasePage {
         fillTextField(fieldName, value);
     }
 
+    /** Per-call wall-clock budget for the dropdown LOCATE loop. ~25s leaves headroom under the
+     *  per-test cap even when a test calls this 3× (LC_EAD_22 / MCC_EAD_20). */
+    private static final long DROPDOWN_BUDGET_MS = 25_000L;
+
     /**
      * Select dropdown option by field name and option value
      */
@@ -8200,6 +8204,11 @@ public class AssetPage extends BasePage {
         }
 
         boolean dropdownFound = false;
+        // Wall-clock budget: caps the locate loop so a wedge on a bleed-through Edit DOM (or a
+        // field absent on the class, e.g. Loadcenter Manufacturer/Voltage) becomes a fast fail,
+        // not a 6m hang (LC_EAD_16/20/22, MCC_EAD_20). The locate finds below also run at
+        // implicit-wait 0 so a miss costs ms, not the 5s default.
+        final long ddDeadline = System.currentTimeMillis() + DROPDOWN_BUDGET_MS;
 
         // STRATEGY 1: Use mobile:scroll to scroll the label into view (handles ANY distance)
         try {
@@ -8215,12 +8224,12 @@ public class AssetPage extends BasePage {
         }
 
         // Now find the label and the nearest button below it
-        for (int attempt = 0; attempt < 3 && !dropdownFound; attempt++) {
+        for (int attempt = 0; attempt < 3 && !dropdownFound && System.currentTimeMillis() < ddDeadline; attempt++) {
             try {
-                List<WebElement> labels = driver.findElements(
+                List<WebElement> labels = withImplicitWait(0, () -> driver.findElements(
                     AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText' AND " +
                         "(name CONTAINS[c] '" + fieldName + "' OR label CONTAINS[c] '" + fieldName + "')")
-                );
+                ));
 
                 if (!labels.isEmpty()) {
                     WebElement lbl = labels.get(0);
@@ -8228,9 +8237,9 @@ public class AssetPage extends BasePage {
                     System.out.println("   🔍 Label '" + fieldName + "' at Y=" + labelY);
 
                     if (nudgeIfBehindNavBar(labelY)) {
-                        labels = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        labels = withImplicitWait(0, () -> driver.findElements(AppiumBy.iOSNsPredicateString(
                             "type == 'XCUIElementTypeStaticText' AND " +
-                            "(name CONTAINS[c] '" + fieldName + "' OR label CONTAINS[c] '" + fieldName + "')"));
+                            "(name CONTAINS[c] '" + fieldName + "' OR label CONTAINS[c] '" + fieldName + "')")));
                         if (labels.isEmpty()) continue;
                         lbl = labels.get(0);
                         labelY = lbl.getLocation().getY();
@@ -8285,11 +8294,11 @@ public class AssetPage extends BasePage {
                     // e.g. "Trim067938, Room_xxx, ATS"). Manufacturer values like
                     // "Square D, Inc." (2 segments) are kept.
                     // ============================================================
-                    List<WebElement> allBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    List<WebElement> allBtns = withImplicitWait(0, () -> driver.findElements(AppiumBy.iOSNsPredicateString(
                         "type == 'XCUIElementTypeButton' OR " +
                         "(type == 'XCUIElementTypeStaticText' AND " +
                         "(name BEGINSWITH 'Select' OR label BEGINSWITH 'Select'))"
-                    ));
+                    )));
                     WebElement selectBtn = null;    // Priority 1: "Select..." trigger (unselected)
                     int selectDist = Integer.MAX_VALUE;
                     WebElement valueBtn = null;     // Priority 2: short-named non-breadcrumb (filled)
