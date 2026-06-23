@@ -8028,9 +8028,9 @@ public class AssetPage extends BasePage {
             
             // STRATEGY 1: Find TextField OR TextView by name/label containing fieldName
             try {
-                List<WebElement> inputFields = driver.findElements(
+                List<WebElement> inputFields = withImplicitWait(0, () -> driver.findElements(
                     AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeTextView'")
-                );
+                ));
                 for (WebElement field : inputFields) {
                     String name = field.getAttribute("name");
                     String placeholder = field.getAttribute("value");
@@ -8050,17 +8050,17 @@ public class AssetPage extends BasePage {
             // STRATEGY 2: Find label, then TextField or TextView below it
             try {
                 // Use CONTAINS[c] for case-insensitive matching (e.g., "voltage" or "Voltage")
-                List<WebElement> labels = driver.findElements(
+                List<WebElement> labels = withImplicitWait(0, () -> driver.findElements(
                     AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText' AND (name CONTAINS[c] '" + fieldName + "' OR label CONTAINS[c] '" + fieldName + "')")
-                );
-                
+                ));
+
                 if (!labels.isEmpty()) {
                     WebElement label = labels.get(0);
                     int labelY = label.getLocation().getY();
-                    
-                    List<WebElement> inputFields = driver.findElements(
+
+                    List<WebElement> inputFields = withImplicitWait(0, () -> driver.findElements(
                         AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeTextView'")
-                    );
+                    ));
                     for (WebElement tf : inputFields) {
                         int tfY = tf.getLocation().getY();
                         if (Math.abs(tfY - labelY) < 100) {
@@ -8131,16 +8131,16 @@ public class AssetPage extends BasePage {
         // ============================================================
         try {
             // Find label for this field
-            List<WebElement> labels = driver.findElements(AppiumBy.iOSNsPredicateString(
+            List<WebElement> labels = withImplicitWait(0, () -> driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND " +
-                "(name CONTAINS[c] '" + fieldName + "' OR label CONTAINS[c] '" + fieldName + "')"));
+                "(name CONTAINS[c] '" + fieldName + "' OR label CONTAINS[c] '" + fieldName + "')")));
             for (WebElement lbl : labels) {
                 int labelY = lbl.getLocation().getY();
                 if (labelY < 60 || labelY > 1900) continue;
                 // Look for Select... StaticText within 80px below label
-                List<WebElement> selects = driver.findElements(AppiumBy.iOSNsPredicateString(
+                List<WebElement> selects = withImplicitWait(0, () -> driver.findElements(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeStaticText' AND " +
-                    "(name BEGINSWITH 'Select' OR label BEGINSWITH 'Select')"));
+                    "(name BEGINSWITH 'Select' OR label BEGINSWITH 'Select')")));
                 for (WebElement s : selects) {
                     int sy = s.getLocation().getY();
                     if (sy >= labelY - 5 && sy <= labelY + 80) {
@@ -8151,7 +8151,8 @@ public class AssetPage extends BasePage {
                 }
             }
             // Legacy: button-based detection (for forms that still use Button-style dropdowns)
-            List<WebElement> buttons = driver.findElements(AppiumBy.className("XCUIElementTypeButton"));
+            List<WebElement> buttons = withImplicitWait(0, () -> driver.findElements(
+                AppiumBy.className("XCUIElementTypeButton")));
             for (WebElement btn : buttons) {
                 String name = btn.getAttribute("name");
                 String label = btn.getAttribute("label");
@@ -8399,12 +8400,12 @@ public class AssetPage extends BasePage {
 
         // Try contains match — strip unit suffixes like "V", "A", "kA"
         try {
-            String searchVal = optionValue.replaceAll("[VAva]+$", "").trim();
-            List<WebElement> options = driver.findElements(
+            final String searchVal = optionValue.replaceAll("[VAva]+$", "").trim();
+            List<WebElement> options = withImplicitWait(0, () -> driver.findElements(
                 AppiumBy.iOSNsPredicateString(
                     "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton') AND " +
                     "(name CONTAINS[c] '" + searchVal + "' OR label CONTAINS[c] '" + searchVal + "')")
-            );
+            ));
             System.out.println("   🔍 Contains search for '" + searchVal + "': found " + options.size() + " matches");
             for (WebElement opt : options) {
                 String optName = opt.getAttribute("name");
@@ -8418,10 +8419,10 @@ public class AssetPage extends BasePage {
         // Try clicking first real option in the dropdown (skip sheet/nav chrome)
         try {
             System.out.println("   🔍 Trying first available option...");
-            List<WebElement> allOptions = driver.findElements(
+            List<WebElement> allOptions = withImplicitWait(0, () -> driver.findElements(
                 AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeButton' AND name != 'Close' AND name != 'Back' AND name != 'Select...'")
-            );
+            ));
             for (WebElement opt : allOptions) {
                 int y = opt.getLocation().getY();
                 if (y <= 100 || y >= 800) continue;
@@ -10748,9 +10749,9 @@ public class AssetPage extends BasePage {
             
             // STRATEGY 3: Find label (case-insensitive), then find CLOSEST TextField/TextView BELOW it
             try {
-                List<WebElement> labels = driver.findElements(
+                List<WebElement> labels = withImplicitWait(0, () -> driver.findElements(
                     AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText' AND (name CONTAINS[c] '" + fieldName + "' OR label CONTAINS[c] '" + fieldName + "')")
-                );
+                ));
 
                 System.out.println("   🔍 Strategy 3: Found " + labels.size() + " labels matching '" + fieldName + "'");
 
@@ -10760,8 +10761,8 @@ public class AssetPage extends BasePage {
                     System.out.println("   🔍 Strategy 3: Label Y=" + labelY);
 
                     if (nudgeIfBehindNavBar(labelY)) {
-                        labels = driver.findElements(AppiumBy.iOSNsPredicateString(
-                            "type == 'XCUIElementTypeStaticText' AND (name CONTAINS[c] '" + fieldName + "' OR label CONTAINS[c] '" + fieldName + "')"));
+                        labels = withImplicitWait(0, () -> driver.findElements(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeStaticText' AND (name CONTAINS[c] '" + fieldName + "' OR label CONTAINS[c] '" + fieldName + "')")));
                         if (labels.isEmpty()) break;
                         label = labels.get(0);
                         labelY = label.getLocation().getY();
@@ -10769,9 +10770,9 @@ public class AssetPage extends BasePage {
                     }
 
                     // Find TextField OR TextView - must be BELOW or same row (not above!)
-                    List<WebElement> inputFields = driver.findElements(
+                    List<WebElement> inputFields = withImplicitWait(0, () -> driver.findElements(
                         AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeTextView'")
-                    );
+                    ));
 
                     System.out.println("   🔍 Strategy 3: " + inputFields.size() + " input fields on screen");
 
@@ -10812,21 +10813,21 @@ public class AssetPage extends BasePage {
             
             // STRATEGY 4: Find by partial match in label (case-insensitive)
             try {
-                String searchTerm = fieldName.replace("Serial Number", "").trim();
-                List<WebElement> labels = driver.findElements(
+                final String searchTerm = fieldName.replace("Serial Number", "").trim();
+                List<WebElement> labels = withImplicitWait(0, () -> driver.findElements(
                     AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText' AND name CONTAINS[c] '" + searchTerm + "'")
-                );
-                
+                ));
+
                 for (WebElement label : labels) {
                     String labelName = label.getAttribute("name");
                     if (labelName != null && labelName.toLowerCase().contains(searchTerm.toLowerCase())) {
                         int labelY = label.getLocation().getY();
                         
                         // Find CLOSEST field BELOW the label
-                        List<WebElement> inputFields = driver.findElements(
+                        List<WebElement> inputFields = withImplicitWait(0, () -> driver.findElements(
                             AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeTextView'")
-                        );
-                        
+                        ));
+
                         WebElement closestField = null;
                         int closestDistance = Integer.MAX_VALUE;
                         

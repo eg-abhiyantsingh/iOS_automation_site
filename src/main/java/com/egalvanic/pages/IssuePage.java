@@ -6027,6 +6027,9 @@ public class IssuePage extends BasePage {
      */
     public java.util.ArrayList<String> getVisibleSubcategoryOptions() {
         java.util.ArrayList<String> options = new java.util.ArrayList<>();
+        // Budget: this used to enumerate the whole bleed-through DOM and call getLocation()
+        // per element at an 800ms implicit wait — confirmed wedge (TC_ISS_114/119 6m timeouts).
+        final long subcatOptDeadline = System.currentTimeMillis() + SUBCAT_BUDGET_MS;
         try {
             // Note: After tapping the Subcategory 'Select...' button, a picker/popover
             // may open that covers the "Issue Details" nav bar. This is EXPECTED —
@@ -6035,7 +6038,7 @@ public class IssuePage extends BasePage {
 
             // Strategy 1: Look for menu items (popover/dropdown items)
             try {
-                driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
+                driver.manage().timeouts().implicitlyWait(java.time.Duration.ZERO);
                 try {
                     List<WebElement> menuItems = driver.findElements(AppiumBy.iOSNsPredicateString(
                         "type == 'XCUIElementTypeMenuItem' OR type == 'XCUIElementTypePickerWheel'"));
@@ -6107,8 +6110,9 @@ public class IssuePage extends BasePage {
             ));
 
             // Collect static texts and buttons that are likely subcategory options
-            // They should be in a dropdown area below the Subcategory field
-            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
+            // They should be in a dropdown area below the Subcategory field.
+            // implicit-wait 0 so a miss costs ms, not 800ms, on the heavy OSHA/NEC DOM.
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ZERO);
             List<WebElement> elements;
             try {
                 elements = driver.findElements(AppiumBy.iOSNsPredicateString(
@@ -6122,6 +6126,13 @@ public class IssuePage extends BasePage {
 
             final int baseY = subcatY;
             for (WebElement el : elements) {
+                // Stop enumerating if the per-call budget is spent — the getLocation() per
+                // element below is the wedge cost on a giant bleed-through tree.
+                if (System.currentTimeMillis() > subcatOptDeadline) {
+                    System.out.println("   ⏱ getVisibleSubcategoryOptions budget reached — returning "
+                        + options.size() + " options collected so far");
+                    break;
+                }
                 String label = el.getAttribute("label");
                 if (label == null || label.isEmpty()) continue;
 
