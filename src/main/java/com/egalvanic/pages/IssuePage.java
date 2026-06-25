@@ -4344,11 +4344,12 @@ public class IssuePage extends BasePage {
      * typically an XCUIElementTypeButton with the value text and an X clear button.
      */
     public String getSubcategoryValue() {
+        final long deadline = System.currentTimeMillis() + SUBCAT_BUDGET_MS;
         try {
             // First, find the "Subcategory" label to anchor our search
             int subcatY = -1;
-            List<WebElement> subcatLabels = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND (label == 'Subcategory' OR label BEGINSWITH 'Subcategory')"));
+            List<WebElement> subcatLabels = withImplicitWait(0, () -> driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND (label == 'Subcategory' OR label BEGINSWITH 'Subcategory')")));
             if (!subcatLabels.isEmpty()) {
                 subcatY = subcatLabels.get(0).getLocation().getY();
                 System.out.println("   Subcategory label at Y=" + subcatY);
@@ -4357,11 +4358,12 @@ public class IssuePage extends BasePage {
             // Strategy 1: Look for a button below "Subcategory" that shows the selected value
             // The selected chip is typically a button with the value text (long label, not "Select...")
             if (subcatY > 0) {
-                driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
+                driver.manage().timeouts().implicitlyWait(java.time.Duration.ZERO);
                 try {
                     List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
                         "type == 'XCUIElementTypeButton'"));
                     for (WebElement btn : buttons) {
+                        if (System.currentTimeMillis() > deadline) break;
                         int y = btn.getLocation().getY();
                         String label = btn.getAttribute("label");
                         if (y > subcatY && y < subcatY + 80 && label != null &&
@@ -4398,11 +4400,12 @@ public class IssuePage extends BasePage {
             // Strategy 3: Look for static text near "Subcategory" label
             // Filter out short labels like "All", "Open", etc. that come from other UI elements
             if (subcatY > 0) {
-                driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(800));
+                driver.manage().timeouts().implicitlyWait(java.time.Duration.ZERO);
                 try {
                     List<WebElement> allTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
                         "type == 'XCUIElementTypeStaticText'"));
                     for (WebElement text : allTexts) {
+                        if (System.currentTimeMillis() > deadline) break;
                         int y = text.getLocation().getY();
                         String label = text.getAttribute("label");
                         if (y > subcatY && y < subcatY + 60 && label != null &&
