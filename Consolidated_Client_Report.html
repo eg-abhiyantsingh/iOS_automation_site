@@ -3,252 +3,293 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>eGalvanic iOS Automation - Consolidated Test Report</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: #f5f6fa; color: #333; line-height: 1.5; }
-  .header { background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); color: #fff; padding: 28px 32px; }
-  .header h1 { font-size: 22px; font-weight: 600; letter-spacing: 0.3px; margin-bottom: 4px; }
-  .header .subtitle { font-size: 13px; color: #bdc3c7; }
-  .summary { display: flex; gap: 16px; padding: 24px 32px 8px; flex-wrap: wrap; }
-  .stat-card { flex: 1; min-width: 120px; padding: 18px 16px; border-radius: 10px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
-  .stat-card .number { font-size: 32px; font-weight: 700; line-height: 1.1; }
-  .stat-card .label { font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
-  .card-total  { background: #fff; border: 2px solid #e9ecef; } .card-total .number { color: #2c3e50; }
-  .card-passed { background: #d4edda; border: 2px solid #c3e6cb; } .card-passed .number { color: #155724; }
-  .card-failed { background: #f8d7da; border: 2px solid #f5c6cb; } .card-failed .number { color: #721c24; }
-  .card-rate   { background: #e7f1ff; border: 2px solid #cfe2ff; } .card-rate .number { color: #0b5394; }
-  .progress-wrap { padding: 8px 32px 16px; }
-  .progress-bar { height: 8px; border-radius: 4px; background: #e9ecef; overflow: hidden; display: flex; }
-  .progress-pass { background: #28a745; } .progress-fail { background: #dc3545; }
-  .progress-label { font-size: 13px; color: #666; margin-top: 6px; text-align: right; }
-  .note { margin: 0 32px 18px; font-size: 12px; color: #6a7280; background: #fbfcfd; border: 1px solid #eceff3; border-left: 3px solid #2c3e50; border-radius: 6px; padding: 10px 14px; }
-  .modules { padding: 0 32px 32px; }
-  .module { background: #fff; border-radius: 10px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); overflow: hidden; }
-  .module-header { padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; }
-  .module-header:hover { background: #fafbfc; }
-  .module-name { font-size: 15px; font-weight: 600; color: #2c3e50; }
-  .module-stats { display: flex; gap: 8px; align-items: center; }
-  .mini-badge { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 3px; }
-  .mini-pass { background: #d4edda; color: #155724; } .mini-fail { background: #f8d7da; color: #721c24; }
-  .module-all-pass { border-left: 4px solid #28a745; } .module-has-fail { border-left: 4px solid #dc3545; }
-  .test-list { border-top: 1px solid #f0f2f5; }
-  .test-row { padding: 9px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f8f9fa; font-size: 13px; }
-  .test-row:last-child { border-bottom: none; } .test-row:hover { background: #fafbfc; }
-  .test-name { color: #444; flex: 1; padding-right: 12px; }
-  .reason { color: #999; font-size: 11px; }
-  .badge { display: inline-block; padding: 3px 10px; border-radius: 3px; font-size: 11px; font-weight: 600; min-width: 56px; text-align: center; }
-  .badge-pass { background: #28a745; color: #fff; } .badge-fail { background: #dc3545; color: #fff; }
-  .toggle { transition: transform 0.2s; display: inline-block; margin-right: 8px; font-size: 12px; color: #999; }
-  .module.collapsed .test-list { display: none; } .module.collapsed .toggle { transform: rotate(-90deg); }
-  .footer { background: #fff; border-top: 1px solid #e9ecef; padding: 16px 32px; font-size: 11px; color: #999; text-align: center; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif; background:#f5f6fa; color:#333; line-height:1.5; }
+  .header { background:linear-gradient(135deg,#2c3e50 0%,#34495e 100%); color:#fff; padding:28px 32px; }
+  .header h1 { font-size:22px; font-weight:600; letter-spacing:.3px; margin-bottom:4px; }
+  .header .subtitle { font-size:13px; color:#bdc3c7; }
+  .summary { display:flex; gap:16px; padding:24px 32px 8px; flex-wrap:wrap; }
+  .stat-card { flex:1; min-width:120px; padding:18px 16px; border-radius:10px; text-align:center; box-shadow:0 2px 6px rgba(0,0,0,.06); }
+  .stat-card .number { font-size:32px; font-weight:700; line-height:1.1; }
+  .stat-card .label { font-size:12px; font-weight:500; text-transform:uppercase; letter-spacing:.5px; margin-top:4px; }
+  .card-total{background:#fff;border:2px solid #e9ecef} .card-total .number{color:#2c3e50}
+  .card-passed{background:#d4edda;border:2px solid #c3e6cb} .card-passed .number{color:#155724}
+  .card-failed{background:#f8d7da;border:2px solid #f5c6cb} .card-failed .number{color:#721c24}
+  .card-rate{background:#e7f1ff;border:2px solid #cfe2ff} .card-rate .number{color:#0b5394}
+  .progress-wrap { padding:8px 32px 16px; }
+  .progress-bar { height:8px; border-radius:4px; background:#e9ecef; overflow:hidden; display:flex; }
+  .progress-pass{background:#28a745} .progress-fail{background:#dc3545}
+  .progress-label { font-size:13px; color:#666; margin-top:6px; text-align:right; }
+  .note { margin:0 32px 18px; font-size:12px; color:#6a7280; background:#fbfcfd; border:1px solid #eceff3; border-left:3px solid #2c3e50; border-radius:6px; padding:10px 14px; }
+  .modules { padding:0 32px 32px; }
+  .module { background:#fff; border-radius:10px; margin-bottom:14px; box-shadow:0 1px 4px rgba(0,0,0,.06); overflow:hidden; }
+  .module-header { padding:14px 20px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; user-select:none; }
+  .module-header:hover { background:#fafbfc; }
+  .module-name { font-size:15px; font-weight:600; color:#2c3e50; }
+  .module-stats { display:flex; gap:8px; align-items:center; }
+  .mini-badge { font-size:11px; font-weight:600; padding:3px 8px; border-radius:3px; }
+  .mini-pass{background:#d4edda;color:#155724} .mini-fail{background:#f8d7da;color:#721c24}
+  .module-all-pass{border-left:4px solid #28a745} .module-has-fail{border-left:4px solid #dc3545}
+  .test-list { border-top:1px solid #f0f2f5; }
+  .test-row { padding:9px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #f8f9fa; font-size:13px; }
+  .test-row:last-child{border-bottom:none} .test-row:hover{background:#fafbfc}
+  .test-name { color:#444; flex:1; padding-right:12px; }
+  .reason { color:#999; font-size:11px; }
+  .badge { display:inline-block; padding:3px 10px; border-radius:3px; font-size:11px; font-weight:600; min-width:48px; text-align:center; }
+  .badge-pass{background:#28a745;color:#fff} .badge-fail{background:#dc3545;color:#fff}
+  .toggle { transition:transform .2s; display:inline-block; margin-right:8px; font-size:12px; color:#999; }
+  .module.collapsed .test-list{display:none} .module.collapsed .toggle{transform:rotate(-90deg)}
+  .footer { background:#fff; border-top:1px solid #e9ecef; padding:16px 32px; font-size:11px; color:#999; text-align:center; }
 </style></head>
 <body>
   <div class="header">
     <h1>eGalvanic iOS Automation — Consolidated Test Report</h1>
-    <div class="subtitle">Product-impacting results · Z-Platform iOS</div>
+    <div class="subtitle">Z-Platform iOS · applicable test cases (environment skips excluded)</div>
   </div>
   <div class="summary">
-    <div class="stat-card card-total"><div class="number">424</div><div class="label">Total Tests</div></div>
-    <div class="stat-card card-passed"><div class="number">419</div><div class="label">Passed</div></div>
-    <div class="stat-card card-failed"><div class="number">5</div><div class="label">Failed</div></div>
-    <div class="stat-card card-rate"><div class="number">98.8%</div><div class="label">Pass Rate</div></div>
+    <div class="stat-card card-total"><div class="number">517</div><div class="label">Total Tests</div></div>
+    <div class="stat-card card-passed"><div class="number">388</div><div class="label">Passed</div></div>
+    <div class="stat-card card-failed"><div class="number">129</div><div class="label">Failed</div></div>
+    <div class="stat-card card-rate"><div class="number">75.0%</div><div class="label">Pass Rate</div></div>
   </div>
   <div class="progress-wrap">
     <div class="progress-bar">
-      <div class="progress-pass" style="width:98.8%"></div>
-      <div class="progress-fail" style="width:1.2%"></div>
+      <div class="progress-pass" style="width:75.0%"></div>
+      <div class="progress-fail" style="width:25.0%"></div>
     </div>
-    <div class="progress-label">98.8% pass rate</div>
+    <div class="progress-label">75.0% pass rate</div>
   </div>
-  <div class="note">Product-impacting view. Excludes environment skips and test-automation (harness) failures that are
-  not product defects and are under active remediation. The remaining failures are genuine product/performance findings
-  recommended for developer review.</div>
+  <div class="note">Scope: all applicable iOS test cases with environment skips removed. The Connections module
+  (feature not enabled in this build) is excluded as not-applicable. Offline &amp; Multi-Site Sync failures are
+  confirmed product data-integrity findings; remaining failures are under triage and remediation.</div>
   <div class="modules">
-  <div class="module module-all-pass collapsed" onclick="this.classList.toggle('collapsed')">
+  <div class="module module-has-fail " onclick="this.classList.toggle('collapsed')">
     <div class="module-header">
       <div class="module-name"><span class="toggle">&#9660;</span>Authentication</div>
-      <div class="module-stats"><span class="mini-badge mini-pass">44 passed</span></div>
+      <div class="module-stats"><span class="mini-badge mini-pass">44 passed</span><span class="mini-badge mini-fail">4 failed</span></div>
     </div>
     <div class="test-list">
-      <div class="test-row">
-        <span class="test-name">44 checks passed</span>
-        <span class="badge badge-pass">PASS</span>
-      </div>
+      <div class="test-row"><span class="test-name">TC26_verifyEmailFieldClears</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC35_verifyUserCanAccessDashboardAfterLogin <span class="reason">— session</span></span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC37_verifySessionSecurityAfterLogin <span class="reason">— session</span></span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_SEC_001_sqlInjectionInCompanyCodeIsRejected <span class="reason">— security probe</span></span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">44 checks passed</span><span class="badge badge-pass">PASS</span></div>
     </div>
   </div>
   <div class="module module-has-fail " onclick="this.classList.toggle('collapsed')">
     <div class="module-header">
       <div class="module-name"><span class="toggle">&#9660;</span>Site Selection</div>
-      <div class="module-stats"><span class="mini-badge mini-pass">42 passed</span><span class="mini-badge mini-fail">1 to review</span></div>
+      <div class="module-stats"><span class="mini-badge mini-pass">42 passed</span><span class="mini-badge mini-fail">2 failed</span></div>
     </div>
     <div class="test-list">
-      <div class="test-row">
-        <span class="test-name">TC_SS_039: Large site loads within reasonable time <span class="reason">— performance — confirm on production-size site</span></span>
-        <span class="badge badge-fail">REVIEW</span>
-      </div>
-      <div class="test-row">
-        <span class="test-name">42 checks passed</span>
-        <span class="badge badge-pass">PASS</span>
-      </div>
+      <div class="test-row"><span class="test-name">TC_SS_011_verifyClearingSearchShowsAllSites</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_SS_039_verifyLargeSiteLoadsWithinReasonableTime <span class="reason">— performance</span></span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">42 checks passed</span><span class="badge badge-pass">PASS</span></div>
     </div>
   </div>
-  <div class="module module-all-pass collapsed" onclick="this.classList.toggle('collapsed')">
+  <div class="module module-has-fail " onclick="this.classList.toggle('collapsed')">
     <div class="module-header">
-      <div class="module-name"><span class="toggle">&#9660;</span>Assets – Part 2</div>
-      <div class="module-stats"><span class="mini-badge mini-pass">27 passed</span></div>
+      <div class="module-name"><span class="toggle">&#9660;</span>Assets – Part 2 (Circuit Breaker)</div>
+      <div class="module-stats"><span class="mini-badge mini-pass">27 passed</span><span class="mini-badge mini-fail">15 failed</span></div>
     </div>
     <div class="test-list">
-      <div class="test-row">
-        <span class="test-name">27 checks passed</span>
-        <span class="badge badge-pass">PASS</span>
-      </div>
+      <div class="test-row"><span class="test-name">CB_EAD_01_verifyEditScreenOpensForCircuitBreaker</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">CB_EAD_12_editInterruptingRating</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">CB_EAD_13_editManufacturer</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">CB_EAD_14_editModel</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">CB_EAD_15_editVoltage</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">CB_EAD_18_saveWithNoRequiredFields</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">CB_EAD_19_saveWithPartialRequiredFields</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">CB_EAD_20_saveWithAllRequiredFields</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">CB_EAD_23_indicatorsDoNotBlockSave</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">CB_EAD_24_cancelEditOperation</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">+5 additional failures in this module</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">27 checks passed</span><span class="badge badge-pass">PASS</span></div>
     </div>
   </div>
-  <div class="module module-all-pass collapsed" onclick="this.classList.toggle('collapsed')">
+  <div class="module module-has-fail " onclick="this.classList.toggle('collapsed')">
     <div class="module-header">
-      <div class="module-name"><span class="toggle">&#9660;</span>Assets – Part 3</div>
-      <div class="module-stats"><span class="mini-badge mini-pass">86 passed</span></div>
+      <div class="module-name"><span class="toggle">&#9660;</span>Assets – Part 3 (Loadcenter/MCC)</div>
+      <div class="module-stats"><span class="mini-badge mini-pass">86 passed</span><span class="mini-badge mini-fail">11 failed</span></div>
     </div>
     <div class="test-list">
-      <div class="test-row">
-        <span class="test-name">86 checks passed</span>
-        <span class="badge badge-pass">PASS</span>
-      </div>
+      <div class="test-row"><span class="test-name">LC_EAD_02_verifyCoreAttributesSection</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">LC_EAD_05_verifyRequiredFieldsCount</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">LC_EAD_16_editManufacturer</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">LC_EAD_19_editSize</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">LC_EAD_20_editVoltage</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">LC_EAD_22_saveWithPartialRequiredFields</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">LC_EAD_23_saveWithAllRequiredFieldsFilled</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">MCC_EAD_11_editCatalogNumber</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">MCC_EAD_20_saveWithPartialRequiredFields</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">MCC_EAD_21_saveWithAllRequiredFieldsFilled</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">+1 additional failures in this module</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">86 checks passed</span><span class="badge badge-pass">PASS</span></div>
     </div>
   </div>
-  <div class="module module-all-pass collapsed" onclick="this.classList.toggle('collapsed')">
+  <div class="module module-has-fail " onclick="this.classList.toggle('collapsed')">
     <div class="module-header">
-      <div class="module-name"><span class="toggle">&#9660;</span>Assets – Part 4</div>
-      <div class="module-stats"><span class="mini-badge mini-pass">8 passed</span></div>
+      <div class="module-name"><span class="toggle">&#9660;</span>Assets – Part 4 (OCP/Other)</div>
+      <div class="module-stats"><span class="mini-badge mini-pass">8 passed</span><span class="mini-badge mini-fail">3 failed</span></div>
     </div>
     <div class="test-list">
-      <div class="test-row">
-        <span class="test-name">8 checks passed</span>
-        <span class="badge badge-pass">PASS</span>
-      </div>
+      <div class="test-row"><span class="test-name">OCP_EAD_01_openEditAssetDetailsScreen</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">OTHER_EAD_CA_10_saveWithPartialCoreAttributes</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">OTHER_EAD_CA_11_saveWithAllCoreAttributesFilled</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">8 checks passed</span><span class="badge badge-pass">PASS</span></div>
     </div>
   </div>
-  <div class="module module-all-pass collapsed" onclick="this.classList.toggle('collapsed')">
+  <div class="module module-has-fail " onclick="this.classList.toggle('collapsed')">
     <div class="module-header">
-      <div class="module-name"><span class="toggle">&#9660;</span>Assets – Part 6</div>
-      <div class="module-stats"><span class="mini-badge mini-pass">3 passed</span></div>
+      <div class="module-name"><span class="toggle">&#9660;</span>Assets – Part 6 (Subtypes)</div>
+      <div class="module-stats"><span class="mini-badge mini-pass">3 passed</span><span class="mini-badge mini-fail">14 failed</span></div>
     </div>
     <div class="test-list">
-      <div class="test-row">
-        <span class="test-name">3 checks passed</span>
-        <span class="badge badge-pass">PASS</span>
-      </div>
+      <div class="test-row"><span class="test-name">GEN_01_verifyCoreAttributesVisibleForGenerator</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">GEN_02_verifySavingGeneratorWithValidCoreAttributes</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">GEN_03_verifyGeneratorSaveWithOptionalFieldsEmpty</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">GEN_04_verifySubtypeNoneDoesNotImpactCoreAttributes</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">JB_AST_01_verifyAssetSubtypeShowsNoneForJunctionBox</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_FUSE_ST_01_verifyAssetSubtypeFieldVisibility</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_FUSE_ST_04_selectFuse1000VOrLess</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_FUSE_ST_05_selectFuseOver1000V</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_FUSE_ST_06_switchBetweenFuseSubtypes</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_DS_ST_16_verifySubtypeDoesNotAffectOtherFields</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">+4 additional failures in this module</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">3 checks passed</span><span class="badge badge-pass">PASS</span></div>
     </div>
   </div>
-  <div class="module module-all-pass collapsed" onclick="this.classList.toggle('collapsed')">
-    <div class="module-header">
-      <div class="module-name"><span class="toggle">&#9660;</span>Connections</div>
-      <div class="module-stats"><span class="mini-badge mini-pass">31 passed</span></div>
-    </div>
-    <div class="test-list">
-      <div class="test-row">
-        <span class="test-name">31 checks passed</span>
-        <span class="badge badge-pass">PASS</span>
-      </div>
-    </div>
-  </div>
-  <div class="module module-all-pass collapsed" onclick="this.classList.toggle('collapsed')">
+  <div class="module module-has-fail " onclick="this.classList.toggle('collapsed')">
     <div class="module-header">
       <div class="module-name"><span class="toggle">&#9660;</span>Issues – Phase 1</div>
-      <div class="module-stats"><span class="mini-badge mini-pass">32 passed</span></div>
+      <div class="module-stats"><span class="mini-badge mini-pass">32 passed</span><span class="mini-badge mini-fail">15 failed</span></div>
     </div>
     <div class="test-list">
-      <div class="test-row">
-        <span class="test-name">32 checks passed</span>
-        <span class="badge badge-pass">PASS</span>
-      </div>
+      <div class="test-row"><span class="test-name">TC_ISS_004_verifyOpenTabSelectedByDefault</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_ISS_006_verifyResolvedAndClosedTabFilters</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_ISS_015_verifySearchFiltersIssues</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_ISS_028_verifySelectingNECViolation</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_ISS_029_verifySelectingNFPA70BViolation</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_ISS_030_verifySelectingOSHAViolation</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_ISS_031_verifySelectingRepairNeeded</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_ISS_032_verifySelectingThermalAnomaly</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_ISS_033_verifySelectingUltrasonicAnomaly</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_ISS_038_verifySelectingHighPriority</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">+5 additional failures in this module</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">32 checks passed</span><span class="badge badge-pass">PASS</span></div>
     </div>
   </div>
-  <div class="module module-all-pass collapsed" onclick="this.classList.toggle('collapsed')">
+  <div class="module module-has-fail " onclick="this.classList.toggle('collapsed')">
     <div class="module-header">
-      <div class="module-name"><span class="toggle">&#9660;</span>Issues – Phase 2</div>
-      <div class="module-stats"><span class="mini-badge mini-pass">8 passed</span></div>
+      <div class="module-name"><span class="toggle">&#9660;</span>Issues – Phase 2 (OSHA/Thermal)</div>
+      <div class="module-stats"><span class="mini-badge mini-pass">8 passed</span><span class="mini-badge mini-fail">6 failed</span></div>
     </div>
     <div class="test-list">
-      <div class="test-row">
-        <span class="test-name">8 checks passed</span>
-        <span class="badge badge-pass">PASS</span>
-      </div>
+      <div class="test-row"><span class="test-name">TC_ISS_131_verifyWireExposedOption</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_ISS_133_verifyOSHASubcategorySearch</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_ISS_134_verifyOSHASubcategoriesDifferentFromNEC</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_ISS_135_verifyOSHASubcategoriesDifferentFromNFPA</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_ISS_136_verifyAllOSHASubcategoryCount</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_ISS_143_verifyRepairNeededDifferentFromViolationClasses</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">8 checks passed</span><span class="badge badge-pass">PASS</span></div>
     </div>
   </div>
-  <div class="module module-all-pass collapsed" onclick="this.classList.toggle('collapsed')">
+  <div class="module module-has-fail " onclick="this.classList.toggle('collapsed')">
     <div class="module-header">
-      <div class="module-name"><span class="toggle">&#9660;</span>Issues – Phase 3</div>
-      <div class="module-stats"><span class="mini-badge mini-pass">52 passed</span></div>
+      <div class="module-name"><span class="toggle">&#9660;</span>Issues – Phase 3 (Status/Swipe)</div>
+      <div class="module-stats"><span class="mini-badge mini-pass">52 passed</span><span class="mini-badge mini-fail">12 failed</span></div>
     </div>
     <div class="test-list">
-      <div class="test-row">
-        <span class="test-name">52 checks passed</span>
-        <span class="badge badge-pass">PASS</span>
-      </div>
+      <div class="test-row"><span class="test-name">TC_ISS_180_verifySaveChangesForUltrasonicAnomaly</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_ISS_183_verifyUltrasonicSimilarToRepairNeeded</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_ISS_189_verifyInProgressBadgeOnIssueEntry</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_ISS_190_verifyInProgressBadgeInDetailsHeader</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_ISS_197_verifyStatusInProgressToResolved</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_ISS_208_verifyOnlyOneSwipeAtATime</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_ISS_210_verifySwipeOnResolvedIssue</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_ISS_212_verifyIssueRemovedAfterSwipeDelete</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">+4 additional failures in this module</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">52 checks passed</span><span class="badge badge-pass">PASS</span></div>
     </div>
   </div>
   <div class="module module-has-fail " onclick="this.classList.toggle('collapsed')">
     <div class="module-header">
       <div class="module-name"><span class="toggle">&#9660;</span>Offline & Multi-Site Sync</div>
-      <div class="module-stats"><span class="mini-badge mini-pass">15 passed</span><span class="mini-badge mini-fail">4 to review</span></div>
+      <div class="module-stats"><span class="mini-badge mini-pass">15 passed</span><span class="mini-badge mini-fail">4 failed</span></div>
     </div>
     <div class="test-list">
-      <div class="test-row">
-        <span class="test-name">UC1: Single-user multi-site data integrity <span class="reason">— product data-integrity finding</span></span>
-        <span class="badge badge-fail">REVIEW</span>
-      </div>
-      <div class="test-row">
-        <span class="test-name">UC3: Multi-site data coexistence <span class="reason">— product data-integrity finding</span></span>
-        <span class="badge badge-fail">REVIEW</span>
-      </div>
-      <div class="test-row">
-        <span class="test-name">TC_E2E_001: Offline multi-field edit survives sync replay <span class="reason">— product data-integrity finding</span></span>
-        <span class="badge badge-fail">REVIEW</span>
-      </div>
-      <div class="test-row">
-        <span class="test-name">TC_E2E_002: Cross-site offline edits land on correct site <span class="reason">— product data-integrity finding</span></span>
-        <span class="badge badge-fail">REVIEW</span>
-      </div>
-      <div class="test-row">
-        <span class="test-name">15 checks passed</span>
-        <span class="badge badge-pass">PASS</span>
-      </div>
+      <div class="test-row"><span class="test-name">UC1_singleUserMultipleSites_dataIntegrity <span class="reason">— product data-integrity</span></span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">UC3_multiSiteDataCoexistence <span class="reason">— product data-integrity</span></span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_E2E_001_offlineMultiFieldEditSurvivesSyncReplay <span class="reason">— product data-integrity</span></span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_E2E_002_crossSiteOfflineEditsLandOnCorrectSite <span class="reason">— product data-integrity</span></span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">15 checks passed</span><span class="badge badge-pass">PASS</span></div>
     </div>
   </div>
-  <div class="module module-all-pass collapsed" onclick="this.classList.toggle('collapsed')">
+  <div class="module module-has-fail " onclick="this.classList.toggle('collapsed')">
     <div class="module-header">
       <div class="module-name"><span class="toggle">&#9660;</span>Site Visit – Phase 1</div>
-      <div class="module-stats"><span class="mini-badge mini-pass">69 passed</span></div>
+      <div class="module-stats"><span class="mini-badge mini-pass">69 passed</span><span class="mini-badge mini-fail">7 failed</span></div>
     </div>
     <div class="test-list">
-      <div class="test-row">
-        <span class="test-name">69 checks passed</span>
-        <span class="badge badge-pass">PASS</span>
-      </div>
+      <div class="test-row"><span class="test-name">TC_JOB_054_verifyBannerNotShownWithoutActiveSession</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_JOB_060_verifyCustomJobNameSaved</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_JOB_072_verifyQuickQRActionOptions</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_JOB_073_selectFullAssetQRAction</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_JOB_074_selectDataCollectionQRAction</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_JOB_075_selectIRPhotosQRAction</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_JOB_076_verifyLocationsTabShowsBuildings</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">69 checks passed</span><span class="badge badge-pass">PASS</span></div>
     </div>
   </div>
-  <div class="module module-all-pass collapsed" onclick="this.classList.toggle('collapsed')">
+  <div class="module module-has-fail " onclick="this.classList.toggle('collapsed')">
     <div class="module-header">
       <div class="module-name"><span class="toggle">&#9660;</span>Smoke</div>
-      <div class="module-stats"><span class="mini-badge mini-pass">1 passed</span></div>
+      <div class="module-stats"><span class="mini-badge mini-pass">1 passed</span><span class="mini-badge mini-fail">3 failed</span></div>
     </div>
     <div class="test-list">
-      <div class="test-row">
-        <span class="test-name">1 checks passed</span>
-        <span class="badge badge-pass">PASS</span>
-      </div>
+      <div class="test-row"><span class="test-name">TC_ISS_049_verifyIssueCreatedSuccessfully</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_ISS_050_verifyNewIssueAppearsInList</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_ISS_076_verifyConfirmDeleteRemovesIssue</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">1 checks passed</span><span class="badge badge-pass">PASS</span></div>
     </div>
   </div>
-  <div class="module module-all-pass collapsed" onclick="this.classList.toggle('collapsed')">
+  <div class="module module-has-fail " onclick="this.classList.toggle('collapsed')">
     <div class="module-header">
-      <div class="module-name"><span class="toggle">&#9660;</span>ZP-323 New Features</div>
-      <div class="module-stats"><span class="mini-badge mini-pass">1 passed</span></div>
+      <div class="module-name"><span class="toggle">&#9660;</span>Work Order Planning</div>
+      <div class="module-stats"><span class="mini-badge mini-pass">0 passed</span><span class="mini-badge mini-fail">15 failed</span></div>
     </div>
     <div class="test-list">
-      <div class="test-row">
-        <span class="test-name">1 checks passed</span>
-        <span class="badge badge-pass">PASS</span>
-      </div>
+      <div class="test-row"><span class="test-name">TC_WOP_001_verifyWorkOrdersScreenReachable</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_WOP_002_verifyCreatePlanScreenElements</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_WOP_003_createPlanWithCustomName</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_WOP_004_readPlanList</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_WOP_005_readPlanDetails</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_WOP_006_editPlanName</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_WOP_007_editPlanPhotoType</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_WOP_008_editPlanSchedule</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_WOP_009_deactivatePlan</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_WOP_010_searchIssuesWithinPlan</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">+5 additional failures in this module</span><span class="badge badge-fail">FAIL</span></div>
+    </div>
+  </div>
+  <div class="module module-has-fail " onclick="this.classList.toggle('collapsed')">
+    <div class="module-header">
+      <div class="module-name"><span class="toggle">&#9660;</span>ZP-323 New Features</div>
+      <div class="module-stats"><span class="mini-badge mini-pass">1 passed</span><span class="mini-badge mini-fail">18 failed</span></div>
+    </div>
+    <div class="test-list">
+      <div class="test-row"><span class="test-name">TC_ZP323_06_01_verifySuggestedShortcutsSectionVisibleOnEdit</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_ZP323_06_02_verifySuggestedShortcutsTappable</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_ZP323_06_03_verifyNoShortcutsPlaceholderForUnsupportedClass</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_ZP323_07_01_verifyCOMVisibleOnAssetDetails</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_ZP323_07_02_verifyCOMValueIsParseable</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_ZP323_07_03_verifyCOMConsistentAcrossNavigations</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_ZP323_10_01_verifyListenButtonPresentOnAsset</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_ZP323_10_02_verifyListenStateClearsAfterStop</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_ZP323_10_03_verifyListeningPersistsAcrossAssetNavigation</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_ZP323_11_01_verifyDetailedCreateFlowAccessible</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">+8 additional failures in this module</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">1 checks passed</span><span class="badge badge-pass">PASS</span></div>
     </div>
   </div>
   </div>
