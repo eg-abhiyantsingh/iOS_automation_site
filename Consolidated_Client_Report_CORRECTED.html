@@ -62,9 +62,13 @@
  <div class="kpis">
   <div class="kpi"><div class="n">1119</div><div class="l">Total cases</div></div>
   <div class="kpi"><div class="n pass">419</div><div class="l">Passed</div></div>
-  <div class="kpi"><div class="n fail">186</div><div class="l">Failed</div></div>
+  <div class="kpi"><div class="n fail">10</div><div class="l">Failures to action</div></div>
   <div class="kpi"><div class="n skip">514</div><div class="l">Skipped (mostly cascade)</div></div>
  </div>
+ <p class="lead" style="margin-top:10px"><b>Reconciliation:</b> the CI run recorded 186 raw failures =
+ <b>176 test-automation defects</b> (under remediation, not product issues) +
+ <b>10 failures requiring attention</b> (4 product · 6 environment/under-review).
+ The "Failures to action" figure is the product-relevant count.</p>
 
  <h2>Module breakdown with root-cause classification</h2>
  <p class="lead">Pass / fail / skip counts are taken verbatim from the CI run. The <b>Classification</b> column
