@@ -44,24 +44,23 @@
 <body>
   <div class="header">
     <h1>eGalvanic iOS Automation — Consolidated Test Report</h1>
-    <div class="subtitle">Z-Platform iOS · applicable test cases (environment skips excluded)</div>
+    <div class="subtitle">Z-Platform iOS · all applicable test cases (environment skips excluded)</div>
   </div>
   <div class="summary">
-    <div class="stat-card card-total"><div class="number">517</div><div class="label">Total Tests</div></div>
-    <div class="stat-card card-passed"><div class="number">388</div><div class="label">Passed</div></div>
-    <div class="stat-card card-failed"><div class="number">129</div><div class="label">Failed</div></div>
-    <div class="stat-card card-rate"><div class="number">75.0%</div><div class="label">Pass Rate</div></div>
+    <div class="stat-card card-total"><div class="number">605</div><div class="label">Total Tests</div></div>
+    <div class="stat-card card-passed"><div class="number">419</div><div class="label">Passed</div></div>
+    <div class="stat-card card-failed"><div class="number">186</div><div class="label">Failed</div></div>
+    <div class="stat-card card-rate"><div class="number">69.3%</div><div class="label">Pass Rate</div></div>
   </div>
   <div class="progress-wrap">
     <div class="progress-bar">
-      <div class="progress-pass" style="width:75.0%"></div>
-      <div class="progress-fail" style="width:25.0%"></div>
+      <div class="progress-pass" style="width:69.3%"></div>
+      <div class="progress-fail" style="width:30.7%"></div>
     </div>
-    <div class="progress-label">75.0% pass rate</div>
+    <div class="progress-label">69.3% pass rate</div>
   </div>
-  <div class="note">Scope: all applicable iOS test cases with environment skips removed. The Connections module
-  (feature not enabled in this build) is excluded as not-applicable. Offline &amp; Multi-Site Sync failures are
-  confirmed product data-integrity findings; remaining failures are under triage and remediation.</div>
+  <div class="note">Scope: all applicable iOS test cases with environment skips removed. Offline &amp; Multi-Site Sync
+  failures are confirmed product data-integrity findings; remaining failures are under triage and remediation.</div>
   <div class="modules">
   <div class="module module-has-fail " onclick="this.classList.toggle('collapsed')">
     <div class="module-header">
@@ -137,6 +136,26 @@
       <div class="test-row"><span class="test-name">OTHER_EAD_CA_10_saveWithPartialCoreAttributes</span><span class="badge badge-fail">FAIL</span></div>
       <div class="test-row"><span class="test-name">OTHER_EAD_CA_11_saveWithAllCoreAttributesFilled</span><span class="badge badge-fail">FAIL</span></div>
       <div class="test-row"><span class="test-name">8 checks passed</span><span class="badge badge-pass">PASS</span></div>
+    </div>
+  </div>
+  <div class="module module-has-fail " onclick="this.classList.toggle('collapsed')">
+    <div class="module-header">
+      <div class="module-name"><span class="toggle">&#9660;</span>Connections</div>
+      <div class="module-stats"><span class="mini-badge mini-pass">31 passed</span><span class="mini-badge mini-fail">57 failed</span></div>
+    </div>
+    <div class="test-list">
+      <div class="test-row"><span class="test-name">TC_CONN_003_verifySearchBarOnConnectionsScreen</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_CONN_008_verifyTappingMissingNodeConnection</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_CONN_009_verifySearchFiltersConnections</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_CONN_010_verifySearchIsCaseInsensitive</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_CONN_011_verifySearchNoResults</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_CONN_012_verifyClearingSearchShowsAllConnections</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_CONN_013_verifySearchByTargetNodeName</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_CONN_014_verifyAddButtonOpensNewConnectionScreen</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_CONN_015_verifyNewConnectionScreenUIElements</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">TC_CONN_016_verifyCreateButtonInitiallyDisabled</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">+47 additional failures in this module</span><span class="badge badge-fail">FAIL</span></div>
+      <div class="test-row"><span class="test-name">31 checks passed</span><span class="badge badge-pass">PASS</span></div>
     </div>
   </div>
   <div class="module module-has-fail " onclick="this.classList.toggle('collapsed')">
