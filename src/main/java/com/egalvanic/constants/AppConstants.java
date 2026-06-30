@@ -92,6 +92,20 @@ public class AppConstants {
     public static final boolean DEAD_SESSION_BREAKER = Boolean.parseBoolean(
         getEnv("DEAD_SESSION_BREAKER", "true"));
     public static final int DEAD_SESSION_BREAKER_N = getEnvInt("DEAD_SESSION_BREAKER_N", 5);
+    // WDA-hopeless fast-fail. Run 28246433532: 5 jobs CANCELLED at the 6h cap
+    // because, once WDA wedges/dies on a giant DOM, EVERY @BeforeMethod initDriver
+    // spends ~6 min rebuilding a WDA that never comes back (90s request timeout +
+    // useNewWDA rebuild + caller retry — proven: consecutive breaker-SKIPs were
+    // ~6 min apart). After this many CONSECUTIVE driver-init failures, DriverManager
+    // marks the run "WDA hopeless" and BaseTest skips remaining tests in ~0s; they
+    // land in failed-suites/ for the fresh-simulator rerun. Env/-D overridable.
+    public static final int WDA_HOPELESS_AFTER = getEnvInt("WDA_HOPELESS_AFTER", 4);
+    // Per-suite wall-clock backstop (minutes). A last-resort cap so a single module
+    // job can NEVER reach the 6h GitHub cap (which CANCELS the job and truncates the
+    // report). The breaker + WDA-hopeless triggers normally fire long before this;
+    // this only catches a slow-but-not-cascading suite. Kept well below the 360-min
+    // job cap and above a healthy heavy suite's runtime (~170 min). 0 = disabled.
+    public static final int SUITE_WALL_MINUTES = getEnvInt("SUITE_WALL_MINUTES", 240);
     // Asset class-change wall-clock budget (ms). The class-change path snapshots a
     // bleed-through Edit-screen DOM several times; on a busy CI runner each snapshot
     // can take up to CUSTOM_SNAPSHOT_TIMEOUT (10s), so a legitimate change runs

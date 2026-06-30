@@ -70,9 +70,46 @@ def download_run(run_id, dest):
                  "(expired after 7 days, or run still in progress?)")
 
 
-def collect_failures(results_dir):
-    """Return {fqcn: set(methods)} for methods that FAILED and did not later PASS."""
+# A SKIP whose message matches one of these was DENIED a fair run (the dead-session
+# circuit breaker, the RunHealth WDA-hopeless / suite-wall fast-skip, or a wedge/timeout
+# init failure). Those belong in the fresh-simulator rerun. A SKIP from a missing
+# precondition (skipIfPreconditionMissing / "CI skip:") would just skip again — exclude it.
+_CASCADE_SKIP_SIGNATURES = (
+    "circuit breaker", "RunHealth", "WDA", "hopeless", "wall-clock",
+    "Request timeout", "Could not start a new session", "dead Appium session",
+    "skipping the rest", "TimeoutException",
+)
+_PRECONDITION_SKIP_SIGNATURES = ("Precondition", "CI skip", "skipIfPrecondition")
+
+
+def _skip_message(tm):
+    """Best-effort skip message from a <test-method> (TestNG nests it under <exception>)."""
+    for path in ("exception/message", "full-stacktrace", "exception/full-stacktrace"):
+        txt = tm.findtext(path)
+        if txt:
+            return txt
+    return ""
+
+
+def _is_cascade_skip(msg):
+    if not msg:
+        return False
+    if any(sig in msg for sig in _PRECONDITION_SKIP_SIGNATURES):
+        return False
+    return any(sig in msg for sig in _CASCADE_SKIP_SIGNATURES)
+
+
+def collect_failures(results_dir, include_skips=False):
+    """Return {fqcn: set(methods)} for methods that need a rerun.
+
+    Always includes methods that FAILED and did not later PASS. With
+    ``include_skips=True`` it ALSO includes SKIP-only methods whose skip message shows
+    they were denied a fair run (breaker / WDA-hopeless / wall-clock / wedge timeout) —
+    NOT precondition skips. This is how the fresh-simulator rerun recovers the tests a
+    wedged runner fast-skipped (run 28246433532).
+    """
     status = defaultdict(lambda: defaultdict(set))  # fqcn -> method -> {statuses}
+    skip_msgs = defaultdict(dict)                    # fqcn -> method -> message
     xmls = glob.glob(os.path.join(results_dir, "**", "testng-results.xml"), recursive=True)
     print(f"  parsed {len(xmls)} testng-results.xml file(s)")
     for xml in xmls:
@@ -92,12 +129,20 @@ def collect_failures(results_dir):
                 st = tm.get("status")
                 if name and st:
                     status[fqcn][name].add(st)
+                    if st == "SKIP" and name not in skip_msgs[fqcn]:
+                        skip_msgs[fqcn][name] = _skip_message(tm)
     failures = defaultdict(set)
+    cascade_skips = 0
     for fqcn, methods in status.items():
         for method, sts in methods.items():
             # failed, and not a retry that eventually passed
             if "FAIL" in sts and "PASS" not in sts:
                 failures[fqcn].add(method)
+            elif include_skips and sts == {"SKIP"} and _is_cascade_skip(skip_msgs[fqcn].get(method, "")):
+                failures[fqcn].add(method)
+                cascade_skips += 1
+    if include_skips and cascade_skips:
+        print(f"  + {cascade_skips} cascade-skipped test(s) added for rerun (breaker / WDA-hopeless / wedge)")
     return failures
 
 
@@ -177,17 +222,20 @@ def main():
     ap.add_argument("--run", help="CI run id (default: latest completed)")
     ap.add_argument("--from", dest="src", help="parse a local results dir instead of fetching")
     ap.add_argument("--date", default=None, help="date label (default: today, ISO)")
+    ap.add_argument("--include-skips", action="store_true",
+                    help="also rerun cascade-skipped tests (breaker / WDA-hopeless / wedge), "
+                         "not precondition skips — used by the in-pipeline fresh-sim rerun")
     args = ap.parse_args()
     the_date = args.date or date.today().isoformat()
 
     if args.src:
         run_id = args.run or "local"
-        failures = collect_failures(args.src)
+        failures = collect_failures(args.src, include_skips=args.include_skips)
     else:
         run_id = args.run or latest_run_id()
         with tempfile.TemporaryDirectory() as tmp:
             download_run(run_id, tmp)
-            failures = collect_failures(tmp)
+            failures = collect_failures(tmp, include_skips=args.include_skips)
 
     path, total = write_suite(failures, the_date, run_id)
     hist = append_history(the_date, total, run_id, failures)

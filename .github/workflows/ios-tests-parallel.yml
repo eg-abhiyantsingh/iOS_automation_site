@@ -3322,8 +3322,13 @@ jobs:
   # JOB 16: Rerun Failures (92 tests, ~3 hr)
   # ========================================
   rerun-failures:
-    name: "Rerun Failures (92 tests)"
-    if: ${{ inputs.run_all }}
+    name: "Rerun Failures (this run)"
+    # Runs AFTER every module job (not in parallel) so it can collect THIS run's real
+    # failures + cascade-skips and rerun them on a FRESH simulator — the only thing that
+    # actually recovers tests a wedged runner fast-skipped. always() => runs even when
+    # some module jobs failed (that is the whole point).
+    needs: [smoke-tests, auth-tests, site-tests, assets-part1, assets-part2, assets-part3, assets-part4, assets-part5, assets-part6, issues-phase1, issues-phase2, issues-phase3, location-tests, connections-tests, offline-tests, sitevisit-tests, workorder-planning-tests, zp323-tests]
+    if: ${{ always() && inputs.run_all }}
     runs-on: macos-15
     timeout-minutes: 360
 
@@ -3424,13 +3429,41 @@ jobs:
             xcrun simctl list devices | grep -A1 "Booted" || echo "(no booted sim)"
             exit 1
           fi
+      - name: Download THIS run's module results
+        # Pulls every per-module artifact already uploaded by the module jobs of the
+        # CURRENT run (download-artifact@v4 with no name = all artifacts of this run).
+        uses: actions/download-artifact@v4
+        with:
+          path: run-artifacts
+        continue-on-error: true
+
+      - name: Build dynamic rerun suite from THIS run (failures + cascade-skips)
+        id: buildrerun
+        run: |
+          python3 -m pip install --quiet --break-system-packages defusedxml || python3 -m pip install --quiet defusedxml || true
+          # Drop the committed (prior-run) latest.xml so we only rerun THIS run's results.
+          rm -f failed-suites/latest.xml
+          # --include-skips recovers tests the breaker / WDA-hopeless / wedge fast-skipped.
+          python3 .github/scripts/build-failed-suite.py --from run-artifacts \
+            --include-skips --run "${{ github.run_id }}" --date "$(date +%F)" || true
+          if [ -f failed-suites/latest.xml ] && grep -q "<include" failed-suites/latest.xml; then
+            N=$(grep -c "<include" failed-suites/latest.xml)
+            echo "has_failures=true" >> "$GITHUB_OUTPUT"
+            echo "count=$N" >> "$GITHUB_OUTPUT"
+            echo "🔄 $N test(s) to rerun on a fresh simulator"
+          else
+            echo "has_failures=false" >> "$GITHUB_OUTPUT"
+            echo "✅ Nothing to rerun — no failures/cascade-skips in this run"
+          fi
+
       - name: Run Failed Tests Rerun
+        if: steps.buildrerun.outputs.has_failures == 'true'
         continue-on-error: true
         run: |
           BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${{ github.workspace }}/apps/Z Platform-QA.app/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
 
-          echo "🔄 Rerunning 92 previously failed tests across 10 test classes"
-          mvn test -ntp -B -DfailIfNoTests=true -DsuiteXmlFile=src/test/resources/parallel/testng-failures.xml \
+          echo "🔄 Rerunning ${{ steps.buildrerun.outputs.count }} test(s) from THIS run on a fresh simulator"
+          mvn test -ntp -B -DfailIfNoTests=true -DsuiteXmlFile=failed-suites/latest.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
@@ -3484,6 +3517,7 @@ jobs:
           sparse-checkout: |
             src/main/java/com/egalvanic/constants/AppConstants.java
             .github/scripts
+            scripts
             failed-suites
 
       - name: Extract Email Recipients
@@ -3497,6 +3531,67 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: all-reports
+        continue-on-error: true
+
+      - name: Generate client reports (before + after rerun)
+        id: client_reports
+        if: always()
+        continue-on-error: true
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          # TWO web-styled client reports (same template as the eGalvanic web client
+          # report — see .github/scripts/ios_client_report.py): one BEFORE the rerun and
+          # one AFTER (rerun outcomes override originals). The user gets to compare them.
+          python3 -m pip install --quiet --break-system-packages defusedxml || python3 -m pip install --quiet defusedxml || true
+          mkdir -p consolidated-reports
+          STAMP=$(date +%Y%m%d_%H%M%S)
+
+          # Report #1 — BEFORE rerun (excludes the rerun artifact entirely)
+          python3 .github/scripts/ios_client_report.py \
+            --results all-reports --exclude failures-rerun \
+            --phase before --run-url "$RUN_URL" \
+            --out "consolidated-reports/Client_Report_Before_Rerun_${STAMP}.html" || true
+
+          BEFORE_PATH="consolidated-reports/Client_Report_Before_Rerun_${STAMP}.html"
+          AFTER_PATH=""
+          # Report #2 — AFTER rerun, ONLY if the rerun actually produced results
+          if [ -d all-reports/failures-rerun-report ] && \
+             find all-reports/failures-rerun-report -name testng-results.xml | grep -q .; then
+            python3 .github/scripts/ios_client_report.py \
+              --results all-reports --exclude failures-rerun \
+              --rerun all-reports/failures-rerun-report \
+              --phase after --run-url "$RUN_URL" \
+              --out "consolidated-reports/Client_Report_After_Rerun_${STAMP}.html" || true
+            AFTER_PATH="consolidated-reports/Client_Report_After_Rerun_${STAMP}.html"
+          else
+            echo "ℹ️ No rerun results found — only the before-rerun report will be produced."
+          fi
+
+          # Stable-named copies for predictable artifact links
+          [ -f "$BEFORE_PATH" ] && cp "$BEFORE_PATH" consolidated-reports/Client_Report_Before_Rerun.html || true
+          [ -n "$AFTER_PATH" ] && [ -f "$AFTER_PATH" ] && cp "$AFTER_PATH" consolidated-reports/Client_Report_After_Rerun.html || true
+          # Keep the legacy filename pointing at the NEW web-styled design (After preferred,
+          # else Before) so the bundle hub + consolidated-report artifact stay consistent.
+          if [ -n "$AFTER_PATH" ] && [ -f "$AFTER_PATH" ]; then
+            cp "$AFTER_PATH" consolidated-reports/Consolidated_Client_Report.html || true
+          elif [ -f "$BEFORE_PATH" ]; then
+            cp "$BEFORE_PATH" consolidated-reports/Consolidated_Client_Report.html || true
+          fi
+
+          echo "BEFORE_PATH=$BEFORE_PATH" >> "$GITHUB_OUTPUT"
+          echo "AFTER_PATH=$AFTER_PATH" >> "$GITHUB_OUTPUT"
+          ls -la consolidated-reports/*.html 2>/dev/null || echo "(no client reports produced)"
+
+      - name: Upload Client Reports (before + after rerun)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: client-reports
+          path: |
+            consolidated-reports/Client_Report_Before_Rerun*.html
+            consolidated-reports/Client_Report_After_Rerun*.html
+          retention-days: 30
         continue-on-error: true
 
       - name: Build dated failed-test suite (artifact backup)
@@ -3574,11 +3669,11 @@ jobs:
           echo "REPORT_COUNT=$REPORT_COUNT" >> "$GITHUB_OUTPUT"
           echo "ATTACHMENT_LIST=$ATTACHMENT_LIST" >> "$GITHUB_OUTPUT"
 
-          # Also build a consolidated summary from TestNG XML results
-          echo ""
-          echo "=== Parsing TestNG Results ==="
-          python3 -m pip install --quiet --break-system-packages defusedxml || python3 -m pip install --quiet defusedxml
-          python3 << 'PYEOF'
+          # (Legacy inline TestNG→HTML "Consolidated_Client_Report" DISABLED. It is
+          #  replaced by the two web-styled client reports built in the "Generate client
+          #  reports (before + after rerun)" step above. The heredoc below is consumed
+          #  into /dev/null so it never runs / never clobbers the new reports.)
+          cat << 'PYEOF' > /dev/null
           try:
               import defusedxml.ElementTree as ET  # safe against XXE / billion-laughs
           except ImportError:
@@ -3713,16 +3808,21 @@ jobs:
           print(f"Consolidated report: {total_pass} passed, {total_fail} failed, {total_skip} skipped ({pass_rate:.1f}%)")
           PYEOF
 
-          # Add consolidated report to attachment list (as first attachment)
-          if [ -f "consolidated-reports/Consolidated_Client_Report.html" ]; then
-            if [ -n "$ATTACHMENT_LIST" ]; then
-              ATTACHMENT_LIST="consolidated-reports/Consolidated_Client_Report.html,$ATTACHMENT_LIST"
-            else
-              ATTACHMENT_LIST="consolidated-reports/Consolidated_Client_Report.html"
-            fi
-            echo "ATTACHMENT_LIST=$ATTACHMENT_LIST" >> "$GITHUB_OUTPUT"
-            echo "Consolidated report generated"
+          # Prepend the TWO web-styled client reports as the PRIMARY attachments, so the
+          # email leads with Before-rerun then After-rerun (same template, comparable).
+          AFTER="${{ steps.client_reports.outputs.AFTER_PATH }}"
+          BEFORE="${{ steps.client_reports.outputs.BEFORE_PATH }}"
+          if [ -n "$AFTER" ] && [ -f "$AFTER" ]; then
+            ATTACHMENT_LIST="$AFTER${ATTACHMENT_LIST:+,$ATTACHMENT_LIST}"
+            REPORT_COUNT=$((REPORT_COUNT+1))
           fi
+          if [ -n "$BEFORE" ] && [ -f "$BEFORE" ]; then
+            ATTACHMENT_LIST="$BEFORE${ATTACHMENT_LIST:+,$ATTACHMENT_LIST}"
+            REPORT_COUNT=$((REPORT_COUNT+1))
+          fi
+          echo "REPORT_COUNT=$REPORT_COUNT" >> "$GITHUB_OUTPUT"
+          echo "ATTACHMENT_LIST=$ATTACHMENT_LIST" >> "$GITHUB_OUTPUT"
+          echo "Client reports attached: Before='$BEFORE' After='$AFTER'"
 
           # Detailed reports are NOT attached to the consolidated email any more.
           # They are linked from per-module emails (see "Send Per-Module Detailed
@@ -4000,7 +4100,7 @@ jobs:
                 <div style="margin-top: 15px; padding: 12px; background: white; border-radius: 6px; font-size: 13px;">
                   <b>Total Tests:</b> ~1190 | <b>Passed Jobs:</b> ${SUCCESS} | <b>Failed:</b> ${FAILED}
                   <br><span style="color:#e67e22;">⏱️ TIMEOUT</span> = Job exceeded time limit — tests that ran before timeout are still valid
-                  <br><b>Client Reports Attached:</b> ${REPORT_COUNT:-0}
+                  <br><b>Client Reports Attached:</b> ${REPORT_COUNT:-0} — two client reports are attached: <b>Client_Report_Before_Rerun</b> (first run) and <b>Client_Report_After_Rerun</b> (failures auto-rerun on a fresh simulator; the after-report shows how many recovered). Both use the same client-report template.
                   <br><b>Detailed Reports:</b> per-module emails will arrive separately with download links — or grab them directly from <a href="${RUN_URL}">workflow artifacts</a>.
                 </div>
 

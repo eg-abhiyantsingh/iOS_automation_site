@@ -7,6 +7,7 @@ import com.egalvanic.pages.SiteSelectionPage;
 import com.egalvanic.pages.WelcomePage;
 import com.egalvanic.utils.DriverManager;
 import com.egalvanic.utils.ExtentReportManager;
+import com.egalvanic.utils.RunHealth;
 import com.egalvanic.utils.ScreenshotUtil;
 import org.testng.ITestResult;
 import org.testng.annotations.*;
@@ -112,6 +113,19 @@ public class BaseTest {
             @Optional String wdaLocalPort) {
         // Reset per-test screenshot budget so each test gets its own MAX cap.
         stepScreenshotCount.set(0);
+
+        // ── RunHealth fast-skip gate (THE 6h-cancellation fix) ──────────────────
+        // If this run is already doomed — dead-session breaker tripped, WDA proven
+        // un-rebuildable on this runner, or the per-suite wall-clock cap exceeded —
+        // do NOT enter the ~6-min initDriver()/WDA-rebuild thrash that ran for every
+        // remaining test and cancelled jobs at the 6h cap (run 28246433532). Skip this
+        // test in ~0s; it lands in failed-suites/ for the fresh-simulator rerun. Null
+        // the driver first so the @AfterMethod teardown makes ZERO Appium HTTP calls.
+        RunHealth.markFirstTestIfUnset();
+        if (RunHealth.shouldFastSkip()) {
+            DriverManager.forceNullDriver();
+            throw new org.testng.SkipException(RunHealth.fastSkipReason());
+        }
 
         // Skip setup for chained tests
         if (skipNextSetup) {

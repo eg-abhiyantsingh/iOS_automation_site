@@ -2126,7 +2126,10 @@ public final class Issue_Phase3_Test extends BaseTest {
         int issueCount = issuePage.getVisibleIssueCount();
         logStep("Visible issues: " + issueCount);
 
-        assertTrue(issueCount >= 2, "Need at least 2 issues to test sort order");
+        // Data precondition, not a product defect: with <2 issues we cannot exercise
+        // "only one swipe at a time" — SKIP instead of hard-FAILing on missing test data.
+        skipIfPreconditionMissing(() -> issuePage.getVisibleIssueCount() >= 2,
+            "need at least 2 issues in current site to test only-one-swipe-at-a-time");
 
         logStep("Step 3: Swipe left on first issue (index 0)");
         boolean swiped1 = issuePage.swipeLeftOnIssueAtIndex(0);
@@ -2283,8 +2286,11 @@ public final class Issue_Phase3_Test extends BaseTest {
         String resolvedIssueTitle = issuePage.getFirstIssueTitle();
         logStep("First Resolved issue: '" + resolvedIssueTitle + "'");
 
-        assertTrue(!resolvedIssueTitle.isEmpty() && resolvedCount > 0,
-            "Should have at least one Resolved issue");
+        // Data precondition, not a product defect: no Resolved issue in this site → SKIP.
+        skipIfPreconditionMissing(
+            () -> { String t = issuePage.getFirstIssueTitle();
+                    return issuePage.getResolvedTabCount() > 0 && t != null && !t.isEmpty(); },
+            "no Resolved issue exists in current site — cannot test swipe-on-resolved");
 
         logStep("Step 3: Swipe left on the Resolved issue");
         boolean swiped = issuePage.swipeLeftOnFirstIssue();
@@ -2428,8 +2434,11 @@ public final class Issue_Phase3_Test extends BaseTest {
         String targetIssue = issuePage.getFirstIssueTitle();
         logStep("Target issue to delete: '" + targetIssue + "'");
 
-        assertTrue(!targetIssue.isEmpty() && countBefore > 0,
-            "Should have at least one issue available for deletion");
+        // Data precondition, not a product defect: no issue to delete in this site → SKIP.
+        skipIfPreconditionMissing(
+            () -> { String t = issuePage.getFirstIssueTitle();
+                    return issuePage.getAllTabCount() > 0 && t != null && !t.isEmpty(); },
+            "no issue available for deletion in current site");
 
         logStep("Step 3: Swipe left on the target issue");
         boolean swiped = issuePage.swipeLeftOnFirstIssue();

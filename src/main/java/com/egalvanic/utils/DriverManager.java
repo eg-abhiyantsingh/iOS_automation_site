@@ -100,6 +100,18 @@ public class DriverManager {
         }
 
         if (driver == null) {
+            // RunHealth fast-fail: a prior cascade already proved WDA will not rebuild on
+            // this runner (WDA_HOPELESS_AFTER consecutive init failures). Don't spend
+            // another ~6 min on a doomed session creation + WDA rebuild — fail in <1s so
+            // BaseTest's @BeforeMethod gate skips this test instantly. The skipped tests
+            // land in failed-suites/ and are rerun on a FRESH simulator (clean WDA), which
+            // is the only thing that actually recovers them. This is THE fix for the 6h
+            // job cancellations (run 28246433532).
+            if (RunHealth.isWdaHopeless()) {
+                throw new RuntimeException("Driver init skipped — RunHealth marked WDA hopeless"
+                        + " for this run after repeated rebuild failures. Test will be skipped and"
+                        + " rerun on a fresh simulator (failed-suites/).");
+            }
             try {
                 // Use parameters if provided, otherwise fall back to config defaults
                 String server = (appiumPort != null)
@@ -267,9 +279,13 @@ public class DriverManager {
                 newDriver.manage().timeouts().implicitlyWait(Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
 
                 driver = newDriver;
+                RunHealth.recordInitSuccess(); // healthy init resets the hopeless streak
                 System.out.println("✅ iOS Driver initialized successfully");
 
             } catch (Exception e) {
+                // Feed the WDA-hopeless detector: N consecutive init failures => stop
+                // rebuilding a dead WDA per test for the rest of this run (RunHealth).
+                RunHealth.recordInitFailure();
                 System.err.println("❌ Failed to initialize driver: " + e.getMessage());
                 e.printStackTrace();
                 throw new RuntimeException("Failed to initialize driver: " + e.getMessage(), e);
