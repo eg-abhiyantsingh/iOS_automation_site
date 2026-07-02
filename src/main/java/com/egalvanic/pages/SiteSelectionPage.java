@@ -285,7 +285,11 @@ public class SiteSelectionPage extends BasePage {
      * give async card data a bounded settle poll before returning.
      */
     public void waitForDashboardReady() {
-        long timeoutMs = 45000;
+        // Env-tunable (SITE_DASHBOARD_WAIT_SEC, default 120s). 45s was too short for
+        // the first cold-cache load of the bloated QA site: when it expired the site
+        // context was never persisted and the whole job cascaded on the Select Site
+        // picker (run 28458743407, Assets P1-P3 = 0 passes). See AppConstants.
+        long timeoutMs = com.egalvanic.constants.AppConstants.SITE_DASHBOARD_WAIT_SEC * 1000L;
         long deadline = System.currentTimeMillis() + timeoutMs;
         while (System.currentTimeMillis() < deadline) {
             String signal = withImplicitWait(0, () -> {

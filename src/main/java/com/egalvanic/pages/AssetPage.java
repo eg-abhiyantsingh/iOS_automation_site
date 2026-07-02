@@ -398,8 +398,9 @@ public class AssetPage extends BasePage {
         }
 
         // 2. Site picker already in front? Select a site and we're in.
+        boolean selectedSite = false;
         if (isOnSiteSelectionScreen()) {
-            selectFirstSiteInline();
+            selectedSite = selectFirstSiteInline() != null;
         } else {
             // 3. From Dashboard: tap the Site (house) tab / Sites Quick Action
             boolean tapped = false;
@@ -426,18 +427,40 @@ public class AssetPage extends BasePage {
             if (tapped) {
                 sleep(400);
                 if (isOnSiteSelectionScreen()) {
-                    selectFirstSiteInline();
+                    selectedSite = selectFirstSiteInline() != null;
                 }
             } else {
                 System.out.println("⚠️ Recovery: no Site tab / Sites Quick Action found on this screen");
             }
         }
 
-        // 4. Site dashboards load slowly — bounded wait for the tab to materialize
-        if (!isAssetsTabPresent(8)) {
+        // 4. Site dashboards load slowly — bounded wait for the tab to materialize.
+        // After an explicit site selection, the FIRST load gets the full patient wait
+        // (SITE_DASHBOARD_WAIT_SEC, at most twice per run): run 28458743407 proved an
+        // abandoned first load condemns the whole job to the picker-cascade (Assets
+        // P1-P3 = 0/317 passed, ~4h each), while one completed load persists the site
+        // for every later soft restart (Assets P4: 1 selection -> 113 clean opens).
+        // The 2-per-run cap keeps a genuinely broken site from burning hours.
+        int tabWaitSec = 8;
+        if (selectedSite && LONG_SITE_LOAD_WAITS_USED.get() < 2) {
+            LONG_SITE_LOAD_WAITS_USED.incrementAndGet();
+            tabWaitSec = com.egalvanic.constants.AppConstants.SITE_DASHBOARD_WAIT_SEC;
+            System.out.println("⏳ Site selected — waiting up to " + tabWaitSec
+                + "s for the site dashboard's first load (patient wait "
+                + LONG_SITE_LOAD_WAITS_USED.get() + "/2 this run)");
+        }
+        if (!isAssetsTabPresent(tabWaitSec)) {
             System.out.println("⚠️ Site-context recovery did not surface the Assets tab");
         }
     }
+
+    /**
+     * How many patient (SITE_DASHBOARD_WAIT_SEC) site-load waits this run has used.
+     * Static: the whole point is that ONE completed first load persists the site
+     * context for the rest of the JVM, so the budget is per-run, not per-test.
+     */
+    private static final java.util.concurrent.atomic.AtomicInteger LONG_SITE_LOAD_WAITS_USED =
+            new java.util.concurrent.atomic.AtomicInteger(0);
 
     /**
      * Select the first available site on the Site Selection screen.

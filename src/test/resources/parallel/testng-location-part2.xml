@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<suite time-out="300000" name="Location Tests - Part 2 of 2: Rooms + Location Assignment (~41 tests)" verbose="0">
+<suite time-out="300000" name="Location Tests - Part 2 of 2 - Rooms + Location Assignment (~41 tests)" verbose="0">
     <!--
     ============================================================
     LOCATION — PART 2 of 2  (Rooms + Location Assignment)

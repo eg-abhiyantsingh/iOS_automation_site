@@ -106,6 +106,15 @@ public class AppConstants {
     // this only catches a slow-but-not-cascading suite. Kept well below the 360-min
     // job cap and above a healthy heavy suite's runtime (~170 min). 0 = disabled.
     public static final int SUITE_WALL_MINUTES = getEnvInt("SUITE_WALL_MINUTES", 240);
+    // Site-dashboard load wait (seconds) after selecting a site. Run 28458743407
+    // forensics: on the Assets P1/P2/P3 runners the FIRST site load took >45s, the
+    // old hard-coded 45s wait gave up ("continuing..."), nothing was persisted, and
+    // every soft-restarted test bounced back to the Select Site picker where the
+    // 8s recovery wait could never succeed — 0/100 passed, ~4h of cascading fails.
+    // Assets P4 proved the same site loads fine when the first wait succeeds (1
+    // selection -> 113 clean Asset List opens). One patient 120s wait per job is
+    // cheap insurance against a 4-hour all-fail cascade.
+    public static final int SITE_DASHBOARD_WAIT_SEC = getEnvInt("SITE_DASHBOARD_WAIT_SEC", 120);
     // Asset class-change wall-clock budget (ms). The class-change path snapshots a
     // bleed-through Edit-screen DOM several times; on a busy CI runner each snapshot
     // can take up to CUSTOM_SNAPSHOT_TIMEOUT (10s), so a legitimate change runs
