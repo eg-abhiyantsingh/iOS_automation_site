@@ -6829,6 +6829,50 @@ public class AssetPage extends BasePage {
             return false;
         }
     }
+
+    /**
+     * Strict tri-state variant of {@link #isCreateAssetButtonEnabled()}: locates the
+     * Create button with the SAME multi-strategy set clickCreateAsset uses and returns
+     * TRUE (enabled), FALSE (disabled), or NULL when the button cannot be located by
+     * ANY strategy. Callers must treat NULL as "cannot verify" — the old boolean
+     * variant swallowed not-found into false, which made ATS_ECR_07 pass without ever
+     * seeing the button (vacuous pass, caught in the 2026-07-02 local loop).
+     */
+    public Boolean isCreateAssetButtonEnabledStrict() {
+        return withImplicitWait(800, () -> {
+            WebElement btn = null;
+            String how = null;
+            try {
+                btn = driver.findElement(AppiumBy.accessibilityId("Create Asset"));
+                how = "accessibilityId 'Create Asset'";
+            } catch (Exception ignored) {}
+            if (btn == null) {
+                String[] predicates = {
+                    "type == 'XCUIElementTypeButton' AND name == 'Create Asset'",
+                    "type == 'XCUIElementTypeButton' AND label == 'Create Asset'",
+                    "type == 'XCUIElementTypeButton' AND name CONTAINS[c] 'create'",
+                    "type == 'XCUIElementTypeButton' AND label CONTAINS[c] 'create' AND label CONTAINS[c] 'asset'",
+                    // SwiftUI renders some disabled buttons as non-Button elements:
+                    "(name == 'Create Asset' OR label == 'Create Asset')",
+                };
+                for (String p : predicates) {
+                    try {
+                        btn = driver.findElement(AppiumBy.iOSNsPredicateString(p));
+                        how = p;
+                        break;
+                    } catch (Exception ignored) {}
+                }
+            }
+            if (btn == null) {
+                System.out.println("   ⚠️ Create button not locatable by ANY strategy — state UNKNOWN");
+                return null;
+            }
+            String enabled = null;
+            try { enabled = btn.getAttribute("enabled"); } catch (Exception ignored) {}
+            System.out.println("   Create button found via [" + how + "]; enabled=" + enabled);
+            return !"false".equalsIgnoreCase(enabled);
+        });
+    }
     
     /**
      * Check if the current asset name value is effectively empty

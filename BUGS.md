@@ -124,6 +124,21 @@ weakening assertions.
 
 ## Category 3 — REAL PRODUCT BUGS
 
+### ATS-VAL-01 — Create button enabled for spaces-only asset name (confirmed 2026-07-02, v1.48)
+- **Repro:** New Asset → Name = `"     "` (spaces only) → fill class + location →
+  Create stays **ENABLED** (and creates the asset).
+- **Expected:** blank/whitespace-only names rejected (Create disabled or validation error).
+- **Test:** `ATS_ECR_07_verifyNameWithOnlySpaces` — SKIPs with this bug id per QA
+  direction (2026-07-02); auto-passes once fixed.
+
+### ATS-VAL-02 — Asset name stored untrimmed (confirmed 2026-07-02, v1.48)
+- **Repro:** create asset named `"  TrimNNN  "` → stored/displayed with the leading
+  and trailing spaces intact (CI evidence: `Actual: '  Trim595015  '`); also breaks
+  exact-name search/lookup.
+- **Expected:** leading/trailing whitespace trimmed on save.
+- **Test:** `ATS_ECR_10_verifyNameTrimming` — SKIPs with this bug id per QA direction
+  (2026-07-02); auto-passes once fixed.
+
 ### SLD source audit 2026-06-11 — 8 confirmed bugs (SLD-1..8) + 7 suspicions
 Full write-up with file:line evidence and repro steps:
 `docs/sld-bug-audit-2026-06-11.md`. Highlights:
