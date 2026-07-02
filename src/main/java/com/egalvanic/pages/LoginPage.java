@@ -802,7 +802,13 @@ public void clickShowPassword() {
                     // iPhone 17 Pro Max logical screen is 430x932; "Not Now"
                     // button sits at approximately (140, 600) inside the sheet
                     // on this build.
-                    if (popupSeen) {
+                    if (popupSeen && !appScreenIsInteractable()) {
+                        // Blind tap ONLY when the app tree is genuinely covered by a
+                        // system-level sheet. v1.48 regression: the popup auto-dismissed
+                        // between detection and this fallback, the app was already on the
+                        // Dashboard, and (140,600) landed on the "No Active Work Order —
+                        // Tap to select" card → pushed the Work Orders screen → every
+                        // later navigation lost (assetsTab=false, sitePicker=false).
                         try {
                             driver.executeScript("mobile: tap", java.util.Map.of("x", 140, "y", 600));
                             System.out.println("⚡ Coordinate tap on 'Not Now' fallback at (140,600)");
@@ -810,6 +816,8 @@ public void clickShowPassword() {
                         } catch (Exception coordEx) {
                             System.out.println("⚠️ Coordinate-tap fallback failed: " + coordEx.getMessage());
                         }
+                    } else if (popupSeen) {
+                        System.out.println("⚡ Popup gone and app screen interactable — skipping blind coordinate tap");
                     }
                     System.out.println("⚡ Popup handling complete in " +
                         (System.currentTimeMillis() - start) + "ms");
@@ -826,6 +834,41 @@ public void clickShowPassword() {
         }
     }
     
+    /**
+     * True when a KNOWN app screen is visible/interactable in the a11y tree —
+     * i.e. no system-level sheet is covering the app. Used to guard the blind
+     * (140,600) coordinate tap: if we can see the Dashboard / Site picker /
+     * Welcome markers, the popup already dismissed itself and a blind tap would
+     * hit real UI (v1.48: it hit the "No Active Work Order — Tap to select"
+     * card and pushed the Work Orders screen). Probes are 0-ish implicit-wait
+     * findElements — milliseconds each.
+     */
+    private boolean appScreenIsInteractable() {
+        String[][] probes = {
+            // Dashboard markers
+            {"acc", "Sites"},
+            {"pred", "name BEGINSWITH 'WO, No Active Work Order'"},
+            {"acc", "list.bullet"},
+            // Site picker markers
+            {"pred", "name == 'Select Site' AND type == 'XCUIElementTypeStaticText'"},
+            {"pred", "value == 'Search sites...'"},
+            // Welcome / Login markers
+            {"pred", "label CONTAINS 'Welcome' AND type == 'XCUIElementTypeStaticText'"},
+            {"acc", "Sign In"},
+        };
+        for (String[] p : probes) {
+            try {
+                io.appium.java_client.AppiumBy by = "acc".equals(p[0])
+                        ? (io.appium.java_client.AppiumBy) io.appium.java_client.AppiumBy.accessibilityId(p[1])
+                        : (io.appium.java_client.AppiumBy) io.appium.java_client.AppiumBy.iOSNsPredicateString(p[1]);
+                if (!driver.findElements(by).isEmpty()) {
+                    return true;
+                }
+            } catch (Exception ignored) {}
+        }
+        return false;
+    }
+
     /**
      * Best-effort: dismiss the iOS "Save Password?" sheet if it is visible
      * on whatever screen we currently are. Callable from any screen — meant

@@ -374,6 +374,13 @@ public class AssetPage extends BasePage {
     private void recoverSiteContext() {
         System.out.println("🧭 No Assets tab — not in site context. Recovering...");
 
+        // 0. v1.48: the app can end up on the auto-pushed Work Orders screen
+        //    (pushed nav, hides the tab bar — NOT a sheet, so the dismissers
+        //    below never catch it). BackButton returns to the site Dashboard.
+        if (backOutOfWorkOrdersScreen() && isAssetsTabPresent(3)) {
+            return;
+        }
+
         // 1. Dismiss any sheet/alert hiding the tab bar (0-implicit probes)
         for (String dismiss : new String[]{"Cancel", "Close", "xmark.circle.fill", "xmark"}) {
             By by = AppiumBy.accessibilityId(dismiss);
@@ -461,6 +468,37 @@ public class AssetPage extends BasePage {
      */
     private static final java.util.concurrent.atomic.AtomicInteger LONG_SITE_LOAD_WAITS_USED =
             new java.util.concurrent.atomic.AtomicInteger(0);
+
+    /**
+     * v1.48: back out of the auto-pushed "Work Orders" screen (nav title
+     * 'Work Orders', 'Start New Work Order' banner, BackButton). Returns true
+     * if the screen was detected and Back was tapped. Detection is 0-implicit
+     * probes; safe to call from any screen (no-op elsewhere).
+     */
+    private boolean backOutOfWorkOrdersScreen() {
+        boolean onWorkOrders =
+                (existsNow(AppiumBy.iOSNsPredicateString("name BEGINSWITH 'Start New Work Order'"))
+                 || existsNow(AppiumBy.accessibilityId("Available Work Orders")))
+                && existsNow(AppiumBy.accessibilityId("BackButton"));
+        if (!onWorkOrders) {
+            return false;
+        }
+        System.out.println("   ↩️ Auto-opened Work Orders screen detected — tapping Back to Dashboard (v1.48)");
+        try {
+            driver.findElement(AppiumBy.accessibilityId("BackButton")).click();
+            sleep(600);
+            return true;
+        } catch (Exception e) {
+            // Fallback: back button by label
+            try {
+                driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "label == 'Back' AND type == 'XCUIElementTypeButton'")).click();
+                sleep(600);
+                return true;
+            } catch (Exception ignored) {}
+        }
+        return false;
+    }
 
     /**
      * Select the first available site on the Site Selection screen.

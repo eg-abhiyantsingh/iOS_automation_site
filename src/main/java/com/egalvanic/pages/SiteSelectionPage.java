@@ -318,6 +318,25 @@ public class SiteSelectionPage extends BasePage {
                 postReadySettle();
                 return;
             }
+            // v1.48: the app can auto-push the Work Orders screen right after site
+            // selection (stray tap on the 'No Active Work Order' card / deep link).
+            // It is a pushed nav — BackButton returns to the Dashboard. Heal it here
+            // so login ends on the Dashboard for EVERY suite.
+            withImplicitWait(0, () -> {
+                try {
+                    boolean onWorkOrders =
+                        (!driver.findElements(AppiumBy.iOSNsPredicateString(
+                            "name BEGINSWITH 'Start New Work Order'")).isEmpty()
+                         || !driver.findElements(AppiumBy.accessibilityId("Available Work Orders")).isEmpty())
+                        && !driver.findElements(AppiumBy.accessibilityId("BackButton")).isEmpty();
+                    if (onWorkOrders) {
+                        System.out.println("↩️ Auto-opened Work Orders screen — tapping Back to Dashboard (v1.48)");
+                        driver.findElement(AppiumBy.accessibilityId("BackButton")).click();
+                        Thread.sleep(600);
+                    }
+                } catch (Exception ignored) {}
+                return null;
+            });
             try { Thread.sleep(500); } catch (InterruptedException e) { Thread.currentThread().interrupt(); break; }
         }
         System.out.println("⚠️ Dashboard wait timeout (" + (timeoutMs / 1000) + "s), continuing...");
