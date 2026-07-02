@@ -10,13 +10,26 @@ This report is for the ARTIFACT only. It is intentionally NOT emailed (it can be
 large). The summary email keeps linking to the workflow artifacts.
 
 Usage:
-  python3 consolidated-report.py <results-dir> <output-path>
+  python3 consolidated-report.py <results-dir> <output-path> [options]
     results-dir : dir to search recursively for testng-results.xml (e.g. all-reports)
     output-path : path for the generated HTML
+
+Options (the two-report rerun flow):
+  --exclude SUBSTR   skip testng-results.xml whose path contains SUBSTR (repeatable);
+                     used to keep the rerun's results out of the BEFORE report
+  --rerun DIR        merge a fresh-simulator rerun: outcomes in DIR OVERRIDE the
+                     primary run per (class, method) — a FAIL that passed on rerun
+                     shows PASS with a RECOVERED badge (final state, what the user
+                     actually has after the pipeline finishes)
+  --label TEXT       suffix shown in the report header (e.g. "After Rerun")
+
+Without --rerun the classic worst-case dedup applies (FAIL > SKIP > PASS), so
+failures never hide. With --rerun the rerun has the last word — that is the point.
 
 Writes GITHUB_OUTPUT: total_tests/total_passed/total_failed/total_skipped/pass_rate.
 """
 
+import argparse
 import os
 import sys
 import glob
@@ -91,9 +104,10 @@ def parse_testng_xml(filepath):
     return tests
 
 
-def find_and_parse_all(results_dir):
+def find_and_parse_all(results_dir, exclude=()):
     all_tests = []
     xmls = glob.glob(os.path.join(results_dir, '**', 'testng-results.xml'), recursive=True)
+    xmls = [f for f in xmls if not any(e and e in f for e in exclude)]
     if not xmls:
         print(f"WARNING: no testng-results.xml found in {results_dir}")
         return all_tests
@@ -113,6 +127,36 @@ def find_and_parse_all(results_dir):
     if len(deduped) != len(all_tests):
         print(f"  Deduplicated: {len(all_tests)} → {len(deduped)}")
     return deduped
+
+
+def merge_rerun(primary, rerun_dir):
+    """Final-state merge: the fresh-simulator rerun has the LAST WORD per
+    (class, method). A test that failed/skipped originally but passed on rerun
+    becomes PASS and is flagged 'recovered' (shown with a RECOVERED badge).
+    Tests never rerun keep their original outcome. This is the report the user
+    asked for: "if 50 of the 100 failures pass on rerun, the updated report
+    shows everything, 50 failing, the rest passing"."""
+    rerun_tests = {}
+    for t in find_and_parse_all(rerun_dir):
+        rerun_tests[(t['class_name'], t['name'])] = t
+    merged = []
+    overridden = recovered = 0
+    for t in primary:
+        key = (t['class_name'], t['name'])
+        r = rerun_tests.get(key)
+        if r is None:
+            merged.append(t)
+            continue
+        overridden += 1
+        final = dict(t)
+        final['status'] = r['status']
+        final['duration_ms'] = r['duration_ms'] or t['duration_ms']
+        final['recovered'] = (t['status'] != 'PASS' and r['status'] == 'PASS')
+        recovered += 1 if final['recovered'] else 0
+        merged.append(final)
+    print(f"Rerun merge: {overridden} outcome(s) overridden by the rerun, "
+          f"{recovered} RECOVERED (fail/skip → pass)")
+    return merged
 
 
 def group_by_module(tests):
@@ -135,13 +179,17 @@ def fmt_dur(ms):
     return f"{ms}ms"
 
 
-def generate_html(modules):
+def generate_html(modules, label=''):
     total = sum(len(v) for v in modules.values())
     passed = sum(1 for v in modules.values() for t in v if t['status'] == 'PASS')
     failed = sum(1 for v in modules.values() for t in v if t['status'] == 'FAIL')
     skipped = sum(1 for v in modules.values() for t in v if t['status'] == 'SKIP')
+    recovered = sum(1 for v in modules.values() for t in v if t.get('recovered'))
     pass_rate = (passed / total * 100) if total else 0
     date_str = datetime.now().strftime("%B %d, %Y %H:%M")
+    label_html = f' &bull; <strong style="color:#7ee2a8;">{escape_html(label)}</strong>' if label else ''
+    recovered_note = (f' &bull; {recovered} recovered on fresh-simulator rerun'
+                      if recovered else '')
 
     html = f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
@@ -187,6 +235,7 @@ def generate_html(modules):
   .test-duration {{ color:#999; font-size:11px; min-width:50px; text-align:right; padding-right:12px; }}
   .badge {{ display:inline-block; padding:3px 10px; border-radius:3px; font-size:11px; font-weight:600; min-width:44px; text-align:center; }}
   .badge-pass {{ background:#28a745; color:#fff; }} .badge-fail {{ background:#dc3545; color:#fff; }} .badge-skip {{ background:#ffc107; color:#000; }}
+  .badge-recovered {{ background:#e6f4ec; color:#2d7a4a; border:1px solid #2d7a4a; margin-right:6px; min-width:0; }}
   .footer {{ background:#fff; border-top:1px solid #e9ecef; padding:16px 32px; font-size:11px; color:#999; text-align:center; }}
   .footer a {{ color:#007bff; text-decoration:none; }}
   .toggle {{ transition:transform .2s; display:inline-block; margin-right:8px; font-size:12px; color:#999; }}
@@ -195,7 +244,7 @@ def generate_html(modules):
 </style></head><body>
 <div class="header">
   <h1>eGalvanic iOS Automation - Test Results</h1>
-  <div class="subtitle">Consolidated Report from Parallel CI Execution &bull; {date_str}</div>
+  <div class="subtitle">Consolidated Report from Parallel CI Execution &bull; {date_str}{label_html}</div>
 </div>
 <div class="controls">
   <input id="search" type="text" placeholder="Filter tests by name or class..." oninput="applyFilters()">
@@ -218,7 +267,7 @@ def generate_html(modules):
     <div class="progress-fail" style="width:{failed/total*100 if total else 0:.1f}%"></div>
     <div class="progress-skip" style="width:{skipped/total*100 if total else 0:.1f}%"></div>
   </div>
-  <div class="progress-label">{pass_rate:.1f}% pass rate &bull; {total} tests</div>
+  <div class="progress-label">{pass_rate:.1f}% pass rate &bull; {total} tests{recovered_note}</div>
 </div>
 <div class="modules">
 """
@@ -245,11 +294,13 @@ def generate_html(modules):
             disp = t['description'] if t['description'] else t['name']
             sl = t['status'].lower()
             badge = f'badge-{sl}' if sl in ('pass', 'fail', 'skip') else 'badge-pass'
+            recovered_badge = ('<span class="badge badge-recovered">RECOVERED</span>'
+                               if t.get('recovered') else '')
             html += f"""      <div class="test-row" data-status="{t['status']}" data-search="{escape_html((disp + ' ' + t['class_name']).lower())}">
         <span class="test-name">{escape_html(disp)}</span>
         <span class="test-class">{escape_html(t['class_name'])}</span>
         <span class="test-duration">{fmt_dur(t['duration_ms'])}</span>
-        <span class="badge {badge}">{t['status']}</span>
+        {recovered_badge}<span class="badge {badge}">{t['status']}</span>
       </div>
 """
         html += "    </div>\n  </div>\n"
@@ -293,17 +344,27 @@ def generate_html(modules):
 
 
 def main():
-    if len(sys.argv) < 3:
-        print("Usage: consolidated-report.py <results-dir> <output-path>")
-        sys.exit(1)
-    results_dir, output_path = sys.argv[1], sys.argv[2]
+    ap = argparse.ArgumentParser(description="Consolidated all-tests HTML report")
+    ap.add_argument("results_dir")
+    ap.add_argument("output_path")
+    ap.add_argument("--exclude", action="append", default=[],
+                    help="skip testng-results.xml whose path contains this substring")
+    ap.add_argument("--rerun", default=None,
+                    help="rerun results dir; its outcomes OVERRIDE the primary run (final state)")
+    ap.add_argument("--label", default="",
+                    help="header suffix, e.g. 'After Rerun'")
+    args = ap.parse_args()
+    results_dir, output_path = args.results_dir, args.output_path
     print("=" * 60)
-    print("  iOS Consolidated Automation Report")
+    print("  iOS Consolidated Automation Report"
+          + (f"  [{args.label}]" if args.label else ""))
     print("=" * 60)
-    all_tests = find_and_parse_all(results_dir)
+    all_tests = find_and_parse_all(results_dir, exclude=args.exclude)
     if not all_tests:
         print("ERROR: no test results found.")
         sys.exit(1)
+    if args.rerun:
+        all_tests = merge_rerun(all_tests, args.rerun)
     modules = group_by_module(all_tests)
     print(f"\nParsed {len(all_tests)} tests across {len(modules)} modules:")
     for mod, tests in modules.items():
@@ -311,7 +372,7 @@ def main():
         f = sum(1 for t in tests if t['status'] == 'FAIL')
         s = sum(1 for t in tests if t['status'] == 'SKIP')
         print(f"  [{'FAIL' if f else 'PASS'}] {mod}: {p} passed, {f} failed, {s} skipped")
-    html, stats = generate_html(modules)
+    html, stats = generate_html(modules, label=args.label)
     os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
     with open(output_path, 'w', encoding='utf-8') as fh:
         fh.write(html)
