@@ -266,6 +266,16 @@ public class SiteVisit_phase3 extends BaseTest {
                 break;
             }
 
+            // Dashboard = we are OUTSIDE the walkthrough entirely (the flow never
+            // started, or back-navigation overshot). Grinding all ~12 screen probes
+            // per iteration from here is what burned the full 360s cap on every
+            // phase-3 test (local repro 2026-07-03: "no known screen matched" loop).
+            // Bail fast — the caller's own assertions will report the real failure.
+            if (siteSelectionPage.isDashboardDisplayed()) {
+                logStep("At Dashboard — outside the walkthrough flow, stopping cleanup");
+                break;
+            }
+
             // Success dialog
             if (workOrderPage.isSuccessDialogDisplayed()) {
                 workOrderPage.tapSuccessDoneButton();
