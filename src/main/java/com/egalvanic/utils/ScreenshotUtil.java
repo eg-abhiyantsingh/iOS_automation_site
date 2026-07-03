@@ -111,6 +111,13 @@ public class ScreenshotUtil {
      * Get screenshot as Base64 string
      */
     public static String getScreenshotAsBase64() {
+        // Driver-free suites (S3 drift, API contract, verify self-tests) have no
+        // simulator at all — skip silently instead of printing "Driver not
+        // initialized" per report step (pure log noise; isDriverActive is an
+        // in-memory check, no Appium HTTP).
+        if (!DriverManager.isDriverActive()) {
+            return null;
+        }
         try {
             TakesScreenshot driver = (TakesScreenshot) DriverManager.getDriver();
             return driver.getScreenshotAs(OutputType.BASE64);
@@ -133,6 +140,11 @@ public class ScreenshotUtil {
      * Tune with -Dscreenshots.jpegQuality=0.5 and -Dscreenshots.scale=0.5.
      */
     public static String getScreenshotAsBase64Compressed() {
+        // No driver at all (driver-free suites: S3 drift, API contract, verify
+        // self-tests) — skip silently; see getScreenshotAsBase64.
+        if (!DriverManager.isDriverActive()) {
+            return "";
+        }
         if (!COMPRESS_ENABLED) {
             return getScreenshotAsBase64();
         }
