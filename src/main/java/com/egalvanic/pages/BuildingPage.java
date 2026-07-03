@@ -6557,18 +6557,35 @@ public class BuildingPage extends BasePage {
      * Check if Floor field is read-only
      */
     public boolean isFloorFieldReadOnly() {
+        // Structural affordance check (mirrors isBuildingFieldReadOnly): the row is
+        // editable only if it exposes an editing affordance — a Floor TextField or a
+        // 'Select floor' trigger. The old check grabbed the FIRST 'Floor'-containing
+        // element in the WHOLE tree; on the v1.48 New Room screen that is a Button
+        // ("Floor 1 - …", enabled=true) → false negative (TC_NR_002, 2026-07-03).
         try {
-            // Floor field should be a static text or disabled field
-            WebElement floorField = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "(label CONTAINS 'Floor' OR name CONTAINS 'Floor')"));
-            String type = floorField.getTagName();
-            // If it's a StaticText, it's read-only
-            if (type.contains("StaticText")) {
-                return true;
+            driver.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(500));
+            try {
+                List<WebElement> textFields = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeTextField' AND "
+                    + "(name CONTAINS[c] 'floor' OR label CONTAINS[c] 'floor' OR value CONTAINS[c] 'floor')"));
+                if (!textFields.isEmpty()) {
+                    String enabled = textFields.get(0).getAttribute("enabled");
+                    boolean readOnly = !"true".equalsIgnoreCase(enabled);
+                    System.out.println("   Floor field is TextField, enabled=" + enabled);
+                    return readOnly;
+                }
+                boolean hasSelectTrigger = !driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "(name BEGINSWITH 'Select' OR label BEGINSWITH 'Select') AND "
+                    + "(name CONTAINS[c] 'floor' OR label CONTAINS[c] 'floor')")).isEmpty();
+                if (hasSelectTrigger) {
+                    System.out.println("   Floor field has a 'Select floor' trigger — editable");
+                    return false;
+                }
+            } finally {
+                driver.manage().timeouts().implicitlyWait(
+                    java.time.Duration.ofSeconds(com.egalvanic.constants.AppConstants.IMPLICIT_WAIT));
             }
-            // Check if it's enabled
-            String enabled = floorField.getAttribute("enabled");
-            return enabled != null && enabled.equals("false");
+            return true; // display-only row: no editing affordance found
         } catch (Exception e) {
             return true; // Assume read-only if can't determine
         }

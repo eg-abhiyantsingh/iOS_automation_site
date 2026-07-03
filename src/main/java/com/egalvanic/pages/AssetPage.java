@@ -8421,6 +8421,27 @@ public class AssetPage extends BasePage {
                         // Priority 1: "Select..." trigger (unselected dropdown state) —
                         // matches both Button (legacy) and StaticText (current iOS DOM).
                         if (btnName.startsWith("Select")) {
+                            // A "Select …" placeholder names ITS OWN field ("Select asset
+                            // subtype" belongs to Asset Subtype). Accepting one that names a
+                            // DIFFERENT field mis-clicks when the target label's Y drifted
+                            // during scroll — local repro 2026-07-03 (PB_11): "Select asset
+                            // subtype" was clicked as Voltage's trigger (dist=8px), the
+                            // subtype sheet opened, and the next field's whole-tree scroll
+                            // wedged WDA → session death → 360s timeout. Reject triggers
+                            // whose text references another field's keyword.
+                            String bl = btnName.toLowerCase();
+                            String target = fieldName.toLowerCase();
+                            boolean namesAnotherField = false;
+                            for (String kw : new String[]{"subtype", "type", "location",
+                                    "class", "date", "manufacturer", "voltage", "rating"}) {
+                                if (bl.contains(kw) && !target.contains(kw)) {
+                                    namesAnotherField = true;
+                                    break;
+                                }
+                            }
+                            if (namesAnotherField) {
+                                continue;
+                            }
                             if (dist < selectDist) {
                                 selectDist = dist;
                                 selectBtn = btn;

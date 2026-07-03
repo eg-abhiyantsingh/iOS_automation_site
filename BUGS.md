@@ -122,6 +122,15 @@ weakening assertions.
 
 ---
 
+### B12 — OSHA/severity Issue tests are assert-free (pass-anyway) ⚠️ OPEN
+- **Found 2026-07-03** during the local failing-test loop: `TC_ISS_131_verifyWireExposedOption`
+  logs found/not-found and **contains no assertion** — it can only fail by timeout. The
+  OSHA-subcategory family (131-136) and severity tests (148/149) share the pattern; their
+  CI "failures" were pure 360s wedge timeouts, and their "passes" verify nothing.
+- **Fix plan:** capture the OSHA subcategory gold list from the web app (like
+  issues-domain-gold), then assert option presence against it; skip-with-reason only when
+  the dropdown itself fails to render. Do NOT blind-assert before domain verification.
+
 ## Category 3 — REAL PRODUCT BUGS
 
 ### ATS-VAL-01 — Create button enabled for spaces-only asset name (confirmed 2026-07-02, v1.48)
