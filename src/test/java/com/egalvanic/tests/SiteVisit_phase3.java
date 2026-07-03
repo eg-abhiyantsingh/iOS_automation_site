@@ -76,12 +76,12 @@ public class SiteVisit_phase3 extends BaseTest {
      */
     private void navigateToWorkOrdersScreen() {
         System.out.println("📍 Navigating to Work Orders screen...");
-        siteSelectionPage.clickNoActiveJobCard();
+        siteSelectionPage.clickWorkOrderCard(); // v1.48: waits for the card to ENABLE (sync) before tapping
         shortWait();
         boolean loaded = workOrderPage.waitForWorkOrdersScreen();
         if (!loaded) {
             System.out.println("🔄 Retrying navigation to Work Orders screen...");
-            siteSelectionPage.clickNoActiveJobCard();
+            siteSelectionPage.clickWorkOrderCard(); // v1.48: waits for the card to ENABLE (sync) before tapping
             mediumWait();
             workOrderPage.waitForWorkOrdersScreen();
         }
@@ -127,6 +127,13 @@ public class SiteVisit_phase3 extends BaseTest {
      */
     private void navigateToAssetsInRoom() {
         logStep("Starting navigation to Assets in Room...");
+
+        // v1.48 (mapped live 2026-07-03): the session's Assets tab only exists ON
+        // Session Details. Without this, tapSessionTab("Assets") matched the
+        // DASHBOARD's bottom-nav Assets tab (site-level asset list) and the whole
+        // walkthrough chain ran on the wrong screen ("Buildings found: 0").
+        ensureOnSessionDetailsScreen();
+        shortWait();
 
         workOrderPage.tapSessionTab("Assets");
         mediumWait();

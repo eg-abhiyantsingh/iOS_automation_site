@@ -207,7 +207,7 @@ public class SiteVisit_phase1 extends BaseTest {
 
 
         logStep("Tapping No Active Job card");
-        siteSelectionPage.clickNoActiveJobCard();
+        siteSelectionPage.clickWorkOrderCard(); // v1.48: waits for the card to ENABLE (sync) before tapping
         mediumWait();
 
         logStep("Verifying Work Orders screen is displayed");

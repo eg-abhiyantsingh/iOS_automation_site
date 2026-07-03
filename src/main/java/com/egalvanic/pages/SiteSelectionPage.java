@@ -2793,21 +2793,48 @@ public class SiteSelectionPage extends BasePage {
      * @return true if a card was tapped
      */
     public boolean clickWorkOrderCard() {
-        try {
-            java.util.List<WebElement> cards = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND name BEGINSWITH 'WO'"));
-            for (WebElement c : cards) {
-                try {
-                    if (c.getSize().getHeight() > 50 && c.getLocation().getY() > 120) {
-                        System.out.println("✅ Tapped dashboard WO card (state-agnostic): "
-                                + c.getAttribute("name"));
-                        c.click();
-                        return true;
-                    }
-                } catch (Exception ignored) {}
+        // v1.48: the WO card renders DISABLED (enabled="false", greyed) while the
+        // site's work-order sync is in flight — measured live 2026-07-03: up to
+        // ~110s after a soft restart. Tapping a disabled SwiftUI button silently
+        // no-ops, which is why every SiteVisit test "tapped" the card and stayed
+        // on the Dashboard. Wait (bounded by SITE_DASHBOARD_WAIT_SEC, same budget
+        // as the site-load patience fix) for enabled=true before tapping.
+        long deadline = System.currentTimeMillis()
+                + com.egalvanic.constants.AppConstants.SITE_DASHBOARD_WAIT_SEC * 1000L;
+        boolean waitLogged = false;
+        while (System.currentTimeMillis() < deadline) {
+            try {
+                java.util.List<WebElement> cards = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND name BEGINSWITH 'WO'"));
+                for (WebElement c : cards) {
+                    try {
+                        if (c.getSize().getHeight() > 50 && c.getLocation().getY() > 120) {
+                            if ("true".equalsIgnoreCase(c.getAttribute("enabled"))) {
+                                System.out.println("✅ Tapped dashboard WO card (state-agnostic): "
+                                        + c.getAttribute("name"));
+                                c.click();
+                                return true;
+                            }
+                            if (!waitLogged) {
+                                System.out.println("⏳ WO card present but DISABLED (session sync in "
+                                    + "flight) — waiting up to "
+                                    + com.egalvanic.constants.AppConstants.SITE_DASHBOARD_WAIT_SEC
+                                    + "s for it to enable (v1.48)");
+                                waitLogged = true;
+                            }
+                        }
+                    } catch (Exception ignored) {}
+                }
+            } catch (Exception e) {
+                System.out.println("⚠️ clickWorkOrderCard predicate failed: " + e.getMessage());
+                break;
             }
-        } catch (Exception e) {
-            System.out.println("⚠️ clickWorkOrderCard predicate failed: " + e.getMessage());
+            try { Thread.sleep(2000); } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt(); break;
+            }
+        }
+        if (waitLogged) {
+            System.out.println("⚠️ WO card never enabled within the wait budget");
         }
         // Fallback to the legacy no-active-only locator chain
         clickNoActiveJobCard();

@@ -94,13 +94,17 @@ public class WorkOrderPage extends BasePage {
             }
         } catch (Exception e) { /* continue */ }
 
-        // Strategy 4: Static text with "Work Orders" label
+        // Strategy 4: texts UNIQUE to the Work Orders screen. The old
+        // "label CONTAINS 'Work Order'" matched the DASHBOARD's own
+        // "No Active Work Order" card text — a false positive that made the
+        // whole SiteVisit chain run on the wrong screen (local repro 2026-07-03).
         try {
             List<WebElement> texts = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND (label == 'Work Orders' OR label CONTAINS 'Work Order')"
+                "type == 'XCUIElementTypeStaticText' AND "
+                + "(label == 'Available Work Orders' OR label == 'Start New Work Order')"
             ));
             if (!texts.isEmpty()) {
-                System.out.println("✅ Work Orders screen detected via static text search");
+                System.out.println("✅ Work Orders screen detected via unique static text");
                 return true;
             }
         } catch (Exception e) { /* continue */ }
@@ -2293,6 +2297,25 @@ public class WorkOrderPage extends BasePage {
      */
     public boolean tapFirstRoomWithAssets() {
         System.out.println("📍 Looking for room with assets (fast path)...");
+
+        // Strategy 0 (v1.48, mapped live 2026-07-03): room rows are plain BUTTONS
+        // named after the room ("Room 101 - Conference_239") in the already-expanded
+        // tree; tapping one opens Assets in Room directly — no expansion needed and
+        // no risk of collapsing pre-expanded buildings/floors.
+        try {
+            List<WebElement> roomBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name BEGINSWITH 'Room'"));
+            for (WebElement r : roomBtns) {
+                try {
+                    if (r.getLocation().getY() > 200) {
+                        String nm = r.getAttribute("name");
+                        r.click();
+                        System.out.println("✅ Tapped room button (v1.48 direct): " + nm);
+                        return true;
+                    }
+                } catch (Exception ignored) {}
+            }
+        } catch (Exception ignored) {}
 
         // Room rows show "1 asset", "2 assets" etc. as sub-labels.
         // The room name itself is just a number ("1", "2", "233").
@@ -5238,6 +5261,16 @@ public class WorkOrderPage extends BasePage {
      * Check if the "Create Photo Walkthrough" option is displayed on the New Asset tab.
      */
     public boolean isCreatePhotoWalkthroughOptionDisplayed() {
+        // v1.48: the Assets-in-Room 'Add' button fans out ICON-ONLY buttons —
+        // plus.square (new asset), link.badge.plus (existing), number.square
+        // (quick count) and camera.viewfinder = Photo Walkthrough. Mapped live
+        // 2026-07-03 (walkthrough re-mapping session); there is NO text label.
+        try {
+            if (!driver.findElements(AppiumBy.accessibilityId("camera.viewfinder")).isEmpty()) {
+                System.out.println("✅ Photo Walkthrough option found (v1.48 fan-menu icon camera.viewfinder)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
         // Search ANY element type — popup menus use buttons, not static text
         try {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(
@@ -5274,6 +5307,17 @@ public class WorkOrderPage extends BasePage {
      */
     public boolean tapCreatePhotoWalkthroughOption() {
         System.out.println("📍 Tapping 'Create Photo Walkthrough' option...");
+
+        // Strategy 0 (v1.48): icon-only fan-menu button camera.viewfinder —
+        // the only Photo Walkthrough affordance on the Assets-in-Room screen.
+        try {
+            List<WebElement> icons = driver.findElements(AppiumBy.accessibilityId("camera.viewfinder"));
+            if (!icons.isEmpty()) {
+                icons.get(0).click();
+                System.out.println("✅ Tapped Photo Walkthrough (v1.48 camera.viewfinder icon)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
 
         // Strategy 1: Tap the title text
         try {
