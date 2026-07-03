@@ -1,0 +1,45 @@
+name: QA Data Cleanup (automation site)
+
+# Soft-deletes automation debris (epoch-named assets/buildings/floors/rooms/tasks)
+# from the automation site via the backend API. See .github/scripts/qa-data-cleanup.py
+# for the exact safety rails (strict name patterns, 48h in-flight guard, undo log,
+# single hard-coded site). Audited 2026-07-03: months of CI runs had piled up 371
+# junk buildings + 361 floors + 596 tasks — the giant-DOM/WDA-wedge root cause.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (audit only, delete nothing)'
+        default: false
+        type: boolean
+  schedule:
+    # Weekly, Sunday 02:00 UTC — before the work week's runs.
+    - cron: '0 2 * * 0'
+
+jobs:
+  cleanup:
+    name: "Cleanup automation-site test data"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout scripts
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github/scripts
+
+      - name: Run cleanup
+        env:
+          DRY_RUN: ${{ inputs.dry_run && '1' || '0' }}
+          UNDO_LOG: qa-cleanup-undo.jsonl
+        run: python3 .github/scripts/qa-data-cleanup.py
+
+      - name: Upload undo log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-cleanup-undo-log
+          path: qa-cleanup-undo.jsonl
+          retention-days: 90
+        continue-on-error: true
