@@ -41,10 +41,28 @@ import urllib.request
 
 BASE = os.environ.get("QA_API_BASE", "https://api.qa.egalvanic.ai/api")
 SLD_ID = os.environ.get("QA_CLEANUP_SLD", "9138fd14-a3c9-495a-b086-6ef520f92168")
-EMAIL = os.environ.get("QA_API_EMAIL", "abhiyant.singh+admin@egalvanic.com")
-PASSWORD = os.environ.get("QA_API_PASSWORD", "RP@egalvanic123")
 DRY_RUN = os.environ.get("DRY_RUN", "1") != "0"
 UNDO_LOG = os.environ.get("UNDO_LOG", "qa-cleanup-undo.jsonl")
+
+
+def _creds():
+    """Credentials: env vars first (GitHub secrets in CI); fallback = parse the
+    QA automation account from AppConstants.java so the value lives in exactly
+    one place in this repo (no duplicated literals in this script)."""
+    email = os.environ.get("QA_API_EMAIL") or ""
+    password = os.environ.get("QA_API_PASSWORD") or ""
+    if email and password:
+        return email, password
+    consts = os.path.join(os.path.dirname(__file__), "..", "..",
+                          "src/main/java/com/egalvanic/constants/AppConstants.java")
+    try:
+        src = open(consts, encoding="utf-8").read()
+        email = email or re.search(r'VALID_EMAIL\s*=\s*"([^"]+)"', src).group(1)
+        password = password or re.search(r'VALID_PASSWORD\s*=\s*"([^"]+)"', src).group(1)
+        return email, password
+    except Exception:
+        sys.exit("No credentials: set QA_API_EMAIL/QA_API_PASSWORD or run from the repo "
+                 "(AppConstants.java fallback not found)")
 
 EPOCH = r"1[678]\d{11}"  # 13-digit ms epoch (2023-2027)
 
@@ -84,8 +102,9 @@ def req(path, method="GET", body=None, token=None, raw=False):
 
 def main():
     print(("DRY RUN — nothing will be deleted" if DRY_RUN else "LIVE — soft-deleting") + f" (site {SLD_ID[:8]}…)")
+    email, password = _creds()
     code, login = req("/auth/v2/login", "POST",
-                      {"email": EMAIL, "password": PASSWORD, "subdomain": os.environ.get("QA_API_SUBDOMAIN", "acme")},
+                      {"email": email, "password": password, "subdomain": os.environ.get("QA_API_SUBDOMAIN", "acme")},
                       raw=True)
     if code != 200:
         sys.exit(f"login failed: HTTP {code}")
@@ -98,13 +117,28 @@ def main():
 
     # Never delete rows created in the last 48h: a CI run may be IN FLIGHT using
     # fixtures it just created (epoch-named, so they match the junk patterns).
+    # FAIL-SAFE: an unparseable timestamp counts as recent (skip). Recency is
+    # checked from BOTH the row's created_at/date_created AND the 13-digit epoch
+    # embedded in the automation name itself (junk names carry their birth time).
     import datetime
-    cutoff = (datetime.datetime.now(datetime.timezone.utc)
-              - datetime.timedelta(hours=48)).isoformat()
+    cutoff_dt = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=48)
+    cutoff_ms = cutoff_dt.timestamp() * 1000
 
-    def too_recent(r):
-        ts = r.get("created_at") or r.get("date_created") or ""
-        return bool(ts) and str(ts) > cutoff
+    def too_recent(r, name):
+        ts = r.get("created_at") or r.get("date_created")
+        if ts:
+            try:
+                parsed = datetime.datetime.fromisoformat(str(ts).replace("Z", "+00:00"))
+                if parsed.tzinfo is None:
+                    parsed = parsed.replace(tzinfo=datetime.timezone.utc)
+                if parsed >= cutoff_dt:
+                    return True
+            except (ValueError, TypeError):
+                return True  # fail-safe: can't prove it's old -> keep it
+        m = re.search(EPOCH, name or "")
+        if m and float(m.group(0)) >= cutoff_ms:
+            return True
+        return False
 
     undo = None if DRY_RUN else open(UNDO_LOG, "a")
     grand_ok = grand_fail = 0
@@ -115,7 +149,7 @@ def main():
         for r in rows:
             nm = next((str(r[k]) for k in name_keys if r.get(k)), "").strip()
             if nm and junk.search(nm):
-                if too_recent(r):
+                if too_recent(r, nm):
                     skipped_recent += 1
                     continue
                 targets.append((r["id"], nm))

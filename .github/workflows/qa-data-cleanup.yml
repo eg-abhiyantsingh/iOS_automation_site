@@ -10,8 +10,12 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: 'Dry run (audit only, delete nothing)'
-        default: false
+        # SAFE DEFAULT: manual dispatches audit only; an operator must explicitly
+        # untick this to soft-delete. The scheduled weekly run IS live (that is its
+        # purpose) — bounded by the script's strict name patterns, the 48h
+        # in-flight guard, soft-delete reversibility, and the uploaded undo log.
+        description: 'Dry run (audit only, delete nothing). Untick for a LIVE cleanup.'
+        default: true
         type: boolean
   schedule:
     # Weekly, Sunday 02:00 UTC — before the work week's runs.
@@ -28,11 +32,17 @@ jobs:
         with:
           sparse-checkout: |
             .github/scripts
+            src/main/java/com/egalvanic/constants/AppConstants.java
 
       - name: Run cleanup
         env:
+          # Manual dispatch: honors the dry_run input (defaults to dry-run).
+          # Scheduled run: inputs.dry_run is null -> '0' -> live (by design).
           DRY_RUN: ${{ inputs.dry_run && '1' || '0' }}
           UNDO_LOG: qa-cleanup-undo.jsonl
+          # Optional GitHub secrets override the AppConstants.java fallback.
+          QA_API_EMAIL: ${{ secrets.QA_API_EMAIL }}
+          QA_API_PASSWORD: ${{ secrets.QA_API_PASSWORD }}
         run: python3 .github/scripts/qa-data-cleanup.py
 
       - name: Upload undo log
