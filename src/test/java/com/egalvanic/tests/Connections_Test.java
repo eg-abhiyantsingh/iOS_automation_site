@@ -69,6 +69,18 @@ public final class Connections_Test extends BaseTest {
         // so they must be re-created to use the fresh driver.
         connectionsPage = new ConnectionsPage();
         buildingPage = new BuildingPage();
+
+        // v1.48: the soft restart RESTORES the app's nav stack, so a pushed "Work
+        // Orders" screen from earlier can be in front — and the restore is async, so
+        // BaseTest.testSetup's probe can run before it lands. Heal again here (a beat
+        // later), then make EVERY test start on the Connections screen instead of
+        // assuming suite order: TC_CONN_014 on the WO screen tapped its Refresh icon
+        // as the "+ Add" button (positional fallback) and failed on the wrong screen.
+        backOutOfAutoOpenedWorkOrders();
+        if (!ensureOnConnectionsScreen()) {
+            System.out.println("⚠️ @BeforeMethod could not ensure Connections screen — "
+                + "the test's own guards will surface the real state");
+        }
     }
 
     /**
@@ -174,6 +186,7 @@ public final class Connections_Test extends BaseTest {
         // Dismiss any modal/screen left open by a prior test before attempting navigation.
         // Tab bar is hidden under Connection Details / Edit screens — without this,
         // the Connections tab tap can't register.
+        backOutOfAutoOpenedWorkOrders(); // v1.48: pushed WO screen also hides the tab bar
         try { connectionsPage.goBackFromConnectionDetails(); } catch (Exception ignored) {}
         try { connectionsPage.tapOnCancelButton(); } catch (Exception ignored) {}
         if (connectionsPage.isConnectionsScreenDisplayed()) {

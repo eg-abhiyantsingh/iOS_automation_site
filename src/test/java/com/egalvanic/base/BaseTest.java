@@ -213,6 +213,14 @@ public class BaseTest {
         // Skip waiting for welcome page if already logged in
         waitForAppReadyFast();
 
+        // v1.48: the app RESTORES its navigation stack across the soft restart — if a
+        // previous test (or the auto-push) left the pushed "Work Orders" screen open,
+        // every test now STARTS there: no tab bar, and positional fallbacks grab the
+        // wrong screen's header controls (TC_CONN_014 tapped WO-screen Refresh as the
+        // "+ Add" button). Back out ONCE at setup — the single choke point every test
+        // class passes through — so tests always start from the Dashboard.
+        backOutOfAutoOpenedWorkOrders();
+
         // Handle "Session Expired" screen — app auth token expires after ~2-3 hours
         // of CI testing. Without this, ALL subsequent tests fail because the app is
         // stuck on the re-login screen and no test can navigate to its target.
@@ -223,6 +231,39 @@ public class BaseTest {
         // Initial-state screenshot is taken inside ExtentReportManager.createTest()
         // — it runs after the test method enters and the ExtentTest exists,
         // so the shot actually attaches. Doing it here would no-op.
+    }
+
+    /**
+     * v1.48: back out of the pushed "Work Orders" screen when the soft restart
+     * restored it (nav-state restoration). Markers: 'Start New Work Order' banner /
+     * 'Available Work Orders' + a BackButton. 0.3s implicit-wait probes — a no-op
+     * costs milliseconds. SiteVisit tests that WANT the Work Orders screen navigate
+     * to it themselves after setup, so backing out here is always safe.
+     */
+    protected void backOutOfAutoOpenedWorkOrders() {
+        try {
+            io.appium.java_client.ios.IOSDriver d = DriverManager.getDriver();
+            d.manage().timeouts().implicitlyWait(java.time.Duration.ofMillis(300));
+            try {
+                boolean onWorkOrders =
+                    (!d.findElements(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                        "name BEGINSWITH 'Start New Work Order'")).isEmpty()
+                     || !d.findElements(io.appium.java_client.AppiumBy.accessibilityId(
+                        "Available Work Orders")).isEmpty())
+                    && !d.findElements(io.appium.java_client.AppiumBy.accessibilityId(
+                        "BackButton")).isEmpty();
+                if (onWorkOrders) {
+                    System.out.println("↩️ Setup: restored Work Orders screen detected — tapping Back to Dashboard (v1.48)");
+                    d.findElement(io.appium.java_client.AppiumBy.accessibilityId("BackButton")).click();
+                    Thread.sleep(600);
+                }
+            } finally {
+                d.manage().timeouts().implicitlyWait(
+                    java.time.Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
+            }
+        } catch (Exception ignored) {
+            // Never let setup healing break setup itself
+        }
     }
 
     /**
