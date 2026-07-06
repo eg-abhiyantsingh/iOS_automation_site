@@ -1056,13 +1056,18 @@ public class AssetEngineerPage extends BasePage {
         return waitForCondition(() -> existsNow(title), timeoutSeconds);
     }
 
-    /** Type into a custom-sheet Form TextField located by its placeholder. */
+    /**
+     * Type into a custom-sheet Form TextField located by its placeholder.
+     * VISIBLE fields only — a background field behind the sheet with the
+     * same placeholder must never receive the keystrokes.
+     */
     public void typeCustomField(String placeholder, String text) {
         By field = AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeTextField' AND (placeholderValue == '" + placeholder
                         + "' OR value == '" + placeholder + "')");
         try {
-            WebElement el = driver.findElement(field);
+            WebElement el = firstVisible(field);
+            if (el == null) el = driver.findElement(field);
             el.click();
             el.sendKeys(text);
         } catch (Exception e) {

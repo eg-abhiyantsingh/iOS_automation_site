@@ -605,8 +605,12 @@ public class AssetEngineer_Test extends BaseTest {
                 "Class picker must list 'Circuit Breaker'");
         logStepWithScreenshot("TC_ENG_040: add-asset modes + class picker verified");
 
-        logStep("Step 4: Dismiss without creating anything");
-        engineerPage.dismissMenuOverlay();
-        engineerPage.closeAssetDetails(true);
+        logStep("Step 4: Cancel the class picker, then the draft — nothing created");
+        // The class picker is a PUSHED fullscreen list, not a menu — a
+        // coordinate tap outside cannot dismiss it; its Cancel button can.
+        assertTrue(engineerPage.pickOptionExact("Cancel"),
+                "Class picker Cancel must be tappable");
+        assertTrue(engineerPage.closeAssetDetails(true),
+                "Add Asset form must cancel back to the Assets list (no stranded draft)");
     }
 }

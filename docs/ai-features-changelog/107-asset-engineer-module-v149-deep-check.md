@@ -179,6 +179,38 @@ Framework fixes shaken out by the loop (all in AssetEngineerPage):
 Web reference (acme.qa.egalvanic.ai) was NOT needed: iOS source + live DOM
 answered everything; web parity notes already in the Swift comments.
 
+### Post-landing logic audit (same day)
+Re-read both files end-to-end hunting for logic errors the green runs could
+have masked. Two found and fixed (+ re-validated live):
+1. TC_ENG_040 stranded the app on the Add-Asset form: `dismissMenuOverlay`
+   (coordinate tap) cannot dismiss a PUSHED class-picker screen, and
+   `closeAssetDetails` then only closed the picker. Now: picker Cancel →
+   form cancel → assert back-on-list. It had passed only because the next
+   test's `navigateToAssetList` recovered.
+2. `typeCustomField` didn't visibility-filter — it could type into a
+   same-placeholder field BEHIND the sheet on other screens (worked on the
+   fuse screen only by absence of collision). Now visible-first.
+Soft spots accepted + documented: TC_ENG_016 doesn't assert its final
+close's return (recovery proven live); swipe helpers are down-only (every
+target screen opens at top); TC_ENG_004 run standalone on a fresh container
+fails with guidance instead of skipping (per the no-skip-laundering rule).
+
+### Coverage boundary (explicit)
+Covered: the full Settings/download lifecycle, per-class engineering blocks
+(box/fuse/transformer/bound-busway), unset match panel, menu enum contents,
+Panelboard-MCB Create-Main flow, kVA input filter, bound-card lifecycle +
+unlink-discard integrity, custom-sheet Save gating, Add-Asset mounts.
+NOT covered, by category:
+- Blocked by the WDA wedge defect: match RESULTS (cards/counts/truncation/
+  Load more/search), binding via match-card tap, post-bind transformer
+  config card. Testable after the app fix.
+- Missing fixture: breaker OCP block + Trip Configuration card (frame→
+  sensor→plug cascades, segments, i²t, 10-cap, GF toggle/picker), cable-class
+  block, custom-sheet per-class sections, custom SAVE→CUSTOM ENTRY→Edit.
+- Environment-gated: eng-lib flag OFF captions, offline caption, download-
+  failed state, pre-download banner-shown assert, French locale, API-level
+  encrypted-transport contract.
+
 ### Follow-ups
 1. Issues remap against v1.49 DOM (unchanged by v1.49; still the biggest
    fail cluster).
