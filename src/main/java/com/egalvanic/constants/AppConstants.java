@@ -163,6 +163,7 @@ public class AppConstants {
     public static final String MODULE_JOBS = "Jobs/Site Visits";
     public static final String MODULE_OFFLINE = "Offline Mode";
     public static final String MODULE_SMOKE_TEST = "Smoke Test";
+    public static final String MODULE_ASSET_ENGINEER = "Asset Engineering";
 
     // ============================================
     // FEATURE NAMES - AUTHENTICATION
@@ -193,6 +194,15 @@ public class AppConstants {
     public static final String FEATURE_DASHBOARD_HEADER = "Dashboard Header";
     public static final String FEATURE_JOB_SELECTION = "Job Selection";
     public static final String FEATURE_ACCESSIBILITY = "Accessibility";
+
+    // ============================================
+    // FEATURE NAMES - ASSET ENGINEERING (v1.49 asset_engineer library)
+    // Jira: ZP-2161 (SKM library), ZP-2794 (encrypted transport)
+    // ============================================
+    public static final String FEATURE_EQUIPMENT_LIBRARY = "Equipment Library (Settings)";
+    public static final String FEATURE_ENGINEERING_SECTION = "Engineering Section";
+    public static final String FEATURE_LIBRARY_MATCHING = "SKM Library Matching";
+    public static final String FEATURE_CUSTOM_EQUIPMENT = "Custom Equipment";
 
     // ============================================
     // FEATURE NAMES - JOBS / SITE VISITS

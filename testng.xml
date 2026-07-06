@@ -92,6 +92,18 @@
     </test>
 
     <!--
+        Asset Engineer module (changelog 107): v1.49 SKM equipment library
+        (Settings download card + encrypted v2 transport) and the Engineering
+        section on Asset Details (per-class blocks, match panel, bound card,
+        custom equipment sheet). Library download is the in-class state gate.
+    -->
+    <test name="Asset Engineering Tests">
+        <classes>
+            <class name="com.egalvanic.tests.AssetEngineer_Test"/>
+        </classes>
+    </test>
+
+    <!--
         Cross-module data-integrity E2E (changelog 078): chains Assets+Issues to
         catch orphaned-reference / ghost-record bugs that per-module tests miss.
         Environmental gaps skip cleanly (read-only data, no API egress).

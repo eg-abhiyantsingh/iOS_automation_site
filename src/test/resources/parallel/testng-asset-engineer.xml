@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite time-out="480000" name="Asset Engineer (15 tests)" verbose="0">
+    <!--
+    ============================================================
+    ASSET ENGINEER MODULE — v1.49 asset_engineer library (15 tests)
+    ============================================================
+      Scope: Settings Equipment Library card + Load Device Library
+             download (ZP-2794 encrypted transport), Engineering
+             section per asset class (box/fuse/transformer/busway),
+             SKM match panel, bound-library card + unlink integrity,
+             custom equipment sheet, Add Asset engineering mounts.
+      Ordering matters: TC_ENG_003 is the download state gate;
+      TC_ENG_020 runs LAST by priority (601) because picking a
+      manufacturer on the transformer screen can wedge WDA
+      (documented app defect) — keeping it last stops a wedge from
+      cascading into other tests.
+      The class pins DriverManager.setNoReset(true): NO_RESET=false
+      would wipe the downloaded library cache on every driver build.
+    ============================================================
+    -->
+    <listeners>
+        <listener class-name="com.egalvanic.listeners.GlobalTestTimeout"/>
+        <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
+    </listeners>
+
+    <test name="Asset Engineer - Equipment Library + Engineering Section">
+        <classes>
+            <class name="com.egalvanic.tests.AssetEngineer_Test"/>
+        </classes>
+    </test>
+
+</suite>
