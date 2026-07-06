@@ -177,7 +177,7 @@ def merge_rerun(primary, rerun):
     merged = []
     for m in primary:
         key = (m["cls"], m["method"])
-        if key in rr:
+        if key in rr and not (rr[key]["status"] == "SKIP" and m["status"] != "SKIP"):
             new = dict(m)
             new["status"] = rr[key]["status"]
             new["ms"] = rr[key]["ms"] or m["ms"]
@@ -185,6 +185,10 @@ def merge_rerun(primary, rerun):
             new["recovered"] = (m["status"] != "PASS" and rr[key]["status"] == "PASS")
             merged.append(new)
         else:
+            # Not in the rerun at all, OR the rerun only SKIPPED it (breaker /
+            # wall-guard fast-skip = no verdict). Either way the original outcome
+            # stands — a rerun SKIP must never launder a FAIL into a SKIP
+            # (run 28666174784 turned 285 FAILs into SKIPs this way).
             n = dict(m)
             n["reran"] = False
             n["recovered"] = False

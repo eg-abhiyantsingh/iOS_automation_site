@@ -68,6 +68,25 @@ locators are predicate-heavy (2,944 predicate vs 257 accessibility-id).
   unicode/whitespace/double-tap/backgrounding, all hard-asserted) wired into
   `parallel/testng-auth.xml` + `testng.xml` (runs in the `authentication-only` CI job).
 
+## Session 2026-07-06 — run-28666174784 forensics + sharded rerun
+- **Why "fails became skips" after rerun:** single rerun job ran 404 fails
+  sequentially, hit SUITE_WALL_MINUTES=240 at test 119, breaker opened, 285
+  fast-skipped; merge_rerun then let rerun-SKIP override original FAIL
+  (404→"83 fail + 989 skip"). Full evidence:
+  `docs/failure-analysis-2026-07-04-run-28666174784.md`.
+- **Fixes (changelog 105):** rerun sharded ×3 in BOTH ios-tests-parallel.yml and
+  rerun-failed-by-date.yml via `build-failed-suite.py --shard I/N` (+ new
+  `--input-suite`; deterministic class-atomic split, no coordination needed);
+  `-DSUITE_WALL_MINUTES=330` for rerun shards; `RERUN_LOGIN_FIRST=true` →
+  BaseTest.testSetup runs idempotent loginAndSelectSite() before every rerun
+  test (exempt: AuthenticationTest, Security_EdgeCase_Test); merge_rerun in both
+  report scripts keeps FAIL when rerun says SKIP (grey NOT RERUN badge).
+- **Biggest unfixed cluster:** v1.48 changed the Issues create/details DOM —
+  pickers read '' after selection, option lists read 0 items, Gallery/Delete
+  "missing" (~76 fails, deterministic, reproduced on fresh sim). Needs an
+  Issues remap like commit 8090737 did for SiteVisit. Location New-Floor/New-
+  Room nav + CB_EAD "save not confirmed" are the next two clusters.
+
 ## How to run
 - Self-tests (no device): `mvn -o -DsuiteXmlFile=testng-verify-selftest.xml test`
 - Exploratory crawl (macOS + live session): `RUN_EXPLORATORY=true mvn -Dtest=ExploratoryCrawlTest test`

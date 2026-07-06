@@ -3319,18 +3319,28 @@ jobs:
         run: bash .github/scripts/test-result-gate.sh target/surefire-reports
 
   # ========================================
-  # JOB 16: Rerun Failures (92 tests, ~3 hr)
+  # JOB 16: Rerun Failures — 3 PARALLEL SHARDS
   # ========================================
   rerun-failures:
-    name: "Rerun Failures (this run)"
-    # Runs AFTER every module job (not in parallel) so it can collect THIS run's real
-    # failures + cascade-skips and rerun them on a FRESH simulator — the only thing that
-    # actually recovers tests a wedged runner fast-skipped. always() => runs even when
-    # some module jobs failed (that is the whole point).
+    name: "Rerun Failures (this run, shard ${{ matrix.shard }}/3)"
+    # Runs AFTER every module job (not in parallel with them) so it can collect THIS
+    # run's real failures + cascade-skips and rerun them on a FRESH simulator — the only
+    # thing that actually recovers tests a wedged runner fast-skipped. always() => runs
+    # even when some module jobs failed (that is the whole point).
+    #
+    # SHARDED ×3 (run 28666174784): a single rerun job ground through 404 failures
+    # sequentially, hit the 240-min suite wall at test #119 and mass-skipped the other
+    # 285. Each shard gets a deterministic, class-atomic third of the failure suite
+    # (build-failed-suite.py --shard N/3 — no coordination artifact needed) plus the
+    # full job wall (SUITE_WALL_MINUTES=330, ~the 6h GitHub cap minus report upload).
     needs: [smoke-tests, auth-tests, site-tests, assets-part1, assets-part2, assets-part3, assets-part4, assets-part5, assets-part6, issues-phase1, issues-phase2, issues-phase3, location-tests, connections-tests, offline-tests, sitevisit-tests, workorder-planning-tests, zp323-tests]
     if: ${{ always() && inputs.run_all }}
     runs-on: macos-15
     timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
 
     steps:
       - name: Checkout code
@@ -3444,16 +3454,20 @@ jobs:
           # Drop the committed (prior-run) latest.xml so we only rerun THIS run's results.
           rm -f failed-suites/latest.xml
           # --include-skips recovers tests the breaker / WDA-hopeless / wedge fast-skipped.
+          # --shard: this matrix job runs ONLY its deterministic third of the suite
+          # (classes atomic, size-balanced) — all 3 shards derive the same split
+          # independently from the same downloaded artifacts.
           python3 .github/scripts/build-failed-suite.py --from run-artifacts \
-            --include-skips --run "${{ github.run_id }}" --date "$(date +%F)" || true
+            --include-skips --run "${{ github.run_id }}" --date "$(date +%F)" \
+            --shard "${{ matrix.shard }}/3" || true
           if [ -f failed-suites/latest.xml ] && grep -q "<include" failed-suites/latest.xml; then
             N=$(grep -c "<include" failed-suites/latest.xml)
             echo "has_failures=true" >> "$GITHUB_OUTPUT"
             echo "count=$N" >> "$GITHUB_OUTPUT"
-            echo "🔄 $N test(s) to rerun on a fresh simulator"
+            echo "🔄 $N test(s) in shard ${{ matrix.shard }}/3 to rerun on a fresh simulator"
           else
             echo "has_failures=false" >> "$GITHUB_OUTPUT"
-            echo "✅ Nothing to rerun — no failures/cascade-skips in this run"
+            echo "✅ Nothing to rerun in shard ${{ matrix.shard }}/3"
           fi
 
       - name: Run Failed Tests Rerun
@@ -3462,18 +3476,31 @@ jobs:
         run: |
           BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${{ github.workspace }}/apps/Z Platform-QA.app/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
 
-          echo "🔄 Rerunning ${{ steps.buildrerun.outputs.count }} test(s) from THIS run on a fresh simulator"
+          echo "🔄 Rerunning ${{ steps.buildrerun.outputs.count }} test(s) (shard ${{ matrix.shard }}/3) from THIS run on a fresh simulator"
+          # SUITE_WALL_MINUTES=330: give the rerun shard (~1/3 of the failures) the
+          # full job budget instead of the module-job default of 240 min — run
+          # 28666174784's single rerun hit that wall at test 119/404 and mass-
+          # skipped the rest. 330 (not 360) leaves ~30 min for report upload
+          # before GitHub hard-cancels at timeout-minutes: 360.
+          # RERUN_LOGIN_FIRST=true: every test starts logged-in + site-selected +
+          # on Dashboard (mixed-class failure suites otherwise inherit whatever
+          # screen the previous class died on).
           mvn test -ntp -B -DfailIfNoTests=true -DsuiteXmlFile=failed-suites/latest.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
             -DAPP_BUNDLE_ID="$BUNDLE_ID" \
+            -DSUITE_WALL_MINUTES=330 \
+            -DRERUN_LOGIN_FIRST=true \
             -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
       - name: Upload Failures Rerun Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: failures-rerun-report
+          # Shard-suffixed: upload-artifact@v4 rejects duplicate names across
+          # matrix jobs. The send-email job gathers all failures-rerun-report-*
+          # artifacts back into one rerun result set before merging.
+          name: failures-rerun-report-shard${{ matrix.shard }}
           path: |
             target/surefire-reports/
             reports/
@@ -3487,7 +3514,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           BRANCH: ${{ github.ref_name }}
           ACTOR: ${{ github.actor }}
-          MODULE_NAME: failures-rerun
+          MODULE_NAME: failures-rerun-shard${{ matrix.shard }}
           JOB_STATUS: ${{ job.status }}
         run: |
           # Send a per-module email AS SOON AS this module finishes — no
@@ -3533,6 +3560,32 @@ jobs:
           path: all-reports
         continue-on-error: true
 
+      - name: Gather rerun shard results
+        id: rerun_results
+        if: always()
+        run: |
+          # The rerun is sharded ×3 (failures-rerun-report-shard1..3). Collect every
+          # shard's testng-results.xml into ONE directory so the report generators
+          # keep taking a single --rerun dir. Also tolerates the old single
+          # failures-rerun-report name (e.g. re-processing an old run's artifacts).
+          mkdir -p rerun-results
+          i=0
+          for d in all-reports/failures-rerun-report*/; do
+            [ -d "$d" ] || continue
+            while IFS= read -r x; do
+              i=$((i+1))
+              mkdir -p "rerun-results/src$i"
+              cp "$x" "rerun-results/src$i/testng-results.xml"
+            done < <(find "$d" -name testng-results.xml)
+          done
+          if [ "$i" -gt 0 ]; then
+            echo "has_rerun=true" >> "$GITHUB_OUTPUT"
+            echo "🔄 gathered $i rerun result file(s) from the shard artifacts"
+          else
+            echo "has_rerun=false" >> "$GITHUB_OUTPUT"
+            echo "ℹ️ no rerun results found in this run's artifacts"
+          fi
+
       - name: Generate client reports (before + after rerun)
         id: client_reports
         if: always()
@@ -3555,12 +3608,12 @@ jobs:
 
           BEFORE_PATH="consolidated-reports/Client_Report_Before_Rerun_${STAMP}.html"
           AFTER_PATH=""
-          # Report #2 — AFTER rerun, ONLY if the rerun actually produced results
-          if [ -d all-reports/failures-rerun-report ] && \
-             find all-reports/failures-rerun-report -name testng-results.xml | grep -q .; then
+          # Report #2 — AFTER rerun, ONLY if the (sharded) rerun produced results;
+          # rerun-results/ is assembled by the "Gather rerun shard results" step.
+          if [ "${{ steps.rerun_results.outputs.has_rerun }}" = "true" ]; then
             python3 .github/scripts/ios_client_report.py \
               --results all-reports --exclude failures-rerun \
-              --rerun all-reports/failures-rerun-report \
+              --rerun rerun-results \
               --phase after --run-url "$RUN_URL" \
               --out "consolidated-reports/Client_Report_After_Rerun_${STAMP}.html" || true
             AFTER_PATH="consolidated-reports/Client_Report_After_Rerun_${STAMP}.html"
@@ -3635,12 +3688,11 @@ jobs:
             consolidated-reports/Consolidated_Automation_Report_Before_Rerun.html \
             --exclude failures-rerun --label "Before Rerun" \
             || echo "⚠️ before-rerun detailed report generation skipped"
-          if [ -d all-reports/failures-rerun-report ] && \
-             find all-reports/failures-rerun-report -name testng-results.xml | grep -q .; then
+          if [ "${{ steps.rerun_results.outputs.has_rerun }}" = "true" ]; then
             python3 .github/scripts/consolidated-report.py all-reports \
               consolidated-reports/Consolidated_Automation_Report_After_Rerun.html \
               --exclude failures-rerun \
-              --rerun all-reports/failures-rerun-report --label "After Rerun" \
+              --rerun rerun-results --label "After Rerun" \
               || echo "⚠️ after-rerun detailed report generation skipped"
           else
             echo "ℹ️ no rerun results — only the before-rerun detailed report"

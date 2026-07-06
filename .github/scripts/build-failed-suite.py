@@ -171,6 +171,55 @@ def cap_cascades(failures, cascades, cap):
     return kept
 
 
+def parse_suite_xml(path):
+    """Parse an existing failed-suite XML back into {fqcn: set(methods)}.
+
+    Used by the sharded rerun-failed-by-date workflow: the dated suite already
+    exists as XML, and each matrix shard re-derives its slice from it.
+    All <test> blocks are flattened into one group (the failure/cascade split
+    only matters when writing, and a re-sharded suite keeps class atomicity)."""
+    failures = defaultdict(set)
+    root = ET.parse(path).getroot()
+    for cls in root.iter("class"):
+        fqcn = cls.get("name")
+        if not fqcn:
+            continue
+        for inc in cls.iter("include"):
+            m = inc.get("name")
+            if m:
+                failures[fqcn].add(m)
+    return failures
+
+
+def shard_groups(failures, cascades, shard_idx, shard_total):
+    """Deterministically split classes across ``shard_total`` bins, balanced by
+    method count; return only shard ``shard_idx`` (1-based) of each group.
+
+    Classes are ATOMIC — never split across shards: chained tests inside a class
+    rely on intra-class ordering/state, and @BeforeClass setup would otherwise
+    run (and pay its cost) in every shard. Greedy bin-packing over classes sorted
+    by (size desc, name) is fully deterministic, so each matrix job computes the
+    same assignment independently — no coordination artifact needed."""
+    sizes = defaultdict(int)
+    for grp in (failures, cascades):
+        for fqcn, methods in grp.items():
+            sizes[fqcn] += len(methods)
+    bins = [0] * shard_total
+    assign = {}
+    for fqcn in sorted(sizes, key=lambda c: (-sizes[c], c)):
+        i = min(range(shard_total), key=lambda b: (bins[b], b))
+        assign[fqcn] = i
+        bins[i] += sizes[fqcn]
+    keep = {c for c, b in assign.items() if b == shard_idx - 1}
+    shard_fail = defaultdict(set, {c: set(m) for c, m in failures.items() if c in keep})
+    shard_casc = defaultdict(set, {c: set(m) for c, m in cascades.items() if c in keep})
+    print(f"  shard {shard_idx}/{shard_total}: "
+          f"{sum(len(m) for m in shard_fail.values())} failure(s) + "
+          f"{sum(len(m) for m in shard_casc.values())} cascade-skip(s) "
+          f"across {len(keep)} class(es)  [all-shard sizes: {bins}]")
+    return shard_fail, shard_casc
+
+
 def _classes_block(lines, group):
     lines.append('        <classes>')
     for fqcn in sorted(group):
@@ -271,10 +320,33 @@ def main():
                     help="cap the suite size: all genuine failures always kept, cascade-skips "
                          "fill the remainder (default 250 / $RERUN_MAX_TESTS). A 933-test rerun "
                          "suite just breaker-skipped 817 of them (run 28458743407).")
+    ap.add_argument("--shard", default=None, metavar="I/N",
+                    help="emit only shard I of N (classes atomic, size-balanced, deterministic) "
+                         "— lets N parallel CI jobs split one failure suite with no coordination. "
+                         "Run 28666174784: a single 404-test rerun hit the 240-min suite wall and "
+                         "mass-skipped 285 of them; shards keep each runner well under the wall.")
+    ap.add_argument("--input-suite", default=None, metavar="SUITE_XML",
+                    help="skip collection and re-shard an EXISTING failed-suite XML "
+                         "(used by rerun-failed-by-date.yml matrix shards)")
     args = ap.parse_args()
     the_date = args.date or date.today().isoformat()
 
-    if args.src:
+    shard_idx = shard_total = None
+    if args.shard:
+        try:
+            shard_idx, shard_total = (int(x) for x in args.shard.split("/", 1))
+        except ValueError:
+            sys.exit(f"--shard must look like 2/3, got: {args.shard!r}")
+        if not (1 <= shard_idx <= shard_total):
+            sys.exit(f"--shard index out of range: {args.shard!r}")
+
+    if args.input_suite:
+        run_id = args.run or "local"
+        failures = parse_suite_xml(args.input_suite)
+        cascades = defaultdict(set)
+        print(f"  re-sharding existing suite {args.input_suite}: "
+              f"{sum(len(m) for m in failures.values())} test(s)")
+    elif args.src:
         run_id = args.run or "local"
         failures, cascades = collect_failures(args.src, include_skips=args.include_skips)
     else:
@@ -284,12 +356,19 @@ def main():
             failures, cascades = collect_failures(tmp, include_skips=args.include_skips)
 
     cascades = cap_cascades(failures, cascades, args.max_tests)
+    if shard_total:
+        # Shard AFTER the cap so every matrix job computes the identical
+        # capped set and therefore the identical class→shard assignment.
+        failures, cascades = shard_groups(failures, cascades, shard_idx, shard_total)
     path, total = write_suite(failures, cascades, the_date, run_id)
     merged = defaultdict(set)
     for grp in (failures, cascades):
         for fqcn, methods in grp.items():
             merged[fqcn].update(methods)
-    hist = append_history(the_date, total, run_id, merged)
+    # A shard is one job's private slice — recording it in history.md would log
+    # N partial rows per run instead of one authoritative one (the collector
+    # workflow owns the real history).
+    hist = None if shard_total else append_history(the_date, total, run_id, merged)
 
     print(f"\n✅ {total} test(s) to rerun on {the_date} across {len(merged)} class(es) "
           f"({sum(len(m) for m in failures.values())} genuine failures, "
@@ -301,7 +380,7 @@ def main():
         print(f"▶️  run locally: mvn test -DsuiteXmlFile=failed-suites/latest.xml")
     else:
         print("\nℹ️  0 failures — latest.xml left unchanged (last real list preserved).")
-    print(f"🗂  history: {hist}")
+    print(f"🗂  history: {hist or '(skipped — shard mode)'}")
 
 
 if __name__ == "__main__":

@@ -106,6 +106,15 @@ public class AppConstants {
     // this only catches a slow-but-not-cascading suite. Kept well below the 360-min
     // job cap and above a healthy heavy suite's runtime (~170 min). 0 = disabled.
     public static final int SUITE_WALL_MINUTES = getEnvInt("SUITE_WALL_MINUTES", 240);
+    // Rerun mode: a failure suite mixes classes from many modules, so each class
+    // starts from whatever screen the PREVIOUS class died on (run 28666174784:
+    // rerun classes inherited dead/foreign screens and failed in setup-adjacent
+    // ways). When true, testSetup guarantees logged-in + site-selected + Dashboard
+    // before every test via loginAndSelectSite() (idempotent, ~1s fast path when
+    // already there). Classes that deliberately test logged-OUT states are exempt
+    // (BaseTest.LOGIN_FIRST_EXEMPT). Set by the rerun CI jobs; default off.
+    public static final boolean RERUN_LOGIN_FIRST = Boolean.parseBoolean(
+        getEnv("RERUN_LOGIN_FIRST", "false"));
     // Site-dashboard load wait (seconds) after selecting a site. Run 28458743407
     // forensics: on the Assets P1/P2/P3 runners the FIRST site load took >45s, the
     // old hard-coded 45s wait gave up ("continuing..."), nothing was persisted, and

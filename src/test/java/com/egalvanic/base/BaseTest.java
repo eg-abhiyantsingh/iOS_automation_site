@@ -28,6 +28,11 @@ public class BaseTest {
     protected static boolean skipNextSetup = false;
     protected static boolean skipNextTeardown = false;
 
+    // Classes whose tests deliberately exercise logged-OUT / pre-login states —
+    // the RERUN_LOGIN_FIRST guarantee must not log in underneath them.
+    private static final java.util.Set<String> LOGIN_FIRST_EXEMPT =
+            java.util.Set.of("AuthenticationTest", "Security_EdgeCase_Test");
+
     protected static boolean isCI() {
         return System.getenv("CI") != null || System.getenv("GITHUB_ACTIONS") != null;
     }
@@ -225,6 +230,23 @@ public class BaseTest {
         // of CI testing. Without this, ALL subsequent tests fail because the app is
         // stuck on the re-login screen and no test can navigate to its target.
         handleSessionExpiredIfNeeded();
+
+        // Rerun mode (RERUN_LOGIN_FIRST=true, set by the rerun CI jobs): failure
+        // suites interleave classes from every module, so a class inherits whatever
+        // screen the previous class died on. Guarantee logged-in + site-selected +
+        // Dashboard before the test body. loginAndSelectSite() is idempotent — a
+        // ~1s Dashboard fast-check on the happy path — so per-test cost is tiny.
+        // A login failure here must NOT convert the test into a config-skip: log
+        // it and let the test fail on its own real (reportable) error instead.
+        if (AppConstants.RERUN_LOGIN_FIRST
+                && !LOGIN_FIRST_EXEMPT.contains(getClass().getSimpleName())) {
+            try {
+                loginAndSelectSite();
+            } catch (Exception e) {
+                System.out.println("⚠️ RERUN_LOGIN_FIRST: loginAndSelectSite failed — "
+                        + "test starts from current screen: " + e.getMessage());
+            }
+        }
 
         testStartTime = System.currentTimeMillis();
         System.out.println("✅ Test setup complete  [" + timestamp() + "]\n");

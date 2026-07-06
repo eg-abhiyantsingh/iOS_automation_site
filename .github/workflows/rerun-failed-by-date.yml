@@ -107,12 +107,20 @@ jobs:
           echo "COUNT=$COUNT" >> "$GITHUB_OUTPUT"
 
   # ---- the actual re-run on the simulator (macos), only if there's >0 to run ----
+  # SHARDED ×3 (run 28666174784 lesson): one runner grinding a whole failure list
+  # sequentially hits the suite wall and mass-skips the tail. Each shard derives
+  # the same deterministic class-atomic split from the dated suite (no
+  # coordination), runs only its third, and gets the full job wall budget.
   rerun:
-    name: "Rerun failed tests"
+    name: "Rerun failed tests (shard ${{ matrix.shard }}/3)"
     needs: resolve
     if: needs.resolve.outputs.run_tests == 'true'
     runs-on: macos-15
     timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     env:
       XML: ${{ needs.resolve.outputs.xml }}
       LABEL: ${{ needs.resolve.outputs.label }}
@@ -284,7 +292,30 @@ jobs:
             exit 1
           fi
 
+      - name: Extract this shard's slice of the failure suite
+        id: shard
+        run: |
+          # Copy the dated suite aside FIRST — when LABEL=latest, $XML *is*
+          # failed-suites/latest.xml, which build-failed-suite.py overwrites
+          # with the shard slice.
+          cp "$XML" /tmp/rerun-input-suite.xml
+          rm -f failed-suites/latest.xml
+          python3 -m pip install --quiet --break-system-packages defusedxml || python3 -m pip install --quiet defusedxml || true
+          python3 .github/scripts/build-failed-suite.py \
+            --input-suite /tmp/rerun-input-suite.xml \
+            --shard "${{ matrix.shard }}/3" --date "$(date +%F)" || true
+          if [ -f failed-suites/latest.xml ] && grep -q "<include" failed-suites/latest.xml; then
+            N=$(grep -c "<include" failed-suites/latest.xml)
+            echo "run_shard=true" >> "$GITHUB_OUTPUT"
+            echo "count=$N" >> "$GITHUB_OUTPUT"
+            echo "▶️  shard ${{ matrix.shard }}/3: $N of $COUNT test(s)"
+          else
+            echo "run_shard=false" >> "$GITHUB_OUTPUT"
+            echo "✅ shard ${{ matrix.shard }}/3 is empty — nothing to run in this job"
+          fi
+
       - name: Re-run failed tests
+        if: steps.shard.outputs.run_shard == 'true'
         continue-on-error: true
         env:
           SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
@@ -292,14 +323,20 @@ jobs:
           DEVICE_NAME: ${{ env.DEVICE_NAME }}
           APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
         run: |
-          echo "🧪 Re-running ${COUNT} failed test(s) from '${LABEL}'"
-          echo "── Suite: $XML ──"
+          echo "🧪 Re-running ${{ steps.shard.outputs.count }} of ${COUNT} failed test(s) from '${LABEL}' (shard ${{ matrix.shard }}/3)"
           BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
-          mvn test -q -B -DsuiteXmlFile="$XML" \
+          # SUITE_WALL_MINUTES=330: full job budget minus report-upload headroom
+          # (the single-job rerun used to die at the 240-min module default).
+          # RERUN_LOGIN_FIRST=true: every test starts logged-in on Dashboard —
+          # mixed-class failure suites otherwise inherit the previous class's
+          # final (often dead) screen.
+          mvn test -q -B -DsuiteXmlFile=failed-suites/latest.xml \
             -DDEVICE_NAME="$DEVICE_NAME" \
             -DPLATFORM_VERSION="$PLATFORM_VERSION" \
             -DSIMULATOR_UDID="$SIMULATOR_UDID" \
             -DAPP_BUNDLE_ID="$BUNDLE_ID" \
+            -DSUITE_WALL_MINUTES=330 \
+            -DRERUN_LOGIN_FIRST=true \
             -DAPP_PATH="$APP_PATH" || true
           echo "✅ Re-run complete — review the report to triage REAL vs SCRIPT failures"
 
@@ -307,7 +344,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: rerun-${{ env.LABEL }}-report
+          name: rerun-${{ env.LABEL }}-shard${{ matrix.shard }}-report
           path: |
             target/surefire-reports/
             reports/
@@ -322,7 +359,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           BRANCH: ${{ github.ref_name }}
           ACTOR: ${{ github.actor }}
-          MODULE_NAME: rerun-${{ env.LABEL }}
+          MODULE_NAME: rerun-${{ env.LABEL }}-shard${{ matrix.shard }}
           JOB_STATUS: ${{ job.status }}
         run: |
           EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')

@@ -140,12 +140,22 @@ def merge_rerun(primary, rerun_dir):
     for t in find_and_parse_all(rerun_dir):
         rerun_tests[(t['class_name'], t['name'])] = t
     merged = []
-    overridden = recovered = 0
+    overridden = recovered = not_rerun = 0
     for t in primary:
         key = (t['class_name'], t['name'])
         r = rerun_tests.get(key)
         if r is None:
             merged.append(t)
+            continue
+        # A rerun SKIP is "no verdict" (breaker / wall-guard fast-skip), NOT an
+        # improvement — letting it override erased 285 FAILs as SKIP in run
+        # 28666174784 (404 fails → "83 fails + 989 skips" looked like recovery).
+        # Keep the original outcome and badge it NOT RERUN instead.
+        if r['status'] == 'SKIP' and t['status'] != 'SKIP':
+            final = dict(t)
+            final['not_rerun'] = True
+            not_rerun += 1
+            merged.append(final)
             continue
         overridden += 1
         final = dict(t)
@@ -155,7 +165,8 @@ def merge_rerun(primary, rerun_dir):
         recovered += 1 if final['recovered'] else 0
         merged.append(final)
     print(f"Rerun merge: {overridden} outcome(s) overridden by the rerun, "
-          f"{recovered} RECOVERED (fail/skip → pass)")
+          f"{recovered} RECOVERED (fail/skip → pass), "
+          f"{not_rerun} kept original outcome (rerun never reached them)")
     return merged
 
 
@@ -236,6 +247,7 @@ def generate_html(modules, label=''):
   .badge {{ display:inline-block; padding:3px 10px; border-radius:3px; font-size:11px; font-weight:600; min-width:44px; text-align:center; }}
   .badge-pass {{ background:#28a745; color:#fff; }} .badge-fail {{ background:#dc3545; color:#fff; }} .badge-skip {{ background:#ffc107; color:#000; }}
   .badge-recovered {{ background:#e6f4ec; color:#2d7a4a; border:1px solid #2d7a4a; margin-right:6px; min-width:0; }}
+  .badge-notrerun {{ background:#f1f3f5; color:#6c757d; border:1px solid #adb5bd; margin-right:6px; min-width:0; }}
   .footer {{ background:#fff; border-top:1px solid #e9ecef; padding:16px 32px; font-size:11px; color:#999; text-align:center; }}
   .footer a {{ color:#007bff; text-decoration:none; }}
   .toggle {{ transition:transform .2s; display:inline-block; margin-right:8px; font-size:12px; color:#999; }}
@@ -296,6 +308,8 @@ def generate_html(modules, label=''):
             badge = f'badge-{sl}' if sl in ('pass', 'fail', 'skip') else 'badge-pass'
             recovered_badge = ('<span class="badge badge-recovered">RECOVERED</span>'
                                if t.get('recovered') else '')
+            if t.get('not_rerun'):
+                recovered_badge = '<span class="badge badge-notrerun">NOT RERUN</span>'
             html += f"""      <div class="test-row" data-status="{t['status']}" data-search="{escape_html((disp + ' ' + t['class_name']).lower())}">
         <span class="test-name">{escape_html(disp)}</span>
         <span class="test-class">{escape_html(t['class_name'])}</span>
