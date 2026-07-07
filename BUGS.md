@@ -133,6 +133,32 @@ weakening assertions.
 
 ## Category 3 — REAL PRODUCT BUGS
 
+### ENG-WEDGE-01 — Transformer DETAILS + match results wedge WDA (v1.49, reproduced 2×, 2026-07-06)
+- **Repro:** open an existing Transformer asset's details → Engineering →
+  pick a manufacturer → match panel renders → the next accessibility
+  snapshot (`getPageSource`/deep query) times out and the XCUITest session
+  dies ("Error communicating with the remote browser").
+- **Scope pinned by probes (2026-07-07):** DOM-size-bound — the SAME pick on
+  the transformer *Add-Asset draft* (TC_ENG_114) and on fuse details
+  (TC_ENG_110) runs clean. Only the ~100 KB transformer-details tree wedges.
+- **Impact:** blocks automated coverage of match-card binding + post-bind
+  transformer config card on existing assets. Same defect family as the
+  OSHA Issue-Details / Location-tree wedges (giant-DOM).
+- **Mitigation in suite:** `AssetEngineerMatching_Test` is quarantined last;
+  TC_ENG_020 is open-verify-dismiss only.
+
+### ENG-NONE-01 — Mains Type "None" clear row is inert on Panelboard (candidate, v1.49, 2026-07-07)
+- **Repro (automated, deterministic):** Panelboard detailed Add-Asset draft →
+  Mains Type = MLO (registers fine) → open menu → tap **None** → chip still
+  shows **MLO** (polled 6 s; screenshot
+  `TC_ENG_071_mainsTypeNoneClearsSelection_FAILED_20260707_131847.png`).
+  MLO/FDS/NFDS/MCB all register via the same tap mechanism — only None is
+  inert, so allowClear appears broken for this picker.
+- **Expected:** the None row clears the selection back to "Select…".
+- **Test:** `TC_ENG_071_mainsTypeNoneClearsSelection` asserts the spec and
+  stays RED until fixed (or the domain rule is clarified).
+- **Status:** candidate — one manual confirm requested before filing upstream.
+
 ### ATS-VAL-01 — Create button enabled for spaces-only asset name (confirmed 2026-07-02, v1.48)
 - **Repro:** New Asset → Name = `"     "` (spaces only) → fill class + location →
   Create stays **ENABLED** (and creates the asset).

@@ -135,6 +135,45 @@ public class AssetEngineerPage extends BasePage {
         try { Thread.sleep(ms); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
     }
 
+    /**
+     * W3C pointer press at an element's center — THE tap primitive for this
+     * module. On iOS 26.2, XCUIElement.click() silently no-ops not only on
+     * menu rows but intermittently on ordinary buttons too (observed live:
+     * Add Custom chip, Settings library card on its second tap). A real
+     * touch-down → 120ms → touch-up always registers.
+     */
+    private boolean pressElement(WebElement el) {
+        try {
+            org.openqa.selenium.Rectangle r = el.getRect();
+            int cx = r.getX() + r.getWidth() / 2;
+            int cy = r.getY() + r.getHeight() / 2;
+            org.openqa.selenium.interactions.PointerInput finger =
+                    new org.openqa.selenium.interactions.PointerInput(
+                            org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
+            org.openqa.selenium.interactions.Sequence press =
+                    new org.openqa.selenium.interactions.Sequence(finger, 1);
+            press.addAction(finger.createPointerMove(java.time.Duration.ZERO,
+                    org.openqa.selenium.interactions.PointerInput.Origin.viewport(), cx, cy));
+            press.addAction(finger.createPointerDown(
+                    org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+            press.addAction(new org.openqa.selenium.interactions.Pause(finger,
+                    java.time.Duration.ofMillis(120)));
+            press.addAction(finger.createPointerUp(
+                    org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+            driver.perform(java.util.Arrays.asList(press));
+            return true;
+        } catch (Exception e) {
+            System.out.println("⚠️ pressElement: " + e.getMessage() + " — falling back to click()");
+            try {
+                el.click();
+                return true;
+            } catch (Exception e2) {
+                System.out.println("⚠️ pressElement fallback click: " + e2.getMessage());
+                return false;
+            }
+        }
+    }
+
     private WebElement firstVisible(By locator) {
         return withImplicitWait(0, () -> {
             try {
@@ -279,8 +318,7 @@ public class AssetEngineerPage extends BasePage {
         }
         // Strategy 1: the card Button itself
         try {
-            driver.findElement(LIBRARY_CARD).click();
-            return;
+            if (pressElement(driver.findElement(LIBRARY_CARD))) return;
         } catch (Exception e) {
             System.out.println("⚠️ card tap strategy 1 failed: " + e.getMessage());
         }
@@ -288,8 +326,7 @@ public class AssetEngineerPage extends BasePage {
         By title = AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND name == '" + LIBRARY_CARD_TITLE + "'");
         try {
-            driver.findElement(title).click();
-            return;
+            if (pressElement(driver.findElement(title))) return;
         } catch (Exception e) {
             System.out.println("⚠️ card tap strategy 2 failed: " + e.getMessage());
         }
@@ -337,7 +374,7 @@ public class AssetEngineerPage extends BasePage {
         By btn = AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND label == '" + buttonLabel + "'");
         try {
-            driver.findElement(btn).click();
+            pressElement(driver.findElement(btn));
         } catch (Exception e) {
             System.out.println("⚠️ alert '" + buttonLabel + "' direct tap failed: " + e.getMessage()
                     + " — trying mobile:alert");
@@ -436,10 +473,10 @@ public class AssetEngineerPage extends BasePage {
                     + namePrefix + "' on the Assets list");
         }
         try {
-            driver.findElement(cell).click();
+            pressElement(driver.findElement(cell));
         } catch (Exception e) {
             System.out.println("⚠️ asset cell tap failed, retrying once: " + e.getMessage());
-            try { driver.findElement(cell).click(); } catch (Exception e2) {
+            try { pressElement(driver.findElement(cell)); } catch (Exception e2) {
                 throw new VerificationError("openAssetCardByPrefix: cell tap failed twice for '"
                         + namePrefix + "': " + e2.getMessage());
             }
@@ -468,6 +505,32 @@ public class AssetEngineerPage extends BasePage {
     public boolean isEngineeringLabelPresent(String label) {
         return existsNow(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND name == '" + label + "'"));
+    }
+
+    /**
+     * Swipe a field label into the viewport, INCLUDING its control below.
+     * Chip READERS are visible-only, and a label that lands at the bottom
+     * edge leaves its chip off-screen (diagnosed live on the ATS draft) —
+     * so when the label sits in the bottom 40% of the window, nudge one
+     * more swipe to bring the whole row in.
+     */
+    public boolean scrollToEngineeringLabel(String label) {
+        By labelBy = AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND name == '" + label + "'");
+        if (!swipeUntilVisible(labelBy, 6)) return false;
+        try {
+            WebElement lbl = firstVisible(labelBy);
+            if (lbl != null) {
+                int winH = driver.manage().window().getSize().getHeight();
+                if (lbl.getLocation().getY() > winH * 0.6) {
+                    scrollDown();
+                    pause(650);
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ scrollToEngineeringLabel nudge: " + e.getMessage());
+        }
+        return visibleNow(labelBy) || swipeUntilVisible(labelBy, 2);
     }
 
     /**
@@ -527,6 +590,50 @@ public class AssetEngineerPage extends BasePage {
         return waitForCondition(() -> isOptionShown(optionLabel), timeoutSeconds);
     }
 
+    /**
+     * Open a SwiftUI Form Picker row (custom-sheet Function / I²t / Dial /
+     * Pri-Sec Connection). Form pickers expose their row as an element whose
+     * label is either the bare title or "title, currentValue" — match both,
+     * prefer the topmost (last) visible, W3C-press it (menu rows and picker
+     * rows share the iOS 26 tap quirk).
+     */
+    public boolean openFormPicker(String pickerLabel) {
+        By row = AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeOther'"
+                        + " OR type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeStaticText')"
+                        + " AND (label == '" + pickerLabel + "' OR label BEGINSWITH '" + pickerLabel + ", ')");
+        if (!swipeUntilVisible(row, 4)) {
+            System.out.println("⚠️ openFormPicker('" + pickerLabel + "'): row never visible");
+            return false;
+        }
+        WebElement el = lastVisible(row);
+        if (el == null) return false;
+        try {
+            org.openqa.selenium.Rectangle r = el.getRect();
+            int cx = r.getX() + r.getWidth() / 2;
+            int cy = r.getY() + r.getHeight() / 2;
+            org.openqa.selenium.interactions.PointerInput finger =
+                    new org.openqa.selenium.interactions.PointerInput(
+                            org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
+            org.openqa.selenium.interactions.Sequence press =
+                    new org.openqa.selenium.interactions.Sequence(finger, 1);
+            press.addAction(finger.createPointerMove(java.time.Duration.ZERO,
+                    org.openqa.selenium.interactions.PointerInput.Origin.viewport(), cx, cy));
+            press.addAction(finger.createPointerDown(
+                    org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+            press.addAction(new org.openqa.selenium.interactions.Pause(finger,
+                    java.time.Duration.ofMillis(120)));
+            press.addAction(finger.createPointerUp(
+                    org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+            driver.perform(java.util.Arrays.asList(press));
+            pause(500);
+            return true;
+        } catch (Exception e) {
+            System.out.println("⚠️ openFormPicker('" + pickerLabel + "') press: " + e.getMessage());
+            return false;
+        }
+    }
+
     /** Wait until a StaticText label disappears (sheet/overlay dismissal). */
     public boolean waitForLabelGone(String label, int timeoutSeconds) {
         return isElementGone(AppiumBy.iOSNsPredicateString(
@@ -571,6 +678,33 @@ public class AssetEngineerPage extends BasePage {
             System.out.println("⚠️ pickFirstVisibleOptionContaining tap: " + e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * Tap a button INSIDE a native alert. Alerts live in their own window:
+     * W3C coordinate presses can miss them (observed live on 'Change Class'),
+     * while XCUIElement.click() targets alert buttons reliably — the exact
+     * inverse of the menu-row quirk. Verifies by alert dismissal.
+     */
+    public boolean tapAlertButton(String buttonLabel) {
+        By btn = AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == '" + buttonLabel + "'");
+        waitForCondition(() -> existsNow(ANY_ALERT) && existsNow(btn), 5);
+        try {
+            if (existsNow(btn)) driver.findElement(btn).click();
+        } catch (Exception e) {
+            System.out.println("⚠️ tapAlertButton('" + buttonLabel + "') click: " + e.getMessage()
+                    + " — trying mobile:alert");
+            try {
+                java.util.HashMap<String, Object> args = new java.util.HashMap<>();
+                args.put("action", "accept");
+                args.put("buttonLabel", buttonLabel);
+                driver.executeScript("mobile: alert", args);
+            } catch (Exception e2) {
+                System.out.println("⚠️ mobile:alert fallback: " + e2.getMessage());
+            }
+        }
+        return isElementGone(ANY_ALERT, 6);
     }
 
     /** Presence probe for a picker/menu/list option row of any row type. */
@@ -670,10 +804,10 @@ public class AssetEngineerPage extends BasePage {
         }
         try {
             org.openqa.selenium.Rectangle r = target.getRect();
-            System.out.println("🎯 picker below '" + fieldLabel + "': tapping Button label='"
+            System.out.println("🎯 picker below '" + fieldLabel + "': pressing Button label='"
                     + target.getAttribute("label") + "' at x=" + r.getX() + " y=" + r.getY()
                     + " w=" + r.getWidth() + " h=" + r.getHeight());
-            target.click();
+            pressElement(target);
         } catch (Exception e) {
             throw new VerificationError("openEngineeringPickerBelowLabel: tap failed for picker below '"
                     + fieldLabel + "': " + e.getMessage());
@@ -744,9 +878,12 @@ public class AssetEngineerPage extends BasePage {
 
     /**
      * Poll the picker chip below a label until it shows the expected value
-     * (SwiftUI re-renders the chip a beat after the menu closes).
+     * (SwiftUI re-renders the chip a beat after the menu closes). The reader
+     * is visible-only, so bring the row into the viewport first — after
+     * menu interactions the form can sit scrolled elsewhere.
      */
     public boolean waitForPickerValueBelowLabel(String fieldLabel, String expected, int timeoutSeconds) {
+        scrollToEngineeringLabel(fieldLabel);
         return waitForCondition(() -> expected.equals(getPickerValueBelowLabel(fieldLabel)), timeoutSeconds);
     }
 
@@ -762,8 +899,7 @@ public class AssetEngineerPage extends BasePage {
             return false;
         }
         try {
-            driver.findElement(seg).click();
-            return true;
+            return pressElement(driver.findElement(seg));
         } catch (Exception e) {
             System.out.println("⚠️ segment tap '" + segmentLabel + "': " + e.getMessage());
             return false;
@@ -797,11 +933,57 @@ public class AssetEngineerPage extends BasePage {
         dismissKeyboard();
     }
 
-    /** Read the current value of a field by placeholder ("" when empty/absent). */
+    /**
+     * Clear an engineering field then type — for input-filter matrices where
+     * consecutive cases hit the same field (plain sendKeys would append).
+     */
+    public void clearAndTypeIntoEngineeringField(String placeholder, String text) {
+        By field = AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeTextField' AND placeholderValue == '" + placeholder + "'");
+        if (!swipeUntilVisible(field, 5)) {
+            throw new VerificationError("clearAndTypeIntoEngineeringField: no TextField with placeholder '"
+                    + placeholder + "'");
+        }
+        try {
+            WebElement el = firstVisible(field);
+            if (el == null) el = driver.findElement(field);
+            el.click();
+            try {
+                el.clear();
+            } catch (Exception clearErr) {
+                System.out.println("⚠️ clear() failed (" + clearErr.getMessage() + ") — select-all delete fallback");
+                el.sendKeys(""); // backspaces
+            }
+            if (!text.isEmpty()) el.sendKeys(text);
+            // NOTE: do NOT tap around the field to force end-editing — a
+            // mid-composition tap disrupts the typing pipeline and injects
+            // digit artifacts (observed live: '1e5' read back as '152').
+            // The display therefore shows the RAW typed text for rejected
+            // characters (SwiftUI only redraws on a state change) while the
+            // draft holds the filtered value — expectations encode that.
+        } catch (Exception e) {
+            throw new VerificationError("clearAndTypeIntoEngineeringField('" + placeholder + "'): " + e.getMessage());
+        }
+        dismissKeyboard();
+        pause(400);
+    }
+
+    /**
+     * Read the current value of a field by placeholder ("" when empty/absent).
+     * VISIBLE-first: a background field behind an open sheet can share the
+     * placeholder (e.g. the Add-Asset 'Enter name' behind the Create-Main
+     * sheet) and must never be the one read.
+     */
     public String getEngineeringFieldValue(String placeholder) {
         By field = AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeTextField' AND placeholderValue == '" + placeholder + "'");
         try {
+            WebElement visible = firstVisible(field);
+            if (visible != null) {
+                String v = visible.getAttribute("value");
+                if (v == null || v.equals(placeholder)) return "";
+                return v;
+            }
             if (existsNow(field)) {
                 String v = driver.findElement(field).getAttribute("value");
                 if (v == null || v.equals(placeholder)) return "";
@@ -1013,7 +1195,11 @@ public class AssetEngineerPage extends BasePage {
             throw new VerificationError("tapAddCustom: 'Add Custom' button never visible");
         }
         try {
-            driver.findElement(ADD_CUSTOM_BUTTON).click();
+            if (!pressElement(driver.findElement(ADD_CUSTOM_BUTTON))) {
+                throw new VerificationError("tapAddCustom: press did not dispatch");
+            }
+        } catch (VerificationError ve) {
+            throw ve;
         } catch (Exception e) {
             throw new VerificationError("tapAddCustom: " + e.getMessage());
         }
@@ -1038,7 +1224,7 @@ public class AssetEngineerPage extends BasePage {
             return false;
         }
         try {
-            driver.findElement(UNLINK_BUTTON).click();
+            if (!pressElement(driver.findElement(UNLINK_BUTTON))) return false;
         } catch (Exception e) {
             System.out.println("⚠️ Unlink tap: " + e.getMessage());
             return false;
@@ -1094,7 +1280,7 @@ public class AssetEngineerPage extends BasePage {
         By btn = AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND label == '" + label + "'");
         try {
-            driver.findElement(btn).click();
+            pressElement(driver.findElement(btn));
         } catch (Exception e) {
             throw new VerificationError("tapCustomSheetButton('" + label + "'): " + e.getMessage());
         }

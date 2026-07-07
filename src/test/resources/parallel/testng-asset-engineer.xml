@@ -1,21 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<suite time-out="480000" name="Asset Engineer (15 tests)" verbose="0">
+<suite time-out="480000" name="Asset Engineer (105 tests)" verbose="0">
     <!--
     ============================================================
-    ASSET ENGINEER MODULE — v1.49 asset_engineer library (15 tests)
+    ASSET ENGINEER MODULE — v1.49 asset_engineer library (105 cases)
     ============================================================
-      Scope: Settings Equipment Library card + Load Device Library
-             download (ZP-2794 encrypted transport), Engineering
-             section per asset class (box/fuse/transformer/busway),
-             SKM match panel, bound-library card + unlink integrity,
-             custom equipment sheet, Add Asset engineering mounts.
-      Ordering matters: TC_ENG_003 is the download state gate;
-      TC_ENG_020 runs LAST by priority (601) because picking a
-      manufacturer on the transformer screen can wedge WDA
-      (documented app defect) — keeping it last stops a wedge from
-      cascading into other tests.
-      The class pins DriverManager.setNoReset(true): NO_RESET=false
+      6 classes, ordered:
+        1. AssetEngineer_Test (16)            — core journeys; TC_ENG_003
+           is the library-download state gate for everything after.
+        2. AssetEngineerClassMatrix_Test (16) — per-class Engineering
+           block contract in cancelled Add-Asset drafts.
+        3. AssetEngineerInputs_Test (20)      — int/double input-filter
+           matrices on draft fields.
+        4. AssetEngineerMenus_Test (7)        — enum menu semantics
+           (Panelboard mains options, None-clears, Create-Main sheet,
+           ATS parity, fuse subtype sheet).
+        5. AssetEngineerCustomSheet_Test (35) — ZP-2267 custom equipment
+           sheet: identity gating, 15 Function subtypes, I²t/Dial
+           suffixes, transformer/cable/busway sections + defaults.
+        6. AssetEngineerSettings_Test (6)     — card granular + library
+           persistence across app relaunch + re-download-replaces.
+        7. AssetEngineerMatching_Test (5)     — ⚠️ QUARANTINE: LIVE
+           matching probes on small DOMs. MUST STAY LAST — rendering
+           match results on the transformer DETAILS screen wedges WDA
+           (documented v1.49 app defect); keeping these last stops a
+           wedge from cascading.
+      All classes pin DriverManager.setNoReset(true): NO_RESET=false
       would wipe the downloaded library cache on every driver build.
     ============================================================
     -->
@@ -24,9 +34,39 @@
         <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
     </listeners>
 
-    <test name="Asset Engineer - Equipment Library + Engineering Section">
+    <test name="Asset Engineer - Core">
         <classes>
             <class name="com.egalvanic.tests.AssetEngineer_Test"/>
+        </classes>
+    </test>
+    <test name="Asset Engineer - Class Matrix">
+        <classes>
+            <class name="com.egalvanic.tests.AssetEngineerClassMatrix_Test"/>
+        </classes>
+    </test>
+    <test name="Asset Engineer - Input Filters">
+        <classes>
+            <class name="com.egalvanic.tests.AssetEngineerInputs_Test"/>
+        </classes>
+    </test>
+    <test name="Asset Engineer - Enum Menus">
+        <classes>
+            <class name="com.egalvanic.tests.AssetEngineerMenus_Test"/>
+        </classes>
+    </test>
+    <test name="Asset Engineer - Custom Equipment Sheet">
+        <classes>
+            <class name="com.egalvanic.tests.AssetEngineerCustomSheet_Test"/>
+        </classes>
+    </test>
+    <test name="Asset Engineer - Settings Granular">
+        <classes>
+            <class name="com.egalvanic.tests.AssetEngineerSettings_Test"/>
+        </classes>
+    </test>
+    <test name="Asset Engineer - Live Matching (quarantined last)">
+        <classes>
+            <class name="com.egalvanic.tests.AssetEngineerMatching_Test"/>
         </classes>
     </test>
 

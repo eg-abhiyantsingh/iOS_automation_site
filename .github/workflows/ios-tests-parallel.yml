@@ -3330,7 +3330,7 @@ jobs:
   # driver rebuilds within the job.
   # ========================================
   asset-engineer-tests:
-    name: "Asset Engineer (15 tests)"
+    name: "Asset Engineer (105 tests)"
     if: ${{ inputs.run_all || inputs.run_asset_engineer }}
     runs-on: macos-15
     timeout-minutes: 360

@@ -100,6 +100,13 @@
     <test name="Asset Engineering Tests">
         <classes>
             <class name="com.egalvanic.tests.AssetEngineer_Test"/>
+            <class name="com.egalvanic.tests.AssetEngineerClassMatrix_Test"/>
+            <class name="com.egalvanic.tests.AssetEngineerInputs_Test"/>
+            <class name="com.egalvanic.tests.AssetEngineerMenus_Test"/>
+            <class name="com.egalvanic.tests.AssetEngineerCustomSheet_Test"/>
+            <class name="com.egalvanic.tests.AssetEngineerSettings_Test"/>
+            <!-- Matching stays LAST: live match probes can wedge WDA (v1.49 defect) -->
+            <class name="com.egalvanic.tests.AssetEngineerMatching_Test"/>
         </classes>
     </test>
 
