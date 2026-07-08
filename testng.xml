@@ -111,6 +111,21 @@
     </test>
 
     <!--
+        Arc Flash module (changelog 111): NFPA 70E data-readiness tracker —
+        Site-tab "Arc Flash Analysis" dashboard (arithmetic-invariant oracles),
+        Assets/Connections AF Punchlist badge toggles, session "Arc Flash"
+        overlay + Collect AF Data, and the eng-lib flag/UI consistency canary.
+        NOT feature-flag gated — runs even while eng-lib is off.
+    -->
+    <test name="Arc Flash Tests">
+        <classes>
+            <class name="com.egalvanic.tests.ArcFlash_Test"/>
+            <class name="com.egalvanic.tests.ArcFlashPunchlist_Test"/>
+            <class name="com.egalvanic.tests.AssetEngineerFlagCanary_Test"/>
+        </classes>
+    </test>
+
+    <!--
         Cross-module data-integrity E2E (changelog 078): chains Assets+Issues to
         catch orphaned-reference / ghost-record bugs that per-module tests miss.
         Environmental gaps skip cleanly (read-only data, no API egress).

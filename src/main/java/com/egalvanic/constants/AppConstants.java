@@ -164,6 +164,7 @@ public class AppConstants {
     public static final String MODULE_OFFLINE = "Offline Mode";
     public static final String MODULE_SMOKE_TEST = "Smoke Test";
     public static final String MODULE_ASSET_ENGINEER = "Asset Engineering";
+    public static final String MODULE_ARC_FLASH = "Arc Flash";
 
     // ============================================
     // FEATURE NAMES - AUTHENTICATION
@@ -203,6 +204,15 @@ public class AppConstants {
     public static final String FEATURE_ENGINEERING_SECTION = "Engineering Section";
     public static final String FEATURE_LIBRARY_MATCHING = "SKM Library Matching";
     public static final String FEATURE_CUSTOM_EQUIPMENT = "Custom Equipment";
+
+    // ============================================
+    // FEATURE NAMES - ARC FLASH (data-readiness tracker; NOT flag-gated)
+    // Mirrors web /arc-flash "Arc Flash Readiness" (NFPA 70E completeness)
+    // ============================================
+    public static final String FEATURE_AF_DASHBOARD = "Arc Flash Analysis Dashboard";
+    public static final String FEATURE_AF_PUNCHLIST = "AF Punchlist Overlays";
+    public static final String FEATURE_AF_COLLECT = "Collect AF Data";
+    public static final String FEATURE_AF_PHOTO = "Arc Flash Sticker Photos";
 
     // ============================================
     // FEATURE NAMES - JOBS / SITE VISITS
