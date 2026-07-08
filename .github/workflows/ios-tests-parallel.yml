@@ -88,7 +88,7 @@ on:
         default: false
         type: boolean
       run_arc_flash:
-        description: 'Arc Flash — readiness dashboard + AF punchlist + eng-lib canary (19 tests)'
+        description: 'Arc Flash — readiness dashboard + AF punchlist + breakdown laws + eng-lib canary (34 tests)'
         required: false
         default: false
         type: boolean
@@ -3335,7 +3335,7 @@ jobs:
   # driver rebuilds within the job.
   # ========================================
   asset-engineer-tests:
-    name: "Asset Engineer (105 tests)"
+    name: "Asset Engineer (166 tests)"
     if: ${{ inputs.run_all || inputs.run_asset_engineer }}
     runs-on: macos-15
     timeout-minutes: 360
@@ -3482,7 +3482,7 @@ jobs:
   # NOT eng-lib gated; includes the eng-lib flag/UI canary (changelog 111)
   # ========================================
   arc-flash-tests:
-    name: "Arc Flash (19 tests)"
+    name: "Arc Flash (34 tests)"
     if: ${{ inputs.run_all || inputs.run_arc_flash }}
     runs-on: macos-15
     timeout-minutes: 360

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<suite time-out="480000" name="Arc Flash (19 tests)" verbose="0">
+<suite time-out="480000" name="Arc Flash (34 tests)" verbose="0">
     <!--
     ============================================================
     ARC FLASH MODULE — v1.49 data-readiness tracker (changelog 111)
@@ -36,6 +36,11 @@
     <test name="Arc Flash - Punchlist + Session">
         <classes>
             <class name="com.egalvanic.tests.ArcFlashPunchlist_Test"/>
+        </classes>
+    </test>
+    <test name="Arc Flash - Breakdown Deep Laws">
+        <classes>
+            <class name="com.egalvanic.tests.ArcFlashBreakdown_Test"/>
         </classes>
     </test>
     <test name="Arc Flash - EngLib Flag Canary">

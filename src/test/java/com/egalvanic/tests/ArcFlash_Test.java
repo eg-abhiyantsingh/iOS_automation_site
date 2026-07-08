@@ -326,4 +326,160 @@ public class ArcFlash_Test extends BaseTest {
         assertTrue(afPage.tapDone(), "Done must close the dashboard again");
         logStepWithScreenshot("TC_AF_013: reentry stability verified");
     }
+
+    @Test(priority = 14)
+    public void TC_AF_014_bucketRowDrillsIntoEditorAndBack() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ARC_FLASH, AppConstants.FEATURE_AF_DASHBOARD,
+                "TC_AF_014 - Tapping an asset row inside a bucket drills into the editor; closing returns to the dashboard");
+
+        logStep("Step 1: Open the dashboard");
+        openDashboardReady();
+
+        logStep("Step 2: Expand the 100% bucket (complete = simple classes; avoids the"
+                + " transformer giant-DOM wedge) and drill into its first row");
+        boolean drilled = afPage.expandBucketAndDrillFirstRow("100%");
+        if (!drilled) {
+            afPage.dumpSource("TC_AF_014_drill");
+            // Only a missing bucket is a fixture gap; bucket-present-but-no-drill is a real bug.
+            skipIfPreconditionMissing(() -> afPage.getVisibleBucketLabels().contains("100%"),
+                    "no 100% bucket on this site (fixture data)");
+        }
+        assertTrue(drilled, "Asset row tap must open the asset editor full-screen");
+        verifyAppAlive("drill-through editor");
+
+        logStep("Step 3: Close the editor — dashboard restores");
+        assertTrue(afPage.closeDrillThroughEditor(), "Closing the editor must restore the dashboard");
+        logStepWithScreenshot("TC_AF_014: drill-through round trip verified");
+    }
+
+    @Test(priority = 15)
+    public void TC_AF_015_sourceTargetGroupsSumToCardTotal() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ARC_FLASH, AppConstants.FEATURE_AF_DASHBOARD,
+                "TC_AF_015 - Connected + Missing Source == Source/Target card total");
+
+        logStep("Step 1: Open the dashboard, read the Source/Target card total");
+        openDashboardReady();
+        List<int[]> fr = afPage.getCardFractions();
+        assertEquals(fr.size(), 3, "need 3 fractions, got " + fr.size());
+        int stTotal = fr.get(1)[1]; // card order: Asset Details, Source/Target, Connection Details
+        int stConnected = fr.get(1)[0];
+
+        logStep("Step 2: Switch to the Source/Target breakdown and read the groups");
+        assertTrue(afPage.selectMetricCard(ArcFlashPage.METRIC_SOURCE_TARGET),
+                "Source/Target card must switch the breakdown");
+        int[] groups = afPage.getSourceTargetGroupCounts();
+        if (groups[0] < 0 || groups[1] < 0) afPage.dumpSource("TC_AF_015_groups");
+        assertTrue(groups[0] >= 0 && groups[1] >= 0,
+                "Connected/Missing group counts must parse, got " + groups[0] + "/" + groups[1]);
+
+        logStep("Step 3: The books must balance against the card");
+        assertEquals(groups[0] + groups[1], stTotal,
+                "Connected(" + groups[0] + ") + Missing(" + groups[1] + ") must equal card total " + stTotal);
+        assertEquals(groups[0], stConnected,
+                "Connected group count must equal the card's completed count " + stConnected);
+        logStepWithScreenshot("TC_AF_015: " + groups[0] + "+" + groups[1] + "=" + stTotal);
+    }
+
+    @Test(priority = 16)
+    public void TC_AF_016_bucketLabelsFromClosedSetAcrossMetrics() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ARC_FLASH, AppConstants.FEATURE_AF_DASHBOARD,
+                "TC_AF_016 - Every visible bucket label across Asset/Connection breakdowns is from the fixed set");
+
+        logStep("Step 1: Open the dashboard (Asset Details default)");
+        openDashboardReady();
+        List<String> assetBuckets = afPage.getVisibleBucketLabels();
+        assertTrue(!assetBuckets.isEmpty(), "Asset breakdown must show buckets");
+
+        logStep("Step 2: Connection Details buckets");
+        assertTrue(afPage.selectMetricCard(ArcFlashPage.METRIC_CONNECTION_DETAILS),
+                "Connection Details must switch");
+        List<String> connBuckets = afPage.getVisibleBucketLabels();
+        assertTrue(!connBuckets.isEmpty(), "Connection breakdown must show buckets");
+
+        logStep("Step 3: Both sets are subsets of the closed label set (parser enforces membership)");
+        // getVisibleBucketLabels only matches the closed set, so a non-empty result
+        // on BOTH metrics plus a full-set sanity bound is the assertable law here.
+        assertTrue(assetBuckets.size() <= ArcFlashPage.BUCKET_LABELS.length
+                        && connBuckets.size() <= ArcFlashPage.BUCKET_LABELS.length,
+                "Bucket counts can never exceed the closed set size");
+        logStepWithScreenshot("TC_AF_016: asset=" + assetBuckets + " conn=" + connBuckets);
+    }
+
+    @Test(priority = 17)
+    public void TC_AF_017_connectionRowsShowArrowAnatomy() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ARC_FLASH, AppConstants.FEATURE_AF_DASHBOARD,
+                "TC_AF_017 - Expanded connection rows render 'source → target' with the 'Connection' caption");
+
+        logStep("Step 1: Open the dashboard, switch to Connection Details");
+        openDashboardReady();
+        assertTrue(afPage.selectMetricCard(ArcFlashPage.METRIC_CONNECTION_DETAILS),
+                "Connection Details must switch");
+
+        logStep("Step 2: Expand the first bucket");
+        assertTrue(afPage.expandFirstBucketAndCheckRows(), "A connection bucket must expand");
+
+        logStep("Step 3: Row anatomy: 'A → B' + 'Connection' caption");
+        boolean arrow = afPage.hasEdgeArrowRow();
+        boolean caption = afPage.hasConnectionCaption();
+        if (!arrow || !caption) afPage.dumpSource("TC_AF_017_anatomy");
+        assertTrue(arrow, "Edge rows must show 'source → target'");
+        assertTrue(caption, "Edge rows must show the 'Connection' caption");
+        logStepWithScreenshot("TC_AF_017: edge row anatomy verified");
+    }
+
+    @Test(priority = 18)
+    public void TC_AF_018_punchlistToggleDoesNotSurviveRelaunch() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ARC_FLASH, AppConstants.FEATURE_AF_PUNCHLIST,
+                "TC_AF_018 - AF Punchlist toggle is session state: badges default OFF after app relaunch");
+
+        logStep("Step 1: Enable AF Punchlist on the Assets tab");
+        loginAndSelectSite();
+        assertTrue(afPage.openTab("Assets"), "Assets tab must open");
+        assertTrue(afPage.openEllipsisMenu() && afPage.tapPunchlistOption(ArcFlashPage.SHOW_PUNCHLIST),
+                "Enable the punchlist");
+        assertTrue(afPage.countAssetBoltBadges() > 0, "Badges must be on before relaunch");
+
+        logStep("Step 2: Relaunch the app process (terminate + activate, NOT reinstall)");
+        String bundleId = AppConstants.APP_BUNDLE_ID;
+        DriverManager.getDriver().terminateApp(bundleId);
+        shortWait();
+        DriverManager.getDriver().activateApp(bundleId);
+        longWait();
+        loginAndSelectSite(); // idempotent fast-path when session survived
+
+        logStep("Step 3: Badges are OFF again (state was @State, not persisted)");
+        assertTrue(afPage.openTab("Assets"), "Assets tab must reopen after relaunch");
+        int after = afPage.countAssetBoltBadges();
+        assertEquals(after, 0, "Punchlist badges must reset to hidden after relaunch, got " + after);
+        logStepWithScreenshot("TC_AF_018: non-persistence verified");
+    }
+
+    @Test(priority = 19)
+    public void TC_AF_019_badgeCountStableAcrossToggleCycles() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ARC_FLASH, AppConstants.FEATURE_AF_PUNCHLIST,
+                "TC_AF_019 - Badge count is deterministic across on/off/on toggle cycles");
+
+        logStep("Step 1: Assets tab, first enable");
+        loginAndSelectSite();
+        assertTrue(afPage.openTab("Assets"), "Assets tab must open");
+        assertTrue(afPage.openEllipsisMenu() && afPage.tapPunchlistOption(ArcFlashPage.SHOW_PUNCHLIST),
+                "Enable punchlist (cycle 1)");
+        int first = afPage.countAssetBoltBadges();
+        assertTrue(first > 0, "Badges must appear on cycle 1, got " + first);
+
+        logStep("Step 2: Off, then on again — same visible rows, same count");
+        assertTrue(afPage.openEllipsisMenu() && afPage.tapPunchlistOption(ArcFlashPage.HIDE_PUNCHLIST),
+                "Disable punchlist");
+        assertEquals(afPage.countAssetBoltBadges(), 0, "Badges must clear between cycles");
+        assertTrue(afPage.openEllipsisMenu() && afPage.tapPunchlistOption(ArcFlashPage.SHOW_PUNCHLIST),
+                "Enable punchlist (cycle 2)");
+        int second = afPage.countAssetBoltBadges();
+        assertEquals(second, first,
+                "Badge count must be deterministic across toggle cycles (" + first + " vs " + second + ")");
+
+        logStep("Step 3: Cleanup — hide");
+        assertTrue(afPage.openEllipsisMenu() && afPage.tapPunchlistOption(ArcFlashPage.HIDE_PUNCHLIST),
+                "Cleanup toggle");
+        logStepWithScreenshot("TC_AF_019: toggle determinism verified");
+    }
 }

@@ -105,6 +105,13 @@
             <class name="com.egalvanic.tests.AssetEngineerMenus_Test"/>
             <class name="com.egalvanic.tests.AssetEngineerCustomSheet_Test"/>
             <class name="com.egalvanic.tests.AssetEngineerSettings_Test"/>
+            <!-- Gap-roadmap classes (changelog 112): trip configurator, ground
+                 fault, custom save/edit, field+voltage pickers, match panel -->
+            <class name="com.egalvanic.tests.AssetEngineerTripConfig_Test"/>
+            <class name="com.egalvanic.tests.AssetEngineerGroundFault_Test"/>
+            <class name="com.egalvanic.tests.AssetEngineerCustomSave_Test"/>
+            <class name="com.egalvanic.tests.AssetEngineerFieldPickers_Test"/>
+            <class name="com.egalvanic.tests.AssetEngineerMatchPanel_Test"/>
             <!-- Matching stays LAST: live match probes can wedge WDA (v1.49 defect) -->
             <class name="com.egalvanic.tests.AssetEngineerMatching_Test"/>
         </classes>
@@ -121,6 +128,7 @@
         <classes>
             <class name="com.egalvanic.tests.ArcFlash_Test"/>
             <class name="com.egalvanic.tests.ArcFlashPunchlist_Test"/>
+            <class name="com.egalvanic.tests.ArcFlashBreakdown_Test"/>
             <class name="com.egalvanic.tests.AssetEngineerFlagCanary_Test"/>
         </classes>
     </test>

@@ -1422,4 +1422,133 @@ public class AssetEngineerPage extends BasePage {
         }
         return waitForCondition(() -> !existsNow(ASSET_DETAILS_NAVBAR) && existsNow(assetListSignal), 8);
     }
+
+    // ═══════════════ v1.49 configurator surfaces (changelog 112) ═══════════
+    // Exact strings from AppStrings.swift (engineering.*): the trip config
+    // card ("Frame / Trip Configuration", Frame/Sensor/Plug/Trip Unit rows,
+    // "Trip Settings" segments editor), Ground Fault flows ("Add Ground Fault
+    // Settings", "No GF setting pair found for this device.", "Add anyway",
+    // "Change…" — U+2026 like the picker placeholders), the GF picker sheet
+    // ("Pick Ground Fault Library", search placeholder "Search (type /
+    // description / catalog)", empty state "No matches. Try clearing some
+    // filters.", truncation "More results available — refine your filters."),
+    // and match-panel pagination ("Load more (N)").
+
+    public static final String TRIP_CONFIG_HEADER = "Frame / Trip Configuration";
+    public static final String TRIP_SETTINGS_HEADER = "Trip Settings";
+    public static final String GF_ADD_TOGGLE = "Add Ground Fault Settings";
+    public static final String GF_SETTINGS_HEADER = "Ground Fault Settings";
+    public static final String GF_NO_PAIR_PREFIX = "No GF setting pair found";
+    public static final String GF_ADD_ANYWAY = "Add anyway";
+    /** U+2026 HORIZONTAL ELLIPSIS — same law as SELECT_ELLIPSIS. */
+    public static final String GF_CHANGE_ELLIPSIS = "Change…";
+    public static final String GF_PICKER_TITLE = "Pick Ground Fault Library";
+    public static final String GF_NO_MATCHES = "No matches. Try clearing some filters.";
+    public static final String GF_MORE_RESULTS_PREFIX = "More results available";
+    public static final String LOAD_MORE_PREFIX = "Load more";
+
+    /**
+     * Generic W3C press on the LAST visible element carrying an exact label —
+     * covers toggles, bound-card buttons (Edit/Unlink siblings), GF rows
+     * ("Add anyway", "Change…"). Same last-match + press laws as the module.
+     */
+    public boolean tapRowByExactLabel(String label) {
+        By row = AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText'"
+                        + " OR type == 'XCUIElementTypeOther' OR type == 'XCUIElementTypeSwitch')"
+                        + " AND (name == '" + label + "' OR label == '" + label + "') AND visible == 1");
+        try {
+            java.util.List<WebElement> els = withImplicitWait(0, () -> driver.findElements(row));
+            WebElement last = null;
+            for (WebElement el : els) {
+                try {
+                    if ("true".equals(el.getAttribute("visible"))) last = el;
+                } catch (Exception ignored) { }
+            }
+            if (last == null) return false;
+            return pressElement(last);
+        } catch (Exception e) {
+            System.out.println("⚠️ tapRowByExactLabel(" + label + "): " + e.getMessage());
+            return false;
+        }
+    }
+
+    /** "Frame / Trip Configuration" card header on a breaker-bound asset. */
+    public boolean isTripConfigCardShown() {
+        return isEngineeringLabelPresent(TRIP_CONFIG_HEADER);
+    }
+
+    /** GF pair-missing notice under the GF toggle. */
+    public boolean isGfNoPairNoticeShown() {
+        return existsNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND name BEGINSWITH '" + GF_NO_PAIR_PREFIX + "'"));
+    }
+
+    /** The GF picker sheet ("Pick Ground Fault Library") is presented. */
+    public boolean isGfPickerOpen(int timeoutSeconds) {
+        return waitForCondition(() -> existsNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND name == '" + GF_PICKER_TITLE + "'"))
+                || existsNow(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeNavigationBar' AND name == '" + GF_PICKER_TITLE + "'")),
+                timeoutSeconds);
+    }
+
+    /** Type into the GF picker's search field (distinct placeholder from class sheets). */
+    public void gfPickerSearch(String text) {
+        By field = AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeSearchField')"
+                        + " AND (value BEGINSWITH 'Search (' OR name BEGINSWITH 'Search (')");
+        try {
+            WebElement f = driver.findElement(field);
+            f.click();
+            f.sendKeys(text);
+            dismissKeyboard();
+        } catch (Exception e) {
+            System.out.println("⚠️ gfPickerSearch: " + e.getMessage());
+        }
+    }
+
+    public boolean isGfEmptyStateShown() {
+        return existsNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND name == '" + GF_NO_MATCHES + "'"));
+    }
+
+    public boolean isGfMoreResultsShown() {
+        return existsNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND name BEGINSWITH '" + GF_MORE_RESULTS_PREFIX + "'"));
+    }
+
+    /** Match-panel "Load more (N)" pagination button. */
+    public boolean isLoadMoreShown() {
+        return existsNow(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText')"
+                        + " AND name BEGINSWITH '" + LOAD_MORE_PREFIX + "'"));
+    }
+
+    public boolean tapLoadMore() {
+        return tapRowByPrefix(LOAD_MORE_PREFIX);
+    }
+
+    /** Prefix variant of tapRowByExactLabel (dynamic labels like "Load more (128)"). */
+    public boolean tapRowByPrefix(String prefix) {
+        By row = AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText'"
+                        + " OR type == 'XCUIElementTypeOther')"
+                        + " AND (name BEGINSWITH '" + prefix + "' OR label BEGINSWITH '" + prefix
+                        + "') AND visible == 1");
+        try {
+            java.util.List<WebElement> els = withImplicitWait(0, () -> driver.findElements(row));
+            WebElement last = null;
+            for (WebElement el : els) {
+                try {
+                    if ("true".equals(el.getAttribute("visible"))) last = el;
+                } catch (Exception ignored) { }
+            }
+            if (last == null) return false;
+            return pressElement(last);
+        } catch (Exception e) {
+            System.out.println("⚠️ tapRowByPrefix(" + prefix + "): " + e.getMessage());
+            return false;
+        }
+    }
 }

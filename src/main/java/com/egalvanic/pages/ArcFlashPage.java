@@ -260,14 +260,20 @@ public class ArcFlashPage extends BasePage {
     }
 
     private int groupCount(String groupLabel) {
-        // Group header renders "<label>" with a "(n)" or "n" sibling; robust
-        // path: exact label first, then a combined "<label> (n)" variant.
-        By combined = AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND name BEGINSWITH '" + groupLabel + "'");
-        String s = readName(combined);
-        if (s.isEmpty()) return -1;
+        // Live DOM (afdump TC_AF_015): the group DisclosureGroup folds into a
+        // Button named "<label>, <n>, asset[s]" — parse n from the folded name.
+        By folded = AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name BEGINSWITH '" + groupLabel + ",'");
+        String s = readName(folded);
+        if (s.isEmpty()) {
+            // Fallback: plain StaticText label with the count as a sibling text —
+            // signal "present but uncounted" distinctly from "absent".
+            By text = AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND name == '" + groupLabel + "'");
+            return existsNow(text) ? -2 : -1;
+        }
         Matcher m = Pattern.compile("([0-9]+)").matcher(s.substring(groupLabel.length()));
-        return m.find() ? Integer.parseInt(m.group(1)) : -2; // -2: label present, count elsewhere
+        return m.find() ? Integer.parseInt(m.group(1)) : -2;
     }
 
     public boolean hasSourceTargetGroups() {
@@ -551,6 +557,261 @@ public class ArcFlashPage extends BasePage {
     public boolean isCollectAFEditorOpen(int timeoutSeconds) {
         return waitForCondition(() -> existsNow(COLLECT_AF_NAVBAR) || existsNow(COLLECT_AF_TITLE),
                 timeoutSeconds);
+    }
+
+    // ═════════════════════ Drill-through + row anatomy ═════════════════
+
+    /**
+     * Inside an EXPANDED breakdown bucket, tap the first child row (a row
+     * whose trailing "N%" text follows the bucket header in document order).
+     * Returns true when a full-screen editor replaced the dashboard.
+     */
+    public boolean tapFirstExpandedRowAndCheckEditor() {
+        // Child rows are Buttons/Others below the bucket; the editor is a
+        // fullScreenCover — dashboard nav title disappears when it opens.
+        // Live DOM (afdump TC_AF_014): asset rows fold as Button "Transformer-1, 0%"
+        // (height 22); bucket headers fold as "0%, 3, assets"; metric cards as
+        // "Asset Details, 8 of 15, 53%". Rows = percent-suffixed Buttons that are
+        // neither bucket headers (", assets"/", asset" suffix) nor cards (" of ").
+        By rowCandidates = AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND visible == 1 AND name ENDSWITH '%'"
+                        + " AND NOT (name CONTAINS ' of ')");
+        try {
+            List<WebElement> els = withImplicitWait(0, () -> driver.findElements(rowCandidates));
+            WebElement target = null;
+            for (WebElement el : els) {
+                try {
+                    org.openqa.selenium.Rectangle r = el.getRect();
+                    String name = el.getAttribute("name");
+                    if (name == null || r.getY() < 380) continue;
+                    boolean isBucketHeader = name.matches("^(0%|1-25%|26-50%|51-75%|76-99%|100%),.*");
+                    if (!isBucketHeader && name.matches(".*, [0-9]+%$")) {
+                        target = el;
+                        break; // first true asset row inside the breakdown
+                    }
+                } catch (Exception ignored) { }
+            }
+            if (target == null) return false;
+            // Editor detection must NOT rely on the dashboard vanishing — the
+            // fullScreenCover keeps the covered tree in the DOM (SwiftUI
+            // previous-screen bleed-through). Look for the editor's own nav bar.
+            // Tap law: try W3C press first; these disclosure child rows can
+            // exhibit the alert-window INVERSE quirk where only click() lands.
+            pressElement(target);
+            if (waitForCondition(this::isDrillEditorOpen, 5)) return true;
+            System.out.println("⚠️ drill row: W3C press no-oped, retrying with click()");
+            try {
+                target.click();
+            } catch (Exception e) {
+                System.out.println("⚠️ drill row click(): " + e.getMessage());
+            }
+            return waitForCondition(this::isDrillEditorOpen, 6);
+        } catch (Exception e) {
+            System.out.println("⚠️ tapFirstExpandedRow: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Expand a SPECIFIC bucket and drill into its first row. TC_AF_014 uses
+     * the "100%" bucket deliberately: complete assets are simple classes,
+     * dodging the transformer-details giant-DOM wedge that made the generic
+     * first-bucket drill time out (Transformer-1 lived in the 0% bucket).
+     */
+    public boolean expandBucketAndDrillFirstRow(String bucketLabel) {
+        By header = AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name BEGINSWITH '" + bucketLabel + ",'"
+                        + " AND visible == 1");
+        try {
+            WebElement h = lastVisible(header);
+            if (h == null) {
+                System.out.println("⚠️ drill: bucket '" + bucketLabel + "' header not found");
+                return false;
+            }
+            pressElement(h);
+            pause(700);
+            // ' of ' exclusion keeps metric cards out ("Connection Details, 42 of 42,
+            // 100%" ends with ", 100%" too — live bite, run af-run11).
+            By row = AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND name ENDSWITH ', " + bucketLabel + "'"
+                            + " AND NOT (name BEGINSWITH '" + bucketLabel + ",')"
+                            + " AND NOT (name CONTAINS ' of ') AND visible == 1");
+            WebElement target = null;
+            for (WebElement el : withImplicitWait(0, () -> driver.findElements(row))) {
+                try {
+                    if ("true".equals(el.getAttribute("visible")) && el.getRect().getY() > 380) {
+                        target = el;
+                        break;
+                    }
+                } catch (Exception ignored) { }
+            }
+            if (target == null) {
+                System.out.println("⚠️ drill: no row inside bucket '" + bucketLabel + "'");
+                return false;
+            }
+            System.out.println("🎯 drilling into row: " + target.getAttribute("name"));
+            pressElement(target);
+            if (waitForCondition(this::isDrillEditorOpen, 15)) return true;
+            System.out.println("⚠️ drill row: W3C press no-oped, retrying with click()");
+            try {
+                target.click();
+            } catch (Exception e) {
+                System.out.println("⚠️ drill row click(): " + e.getMessage());
+            }
+            return waitForCondition(this::isDrillEditorOpen, 15);
+        } catch (Exception e) {
+            System.out.println("⚠️ expandBucketAndDrillFirstRow: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Folded bucket headers ("0%, 3, assets") → label→count map, plus the
+     * unit word for each ("asset"/"assets"/"connection"/"connections").
+     */
+    public java.util.Map<String, int[]> getBucketHeaderMap() {
+        // value = {count, unitIsPlural(0/1)}; unit word checked separately.
+        java.util.Map<String, int[]> out = new java.util.LinkedHashMap<>();
+        By headers = AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name MATCHES"
+                        + " '^(0%|1-25%|26-50%|51-75%|76-99%|100%), [0-9]+, (asset|assets|connection|connections)$'");
+        try {
+            for (WebElement el : withImplicitWait(0, () -> driver.findElements(headers))) {
+                try {
+                    String n = el.getAttribute("name");
+                    if (n == null) continue;
+                    String[] parts = n.split(", ");
+                    if (parts.length == 3) {
+                        out.put(parts[0], new int[] { Integer.parseInt(parts[1]),
+                                parts[2].endsWith("s") ? 1 : 0 });
+                    }
+                } catch (Exception ignored) { }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ getBucketHeaderMap: " + e.getMessage());
+        }
+        return out;
+    }
+
+    /** Unit words used by the visible bucket headers ("asset(s)" vs "connection(s)"). */
+    public java.util.Set<String> getBucketUnitWords() {
+        java.util.Set<String> units = new java.util.HashSet<>();
+        By headers = AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name MATCHES"
+                        + " '^(0%|1-25%|26-50%|51-75%|76-99%|100%), [0-9]+, [a-z]+$'");
+        try {
+            for (WebElement el : withImplicitWait(0, () -> driver.findElements(headers))) {
+                String n = el.getAttribute("name");
+                if (n != null) units.add(n.substring(n.lastIndexOf(", ") + 2));
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ getBucketUnitWords: " + e.getMessage());
+        }
+        return units;
+    }
+
+    /** Expand a bucket by folded-header label; true when the press dispatched. */
+    public boolean expandBucket(String bucketLabel) {
+        By header = AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name BEGINSWITH '" + bucketLabel + ",'");
+        try {
+            WebElement h = lastVisible(header);
+            if (h == null) return false;
+            pressElement(h);
+            pause(700);
+            return true;
+        } catch (Exception e) {
+            System.out.println("⚠️ expandBucket(" + bucketLabel + "): " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Count child rows (folded "label[, room], N%" Buttons — NOT bucket headers,
+     * NOT metric cards) whose trailing percent lies in [lo..hi]. Counts DOM
+     * presence regardless of visibility so long lists aren't truncated by fold.
+     */
+    public int countRowsInPercentRange(int lo, int hi) {
+        By rows = AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name MATCHES '.*, [0-9]+%$'"
+                        + " AND NOT (name CONTAINS ' of ')");
+        int n = 0;
+        try {
+            for (WebElement el : withImplicitWait(0, () -> driver.findElements(rows))) {
+                try {
+                    String name = el.getAttribute("name");
+                    if (name == null) continue;
+                    if (name.matches("^(0%|1-25%|26-50%|51-75%|76-99%|100%),.*")) continue;
+                    Matcher m = Pattern.compile(", ([0-9]+)%$").matcher(name);
+                    if (m.find()) {
+                        int p = Integer.parseInt(m.group(1));
+                        if (p >= lo && p <= hi) n++;
+                    }
+                } catch (Exception ignored) { }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ countRowsInPercentRange: " + e.getMessage());
+        }
+        return n;
+    }
+
+    /** [lo,hi] percent range for a closed-set bucket label. */
+    public static int[] bucketRange(String bucketLabel) {
+        switch (bucketLabel) {
+            case "0%": return new int[] { 0, 0 };
+            case "1-25%": return new int[] { 1, 25 };
+            case "26-50%": return new int[] { 26, 50 };
+            case "51-75%": return new int[] { 51, 75 };
+            case "76-99%": return new int[] { 76, 99 };
+            case "100%": return new int[] { 100, 100 };
+            default: return new int[] { -1, -1 };
+        }
+    }
+
+    /** The drilled-into asset/edge editor is on top (its own nav bar or sections). */
+    private boolean isDrillEditorOpen() {
+        return existsNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeNavigationBar' AND (name == 'Asset Details'"
+                        + " OR name == 'Connection Details' OR name == 'Edit Asset')"))
+                || existsNow(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND name == 'Basic Information'"));
+    }
+
+    /**
+     * Close the drilled-into editor (Close/Cancel/Done) and verify it is GONE
+     * (bleed-through keeps the dashboard in the DOM the whole time, so
+     * "dashboard visible" alone would pass trivially — assert editor absence).
+     */
+    public boolean closeDrillThroughEditor() {
+        for (String label : new String[] { "Close", "Cancel", "Done" }) {
+            By btn = AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND (name == '" + label + "' OR label == '"
+                            + label + "') AND visible == 1");
+            try {
+                WebElement el = lastVisible(btn);
+                if (el != null) {
+                    pressElement(el);
+                    if (waitForCondition(() -> !isDrillEditorOpen(), 6) && isDashboardDisplayed(4)) {
+                        return true;
+                    }
+                }
+            } catch (Exception e) {
+                System.out.println("⚠️ closeDrillThroughEditor(" + label + "): " + e.getMessage());
+            }
+        }
+        return !isDrillEditorOpen() && isDashboardDisplayed(4);
+    }
+
+    /** An "A → B" edge row is visible (Connection Details breakdown anatomy). */
+    public boolean hasEdgeArrowRow() {
+        return existsNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND name CONTAINS ' → '"));
+    }
+
+    /** The "Connection" caption under edge rows. */
+    public boolean hasConnectionCaption() {
+        return existsNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND name == 'Connection'"));
     }
 
     // ═════════════════════════════════ Diagnostics ═════════════════════

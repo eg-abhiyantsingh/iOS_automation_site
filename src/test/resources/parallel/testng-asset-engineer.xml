@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<suite time-out="480000" name="Asset Engineer (105 tests)" verbose="0">
+<suite time-out="480000" name="Asset Engineer (166 tests)" verbose="0">
     <!--
     ============================================================
     ASSET ENGINEER MODULE — v1.49 asset_engineer library (105 cases)
@@ -62,6 +62,34 @@
     <test name="Asset Engineer - Settings Granular">
         <classes>
             <class name="com.egalvanic.tests.AssetEngineerSettings_Test"/>
+        </classes>
+    </test>
+    <!-- Gap-roadmap classes (changelog 112, G1-G13): written from app-source
+         ground truth while eng-lib is off; first live run happens when the
+         flag returns (the FlagCanary in the arc-flash suite is the tripwire). -->
+    <test name="Asset Engineer - Trip Configurator">
+        <classes>
+            <class name="com.egalvanic.tests.AssetEngineerTripConfig_Test"/>
+        </classes>
+    </test>
+    <test name="Asset Engineer - Ground Fault">
+        <classes>
+            <class name="com.egalvanic.tests.AssetEngineerGroundFault_Test"/>
+        </classes>
+    </test>
+    <test name="Asset Engineer - Custom Save + Edit">
+        <classes>
+            <class name="com.egalvanic.tests.AssetEngineerCustomSave_Test"/>
+        </classes>
+    </test>
+    <test name="Asset Engineer - Field + Voltage Pickers">
+        <classes>
+            <class name="com.egalvanic.tests.AssetEngineerFieldPickers_Test"/>
+        </classes>
+    </test>
+    <test name="Asset Engineer - Match Panel Search + Pagination">
+        <classes>
+            <class name="com.egalvanic.tests.AssetEngineerMatchPanel_Test"/>
         </classes>
     </test>
     <test name="Asset Engineer - Live Matching (quarantined last)">
