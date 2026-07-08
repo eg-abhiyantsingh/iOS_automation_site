@@ -38,6 +38,12 @@ public class AssetEngineerClassMatrix_Test extends BaseTest {
     private boolean classSelectedOnce = false;
     private String lastPickedClass = null;
 
+    /** Whole module is gated on the platform-managed eng-lib company flag (BaseTest skips pre-driver when absent). */
+    @Override
+    protected String requiredCompanyFeature() {
+        return "eng-lib";
+    }
+
     @BeforeClass(alwaysRun = true)
     public void classMatrixSetup() {
         System.out.println("\n📋 Asset Engineer — per-class Engineering matrix");
@@ -46,6 +52,7 @@ public class AssetEngineerClassMatrix_Test extends BaseTest {
 
     @BeforeMethod(alwaysRun = true)
     public void classMatrixTestSetup() {
+        if (!DriverManager.isDriverActive()) return; // gated/fast-skipped: no driver, no page
         engineerPage = new AssetEngineerPage();
     }
 
@@ -118,6 +125,44 @@ public class AssetEngineerClassMatrix_Test extends BaseTest {
             {"Motor", new String[]{}, new String[]{}, new String[]{"Fuse Count"}},
             {"UPS", new String[]{}, new String[]{}, new String[]{"Fuse Count"}},
             {"Loadcenter", new String[]{"Mains Type"}, new String[]{}, new String[]{"kVA Rating"}},
+            // ── remaining node_classes gold-spec classes (38 total; rows
+            //    below start as shared-contract and tighten as live
+            //    evidence lands via this matrix) ──
+            // [S] 3-winding transformer: transformer-shaped + tertiary
+            {"Transformer (3-Winding)", new String[]{"kVA Rating", "% Impedance"},
+                     new String[]{}, new String[]{"Fuse Count", "Pole Count"}},
+            // Tie Breaker: NOT OCP-shaped in live v1.49 (no Pole Count —
+            // caught by this matrix); shared-contract row.
+            {"Tie Breaker", new String[]{}, new String[]{}, new String[]{"kVA Rating"}},
+            // [S] Other (OCP): protective bucket class
+            {"Other (OCP)", new String[]{}, new String[]{}, new String[]{"kVA Rating"}},
+            {"Busduct", new String[]{}, new String[]{}, new String[]{"kVA Rating"}},
+            {"Capacitor Bank", new String[]{}, new String[]{}, new String[]{"Fuse Count"}},
+            {"Disconnect Switch", new String[]{}, new String[]{}, new String[]{"kVA Rating"}},
+            {"Junction Box", new String[]{}, new String[]{}, new String[]{"kVA Rating"}},
+            {"Lighting Controls", new String[]{}, new String[]{}, new String[]{"kVA Rating"}},
+            {"Load", new String[]{}, new String[]{}, new String[]{"kVA Rating"}},
+            {"MCC", new String[]{}, new String[]{}, new String[]{"kVA Rating"}},
+            {"MCC Bucket", new String[]{}, new String[]{}, new String[]{"kVA Rating"}},
+            {"Meter", new String[]{}, new String[]{}, new String[]{"kVA Rating"}},
+            {"Motor Controller", new String[]{}, new String[]{}, new String[]{"kVA Rating"}},
+            {"Motor Starter", new String[]{}, new String[]{}, new String[]{"kVA Rating"}},
+            {"Other", new String[]{}, new String[]{}, new String[]{"kVA Rating"}},
+            {"PDU", new String[]{}, new String[]{}, new String[]{"kVA Rating"}},
+            // [D] Rectifier DOES render kVA Rating (transformer-shaped power
+            // conversion — caught live by this matrix)
+            {"Rectifier", new String[]{"kVA Rating"}, new String[]{}, new String[]{"Fuse Count"}},
+            {"Series Reactor", new String[]{}, new String[]{}, new String[]{}},
+            {"Shunt Reactor", new String[]{}, new String[]{}, new String[]{}},
+            {"Switchboard", new String[]{}, new String[]{}, new String[]{"kVA Rating"}},
+            {"Utility", new String[]{}, new String[]{}, new String[]{"kVA Rating"}},
+            {"VFD", new String[]{}, new String[]{}, new String[]{"kVA Rating"}},
+            // [D] VFD Panel + Default mount NO Engineering section at all
+            // (caught live) — the sentinel "Engineering" in mustNot asserts
+            // the section's ABSENCE for these classes.
+            {"VFD Panel", new String[]{}, new String[]{}, new String[]{"Engineering"}},
+            // Live-picker-only class (not in the gold xlsx)
+            {"Default", new String[]{}, new String[]{}, new String[]{"Engineering"}},
         };
     }
 
@@ -137,8 +182,16 @@ public class AssetEngineerClassMatrix_Test extends BaseTest {
                 "class '" + className + "' not present in this site's class list");
         mediumWait();
 
+        boolean expectsNoEngineering = java.util.Arrays.asList(mustNotHave).contains("Engineering");
+        if (expectsNoEngineering) {
+            logStep("Step 3: This class mounts NO Engineering section (live-verified contract)");
+            assertFalse(engineerPage.waitForEngineeringSection(4),
+                    "[" + className + "] must NOT mount an Engineering section");
+            logStepWithScreenshot("TC_ENG_050 [" + className + "] no-engineering contract verified");
+            return;
+        }
         logStep("Step 3: Engineering section mounts for the class");
-        assertTrue(engineerPage.isEngineeringSectionPresent(),
+        assertTrue(engineerPage.waitForEngineeringSection(6),
                 "[" + className + "] Engineering section header must mount in the detailed draft");
 
         logStep("Step 4: Class-gated fields");
@@ -178,7 +231,7 @@ public class AssetEngineerClassMatrix_Test extends BaseTest {
         mediumWait();
 
         logStep("Step 2: ATS engineering block renders with its values");
-        assertTrue(engineerPage.isEngineeringSectionPresent(),
+        assertTrue(engineerPage.waitForEngineeringSection(6),
                 "[ATS] Engineering section must mount");
         assertTrue(engineerPage.isEngineeringLabelPresent("Mains Type"),
                 "[ATS] Mains Type row must render");

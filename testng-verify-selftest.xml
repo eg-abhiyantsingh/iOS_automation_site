@@ -12,6 +12,7 @@
             <class name="com.egalvanic.verify.NotBlankPollingSelfTest"/>
             <class name="com.egalvanic.verify.SessionRecoverySelfTest"/>
             <class name="com.egalvanic.verify.RunHealthSelfTest"/>
+            <class name="com.egalvanic.verify.CompanyFeatureGateSelfTest"/>
         </classes>
     </test>
 </suite>

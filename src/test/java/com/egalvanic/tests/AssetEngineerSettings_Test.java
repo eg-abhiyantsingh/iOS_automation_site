@@ -27,6 +27,12 @@ public class AssetEngineerSettings_Test extends BaseTest {
 
     private AssetEngineerPage engineerPage;
 
+    /** Whole module is gated on the platform-managed eng-lib company flag (BaseTest skips pre-driver when absent). */
+    @Override
+    protected String requiredCompanyFeature() {
+        return "eng-lib";
+    }
+
     @BeforeClass(alwaysRun = true)
     public void settingsSetup() {
         System.out.println("\n📋 Asset Engineer — Settings card granular");
@@ -35,6 +41,7 @@ public class AssetEngineerSettings_Test extends BaseTest {
 
     @BeforeMethod(alwaysRun = true)
     public void settingsTestSetup() {
+        if (!DriverManager.isDriverActive()) return; // gated/fast-skipped: no driver, no page
         engineerPage = new AssetEngineerPage();
     }
 

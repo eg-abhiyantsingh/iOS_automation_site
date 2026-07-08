@@ -105,6 +105,19 @@ public class BaseTest {
     // TEST LEVEL SETUP/TEARDOWN
     // ================================================================
 
+    /**
+     * Company feature flag this test class depends on (e.g. "eng-lib"), or null
+     * when the class is not flag-gated. When the flag is POSITIVELY absent from
+     * GET /auth/v2/me → company_features, every test in the class skips inside
+     * testSetup before driver init (zero Appium cost) with a loud environmental
+     * reason. Must be declared on the class because @BeforeClass alone cannot
+     * skip cheaply here: testSetup is alwaysRun=true and would still pay a full
+     * initDriver() per test after a class-level SkipException.
+     */
+    protected String requiredCompanyFeature() {
+        return null;
+    }
+
     // alwaysRun=true is load-bearing: without it, ONE config-method failure makes
     // TestNG skip this setup for every remaining test, so nobody ever reaches the
     // dead-session recovery inside DriverManager.initDriver() and the whole run
@@ -130,6 +143,27 @@ public class BaseTest {
         if (RunHealth.shouldFastSkip()) {
             DriverManager.forceNullDriver();
             throw new org.testng.SkipException(RunHealth.fastSkipReason());
+        }
+
+        // ── Company-feature gate (environmental blockers, e.g. eng-lib) ─────────
+        // A platform-managed flag being off makes whole modules fail with misleading
+        // symptoms (eng-lib off → Settings card keeps its normal subtitle but the tap
+        // is a no-op → 105 "alert never appeared" FAILs, run 2026-07-08). Skip here,
+        // BEFORE initDriver, so gated tests cost ~0s instead of a driver build each.
+        // CompanyFeatureGate is fail-open: only a positively-confirmed absent flag
+        // skips; API errors let the tests run. Bypass: -DFEATURE_GATE_OFF=true.
+        String requiredFeature = requiredCompanyFeature();
+        if (requiredFeature != null
+                && com.egalvanic.api.CompanyFeatureGate.check(requiredFeature)
+                        == com.egalvanic.api.CompanyFeatureGate.Verdict.DISABLED) {
+            DriverManager.forceNullDriver();
+            throw new org.testng.SkipException(
+                    "BLOCKED (environment): company feature '" + requiredFeature
+                    + "' is DISABLED for this tenant — "
+                    + com.egalvanic.api.CompanyFeatureGate.detail(requiredFeature)
+                    + ". Verified via GET /auth/v2/me. NOT a script bug — the eGalvanic"
+                    + " platform team must re-enable the flag; tests resume automatically"
+                    + " once it returns. Bypass with -DFEATURE_GATE_OFF=true.");
         }
 
         // Skip setup for chained tests
@@ -534,7 +568,9 @@ public class BaseTest {
     @AfterMethod(alwaysRun = true)
     public void testTeardown(ITestResult result) {
         String testName = result.getMethod().getMethodName();
-        long testDuration = System.currentTimeMillis() - testStartTime;
+        // testStartTime stays 0 when setup skipped pre-driver (feature gate /
+        // RunHealth fast-skip) — an epoch-based duration prints as garbage.
+        long testDuration = testStartTime == 0 ? 0 : System.currentTimeMillis() - testStartTime;
         String durationStr = formatDuration(testDuration);
 
         // Detect if the Appium session is likely dead/unresponsive.
@@ -1558,6 +1594,35 @@ public class BaseTest {
         } catch (Exception e) {
             System.out.println("⊘ Skipping — precondition check failed: " + e.getMessage());
             throw new org.testng.SkipException("Precondition check error: " + reason);
+        }
+    }
+
+    /**
+     * KNOWN APP BUG CAM-CRASH-01 (2026-07-07, crash log
+     * Z Platform-QA-2026-07-07-195531.ips): the app calls
+     * -[UIImagePickerController setSourceType:] with .camera without checking
+     * UIImagePickerController.isSourceTypeAvailable(.camera). Simulators have no
+     * camera, so UIKit throws NSInvalidArgumentException and the app SIGABRTs.
+     * The dead app then cascades failures/skips through the rest of the suite
+     * (this is what emptied SiteVisit shards in CI run 28867343990).
+     *
+     * Call this guard immediately BEFORE any camera-button tap. It skips the
+     * test on simulators (all CI + local runs today). Must NOT be called inside
+     * a catch(Exception)-wrapped block — the SkipException would be swallowed.
+     * When the dev fix ships, or on a real device (-DREAL_DEVICE=true /
+     * REAL_DEVICE=true), this is a no-op.
+     */
+    protected void guardCameraTapCrash(String context) {
+        String realDevice = System.getProperty("REAL_DEVICE",
+                System.getenv().getOrDefault("REAL_DEVICE", "false"));
+        if (!Boolean.parseBoolean(realDevice)) {
+            System.out.println("⊘ Skipping camera tap — KNOWN APP BUG CAM-CRASH-01 "
+                    + "(UIImagePickerController crash on simulator): " + context);
+            throw new org.testng.SkipException(
+                    "KNOWN APP BUG CAM-CRASH-01 — tapping Camera crashes the app on "
+                    + "simulators (UIImagePickerController setSourceType). Skipped '"
+                    + context + "' until the app-side fix; run with REAL_DEVICE=true "
+                    + "on hardware to cover this.");
         }
     }
 }

@@ -64,6 +64,14 @@ public class AssetEngineerPage extends BasePage {
     public static final String BOUND_CUSTOM_ENTRY = "Custom Entry";
     public static final String CUSTOM_SHEET_TITLE = "Add Custom Equipment";
     public static final String CUSTOM_SHEET_EDIT_TITLE = "Edit Custom Equipment";
+    /**
+     * Caption the app renders under the Settings card when the eng-lib company
+     * flag is OFF (AppStrings engineering.libraryDisabled). The card keeps its
+     * normal subtitle and the tap becomes a no-op, so this text is the ONLY
+     * on-screen evidence of the environmental blocker.
+     */
+    public static final String ENGLIB_DISABLED_BANNER =
+            "Engineering Library isn't enabled for your company. Contact your admin to enable.";
 
     // ── Locators ───────────────────────────────────────────────────────
     private static final By SETTINGS_TAB = AppiumBy.iOSNsPredicateString(
@@ -95,6 +103,10 @@ public class AssetEngineerPage extends BasePage {
                     + "' OR name == '" + BOUND_CUSTOM_ENTRY + "')");
     private static final By UNLINK_BUTTON = AppiumBy.iOSNsPredicateString(
             "type == 'XCUIElementTypeButton' AND label == 'Unlink'");
+    // Prefix match stops before the apostrophe in "isn't" — an apostrophe inside
+    // an NSPredicate single-quoted literal would break the query.
+    private static final By ENGLIB_DISABLED_TEXT = AppiumBy.iOSNsPredicateString(
+            "type == 'XCUIElementTypeStaticText' AND name BEGINSWITH 'Engineering Library isn'");
 
     public AssetEngineerPage() {
         super();
@@ -311,10 +323,25 @@ public class AssetEngineerPage extends BasePage {
         return sub.startsWith(STATE_LAST_UPDATED_PREFIX) || sub.contains(" frames,");
     }
 
+    /** True when the "isn't enabled for your company" caption is on screen (eng-lib flag off). */
+    public boolean isEngLibDisabledBannerVisible() {
+        return existsNow(ENGLIB_DISABLED_TEXT);
+    }
+
     /** Tap the Equipment Library card (must be scrolled into view first). */
     public void tapLibraryCard() {
         if (!scrollToLibraryCard()) {
             throw new VerificationError("tapLibraryCard: Equipment Library card never became visible");
+        }
+        // UI-level backstop for the CompanyFeatureGate API check (e.g. the API
+        // account differs from the app account): with eng-lib off the card is
+        // .disabled and the action guarded — a tap can never produce the alert,
+        // so failing the test would just misreport an environmental blocker.
+        if (isEngLibDisabledBannerVisible()) {
+            throw new org.testng.SkipException(
+                    "BLOCKED (environment): app shows '" + ENGLIB_DISABLED_BANNER
+                    + "' — eng-lib company flag is off, the card tap is a no-op by design."
+                    + " NOT a script bug; the eGalvanic platform team must re-enable the flag.");
         }
         // Strategy 1: the card Button itself
         try {
@@ -494,6 +521,11 @@ public class AssetEngineerPage extends BasePage {
 
     public boolean isEngineeringSectionPresent() {
         return existsNow(ENGINEERING_TITLE);
+    }
+
+    /** Bounded wait for the Engineering section (renders a beat after class selection). */
+    public boolean waitForEngineeringSection(int timeoutSeconds) {
+        return waitForCondition(() -> existsNow(ENGINEERING_TITLE), timeoutSeconds);
     }
 
     /** The orange not-downloaded banner inside the Engineering card. */
@@ -1188,6 +1220,62 @@ public class AssetEngineerPage extends BasePage {
 
     public boolean isAddCustomButtonShown() {
         return existsNow(ADD_CUSTOM_BUTTON);
+    }
+
+    /** Parsed match count from the header ("No possible matches" → 0). */
+    public int getMatchCount() {
+        String header = getMatchHeaderText();
+        if (header.isEmpty() || header.startsWith("No possible")) return 0;
+        try {
+            return Integer.parseInt(header.replaceAll("^(\\d+).*$", "$1"));
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Tap the FIRST match card in the results list (whole card = onPick →
+     * binds the library row and AUTOFILLS the draft fields). Card labels
+     * carry the library summary separators: protective cards use
+     * "mfr — type — style" (em dash), cable/busway/transformer cards use
+     * " · " dots. Picks the topmost visible candidate BELOW the match
+     * header; W3C press (card rows share the iOS 26.2 click quirk).
+     * Returns the tapped card's label, or null when no card was found.
+     */
+    public String tapFirstMatchCard() {
+        By headerBy = MATCH_HEADER;
+        By cards = AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeOther')"
+                        + " AND (label CONTAINS ' — ' OR label CONTAINS ' · ')");
+        return withImplicitWait(0, () -> {
+            try {
+                WebElement header = firstVisible(headerBy);
+                int headerY = header != null ? header.getLocation().getY() : 0;
+                WebElement best = null;
+                int bestY = Integer.MAX_VALUE;
+                for (WebElement c : driver.findElements(cards)) {
+                    try {
+                        if (!"true".equals(c.getAttribute("visible"))) continue;
+                        int y = c.getLocation().getY();
+                        if (y > headerY && y < bestY) {
+                            bestY = y;
+                            best = c;
+                        }
+                    } catch (Exception ignored) { }
+                }
+                if (best == null) {
+                    System.out.println("⚠️ tapFirstMatchCard: no visible match card below the header");
+                    return null;
+                }
+                String label = best.getAttribute("label");
+                System.out.println("🎯 tapping match card: '" + label + "'");
+                pressElement(best);
+                return label;
+            } catch (Exception e) {
+                System.out.println("⚠️ tapFirstMatchCard: " + e.getMessage());
+                return null;
+            }
+        });
     }
 
     public void tapAddCustom() {

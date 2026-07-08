@@ -32,6 +32,12 @@ public class AssetEngineerInputs_Test extends BaseTest {
     private AssetEngineerPage engineerPage;
     private String openAssetPrefix = null;
 
+    /** Whole module is gated on the platform-managed eng-lib company flag (BaseTest skips pre-driver when absent). */
+    @Override
+    protected String requiredCompanyFeature() {
+        return "eng-lib";
+    }
+
     @BeforeClass(alwaysRun = true)
     public void inputsSetup() {
         System.out.println("\n📋 Asset Engineer — input-filter matrices");
@@ -40,6 +46,7 @@ public class AssetEngineerInputs_Test extends BaseTest {
 
     @BeforeMethod(alwaysRun = true)
     public void inputsTestSetup() {
+        if (!DriverManager.isDriverActive()) return; // gated/fast-skipped: no driver, no page
         engineerPage = new AssetEngineerPage();
     }
 

@@ -49,6 +49,12 @@ public class AssetEngineerCustomSheet_Test extends BaseTest {
         libraryChecked = true;
     }
 
+    /** Whole module is gated on the platform-managed eng-lib company flag (BaseTest skips pre-driver when absent). */
+    @Override
+    protected String requiredCompanyFeature() {
+        return "eng-lib";
+    }
+
     @BeforeClass(alwaysRun = true)
     public void customSheetSetup() {
         System.out.println("\n📋 Asset Engineer — custom equipment sheet deep coverage");
@@ -57,6 +63,7 @@ public class AssetEngineerCustomSheet_Test extends BaseTest {
 
     @BeforeMethod(alwaysRun = true)
     public void customSheetTestSetup() {
+        if (!DriverManager.isDriverActive()) return; // gated/fast-skipped: no driver, no page
         engineerPage = new AssetEngineerPage();
     }
 

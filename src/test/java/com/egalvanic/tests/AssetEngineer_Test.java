@@ -47,6 +47,12 @@ public class AssetEngineer_Test extends BaseTest {
 
     private AssetEngineerPage engineerPage;
 
+    /** Whole module is gated on the platform-managed eng-lib company flag (BaseTest skips pre-driver when absent). */
+    @Override
+    protected String requiredCompanyFeature() {
+        return "eng-lib";
+    }
+
     @BeforeClass(alwaysRun = true)
     public void assetEngineerClassSetup() {
         System.out.println("\n📋 Asset Engineer Suite (v1.49 asset_engineer library) — Starting");
@@ -55,6 +61,9 @@ public class AssetEngineer_Test extends BaseTest {
 
     @BeforeMethod(alwaysRun = true)
     public void assetEngineerTestSetup() {
+        // Gated/fast-skipped test: no driver exists, and BasePage's constructor
+        // would throw. The test won't run, so the page object isn't needed.
+        if (!DriverManager.isDriverActive()) return;
         engineerPage = new AssetEngineerPage(); // driver may have been rebuilt
     }
 

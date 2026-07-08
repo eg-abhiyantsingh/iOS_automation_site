@@ -27,6 +27,12 @@ public class AssetEngineerMatching_Test extends BaseTest {
 
     private AssetEngineerPage engineerPage;
 
+    /** Whole module is gated on the platform-managed eng-lib company flag (BaseTest skips pre-driver when absent). */
+    @Override
+    protected String requiredCompanyFeature() {
+        return "eng-lib";
+    }
+
     @BeforeClass(alwaysRun = true)
     public void matchingSetup() {
         System.out.println("\n📋 Asset Engineer — live matching probes (quarantined last)");
@@ -35,6 +41,7 @@ public class AssetEngineerMatching_Test extends BaseTest {
 
     @BeforeMethod(alwaysRun = true)
     public void matchingTestSetup() {
+        if (!DriverManager.isDriverActive()) return; // gated/fast-skipped: no driver, no page
         engineerPage = new AssetEngineerPage();
     }
 
@@ -190,6 +197,99 @@ public class AssetEngineerMatching_Test extends BaseTest {
 
         logStep("Step 3: Cancel the draft");
         engineerPage.closeAssetDetails(true);
+    }
+
+    /**
+     * The user-described LINK flow: pick a manufacturer → the match LIST
+     * appears → tap an entry → it binds ("Library Matched") and AUTOFILLS
+     * the engineering fields (bound summary + configurator card replace the
+     * input stack). Runs in a cancelled transformer draft — nothing persists.
+     */
+    @Test(priority = 1206)
+    public void TC_ENG_115_transformerMatchCardTapBindsAndAutofills() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ASSET_ENGINEER, AppConstants.FEATURE_LIBRARY_MATCHING,
+                "TC_ENG_115 - Tapping a match-list entry links the library row and autofills (transformer draft)");
+
+        logStep("Step 1: Transformer draft with a library-backed manufacturer picked");
+        loginAndSelectSite();
+        engineerPage.ensureLibraryDownloaded(600);
+        assetPage.navigateToAssetList();
+        shortWait();
+        assetPage.clickAddAsset();
+        mediumWait();
+        assertTrue(engineerPage.pickOptionExact("Detailed"), "'Detailed' toggle");
+        assetPage.clickSelectAssetClass();
+        mediumWait();
+        try {
+            engineerPage.searchInSheetPicker("Transformer");
+        } catch (Exception e) {
+            System.out.println("⚠️ class search: " + e.getMessage());
+        }
+        skipIfPreconditionMissing(() -> engineerPage.pickOptionExact("Transformer"),
+                "no Transformer class");
+        mediumWait();
+        engineerPage.openEngineeringPickerBelowLabel("Manufacturer");
+        final boolean picked = engineerPage.pickOptionExact("SCHNEIDER/SQUARE D")
+                || engineerPage.pickOptionExact("Generic");
+        skipIfPreconditionMissing(() -> picked, "no library-backed transformer manufacturer");
+        assertTrue(engineerPage.waitForMatchHeader(12), "match panel must render after the pick");
+        skipIfPreconditionMissing(() -> engineerPage.getMatchCount() > 0,
+                "manufacturer has zero transformer matches in this library snapshot");
+
+        logStep("Step 2: Tap the first entry in the match list");
+        String card = engineerPage.tapFirstMatchCard();
+        assertNotNull(card, "a match card must be tappable in the list");
+        System.out.println("ℹ️ linked card: " + card);
+
+        logStep("Step 3: Binding + autofill — bound card and configurator replace the inputs");
+        assertTrue(engineerPage.waitForOptionShown("Unlink", 10),
+                "'Unlink' must appear once the library row is linked");
+        assertTrue(engineerPage.isBoundCardShown(),
+                "'Library Matched' bound card must render after tapping the list entry");
+        assertTrue(engineerPage.isEngineeringLabelPresent("Transformer Configuration"),
+                "the autofilled Transformer Configuration card must render below the bound card");
+        assertTrue(engineerPage.isEngineeringLabelPresent("% Impedance"),
+                "the autofilled % Impedance row must render in the configurator");
+        logStepWithScreenshot("TC_ENG_115 linked + autofilled: " + card);
+
+        logStep("Step 4: Cancel the draft — the link never persists");
+        engineerPage.closeAssetDetails(true);
+    }
+
+    /** Same LINK flow on the fuse details (protective card shape), then unlink + discard. */
+    @Test(priority = 1207)
+    public void TC_ENG_116_fuseMatchCardTapBindsThenUnlinkDiscard() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ASSET_ENGINEER, AppConstants.FEATURE_LIBRARY_MATCHING,
+                "TC_ENG_116 - Match-list tap links on fuse details; unlink + discard leaves no residue");
+
+        logStep("Step 1: Fuse details with a manufacturer that has matches");
+        loginAndSelectSite();
+        engineerPage.ensureLibraryDownloaded(600);
+        assetPage.navigateToAssetList();
+        shortWait();
+        engineerPage.openAssetCardByPrefix("Trim600639 Fuse");
+        assertTrue(engineerPage.swipeToEngineeringSection(), "engineering reachable");
+        engineerPage.openEngineeringPickerBelowLabel("Manufacturer");
+        final boolean picked = engineerPage.pickOptionExact("ABB")
+                || engineerPage.pickOptionExact("Generic")
+                || engineerPage.pickOptionExact("SCHNEIDER/SQUARE D");
+        skipIfPreconditionMissing(() -> picked, "no known manufacturer option in the fuse menu");
+        assertTrue(engineerPage.waitForMatchHeader(12), "match panel must render after the pick");
+        skipIfPreconditionMissing(() -> engineerPage.getMatchCount() > 0,
+                "manufacturer has zero fuse matches in this library snapshot");
+
+        logStep("Step 2: Tap the first entry — it links");
+        String card = engineerPage.tapFirstMatchCard();
+        assertNotNull(card, "a match card must be tappable in the list");
+        assertTrue(engineerPage.waitForOptionShown("Unlink", 10),
+                "'Unlink' must appear once linked");
+        assertTrue(engineerPage.isBoundCardShown(),
+                "'Library Matched' bound card must render");
+        logStepWithScreenshot("TC_ENG_116 linked: " + card);
+
+        logStep("Step 3: Unlink in the draft, then discard — asset stays unbound server-side");
+        assertTrue(engineerPage.tapUnlink(), "Unlink must remove the draft binding");
+        assertTrue(engineerPage.closeAssetDetails(true), "details must close with discard");
     }
 
     @Test(priority = 1205)
