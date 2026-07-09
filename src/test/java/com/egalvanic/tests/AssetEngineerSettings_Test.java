@@ -74,13 +74,17 @@ public class AssetEngineerSettings_Test extends BaseTest {
         assertTrue(engineerPage.scrollToLibraryCard(), "library card reachable");
         String before = engineerPage.getLibraryCardSubtitle();
 
-        for (int round = 1; round <= 2; round++) {
-            engineerPage.tapLibraryCard();
-            assertTrue(engineerPage.isLoadDialogShown(8),
-                    "round " + round + ": 'Load Device Library?' alert must appear");
-            assertTrue(engineerPage.tapLoadDialogButton("Cancel"),
-                    "round " + round + ": Cancel must dismiss the alert");
-        }
+        // Pause WDA auto-accept for both rounds — otherwise it can press
+        // Download mid-loop and the "no state drift" contract self-destructs.
+        engineerPage.withAlertsManual(() -> {
+            for (int round = 1; round <= 2; round++) {
+                engineerPage.tapLibraryCard();
+                assertTrue(engineerPage.isLoadDialogShown(8),
+                        "round " + round + ": 'Load Device Library?' alert must appear");
+                assertTrue(engineerPage.tapLoadDialogButton("Cancel"),
+                        "round " + round + ": Cancel must dismiss the alert");
+            }
+        });
         assertEquals(engineerPage.getLibraryCardSubtitle(), before,
                 "two open/cancel rounds must not change the library state");
         logStepWithScreenshot("TC_ENG_101 verified");
@@ -159,9 +163,11 @@ public class AssetEngineerSettings_Test extends BaseTest {
         assertTrue(engineerPage.scrollToLibraryCard(), "library card reachable");
         String before = engineerPage.getLibraryCardSubtitle();
 
-        engineerPage.tapLibraryCard();
-        assertTrue(engineerPage.isLoadDialogShown(8), "'Load Device Library?' alert must appear");
-        assertTrue(engineerPage.tapLoadDialogButton(action), action + " must dismiss the alert");
+        engineerPage.withAlertsManual(() -> {
+            engineerPage.tapLibraryCard();
+            assertTrue(engineerPage.isLoadDialogShown(8), "'Load Device Library?' alert must appear");
+            assertTrue(engineerPage.tapLoadDialogButton(action), action + " must dismiss the alert");
+        });
 
         if ("Cancel".equals(action)) {
             assertEquals(engineerPage.getLibraryCardSubtitle(), before,

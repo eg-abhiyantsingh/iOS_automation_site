@@ -369,6 +369,48 @@ public class AssetEngineerPage extends BasePage {
         return isElementDisplayed(LOAD_DIALOG, timeoutSeconds);
     }
 
+    /** True when the card subtitle reports a download in flight right now. */
+    public boolean isDownloadInFlightNow() {
+        String sub = getLibraryCardSubtitle();
+        return sub.startsWith("Starting") || sub.startsWith("Clearing")
+                || sub.startsWith("Downloading") || sub.startsWith("Inserting")
+                || sub.startsWith("Saving");
+    }
+
+    /**
+     * Run an alert-inspection sequence with WDA's auto-accept paused.
+     * The session runs with autoAcceptAlerts=true (needed for the stacked
+     * post-Sign-In popups), which maps to WDA setting defaultAlertAction=
+     * "accept" — WDA's monitor races any isLoadDialogShown poll and can
+     * press Download before the poll ever sees the alert (observed live
+     * 2026-07-09: alert query returned stale-element because WDA accepted
+     * it mid-response). Pausing the setting makes the alert deterministic;
+     * the finally ALWAYS restores it so login popups stay auto-handled.
+     * If pausing fails, the sequence still runs — callers must keep a
+     * download-in-flight fallback for that degraded path.
+     */
+    public void withAlertsManual(Runnable alertSequence) {
+        boolean paused = false;
+        try {
+            driver.setSetting("defaultAlertAction", "");
+            paused = true;
+        } catch (Exception e) {
+            System.out.println("⚠️ withAlertsManual: could not pause defaultAlertAction ("
+                    + e.getMessage() + ") — auto-accept may still race the alert");
+        }
+        try {
+            alertSequence.run();
+        } finally {
+            if (paused) {
+                try {
+                    driver.setSetting("defaultAlertAction", "accept");
+                } catch (Exception e) {
+                    System.out.println("⚠️ withAlertsManual: restore failed: " + e.getMessage());
+                }
+            }
+        }
+    }
+
     /**
      * Exact alert message text; "" when unavailable. The alert element lands
      * in the DOM a beat before its message StaticText finishes rendering
@@ -468,11 +510,23 @@ public class AssetEngineerPage extends BasePage {
                 || sub.startsWith("Clearing") || sub.startsWith("Saving")) {
             System.out.println("⏳ download already in flight (" + sub + ") — waiting");
         } else {
-            tapLibraryCard();
-            if (!isLoadDialogShown(8)) {
-                throw new VerificationError("ensureLibraryDownloaded: 'Load Device Library?' alert never appeared");
+            final boolean[] dialogHandled = {false};
+            withAlertsManual(() -> {
+                tapLibraryCard();
+                if (isLoadDialogShown(8)) {
+                    tapLoadDialogButton("Download");
+                    dialogHandled[0] = true;
+                }
+            });
+            if (!dialogHandled[0]) {
+                // Auto-accept can still win when pausing the setting failed —
+                // a download in flight proves WDA pressed Download for us.
+                if (!waitForCondition(this::isDownloadInFlightNow, 6)) {
+                    throw new VerificationError("ensureLibraryDownloaded: 'Load Device Library?' alert"
+                            + " never appeared and no download started");
+                }
+                System.out.println("ℹ️ load alert auto-accepted by WDA (race) — download engaged");
             }
-            tapLoadDialogButton("Download");
         }
         String terminal = waitForDownloadTerminal(downloadTimeoutSeconds);
         if (!terminal.equals("SUCCESS_COUNTS") && !terminal.equals("LAST_UPDATED")) {

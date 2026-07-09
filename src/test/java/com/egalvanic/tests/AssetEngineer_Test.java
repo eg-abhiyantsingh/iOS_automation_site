@@ -138,22 +138,27 @@ public class AssetEngineer_Test extends BaseTest {
         logStep("Step 1: Login, open Settings, tap the library card");
         loginAndSelectSite();
         engineerPage.openSettings();
-        engineerPage.tapLibraryCard();
 
-        logStep("Step 2: Alert appears (animation-tolerant wait)");
-        assertTrue(engineerPage.isLoadDialogShown(8),
-                "'Load Device Library?' alert should appear after tapping the card");
+        // Alert inspection needs WDA's auto-accept paused for the whole dance,
+        // or the monitor presses Download before the copy can be read.
+        engineerPage.withAlertsManual(() -> {
+            engineerPage.tapLibraryCard();
 
-        logStep("Step 3: Exact message + both buttons");
-        assertEquals(engineerPage.getLoadDialogMessage(),
-                "Downloads the full device library (~5 MB) to enable offline matching in the Engineering section. Replaces any prior cached library.",
-                "Alert message must match the v1.49 copy exactly");
-        assertTrue(engineerPage.loadDialogHasButtons(),
-                "Alert must offer both Cancel and Download actions");
+            logStep("Step 2: Alert appears (animation-tolerant wait)");
+            assertTrue(engineerPage.isLoadDialogShown(8),
+                    "'Load Device Library?' alert should appear after tapping the card");
 
-        logStep("Step 4: Cancel dismisses without downloading");
-        assertTrue(engineerPage.tapLoadDialogButton("Cancel"),
-                "Cancel should dismiss the alert");
+            logStep("Step 3: Exact message + both buttons");
+            assertEquals(engineerPage.getLoadDialogMessage(),
+                    "Downloads the full device library (~5 MB) to enable offline matching in the Engineering section. Replaces any prior cached library.",
+                    "Alert message must match the v1.49 copy exactly");
+            assertTrue(engineerPage.loadDialogHasButtons(),
+                    "Alert must offer both Cancel and Download actions");
+
+            logStep("Step 4: Cancel dismisses without downloading");
+            assertTrue(engineerPage.tapLoadDialogButton("Cancel"),
+                    "Cancel should dismiss the alert");
+        });
         logStepWithScreenshot("TC_ENG_002: alert copy + Cancel verified");
     }
 

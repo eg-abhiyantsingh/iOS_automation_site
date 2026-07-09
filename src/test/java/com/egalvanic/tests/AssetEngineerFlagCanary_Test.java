@@ -71,14 +71,31 @@ public class AssetEngineerFlagCanary_Test extends BaseTest {
             logStep("Step 3 (flag ON): no disabled caption; tap opens the Load alert");
             assertTrue(!engineerPage.isEngLibDisabledBannerVisible(),
                     "Disabled caption must NOT render when eng-lib is enabled");
+            // autoAcceptAlerts=true races the alert poll (WDA can press Download
+            // before we see the dialog — bit us live 2026-07-09), so pause it for
+            // the dance and keep an auto-accepted-download fallback.
+            final String[] outcome = {"NONE"};
             try {
-                engineerPage.tapLibraryCard();
+                engineerPage.withAlertsManual(() -> {
+                    engineerPage.tapLibraryCard();
+                    if (engineerPage.isLoadDialogShown(8)) {
+                        outcome[0] = "ALERT";
+                    } else if (engineerPage.isDownloadInFlightNow()) {
+                        outcome[0] = "AUTO_ACCEPTED";
+                    }
+                });
             } catch (org.testng.SkipException e) {
                 throw new AssertionError("UI shows the disabled caption although the API flag is ON — flag/UI drift", e);
             }
-            assertTrue(engineerPage.isLoadDialogShown(8),
-                    "'Load Device Library?' alert must appear when eng-lib is enabled");
-            assertTrue(engineerPage.tapLoadDialogButton("Cancel"), "Cleanup: cancel the alert");
+            if ("ALERT".equals(outcome[0])) {
+                assertTrue(engineerPage.tapLoadDialogButton("Cancel"), "Cleanup: cancel the alert");
+            } else if ("AUTO_ACCEPTED".equals(outcome[0])) {
+                System.out.println("ℹ️ WDA auto-accepted the load alert (race) — waiting out the download so the container ends stable");
+                engineerPage.waitForDownloadTerminal(300);
+            } else {
+                throw new AssertionError(
+                        "'Load Device Library?' alert must appear (or its auto-accepted download must start) when eng-lib is enabled");
+            }
         } else {
             logStep("Step 3 (flag OFF): disabled caption renders and the tap is a no-op");
             assertTrue(engineerPage.isEngLibDisabledBannerVisible(),
