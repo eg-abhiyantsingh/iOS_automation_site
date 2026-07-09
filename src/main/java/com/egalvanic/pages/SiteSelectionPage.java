@@ -284,7 +284,7 @@ public class SiteSelectionPage extends BasePage {
      * screen costs one 500ms tick, not 4 × 5s implicit-wait burns), then
      * give async card data a bounded settle poll before returning.
      */
-    public void waitForDashboardReady() {
+    public boolean waitForDashboardReady() {
         // Env-tunable (SITE_DASHBOARD_WAIT_SEC, default 120s). 45s was too short for
         // the first cold-cache load of the bloated QA site: when it expired the site
         // context was never persisted and the whole job cascaded on the Select Site
@@ -316,7 +316,7 @@ public class SiteSelectionPage extends BasePage {
             if (signal != null) {
                 System.out.println("✅ Dashboard ready (" + signal + ")");
                 postReadySettle();
-                return;
+                return true;
             }
             // v1.48: the app can auto-push the Work Orders screen right after site
             // selection (stray tap on the 'No Active Work Order' card / deep link).
@@ -340,6 +340,7 @@ public class SiteSelectionPage extends BasePage {
             try { Thread.sleep(500); } catch (InterruptedException e) { Thread.currentThread().interrupt(); break; }
         }
         System.out.println("⚠️ Dashboard wait timeout (" + (timeoutMs / 1000) + "s), continuing...");
+        return false;
     }
 
     private void postReadySettle() {
