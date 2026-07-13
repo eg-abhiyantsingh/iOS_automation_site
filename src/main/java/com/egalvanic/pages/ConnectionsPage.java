@@ -1848,9 +1848,9 @@ public class ConnectionsPage {
             try {
                 WebElement selectSource = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label CONTAINS 'Select source' OR label CONTAINS 'source node' OR name == 'Select source')"));
-                selectSource.click();
+                w3cPress(selectSource);
                 sleep(200);
-                System.out.println("✓ Tapped on 'Select source node' dropdown");
+                System.out.println("✓ W3C-pressed 'Select source node' dropdown");
                 return true;
             } catch (Exception e1) {}
 
@@ -1858,9 +1858,9 @@ public class ConnectionsPage {
             try {
                 WebElement sourceField = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "((label == 'Source Node' OR name CONTAINS 'source') AND type == 'XCUIElementTypeButton')"));
-                sourceField.click();
+                w3cPress(sourceField);
                 sleep(200);
-                System.out.println("✓ Tapped on Source Node button");
+                System.out.println("✓ W3C-pressed Source Node button");
                 return true;
             } catch (Exception e2) {}
 
@@ -3696,7 +3696,7 @@ public class ConnectionsPage {
                 "name CONTAINS[c] '" + typeName + "')"));
             if (optionRow != null) {
                 try {
-                    optionRow.click();
+                    w3cPress(optionRow);
                     sleep(200);
                     System.out.println("✓ Selected Connection Type (sheet row): " + typeName);
                     return true;
@@ -3708,7 +3708,7 @@ public class ConnectionsPage {
                 "label ==[c] '" + typeName + "'"));
             if (exact != null) {
                 try {
-                    exact.click();
+                    w3cPress(exact);
                     sleep(200);
                     System.out.println("✓ Selected Connection Type (exact label): " + typeName);
                     return true;
@@ -3735,7 +3735,7 @@ public class ConnectionsPage {
                 "label CONTAINS[c] '" + typeName + "' OR value CONTAINS[c] '" + typeName + "'"));
             if (partial != null) {
                 try {
-                    partial.click();
+                    w3cPress(partial);
                     sleep(200);
                     System.out.println("✓ Selected Connection Type (partial match): " + typeName);
                     return true;
