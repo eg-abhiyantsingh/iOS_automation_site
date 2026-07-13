@@ -3670,10 +3670,19 @@ jobs:
           [ -z "$RUNTIME" ] && { xcrun simctl list runtimes; exit 1; }
           UDID=$(xcrun simctl list devices available "$RUNTIME" 2>/dev/null | grep "iPad" | head -1 | awk -F '[()]' '{print $2}')
           if [ -z "$UDID" ]; then
-            DEVTYPE=$(xcrun simctl list devicetypes | grep -E "iPad Pro 13-inch|iPad Pro \(12" | head -1 | grep -o "com.apple.CoreSimulator.SimDeviceType[^ )]*")
-            [ -z "$DEVTYPE" ] && DEVTYPE=$(xcrun simctl list devicetypes | grep "iPad" | head -1 | grep -o "com.apple.CoreSimulator.SimDeviceType[^ )]*")
-            echo "Creating iPad: $DEVTYPE on $RUNTIME"
-            UDID=$(xcrun simctl create "QA-iPad" "$DEVTYPE" "$RUNTIME")
+            # Newest device types (M5) are INCOMPATIBLE with the iOS 18 runtime
+            # (run 29240604419: create exited 147). Try known-compatible iPads
+            # oldest-supported-first until one creates.
+            for DT in "iPad Pro 13-inch (M4)" "iPad Air 11-inch (M2)" "iPad (10th generation)" "iPad Pro (12.9-inch) (6th generation)"; do
+              DEVTYPE=$(xcrun simctl list devicetypes | grep -F "$DT" | head -1 | grep -o "com.apple.CoreSimulator.SimDeviceType[^ )]*")
+              [ -z "$DEVTYPE" ] && continue
+              echo "Trying to create iPad: $DEVTYPE on $RUNTIME"
+              if UDID=$(xcrun simctl create "QA-iPad" "$DEVTYPE" "$RUNTIME" 2>/dev/null); then
+                echo "Created: $UDID ($DT)"
+                break
+              fi
+              UDID=""
+            done
           fi
           echo "iPad UDID: $UDID"
           [ -z "$UDID" ] && { xcrun simctl list devices available; exit 1; }
