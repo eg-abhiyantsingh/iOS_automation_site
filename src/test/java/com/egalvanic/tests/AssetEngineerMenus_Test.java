@@ -95,10 +95,7 @@ public class AssetEngineerMenus_Test extends BaseTest {
                 "TC_ENG_070 [" + option + "] - Mains Type option selects and renders on the chip");
 
         ensurePanelboardDraft();
-        engineerPage.openEngineeringPickerBelowLabel("Mains Type");
-        assertTrue(engineerPage.pickOptionExact(option),
-                "'" + option + "' must be pickable in the Panelboard Mains Type menu");
-        assertTrue(engineerPage.waitForPickerValueBelowLabel("Mains Type", option, 6),
+        assertTrue(engineerPage.pickEngineeringOptionVerified("Mains Type", option, option),
                 "Mains Type chip must display '" + option + "' after the pick (now='"
                         + engineerPage.getPickerValueBelowLabel("Mains Type") + "')");
         logStepWithScreenshot("TC_ENG_070 [" + option + "] verified");

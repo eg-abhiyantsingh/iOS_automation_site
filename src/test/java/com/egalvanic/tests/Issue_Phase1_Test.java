@@ -2646,6 +2646,10 @@ public final class Issue_Phase1_Test extends BaseTest {
         skipIfPreconditionMissing(() -> issuePage.isCameraButtonDisplayed(),
             "Camera button not available (no camera on this device/simulator)");
 
+        // The app does NOT hide the button on sims — and tapping it aborts the
+        // app (CAM-CRASH-01). Skip before the tap.
+        guardCameraTapCrash("TC_ISS_073 Issue photos camera tap");
+
         logStep("Step 4: Tap Camera button");
         issuePage.tapCameraButton();
 

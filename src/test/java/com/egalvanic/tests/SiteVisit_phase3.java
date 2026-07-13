@@ -709,6 +709,11 @@ public class SiteVisit_phase3 extends BaseTest {
 
         logStepWithScreenshot("Before tapping Camera button");
 
+        // Camera button presence is verified above; the tap itself crashes the
+        // app on simulators (CAM-CRASH-01) — leave the walkthrough, then skip.
+        cleanupFromPhotoWalkthrough();
+        guardCameraTapCrash("TC_JOB_200 Photo Walkthrough camera tap");
+
         // Tap Camera button
         logStep("Tapping Camera button");
         boolean cameraTapped = workOrderPage.tapAddPhotosCameraButton();

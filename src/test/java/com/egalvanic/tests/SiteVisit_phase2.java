@@ -4738,6 +4738,9 @@ public class SiteVisit_phase2 extends BaseTest {
         // Tap Camera button
         boolean cameraTapped = false;
         if (cameraBtnDisplayed) {
+            // Tapping the camera aborts the app on simulators (CAM-CRASH-01);
+            // button presence is already asserted above.
+            guardCameraTapCrash("TC_JOB_149 Add Photos camera tap");
             logStep("Tapping Camera button");
             cameraTapped = workOrderPage.tapAddPhotosCameraButton();
             mediumWait();

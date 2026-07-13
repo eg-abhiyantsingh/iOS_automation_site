@@ -93,6 +93,11 @@ public class AssetEngineerPage extends BasePage {
             "type == 'XCUIElementTypeNavigationBar' AND name == 'Asset Details'");
     private static final By MATCH_HEADER = AppiumBy.iOSNsPredicateString(
             "type == 'XCUIElementTypeStaticText' AND (name CONTAINS 'possible match')");
+    /** Connections tab landed in front (stray tab-bar press detection). */
+    private static final By CONNECTIONS_SCREEN_MARKER = AppiumBy.iOSNsPredicateString(
+            "(type == 'XCUIElementTypeNavigationBar' AND name == 'Connections')"
+            + " OR (type == 'XCUIElementTypeTextField' AND name == 'Search connections...')"
+            + " OR (type == 'XCUIElementTypeStaticText' AND name == 'Search connections...')");
     private static final By ADD_CUSTOM_BUTTON = AppiumBy.iOSNsPredicateString(
             "type == 'XCUIElementTypeButton' AND label CONTAINS 'Add Custom'");
     private static final By BOUND_CARD_TITLE = AppiumBy.iOSNsPredicateString(
@@ -549,28 +554,144 @@ public class AssetEngineerPage extends BasePage {
     public void openAssetCardByPrefix(String namePrefix) {
         By cell = AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND name BEGINSWITH '" + namePrefix + "'");
-        if (!swipeUntilVisible(cell, 4)) {
-            throw new VerificationError("openAssetCardByPrefix: no asset cell starting with '"
-                    + namePrefix + "' on the Assets list");
-        }
-        try {
-            pressElement(driver.findElement(cell));
-        } catch (Exception e) {
-            System.out.println("⚠️ asset cell tap failed, retrying once: " + e.getMessage());
-            try { pressElement(driver.findElement(cell)); } catch (Exception e2) {
-                throw new VerificationError("openAssetCardByPrefix: cell tap failed twice for '"
-                        + namePrefix + "': " + e2.getMessage());
+        for (int attempt = 1; attempt <= 2; attempt++) {
+            if (!swipeUntilVisible(cell, 4)) {
+                throw new VerificationError("openAssetCardByPrefix: no asset cell starting with '"
+                        + namePrefix + "' on the Assets list");
+            }
+            try {
+                pressCellAboveTabBar(cell);
+            } catch (Exception e) {
+                System.out.println("⚠️ asset cell tap failed, retrying once: " + e.getMessage());
+                try { pressCellAboveTabBar(cell); } catch (Exception e2) {
+                    throw new VerificationError("openAssetCardByPrefix: cell tap failed twice for '"
+                            + namePrefix + "': " + e2.getMessage());
+                }
+            }
+            if (waitForCondition(() -> existsNow(ASSET_DETAILS_NAVBAR), 10)) {
+                return;
+            }
+            // A press whose rect drifted into the translucent tab bar hits the
+            // bar's CENTER button = the Connections tab (35-fail cluster in run
+            // 29011100323 + reproduced locally). Detect, hop back, retry once.
+            if (attempt == 1 && existsNow(CONNECTIONS_SCREEN_MARKER)) {
+                System.out.println("↩️ Cell press landed on the Connections tab — recovering to Assets and retrying");
+                tapAssetsTabForRecovery();
             }
         }
-        if (!waitForCondition(() -> existsNow(ASSET_DETAILS_NAVBAR), 10)) {
-            throw new VerificationError("openAssetCardByPrefix: Asset Details never rendered for '"
-                    + namePrefix + "'");
-        }
+        throw new VerificationError("openAssetCardByPrefix: Asset Details never rendered for '"
+                + namePrefix + "'");
     }
 
-    /** Swipe until the "Engineering" section title is on screen. */
+    /**
+     * Press an asset-list cell only when its center is INSIDE the safe band.
+     * SwiftUI lists scroll BEHIND the translucent tab bar: a bottom-edge cell
+     * still reports visible=true while its center-y sits in the bar, and a
+     * coordinate press there taps whatever owns the pixel — the Connections
+     * tab at bar-center. (Bottom-edge twin of the nav-bar Y<120 rule.)
+     * Nudge the list until the cell clears the bar, then press a FRESH rect.
+     */
+    private void pressCellAboveTabBar(By cell) {
+        org.openqa.selenium.Dimension size = driver.manage().window().getSize();
+        int safeBottom = (int) (size.height * 0.84); // tab bar + home indicator zone
+        for (int nudge = 0; nudge < 3; nudge++) {
+            WebElement el = driver.findElement(cell);
+            org.openqa.selenium.Rectangle r = el.getRect();
+            int cy = r.getY() + r.getHeight() / 2;
+            if (cy >= 120 && cy <= safeBottom) {
+                pressElement(el);
+                return;
+            }
+            System.out.println("📜 cell center y=" + cy + " inside nav/tab-bar zone — nudging list");
+            nudgeListUp(size);
+        }
+        pressElement(driver.findElement(cell)); // last resort: fresh rect, press anyway
+    }
+
+    /** Small swipe (~15% height) so a bottom-edge cell clears the tab bar without flying off-screen. */
+    private void nudgeListUp(org.openqa.selenium.Dimension size) {
+        try {
+            int x = size.width / 2;
+            org.openqa.selenium.interactions.PointerInput finger =
+                    new org.openqa.selenium.interactions.PointerInput(
+                            org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
+            org.openqa.selenium.interactions.Sequence swipe =
+                    new org.openqa.selenium.interactions.Sequence(finger, 1);
+            swipe.addAction(finger.createPointerMove(java.time.Duration.ZERO,
+                    org.openqa.selenium.interactions.PointerInput.Origin.viewport(), x, (int) (size.height * 0.60)));
+            swipe.addAction(finger.createPointerDown(
+                    org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+            swipe.addAction(finger.createPointerMove(java.time.Duration.ofMillis(300),
+                    org.openqa.selenium.interactions.PointerInput.Origin.viewport(), x, (int) (size.height * 0.45)));
+            swipe.addAction(finger.createPointerUp(
+                    org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+            driver.perform(java.util.Arrays.asList(swipe));
+        } catch (Exception e) {
+            System.out.println("⚠️ nudgeListUp failed: " + e.getMessage());
+        }
+        pause(650); // debounced v1.49 list re-layout settle
+    }
+
+    /** Recovery hop used when a stray press opened the Connections tab. */
+    private void tapAssetsTabForRecovery() {
+        try {
+            By assetsTab = AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND label == 'Assets'");
+            pressElement(driver.findElement(assetsTab));
+        } catch (Exception e) {
+            System.out.println("⚠️ Assets-tab recovery tap failed: " + e.getMessage());
+        }
+        pause(800);
+    }
+
+    /** Asset Details screen currently in front (navbar probe). */
+    public boolean isAssetDetailsOpen() {
+        return existsNow(ASSET_DETAILS_NAVBAR);
+    }
+
+    /**
+     * Open the picker below {@code label}, pick {@code option}, and VERIFY
+     * the chip now shows {@code expectedValue} — the W3C row-press can report
+     * success while the pick never applies (chip kept reading '' in run
+     * 29011100323 on iOS 18.5; same family as the 26.2 menu-row no-op).
+     * Retries the whole dance once; reuses a still-open menu when the first
+     * press missed the row.
+     */
+    public boolean pickEngineeringOptionVerified(String label, String option, String expectedValue) {
+        openEngineeringPickerBelowLabel(label);
+        for (int attempt = 1; attempt <= 2; attempt++) {
+            if (!isOptionShown(option)) {
+                openEngineeringPickerBelowLabel(label);
+            }
+            if (pickOptionExact(option) && waitForPickerValueBelowLabel(label, expectedValue, 6)) {
+                return true;
+            }
+            System.out.println("⚠️ pick '" + option + "' did not apply to '" + label + "' (chip='"
+                    + getPickerValueBelowLabel(label) + "') — "
+                    + (attempt == 1 ? "retrying once" : "giving up"));
+        }
+        return false;
+    }
+
+    /** Bounded poll for a text field's value (sheet fields populate a beat after render). */
+    public boolean waitForEngineeringFieldValue(String fieldName, String expected, int timeoutSeconds) {
+        return waitForCondition(() -> expected.equals(getEngineeringFieldValue(fieldName)), timeoutSeconds);
+    }
+
+    /**
+     * Swipe until the "Engineering" section title is on screen — BOTH ways.
+     * A prior interaction can leave the view scrolled PAST the title
+     * (down-only search then never finds it), and flag-on details run longer
+     * than 6 screens on transformer/fuse (match panel + engineering blocks).
+     */
     public boolean swipeToEngineeringSection() {
-        return swipeUntilVisible(ENGINEERING_TITLE, 6);
+        if (visibleNow(ENGINEERING_TITLE)) return true;
+        for (int i = 0; i < 3; i++) {
+            scrollUp();
+            pause(650);
+            if (visibleNow(ENGINEERING_TITLE)) return true;
+        }
+        return swipeUntilVisible(ENGINEERING_TITLE, 10);
     }
 
     public boolean isEngineeringSectionPresent() {

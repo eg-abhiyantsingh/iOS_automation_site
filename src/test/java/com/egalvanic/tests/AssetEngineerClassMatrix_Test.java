@@ -331,6 +331,33 @@ public class AssetEngineerClassMatrix_Test extends BaseTest {
                         "'Change Asset Class?' alert must confirm via 'Change Class'");
             }
         }
+        // The W3C row-press can report success while the pick never APPLIES
+        // (run 29011100323: 4 matrix rows judged the PREVIOUS class — both
+        // contract directions flipped). Verify the chip switched; retry once.
+        mediumWait();
+        if (!engineerPage.isOptionShown(className)) {
+            System.out.println("⚠️ class chip does not show '" + className + "' post-pick — re-picking once");
+            String chipLabel = lastPickedClass != null ? lastPickedClass : className;
+            if (engineerPage.isOptionShown(chipLabel)) {
+                engineerPage.pickOptionExact(chipLabel);
+            } else {
+                assetPage.clickSelectAssetClass();
+            }
+            mediumWait();
+            try { engineerPage.searchInSheetPicker(className.split(" ")[0]); } catch (Exception ignored) { }
+            if (engineerPage.pickOptionExact(className)) {
+                shortWait();
+                if (engineerPage.isOptionShown("Change Class")) {
+                    engineerPage.tapAlertButton("Change Class");
+                }
+            }
+            mediumWait();
+            if (!engineerPage.isOptionShown(className)) {
+                throw new com.egalvanic.verify.VerificationError(
+                        "selectClassViaSearch: pick reported success but the chip never switched to '"
+                        + className + "'");
+            }
+        }
         classSelectedOnce = true;
         lastPickedClass = className;
         return true;

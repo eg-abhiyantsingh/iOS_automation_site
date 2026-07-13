@@ -1449,6 +1449,10 @@ public final class OfflineTest extends BaseTest {
 
         boolean cameraAccessAttempted = false;
 
+        // Guard OUTSIDE the try below — a SkipException inside it would be
+        // swallowed by catch(Exception) and turn the skip into a fail (CAM-CRASH-01).
+        guardCameraTapCrash("TC_OFF_015 offline IR photo camera tap");
+
         if (onIssuesScreen) {
             logStep("Opening first issue to access photo capture");
             try {

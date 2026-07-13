@@ -67,6 +67,12 @@ public class AssetEngineerInputs_Test extends BaseTest {
                 && engineerPage.isEngineeringSectionPresent()) {
             return;
         }
+        // Same asset, details still open, just scrolled away from the title —
+        // find it in place (bidirectional) instead of a close/reopen cycle.
+        if (assetPrefix.equals(openAssetPrefix) && engineerPage.isAssetDetailsOpen()
+                && engineerPage.swipeToEngineeringSection()) {
+            return;
+        }
         if (openAssetPrefix != null) {
             engineerPage.closeAssetDetails(true);
         }
