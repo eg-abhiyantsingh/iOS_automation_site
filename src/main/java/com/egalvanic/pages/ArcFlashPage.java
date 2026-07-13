@@ -156,6 +156,15 @@ public class ArcFlashPage extends BasePage {
         return existsNow(READINESS_TEXT);
     }
 
+    /** The readiness score element — exposed for form-factor/viewport assertions. */
+    public WebElement readinessScoreCardElement() {
+        return driver.findElement(READINESS_TEXT);
+    }
+
+    /** Touch-scroll wrappers for form-factor tests (BasePage gestures are protected). */
+    public void scrollBreakdownDown() { scrollDown(); }
+    public void scrollBreakdownUp() { scrollUp(); }
+
     public boolean hasOverallCaption() {
         return existsNow(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND name == '" + OVERALL_CAPTION + "'"));

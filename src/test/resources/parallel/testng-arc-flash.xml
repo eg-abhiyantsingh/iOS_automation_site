@@ -43,6 +43,11 @@
             <class name="com.egalvanic.tests.ArcFlashBreakdown_Test"/>
         </classes>
     </test>
+    <test name="Arc Flash - Responsive Form Factor (ZP-2373 mobile parity)">
+        <classes>
+            <class name="com.egalvanic.tests.ArcFlashResponsive_Test"/>
+        </classes>
+    </test>
     <test name="Arc Flash - EngLib Flag Canary">
         <classes>
             <class name="com.egalvanic.tests.AssetEngineerFlagCanary_Test"/>
