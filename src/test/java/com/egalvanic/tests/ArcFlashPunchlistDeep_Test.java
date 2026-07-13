@@ -211,6 +211,7 @@ public class ArcFlashPunchlistDeep_Test extends BaseTest {
         ensurePunchlistOff("Assets");
         toggle("Assets"); // ON
         toggle("Assets"); // OFF
+        loginAndSelectSite(); // back to the Dashboard home before reopening
         arcPage.openDashboard();
         assertTrue(arcPage.waitForDashboard(15), "dashboard must reopen");
         assertEquals(arcPage.getOverallPercent(), overallBefore,
