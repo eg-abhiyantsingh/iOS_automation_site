@@ -1,6 +1,6 @@
 # Per-test failure triage — run 29135128275 (full suite, 2026-07-11)
 
-Verdicts across 22/32 analyzed packages (13 agents hit session rate-limit; ~23 tests pending): {'AUTOMATION_BUG': 191, 'INVALID_TEST': 2, 'APP_BUG': 1, 'ENV_INFRA': 11, 'DATA_FIXTURE': 2}
+Verdicts: ALL 230/230 analyzed (207 via agent fan-out + 23 inline completion pass below). Original tally (agent portion): {'AUTOMATION_BUG': 191, 'INVALID_TEST': 2, 'APP_BUG': 1, 'ENV_INFRA': 11, 'DATA_FIXTURE': 2}
 
 - INVALID_TEST = expectation wrong (fix the test) | AUTOMATION_BUG = our locator/timing/detection | APP_BUG = product | ENV_INFRA = breaker/sim | DATA_FIXTURE = missing data
 
@@ -879,3 +879,97 @@ Core Attributes "required" fields are required ONLY to compute the Arc Flash val
 ### TC_WOP_015_planListIntegrityAcrossRoundTrip  —  **ENV_INFRA**
 - Why: Same raw IOSDriver command TimeoutException as TC_WOP_004 — the test died before reaching StateIntegrityChecker.assertNoLossOrDup or the size invariant (their distinct messages are absent), so this is the wedged-WDA session cascade from TC_WOP_001, not an integrity-check or locator defect. Rerun SKIP = breaker open.
 - Action: Rerun with the failed-suite shard on a fresh sim; no code change to the integrity check. Treat all four WOP failures as one session-death event and root-cause the wedge origin in the job log (what the noReset session was left on before this class started).
+
+## Completion pass (2026-07-13, inline): the 23 tests the rate-limited agents missed
+
+### ArcFlash_Test.TC_AF_002_dashboardOpensWithTitleAndDone  —  **AUTOMATION_BUG**
+- Why: Deterministic Selenium TimeoutException (3m41s) inside the dashboard open/Done flow — a WebDriverWait in openDashboard/tapDone exceeds its budget on the grown QA site's slow first dashboard load; the suite's later tests pass once warm.
+- Action: Bound the dashboard-open waits per step (Waits.until + explicit budget), retry Done once after a settle; revalidate on current main.
+
+### ArcFlash_Test.TC_AF_014_bucketRowDrillsIntoEditorAndBack  —  **AUTOMATION_BUG**
+- Why: 'Asset row tap must open the asset editor full-screen' deterministic on pre-f98f5ce code — the per-asset row press is the bottom-zone/tab-bar coordinate-press family (visible-behind-chrome rect).
+- Action: Already addressed by the tab-bar-safe press batch (changelog 116/118); revalidate in the dispatched arc-flash run on current main.
+
+### Asset_Phase1_Test.ATS_EAD_06_enableRequiredFieldsOnlyToggle  —  **INVALID_TEST**
+- Why: Hard-asserted the switch's accessibility value; per user-confirmed domain truth the toggle is a view filter for arc-flash reading, not a contract.
+- Action: FIXED in changelog 116 (reshaped to form-functional contract, state read informational).
+
+### Asset_Phase1_Test.ATS_EAD_14_disableRequiredFieldsToggle  —  **INVALID_TEST**
+- Why: Same as ATS_EAD_06 — round-trip state read is not a product contract.
+- Action: FIXED in changelog 116.
+
+### Asset_Phase1_Test.ATS_ECR_31_verifySaveAssetWithValidData  —  **AUTOMATION_BUG**
+- Why: Exact-360s hang in the create-with-valid-data flow — save-flow hang family: post-save the flow re-queries the grown Assets list unbounded.
+- Action: Bound post-save verification (search-first instead of list scan); same family as the save-evidence cluster.
+
+### Asset_Phase3_Test.LC_EAD_02_verifyCoreAttributesSection  —  **AUTOMATION_BUG**
+- Why: Failure screenshot shows Asset Details scrolled deep (Issues/Connections/Notes) — the Core Attributes probe only scrolls DOWN, so a section already above the viewport is never found. Down-only-scroll family (same as swipeToEngineeringSection fix).
+- Action: Make the Core Attributes visibility probe bidirectional (scroll up 2-3 then down).
+
+### Asset_Phase3_Test.LC_EAD_05_verifyRequiredFieldsCount  —  **AUTOMATION_BUG**
+- Why: Same screen/probe family as LC_EAD_02 — the required-fields counter sits in the Core Attributes header above the current scroll position.
+- Action: Same bidirectional-scroll fix; counter itself is a valid UI contract (arc-flash readiness count).
+
+### AuthenticationTest.TC26_verifyEmailFieldClears  —  **AUTOMATION_BUG**
+- Why: Orig/rerun messages are the SAME two errors swapped (Continue not clickable vs no TextField) — order-dependent start state: after TC25 logs in, the app is on Dashboard while TC26 assumes the login screen; relaunch with noReset keeps the session.
+- Action: Make TC26/TC37 setup force logout or fresh-install state before asserting login-screen fields.
+
+### AuthenticationTest.TC37_verifySessionSecurityAfterLogin  —  **AUTOMATION_BUG**
+- Why: Same order-dependent state assumption as TC26 (mirror-image failure messages across runs prove it).
+- Action: Same state-reset fix.
+
+### Connections_Test.TC_CONN_024_verifyChangingSourceNodeSelection  —  **AUTOMATION_BUG**
+- Why: Exact-360s hang re-opening the Source Node dropdown — the dropdown lists EVERY asset on the grown QA site and the helper scroll-scans it; sibling tests 020-023 passed but each took 4-5 min (RECOVERED on rerun).
+- Action: Type-to-filter in the dropdown search FIRST, then pick from the narrowed list; never scroll-scan the full asset list.
+
+### Connections_Test.TC_CONN_036_verifyCreateButtonEnabledAfterAllFieldsFilled  —  **AUTOMATION_BUG**
+- Why: 'Target Node dropdown' open failed then rerun hung 360s — same full-asset-list dropdown scan family.
+- Action: Same type-to-filter fix.
+
+### Connections_Test.TC_CONN_059_verifyKeyboardDismissOnSelection  —  **AUTOMATION_BUG**
+- Why: Exact-360s hang in the same dropdown flow (keyboard + list scan).
+- Action: Same type-to-filter fix + dismissKeyboard before selection assert.
+
+### Connections_Test.TC_CONN_062_verifyRapidMultipleConnectionCreation  —  **AUTOMATION_BUG**
+- Why: Exact-360s hang — creates MULTIPLE connections back-to-back, each paying the full-list dropdown cost; budget arithmetic alone exceeds the cap on the grown site.
+- Action: Type-to-filter + reduce iterations or raise explicit timeOut.
+
+### Connections_Test.TC_CONN_097_verifyCoreAttributesSectionVisibleOnNewConnectionForm  —  **INVALID_TEST**
+- Why: Failure screenshot: the fresh New Connection form by DESIGN shows only CONNECTION DETAILS; Core Attributes render only after a connection type is picked — and TC_CONN_098 (assert-after-type-selected) PASSES. The expectation is stale.
+- Action: Reshape 097 to assert Core Attributes ABSENT pre-type-selection and present after (or fold into 098).
+
+### E2E_OfflineSyncIntegrity_Test.TC_E2E_001_offlineMultiFieldEditSurvivesSyncReplay  —  **ENV_INFRA**
+- Why: 'Error communicating with the remote browser. It may have died' — WDA/session death mid-replay, not an assertion outcome; not re-proven on rerun (skip).
+- Action: Rerun on a fresh sim; if reproducible, split the long replay into bounded phases.
+
+### E2E_OfflineSyncIntegrity_Test.TC_E2E_002_crossSiteOfflineEditsLandOnCorrectSite  —  **AUTOMATION_BUG**
+- Why: FALSE POSITIVE: the 'leak' it counted on Site B is the search empty-state label "No Results for '_A_...'" — the assertion counts any element containing the marker, and the echo of the query text matches. The app correctly returned zero results (no corruption).
+- Action: Exclude the 'No Results' empty-state label from the leak count (name BEGINSWITH 'No Results' filter).
+
+### Issue_Phase2_Test.TC_ISS_130_verifyNoiseExcessiveOption  —  **AUTOMATION_BUG**
+- Why: Exact-360s hang (7m9s) in the OSHA subcategory sheet — v1.48 Issues DOM regression family: option list reads 0 items and the helper grinds retries on the giant sheet DOM.
+- Action: Covered by the Issues locator remap (open burn-down).
+
+### Issue_Phase3_Test.TC_ISS_183_verifyUltrasonicSimilarToRepairNeeded  —  **AUTOMATION_BUG**
+- Why: Exact-360s hang comparing class field sets — Issues details DOM regression family (pickers/lists unreadable, helper retries).
+- Action: Issues remap burn-down.
+
+### Issue_Phase3_Test.TC_ISS_189_verifyInProgressBadgeOnIssueEntry  —  **AUTOMATION_BUG**
+- Why: Exact-360s hang scanning the issues list for a badge — unbounded list scan on grown data + regression family.
+- Action: Scope the badge query to the first matching cell; Issues remap.
+
+### Issue_Phase3_Test.TC_ISS_230_verifySortByTitle  —  **AUTOMATION_BUG**
+- Why: Exact-360s hang reading the full sorted list to verify order — unbounded whole-list read on grown data (6m27s).
+- Action: Verify sort on the first N visible cells only.
+
+### OfflineSyncMultiSite_Test.UC1_singleUserMultipleSites_dataIntegrity  —  **AUTOMATION_BUG**
+- Why: Exact-360s hang — multi-site switch flow pays the large-site load wait (up to 120s dashboard wait) MULTIPLE times per test; budget arithmetic exceeds the 6-min cap on the grown QA sites.
+- Action: Give multi-site UCs explicit timeOut (like TC_ENG's 780s) or trim per-switch waits.
+
+### OfflineSyncMultiSite_Test.UC3_multiSiteDataCoexistence  —  **AUTOMATION_BUG**
+- Why: Same multi-switch budget arithmetic as UC1 (UC12/UC14 with similar flows pass at 3-6 min — just under the cap).
+- Action: Same explicit-timeOut fix.
+
+### SiteSelectionTest.TC_SS_039_verifyLargeSiteLoadsWithinReasonableTime  —  **AUTOMATION_BUG**
+- Why: 'Search bar not found with any strategy' — after loading the large site the test expects to be back on the Select Site picker but the app is on the Dashboard; navigation-state assumption, and NOT re-proven (rerun skip).
+- Action: Reopen the site picker explicitly (Sites button) before the search-bar probe.
