@@ -35,3 +35,14 @@ iPhone and iPad — NFPA 70E per-asset-class progress dashboard.
 - `mvn -o test-compile` green; YAML validated.
 - Local iPhone spot-check of TC_AF_040 + CI dispatch on both form factors —
   results recorded in the session summary / next changelog.
+
+
+## CLOSED 2026-07-13 — iPad validation GREEN (run 29240891572)
+
+Three CI iterations to a green iPad job: (1) 240s boot budget too small,
+(2) runner ships NO bootable iPad for iOS 18 → create-if-missing,
+(3) newest device type (M5) incompatible with the iOS 18 runtime (exit 147)
+→ runtime-compatible candidate loop. Final result: **iPad 35/39 — exact
+parity with iPhone** (same 2 pre-existing fails TC_AF_002/014, same 2 fixture
+skips), all five responsive cases PASSED with [iPad] stamps in the report.
+All ticket acceptance criteria met.
