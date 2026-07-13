@@ -48,6 +48,21 @@
             <class name="com.egalvanic.tests.ArcFlashResponsive_Test"/>
         </classes>
     </test>
+    <test name="Arc Flash - Class Matrix Deep (per-asset-class laws)">
+        <classes>
+            <class name="com.egalvanic.tests.ArcFlashClassMatrix_Test"/>
+        </classes>
+    </test>
+    <test name="Arc Flash - Arithmetic + Determinism Invariants">
+        <classes>
+            <class name="com.egalvanic.tests.ArcFlashInvariants_Test"/>
+        </classes>
+    </test>
+    <test name="Arc Flash - Punchlist Deep Laws">
+        <classes>
+            <class name="com.egalvanic.tests.ArcFlashPunchlistDeep_Test"/>
+        </classes>
+    </test>
     <test name="Arc Flash - EngLib Flag Canary">
         <classes>
             <class name="com.egalvanic.tests.AssetEngineerFlagCanary_Test"/>

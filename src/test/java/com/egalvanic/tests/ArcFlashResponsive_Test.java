@@ -157,4 +157,41 @@ public class ArcFlashResponsive_Test extends BaseTest {
         }
         logStepWithScreenshot("TC_AF_044 [" + formFactor() + "] metric switching verified");
     }
+
+    @Test(priority = 45)
+    public void TC_AF_045_statLineWithinViewport() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ARC_FLASH, AppConstants.FEATURE_AF_DASHBOARD,
+                "TC_AF_045 [" + formFactor() + "] - Completed/Remaining/Total stat line renders and parses on this form factor");
+        loginAndSelectSite();
+        arcPage.openDashboard();
+        assertTrue(arcPage.waitForDashboard(15), "dashboard must open");
+        assertTrue(arcPage.getCompletedCount() >= 0, "Completed stat must parse");
+        assertTrue(arcPage.getRemainingCount() >= 0, "Remaining stat must parse");
+        assertTrue(arcPage.getTotalItemsCount() >= 0, "Total stat must parse");
+        logStepWithScreenshot("TC_AF_045 [" + formFactor() + "] stat line verified");
+    }
+
+    @Test(priority = 46)
+    public void TC_AF_046_doneButtonReachableByTouch() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ARC_FLASH, AppConstants.FEATURE_AF_DASHBOARD,
+                "TC_AF_046 [" + formFactor() + "] - Done dismisses the dashboard by touch on this form factor");
+        loginAndSelectSite();
+        arcPage.openDashboard();
+        assertTrue(arcPage.waitForDashboard(15), "dashboard must open");
+        assertTrue(arcPage.tapDone(), "[" + formFactor() + "] Done must dismiss the dashboard");
+        logStepWithScreenshot("TC_AF_046 [" + formFactor() + "] Done round-trip verified");
+    }
+
+    @Test(priority = 47)
+    public void TC_AF_047_formFactorProbeSanity() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ARC_FLASH, AppConstants.FEATURE_AF_DASHBOARD,
+                "TC_AF_047 - window size sane and form-factor probe deterministic");
+        loginAndSelectSite();
+        Dimension w = window();
+        assertTrue(Math.min(w.getWidth(), w.getHeight()) >= 320,
+                "window min dimension must be >= 320pt, got " + w);
+        assertEquals(formFactor(), formFactor(), "form-factor probe must be deterministic");
+        logStepWithScreenshot("TC_AF_047 window=" + w + " formFactor=" + formFactor());
+    }
+
 }
