@@ -1844,6 +1844,31 @@ public class ConnectionsPage {
         try {
             System.out.println("🔽 Tapping on Source Node dropdown...");
 
+            // Strategy 0 (v1.49): the row under the 'Source Node' label reads
+            // 'Not Assigned' (or the picked asset) — press the first visible
+            // row element below the label (W3C; click() no-ops on these rows).
+            try {
+                WebElement label0 = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND label == 'Source Node'"));
+                int labelY0 = label0.getLocation().getY();
+                List<WebElement> rows0 = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeOther' OR type == 'XCUIElementTypeCell')"
+                    + " AND visible == 1"));
+                WebElement best0 = null; int bestDy0 = Integer.MAX_VALUE;
+                for (WebElement r : rows0) {
+                    int dy = r.getLocation().getY() - labelY0;
+                    if (dy > 0 && dy < 140 && dy < bestDy0) { best0 = r; bestDy0 = dy; }
+                }
+                if (best0 != null) {
+                    w3cPress(best0);
+                    sleep(400);
+                    System.out.println("✓ W3C-pressed Source Node row ('" + best0.getAttribute("label") + "')");
+                    return true;
+                }
+            } catch (Exception e0) {
+                System.out.println("   strategy 0 miss: " + e0.getMessage());
+            }
+
             // Strategy 1: Look for "Select source node" text (pre-selection state)
             try {
                 WebElement selectSource = driver.findElement(AppiumBy.iOSNsPredicateString(
@@ -1876,8 +1901,8 @@ public class ConnectionsPage {
                         "type == 'XCUIElementTypeOther') AND visible == true"));
                     for (WebElement el : tappable) {
                         int elY = el.getLocation().getY();
-                        if (elY > labelY && elY - labelY < 80) {
-                            el.click();
+                        if (elY > labelY && elY - labelY < 140) {
+                            w3cPress(el);
                             sleep(200);
                             System.out.println("✓ Tapped Source Node section (positional, post-selection)");
                             return true;
