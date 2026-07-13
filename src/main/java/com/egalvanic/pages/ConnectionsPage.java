@@ -2182,40 +2182,51 @@ public class ConnectionsPage {
     public boolean selectAssetFromDropdown(String assetName) {
         try {
             System.out.println("👆 Selecting asset: " + assetName);
-            
-            // Strategy 1: Exact label match
-            try {
-                WebElement asset = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "label == '" + assetName + "'"));
-                asset.click();
-                sleep(300);
-                System.out.println("✓ Selected asset by exact match");
-                return true;
-            } catch (Exception e1) {}
-            
-            // Strategy 2: Partial label match
-            try {
-                WebElement asset = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "label CONTAINS '" + assetName + "'"));
-                asset.click();
-                sleep(300);
-                System.out.println("✓ Selected asset by partial match");
-                return true;
-            } catch (Exception e2) {}
-            
-            // Strategy 3: Search through cells
-            List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell'"));
-            for (WebElement cell : cells) {
-                String label = cell.getAttribute("label");
-                if (label != null && label.contains(assetName)) {
-                    cell.click();
+
+            // SEARCH-FIRST (run 29135128275: the dropdown lists EVERY asset on
+            // the grown QA site — unscoped label probes each burned the full
+            // implicit wait on a giant DOM and the whole-cell scan pushed
+            // TC_CONN_024/036/059/062 past the 6-minute cap). Narrow the list
+            // through the dropdown's own search field, then match cheaply.
+            // The search is best-effort: if the field is missing we fall back
+            // to the direct probes below, now at 0 implicit wait.
+            searchInSourceNodeDropdown(assetName);
+
+            Boolean picked = withImplicitWait(0, () -> {
+                // Strategy 1: Exact label match on the (now filtered) list
+                try {
+                    WebElement asset = driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "label == '" + assetName + "' AND visible == 1"));
+                    asset.click();
                     sleep(300);
+                    System.out.println("✓ Selected asset by exact match");
                     return true;
+                } catch (Exception e1) {}
+
+                // Strategy 2: Partial label match
+                try {
+                    WebElement asset = driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "label CONTAINS '" + assetName + "' AND visible == 1"));
+                    asset.click();
+                    sleep(300);
+                    System.out.println("✓ Selected asset by partial match");
+                    return true;
+                } catch (Exception e2) {}
+
+                // Strategy 3: filtered-cell scan (bounded — list is narrowed by the search)
+                List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeCell' AND visible == 1"));
+                for (WebElement cell : cells) {
+                    String label = cell.getAttribute("label");
+                    if (label != null && label.contains(assetName)) {
+                        cell.click();
+                        sleep(300);
+                        return true;
+                    }
                 }
-            }
-            
-            return false;
+                return false;
+            });
+            return Boolean.TRUE.equals(picked);
         } catch (Exception e) {
             return false;
         }
@@ -6490,12 +6501,75 @@ public class ConnectionsPage {
     }
 
     /**
-     * Tap on 'Select Multiple' option
+     * Tap on 'Select Multiple' option.
+     *
+     * SwiftUI MENU ROWS silently swallow element.click() (documented iOS
+     * quirk — run 29135128275 skipped TC_CONN_073-096 on exactly this):
+     * only a W3C pointer press (down → 120ms → up at the row center)
+     * registers. Press the LAST visible match (menus append at the end of
+     * the element tree; same-label background elements otherwise hijack the
+     * query), then VERIFY selection mode actually engaged before returning
+     * true — a tap report is not an outcome.
      */
     public boolean tapOnSelectMultipleOption() {
+        org.openqa.selenium.By rowBy = AppiumBy.iOSNsPredicateString(
+                "(label CONTAINS 'Select Multiple' OR label CONTAINS 'Multi-select' OR label == 'Select' OR label CONTAINS 'Select Items') AND visible == 1");
+        for (int attempt = 1; attempt <= 2; attempt++) {
+            try {
+                List<WebElement> rows = driver.findElements(rowBy);
+                if (rows.isEmpty()) {
+                    System.out.println("   'Select Multiple' menu row not visible (attempt " + attempt + ")");
+                    sleep(600);
+                    continue;
+                }
+                WebElement row = rows.get(rows.size() - 1);
+                System.out.println("👆 W3C-pressing 'Select Multiple' (" + row.getAttribute("label") + ")");
+                w3cPress(row);
+                sleep(700);
+                if (isSelectionModeEngaged()) {
+                    System.out.println("✓ Selection mode engaged (verified)");
+                    return true;
+                }
+                System.out.println("   press registered no mode change (attempt " + attempt + ")");
+            } catch (Exception e) {
+                System.out.println("   attempt " + attempt + " failed: " + e.getMessage());
+            }
+        }
+        return legacyTapOnSelectMultipleOption();
+    }
+
+    /** Selection mode = Cancel in header OR the 'N Selected' counter. */
+    private boolean isSelectionModeEngaged() {
         try {
-            System.out.println("👆 Tapping 'Select Multiple' option...");
-            
+            if (!driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "label CONTAINS 'Selected' AND visible == 1")).isEmpty()) return true;
+        } catch (Exception ignored) { }
+        return isCancelButtonVisibleInHeader();
+    }
+
+    /** W3C touch press at an element's center — the only tap SwiftUI menu rows honor. */
+    private void w3cPress(WebElement el) {
+        org.openqa.selenium.Rectangle r = el.getRect();
+        int cx = r.getX() + r.getWidth() / 2;
+        int cy = r.getY() + r.getHeight() / 2;
+        org.openqa.selenium.interactions.PointerInput finger =
+                new org.openqa.selenium.interactions.PointerInput(
+                        org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
+        org.openqa.selenium.interactions.Sequence press =
+                new org.openqa.selenium.interactions.Sequence(finger, 1);
+        press.addAction(finger.createPointerMove(java.time.Duration.ZERO,
+                org.openqa.selenium.interactions.PointerInput.Origin.viewport(), cx, cy));
+        press.addAction(finger.createPointerDown(org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+        press.addAction(new org.openqa.selenium.interactions.Pause(finger, java.time.Duration.ofMillis(120)));
+        press.addAction(finger.createPointerUp(org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+        driver.perform(java.util.Arrays.asList(press));
+    }
+
+    /** Pre-W3C fallback strategies (click-based) — kept as last resort. */
+    private boolean legacyTapOnSelectMultipleOption() {
+        try {
+            System.out.println("👆 Tapping 'Select Multiple' option (legacy click strategies)...");
+
             // Strategy 1: Direct search for Select Multiple text
             try {
                 WebElement option = driver.findElement(AppiumBy.iOSNsPredicateString(
