@@ -3661,13 +3661,25 @@ jobs:
           fi
       - name: Boot Simulator and Wait Until Ready
         run: |
-          UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18" | grep "iPad Pro 13-inch" | head -1 | awk -F '[()]' '{print $2}')
-          [ -z "$UDID" ] && UDID=$(xcrun simctl list devices available | grep -E "iPad Pro" | head -1 | awk -F '[()]' '{print $2}')
-          [ -z "$UDID" ] && UDID=$(xcrun simctl list devices available | grep -E "iPad" | head -1 | awk -F '[()]' '{print $2}')
-          [ -z "$UDID" ] && exit 1
+          # Run 29239765283: the runner image ships NO bootable iPad for the
+          # iOS 18 runtime — grep found a stale device and `boot || true`
+          # swallowed the real error while the poll spun for 9 minutes.
+          # CREATE the iPad against the same runtime the iPhone jobs use.
+          RUNTIME=$(xcrun simctl list runtimes | grep -E "^iOS 18" | tail -1 | grep -o "com.apple.CoreSimulator.SimRuntime[^ )]*")
+          echo "Runtime: $RUNTIME"
+          [ -z "$RUNTIME" ] && { xcrun simctl list runtimes; exit 1; }
+          UDID=$(xcrun simctl list devices available "$RUNTIME" 2>/dev/null | grep "iPad" | head -1 | awk -F '[()]' '{print $2}')
+          if [ -z "$UDID" ]; then
+            DEVTYPE=$(xcrun simctl list devicetypes | grep -E "iPad Pro 13-inch|iPad Pro \(12" | head -1 | grep -o "com.apple.CoreSimulator.SimDeviceType[^ )]*")
+            [ -z "$DEVTYPE" ] && DEVTYPE=$(xcrun simctl list devicetypes | grep "iPad" | head -1 | grep -o "com.apple.CoreSimulator.SimDeviceType[^ )]*")
+            echo "Creating iPad: $DEVTYPE on $RUNTIME"
+            UDID=$(xcrun simctl create "QA-iPad" "$DEVTYPE" "$RUNTIME")
+          fi
+          echo "iPad UDID: $UDID"
+          [ -z "$UDID" ] && { xcrun simctl list devices available; exit 1; }
           xcrun simctl shutdown "$UDID" 2>/dev/null || true
           sleep 3
-          xcrun simctl boot "$UDID" 2>/dev/null || true
+          xcrun simctl boot "$UDID" || { echo "❌ boot failed:"; xcrun simctl list devices | grep -A2 "$UDID"; exit 1; }
           # iPad Pro is heavy to cold-boot on a 3-core runner (run 29236183806
           # burned the whole 240s window): block on bootstatus first (long cap),
           # then fall through to the poll for the Booted flag.
