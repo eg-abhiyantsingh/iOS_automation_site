@@ -324,6 +324,8 @@ public class ArcFlashPage extends BasePage {
             "type == 'XCUIElementTypeButton' AND (name == 'Assets' OR label == 'Assets')");
     private static final By CONNECTIONS_TAB = AppiumBy.iOSNsPredicateString(
             "type == 'XCUIElementTypeButton' AND (name == 'Connections' OR label == 'Connections')");
+    private static final By SITE_TAB = AppiumBy.iOSNsPredicateString(
+            "type == 'XCUIElementTypeButton' AND (name == 'Site' OR label == 'Site')");
     /** Tab ellipsis menu button — SwiftUI Menu(label: ellipsis.circle). */
     private static final By ELLIPSIS_MENU = AppiumBy.iOSNsPredicateString(
             "type == 'XCUIElementTypeButton' AND (name CONTAINS 'ellipsis' OR name == 'More'"
@@ -338,16 +340,26 @@ public class ArcFlashPage extends BasePage {
 
     /** Bottom tab-bar navigation with verification. */
     public boolean openTab(String tabName) {
-        By tab = "Assets".equals(tabName) ? ASSETS_TAB : CONNECTIONS_TAB;
+        // TC_AF_099 live bite: 'Site' silently fell into the else-branch and
+        // pressed the CONNECTIONS tab. Map every tab explicitly.
+        By tab = "Assets".equals(tabName) ? ASSETS_TAB
+                : "Site".equals(tabName) ? SITE_TAB
+                : CONNECTIONS_TAB;
         for (int attempt = 0; attempt < 3; attempt++) {
             try {
                 WebElement el = lastVisible(tab);
                 if (el != null) {
                     pressElement(el);
-                    if (waitForCondition(() -> existsNow(AppiumBy.iOSNsPredicateString(
-                            "type == 'XCUIElementTypeNavigationBar' AND name == '" + tabName + "'"))
-                            || existsNow(AppiumBy.iOSNsPredicateString(
-                                    "type == 'XCUIElementTypeStaticText' AND name == '" + tabName + "'")), 6)) {
+                    // v1.50 Site home has NO 'Site' nav bar (title = "Welcome
+                    // to <site>") — detect it structurally via Quick Actions.
+                    By landed = "Site".equals(tabName)
+                            ? AppiumBy.iOSNsPredicateString(
+                                    "type == 'XCUIElementTypeStaticText' AND (name == 'Quick Actions'"
+                                            + " OR name BEGINSWITH 'Welcome to')")
+                            : AppiumBy.iOSNsPredicateString(
+                                    "(type == 'XCUIElementTypeNavigationBar' AND name == '" + tabName + "')"
+                                            + " OR (type == 'XCUIElementTypeStaticText' AND name == '" + tabName + "')");
+                    if (waitForCondition(() -> existsNow(landed), 6)) {
                         return true;
                     }
                 }
@@ -645,29 +657,50 @@ public class ArcFlashPage extends BasePage {
                     "type == 'XCUIElementTypeButton' AND name ENDSWITH ', " + bucketLabel + "'"
                             + " AND NOT (name BEGINSWITH '" + bucketLabel + ",')"
                             + " AND NOT (name CONTAINS ' of ') AND visible == 1");
-            WebElement target = null;
-            for (WebElement el : withImplicitWait(0, () -> driver.findElements(row))) {
-                try {
-                    if ("true".equals(el.getAttribute("visible")) && el.getRect().getY() > 380) {
-                        target = el;
-                        break;
-                    }
-                } catch (Exception ignored) { }
+            int winH = driver.manage().window().getSize().getHeight();
+            // SwiftUI exposes phantom twins with bogus geometry (same pathology
+            // as the details-form option sheets) — log every candidate, keep
+            // the WIDEST per name, press by fresh center coordinates, and if a
+            // row is inert try the NEXT row (up to 3 distinct rows).
+            java.util.LinkedHashMap<String, org.openqa.selenium.Rectangle> rows = new java.util.LinkedHashMap<>();
+            for (int round = 0; round < 2; round++) {
+                rows.clear();
+                for (WebElement el : withImplicitWait(0, () -> driver.findElements(row))) {
+                    try {
+                        if (!"true".equals(el.getAttribute("visible"))) continue;
+                        org.openqa.selenium.Rectangle r = el.getRect();
+                        String n = el.getAttribute("name");
+                        System.out.println("   · drill candidate '" + n + "' rect=("
+                                + r.x + "," + r.y + " " + r.width + "x" + r.height + ")");
+                        if (r.y <= 380 || r.y > winH - 140 || r.width < 150) continue;
+                        org.openqa.selenium.Rectangle prev = rows.get(n);
+                        if (prev == null || r.width > prev.width) rows.put(n, r);
+                    } catch (Exception ignored) { }
+                }
+                if (!rows.isEmpty()) break;
+                System.out.println("   · no pressable row in the safe zone — nudging breakdown");
+                scrollDown();
+                pause(700);
             }
-            if (target == null) {
-                System.out.println("⚠️ drill: no row inside bucket '" + bucketLabel + "'");
+            if (rows.isEmpty()) {
+                System.out.println("⚠️ drill: no pressable row inside bucket '" + bucketLabel + "'");
                 return false;
             }
-            System.out.println("🎯 drilling into row: " + target.getAttribute("name"));
-            pressElement(target);
-            if (waitForCondition(this::isDrillEditorOpen, 15)) return true;
-            System.out.println("⚠️ drill row: W3C press no-oped, retrying with click()");
-            try {
-                target.click();
-            } catch (Exception e) {
-                System.out.println("⚠️ drill row click(): " + e.getMessage());
+            int tried = 0;
+            for (java.util.Map.Entry<String, org.openqa.selenium.Rectangle> e : rows.entrySet()) {
+                if (++tried > 3) break;
+                org.openqa.selenium.Rectangle r = e.getValue();
+                // App source: the row is Button{HStack{Text…Spacer()Text}} with
+                // NO .contentShape — the Spacer middle is a hit-test DEAD ZONE
+                // (three clean center-taps no-oped, TC_AF_014 run 3). Tap the
+                // asset-name text zone at the row's left edge instead.
+                int cx = r.x + 30, cy = r.y + r.height / 2;
+                System.out.println("🎯 drilling into row '" + e.getKey() + "' at (" + cx + "," + cy + ") [label zone]");
+                driver.executeScript("mobile: tap", java.util.Map.of("x", cx, "y", cy));
+                if (waitForCondition(this::isDrillEditorOpen, 10)) return true;
+                System.out.println("   ⚠️ row '" + e.getKey() + "' did not drill — trying next row");
             }
-            return waitForCondition(this::isDrillEditorOpen, 15);
+            return false;
         } catch (Exception e) {
             System.out.println("⚠️ expandBucketAndDrillFirstRow: " + e.getMessage());
             return false;
