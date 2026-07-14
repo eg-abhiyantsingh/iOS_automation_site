@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<suite time-out="480000" name="Demo Smoke (24 proven-stable tests)" verbose="0">
+<suite time-out="480000" name="Demo Smoke (23 proven-stable tests)" verbose="0">
     <!--
     DEMO-READY SMOKE SUITE (changelogs 122 + 123).
     Selection rule: a test earns a slot ONLY if it (a) covers a critical user
@@ -17,10 +17,9 @@
     - Library-match tests are EXCLUDED BY DESIGN here: the SKM library download
       is 2-10 min on a fresh container vs the 360s GlobalTestTimeout default -
       unstable by construction. That journey lives in testng-asset-engineer.xml.
-    - IN: 4 no-library Engineering tests with clean records across all 5 recent
-      failing runs (incl. the 07-08 systemic wipeout): TC_ENG_100/101 (settings
-      card + dialog contract), TC_ENG_040 (Add-Asset modes + class picker),
-      TC_ENG_070 (Mains Type enum picker journey).
+    - IN: 3 no-library Engineering tests, validated green on a real fresh
+      simulator (run 29313356507): TC_ENG_100/101 (settings card + dialog
+      contract), TC_ENG_040 (Add-Asset modes + class picker).
     -->
     <listeners>
         <listener class-name="com.egalvanic.listeners.GlobalTestTimeout"/>
@@ -56,11 +55,10 @@
             <class name="com.egalvanic.tests.AssetEngineer_Test">
                 <methods><include name="TC_ENG_040_verifyAddAssetModesAndClassPicker"/></methods>
             </class>
-            <!-- One real Engineering interaction: server-enum Mains Type picker sets the chip (Panelboard draft,
-                 cancelled). 070 never touches the fragile class-SWITCH path that makes its siblings 071-074 flaky. -->
-            <class name="com.egalvanic.tests.AssetEngineerMenus_Test">
-                <methods><include name="TC_ENG_070_mainsTypeOptionSelects"/></methods>
-            </class>
+            <!-- TC_ENG_070 (Mains Type picker) was trialled here and LEFT per the flake-twice rule:
+                 debut run 29313356507 (2026-07-14) hung twice in the Panelboard draft fixture on the
+                 fresh container (360s ThreadTimeout, then wedged the Appium session). Its clean module-
+                 suite history didn't transfer - composition effect. It stays in testng-asset-engineer.xml. -->
         </classes>
     </test>
     <test name="Smoke - Arc Flash Readiness">

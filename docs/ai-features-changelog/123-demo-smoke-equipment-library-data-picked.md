@@ -49,8 +49,23 @@ In: `TC_ENG_100` + `TC_ENG_101` (AssetEngineerSettings_Test), `TC_ENG_040`
 ## Validation
 
 `mvn test -Dtestng.mode.dryrun=true -DsuiteXmlFile=src/test/resources/parallel/testng-smoke-demo.xml`
-— all 24 methods resolve; the 4 Engineering includes run (070 enumerates its 3 rows).
-Real-device/simulator run happens on the next `run_smoke_demo` CI dispatch.
+— all methods resolve. Then a real CI simulator run (dispatch 29313356507, fresh
+iPhone 16 Pro / iOS 18.5 container) validated the picks live.
+
+## Live-run verdict (same day): TC_ENG_070 left the suite
+
+Run 29313356507: 23/26 invocations passed — the only failures were TC_ENG_070's
+data-provider rows 1–2 (`ThreadTimeoutException` at the 360s cap: the Panelboard
+draft fixture hung on the fresh container, and the thread-kill wedged the Appium
+session, cascading into row 3's skip; the next class recovered with a new session).
+TC_ENG_100 (15s), TC_ENG_101 (18s), TC_ENG_040 (46s) all passed.
+
+Per the suite's own flake-twice-and-leave rule, 070 was removed the same day
+(suite is now 23 tests). Its clean failure history came from module-suite runs
+where sibling Engineering classes had already warmed the app state — a
+**composition effect**: a test's stability record only transfers to a new suite
+if its fixture path is exercised the same way. Exactly why new smoke picks get
+validated with a real dispatch before the suite is trusted for demos.
 
 ## Depth: what this teaches
 

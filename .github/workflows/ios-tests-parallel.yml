@@ -53,7 +53,7 @@ on:
         default: false
         type: boolean
       run_smoke_demo:
-        description: 'Demo Smoke — 24 proven-stable critical-journey tests, <15 min, must be 100% green'
+        description: 'Demo Smoke — 23 proven-stable critical-journey tests, <15 min, must be 100% green'
         required: false
         default: false
         type: boolean
@@ -3488,12 +3488,12 @@ jobs:
 
 
   # ========================================
-  # JOB: Demo Smoke — 24 proven-stable critical-journey tests (changelogs 122+123)
+  # JOB: Demo Smoke — 23 proven-stable critical-journey tests (changelogs 122+123)
   # Must stay 100% green; flake-twice-and-leave rule. Equipment Library block is
   # no-library-download picks only (eng-lib canary lives in the module suites).
   # ========================================
   smoke-demo-tests:
-    name: "Demo Smoke (24 proven-stable tests)"
+    name: "Demo Smoke (23 proven-stable tests)"
     if: ${{ inputs.run_smoke_demo }}
     runs-on: macos-15
     timeout-minutes: 360
