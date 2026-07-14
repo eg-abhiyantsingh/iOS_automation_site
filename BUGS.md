@@ -198,3 +198,11 @@ yet confirmed a bug): the Assets/Locations session tab's element tree is
 pathologically large/deep (see B6); if that reflects the real view hierarchy
 it may be a UI-performance smell worth a dev look, but it could equally be
 normal SwiftUI nesting — **not filed as a product bug without stronger evidence.**
+
+
+## ENG-FLAG-DRIFT-01 (candidate, 2026-07-14) — eng-lib UI renders DISABLED while the backend flag is ON
+- **Evidence:** demo-smoke run 29312618703, TC_ENG_130 (flag/UI canary): API `GET /auth/v2/me -> company_features` contained `eng-lib` (verified live at 07:13 UTC ±minutes, twice), yet the fresh-install app rendered the Equipment Library card disabled (50% opacity + "isn't enabled for your company" caption). Screenshot: TC_ENG_130_...FAILED_20260714_071306.png.
+- **Suspected mechanism:** the login-time company_features fetch fails/races on a cold simulator and the app silently degrades gated features to OFF with no retry/refresh until re-login.
+- **Frequency:** intermittent — canary passed the 2026-07-13 iPhone and iPad runs on the same build.
+- **Impact:** field users can lose the Engineering Library (and other gated features) for a session on a flaky network despite entitlement.
+- **Suggested dev fix:** retry/refresh feature flags after a failed fetch; surface a transient state instead of the "not enabled for your company" message when the fetch (not the entitlement) failed.
