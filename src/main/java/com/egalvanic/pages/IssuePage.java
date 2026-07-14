@@ -3787,9 +3787,9 @@ public class IssuePage extends BasePage {
                 WebElement toggle = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeSwitch' AND " +
                     "(label CONTAINS 'Required' OR name CONTAINS 'Required')"));
-                toggle.click();
+                pressToggleRightEdge(toggle); // row-spanning element: right edge, never click()
                 sleep(300);
-                System.out.println("✅ Tapped Required fields toggle (Switch)");
+                System.out.println("✅ Tapped Required fields toggle (Switch, right-edge)");
                 return;
             } catch (Exception ignored) {}
 

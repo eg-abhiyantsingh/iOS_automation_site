@@ -8001,30 +8001,8 @@ public class AssetPage extends BasePage {
         try {
             WebElement toggle = findRequiredFieldsToggle();
             if (toggle != null) {
-                // v1.50 (user-screenshot-proven): the switch works in-app but
-                // swallows element.click() — W3C press registers.
-                try {
-                    org.openqa.selenium.Rectangle r = toggle.getRect();
-                    // The accessibility element spans the WHOLE row (label +
-                    // counter + switch); a center press lands on dead text.
-                    // The switch thumb sits at the RIGHT EDGE — press there.
-                    int cx = r.getX() + r.getWidth() - Math.max(24, r.getHeight() / 2);
-                    int cy = r.getY() + r.getHeight() / 2;
-                    System.out.println("   pressing switch at right edge (" + cx + "," + cy + ") of rect " + r);
-                    org.openqa.selenium.interactions.PointerInput finger =
-                            new org.openqa.selenium.interactions.PointerInput(
-                                    org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
-                    org.openqa.selenium.interactions.Sequence press =
-                            new org.openqa.selenium.interactions.Sequence(finger, 1);
-                    press.addAction(finger.createPointerMove(java.time.Duration.ZERO,
-                            org.openqa.selenium.interactions.PointerInput.Origin.viewport(), cx, cy));
-                    press.addAction(finger.createPointerDown(org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
-                    press.addAction(new org.openqa.selenium.interactions.Pause(finger, java.time.Duration.ofMillis(120)));
-                    press.addAction(finger.createPointerUp(org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
-                    driver.perform(java.util.Arrays.asList(press));
-                } catch (Exception pressErr) {
-                    toggle.click(); // legacy fallback
-                }
+                // v1.50: row-spanning element — press the RIGHT EDGE (BasePage helper).
+                pressToggleRightEdge(toggle);
                 System.out.println("✅ Toggled Required Fields Only switch (W3C press)");
                 sleep(500); // iOS toggle animation needs ~300ms
             } else {

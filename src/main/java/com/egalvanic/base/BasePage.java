@@ -399,6 +399,32 @@ public abstract class BasePage {
     /**
      * Scroll down
      */
+    /**
+     * Press a SwiftUI toggle at its RIGHT EDGE. Toggle rows expose ONE
+     * accessibility element spanning the whole row (label + counter +
+     * switch); click()/center presses land on dead label text and silently
+     * no-op — the switch thumb renders at the right edge (proven live on
+     * v1.50, changelog 125). Use for EVERY switch/toggle tap.
+     */
+    protected void pressToggleRightEdge(WebElement toggle) {
+        try {
+            org.openqa.selenium.Rectangle r = toggle.getRect();
+            int cx = r.getX() + r.getWidth() - Math.max(24, r.getHeight() / 2);
+            int cy = r.getY() + r.getHeight() / 2;
+            PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
+            Sequence press = new Sequence(finger, 1);
+            press.addAction(finger.createPointerMove(Duration.ZERO, PointerInput.Origin.viewport(), cx, cy));
+            press.addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()));
+            press.addAction(new org.openqa.selenium.interactions.Pause(finger, Duration.ofMillis(120)));
+            press.addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
+            driver.perform(Arrays.asList(press));
+            System.out.println("   toggled via right-edge press at (" + cx + "," + cy + ")");
+        } catch (Exception e) {
+            System.out.println("   right-edge press failed (" + e.getMessage() + ") — falling back to click()");
+            try { toggle.click(); } catch (Exception ignored) { }
+        }
+    }
+
     protected void scrollDown() {
         try {
             Dimension size = driver.manage().window().getSize();
