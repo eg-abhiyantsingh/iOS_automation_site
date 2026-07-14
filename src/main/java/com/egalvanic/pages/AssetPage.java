@@ -7665,7 +7665,7 @@ public class AssetPage extends BasePage {
                 // Check for Core Attributes label
                 try {
                     List<WebElement> coreAttr = driver.findElements(
-                        AppiumBy.iOSNsPredicateString("name CONTAINS 'Core Attributes' OR label CONTAINS 'Core Attributes'")
+                        AppiumBy.iOSNsPredicateString("name CONTAINS 'Core Attributes' OR label CONTAINS 'Core Attributes' OR name CONTAINS 'Custom Attributes' OR label CONTAINS 'Custom Attributes'")
                     );
                     if (!coreAttr.isEmpty()) {
                         System.out.println("   ✅ Edit screen detected (Core Attributes visible)");
@@ -7694,7 +7694,7 @@ public class AssetPage extends BasePage {
         for (int i = 0; i < 3; i++) {
             try {
                 List<WebElement> elements = withImplicitWait(0, () -> driver.findElements(
-                    AppiumBy.iOSNsPredicateString("name CONTAINS 'Core Attributes' OR label CONTAINS 'Core Attributes'")
+                    AppiumBy.iOSNsPredicateString("name CONTAINS 'Core Attributes' OR label CONTAINS 'Core Attributes' OR name CONTAINS 'Custom Attributes' OR label CONTAINS 'Custom Attributes'")
                 ));
                 if (!elements.isEmpty()) {
                     System.out.println("✅ Core Attributes section visible");
@@ -8001,8 +8001,26 @@ public class AssetPage extends BasePage {
         try {
             WebElement toggle = findRequiredFieldsToggle();
             if (toggle != null) {
-                toggle.click();
-                System.out.println("✅ Toggled Required Fields Only switch");
+                // v1.50 (user-screenshot-proven): the switch works in-app but
+                // swallows element.click() — W3C press registers.
+                try {
+                    org.openqa.selenium.Rectangle r = toggle.getRect();
+                    int cx = r.getX() + r.getWidth() / 2, cy = r.getY() + r.getHeight() / 2;
+                    org.openqa.selenium.interactions.PointerInput finger =
+                            new org.openqa.selenium.interactions.PointerInput(
+                                    org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
+                    org.openqa.selenium.interactions.Sequence press =
+                            new org.openqa.selenium.interactions.Sequence(finger, 1);
+                    press.addAction(finger.createPointerMove(java.time.Duration.ZERO,
+                            org.openqa.selenium.interactions.PointerInput.Origin.viewport(), cx, cy));
+                    press.addAction(finger.createPointerDown(org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+                    press.addAction(new org.openqa.selenium.interactions.Pause(finger, java.time.Duration.ofMillis(120)));
+                    press.addAction(finger.createPointerUp(org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+                    driver.perform(java.util.Arrays.asList(press));
+                } catch (Exception pressErr) {
+                    toggle.click(); // legacy fallback
+                }
+                System.out.println("✅ Toggled Required Fields Only switch (W3C press)");
                 sleep(500); // iOS toggle animation needs ~300ms
             } else {
                 System.out.println("⚠️ Could not find Required Fields toggle to click");
@@ -11361,7 +11379,7 @@ public class AssetPage extends BasePage {
             
             // Look specifically for Core Attributes section header
             List<WebElement> coreAttributesHeaders = driver.findElements(
-                AppiumBy.iOSNsPredicateString("label == 'Core Attributes' OR name == 'Core Attributes'")
+                AppiumBy.iOSNsPredicateString("label == 'Core Attributes' OR name == 'Core Attributes' OR label == 'Custom Attributes' OR name == 'Custom Attributes'")
             );
             
             if (coreAttributesHeaders.isEmpty()) {
@@ -12294,7 +12312,7 @@ public class AssetPage extends BasePage {
             int headers = driver.findElements(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND " +
                 "(label == 'BASIC INFO' OR label == 'Basic Information' OR " +
-                "label == 'CORE ATTRIBUTES' OR label == 'Core Attributes' OR " +
+                "label == 'CORE ATTRIBUTES' OR label == 'Core Attributes' OR label == 'CUSTOM ATTRIBUTES' OR label == 'Custom Attributes' OR " +
                 "label == 'COMMERCIAL' OR label == 'Commercial' OR " +
                 "label == 'NOTES' OR label == 'Notes' OR " +
                 "label == 'Asset Photos' OR label CONTAINS[c] 'suggested shortcut')")).size();

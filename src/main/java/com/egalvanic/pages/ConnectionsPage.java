@@ -8930,7 +8930,7 @@ public class ConnectionsPage {
         try {
             WebElement section = driver.findElement(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND " +
-                "(label == 'CORE ATTRIBUTES' OR label == 'Core Attributes' OR " +
+                "(label == 'CORE ATTRIBUTES' OR label == 'Core Attributes' OR label == 'CUSTOM ATTRIBUTES' OR label == 'Custom Attributes' OR " +
                 "label CONTAINS[c] 'core attribute')"));
             return section.isDisplayed();
         } catch (Exception e) {
@@ -8968,7 +8968,7 @@ public class ConnectionsPage {
             int sectionY = -1;
             try {
                 WebElement header = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND label == 'CORE ATTRIBUTES'"));
+                    "type == 'XCUIElementTypeStaticText' AND (label == 'CORE ATTRIBUTES' OR label == 'CUSTOM ATTRIBUTES')"));
                 sectionY = header.getLocation().y;
             } catch (Exception ignored) {}
 
@@ -9005,7 +9005,7 @@ public class ConnectionsPage {
         try {
             WebElement header = driver.findElement(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND " +
-                "(label == 'CORE ATTRIBUTES' OR label == 'Core Attributes')"));
+                "(label == 'CORE ATTRIBUTES' OR label == 'Core Attributes' OR label == 'CUSTOM ATTRIBUTES' OR label == 'Custom Attributes')"));
             header.click();
             sleep(300);
             return true;
