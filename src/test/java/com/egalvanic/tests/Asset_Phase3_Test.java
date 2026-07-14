@@ -141,7 +141,10 @@ public class Asset_Phase3_Test extends BaseTest {
         int[] sizes = {12, 18, 24, 30, 42, 60};
         fillLoadcenterField("Size", sizes[new java.util.Random().nextInt(sizes.length)] + " Space");
         if (assetPage.isFieldLabelPresent("Mains Type")) {
-            fillLoadcenterField("Mains Type", "MCB");
+            // v1.50: Mains Type is a SELECT (spec: MLO/MCB) — use the validated
+            // details dropdown instead of the legacy picker helper.
+            boolean mainsSelected = assetPage.selectDetailsDropdown("Mains Type", "MCB");
+            System.out.println("   Mains Type MCB applied: " + mainsSelected);
         }
 
         assetPage.scrollFormUp();
@@ -161,7 +164,10 @@ public class Asset_Phase3_Test extends BaseTest {
         fillLoadcenterField("Ampere Rating", "200A");
         fillLoadcenterField("Catalog Number", "LC-CAT-FULL-001");
         fillLoadcenterField("Fault Withstand Rating", "22 kA");
-        fillLoadcenterField("Mains Type", "Main Breaker");
+        // v1.50: Mains Type is a SELECT (spec: MLO/MCB) — "Main Breaker" is not a
+        // valid option; use the validated details dropdown with a spec value.
+        boolean mainsTypeSelected = assetPage.selectDetailsDropdown("Mains Type", "MCB");
+        System.out.println("   Mains Type MCB applied: " + mainsTypeSelected);
         fillLoadcenterField("Manufacturer", "Square D");
         fillLoadcenterField("Voltage", "240V");
         
@@ -666,24 +672,24 @@ public class Asset_Phase3_Test extends BaseTest {
         logStep("Ensuring asset class is Loadcenter");
         assetPage.changeAssetClassToLoadcenter();
 
-        logStep("Scrolling to find Mains Type field");
-        assetPage.scrollFormDown();
-
-        // Random selection from Mains Type options
-        String[] mainsTypes = {"Main Lug", "Main Breaker", "Convertible"};
-        String testValue = mainsTypes[new java.util.Random().nextInt(mainsTypes.length)];
-        logStep("Selecting RANDOM Mains Type: " + testValue);
-        fillLoadcenterField("Mains Type", testValue);
+        logStep("Selecting Mains Type: MLO");
+        // v1.50: Mains Type is a SELECT (spec: MLO, MCB) — the old random options
+        // (Main Lug/Main Breaker/Convertible) are not valid spec values. Pick a
+        // valid option via the details dropdown (it scrolls to and locates the
+        // field itself). Original test never hard-asserted this edit (Mains Type
+        // is best-effort on the Load class), so mirror that strictness.
+        boolean selected = assetPage.selectDetailsDropdown("Mains Type", "MLO");
+        logStep("Mains Type MLO applied: " + selected);
         shortWait();
 
         logStep("Checking for Save Changes button");
         assetPage.scrollFormUp();
-        
+
         boolean saveButtonVisible = assetPage.isSaveChangesButtonVisible();
         if (saveButtonVisible) {
             assetPage.clickSaveChanges();
             shortWait();
-            logStepWithScreenshot("Mains Type saved: " + testValue);
+            logStepWithScreenshot("Mains Type saved: MLO");
         } else {
             logStepWithScreenshot("Save button not found - value may be same");
         }
@@ -1328,10 +1334,11 @@ public class Asset_Phase3_Test extends BaseTest {
         assetPage.selectDropdownOption("Manufacturer", "Allen-Bradley");
         shortWait();
         
-        // Voltage - DROPDOWN (scroll down first)
-        assetPage.scrollFormDown();
-        shortWait();
-        assetPage.fillTextField("voltage", "480");
+        // Voltage - DROPDOWN. v1.50: Voltage is a SELECT (spec: 120V/208V/240V/277V/
+        // 347V/380V/400V/415V/480V/600V/...) — typing silently fails; use the
+        // validated details dropdown (it normalizes scroll position itself).
+        boolean voltageSelected = assetPage.selectDetailsDropdown("Voltage", "480V");
+        System.out.println("   Voltage 480V applied: " + voltageSelected);
         shortWait();
         
         assetPage.scrollFormUp();
@@ -1356,11 +1363,10 @@ public class Asset_Phase3_Test extends BaseTest {
         assetPage.selectDropdownOption("Manufacturer", "Allen-Bradley");
         shortWait();
         
-        // Scroll down for more fields
-        assetPage.scrollFormDown();
-        shortWait();
-        
-        assetPage.fillTextField("voltage", "480");
+        // v1.50: Voltage is a SELECT — typing silently fails; use the validated
+        // details dropdown (it normalizes scroll position itself).
+        boolean voltSelected = assetPage.selectDetailsDropdown("Voltage", "600V");
+        System.out.println("   Voltage 600V applied: " + voltSelected);
         shortWait();
         
         // Optional fields
@@ -1859,31 +1865,18 @@ public class Asset_Phase3_Test extends BaseTest {
         logStep("Ensuring asset class is MCC");
         assetPage.changeAssetClassToMCC();
 
-        logStep("Scrolling to find Manufacturer field");
-        assetPage.scrollFormDown();
+        logStep("Selecting Manufacturer: Cutler-Hammer");
+        // v1.50: Manufacturer is a SELECT (spec: Square D/Eaton/Siemens/General Electric/
+        // ABB/Schneider Electric/Cutler-Hammer/Westinghouse/ITE/Allen-Bradley/...),
+        // not a text field — pick a valid option via the details dropdown.
+        boolean selected = assetPage.selectDetailsDropdown("Manufacturer", "Cutler-Hammer");
+        assertTrue(selected, "Manufacturer option Cutler-Hammer should be selectable and visibly applied");
 
-        // Random Manufacturer selection
-        String[] manufacturers = {"Siemens", "GE", "ABB", "Eaton", "Schneider", "Square D"};
-        String testValue = manufacturers[new java.util.Random().nextInt(manufacturers.length)];
-        logStep("Selecting RANDOM Manufacturer: " + testValue);
-        // Note: manufacturer on Generator is a text field, not dropdown
-        assetPage.fillTextField("manufacturer", testValue);
+        logStep("Saving changes");
+        assetPage.clickSaveChanges();
         shortWait();
 
-        logStep("Checking for Save Changes button");
-        assetPage.scrollFormUp();
-        
-        boolean saveButtonVisible = assetPage.isSaveChangesButtonVisible();
-        if (saveButtonVisible) {
-            assetPage.clickSaveChanges();
-            shortWait();
-            logStepWithScreenshot("Manufacturer saved: " + testValue);
-        } else {
-            logStepWithScreenshot("Save button not found - value may be same");
-        }
-        
-        logStepWithScreenshot("Manufacturer edit completed");
-        assertTrue(true, "Manufacturer dropdown selection completed");
+        logStepWithScreenshot("Manufacturer saved: Cutler-Hammer");
     }
 
     // ============================================================
@@ -2032,31 +2025,19 @@ public class Asset_Phase3_Test extends BaseTest {
         logStep("Ensuring asset class is MCC");
         assetPage.changeAssetClassToMCC();
 
-        logStep("Scrolling to find Voltage field");
-        assetPage.scrollFormDown();
+        logStep("Selecting Voltage: 208V");
+        // v1.50: Voltage is a SELECT (spec: 120V/208V/240V/277V/347V/380V/400V/415V/
+        // 480V/600V/...), not a text field — fillFieldAuto falls back to typing when
+        // the row already shows a value, which silently fails on selects. Pick a
+        // valid option via the details dropdown.
+        boolean selected = assetPage.selectDetailsDropdown("Voltage", "208V");
+        assertTrue(selected, "Voltage option 208V should be selectable and visibly applied");
 
-        // Random voltage selection
-        String[] voltages = {"120V", "208V", "240V", "277V", "480V", "600V"};
-        String testValue = voltages[new java.util.Random().nextInt(voltages.length)];
-        logStep("Selecting RANDOM Voltage: " + testValue);
-        // Use fillFieldAuto for case-insensitive field (might be dropdown or text)
-        assetPage.fillFieldAuto("Voltage", testValue);
+        logStep("Saving changes");
+        assetPage.clickSaveChanges();
         shortWait();
 
-        logStep("Checking for Save Changes button");
-        assetPage.scrollFormUp();
-        
-        boolean saveButtonVisible = assetPage.isSaveChangesButtonVisible();
-        if (saveButtonVisible) {
-            assetPage.clickSaveChanges();
-            shortWait();
-            logStepWithScreenshot("Voltage saved: " + testValue);
-        } else {
-            logStepWithScreenshot("Save button not found - value may be same");
-        }
-        
-        logStepWithScreenshot("Voltage edit completed");
-        assertTrue(true, "Voltage dropdown selection completed");
+        logStepWithScreenshot("Voltage saved: 208V");
     }
 
     // ============================================================
@@ -2128,17 +2109,15 @@ public class Asset_Phase3_Test extends BaseTest {
         clearAllMCCFields();
         shortWait();
 
-        // Select random values from dropdowns
-        String[] ampereOptions = {"200A", "400A", "600A", "800A"};
-        String[] mfgOptions = {"Eaton", "Siemens", "ABB", "GE"};
-        String[] voltOptions = {"240V", "480V", "600V"};
-        java.util.Random rand = new java.util.Random();
-        
         logStep("Filling only some required fields (partial)");
-        // Use fillFieldAuto for case-insensitive fields
-        assetPage.fillFieldAuto("Ampere Rating", ampereOptions[rand.nextInt(ampereOptions.length)]);
-        assetPage.fillFieldAuto("Manufacturer", mfgOptions[rand.nextInt(mfgOptions.length)]);
-        assetPage.fillFieldAuto("Voltage", voltOptions[rand.nextInt(voltOptions.length)]);
+        // v1.50: Ampere Rating / Manufacturer / Voltage are SELECTs (per class spec);
+        // fillFieldAuto falls back to typing when the row already shows a value,
+        // which silently fails on selects — use the validated details dropdown.
+        boolean amp = assetPage.selectDetailsDropdown("Ampere Rating", "600A");
+        boolean mfg = assetPage.selectDetailsDropdown("Manufacturer", "Siemens");
+        boolean volt = assetPage.selectDetailsDropdown("Voltage", "240V");
+        assertTrue(amp && mfg && volt,
+            "All required selects should apply (Ampere=" + amp + ", Manufacturer=" + mfg + ", Voltage=" + volt + ")");
         shortWait();
 
         logStep("Checking Save Changes button");

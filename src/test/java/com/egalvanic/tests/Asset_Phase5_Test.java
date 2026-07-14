@@ -875,13 +875,14 @@ public class Asset_Phase5_Test extends BaseTest {
             logStep("Changing asset class to Utility");
             assetPage.changeAssetClassToUtility();
 
-            logStep("Selecting Starting Voltage from dropdown");
+            logStep("Selecting Starting Voltage: 480V");
             assetPage.scrollFormDown();
             shortWait();
-            
-            // Try to select Starting Voltage dropdown
-            fillUtilityField("Starting Voltage", "480V");
-            shortWait();
+
+            // v1.50: Starting Voltage is a SELECT (spec: 120V/208V/240V/277V/480V/600V/2400V/4160V/...),
+            // not a text field — pick a valid option via the details dropdown.
+            boolean selected = assetPage.selectDetailsDropdown("Starting Voltage", "480V");
+            assertTrue(selected, "Starting Voltage option 480V should be selectable and visibly applied");
 
             logStep("Verifying selected value is displayed correctly");
             boolean editScreenDisplayed = assetPage.isEditAssetScreenDisplayed();
@@ -914,9 +915,11 @@ public class Asset_Phase5_Test extends BaseTest {
             logStep("Changing asset class to Utility");
             assetPage.changeAssetClassToUtility();
 
-            logStep("Selecting Starting Voltage");
-            fillUtilityField("Starting Voltage", "240V");
-            shortWait();
+            logStep("Selecting Starting Voltage: 240V");
+            // v1.50: Starting Voltage is a SELECT (spec: 120V/208V/240V/277V/480V/600V/2400V/4160V/...),
+            // not a text field — pick a valid option via the details dropdown.
+            boolean selected = assetPage.selectDetailsDropdown("Starting Voltage", "240V");
+            assertTrue(selected, "Starting Voltage option 240V should be selectable and visibly applied");
 
             logStep("Scrolling to Save button");
             assetPage.scrollFormUp();

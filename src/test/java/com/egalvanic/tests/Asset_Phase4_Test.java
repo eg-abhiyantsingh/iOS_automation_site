@@ -945,13 +945,12 @@ public class Asset_Phase4_Test extends BaseTest {
             logStep("Ensuring asset class is Panelboard");
             assetPage.changeAssetClassToPanelboard();
 
-            logStep("Selecting Voltage value");
-            fillPanelboardField("Voltage", "480V");
-            shortWait();
-
-            logStep("Scrolling to Save button");
-            assetPage.scrollFormUp();
-            assetPage.scrollFormUp();
+            logStep("Selecting Voltage: 240V");
+            // v1.50: Voltage is a SELECT (spec: 120V/208V/240V/277V/347V/380V/400V/
+            // 415V/480V/600V + dual ratings), not a text field — pick a valid
+            // option via the details dropdown.
+            boolean selected = assetPage.selectDetailsDropdown("Voltage", "240V");
+            assertTrue(selected, "Voltage option 240V should be selectable and visibly applied");
 
             logStep("Saving changes");
             assetPage.clickSaveChanges();
@@ -1376,9 +1375,11 @@ public class Asset_Phase4_Test extends BaseTest {
             logStep("Ensuring asset class is PDU");
             assetPage.changeAssetClassToPDU();
 
-            logStep("Tapping Ampere Rating and entering value");
-            fillPDUField("Ampere Rating", "200A");
-            shortWait();
+            logStep("Selecting Ampere Rating: 200A");
+            // v1.50: Ampere Rating is a SELECT (spec: 15A..4000A), not a text
+            // field — pick a valid option via the details dropdown.
+            boolean selected = assetPage.selectDetailsDropdown("Ampere Rating", "200A");
+            assertTrue(selected, "Ampere Rating option 200A should be selectable and visibly applied");
 
             logStep("Verifying value is accepted and displayed correctly");
             // Note: Full verification may need manual check per test case notes
@@ -1448,9 +1449,12 @@ public class Asset_Phase4_Test extends BaseTest {
             logStep("Ensuring asset class is PDU");
             assetPage.changeAssetClassToPDU();
 
-            logStep("Selecting Manufacturer");
-            fillPDUField("Manufacturer", "Schneider Electric");
-            shortWait();
+            logStep("Selecting Manufacturer: Schneider Electric");
+            // v1.50: Manufacturer is a SELECT (spec: Square D/Eaton/Siemens/GE/ABB/
+            // Schneider Electric/... /Other), not a text field — pick a valid
+            // option via the details dropdown.
+            boolean selected = assetPage.selectDetailsDropdown("Manufacturer", "Schneider Electric");
+            assertTrue(selected, "Manufacturer option Schneider Electric should be selectable and visibly applied");
 
             logStep("Verifying selected value is saved");
             // Note: Full verification may need manual check per test case notes
@@ -1630,13 +1634,12 @@ public class Asset_Phase4_Test extends BaseTest {
             logStep("Ensuring asset class is PDU");
             assetPage.changeAssetClassToPDU();
 
-            logStep("Selecting Voltage value");
-            fillPDUField("Voltage", "480V");
-            shortWait();
-
-            logStep("Scrolling to Save button");
-            assetPage.scrollFormUp();
-            assetPage.scrollFormUp();
+            logStep("Selecting Voltage: 208V");
+            // v1.50: Voltage is a SELECT (spec: 120V/208V/240V/277V/347V/380V/400V/
+            // 415V/480V/600V + dual ratings), not a text field — pick a valid
+            // option via the details dropdown.
+            boolean selected = assetPage.selectDetailsDropdown("Voltage", "208V");
+            assertTrue(selected, "Voltage option 208V should be selectable and visibly applied");
 
             logStep("Saving changes");
             assetPage.clickSaveChanges();
@@ -1722,9 +1725,13 @@ public class Asset_Phase4_Test extends BaseTest {
         String percentageBefore = assetPage.getCompletionPercentage();
         logStep("Completion percentage before: " + percentageBefore);
 
-        logStep("Filling some core attributes");
-        fillPDUField("Ampere Rating", "100A");
-        fillPDUField("Manufacturer", "APC");
+        logStep("Selecting some core attributes (Ampere Rating, Manufacturer)");
+        // v1.50: Ampere Rating and Manufacturer are SELECTs, not text fields —
+        // typing silently fails. "APC" is not a spec option for PDU; ABB is.
+        // Observation-only test (percentage indicator is the subject): return
+        // values intentionally not asserted, mirroring the original strictness.
+        assetPage.selectDetailsDropdown("Ampere Rating", "100A");
+        assetPage.selectDetailsDropdown("Manufacturer", "ABB");
         shortWait();
 
         logStep("Observing updated completion percentage");
@@ -2665,9 +2672,11 @@ public class Asset_Phase4_Test extends BaseTest {
             logStep("Ensuring asset class is Switchboard");
             assetPage.changeAssetClassToSwitchboard();
 
-            logStep("Selecting or entering Ampere Rating");
-            fillSwitchboardField("Ampere Rating", "3000A");
-            shortWait();
+            logStep("Selecting Ampere Rating: 3000A");
+            // v1.50: Ampere Rating is a SELECT (spec: 15A..4000A), not a text
+            // field — pick a valid option via the details dropdown.
+            boolean selected = assetPage.selectDetailsDropdown("Ampere Rating", "3000A");
+            assertTrue(selected, "Ampere Rating option 3000A should be selectable and visibly applied");
 
             logStep("Verifying value is accepted and displayed");
             // Note: Full verification may need manual check per test case notes
@@ -2773,9 +2782,12 @@ public class Asset_Phase4_Test extends BaseTest {
             logStep("Ensuring asset class is Switchboard");
             assetPage.changeAssetClassToSwitchboard();
 
-            logStep("Selecting Fault Withstand Rating");
-            fillSwitchboardField("Fault Withstand Rating", "100kA");
-            shortWait();
+            logStep("Selecting Fault Withstand Rating: 100 kA");
+            // v1.50: Fault Withstand Rating is a SELECT (spec: 10 kA..200 kA,
+            // note the space — old typed value "100kA" was never a valid option),
+            // not a text field — pick a valid option via the details dropdown.
+            boolean selected = assetPage.selectDetailsDropdown("Fault Withstand Rating", "100 kA");
+            assertTrue(selected, "Fault Withstand Rating option 100 kA should be selectable and visibly applied");
 
             logStep("Verifying value is saved correctly");
             // Note: Full verification may need manual check per test case notes
@@ -2809,9 +2821,12 @@ public class Asset_Phase4_Test extends BaseTest {
             logStep("Ensuring asset class is Switchboard");
             assetPage.changeAssetClassToSwitchboard();
 
-            logStep("Selecting Mains Type");
-            fillSwitchboardField("Mains Type", "Single Main");
-            shortWait();
+            logStep("Selecting Mains Type: MLO");
+            // v1.50: Mains Type is a SELECT (spec: MCB, MLO — old typed value
+            // "Single Main" was never a valid option), not a text field —
+            // pick a valid option via the details dropdown.
+            boolean selected = assetPage.selectDetailsDropdown("Mains Type", "MLO");
+            assertTrue(selected, "Mains Type option MLO should be selectable and visibly applied");
 
             logStep("Verifying Mains Type is saved");
             // Note: Full verification may need manual check per test case notes
@@ -2845,9 +2860,11 @@ public class Asset_Phase4_Test extends BaseTest {
             logStep("Ensuring asset class is Switchboard");
             assetPage.changeAssetClassToSwitchboard();
 
-            logStep("Selecting Manufacturer");
-            fillSwitchboardField("Manufacturer", "Square D");
-            shortWait();
+            logStep("Selecting Manufacturer: Square D");
+            // v1.50: Manufacturer is a SELECT (spec: Square D/Eaton/Siemens/GE/ABB/
+            // .../Other), not a text field — pick a valid option via the details dropdown.
+            boolean selected = assetPage.selectDetailsDropdown("Manufacturer", "Square D");
+            assertTrue(selected, "Manufacturer option Square D should be selectable and visibly applied");
 
             logStep("Verifying Manufacturer is saved correctly");
             // Note: Full verification may need manual check per test case notes
@@ -3027,13 +3044,12 @@ public class Asset_Phase4_Test extends BaseTest {
             logStep("Ensuring asset class is Switchboard");
             assetPage.changeAssetClassToSwitchboard();
 
-            logStep("Selecting Voltage value");
-            fillSwitchboardField("Voltage", "480V");
-            shortWait();
-
-            logStep("Scrolling to Save button");
-            assetPage.scrollFormUp();
-            assetPage.scrollFormUp();
+            logStep("Selecting Voltage: 600V");
+            // v1.50: Voltage is a SELECT (spec: 120V/208V/240V/277V/347V/380V/400V/
+            // 415V/480V/600V + dual ratings), not a text field — pick a valid
+            // option via the details dropdown.
+            boolean selected = assetPage.selectDetailsDropdown("Voltage", "600V");
+            assertTrue(selected, "Voltage option 600V should be selectable and visibly applied");
 
             logStep("Saving changes");
             assetPage.clickSaveChanges();
@@ -3503,13 +3519,12 @@ public class Asset_Phase4_Test extends BaseTest {
             logStep("Ensuring asset class is Transformer");
             assetPage.changeAssetClassToTransformer();
 
-            logStep("Selecting Frequency");
-            fillTransformerField("Frequency", "60Hz");
-            shortWait();
-
-            logStep("Scrolling to Save button");
-            assetPage.scrollFormUp();
-            assetPage.scrollFormUp();
+            logStep("Selecting Frequency: 60 Hz");
+            // v1.50: Frequency is a SELECT (spec: 50 Hz, 60 Hz, 400 Hz — note the
+            // space; old typed value "60Hz" was never a valid option), not a
+            // text field — pick a valid option via the details dropdown.
+            boolean selected = assetPage.selectDetailsDropdown("Frequency", "60 Hz");
+            assertTrue(selected, "Frequency option 60 Hz should be selectable and visibly applied");
 
             logStep("Saving changes");
             assetPage.clickSaveChanges();
@@ -3548,9 +3563,12 @@ public class Asset_Phase4_Test extends BaseTest {
             logStep("Ensuring asset class is Transformer");
             assetPage.changeAssetClassToTransformer();
 
-            logStep("Selecting KVA Rating");
-            fillTransformerField("KVA Rating", "1000");
-            shortWait();
+            logStep("Selecting KVA Rating: 500 kVA");
+            // v1.50: KVA Rating is a SELECT (spec: 10 kVA..1000 kVA — old typed
+            // value "1000" was never a valid option), not a text field —
+            // pick a valid option via the details dropdown.
+            boolean selected = assetPage.selectDetailsDropdown("KVA Rating", "500 kVA");
+            assertTrue(selected, "KVA Rating option 500 kVA should be selectable and visibly applied");
 
             logStep("Verifying KVA Rating is saved");
             // Note: Full verification may need manual check per test case notes
@@ -3584,9 +3602,12 @@ public class Asset_Phase4_Test extends BaseTest {
             logStep("Ensuring asset class is Transformer");
             assetPage.changeAssetClassToTransformer();
 
-            logStep("Selecting Manufacturer");
-            fillTransformerField("Manufacturer", "ABB");
-            shortWait();
+            logStep("Selecting Manufacturer: Siemens");
+            // v1.50: Manufacturer is a SELECT (spec: ABB/Eaton/GE/Schneider Electric/
+            // Siemens/Square D/.../Other), not a text field — pick a valid option
+            // via the details dropdown (Siemens varies from the ABB used elsewhere).
+            boolean selected = assetPage.selectDetailsDropdown("Manufacturer", "Siemens");
+            assertTrue(selected, "Manufacturer option Siemens should be selectable and visibly applied");
 
             logStep("Verifying Manufacturer is saved");
             // Note: Full verification may need manual check per test case notes
@@ -3728,9 +3749,12 @@ public class Asset_Phase4_Test extends BaseTest {
             logStep("Ensuring asset class is Transformer");
             assetPage.changeAssetClassToTransformer();
 
-            logStep("Selecting Primary Voltage");
-            fillTransformerField("Primary Voltage", "13800V");
-            shortWait();
+            logStep("Selecting Primary Voltage: 13,800V");
+            // v1.50: Primary Voltage is a SELECT (spec: 120V..69,000V — option is
+            // comma-formatted "13,800V"; old typed "13800V" was never a valid
+            // option), not a text field — pick a valid option via the details dropdown.
+            boolean selected = assetPage.selectDetailsDropdown("Primary Voltage", "13,800V");
+            assertTrue(selected, "Primary Voltage option 13,800V should be selectable and visibly applied");
 
             logStep("Verifying value is saved");
             // Note: Full verification may need manual check per test case notes
@@ -3800,9 +3824,12 @@ public class Asset_Phase4_Test extends BaseTest {
             logStep("Ensuring asset class is Transformer");
             assetPage.changeAssetClassToTransformer();
 
-            logStep("Selecting Secondary Voltage");
-            fillTransformerField("Secondary Voltage", "480V");
-            shortWait();
+            logStep("Selecting Secondary Voltage: 480V");
+            // v1.50: Secondary Voltage is a SELECT (spec: 120V/208V/240V/277V/480V/
+            // 600V/2,400V/... /120/208V etc.), not a text field — pick a valid
+            // option via the details dropdown.
+            boolean selected = assetPage.selectDetailsDropdown("Secondary Voltage", "480V");
+            assertTrue(selected, "Secondary Voltage option 480V should be selectable and visibly applied");
 
             logStep("Verifying value is saved");
             // Note: Full verification may need manual check per test case notes
@@ -3981,9 +4008,13 @@ public class Asset_Phase4_Test extends BaseTest {
             logStep("Ensuring asset class is Transformer");
             assetPage.changeAssetClassToTransformer();
 
-            logStep("Selecting Winding Configuration");
-            fillTransformerField("Winding Configuration", "Delta-Wye");
-            shortWait();
+            logStep("Selecting Winding Configuration: Delta-Wye (Δ-Y)");
+            // v1.50: Winding Configuration is a SELECT (spec: "Delta-Wye (Δ-Y)",
+            // "Delta-Delta (Δ-Δ)", "Wye-Delta (Y-Δ)", "Wye-Wye (Y-Y)", ... —
+            // option names carry the Greek-letter suffix; old typed "Delta-Wye" was
+            // never a full option), not a text field — select via the details dropdown.
+            boolean selected = assetPage.selectDetailsDropdown("Winding Configuration", "Delta-Wye (\u0394-Y)");
+            assertTrue(selected, "Winding Configuration option Delta-Wye (Δ-Y) should be selectable and visibly applied");
 
             logStep("Verifying value is saved");
             // Note: Full verification may need manual check per test case notes

@@ -1227,8 +1227,12 @@ public class Asset_Phase1_Test extends BaseTest {
             assetPage.scrollFormDown();
         }
 
-        logStep("Filling one required field (Ampere Rating)");
-        assetPage.fillAmpereRating("100");
+        logStep("Selecting one required field (Ampere Rating): 200A");
+        // v1.50: Ampere Rating is a SELECT (spec: 30A/60A/100A/200A/400A/.../4000A),
+        // not a text field — pick a valid option via the details dropdown.
+        // Original did not assert the fill; mirror that strictness (log only).
+        boolean ampSelected = assetPage.selectDetailsDropdown("Ampere Rating", "200A");
+        logStep("Ampere Rating option 200A applied: " + ampSelected);
         shortWait();
 
         logStep("Getting updated percentage");
@@ -1446,7 +1450,11 @@ public class Asset_Phase1_Test extends BaseTest {
             assetPage.scrollFormDown();
         }
         
-        assetPage.fillAmpereRating("100");
+        // v1.50: Ampere Rating is a SELECT (spec: 30A/60A/100A/200A/400A/.../4000A),
+        // not a text field — pick a valid option via the details dropdown.
+        // Original did not assert the fill; mirror that strictness (log only).
+        boolean ampSelected = assetPage.selectDetailsDropdown("Ampere Rating", "400A");
+        logStep("Ampere Rating option 400A applied: " + ampSelected);
         shortWait();
 
         logStep("Saving with partial required fields");
@@ -1604,8 +1612,12 @@ public class Asset_Phase1_Test extends BaseTest {
             assetPage.scrollFormDown();
         }
 
-        logStep("Filling a required field (Ampere Rating)");
-        assetPage.fillAmpereRating("100");
+        logStep("Selecting a required field (Ampere Rating): 600A");
+        // v1.50: Ampere Rating is a SELECT (spec: 30A/60A/100A/200A/400A/600A/.../4000A),
+        // not a text field — pick a valid option via the details dropdown.
+        // Indicator-observation test: original did not assert the fill (log only).
+        boolean ampSelected = assetPage.selectDetailsDropdown("Ampere Rating", "600A");
+        logStep("Ampere Rating option 600A applied: " + ampSelected);
         shortWait();
 
         logStep("Checking for indicator element");

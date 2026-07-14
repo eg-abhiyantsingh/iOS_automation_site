@@ -273,13 +273,12 @@ public class Asset_Phase2_Test extends BaseTest {
         assetPage.scrollFormDown();
         shortWait();
 
-        logStep("Editing Ampere Rating");
-        String testValue = "100A_" + System.currentTimeMillis();
-        assetPage.editTextField("Ampere Rating", testValue);
-        
-        logStep("Dismissing keyboard and saving changes");
-        assetPage.dismissKeyboard();
-        shortWait();
+        logStep("Selecting Ampere Rating: 100A");
+        // v1.50: Ampere Rating is a SELECT (spec: 15A..1000A+), not a text field.
+        boolean selected = assetPage.selectDetailsDropdown("Ampere Rating", "100A");
+        assertTrue(selected, "Ampere Rating option 100A should be selectable and visibly applied");
+
+        logStep("Saving changes");
         assetPage.clickSaveChanges();
         shortWait();
 
@@ -377,13 +376,12 @@ public class Asset_Phase2_Test extends BaseTest {
         assetPage.scrollFormDown();
         shortWait();
 
-        logStep("Editing Manufacturer");
-        String testValue = "Mfr_" + System.currentTimeMillis();
-        assetPage.editTextField("Manufacturer", testValue);
-        
-        logStep("Dismissing keyboard and saving changes");
-        assetPage.dismissKeyboard();
-        shortWait();
+        logStep("Selecting Manufacturer: Eaton");
+        // v1.50: Manufacturer is a SELECT, not a text field.
+        boolean selected = assetPage.selectDetailsDropdown("Manufacturer", "Eaton");
+        assertTrue(selected, "Manufacturer option Eaton should be selectable and visibly applied");
+
+        logStep("Saving changes");
         assetPage.clickSaveChanges();
         shortWait();
 
@@ -447,13 +445,12 @@ public class Asset_Phase2_Test extends BaseTest {
         assetPage.scrollFormDown();
         shortWait();
 
-        logStep("Editing Voltage");
-        String testValue = "480V_" + System.currentTimeMillis();
-        assetPage.editTextField("Voltage", testValue);
-        
-        logStep("Dismissing keyboard and saving changes");
-        assetPage.dismissKeyboard();
-        shortWait();
+        logStep("Selecting Voltage: 480V");
+        // v1.50: Voltage is a SELECT (spec: 120V..600V incl. dual ratings).
+        boolean selected = assetPage.selectDetailsDropdown("Voltage", "480V");
+        assertTrue(selected, "Voltage option 480V should be selectable and visibly applied");
+
+        logStep("Saving changes");
         assetPage.clickSaveChanges();
         shortWait();
 
@@ -578,9 +575,9 @@ public class Asset_Phase2_Test extends BaseTest {
         shortWait();
 
         logStep("Filling partial required fields");
-        assetPage.editTextField("Manufacturer", "PartialTest_" + System.currentTimeMillis());
-        assetPage.dismissKeyboard();
-        shortWait();
+        // v1.50: Manufacturer is a SELECT — pick a valid option.
+        boolean selected = assetPage.selectDetailsDropdown("Manufacturer", "Siemens");
+        assertTrue(selected, "Manufacturer option Siemens should be selectable and visibly applied");
 
         logStep("Saving changes");
         assetPage.clickSaveChanges();
@@ -612,10 +609,11 @@ public class Asset_Phase2_Test extends BaseTest {
         shortWait();
 
         logStep("Filling all required fields");
-        String timestamp = String.valueOf(System.currentTimeMillis());
-        assetPage.editTextField("Ampere Rating", "100A_" + timestamp);
-        assetPage.editTextField("Manufacturer", "Mfr_" + timestamp);
-        assetPage.editTextField("Model", "Model_" + timestamp);
+        // v1.50: Ampere Rating and Manufacturer are SELECTs; Model stays a text field.
+        boolean amp = assetPage.selectDetailsDropdown("Ampere Rating", "200A");
+        boolean mfr = assetPage.selectDetailsDropdown("Manufacturer", "ABB");
+        assertTrue(amp && mfr, "Required selects should apply (Ampere=" + amp + ", Manufacturer=" + mfr + ")");
+        assetPage.editTextField("Model", "Model_" + System.currentTimeMillis());
         assetPage.dismissKeyboard();
         shortWait();
 
@@ -671,9 +669,8 @@ public class Asset_Phase2_Test extends BaseTest {
         logStep("Filling a required field");
         assetPage.scrollFormDown();
         shortWait();
-        assetPage.editTextField("Manufacturer", "Test_" + System.currentTimeMillis());
-        assetPage.dismissKeyboard();
-        shortWait();
+        // v1.50: Manufacturer is a SELECT — apply a valid option.
+        assetPage.selectDetailsDropdown("Manufacturer", "Square D");
 
         logStep("Observing check indicators");
         logStepWithScreenshot("Green check indicators observed - verified");
@@ -1064,13 +1061,12 @@ public class Asset_Phase2_Test extends BaseTest {
         assetPage.scrollFormDown();
         shortWait();
 
-        logStep("Editing Ampere Rating");
-        String testValue = "200A_" + System.currentTimeMillis();
-        assetPage.editTextField("Ampere Rating", testValue);
-        
-        logStep("Dismissing keyboard and saving changes");
-        assetPage.dismissKeyboard();
-        shortWait();
+        logStep("Selecting Ampere Rating: 200A");
+        // v1.50: Ampere Rating is a SELECT (spec: 10A..4000A), not a text field.
+        boolean selected = assetPage.selectDetailsDropdown("Ampere Rating", "200A");
+        assertTrue(selected, "Ampere Rating option 200A should be selectable and visibly applied");
+
+        logStep("Saving changes");
         assetPage.clickSaveChanges();
         shortWait();
 
@@ -1133,13 +1129,13 @@ public class Asset_Phase2_Test extends BaseTest {
         assetPage.scrollFormDown();
         shortWait();
 
-        logStep("Editing Voltage");
-        String testValue = "240V_" + System.currentTimeMillis();
-        assetPage.editTextField("Voltage", testValue);
-        
-        logStep("Dismissing keyboard and saving changes");
-        assetPage.dismissKeyboard();
-        shortWait();
+        logStep("Selecting Voltage: 240V");
+        // v1.50: Voltage is a SELECT (spec: 120V/208V/240V/480V/600V/4160V),
+        // not a text field — pick a valid option via the details dropdown.
+        boolean selected = assetPage.selectDetailsDropdown("Voltage", "240V");
+        assertTrue(selected, "Voltage option 240V should be selectable and visibly applied");
+
+        logStep("Saving changes");
         assetPage.clickSaveChanges();
         shortWait();
 
@@ -1203,13 +1199,13 @@ public class Asset_Phase2_Test extends BaseTest {
         assetPage.scrollFormDown();
         shortWait();
 
-        logStep("Editing Manufacturer");
-        String testValue = "Mfr_DS_" + System.currentTimeMillis();
-        assetPage.editTextField("Manufacturer", testValue);
-        
-        logStep("Dismissing keyboard and saving changes");
-        assetPage.dismissKeyboard();
-        shortWait();
+        logStep("Selecting Manufacturer: Eaton");
+        // v1.50: Manufacturer is a SELECT (probe-verified sheet: ABB, Eaton,
+        // General Electric, Schneider Electric, Siemens, ...), not a text field.
+        boolean selected = assetPage.selectDetailsDropdown("Manufacturer", "Eaton");
+        assertTrue(selected, "Manufacturer option Eaton should be selectable and visibly applied");
+
+        logStep("Saving changes");
         assetPage.clickSaveChanges();
         shortWait();
 
@@ -1299,9 +1295,9 @@ public class Asset_Phase2_Test extends BaseTest {
         shortWait();
 
         logStep("Filling one required field");
-        assetPage.editTextField("Ampere Rating", "100A_" + System.currentTimeMillis());
-        assetPage.dismissKeyboard();
-        shortWait();
+        // v1.50: Ampere Rating is a SELECT — pick a valid option.
+        boolean selected = assetPage.selectDetailsDropdown("Ampere Rating", "100A");
+        assertTrue(selected, "Ampere Rating option 100A should be selectable and visibly applied");
 
         logStep("Saving changes");
         assetPage.clickSaveChanges();
@@ -1333,12 +1329,12 @@ public class Asset_Phase2_Test extends BaseTest {
         shortWait();
 
         logStep("Filling all required fields: Ampere Rating, Interrupting Rating, Voltage");
-        String timestamp = String.valueOf(System.currentTimeMillis());
-        assetPage.editTextField("Ampere Rating", "150A_" + timestamp);
-        assetPage.editTextField("Interrupting Rating", "IR_" + timestamp);
-        assetPage.editTextField("Voltage", "480V_" + timestamp);
-        assetPage.dismissKeyboard();
-        shortWait();
+        // v1.50: all three are SELECTs — pick valid spec options for each.
+        boolean amp = assetPage.selectDetailsDropdown("Ampere Rating", "400A");
+        boolean ir = assetPage.selectDetailsDropdown("Interrupting Rating", "20 kA");
+        boolean volt = assetPage.selectDetailsDropdown("Voltage", "480V");
+        assertTrue(amp && ir && volt,
+            "All three required selects should apply (Ampere=" + amp + ", IR=" + ir + ", Voltage=" + volt + ")");
 
         logStep("Saving changes");
         assetPage.clickSaveChanges();
@@ -1392,9 +1388,8 @@ public class Asset_Phase2_Test extends BaseTest {
         logStep("Filling a required field");
         assetPage.scrollFormDown();
         shortWait();
-        assetPage.editTextField("Ampere Rating", "Test_" + System.currentTimeMillis());
-        assetPage.dismissKeyboard();
-        shortWait();
+        // v1.50: Ampere Rating is a SELECT — apply a valid option.
+        assetPage.selectDetailsDropdown("Ampere Rating", "60A");
 
         logStep("Observing check indicators");
         logStepWithScreenshot("Green check indicators observed - verified");
@@ -1789,13 +1784,12 @@ public class Asset_Phase2_Test extends BaseTest {
         assetPage.scrollFormDown();
         shortWait();
 
-        logStep("Editing Fuse Amperage");
-        String testValue = "50A_" + System.currentTimeMillis();
-        assetPage.editTextField("Fuse Amperage", testValue);
-        
-        logStep("Dismissing keyboard and saving changes");
-        assetPage.dismissKeyboard();
-        shortWait();
+        logStep("Selecting Fuse Amperage: 50A");
+        // v1.50: Fuse Amperage is a SELECT (spec: 15A..1600A), not a text field.
+        boolean selected = assetPage.selectDetailsDropdown("fuseAmperage", "50A");
+        assertTrue(selected, "Fuse Amperage option 50A should be selectable and visibly applied");
+
+        logStep("Saving changes");
         assetPage.clickSaveChanges();
         shortWait();
 
@@ -1824,13 +1818,12 @@ public class Asset_Phase2_Test extends BaseTest {
         assetPage.scrollFormDown();
         shortWait();
 
-        logStep("Editing Fuse Manufacturer");
-        String testValue = "FuseMfr_" + System.currentTimeMillis();
-        assetPage.editTextField("Fuse Manufacturer", testValue);
-        
-        logStep("Dismissing keyboard and saving changes");
-        assetPage.dismissKeyboard();
-        shortWait();
+        logStep("Selecting Fuse Manufacturer: BUSSMANN");
+        // v1.50: Fuse Manufacturer is a SELECT (spec: BUSSMANN, EATON, LITTELFUSE, ...).
+        boolean selected = assetPage.selectDetailsDropdown("fuseManufacturer", "BUSSMANN");
+        assertTrue(selected, "Fuse Manufacturer option BUSSMANN should be selectable and visibly applied");
+
+        logStep("Saving changes");
         assetPage.clickSaveChanges();
         shortWait();
 
@@ -1859,13 +1852,12 @@ public class Asset_Phase2_Test extends BaseTest {
         assetPage.scrollFormDown();
         shortWait();
 
-        logStep("Editing KA Rating");
-        String testValue = "KA_" + System.currentTimeMillis();
-        assetPage.editTextField("KA Rating", testValue);
-        
-        logStep("Dismissing keyboard and saving changes");
-        assetPage.dismissKeyboard();
-        shortWait();
+        logStep("Selecting KA Rating: 25 kA");
+        // v1.50: KA Rating is a SELECT (spec: 5 kA..200 kA), not a text field.
+        boolean selected = assetPage.selectDetailsDropdown("KA Rating", "25 kA");
+        assertTrue(selected, "KA Rating option 25 kA should be selectable and visibly applied");
+
+        logStep("Saving changes");
         assetPage.clickSaveChanges();
         shortWait();
 
@@ -1894,13 +1886,12 @@ public class Asset_Phase2_Test extends BaseTest {
         assetPage.scrollFormDown();
         shortWait();
 
-        logStep("Editing Voltage");
-        String testValue = "600V_" + System.currentTimeMillis();
-        assetPage.editTextField("Voltage", testValue);
-        
-        logStep("Dismissing keyboard and saving changes");
-        assetPage.dismissKeyboard();
-        shortWait();
+        logStep("Selecting Voltage: 600V");
+        // v1.50: Fuse Voltage is a SELECT (spec: 120V/220V/240V/250V/277V/480/600V).
+        boolean selected = assetPage.selectDetailsDropdown("Voltage", "600V");
+        assertTrue(selected, "Voltage option 600V should be selectable and visibly applied");
+
+        logStep("Saving changes");
         assetPage.clickSaveChanges();
         shortWait();
 
@@ -2060,9 +2051,9 @@ public class Asset_Phase2_Test extends BaseTest {
         shortWait();
 
         logStep("Filling one required field");
-        assetPage.editTextField("Fuse Amperage", "30A_" + System.currentTimeMillis());
-        assetPage.dismissKeyboard();
-        shortWait();
+        // v1.50: Fuse Amperage is a SELECT — pick a valid option.
+        boolean selected = assetPage.selectDetailsDropdown("fuseAmperage", "30A");
+        assertTrue(selected, "Fuse Amperage option 30A should be selectable and visibly applied");
 
         logStep("Saving changes");
         assetPage.clickSaveChanges();
@@ -2094,13 +2085,13 @@ public class Asset_Phase2_Test extends BaseTest {
         shortWait();
 
         logStep("Filling all required fields: Fuse Amperage, Fuse Manufacturer, KA Rating, Voltage");
-        String timestamp = String.valueOf(System.currentTimeMillis());
-        assetPage.editTextField("Fuse Amperage", "60A_" + timestamp);
-        assetPage.editTextField("Fuse Manufacturer", "Mfr_" + timestamp);
-        assetPage.editTextField("KA Rating", "KA_" + timestamp);
-        assetPage.editTextField("Voltage", "480V_" + timestamp);
-        assetPage.dismissKeyboard();
-        shortWait();
+        // v1.50: all four are SELECTs (spec options) — valid values, not typed text.
+        boolean amp = assetPage.selectDetailsDropdown("fuseAmperage", "60A");
+        boolean mfr = assetPage.selectDetailsDropdown("fuseManufacturer", "EATON");
+        boolean ka = assetPage.selectDetailsDropdown("KA Rating", "50 kA");
+        boolean volt = assetPage.selectDetailsDropdown("Voltage", "240V");
+        assertTrue(amp && mfr && ka && volt, "All required selects should apply (Amperage=" + amp
+            + ", Manufacturer=" + mfr + ", KA=" + ka + ", Voltage=" + volt + ")");
 
         logStep("Saving changes");
         assetPage.clickSaveChanges();
@@ -2153,9 +2144,8 @@ public class Asset_Phase2_Test extends BaseTest {
         logStep("Filling a required field");
         assetPage.scrollFormDown();
         shortWait();
-        assetPage.editTextField("Fuse Amperage", "Test_" + System.currentTimeMillis());
-        assetPage.dismissKeyboard();
-        shortWait();
+        // v1.50: Fuse Amperage is a SELECT — apply a valid option.
+        assetPage.selectDetailsDropdown("fuseAmperage", "40A");
 
         logStep("Observing check indicators");
         logStepWithScreenshot("Green check indicators observed - verified");

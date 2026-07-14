@@ -8310,6 +8310,14 @@ public class AssetPage extends BasePage {
             return;
         }
 
+        // v1.50 first: the details-screen select anatomy (Select… StaticText row
+        // + option-sheet Buttons) — validated primitive with verified readback.
+        // Callers pass partial labels like "Mains"; the primitive needs the
+        // exact label, so map known partials before the legacy flow.
+        String exactLabel = fieldName.equals("Mains") ? "Mains Type" : fieldName;
+        if (selectDetailsDropdown(exactLabel, optionValue)) return;
+        System.out.println("   ↩️ v1.50 dropdown path failed — trying legacy flow for '" + fieldName + "'");
+
         boolean dropdownFound = false;
         // Wall-clock budget: caps the locate loop so a wedge on a bleed-through Edit DOM (or a
         // field absent on the class, e.g. Loadcenter Manufacturer/Voltage) becomes a fast fail,
@@ -8640,6 +8648,27 @@ public class AssetPage extends BasePage {
     public void clickSaveChanges() {
         System.out.println("💾 Looking for Save Changes button...");
         saveButtonClickedThisFlow = false;
+        // Keyboard covers the Save button (documented: tap misses -> save
+        // never fires -> "no positive save evidence" cluster). Always clear it.
+        try { dismissKeyboard(); } catch (Exception ignored) { }
+
+        // v1.50 live-edit: the Asset Details screen has NO Save button by design
+        // (probe-verified 2026-07-14: 0 Save buttons in the whole DOM; edits
+        // apply immediately). Detect it cheaply and skip the scroll grind —
+        // isAssetSavedAfterEdit then requires the verified readback evidence.
+        Boolean liveEdit = withImplicitWait(0, () -> {
+            boolean onDetails = !driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND (name == 'Close' OR label == 'Close') AND visible == true")).isEmpty()
+                && !driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND name == 'Asset Details'")).isEmpty();
+            if (!onDetails) return false;
+            return driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(name CONTAINS 'Save' OR label CONTAINS 'Save') AND type == 'XCUIElementTypeButton'")).isEmpty();
+        });
+        if (Boolean.TRUE.equals(liveEdit)) {
+            System.out.println("   ℹ️ v1.50 live-edit Asset Details — no Save button exists; edits apply immediately");
+            return;
+        }
 
         // Try 1: Find Save button in DOM (no visible == true — may be off-screen)
         try {
@@ -8659,7 +8688,7 @@ public class AssetPage extends BasePage {
                     AppiumBy.iOSNsPredicateString("(name CONTAINS 'Save' OR label CONTAINS 'Save') AND type == 'XCUIElementTypeButton'")
                 );
                 if (!saveBtns.isEmpty()) {
-                    saveBtns.get(0).click();
+                    pressElementCenter(saveBtns.get(0)); // click() no-ops intermittently
                     saveButtonClickedThisFlow = true;
                     System.out.println("✅ Clicked Save Changes");
                     sleep(400);
@@ -8808,9 +8837,11 @@ public class AssetPage extends BasePage {
     }
 
     /**
-     * Fill ATS required field - Ampere Rating
+     * Fill ATS required field - Ampere Rating.
+     * v1.50: this is a SELECT — dropdown first, text fallback for legacy screens.
      */
     public void fillAmpereRating(String value) {
+        if (selectDetailsDropdown("Ampere Rating", value)) return;
         fillTextField("Ampere Rating", value);
     }
 
@@ -8819,7 +8850,9 @@ public class AssetPage extends BasePage {
      */
     public void selectAmpereRating(String value) {
         System.out.println("📝 Selecting Ampere Rating: " + value);
-        
+        // v1.50 anatomy first (verified readback); legacy strategies as fallback.
+        if (selectDetailsDropdown("Ampere Rating", value)) return;
+
         // Try to find and click the Ampere Rating dropdown
         for (int scrollAttempt = 0; scrollAttempt < 3; scrollAttempt++) {
             
@@ -8852,8 +8885,8 @@ public class AssetPage extends BasePage {
                     for (WebElement btn : buttons) {
                         int btnY = btn.getLocation().getY();
                         if (Math.abs(btnY - labelY) < 80) {
-                            btn.click();
-                            sleep(200);
+                            pressElementCenter(btn);
+                            sleep(300);
                             selectDropdownValue(value);
                             return;
                         }
@@ -8886,44 +8919,73 @@ public class AssetPage extends BasePage {
      */
     private void selectDropdownValue(String value) {
         System.out.println("   Selecting dropdown value: " + value);
+        // Run 29135128275 (CB_EAD_12/DS_EAD_11 exact-360s hangs): at the
+        // session implicit wait each missed strategy below cost up to ~90s
+        // on the grown-site DOM. Settle briefly for the menu to render, then
+        // scan at 0 implicit wait so misses are instant.
+        withImplicitWait(0, () -> {
+            boolean appeared = com.egalvanic.utils.Waits.until(() -> !driver.findElements(
+                AppiumBy.iOSNsPredicateString("name ==[c] '" + value + "' OR label ==[c] '" + value + "'"))
+                .isEmpty(), 4_000);
+            if (!appeared) {
+                // Diagnostic (bounded): what IS on screen where the option should be?
+                try {
+                    java.util.List<WebElement> cands = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeOther' OR type == 'XCUIElementTypeStaticText')"
+                        + " AND visible == 1"));
+                    StringBuilder sb = new StringBuilder();
+                    int n = 0;
+                    for (WebElement c : cands) {
+                        String l = c.getAttribute("label");
+                        if (l != null && !l.isEmpty() && l.length() < 40) { sb.append('[').append(l).append("] "); if (++n >= 14) break; }
+                    }
+                    System.out.println("   ⚠️ option '" + value + "' not visible after settle; visible labels: " + sb);
+                } catch (Exception ignored) { }
+            }
+            selectDropdownValueStrategies(value);
+            return null;
+        });
+    }
+
+    private void selectDropdownValueStrategies(String value) {
         
         // Try accessibility ID first (exact match)
         try {
             WebElement option = driver.findElement(AppiumBy.accessibilityId(value));
-            option.click();
+            pressElementCenter(option); // v1.50 option rows swallow click()
             System.out.println("✅ Selected: " + value);
             sleep(300);
             return;
         } catch (Exception e) {}
-        
+
         // Try case-insensitive exact match
         try {
             WebElement option = driver.findElement(
                 AppiumBy.iOSNsPredicateString("name ==[c] '" + value + "' OR label ==[c] '" + value + "'")
             );
-            option.click();
+            pressElementCenter(option);
             System.out.println("✅ Selected (case-insensitive): " + value);
             sleep(300);
             return;
         } catch (Exception e) {}
-        
+
         // Try without spaces (e.g., "10 kA" -> "10kA")
         String noSpaceValue = value.replace(" ", "");
         try {
             WebElement option = driver.findElement(AppiumBy.accessibilityId(noSpaceValue));
-            option.click();
+            pressElementCenter(option);
             System.out.println("✅ Selected (no space): " + noSpaceValue);
             sleep(300);
             return;
         } catch (Exception e) {}
-        
+
         // Try CONTAINS match for partial matching
         try {
             String searchPart = value.split(" ")[0]; // Get first part like "10" from "10 kA"
             WebElement option = driver.findElement(
                 AppiumBy.iOSNsPredicateString("(name CONTAINS '" + searchPart + "' AND name CONTAINS 'kA') OR (label CONTAINS '" + searchPart + "' AND label CONTAINS 'kA')")
             );
-            option.click();
+            pressElementCenter(option);
             System.out.println("✅ Selected (contains): " + value);
             sleep(300);
             return;
@@ -8937,21 +8999,21 @@ public class AssetPage extends BasePage {
             for (WebElement elem : elements) {
                 String name = elem.getAttribute("name");
                 if (name != null && name.toLowerCase().contains(value.split(" ")[0].toLowerCase())) {
-                    elem.click();
+                    pressElementCenter(elem);
                     System.out.println("✅ Selected (partial): " + name);
                     sleep(300);
                     return;
                 }
             }
         } catch (Exception e) {}
-        
+
         // Try finding StaticText with the value
         try {
             List<WebElement> texts = driver.findElements(AppiumBy.className("XCUIElementTypeStaticText"));
             for (WebElement text : texts) {
                 String name = text.getAttribute("name");
                 if (name != null && name.equals(value)) {
-                    text.click();
+                    pressElementCenter(text);
                     System.out.println("✅ Selected: " + value);
                     sleep(300);
                     return;
@@ -8963,9 +9025,11 @@ public class AssetPage extends BasePage {
     }
 
     /**
-     * Fill ATS required field - Interrupting Rating
+     * Fill ATS required field - Interrupting Rating.
+     * v1.50: this is a SELECT — dropdown first, text fallback for legacy screens.
      */
     public void fillInterruptingRating(String value) {
+        if (selectDetailsDropdown("Interrupting Rating", value)) return;
         fillTextField("Interrupting Rating", value);
     }
 
@@ -8974,71 +9038,491 @@ public class AssetPage extends BasePage {
      */
     public void selectInterruptingRating(String value) {
         System.out.println("📝 Selecting Interrupting Rating: " + value);
-        
-        // Try to find and click the Interrupting Rating dropdown
-        for (int scrollAttempt = 0; scrollAttempt < 3; scrollAttempt++) {
-            
-            // STRATEGY 1: Find button/picker with Interrupting in name
-            try {
-                List<WebElement> buttons = driver.findElements(
-                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND (name CONTAINS[c] 'interrupting' OR label CONTAINS[c] 'interrupting')")
-                );
-                if (!buttons.isEmpty()) {
-                    buttons.get(0).click();
-                    sleep(200);
-                    selectDropdownValue(value);
-                    return;
-                }
-            } catch (Exception e) {}
-            
-            // STRATEGY 2: Find label "Interrupting Rating" then click nearby button/picker
-            try {
-                List<WebElement> labels = driver.findElements(
-                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText' AND (name CONTAINS[c] 'interrupting' OR label CONTAINS[c] 'interrupting')")
-                );
-                
-                if (!labels.isEmpty()) {
-                    WebElement label = labels.get(0);
-                    int labelY = label.getLocation().getY();
-                    
-                    // Find button near the label
-                    List<WebElement> buttons = driver.findElements(AppiumBy.className("XCUIElementTypeButton"));
-                    for (WebElement btn : buttons) {
-                        int btnY = btn.getLocation().getY();
-                        if (Math.abs(btnY - labelY) < 80) {
-                            btn.click();
-                            sleep(200);
-                            selectDropdownValue(value);
-                            return;
+        // v1.50 anatomy first: label + 'Select…' StaticText row + option-sheet
+        // Buttons, with verified value readback (see selectDetailsDropdown).
+        if (selectDetailsDropdown("Interrupting Rating", value)) return;
+        // Entire hunt at implicit-wait 0: every strategy miss used to burn the
+        // session implicit wait (3 strategies × 3 scrolls → 360s ThreadTimeout).
+        withImplicitWait(0, () -> {
+            for (int scrollAttempt = 0; scrollAttempt < 3; scrollAttempt++) {
+
+                // STRATEGY 1: Find button/picker with Interrupting in name
+                try {
+                    List<WebElement> buttons = driver.findElements(
+                        AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND (name CONTAINS[c] 'interrupting' OR label CONTAINS[c] 'interrupting')")
+                    );
+                    if (!buttons.isEmpty()) {
+                        pressElementCenter(buttons.get(0)); // click() no-ops on these rows
+                        sleep(300);
+                        selectDropdownValue(value);
+                        return null;
+                    }
+                } catch (Exception e) {}
+
+                // STRATEGY 2: Find label "Interrupting Rating" then press nearby button/picker
+                try {
+                    List<WebElement> labels = driver.findElements(
+                        AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText' AND (name CONTAINS[c] 'interrupting' OR label CONTAINS[c] 'interrupting')")
+                    );
+                    if (!labels.isEmpty()) {
+                        int labelY = labels.get(0).getLocation().getY();
+                        // visible-only scan — whole-DOM XCUIElementTypeButton reads wedge WDA
+                        List<WebElement> buttons = driver.findElements(
+                            AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND visible == true"));
+                        for (WebElement btn : buttons) {
+                            if (Math.abs(btn.getLocation().getY() - labelY) < 80) {
+                                pressElementCenter(btn);
+                                sleep(200);
+                                selectDropdownValue(value);
+                                return null;
+                            }
                         }
                     }
+                } catch (Exception e) {}
+
+                // STRATEGY 3: Option value already visible on screen
+                try {
+                    List<WebElement> opts = driver.findElements(AppiumBy.accessibilityId(value));
+                    if (!opts.isEmpty()) {
+                        pressElementCenter(opts.get(0));
+                        System.out.println("✅ Selected Interrupting Rating: " + value);
+                        sleep(300);
+                        return null;
+                    }
+                } catch (Exception e) {}
+
+                // Scroll down and try again
+                if (scrollAttempt < 2) {
+                    System.out.println("   Interrupting Rating not visible, scrolling...");
+                    scrollFormDown();
+                    sleep(300);
                 }
-            } catch (Exception e) {}
-            
-            // STRATEGY 3: Direct accessibility ID for the value
-            try {
-                WebElement option = driver.findElement(AppiumBy.accessibilityId(value));
-                option.click();
-                System.out.println("✅ Selected Interrupting Rating: " + value);
-                sleep(300);
-                return;
-            } catch (Exception e) {}
-            
-            // Scroll down and try again
-            if (scrollAttempt < 2) {
-                System.out.println("   Interrupting Rating not visible, scrolling...");
-                scrollFormDown();
-                sleep(300);
             }
+            System.out.println("⚠️ Could not select Interrupting Rating: " + value);
+            return null;
+        });
+    }
+
+    // ================================================================
+    // v1.50 ASSET DETAILS LIVE-EDIT DROPDOWNS (probe-verified 2026-07-14)
+    // Anatomy: label StaticText → 'Select…'/'Select...' StaticText ~30pt below
+    // + chevron.down image. The row is NOT a Button. Pressing it opens a sheet
+    // (Sheet Grabber + Cancel + PopoverDismissRegion) whose option rows ARE
+    // full-width Buttons. Save is DIRTY-STATE: no Save button exists until a
+    // field changes (probe: 0 pre-change; run 4: 'Save Changes' appeared after
+    // selection and clicking it removed it). The verified value-readback below
+    // is the change evidence; clickSaveChanges handles both states.
+    // ================================================================
+
+    /** Honest live-edit save evidence, set by selectDetailsDropdown after a
+     *  VERIFIED value readback; consumed by isAssetSavedAfterEdit. */
+    private String liveEditEvidence = null;
+
+    /**
+     * Select an option in a v1.50 Asset Details dropdown field.
+     * Returns true only after the field row visibly shows the chosen value.
+     */
+    public boolean selectDetailsDropdown(String fieldLabel, String optionValue) {
+        System.out.println("📝 [v1.50 dropdown] " + fieldLabel + " ← " + optionValue);
+        Boolean ok = withImplicitWait(0, () -> {
+            // 1. Bring the field label on screen with NATIVE scroll-to-element.
+            //    Coordinate drags are unreliable here (run-12: the dirty-state
+            //    pinned Save container swallows right-edge drags — 7 "scrolls"
+            //    left the form parked at the top) and repeated query+drag loops
+            //    wedge WDA on this giant DOM. mobile:scroll with a predicate is
+            //    one WDA command and handles both directions.
+            WebElement label = findVisibleFieldLabel(fieldLabel);
+            if (label == null) {
+                try {
+                    driver.executeScript("mobile: scroll", Map.of(
+                        "predicateString", "type == 'XCUIElementTypeStaticText' AND name == '" + fieldLabel + "'",
+                        "toVisible", true));
+                    sleep(600); // let inertia settle before trusting any rect
+                } catch (Exception e) {
+                    System.out.println("   · mobile:scroll to '" + fieldLabel + "' failed: "
+                        + (e.getMessage() == null ? "?" : e.getMessage().substring(0, Math.min(90, e.getMessage().length()))));
+                }
+                label = findVisibleFieldLabel(fieldLabel);
+            }
+            if (label == null) {
+                System.out.println("   ⚠️ field label '" + fieldLabel + "' never became visible");
+                dumpVisibleFormLabels();
+                dumpSource("/private/tmp/claude-501/-Users-abhiyantsingh-Downloads-iOS-automation-site/ba210b3e-faec-46c4-bbed-eb1cec075170/scratchpad/labelmiss-"
+                    + fieldLabel.replace(' ', '_') + ".xml");
+                return false;
+            }
+            // Label at the bottom fold means its VALUE ROW is off-screen and a
+            // press would land below the window (run-13: label y=937, press at
+            // 969 of a 956pt screen). Nudge the form up with a MIDDLE-x drag
+            // (right-edge drags are swallowed by the dirty-state pinned bar).
+            int winHgt = driver.manage().window().getSize().getHeight();
+            if (label.getLocation().getY() > winHgt - 160) {
+                System.out.println("   · label at fold (y=" + label.getLocation().getY() + ") — nudging form up");
+                try {
+                    driver.executeScript("mobile: dragFromToForDuration", Map.of(
+                        "fromX", 220, "fromY", (int) (winHgt * 0.72), "toX", 220, "toY", (int) (winHgt * 0.45),
+                        "duration", 0.3));
+                } catch (Exception ignored) {}
+                sleep(600);
+                label = findVisibleFieldLabel(fieldLabel);
+                if (label == null) {
+                    System.out.println("   ⚠️ label lost after fold-nudge");
+                    return false;
+                }
+            }
+
+            // 1b. A LEFTOVER sheet from a previous field makes everything lie:
+            //     covered form labels still report visible (bleed-through) and
+            //     row presses land on the sheet (run-9: IR press hit the stale
+            //     Manufacturer sheet). Always dismiss before pressing.
+            if (isOptionSheetOpen()) {
+                System.out.println("   ⚠️ stale option sheet open — dismissing before row press");
+                dismissOptionSheet();
+                com.egalvanic.utils.Waits.until(() -> !isOptionSheetOpen(), 3_000);
+            }
+
+            // 2+3. Press the value row (29-32pt below the label, same indent —
+            //      probe-verified across DS + Fuse) and wait for the sheet.
+            //      Direct coordinate press is deliberate: the unfiltered
+            //      row-text lookup TIMES OUT (~15-20s) on this giant DOM
+            //      (run-14). Poll the label rect to STABILITY before each
+            //      press — post-nudge inertia staled the rect and the press
+            //      missed (run-15 Ampere). Retry the whole press once.
+            boolean sheetOpen = false;
+            int winWid = driver.manage().window().getSize().getWidth();
+            for (int pressTry = 1; pressTry <= 3 && !sheetOpen; pressTry++) {
+                org.openqa.selenium.Rectangle lr = label.getRect();
+                for (int s = 0; s < 6; s++) {
+                    sleep(250);
+                    WebElement fresh = findVisibleFieldLabel(fieldLabel);
+                    if (fresh == null) break;
+                    org.openqa.selenium.Rectangle r2 = fresh.getRect();
+                    boolean stable = r2.y == lr.y;
+                    lr = r2;
+                    if (stable) break;
+                }
+                // A SET select chip enters TEXT-EDIT mode when pressed on its
+                // text region (run-16: keyboard + Select/AutoFill menu) — only
+                // the chevron zone at the row's right edge reliably opens the
+                // sheet for set values. Empty 'Select…' rows open from the
+                // left too, so: left press first, chevron press on retry.
+                int px = pressTry == 1 ? lr.x + 30 : winWid - 50;
+                int py = lr.y + 32;
+                System.out.println("   · pressing value row at (" + px + "," + py + ") try " + pressTry);
+                driver.executeScript("mobile: tap", Map.of("x", px, "y", py));
+                // ONLY 'Sheet Grabber' is a reliable open signal: 'Cancel'
+                // false-positives on the dirty-state nav Cancel + search bleed.
+                sheetOpen = com.egalvanic.utils.Waits.until(this::isOptionSheetOpen, 4_000);
+                if (!sheetOpen) {
+                    System.out.println("   ⚠️ option sheet did not open (try " + pressTry + ")");
+                    // If the press dropped a cursor into a text field, the
+                    // keyboard now covers the form — clear it before retrying.
+                    try { dismissKeyboard(); } catch (Exception ignored) {}
+                    sleep(300);
+                    WebElement re = findVisibleFieldLabel(fieldLabel);
+                    if (re == null) return false;
+                    label = re;
+                }
+            }
+            if (!sheetOpen) return false;
+
+            // 4+5. Press the option and VERIFY the sheet closed (auto-close on
+            //      select). Long option lists (19 Ampere ratings) put the match
+            //      at/below the fold — run-11: '400A' at y=933 of 956 was in
+            //      the DOM but unpressable. Scroll INSIDE the sheet to center
+            //      it before pressing; retry with a fresh find; dismiss on
+            //      defeat so a miss can't cascade into the next field.
+            int winH = driver.manage().window().getSize().getHeight();
+            boolean sheetClosed = false;
+            for (int attempt = 1; attempt <= 4 && !sheetClosed; attempt++) {
+                WebElement opt = findSheetOption(optionValue);
+                if (opt == null || opt.getLocation().getY() > winH - 80) {
+                    // Off-screen below (or unrendered) — scroll the sheet list up one notch.
+                    if (attempt == 4 && opt == null) break;
+                    System.out.println("   · option " + (opt == null ? "not visible" : "at fold y=" + opt.getLocation().getY())
+                        + " — scrolling sheet (round " + attempt + ")");
+                    driver.executeScript("mobile: dragFromToForDuration", Map.of(
+                        "fromX", 220, "fromY", (int) (winH * 0.85), "toX", 220, "toY", (int) (winH * 0.55),
+                        "duration", 0.3));
+                    sleep(400);
+                    if (!isOptionSheetOpen()) break; // drag accidentally dismissed it
+                    continue;
+                }
+                org.openqa.selenium.Rectangle or = opt.getRect();
+                System.out.println("   · pressing option '" + opt.getAttribute("name")
+                    + "' at (" + or.x + "," + or.y + " " + or.width + "x" + or.height + ") attempt " + attempt);
+                pressElementCenter(opt);
+                sheetClosed = com.egalvanic.utils.Waits.until(() -> !isOptionSheetOpen(), 3_000);
+                if (!sheetClosed) System.out.println("   ⚠️ sheet still open after option press " + attempt);
+            }
+            if (!sheetClosed) {
+                if (isOptionSheetOpen()) {
+                    dumpVisibleSheetOptions(fieldLabel);
+                    dismissOptionSheet();
+                    com.egalvanic.utils.Waits.until(() -> !isOptionSheetOpen(), 3_000);
+                }
+                System.out.println("   ⚠️ option '" + optionValue + "' never applied — sheet dismissed");
+                return false;
+            }
+
+            // 6. VERIFIED READBACK. Selecting an option makes the form JUMP BACK
+            //    TO THE TOP (run-6 screenshot), so the cached label rect is stale.
+            //    Re-find the label fresh on EVERY check under a deadline — never
+            //    scroll while the label is visible (run-8: a slow value re-render
+            //    made the loop scroll the label away and lose it for good).
+            boolean applied = false;
+            long deadline = System.currentTimeMillis() + 8_000;
+            while (!applied && System.currentTimeMillis() < deadline) {
+                WebElement lbl = findVisibleFieldLabel(fieldLabel);
+                if (lbl != null) {
+                    applied = rowValueTextBelow(lbl.getRect(), optionValue) != null;
+                    if (!applied) sleep(400); // label on screen — wait for the value render
+                } else {
+                    // Label off-screen (form jumped) — native scroll back to it.
+                    try {
+                        driver.executeScript("mobile: scroll", Map.of(
+                            "predicateString", "type == 'XCUIElementTypeStaticText' AND name == '" + fieldLabel + "'",
+                            "toVisible", true));
+                    } catch (Exception ignored) {}
+                    sleep(500);
+                }
+            }
+            if (applied) {
+                liveEditEvidence = fieldLabel + " visibly shows '" + optionValue + "' (live-edit readback)";
+                System.out.println("   ✅ " + liveEditEvidence);
+            } else {
+                System.out.println("   ⚠️ option pressed but row does not show '" + optionValue + "'");
+            }
+            return applied;
+        });
+        return Boolean.TRUE.equals(ok);
+    }
+
+
+    /** The value StaticText of a details row: in the band 5..60pt below the
+     *  label. wanted==null matches placeholder or any current value;
+     *  otherwise the text must contain the wanted value. */
+    private WebElement rowValueTextBelow(org.openqa.selenium.Rectangle labelRect, String wanted) {
+        try {
+            String pred = wanted == null
+                ? "**/XCUIElementTypeStaticText[`visible == 1`]"
+                : "**/XCUIElementTypeStaticText[`visible == 1 AND (name CONTAINS[c] '" + wanted + "' OR label CONTAINS[c] '" + wanted + "')`]";
+            for (WebElement t : driver.findElements(AppiumBy.iOSClassChain(pred))) {
+                org.openqa.selenium.Rectangle r = t.getRect();
+                // Band below the label AND aligned with the form's value column:
+                // form values/placeholders indent ~12pt past the label (x≈44 vs 32);
+                // asset-list bleed-through texts sit at x≥73 and MUST be excluded
+                // (run 6: picked a bleed text, pressed the wrong point).
+                if (r.y > labelRect.y + 2 && r.y < labelRect.y + 65 && r.x <= labelRect.x + 25) {
+                    String n = t.getAttribute("name");
+                    if (n != null && n.contains(",")) continue; // asset-list bleed-through rows
+                    return t;
+                }
+            }
+        } catch (Exception ignored) {}
+        return null;
+    }
+
+    private WebElement findSheetOption(String optionValue) {
+        // SwiftUI exposes duplicate accessibility nodes for one option row;
+        // the phantom twin has bogus geometry (run-4 evidence: last-match
+        // press missed). Real option rows are full-width (~400pt) Buttons
+        // BELOW the Sheet Grabber — pick the WIDEST in-sheet match.
+        int sheetTopY = 0;
+        try {
+            List<WebElement> grab = driver.findElements(AppiumBy.iOSClassChain(
+                "**/XCUIElementTypeButton[`name == 'Sheet Grabber'`]"));
+            if (!grab.isEmpty()) sheetTopY = grab.get(0).getLocation().getY();
+        } catch (Exception ignored) {}
+        WebElement best = null;
+        int bestW = 0;
+        List<WebElement> exact = driver.findElements(AppiumBy.iOSClassChain(
+            "**/XCUIElementTypeButton[`(name ==[c] '" + optionValue + "' OR label ==[c] '" + optionValue + "') AND visible == 1`]"));
+        for (WebElement e : exact) {
+            try {
+                if (e.getLocation().getY() < sheetTopY) continue; // above sheet = form/bleed
+                int w = e.getSize().getWidth();
+                if (w > bestW) { bestW = w; best = e; }
+            } catch (Exception ignored) {}
         }
-        
-        System.out.println("⚠️ Could not select Interrupting Rating: " + value);
+        if (best != null && bestW >= 100) return best;
+        List<WebElement> partial = driver.findElements(AppiumBy.iOSClassChain(
+            "**/XCUIElementTypeButton[`(name CONTAINS[c] '" + optionValue + "' OR label CONTAINS[c] '" + optionValue + "') AND visible == 1`]"));
+        for (WebElement p : partial) {
+            try {
+                String n = p.getAttribute("name");
+                if (n == null || n.contains(",")) continue; // skip bleed-through cells
+                if (p.getLocation().getY() < sheetTopY) continue;
+                int w = p.getSize().getWidth();
+                if (w > bestW) { bestW = w; best = p; }
+            } catch (Exception ignored) {}
+        }
+        return bestW >= 100 ? best : null;
+    }
+
+    private void dumpVisibleSheetOptions(String fieldLabel) {
+        try {
+            StringBuilder sb = new StringBuilder();
+            int n = 0;
+            for (WebElement b : driver.findElements(AppiumBy.iOSClassChain(
+                    "**/XCUIElementTypeButton[`visible == 1`]"))) {
+                String name = b.getAttribute("name");
+                if (name == null || name.contains(",") || name.length() > 45) continue;
+                org.openqa.selenium.Rectangle r = b.getRect();
+                if (r.width < 200) continue; // option rows are full-width (~400pt)
+                sb.append('[').append(name).append("] ");
+                if (++n >= 16) break;
+            }
+            System.out.println("   ⚠️ '" + fieldLabel + "' sheet options visible: " + sb);
+        } catch (Exception ignored) {}
+    }
+
+    /** First visible StaticText exactly matching a details-form field label. */
+    private WebElement findVisibleFieldLabel(String fieldLabel) {
+        try {
+            List<WebElement> ls = driver.findElements(AppiumBy.iOSClassChain(
+                "**/XCUIElementTypeStaticText[`name == '" + fieldLabel + "' AND visible == 1`]"));
+            return ls.isEmpty() ? null : ls.get(0);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** Diagnostic: what field labels ARE on this form right now? Left-column
+     *  StaticTexts (x<60), short, comma-free — the locator gold when a label
+     *  hunt misses (wrong display name vs spec name). */
+    private void dumpVisibleFormLabels() {
+        try {
+            StringBuilder sb = new StringBuilder();
+            int n = 0, total = 0;
+            for (WebElement t : driver.findElements(AppiumBy.iOSClassChain(
+                    "**/XCUIElementTypeStaticText[`visible == 1`]"))) {
+                total++;
+                String name = t.getAttribute("name");
+                if (name == null || name.isEmpty() || name.contains(",") || name.length() > 40) continue;
+                if (t.getLocation().getX() >= 130) continue;
+                sb.append('[').append(name).append("] ");
+                if (++n >= 20) break;
+            }
+            System.out.println("   · visible form labels (" + n + "/" + total + " visible texts): " + sb);
+        } catch (Exception e) {
+            System.out.println("   · label dump failed: "
+                + (e.getMessage() == null ? e.getClass().getSimpleName()
+                   : e.getMessage().substring(0, Math.min(90, e.getMessage().length()))));
+        }
+    }
+
+    /** Option sheet open? 'Sheet Grabber' is the ONLY reliable signal (Cancel
+     *  false-positives on nav-bar dirty-state Cancel + search-bar bleed). */
+    private boolean isOptionSheetOpen() {
+        try {
+            return !driver.findElements(AppiumBy.iOSClassChain(
+                "**/XCUIElementTypeButton[`name == 'Sheet Grabber'`]")).isEmpty();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private void dismissOptionSheet() {
+        // Only ever press the SHEET's Cancel (y > 200): the nav bar shows a
+        // red Cancel in dirty state at y≈60 which DISCARDS pending edits.
+        try {
+            for (WebElement c : driver.findElements(AppiumBy.iOSClassChain(
+                    "**/XCUIElementTypeButton[`name == 'Cancel' AND visible == 1`]"))) {
+                if (c.getLocation().getY() > 200) { pressElementCenter(c); sleep(300); return; }
+            }
+        } catch (Exception ignored) {}
     }
 
     /**
-     * Fill ATS required field - Voltage
+     * DIAGNOSTIC (v1.50 remap): one-shot probe of the Interrupting Rating row —
+     * row anatomy, what opens on press, whether the option exists, and whether
+     * ANY Save button exists in the DOM. Dumps page source to files for offline
+     * analysis. Temporary scaffolding for the Asset-module dropdown remap.
+     */
+    public void debugProbeRatingAndSave(String value, String dumpDir) {
+        withImplicitWait(0, () -> {
+            try {
+                // 1. Find the 'Interrupting' label (class chain = partial-tree, cheaper on giant DOMs)
+                WebElement label = null;
+                for (int i = 0; i < 5; i++) {
+                    List<WebElement> ls = driver.findElements(AppiumBy.iOSClassChain(
+                        "**/XCUIElementTypeStaticText[`name CONTAINS[c] 'Interrupting'`]"));
+                    if (!ls.isEmpty() && ls.get(0).isDisplayed()) { label = ls.get(0); break; }
+                    System.out.println("PROBE: 'Interrupting' not visible, scrolling (" + i + ")");
+                    scrollFormDown();
+                    sleep(400);
+                }
+                if (label == null) { System.out.println("PROBE: label never found — abort"); return null; }
+                org.openqa.selenium.Rectangle lr = label.getRect();
+                System.out.println("PROBE: label rect=(" + lr.x + "," + lr.y + " " + lr.width + "x" + lr.height + ")");
+                dumpSource(dumpDir + "/probe-1-form.xml");
+
+                // 2. Press the row/dropdown just below the label
+                WebElement rowBtn = null;
+                for (WebElement b : driver.findElements(AppiumBy.iOSClassChain(
+                        "**/XCUIElementTypeButton[`visible == 1`]"))) {
+                    int by = b.getLocation().getY();
+                    if (by > lr.y && by < lr.y + 170) { rowBtn = b; break; }
+                }
+                if (rowBtn != null) {
+                    System.out.println("PROBE: pressing row button name='" + rowBtn.getAttribute("name")
+                        + "' y=" + rowBtn.getLocation().getY());
+                    pressElementCenter(rowBtn);
+                } else {
+                    int cx = driver.manage().window().getSize().getWidth() / 2;
+                    System.out.println("PROBE: no button in band — coordinate press below label at y=" + (lr.y + 90));
+                    driver.executeScript("mobile: tap", Map.of("x", cx, "y", lr.y + 90));
+                }
+                sleep(1500);
+                dumpSource(dumpDir + "/probe-2-after-press.xml");
+
+                // 3. Does the wanted option exist anywhere now?
+                List<WebElement> opts = driver.findElements(AppiumBy.iOSClassChain(
+                    "**/*[`name ==[c] '" + value + "' OR label ==[c] '" + value + "'`]"));
+                System.out.println("PROBE: option '" + value + "' matches=" + opts.size());
+                if (!opts.isEmpty()) {
+                    WebElement o = opts.get(opts.size() - 1);
+                    System.out.println("PROBE: pressing option type=" + o.getAttribute("type")
+                        + " y=" + o.getLocation().getY());
+                    pressElementCenter(o);
+                    sleep(1000);
+                }
+                dumpSource(dumpDir + "/probe-3-after-select.xml");
+
+                // 4. Any Save button in the whole DOM?
+                List<WebElement> saves = driver.findElements(AppiumBy.iOSClassChain(
+                    "**/XCUIElementTypeButton[`name CONTAINS[c] 'save' OR label CONTAINS[c] 'save'`]"));
+                System.out.println("PROBE: Save buttons in DOM=" + saves.size());
+                for (WebElement s : saves) {
+                    try {
+                        System.out.println("PROBE:   save name='" + s.getAttribute("name")
+                            + "' visible=" + s.getAttribute("visible"));
+                    } catch (Exception ignored) {}
+                }
+            } catch (Exception e) {
+                System.out.println("PROBE: exception — " + e.getMessage());
+            }
+            return null;
+        });
+    }
+
+    private void dumpSource(String path) {
+        try {
+            String src = driver.getPageSource();
+            java.nio.file.Files.writeString(java.nio.file.Path.of(path), src);
+            System.out.println("PROBE: source dumped → " + path + " (" + src.length() + " chars)");
+        } catch (Exception e) {
+            System.out.println("PROBE: source dump failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Fill ATS required field - Voltage.
+     * v1.50: Voltage is a SELECT — dropdown first, text fallback for legacy screens.
      */
     public void fillVoltage(String value) {
+        if (selectDetailsDropdown("Voltage", value)) return;
         fillTextField("Voltage", value);
     }
 
@@ -9520,26 +10004,47 @@ public class AssetPage extends BasePage {
      * The iOS picker is a full-screen table view with "Done" in the nav bar.
      */
     private void tapDoneOnPicker() {
-        try {
-            driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(3));
-            WebElement done = driver.findElement(AppiumBy.accessibilityId("Done"));
-            done.click();
-            System.out.println("   ✓ Tapped Done");
-            sleep(300);
-        } catch (Exception e) {
-            try {
-                WebElement done = driver.findElement(
-                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND label == 'Done'")
-                );
-                done.click();
-                System.out.println("   ✓ Tapped Done (predicate)");
-                sleep(300);
-            } catch (Exception e2) {
-                System.out.println("   ⚠️ Done button not found — picker may have auto-dismissed");
+        // v1.50: picking a row no longer auto-dismisses the sheet AND sheet
+        // buttons swallow element.click() — a silent-no-op Done leaves the
+        // full-screen picker covering the form, so everything downstream
+        // (field scroll, dropdown options, Save) hunts behind a blocker.
+        // Press with W3C pointer, VERIFY the sheet actually closed, retry.
+        withImplicitWait(0, () -> {
+            for (int attempt = 1; attempt <= 3; attempt++) {
+                List<WebElement> done = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND (name == 'Done' OR label == 'Done') AND visible == true"));
+                if (done.isEmpty()) {
+                    System.out.println("   ✓ Picker sheet closed (no Done button visible)");
+                    return null;
+                }
+                try {
+                    pressElementCenter(done.get(done.size() - 1));
+                    System.out.println("   ✓ Pressed Done (attempt " + attempt + ")");
+                } catch (Exception e) {
+                    System.out.println("   ⚠️ Done press failed: " + e.getMessage());
+                }
+                boolean closed = com.egalvanic.utils.Waits.until(() -> driver.findElements(
+                    AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND (name == 'Done' OR label == 'Done') AND visible == true"))
+                    .isEmpty(), 3_000);
+                if (closed) {
+                    System.out.println("   ✓ Picker sheet dismissed");
+                    return null;
+                }
+                System.out.println("   ⚠️ Sheet still open after Done press " + attempt);
             }
-        } finally {
-            driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
-        }
+            // Last resort: drag the sheet grabber down to dismiss.
+            try {
+                org.openqa.selenium.Dimension win = driver.manage().window().getSize();
+                driver.executeScript("mobile: dragFromToForDuration", Map.of(
+                    "fromX", win.getWidth() / 2, "fromY", (int) (win.getHeight() * 0.35),
+                    "toX", win.getWidth() / 2, "toY", win.getHeight() - 40,
+                    "duration", 0.4));
+                System.out.println("   ✓ Swipe-down dismiss attempted");
+            } catch (Exception ignored) {}
+            return null;
+        });
+        sleep(300);
     }
 
     /**
@@ -11049,6 +11554,15 @@ public class AssetPage extends BasePage {
      */
     public boolean isAssetSavedAfterEdit() {
         sleep(600);  // Wait for save to complete
+
+        // Strategy 0 (v1.50 live-edit): a dropdown/type helper VERIFIED the field
+        // visibly shows the new value — that readback IS the save on a screen
+        // with no Save button. Positive, non-vacuous evidence; consumed once.
+        if (liveEditEvidence != null) {
+            System.out.println("✅ Save evidence (live-edit): " + liveEditEvidence);
+            liveEditEvidence = null;
+            return true;
+        }
 
         // Strategy 1: Edit button visible (legacy view mode) — positive evidence
         try {

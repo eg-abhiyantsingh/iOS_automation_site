@@ -406,6 +406,28 @@ public abstract class BasePage {
      * no-op — the switch thumb renders at the right edge (proven live on
      * v1.50, changelog 125). Use for EVERY switch/toggle tap.
      */
+    /**
+     * W3C touch press at an element's CENTER — for buttons/rows/menu rows
+     * where element.click() silently no-ops (documented iOS quirk family).
+     * Falls back to click() if the pointer sequence itself fails.
+     */
+    protected void pressElementCenter(WebElement el) {
+        try {
+            org.openqa.selenium.Rectangle r = el.getRect();
+            int cx = r.getX() + r.getWidth() / 2;
+            int cy = r.getY() + r.getHeight() / 2;
+            PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
+            Sequence press = new Sequence(finger, 1);
+            press.addAction(finger.createPointerMove(Duration.ZERO, PointerInput.Origin.viewport(), cx, cy));
+            press.addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()));
+            press.addAction(new org.openqa.selenium.interactions.Pause(finger, Duration.ofMillis(120)));
+            press.addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
+            driver.perform(Arrays.asList(press));
+        } catch (Exception e) {
+            try { el.click(); } catch (Exception ignored) { }
+        }
+    }
+
     protected void pressToggleRightEdge(WebElement toggle) {
         try {
             org.openqa.selenium.Rectangle r = toggle.getRect();
