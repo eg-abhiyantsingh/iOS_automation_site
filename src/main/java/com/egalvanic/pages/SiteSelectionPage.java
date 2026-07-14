@@ -2804,6 +2804,24 @@ public class SiteSelectionPage extends BasePage {
                 + com.egalvanic.constants.AppConstants.SITE_DASHBOARD_WAIT_SEC * 1000L;
         boolean waitLogged = false;
         while (System.currentTimeMillis() < deadline) {
+            // v1.50: the No-Active-Job card is GONE — the dashboard redesign
+            // replaced it with a 'Work Orders' quick-action tile (badge count
+            // may fold into the name). Try the tile FIRST; the legacy WO-card
+            // logic below stays as the v1.49 fallback.
+            try {
+                java.util.List<WebElement> tiles = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeOther')"
+                    // v1.50 folds the badge FIRST: name = "107, Work Orders" (DOM-dump-proven)
+                    + " AND (name CONTAINS 'Work Orders' OR label CONTAINS 'Work Orders') AND visible == 1"));
+                for (WebElement tile : tiles) {
+                    if (tile.getLocation().getY() > 120 && tile.getSize().getHeight() > 40) {
+                        System.out.println("✅ Tapping v1.50 'Work Orders' quick-action tile: "
+                                + tile.getAttribute("name"));
+                        tile.click();
+                        return true;
+                    }
+                }
+            } catch (Exception ignored) {}
             try {
                 java.util.List<WebElement> cards = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeButton' AND name BEGINSWITH 'WO'"));
