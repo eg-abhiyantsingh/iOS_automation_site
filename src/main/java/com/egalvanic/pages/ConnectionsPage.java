@@ -1860,11 +1860,13 @@ public class ConnectionsPage {
                     + " AND visible == 1"));
                 WebElement best0 = null; int bestW0 = 0;
                 for (WebElement r : rows0) {
-                    int dy = r.getLocation().getY() - labelY0;
-                    if (dy <= 0 || dy >= 140) continue;
-                    int w = r.getSize().getWidth();
-                    if (w < 200) continue; // excludes the QR-scan button (~50pt)
-                    if (w > bestW0) { best0 = r; bestW0 = w; }
+                    try {
+                        int dy = r.getLocation().getY() - labelY0;
+                        if (dy <= 0 || dy >= 140) continue;
+                        int w = r.getSize().getWidth();
+                        if (w < 200) continue; // excludes the QR-scan button (~50pt)
+                        if (w > bestW0) { best0 = r; bestW0 = w; }
+                    } catch (Exception stale) { /* list re-rendered — skip element */ }
                 }
                 if (best0 != null) {
                     org.openqa.selenium.Rectangle r0 = best0.getRect();
@@ -2448,6 +2450,12 @@ public class ConnectionsPage {
             Set<String> INVALID_ASSET_NAMES = new java.util.HashSet<>(java.util.Arrays.asList(
                 "Missing Node"
             ));
+            // Names with quotes/parens (debris like "ATS-1 (copy 3)") break the
+            // downstream search-then-tap predicate matching (wave-5c: picked
+            // 'ATS-1 (copy 3)' → 'not found after search' → index -1). Prefer
+            // clean names; they exist in every fixture site.
+            java.util.function.Predicate<String> hasRiskyChars =
+                n -> n.contains("(") || n.contains(")") || n.contains("'") || n.contains("\"");
 
             // ===== PHASE 1: Scan initial visible assets (with retry on empty) =====
             java.util.LinkedHashSet<String> allAssetNames = new java.util.LinkedHashSet<>();
@@ -2549,6 +2557,17 @@ public class ConnectionsPage {
                     }
                 }
                 validNames.add(name);
+            }
+
+            // Prefer names without quotes/parens — risky ones break the
+            // search-then-tap matching downstream; fall back to the full set
+            // only when nothing clean exists.
+            List<String> cleanNames = new java.util.ArrayList<>();
+            for (String n : validNames) if (!hasRiskyChars.test(n)) cleanNames.add(n);
+            if (!cleanNames.isEmpty() && cleanNames.size() < validNames.size()) {
+                System.out.println("   Preferring " + cleanNames.size() + " clean names over "
+                    + (validNames.size() - cleanNames.size()) + " with quotes/parens");
+                validNames = cleanNames;
             }
 
             System.out.println("   Valid assets for random selection (" + validNames.size() + "): " + validNames);
@@ -4359,11 +4378,13 @@ public class ConnectionsPage {
                     + " AND visible == 1"));
                 WebElement best0 = null; int bestW0 = 0;
                 for (WebElement r : rows0) {
-                    int dy = r.getLocation().getY() - labelY0;
-                    if (dy <= 0 || dy >= 140) continue;
-                    int w = r.getSize().getWidth();
-                    if (w < 200) continue;
-                    if (w > bestW0) { best0 = r; bestW0 = w; }
+                    try {
+                        int dy = r.getLocation().getY() - labelY0;
+                        if (dy <= 0 || dy >= 140) continue;
+                        int w = r.getSize().getWidth();
+                        if (w < 200) continue;
+                        if (w > bestW0) { best0 = r; bestW0 = w; }
+                    } catch (Exception stale) { /* list re-rendered — skip element */ }
                 }
                 if (best0 != null) {
                     org.openqa.selenium.Rectangle r0 = best0.getRect();

@@ -642,10 +642,13 @@ public class IssuePage extends BasePage {
         System.out.println("📋 Tapping Open tab...");
         try {
             WebElement tab = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label BEGINSWITH 'Open'"));
-            tab.click();
+                "type == 'XCUIElementTypeButton' AND label BEGINSWITH 'Open' AND visible == 1"));
+            // v1.50 tab pills swallow click() — coordinate press on the pill.
+            org.openqa.selenium.Rectangle r = tab.getRect();
+            driver.executeScript("mobile: tap", java.util.Map.of(
+                "x", r.x + r.width / 2, "y", r.y + r.height / 2));
             sleep(400);
-            System.out.println("✅ Tapped Open tab");
+            System.out.println("✅ Pressed Open tab");
         } catch (Exception e) {
             System.out.println("⚠️ Could not tap Open tab: " + e.getMessage());
         }
@@ -705,7 +708,22 @@ public class IssuePage extends BasePage {
             // Fallback: check value attribute
             String value = tab.getAttribute("value");
             if ("1".equals(value)) return true;
-            return false;
+            // v1.50 pills expose NEITHER attribute (live-verified: pill blue &
+            // filtered, both attrs empty). FUNCTIONAL fallback: the Open filter
+            // is active iff visible row-status texts are 'Open' and no other
+            // status appears in the list area (below the pill row, y > 260).
+            int openRows = 0, otherRows = 0;
+            for (WebElement t : driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND visible == 1 AND "
+                    + "name IN {'Open','Resolved','Closed','In Progress','Pending'}"))) {
+                try {
+                    if (t.getLocation().getY() <= 260) continue; // pill row itself
+                    if ("Open".equals(t.getAttribute("name"))) openRows++;
+                    else otherRows++;
+                } catch (Exception ignored) { }
+            }
+            System.out.println("   Open-filter functional check: openRows=" + openRows + ", otherRows=" + otherRows);
+            return openRows > 0 && otherRows == 0;
         } catch (Exception e) {
             return false;
         }
@@ -2423,28 +2441,34 @@ public class IssuePage extends BasePage {
      * Or the button may have a separate value attribute.
      */
     public String getIssueClassValue() {
+        // v1.50 (probe + live-screenshot verified): the Classification chip
+        // shows 'Issue Class' when UNSET and is REPLACED by the class name
+        // when set (with a clear-x + chevron). No Button exists either way.
+        // Anchor on the CLASSIFICATION section header and read the first
+        // visible comma-free text in the band below it.
         try {
-            WebElement picker = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND name CONTAINS 'Issue Class'"));
-            String label = picker.getAttribute("label");
-            String name = picker.getAttribute("name");
-            String value = picker.getAttribute("value");
-            System.out.println("   Issue Class picker — label: '" + label +
-                "', name: '" + name + "', value: '" + value + "'");
-
-            // Try value attribute first
-            if (value != null && !value.isEmpty() && !value.equals("0") && !value.equals("1")) {
-                return value;
+            WebElement header = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND (name ==[c] 'Classification') AND visible == 1"));
+            org.openqa.selenium.Rectangle hr = header.getRect();
+            String best = "";
+            int bestY = Integer.MAX_VALUE;
+            for (WebElement t : driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND visible == 1 AND label.length > 0"))) {
+                try {
+                    String n = t.getAttribute("name");
+                    if (n == null || n.contains(",") || n.equalsIgnoreCase("Classification")) continue;
+                    org.openqa.selenium.Rectangle r = t.getRect();
+                    int dy = r.y - hr.y;
+                    if (dy > 5 && dy < 110 && dy < bestY - hr.y + 0 && r.x < 250) {
+                        // nearest text below the header = the chip content
+                        if (r.y < bestY) { best = n.trim(); bestY = r.y; }
+                    }
+                } catch (Exception ignored) { }
             }
-            // Extract from label: "Issue Class, VALUE"
-            if (label != null && label.contains(", ")) {
-                return label.substring(label.indexOf(", ") + 2).trim();
-            }
-            // Extract from name: "Issue Class, VALUE"
-            if (name != null && name.contains(", ")) {
-                return name.substring(name.indexOf(", ") + 2).trim();
-            }
-            return label != null ? label : "";
+            // 'Issue Class' is the UNSET placeholder — report empty for it.
+            if (best.equals("Issue Class")) best = "";
+            System.out.println("   Issue Class chip value (v1.50 section read): '" + best + "'");
+            return best;
         } catch (Exception e) {
             System.out.println("⚠️ Could not get Issue Class value: " + e.getMessage());
             return "";
@@ -2631,9 +2655,36 @@ public class IssuePage extends BasePage {
                     "type == 'XCUIElementTypeStaticText' AND label == 'Priority'"));
                 return label.isDisplayed();
             } catch (Exception e2) {
-                return false;
+                // v1.50 (probe-verified): the priority row has NO 'Priority'
+                // label — it's the exclamationmark.circle icon + the current
+                // value text (None/Low/Medium/High/Critical) on the form.
+                return findPriorityRowValueText() != null;
             }
         }
+    }
+
+    /** v1.50 priority row: the value StaticText adjacent to the
+     *  exclamationmark.circle image on the New Issue form. Null when absent. */
+    private WebElement findPriorityRowValueText() {
+        try {
+            for (WebElement icon : driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeImage' AND name == 'exclamationmark.circle' AND visible == 1"))) {
+                try {
+                    int iy = icon.getLocation().getY();
+                    int ix = icon.getLocation().getX();
+                    for (WebElement t : driver.findElements(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeStaticText' AND visible == 1 AND name IN {'None','Low','Medium','High','Critical'}"))) {
+                        try {
+                            if (Math.abs(t.getLocation().getY() - iy) <= 30
+                                    && t.getLocation().getX() > ix) {
+                                return t;
+                            }
+                        } catch (Exception ignored) { }
+                    }
+                } catch (Exception ignored) { }
+            }
+        } catch (Exception ignored) { }
+        return null;
     }
 
     /**
@@ -2661,6 +2712,16 @@ public class IssuePage extends BasePage {
             }
             return label != null ? label : "";
         } catch (Exception e) {
+            // v1.50: no Priority Button — read the value text next to the
+            // exclamationmark.circle icon.
+            try {
+                WebElement v = findPriorityRowValueText();
+                if (v != null) {
+                    String n = v.getAttribute("name");
+                    System.out.println("   Priority row value (v1.50 icon-adjacent read): '" + n + "'");
+                    return n == null ? "" : n.trim();
+                }
+            } catch (Exception ignored) { }
             return "";
         }
     }
@@ -2670,6 +2731,21 @@ public class IssuePage extends BasePage {
      * Returns true if dropdown opened successfully.
      */
     public boolean openPriorityDropdown() {
+        // Strategy 0 (v1.50, probe-verified): the priority row has NO
+        // 'Priority' label — press the value text next to the
+        // exclamationmark.circle icon (left zone; the row is a Cell).
+        try {
+            WebElement valueText = findPriorityRowValueText();
+            if (valueText != null) {
+                org.openqa.selenium.Rectangle r = valueText.getRect();
+                driver.executeScript("mobile: tap", java.util.Map.of(
+                    "x", r.x + Math.max(10, r.width / 2), "y", r.y + r.height / 2));
+                sleep(500);
+                System.out.println("✅ Opened Priority dropdown (v1.50 icon-adjacent row)");
+                return true;
+            }
+        } catch (Exception ignored) {}
+
         // Strategy 1: button with name/label containing 'Priority'
         try {
             WebElement picker = driver.findElement(AppiumBy.iOSNsPredicateString(
