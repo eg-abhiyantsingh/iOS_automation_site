@@ -903,8 +903,13 @@ public class AssetPage extends BasePage {
      */
     public boolean isTaskDetailsScreenDisplayed() {
         try {
+            // v1.50: the create form's nav is 'New Task' (with a 'Create Task'
+            // trailing button + 'TASK DETAILS' section); editing an existing
+            // task shows 'Task Details'. Accept both.
             WebElement navBar = driver.findElement(
-                AppiumBy.iOSNsPredicateString("name == 'Task Details' AND type == 'XCUIElementTypeNavigationBar'")
+                AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeNavigationBar' AND (name == 'Task Details' OR name == 'New Task'))"
+                    + " OR (type == 'XCUIElementTypeStaticText' AND (name == 'New Task' OR name == 'TASK DETAILS'))")
             );
             return navBar.isDisplayed();
         } catch (Exception e) {
@@ -918,13 +923,17 @@ public class AssetPage extends BasePage {
     public void editTaskTitle(String newTitle) {
         System.out.println("📝 Editing task title to: " + newTitle);
         try {
+            // v1.50 New Task form placeholder is 'Enter task title' (lowercase
+            // 'task' — the old case-sensitive CONTAINS 'Task' missed it).
             WebElement titleField = driver.findElement(
-                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' AND value CONTAINS 'Task'")
+                AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeTextField' AND (value CONTAINS[c] 'task title' OR value CONTAINS[c] 'title' OR value CONTAINS 'Task')")
             );
             titleField.click();
             sleep(300);
             titleField.clear();
             titleField.sendKeys(newTitle);
+            try { dismissKeyboard(); } catch (Exception ignored) { }
             System.out.println("✅ Edited task title");
         } catch (Exception e) {
             System.out.println("⚠️ Could not edit task title: " + e.getMessage());
@@ -954,17 +963,18 @@ public class AssetPage extends BasePage {
      * Click Save/Done button on Task Details screen
      */
     public void clickSaveTask() {
-        System.out.println("💾 Clicking Save/Done...");
+        System.out.println("💾 Clicking Save/Done/Create Task...");
         try {
-            // Try Done button first
+            // v1.50 New Task form saves via the nav 'Create Task' button
+            // (enabled once the title is set); edit screens keep Done/Save.
             WebElement saveBtn = driver.findElement(
-                AppiumBy.iOSNsPredicateString("label == 'Done' OR label == 'Save'")
+                AppiumBy.iOSNsPredicateString("label == 'Create Task' OR label == 'Done' OR label == 'Save'")
             );
-            saveBtn.click();
+            pressElementCenter(saveBtn); // click() no-ops on v1.50 nav buttons
             sleep(400);
-            System.out.println("✅ Clicked Save/Done");
+            System.out.println("✅ Pressed Save/Done/Create Task");
         } catch (Exception e) {
-            System.out.println("⚠️ Could not find Save/Done button: " + e.getMessage());
+            System.out.println("⚠️ Could not find Save/Done/Create Task button: " + e.getMessage());
         }
     }
 

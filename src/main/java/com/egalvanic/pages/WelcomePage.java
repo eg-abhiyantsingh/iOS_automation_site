@@ -186,6 +186,25 @@ public class WelcomePage extends BasePage {
         clickContinue();
         // Post-Continue wait — covers spinner + backend round-trip + screen transition
         sleepQuietly(3000);
+        // Precise diagnosis: a stranded APP-LEVEL offline flag (persisted via
+        // noReset when an offline test dies before its cleanup) surfaces here
+        // as 'Failed to fetch company configuration' — every later click then
+        // "fails" mysteriously (wave-3 bite 2026-07-14: 23 auth fails). Name
+        // the real cause with a cheap 0-implicit probe.
+        try {
+            boolean stuckOffline = !withImplicitWait(0, () -> driver.findElements(
+                    io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND name CONTAINS 'Failed to fetch company configuration'"))
+                    .isEmpty());
+            if (stuckOffline) {
+                throw new com.egalvanic.verify.VerificationError(
+                    "submitCompanyCode: app shows 'Failed to fetch company configuration' — the app is "
+                    + "stuck in APP-LEVEL OFFLINE mode (stranded by an earlier offline test; persisted via "
+                    + "noReset). Reinstall the app or restore online mode; this is environment, not a locator bug.");
+            }
+        } catch (com.egalvanic.verify.VerificationError ve) {
+            throw ve;
+        } catch (Exception ignored) { }
     }
 
     /**

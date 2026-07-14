@@ -72,6 +72,25 @@ public class OfflineSyncMultiSite_Test extends BaseTest {
 
     @AfterClass(alwaysRun = true)
     public void classTeardown() {
+        // NEVER strand the app in app-level offline mode for later suites.
+        // Wave-3 bite (2026-07-14): a failed UC skipped its in-test cleanup,
+        // noReset persisted the offline flag, and 23 auth tests then failed at
+        // 'Failed to fetch company configuration' on the welcome screen.
+        try {
+            if (DriverManager.isDriverActive() && siteSelectionPage != null) {
+                runWithBudget("offline-classTeardown-restore", 60, () -> {
+                    try {
+                        if (siteSelectionPage.isWifiOffline()) {
+                            System.out.println("🌐 Class teardown: restoring ONLINE state (suite-exit guarantee)");
+                            siteSelectionPage.goOnline();
+                            shortWait();
+                        }
+                    } catch (Exception e) {
+                        System.out.println("⚠️ classTeardown online-restore failed: " + e.getMessage());
+                    }
+                });
+            }
+        } catch (Exception ignored) { }
         DriverManager.resetNoResetOverride();
         System.out.println("📋 OfflineSyncMultiSite Test Suite — Complete\n");
     }

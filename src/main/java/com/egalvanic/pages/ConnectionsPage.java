@@ -1845,8 +1845,12 @@ public class ConnectionsPage {
             System.out.println("🔽 Tapping on Source Node dropdown...");
 
             // Strategy 0 (v1.49): the row under the 'Source Node' label reads
-            // 'Not Assigned' (or the picked asset) — press the first visible
-            // row element below the label (W3C; click() no-ops on these rows).
+            // 'Not Assigned' (or the picked asset) — press it. TWO traps fixed
+            // (wave-5): the ~50pt QR-scan button shares the same band as the
+            // ~600pt row and won the smallest-dy tie (QR scanner opened →
+            // 6-min grinds), so require row-like WIDTH and prefer the widest;
+            // and rows are HStack+Spacer buttons (Spacer hit-test dead zone) —
+            // press the LEFT text zone, not the element center.
             try {
                 WebElement label0 = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeStaticText' AND label == 'Source Node'"));
@@ -1854,15 +1858,20 @@ public class ConnectionsPage {
                 List<WebElement> rows0 = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeOther' OR type == 'XCUIElementTypeCell')"
                     + " AND visible == 1"));
-                WebElement best0 = null; int bestDy0 = Integer.MAX_VALUE;
+                WebElement best0 = null; int bestW0 = 0;
                 for (WebElement r : rows0) {
                     int dy = r.getLocation().getY() - labelY0;
-                    if (dy > 0 && dy < 140 && dy < bestDy0) { best0 = r; bestDy0 = dy; }
+                    if (dy <= 0 || dy >= 140) continue;
+                    int w = r.getSize().getWidth();
+                    if (w < 200) continue; // excludes the QR-scan button (~50pt)
+                    if (w > bestW0) { best0 = r; bestW0 = w; }
                 }
                 if (best0 != null) {
-                    w3cPress(best0);
+                    org.openqa.selenium.Rectangle r0 = best0.getRect();
+                    driver.executeScript("mobile: tap", java.util.Map.of(
+                        "x", r0.x + 40, "y", r0.y + r0.height / 2));
                     sleep(400);
-                    System.out.println("✓ W3C-pressed Source Node row ('" + best0.getAttribute("label") + "')");
+                    System.out.println("✓ Pressed Source Node row left-zone ('" + best0.getAttribute("label") + "', w=" + bestW0 + ")");
                     return true;
                 }
             } catch (Exception e0) {
@@ -2601,18 +2610,30 @@ public class ConnectionsPage {
     private List<String> scanDropdownAssetNames(String[] headersToSkip) {
         List<String> names = new java.util.ArrayList<>();
         try {
-            // Pre-filter in predicate: skip empty labels and path labels (contain ">")
+            // VISIBLE-only + hard cap: the unbounded variant (every StaticText
+            // in the DOM incl. bleed-through, ×2 round trips each) wedged and
+            // KILLED WDA on grown asset lists (wave-5 TC_CONN_036, 6m35s dead
+            // session). Visible rows are all the picker shows anyway.
             List<WebElement> candidates = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND label.length > 0 AND NOT label CONTAINS '>'"));
+                "type == 'XCUIElementTypeStaticText' AND visible == 1 AND label.length > 0 AND NOT label CONTAINS '>'"));
 
             // Single pass: cache label + position to avoid redundant Appium calls
             List<String> filteredLabels = new java.util.ArrayList<>();
             List<Integer> filteredY = new java.util.ArrayList<>();
             int rejectedByCoords = 0;
+            int scanned = 0;
 
             for (WebElement el : candidates) {
-                String label = el.getAttribute("label");
-                if (label == null) continue;
+                if (++scanned > 30) break; // bound the per-element round trips
+                String label;
+                org.openqa.selenium.Point loc;
+                try {
+                    label = el.getAttribute("label");
+                    if (label == null) continue;
+                    loc = el.getLocation(); // 1 call (was 2)
+                } catch (Exception stale) {
+                    continue; // list re-rendered mid-scan — skip, don't abort
+                }
                 String trimmed = label.trim();
                 if (trimmed.isEmpty()) continue;
 
@@ -2625,7 +2646,6 @@ public class ConnectionsPage {
                 }
                 if (isHeader) continue;
 
-                org.openqa.selenium.Point loc = el.getLocation(); // 1 call (was 2)
                 // Widened X range from (30-90) to (15-200) for screen size variations.
                 // Y threshold lowered from 280 to 230 to catch elements higher in the dropdown.
                 if (loc.getX() >= 15 && loc.getX() <= 200 && loc.getY() >= 230) {
@@ -4327,13 +4347,43 @@ public class ConnectionsPage {
         try {
             System.out.println("🔽 Tapping on Target Node dropdown...");
 
+            // Strategy 0 (wave-5 parity with Source Node): press the wide row
+            // below the 'Target Node' label — width filter excludes the QR
+            // button; left-zone press dodges the HStack Spacer dead zone.
+            try {
+                WebElement label0 = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND label == 'Target Node'"));
+                int labelY0 = label0.getLocation().getY();
+                List<WebElement> rows0 = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeOther' OR type == 'XCUIElementTypeCell')"
+                    + " AND visible == 1"));
+                WebElement best0 = null; int bestW0 = 0;
+                for (WebElement r : rows0) {
+                    int dy = r.getLocation().getY() - labelY0;
+                    if (dy <= 0 || dy >= 140) continue;
+                    int w = r.getSize().getWidth();
+                    if (w < 200) continue;
+                    if (w > bestW0) { best0 = r; bestW0 = w; }
+                }
+                if (best0 != null) {
+                    org.openqa.selenium.Rectangle r0 = best0.getRect();
+                    driver.executeScript("mobile: tap", java.util.Map.of(
+                        "x", r0.x + 40, "y", r0.y + r0.height / 2));
+                    sleep(400);
+                    System.out.println("✓ Pressed Target Node row left-zone ('" + best0.getAttribute("label") + "', w=" + bestW0 + ")");
+                    return true;
+                }
+            } catch (Exception e0) {
+                System.out.println("   strategy 0 miss: " + e0.getMessage());
+            }
+
             // Strategy 1: Look for "Select target" text
             try {
                 WebElement selectTarget = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label CONTAINS 'Select target' OR label CONTAINS 'target node' OR name == 'Select target')"));
-                selectTarget.click();
+                w3cPress(selectTarget);
                 sleep(200);
-                System.out.println("✓ Tapped on 'Select target node' dropdown");
+                System.out.println("✓ W3C-pressed 'Select target node' dropdown");
                 return true;
             } catch (Exception e1) {}
 
@@ -7485,6 +7535,48 @@ public class ConnectionsPage {
     // ============================================
     // DELETE MULTIPLE METHODS (TC_CONN_090)
     // ============================================
+
+    /**
+     * The COMPLETE delete-dialog dance under MANUAL alerts: delete icon →
+     * confirmation dialog → tap the given button ("Cancel" or "Delete").
+     * autoAcceptAlerts otherwise auto-presses the dialog between the icon tap
+     * and our button tap (wave-5: TC_CONN_087/088 — worse than a red test,
+     * auto-accept on a DELETE dialog actually deletes).
+     */
+    public boolean deleteDialogDance(String buttonLabel) {
+        final boolean[] ok = { false };
+        boolean paused = false;
+        try {
+            driver.setSetting("defaultAlertAction", "");
+            paused = true;
+        } catch (Exception e) {
+            System.out.println("⚠️ deleteDialogDance: could not pause defaultAlertAction — race possible");
+        }
+        try {
+            if (!tapDeleteIconInHeader()) {
+                System.out.println("⚠️ deleteDialogDance: delete icon not tappable");
+                return false;
+            }
+            boolean shown = false;
+            for (int i = 0; i < 10 && !shown; i++) {
+                shown = isDeleteConfirmationDialogDisplayed();
+                if (!shown) sleep(300);
+            }
+            if (!shown) {
+                System.out.println("⚠️ deleteDialogDance: confirmation dialog never appeared (alerts manual)");
+                return false;
+            }
+            ok[0] = "Cancel".equals(buttonLabel)
+                    ? tapCancelOnDeleteConfirmation()
+                    : tapDeleteOnConfirmation();
+        } finally {
+            if (paused) {
+                try { driver.setSetting("defaultAlertAction", "accept"); }
+                catch (Exception e) { System.out.println("⚠️ deleteDialogDance: restore failed: " + e.getMessage()); }
+            }
+        }
+        return ok[0];
+    }
 
     /**
      * Tap Delete/Trash icon in header to delete selected connections

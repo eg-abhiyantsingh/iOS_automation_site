@@ -7206,29 +7206,10 @@ public final class Connections_Test extends BaseTest {
         logStep("Selected count before: " + selectedBefore);
         logStepWithScreenshot("Connection selected");
 
-        // Tap delete icon
-        logStep("Tapping Delete icon");
-        boolean tappedDelete = connectionsPage.tapDeleteIconInHeader();
-
-        if (!tappedDelete) {
-            connectionsPage.tapCancelInHeader();
-            throw new SkipException("SKIPPED: Could not tap delete icon");
-        }
-
-        mediumWait();
-
-        // Verify confirmation dialog appears
-        boolean confirmationShown = connectionsPage.isDeleteConfirmationDialogDisplayed();
-        if (!confirmationShown) {
-            connectionsPage.tapCancelInHeader();
-            throw new SkipException("SKIPPED: Delete confirmation not shown");
-        }
-
-        logStepWithScreenshot("Delete confirmation shown");
-
-        // Tap Cancel
-        logStep("Tapping Cancel button");
-        boolean cancelled = connectionsPage.tapCancelOnDeleteConfirmation();
+        // Delete-icon → dialog → Cancel, all under MANUAL alerts (autoAcceptAlerts
+        // otherwise auto-presses the dialog before we can tap — wave-5 race).
+        logStep("Delete dialog dance: tapping Cancel");
+        boolean cancelled = connectionsPage.deleteDialogDance("Cancel");
         assertTrue(cancelled, "Should be able to tap Cancel");
         shortWait();
 
@@ -7307,29 +7288,10 @@ public final class Connections_Test extends BaseTest {
 
         logStepWithScreenshot("Connection selected for deletion");
 
-        // Tap delete icon
-        logStep("Tapping Delete icon");
-        boolean tappedDelete = connectionsPage.tapDeleteIconInHeader();
-
-        if (!tappedDelete) {
-            connectionsPage.tapCancelInHeader();
-            throw new SkipException("SKIPPED: Could not tap delete icon");
-        }
-
-        mediumWait();
-
-        // Verify confirmation dialog appears
-        boolean confirmationShown = connectionsPage.isDeleteConfirmationDialogDisplayed();
-        if (!confirmationShown) {
-            connectionsPage.tapCancelInHeader();
-            throw new SkipException("SKIPPED: Delete confirmation not shown");
-        }
-
-        logStepWithScreenshot("Delete confirmation shown");
-
-        // Tap Delete to confirm
-        logStep("Tapping Delete to confirm deletion");
-        boolean confirmed = connectionsPage.tapDeleteOnConfirmation();
+        // Delete-icon → dialog → Delete, all under MANUAL alerts (autoAcceptAlerts
+        // otherwise auto-presses the dialog before we can tap — wave-5 race).
+        logStep("Delete dialog dance: confirming deletion");
+        boolean confirmed = connectionsPage.deleteDialogDance("Delete");
         assertTrue(confirmed, "Should be able to confirm deletion");
         longWait();
 

@@ -85,6 +85,16 @@ public final class OfflineTest extends BaseTest {
 
     @AfterClass(alwaysRun = true)
     public void classTeardown() {
+        // NEVER strand the app in app-level offline mode for later suites
+        // (wave-3 bite 2026-07-14: stranded offline flag → 23 auth fails at
+        // 'Failed to fetch company configuration').
+        try {
+            if (DriverManager.isDriverActive()) {
+                ensureOnlineState();
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ classTeardown online-restore failed: " + e.getMessage());
+        }
         DriverManager.resetNoResetOverride();
         System.out.println("\n📋 Offline Mode Test Suite - Complete");
     }
@@ -370,7 +380,37 @@ public final class OfflineTest extends BaseTest {
             logStep("Already online (popup shows Go Offline)");
             dismissWifiPopup(d);
         } else {
-            // Popup didn't open properly — fallback
+            // Popup didn't open (with pending items the wifi tap can open the
+            // Sync Queue Analyzer popover instead). Dump what DID open, retry
+            // the popup dance ONCE, then a bounded fallback — the old
+            // unconditional goOnline() ground to the 6-min cap (TC_OFF_023/027).
+            try {
+                StringBuilder sb = new StringBuilder();
+                int n = 0;
+                for (org.openqa.selenium.WebElement el : d.findElements(AppiumBy.iOSNsPredicateString(
+                        "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND visible == 1"))) {
+                    String name = el.getAttribute("name");
+                    if (name == null || name.isEmpty() || name.length() > 35) continue;
+                    sb.append('[').append(name).append("] ");
+                    if (++n >= 12) break;
+                }
+                logStep("Wi-Fi popup missing — visible controls: " + sb);
+            } catch (Exception ignored) {}
+            dismissWifiPopup(d);
+            sleep(600);
+            siteSelectionPage.clickWifiButton();
+            sleep(800);
+            if (siteSelectionPage.isGoOnlineOptionVisible()) {
+                logStep("Retry: clicking Go Online from popup");
+                try {
+                    d.findElement(AppiumBy.iOSNsPredicateString(
+                        "label == 'Go Online' OR name == 'Go Online'")).click();
+                } catch (Exception e) {
+                    dismissWifiPopup(d);
+                }
+                mediumWait();
+                return;
+            }
             dismissWifiPopup(d);
             siteSelectionPage.goOnline();
             mediumWait();
@@ -834,63 +874,53 @@ public final class OfflineTest extends BaseTest {
 
         navigateToDashboardAndGoOffline();
 
-        logStepWithScreenshot("Checking My Tasks tile on dashboard in offline mode");
+        logStepWithScreenshot("Checking offline dashboard quick actions (v1.50 contract)");
 
-        // Use direct driver search — page object's isMyTasksDisplayed() returns false
-        // because isDisplayed() relies on the 'visible' attribute which iOS reports as
-        // false for certain element types even when they're clearly on screen.
+        // v1.50 removed the 'My Tasks' tile (AppStrings.Site.myTasks has zero
+        // usages in the app source). The offline dashboard contract is now the
+        // Quick Actions grid: Work Orders + Schedule tiles stay ENABLED offline
+        // (Schedule "shows cached blocks" per SiteTabView source) while the
+        // Refresh tile is explicitly DISABLED offline (isDisabled: mode==.offline).
         io.appium.java_client.ios.IOSDriver d = DriverManager.getDriver();
         int screenHeight = d.manage().window().getSize().height;
 
-        // Find all elements matching "My Tasks"
-        java.util.List<org.openqa.selenium.WebElement> myTasksElements = d.findElements(
-                AppiumBy.iOSNsPredicateString(
-                    "label == 'My Tasks' OR name == 'My Tasks'"));
-        logStep("My Tasks elements found: " + myTasksElements.size());
-
-        // Pick the best candidate: element within visible screen bounds
-        org.openqa.selenium.WebElement myTasksTile = null;
-        for (org.openqa.selenium.WebElement el : myTasksElements) {
+        org.openqa.selenium.WebElement workOrdersTile = null;
+        org.openqa.selenium.WebElement scheduleTile = null;
+        for (org.openqa.selenium.WebElement el : d.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND (name CONTAINS 'Work Orders' OR name CONTAINS 'Schedule')"))) {
             try {
                 int y = el.getLocation().getY();
-                String type = el.getAttribute("type");
-                String visible = el.getAttribute("visible");
-                logStep("  Element — type: " + type + ", visible: " + visible +
-                        ", Y: " + y + ", enabled: " + el.getAttribute("enabled"));
-                // Accept element if its Y is within the visible screen area
-                if (y > 0 && y < screenHeight) {
-                    myTasksTile = el;
-                    break;
-                }
+                if (y <= 0 || y >= screenHeight) continue;
+                String n = el.getAttribute("name");
+                if (n != null && n.contains("Work Orders") && workOrdersTile == null) workOrdersTile = el;
+                if (n != null && n.contains("Schedule") && scheduleTile == null) scheduleTile = el;
             } catch (Exception e) { /* skip stale elements */ }
         }
-
-        assertTrue(myTasksTile != null,
-                "My Tasks tile should be present on dashboard in offline mode");
-
-        String enabled = myTasksTile.getAttribute("enabled");
-        logStep("My Tasks tile enabled: " + enabled);
-        assertTrue("true".equalsIgnoreCase(enabled),
-                "My Tasks tile should be active (not grayed out) — " +
-                "cached tasks should be viewable offline");
-
-        // Verify tapping My Tasks navigates to the tasks screen
-        logStep("Tapping My Tasks to verify it opens and shows cached tasks");
+        assertTrue(workOrdersTile != null,
+                "Work Orders tile should be present on dashboard in offline mode");
+        assertTrue(scheduleTile != null,
+                "Schedule tile should be present on dashboard in offline mode");
+        assertTrue("true".equalsIgnoreCase(workOrdersTile.getAttribute("enabled")),
+                "Work Orders tile should stay active offline (cached work orders viewable)");
+        assertTrue("true".equalsIgnoreCase(scheduleTile.getAttribute("enabled")),
+                "Schedule tile should stay active offline (cached blocks viewable)");
+        // Verify tapping Work Orders navigates off the dashboard (cached WOs open offline)
+        logStep("Tapping Work Orders to verify cached work orders open offline");
         try {
-            myTasksTile.click();
+            siteSelectionPage.clickWorkOrderCard(); // validated v1.50 tile press
             mediumWait();
 
             boolean leftDashboard = !siteSelectionPage.isDashboardDisplayed();
 
             if (leftDashboard) {
-                logStepWithScreenshot("My Tasks screen opened successfully in offline mode — " +
-                        "cached tasks are viewable");
+                logStepWithScreenshot("Work Orders opened successfully in offline mode — " +
+                        "cached work orders are viewable");
             } else {
                 logWarning("Did not navigate away from dashboard — " +
-                        "My Tasks may require active job or show as overlay");
+                        "Work Orders may show as overlay");
             }
         } catch (Exception e) {
-            logWarning("My Tasks navigation error: " + e.getMessage());
+            logWarning("Work Orders navigation error: " + e.getMessage());
         }
 
         // Cleanup
@@ -1176,93 +1206,34 @@ public final class OfflineTest extends BaseTest {
         } catch (Exception ignored) {}
         logStep("Sync badge count before task creation: " + syncCountBefore);
 
-        // Step 1: Navigate to My Tasks
-        logStep("Navigating to My Tasks for task creation");
-        siteSelectionPage.clickMyTasksButton();
-        shortWait();
-
-        boolean leftDashboard = !siteSelectionPage.isDashboardDisplayed();
-        logStep("Left dashboard to My Tasks: " + leftDashboard);
-        assertTrue(leftDashboard, "Should navigate to My Tasks screen from dashboard");
+        // v1.50 removed the 'My Tasks' dashboard tile (zero usages of the
+        // string in app source) — tasks live under an ASSET's Tasks section.
+        // Same offline contract, new path: asset → Tasks → add → save → queue.
+        logStep("Opening an asset's Tasks section for offline task creation");
+        assetPage.openSharedAssetForEditOrFallback(null);
+        assertTrue(assetPage.scrollToTasksSection(), "Tasks section must be reachable on the asset");
 
         boolean taskCreationAttempted = false;
 
-        // Step 2: Tap "+" to open New Task form
-        logStep("Tapping Add button to open New Task form");
-        org.openqa.selenium.WebElement addBtn = d.findElement(
-            AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == 'Add'"));
-        addBtn.click();
+        logStep("Tapping Add Task");
+        assetPage.clickAddTaskButton();
         shortWait();
+        assertTrue(assetPage.isTaskDetailsScreenDisplayed(), "New Task form should appear after tapping Add");
 
-        // Step 3: Verify New Task form appeared
-        java.util.List<org.openqa.selenium.WebElement> newTaskLabel =
-            d.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND " +
-                "(label == 'New Task' OR label == 'TASK DETAILS')"));
-        assertTrue(!newTaskLabel.isEmpty(), "New Task form should appear after tapping Add");
-        logStep("New Task form displayed");
-
-        // Step 4: Enter title
         String taskTitle = "OffTask_" + System.currentTimeMillis();
         logStep("Entering task title: " + taskTitle);
-        java.util.List<org.openqa.selenium.WebElement> textFields =
-            d.findElements(AppiumBy.className("XCUIElementTypeTextField"));
-        assertTrue(textFields.size() >= 1, "Title text field should be present");
-        textFields.get(0).click();
-        shortWait();
-        textFields.get(0).sendKeys(taskTitle);
-        shortWait();
-
-        // Step 5: Enter description
-        logStep("Entering task description");
-        if (textFields.size() >= 2) {
-            textFields.get(1).click();
-            shortWait();
-            textFields.get(1).sendKeys("Offline task created by automation");
-            shortWait();
-        } else {
-            // Description might be a text view instead of text field
-            try {
-                java.util.List<org.openqa.selenium.WebElement> textViews =
-                    d.findElements(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeTextView' AND " +
-                        "(value == 'Describe the task...' OR label CONTAINS 'Description')"));
-                if (!textViews.isEmpty()) {
-                    textViews.get(0).click();
-                    shortWait();
-                    textViews.get(0).sendKeys("Offline task created by automation");
-                    shortWait();
-                }
-            } catch (Exception ignored) {}
-        }
+        assetPage.editTaskTitle(taskTitle);
+        assetPage.editTaskDescription("Offline task created by automation");
         logStepWithScreenshot("Task form filled with title and description");
 
-        // Step 6: Tap "Create Task" button
-        logStep("Tapping Create Task button");
-        org.openqa.selenium.WebElement createBtn = d.findElement(
-            AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND " +
-                "(label == 'Create Task' OR label == 'Save' OR label == 'Create')"));
-        createBtn.click();
+        logStep("Saving the task");
+        assetPage.clickSaveTask();
         shortWait();
-        logStep("Create Task tapped");
-        logStepWithScreenshot("Task created — back on task list");
+        assetPage.clickBackFromTaskDetails();
+        shortWait();
 
-        // Step 7: Tap "Done" to return to dashboard
-        logStep("Tapping Done to return to dashboard");
-        try {
-            org.openqa.selenium.WebElement doneBtn = d.findElement(
-                AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND label == 'Done'"));
-            doneBtn.click();
-            shortWait();
-            logStep("Done tapped — returned to dashboard");
-        } catch (Exception e) {
-            logWarning("Done button not found: " + e.getMessage());
-            smartNavigateToDashboard();
-        }
-
+        logStep("Returning to dashboard");
+        smartNavigateToDashboard();
         taskCreationAttempted = true;
 
         // Step 8: Verify WiFi sync badge count increased
@@ -1676,6 +1647,13 @@ public final class OfflineTest extends BaseTest {
      * Uses multiple locator strategies since there is no dedicated SettingsPage.
      * @return true if Settings screen was opened successfully
      */
+    /** W3C-safe coordinate press — v1.50 tab/tile Buttons swallow element.click(). */
+    private void pressCenter(org.openqa.selenium.WebElement el) {
+        org.openqa.selenium.Rectangle r = el.getRect();
+        DriverManager.getDriver().executeScript("mobile: tap", java.util.Map.of(
+                "x", r.x + r.width / 2, "y", r.y + r.height / 2));
+    }
+
     private boolean navigateToSettings() {
         // Strategy 1: Bottom tab bar "Settings" button — most reliable approach.
         // The tab bar contains buttons: Site, Assets, Connections, SLD, Settings
@@ -1689,12 +1667,12 @@ public final class OfflineTest extends BaseTest {
                 int y = btn.getLocation().getY();
                 if (y > 600) {
                     logStep("Found Settings tab bar button at Y=" + y);
-                    btn.click();
+                    pressCenter(btn); // click() no-ops on v1.50 tab buttons
                     mediumWait();
                     if (isSettingsScreenDisplayed()) {
                         return true;
                     }
-                    logWarning("Settings tab clicked but screen not detected — retrying");
+                    logWarning("Settings tab pressed but screen not detected — retrying");
                     shortWait();
                     if (isSettingsScreenDisplayed()) {
                         return true;
@@ -1705,7 +1683,7 @@ public final class OfflineTest extends BaseTest {
             // If no bottom tab found, try any Settings button
             if (!tabBarButtons.isEmpty()) {
                 logStep("Found Settings button via predicate search");
-                tabBarButtons.get(0).click();
+                pressCenter(tabBarButtons.get(0));
                 mediumWait();
                 if (isSettingsScreenDisplayed()) {
                     return true;
