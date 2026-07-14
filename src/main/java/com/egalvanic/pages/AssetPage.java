@@ -8005,7 +8005,12 @@ public class AssetPage extends BasePage {
                 // swallows element.click() — W3C press registers.
                 try {
                     org.openqa.selenium.Rectangle r = toggle.getRect();
-                    int cx = r.getX() + r.getWidth() / 2, cy = r.getY() + r.getHeight() / 2;
+                    // The accessibility element spans the WHOLE row (label +
+                    // counter + switch); a center press lands on dead text.
+                    // The switch thumb sits at the RIGHT EDGE — press there.
+                    int cx = r.getX() + r.getWidth() - Math.max(24, r.getHeight() / 2);
+                    int cy = r.getY() + r.getHeight() / 2;
+                    System.out.println("   pressing switch at right edge (" + cx + "," + cy + ") of rect " + r);
                     org.openqa.selenium.interactions.PointerInput finger =
                             new org.openqa.selenium.interactions.PointerInput(
                                     org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
