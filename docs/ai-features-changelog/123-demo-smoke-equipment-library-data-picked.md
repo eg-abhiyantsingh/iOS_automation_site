@@ -67,6 +67,37 @@ where sibling Engineering classes had already warmed the app state — a
 if its fixture path is exercised the same way. Exactly why new smoke picks get
 validated with a real dispatch before the suite is trusted for demos.
 
+## Follow-up (same day): v1.50 dashboard redesign broke the TC_JOB trio
+
+Validation runs 2–3 (29317875087, 29320492369) failed a DIFFERENT trio —
+TC_JOB_002/003/004 (changelog-122 picks), each after a full 180s wait +
+fallback (~213s). Triage sequence:
+
+1. First hypothesis (shared-tenant collision with the concurrent full-suite
+   run) was **falsified** by run 3: identical failure on a quiet tenant.
+2. The real cause was version drift: `chore(app): update Z Platform-QA to
+   v1.50` landed at 08:15 UTC — after run 1 (v1.49, trio PASSED) and before
+   runs 2–3 (v1.50, trio FAILED). The v1.50 dashboard redesign replaced the
+   No-Active-Job card with a 'Work Orders' quick-action tile.
+3. The failure screenshot (auto-attached) shows the tile RENDERED with its
+   badge — so `clickWorkOrderCard()`'s v1.50 predicate was wrong, not the
+   screen: `type == Button/Other AND visible == 1` never matched (SwiftUI
+   tiles surface as other element types and report visible=false).
+
+**Fix (SiteSelectionPage.clickWorkOrderCard):** match the tile on name/label
+only (`name CONTAINS 'Work Orders' OR label CONTAINS 'Work Orders'`), keep the
+y>120 + height>40 geometry guard (excludes the top "WO" status badge and the
+tile's inner label), and emit a one-shot `🔎 v1.50 tile probe` line listing
+type/geometry of every name match so any residual mismatch is diagnosable from
+the CI log in a single run. No-match behavior falls through to the legacy
+v1.49 path unchanged. This fixes every SiteVisit test that routes through the
+dashboard WO card, not just the smoke trio.
+
+**Triage lesson:** the same red (3 tests, ~213s each) had three candidate
+causes in one afternoon — composition effect, tenant collision, app-version
+drift. Only artifacts distinguished them: per-run failed-suite git records,
+run timestamps vs the app-bump commit, and the failure screenshot.
+
 ## Depth: what this teaches
 
 - **A canary and a smoke test are opposites.** A canary maximizes sensitivity to

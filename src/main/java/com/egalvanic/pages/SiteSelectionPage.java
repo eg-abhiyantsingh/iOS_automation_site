@@ -2803,23 +2803,47 @@ public class SiteSelectionPage extends BasePage {
         long deadline = System.currentTimeMillis()
                 + com.egalvanic.constants.AppConstants.SITE_DASHBOARD_WAIT_SEC * 1000L;
         boolean waitLogged = false;
+        boolean tileProbeLogged = false;
         while (System.currentTimeMillis() < deadline) {
             // v1.50: the No-Active-Job card is GONE — the dashboard redesign
             // replaced it with a 'Work Orders' quick-action tile (badge count
             // may fold into the name). Try the tile FIRST; the legacy WO-card
             // logic below stays as the v1.49 fallback.
+            // Run 29320492369 (failure-screenshot-proven): the tile RENDERS but the
+            // old type==Button/Other AND visible==1 constraints matched NOTHING for
+            // the full 180s budget — SwiftUI quick-action tiles can surface as other
+            // element types and report visible=false. Match on name/label only; the
+            // y>120 + height>40 geometry guard already excludes the top "WO" status
+            // badge and the tile's inner StaticText label.
             try {
                 java.util.List<WebElement> tiles = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeOther')"
                     // v1.50 folds the badge FIRST: name = "107, Work Orders" (DOM-dump-proven)
-                    + " AND (name CONTAINS 'Work Orders' OR label CONTAINS 'Work Orders') AND visible == 1"));
+                    "name CONTAINS 'Work Orders' OR label CONTAINS 'Work Orders'"));
                 for (WebElement tile : tiles) {
-                    if (tile.getLocation().getY() > 120 && tile.getSize().getHeight() > 40) {
-                        System.out.println("✅ Tapping v1.50 'Work Orders' quick-action tile: "
-                                + tile.getAttribute("name"));
-                        tile.click();
-                        return true;
+                    try {
+                        if (tile.getLocation().getY() > 120 && tile.getSize().getHeight() > 40) {
+                            System.out.println("✅ Tapping v1.50 'Work Orders' quick-action tile: "
+                                    + tile.getAttribute("name"));
+                            tile.click();
+                            return true;
+                        }
+                    } catch (Exception ignored) {}
+                }
+                if (!tileProbeLogged && !tiles.isEmpty()) {
+                    // One-shot evidence so a still-unmatched tile is diagnosable from
+                    // the CI log alone (type + geometry of every name/label match).
+                    StringBuilder probe = new StringBuilder("🔎 v1.50 tile probe: ")
+                            .append(tiles.size()).append(" 'Work Orders' match(es), none tappable:");
+                    for (WebElement t : tiles) {
+                        try {
+                            probe.append(" [").append(t.getAttribute("type"))
+                                 .append(" y=").append(t.getLocation().getY())
+                                 .append(" h=").append(t.getSize().getHeight())
+                                 .append(" '").append(t.getAttribute("name")).append("']");
+                        } catch (Exception ignored) {}
                     }
+                    System.out.println(probe);
+                    tileProbeLogged = true;
                 }
             } catch (Exception ignored) {}
             try {
