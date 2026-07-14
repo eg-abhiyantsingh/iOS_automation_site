@@ -98,6 +98,14 @@ causes in one afternoon — composition effect, tenant collision, app-version
 drift. Only artifacts distinguished them: per-run failed-suite git records,
 run timestamps vs the app-bump commit, and the failure screenshot.
 
+## Final verdict: GREEN
+
+Run 4 (29323264367, with the locator fix): **23/23 passed, 0 failed, 0
+skipped**. The CI log confirms all three TC_JOB tests took the new tile path
+("✅ Tapping v1.50 'Work Orders' quick-action tile: 107, Work Orders"),
+completing in ~12–16s each vs the previous 213s timeouts. The demo smoke
+suite is demo-ready on app v1.50.
+
 ## Depth: what this teaches
 
 - **A canary and a smoke test are opposites.** A canary maximizes sensitivity to
