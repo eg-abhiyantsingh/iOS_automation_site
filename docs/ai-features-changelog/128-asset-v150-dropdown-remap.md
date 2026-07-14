@@ -110,3 +110,17 @@ tests deferred):
 - DS_EAD_18 + FUSE_EAD_10 validation with sheet discipline: results appended.
 - Known debt: a compile-check pattern (`mvn | tail; echo $?`) masked one javac
   failure (missing isOptionSheetOpen) — one dead run; now using pipefail.
+
+## Final validation ledger (2026-07-14 evening)
+
+GREEN locally end-to-end: DS_EAD_10/11/12/14/17/18, FUSE_EAD_10/13,
+ATS_EAD_11 (Phase1 agent conversion validated live). Plus the label-hunt
+manual-drag fallback for WDA's intermittent "Failed to perform scroll with
+visible cell".
+
+KNOWN STRAGGLER — FUSE_EAD_19: not a locator/interaction gap (each of its four
+selects passes individually; run 16 applied 3 of 4 in one flow). Its failure
+mode is the giant-DOM WDA wedge: class-change-to-Fuse rebuilds the form and
+the next snapshot query times out client-side and kills the WDA session
+(runs 17/18/19, same signature). Needs the WDA-stability track (scoped
+class-chain queries / snapshot budget), not more remap work.

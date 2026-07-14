@@ -9145,6 +9145,23 @@ public class AssetPage extends BasePage {
                 label = findVisibleFieldLabel(fieldLabel);
             }
             if (label == null) {
+                // WDA's predicate-scroll intermittently throws "Failed to
+                // perform scroll with visible cell" on this lazy form (runs
+                // 17/18) — fall back to manual MIDDLE-x drags (work in both
+                // clean and dirty states) with a label check between each.
+                int wh = driver.manage().window().getSize().getHeight();
+                for (int d = 0; d < 6 && label == null; d++) {
+                    try {
+                        driver.executeScript("mobile: dragFromToForDuration", Map.of(
+                            "fromX", 220, "fromY", (int) (wh * 0.72), "toX", 220, "toY", (int) (wh * 0.35),
+                            "duration", 0.3));
+                    } catch (Exception ignored) {}
+                    sleep(500);
+                    label = findVisibleFieldLabel(fieldLabel);
+                }
+                if (label != null) System.out.println("   · label found via manual-drag fallback");
+            }
+            if (label == null) {
                 System.out.println("   ⚠️ field label '" + fieldLabel + "' never became visible");
                 dumpVisibleFormLabels();
                 dumpSource("/private/tmp/claude-501/-Users-abhiyantsingh-Downloads-iOS-automation-site/ba210b3e-faec-46c4-bbed-eb1cec075170/scratchpad/labelmiss-"
