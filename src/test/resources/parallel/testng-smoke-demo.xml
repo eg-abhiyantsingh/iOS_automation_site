@@ -1,12 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<suite time-out="480000" name="Demo Smoke (22 proven-stable tests)" verbose="0">
+<suite time-out="480000" name="Demo Smoke (24 proven-stable tests)" verbose="0">
     <!--
-    DEMO-READY SMOKE SUITE (changelog 122).
+    DEMO-READY SMOKE SUITE (changelogs 122 + 123).
     Selection rule: a test earns a slot ONLY if it (a) covers a critical user
-    journey, (b) PASSED in the latest full run 29135128275, and (c) runs fast
-    (<90s). Target: green in <15 min on every build, 100% stable. If a test
-    here flakes twice, it LEAVES the suite (stability is the product).
+    journey, (b) has a CLEAN record across the recent failed-suite history
+    (failed-suites/*.xml + git history of same-day overwrites), and (c) runs
+    fast (<90s). Target: green in <15 min on every build, 100% stable. If a
+    test here flakes twice, it LEAVES the suite (stability is the product).
+
+    Changelog 123 applied the rule to the Equipment Library block itself:
+    - OUT: TC_ENG_130 (flag-drift CANARY - deliberately ungated, fails loudly
+      when the eng-lib flag drifts; it did on 07-09 + 07-13. Right behavior,
+      wrong suite - it stays in the daily monitor/module suites).
+    - OUT: TC_ENG_004 (needs downloaded-library state; failed on the drift day).
+    - Library-match tests are EXCLUDED BY DESIGN here: the SKM library download
+      is 2-10 min on a fresh container vs the 360s GlobalTestTimeout default -
+      unstable by construction. That journey lives in testng-asset-engineer.xml.
+    - IN: 4 no-library Engineering tests with clean records across all 5 recent
+      failing runs (incl. the 07-08 systemic wipeout): TC_ENG_100/101 (settings
+      card + dialog contract), TC_ENG_040 (Add-Asset modes + class picker),
+      TC_ENG_070 (Mains Type enum picker journey).
     -->
     <listeners>
         <listener class-name="com.egalvanic.listeners.GlobalTestTimeout"/>
@@ -31,11 +45,21 @@
     </test>
     <test name="Smoke - Equipment Library">
         <classes>
-            <class name="com.egalvanic.tests.AssetEngineerFlagCanary_Test">
-                <methods><include name="TC_ENG_130_engLibFlagMatchesSettingsCardState"/></methods>
+            <!-- Light first: settings surface, no draft, no download needed (card asserts in ANY state). -->
+            <class name="com.egalvanic.tests.AssetEngineerSettings_Test">
+                <methods>
+                    <include name="TC_ENG_100_cardNameCompositionContract"/>
+                    <include name="TC_ENG_101_loadDialogReopensStably"/>
+                </methods>
             </class>
+            <!-- Add-Asset entry plumbing: Quick/Detailed modes + class picker; cancelled, no library. -->
             <class name="com.egalvanic.tests.AssetEngineer_Test">
-                <methods><include name="TC_ENG_004_verifyDownloadedStateSubtitleFormat"/></methods>
+                <methods><include name="TC_ENG_040_verifyAddAssetModesAndClassPicker"/></methods>
+            </class>
+            <!-- One real Engineering interaction: server-enum Mains Type picker sets the chip (Panelboard draft,
+                 cancelled). 070 never touches the fragile class-SWITCH path that makes its siblings 071-074 flaky. -->
+            <class name="com.egalvanic.tests.AssetEngineerMenus_Test">
+                <methods><include name="TC_ENG_070_mainsTypeOptionSelects"/></methods>
             </class>
         </classes>
     </test>
