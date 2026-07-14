@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite time-out="480000" name="Demo Smoke (22 proven-stable tests)" verbose="0">
+    <!--
+    DEMO-READY SMOKE SUITE (changelog 122).
+    Selection rule: a test earns a slot ONLY if it (a) covers a critical user
+    journey, (b) PASSED in the latest full run 29135128275, and (c) runs fast
+    (<90s). Target: green in <15 min on every build, 100% stable. If a test
+    here flakes twice, it LEAVES the suite (stability is the product).
+    -->
+    <listeners>
+        <listener class-name="com.egalvanic.listeners.GlobalTestTimeout"/>
+        <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
+    </listeners>
+
+    <test name="Smoke - Auth + Site">
+        <classes>
+            <class name="com.egalvanic.tests.AuthenticationTest">
+                <methods>
+                    <include name="TC01_verifyWelcomeScreenUILoads"/>
+                    <include name="TC25_verifyValidLoginNavigatesToDashboard"/>
+                </methods>
+            </class>
+            <class name="com.egalvanic.tests.SiteSelectionTest">
+                <methods>
+                    <include name="TC_SS_017_verifySitesButtonOnDashboard"/>
+                    <include name="TC_SS_018_verifySitesButtonOpensSelectSite"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+    <test name="Smoke - Equipment Library">
+        <classes>
+            <class name="com.egalvanic.tests.AssetEngineerFlagCanary_Test">
+                <methods><include name="TC_ENG_130_engLibFlagMatchesSettingsCardState"/></methods>
+            </class>
+            <class name="com.egalvanic.tests.AssetEngineer_Test">
+                <methods><include name="TC_ENG_004_verifyDownloadedStateSubtitleFormat"/></methods>
+            </class>
+        </classes>
+    </test>
+    <test name="Smoke - Arc Flash Readiness">
+        <classes>
+            <class name="com.egalvanic.tests.ArcFlash_Test">
+                <methods>
+                    <include name="TC_AF_003_readinessRingPercentInRange"/>
+                    <include name="TC_AF_004_statLineArithmetic"/>
+                    <include name="TC_AF_005_threeMetricCardsPresent"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+    <test name="Smoke - Assets">
+        <classes>
+            <class name="com.egalvanic.tests.Asset_Phase1_Test">
+                <methods>
+                    <include name="ATS_EAD_01_openEditAssetDetailsScreen"/>
+                    <include name="ATS_EAD_02_verifyCoreAttributesSection"/>
+                    <include name="ATS_ECR_37_verifyAssetAppearsInAssetList"/>
+                </methods>
+            </class>
+            <class name="com.egalvanic.tests.Asset_Phase6_Test">
+                <methods><include name="COM_01_verifyConditionOfMaintenanceOptionsDisplayed"/></methods>
+            </class>
+        </classes>
+    </test>
+    <test name="Smoke - Issues">
+        <classes>
+            <class name="com.egalvanic.tests.Issue_Phase1_Test">
+                <methods>
+                    <include name="TC_ISS_001_verifyIssuesScreenHeaderElements"/>
+                    <include name="TC_ISS_003_verifyFilterTabsDisplayed"/>
+                    <include name="TC_ISS_021_verifyAddButtonOpensNewIssue"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+    <test name="Smoke - Connections">
+        <classes>
+            <class name="com.egalvanic.tests.Connections_Test">
+                <methods>
+                    <include name="TC_CONN_002_verifyConnectionsScreenHeader"/>
+                    <include name="TC_CONN_014_verifyAddButtonOpensNewConnectionScreen"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+    <test name="Smoke - Work Orders + ZP323">
+        <classes>
+            <class name="com.egalvanic.tests.SiteVisit_phase1">
+                <methods>
+                    <include name="TC_JOB_002_verifyTapNoActiveJobOpensWorkOrdersScreen"/>
+                    <include name="TC_JOB_003_verifyWorkOrdersScreenHeader"/>
+                    <include name="TC_JOB_004_verifyStartNewWorkOrderButton"/>
+                </methods>
+            </class>
+            <class name="com.egalvanic.tests.ZP323_NewFeatures_Test">
+                <methods><include name="TC_ZP323_15_01_verifyScheduleSectionPresent"/></methods>
+            </class>
+        </classes>
+    </test>
+</suite>

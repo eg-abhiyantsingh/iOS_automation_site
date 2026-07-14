@@ -52,6 +52,11 @@ on:
         required: false
         default: false
         type: boolean
+      run_smoke_demo:
+        description: 'Demo Smoke — 22 proven-stable critical-journey tests, <15 min, must be 100% green'
+        required: false
+        default: false
+        type: boolean
       run_auth_site:
         description: 'Auth + Site Selection (login, site selection)'
         required: false
@@ -420,7 +425,7 @@ jobs:
             target/surefire-reports/
             reports/
             screenshots/
-          retention-days: 7
+          retention-days: 30
       - name: Send Module Email (smoke)
         if: always() && github.event.inputs.send_email != 'false'
         env:
@@ -695,7 +700,7 @@ jobs:
             target/surefire-reports/
             reports/
             screenshots/
-          retention-days: 7
+          retention-days: 30
       - name: Send Module Email (auth)
         if: always() && github.event.inputs.send_email != 'false'
         env:
@@ -849,7 +854,7 @@ jobs:
             target/surefire-reports/
             reports/
             screenshots/
-          retention-days: 7
+          retention-days: 30
       - name: Send Module Email (site)
         if: always() && github.event.inputs.send_email != 'false'
         env:
@@ -1005,7 +1010,7 @@ jobs:
             target/surefire-reports/
             reports/
             screenshots/
-          retention-days: 7
+          retention-days: 30
       - name: Send Module Email (assets-part1)
         if: always() && github.event.inputs.send_email != 'false'
         env:
@@ -1161,7 +1166,7 @@ jobs:
             target/surefire-reports/
             reports/
             screenshots/
-          retention-days: 7
+          retention-days: 30
       - name: Send Module Email (assets-part2)
         if: always() && github.event.inputs.send_email != 'false'
         env:
@@ -1316,7 +1321,7 @@ jobs:
             target/surefire-reports/
             reports/
             screenshots/
-          retention-days: 7
+          retention-days: 30
       - name: Send Module Email (assets-part3)
         if: always() && github.event.inputs.send_email != 'false'
         env:
@@ -1472,7 +1477,7 @@ jobs:
             target/surefire-reports/
             reports/
             screenshots/
-          retention-days: 7
+          retention-days: 30
       - name: Send Module Email (assets-part4)
         if: always() && github.event.inputs.send_email != 'false'
         env:
@@ -1629,7 +1634,7 @@ jobs:
             target/surefire-reports/
             reports/
             screenshots/
-          retention-days: 7
+          retention-days: 30
       - name: Send Module Email (assets-part5)
         if: always() && github.event.inputs.send_email != 'false'
         env:
@@ -1789,7 +1794,7 @@ jobs:
             target/surefire-reports/
             reports/
             screenshots/
-          retention-days: 7
+          retention-days: 30
       - name: Send Module Email (assets-part6)
         if: always() && github.event.inputs.send_email != 'false'
         env:
@@ -1943,7 +1948,7 @@ jobs:
             target/surefire-reports/
             reports/
             screenshots/
-          retention-days: 7
+          retention-days: 30
       - name: Send Module Email (issues-phase1)
         if: always() && github.event.inputs.send_email != 'false'
         env:
@@ -2097,7 +2102,7 @@ jobs:
             target/surefire-reports/
             reports/
             screenshots/
-          retention-days: 7
+          retention-days: 30
       - name: Send Module Email (issues-phase2)
         if: always() && github.event.inputs.send_email != 'false'
         env:
@@ -2251,7 +2256,7 @@ jobs:
             target/surefire-reports/
             reports/
             screenshots/
-          retention-days: 7
+          retention-days: 30
       - name: Send Module Email (issues-phase3)
         if: always() && github.event.inputs.send_email != 'false'
         env:
@@ -2419,7 +2424,7 @@ jobs:
             target/surefire-reports/
             reports/
             screenshots/
-          retention-days: 7
+          retention-days: 30
       - name: Send Module Email (location)
         if: always() && github.event.inputs.send_email != 'false'
         env:
@@ -2574,7 +2579,7 @@ jobs:
             target/surefire-reports/
             reports/
             screenshots/
-          retention-days: 7
+          retention-days: 30
       - name: Send Module Email (connections)
         if: always() && github.event.inputs.send_email != 'false'
         env:
@@ -2753,7 +2758,7 @@ jobs:
             target/surefire-reports/
             reports/
             screenshots/
-          retention-days: 7
+          retention-days: 30
       - name: Send Module Email (offline)
         if: always() && github.event.inputs.send_email != 'false'
         env:
@@ -3006,7 +3011,7 @@ jobs:
             target/surefire-reports/
             reports/
             screenshots/
-          retention-days: 7
+          retention-days: 30
       - name: Send Module Email (sitevisit)
         if: always() && github.event.inputs.send_email != 'false'
         env:
@@ -3159,7 +3164,7 @@ jobs:
             target/surefire-reports/
             reports/
             screenshots/
-          retention-days: 7
+          retention-days: 30
       - name: Send Module Email (workorder-planning)
         if: always() && github.event.inputs.send_email != 'false'
         env:
@@ -3310,7 +3315,7 @@ jobs:
             target/surefire-reports/
             reports/
             screenshots/
-          retention-days: 7
+          retention-days: 30
       - name: Send Module Email (zp323)
         if: always() && github.event.inputs.send_email != 'false'
         env:
@@ -3461,7 +3466,7 @@ jobs:
             target/surefire-reports/
             reports/
             screenshots/
-          retention-days: 7
+          retention-days: 30
       - name: Send Module Email (asset-engineer)
         if: always() && github.event.inputs.send_email != 'false'
         env:
@@ -3486,6 +3491,148 @@ jobs:
   # JOB 15b: Arc Flash — data-readiness dashboard + punchlist (19 tests)
   # NOT eng-lib gated; includes the eng-lib flag/UI canary (changelog 111)
   # ========================================
+  smoke-demo-tests:
+    name: "Demo Smoke (22 proven-stable tests)"
+    if: ${{ inputs.run_smoke_demo }}
+    runs-on: macos-15
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install Appium
+        run: |
+          npm install -g appium@next
+          appium driver install xcuitest
+      - name: Unzip App
+        run: |
+          unzip -o apps/Z-Platform-QA.zip -d apps/
+          if [ -d "apps/Z-Platform-QA.app" ] && [ ! -d "apps/Z Platform-QA.app" ]; then
+            mv "apps/Z-Platform-QA.app" "apps/Z Platform-QA.app"
+            echo "✅ Renamed Z-Platform-QA.app → Z Platform-QA.app"
+          fi
+      - name: Boot Simulator and Wait Until Ready
+        run: |
+          UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && UDID=$(xcrun simctl list devices available | grep -E "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && UDID=$(xcrun simctl list devices available | grep -E "iPhone 1[5-6]" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && exit 1
+          xcrun simctl shutdown "$UDID" 2>/dev/null || true
+          sleep 3
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+          ELAPSED=0
+          while [ $ELAPSED -lt 240 ]; do
+            if xcrun simctl list devices | grep "$UDID" | grep -q "(Booted)"; then
+              echo "✅ Simulator booted after ${ELAPSED}s"
+              xcrun simctl bootstatus "$UDID" -b 2>/dev/null || sleep 20
+              break
+            fi
+            sleep 5
+            ELAPSED=$((ELAPSED + 5))
+          done
+          [ $ELAPSED -ge 240 ] && exit 1
+          DEVICE=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
+          VERSION=$(xcrun simctl list devices available | grep -B 50 "$UDID" | grep "-- iOS" | tail -1 | sed 's/.*iOS \([0-9.]*\).*/\1/')
+          [ -z "$VERSION" ] && VERSION="18.5"
+          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+          echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
+          echo "PLATFORM_VERSION=$VERSION" >> $GITHUB_ENV
+      - name: Pre-install App
+        run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
+      - name: Pre-build WebDriverAgent
+        run: |
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
+          if [ -n "$WDA_PATH" ]; then
+            cd "$WDA_PATH"
+            xcodebuild build-for-testing -project WebDriverAgent.xcodeproj -scheme WebDriverAgentRunner -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" -derivedDataPath /tmp/wda-build -quiet || true
+          fi
+      - name: Start Appium Server
+        run: |
+          appium --relaxed-security --log-level error > appium.log 2>&1 &
+          for i in {1..60}; do
+            [ "$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:4723/status 2>/dev/null)" = "200" ] && break
+            sleep 2
+          done
+          sleep 3
+      - name: Warm-up WDA Session
+        env:
+          SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
+          APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
+        run: |
+          WDA_SUCCESS=false
+          for attempt in 1 2 3 4 5; do
+            SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session -H "Content-Type: application/json" -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"$SIMULATOR_UDID"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' --max-time 600 2>&1) || true
+            SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
+            if [ -n "$SESSION_ID" ]; then
+              sleep 3
+              curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true
+              sleep 5
+              WDA_SUCCESS=true
+              break
+            fi
+            [ $attempt -lt 5 ] && sleep 30
+          done
+
+          if [ "$WDA_SUCCESS" = false ]; then
+            echo ""
+            echo "❌ WDA warm-up FAILED after 5 attempts!"
+            echo "─── Appium log (last 50 lines) ───"
+            tail -50 appium.log 2>/dev/null || echo "(no appium log)"
+            echo "─── Simulator status ───"
+            xcrun simctl list devices | grep -A1 "Booted" || echo "(no booted sim)"
+            exit 1
+          fi
+      - name: Run Demo Smoke Tests
+        continue-on-error: true
+        run: |
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${{ github.workspace }}/apps/Z Platform-QA.app/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
+
+          mvn test -ntp -B -DfailIfNoTests=true -DsuiteXmlFile=src/test/resources/parallel/testng-smoke-demo.xml \
+            -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
+            -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
+            -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
+            -DAPP_BUNDLE_ID="$BUNDLE_ID" \
+            -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+      - name: Upload Arc Flash Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-demo-report
+          path: |
+            target/surefire-reports/
+            reports/
+            screenshots/
+          retention-days: 30
+      - name: Send Module Email (smoke-demo)
+        if: always() && github.event.inputs.send_email != 'false'
+        env:
+          SMTP_USER: ${{ secrets.EMAIL_USERNAME }}
+          SMTP_PASS: ${{ secrets.EMAIL_PASSWORD }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          MODULE_NAME: smoke-demo
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
+          export EMAIL_TO
+          python3 -m pip install --quiet --break-system-packages defusedxml || python3 -m pip install --quiet defusedxml
+          python3 .github/scripts/send-module-email.py
+        continue-on-error: true
+      - name: Test Result Gate
+        run: bash .github/scripts/test-result-gate.sh target/surefire-reports
+
   arc-flash-tests:
     name: "Arc Flash (34 tests)"
     if: ${{ inputs.run_all || inputs.run_arc_flash }}
@@ -3608,7 +3755,7 @@ jobs:
             target/surefire-reports/
             reports/
             screenshots/
-          retention-days: 7
+          retention-days: 30
       - name: Send Module Email (arc-flash)
         if: always() && github.event.inputs.send_email != 'false'
         env:
@@ -3775,7 +3922,7 @@ jobs:
             target/surefire-reports/
             reports/
             screenshots/
-          retention-days: 7
+          retention-days: 30
       - name: Send Module Email (arc-flash-ipad)
         if: always() && github.event.inputs.send_email != 'false'
         env:
@@ -3983,7 +4130,7 @@ jobs:
             target/surefire-reports/
             reports/
             screenshots/
-          retention-days: 7
+          retention-days: 30
       - name: Send Module Email (failures-rerun)
         if: always() && github.event.inputs.send_email != 'false'
         env:
