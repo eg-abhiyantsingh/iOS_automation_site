@@ -134,15 +134,21 @@ public class ArcFlashPage extends BasePage {
         return existsNow(LOADING_TEXT);
     }
 
-    /** Tap Done (nav-bar leading button) and verify the dashboard closed. */
+    /** Tap Done (nav-bar leading button) and verify the dashboard closed.
+     *  Press-verify-retry: a single press occasionally lands mid-animation
+     *  right after a metric switch and no-ops (TC_AF_061, full-suite run). */
     public boolean tapDone() {
-        try {
-            WebElement done = lastVisible(DONE_BUTTON);
-            if (done != null) pressElement(done);
-        } catch (Exception e) {
-            System.out.println("⚠️ tapDone: " + e.getMessage());
+        for (int attempt = 1; attempt <= 2; attempt++) {
+            try {
+                WebElement done = lastVisible(DONE_BUTTON);
+                if (done != null) pressElement(done);
+            } catch (Exception e) {
+                System.out.println("⚠️ tapDone (attempt " + attempt + "): " + e.getMessage());
+            }
+            if (isElementGone(NAV_TITLE_TEXT, 8) && isElementGone(READINESS_TEXT, 2)) return true;
+            System.out.println("⚠️ tapDone: dashboard still open after press " + attempt);
         }
-        return isElementGone(NAV_TITLE_TEXT, 8) && isElementGone(READINESS_TEXT, 2);
+        return false;
     }
 
     // ═════════════════════════════════ Readiness card ══════════════════
