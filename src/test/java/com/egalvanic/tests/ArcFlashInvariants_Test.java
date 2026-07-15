@@ -24,6 +24,20 @@ public class ArcFlashInvariants_Test extends BaseTest {
 
     private ArcFlashPage arcPage;
 
+    @org.testng.annotations.BeforeClass(alwaysRun = true)
+    public void arcInvariantsClassSetup() {
+        // Keep login/site across driver rebuilds — without this the class
+        // REINSTALLED the app and re-logged-in on EVERY test (noReset=false
+        // default): ~60-90s overhead per test and maximum exposure to
+        // login/site-selection flakiness (user-spotted, CI 2026-07-15).
+        DriverManager.setNoReset(true);
+    }
+
+    @org.testng.annotations.AfterClass(alwaysRun = true)
+    public void arcInvariantsClassTeardown() {
+        DriverManager.resetNoResetOverride();
+    }
+
     @BeforeMethod(alwaysRun = true)
     public void invariantsSetup() {
         if (!DriverManager.isDriverActive()) return;
