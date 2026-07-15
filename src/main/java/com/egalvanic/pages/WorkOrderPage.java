@@ -706,7 +706,16 @@ public class WorkOrderPage extends BasePage {
     public boolean tapActivateButton() {
         System.out.println("📍 Tapping Start button on first available work order...");
 
-        // Strategy 1: Button with label "Start" in list area
+        // Strategy 0 (v1.50, probe-verified): there ARE no per-row Start/
+        // Activate buttons — activation is row-tap + 'Start Work Order?'
+        // confirmation alert under manual alerts. This is what broke
+        // TC_JOB_010-014 (wave-7) and the arc-flash session fixtures.
+        if (startFirstAvailableWorkOrder()) {
+            System.out.println("✅ Activated via v1.50 Start-alert dance");
+            return true;
+        }
+
+        // Strategy 1: Button with label "Start" in list area (legacy v1.49)
         try {
             List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND label == 'Start'"
@@ -1047,18 +1056,45 @@ public class WorkOrderPage extends BasePage {
         // Should be on the Work Orders list at this point
         waitForWorkOrdersScreen();
 
+        // v1.50 (probe-verified): activating a WO returns to the SITE HOME —
+        // the session opens from the 'Active Work Order' banner there, NOT by
+        // re-tapping the list row (re-tap raises the Start alert again).
+        if (!hasActiveWorkOrderOnList()) {
+            System.out.println("📍 ensureSessionDetailsOpen: no active WO — activating first available (v1.50 dance)");
+            if (startFirstAvailableWorkOrder()) {
+                sleep(1500);
+                if (openActiveWorkOrderSession()) {
+                    System.out.println("✅ ensureSessionDetailsOpen: session opened via Active WO banner");
+                    return true;
+                }
+            }
+        } else {
+            // An active WO exists — go to the Site home banner and open it.
+            if (openActiveWorkOrderSession()) {
+                System.out.println("✅ ensureSessionDetailsOpen: session opened via Active WO banner");
+                return true;
+            }
+        }
+
+        // Legacy v1.49 path (Start buttons + ACTIVE badges + row tap).
         if (!isActiveBadgeDisplayed()) {
-            System.out.println("📍 ensureSessionDetailsOpen: no active WO — activating first available");
+            System.out.println("📍 ensureSessionDetailsOpen: legacy path — activating first available");
             tapActivateButton();
             sleep(1500);
         }
-        System.out.println("📍 ensureSessionDetailsOpen: opening the active work order");
+        System.out.println("📍 ensureSessionDetailsOpen: opening the active work order (legacy)");
         tapActiveWorkOrder();
         sleep(1200);
 
         boolean ok = waitForSessionDetailsScreen();
         if (!ok) System.out.println("⚠️ ensureSessionDetailsOpen: Session Details not reached");
         return ok;
+    }
+
+    /** v1.50: is an active WO indicated on the list/home? (banner caption). */
+    private boolean hasActiveWorkOrderOnList() {
+        return existsNow(AppiumBy.iOSNsPredicateString(
+            "type == 'XCUIElementTypeStaticText' AND name == 'Active Work Order'"));
     }
 
     /**
