@@ -889,13 +889,22 @@ public class SiteSelectionPage extends BasePage {
      */
     public String selectFirstSite() {
         try {
-            // Find first button that looks like a site (contains comma - indicating "name, address")
+            // Site rows carry name + address pieces (>= 2 commas). A bare
+            // single-comma match grabbed the DASHBOARD's '25, Assets' tile
+            // bleeding through the picker (probe 2026-07-15) — same rejection
+            // set as selectFirstSiteFast, kept in the predicate.
             WebElement firstSite = driver.findElement(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND name CONTAINS ','"
+                + " AND NOT (name BEGINSWITH[c] 'WO,')"
+                + " AND NOT (name CONTAINS[c] 'No Active Work Order')"
+                + " AND NOT (name CONTAINS[c] 'Tap to select')"
+                + " AND name MATCHES '(?s)[^,]*,[^,]*,.*'"
             ));
             String siteName = firstSite.getAttribute("name");
             System.out.println("✅ Selecting first site: " + siteName);
-            firstSite.click();
+            if (!pressSiteRowVerified(firstSite)) {
+                System.out.println("⚠️ site row press never dismissed the picker for '" + siteName + "'");
+            }
             return siteName;
         } catch (Exception e) {
             System.out.println("⚠️ Could not find first site directly, falling back to getAllSites");
