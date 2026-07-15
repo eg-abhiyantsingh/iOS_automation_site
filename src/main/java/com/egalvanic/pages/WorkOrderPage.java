@@ -1002,6 +1002,20 @@ public class WorkOrderPage extends BasePage {
             }
         } catch (Exception e) { /* continue */ }
 
+        // v1.50: the Active-WO banner opens SessionRoomDetailView, whose nav
+        // title is 'Assets in Room' + a session tab bar (Details/Assets/Tasks/
+        // Issues/IR/Files). These are the session surface too.
+        try {
+            boolean v150 = !driver.findElements(AppiumBy.iOSNsPredicateString(
+                "((type == 'XCUIElementTypeNavigationBar' OR type == 'XCUIElementTypeStaticText')"
+                + " AND name == 'Assets in Room')"
+                + " OR (type == 'XCUIElementTypeButton' AND name == 'IR' AND visible == 1)")).isEmpty();
+            if (v150) {
+                System.out.println("✅ Session Details screen detected (v1.50 room/tab surface)");
+                return true;
+            }
+        } catch (Exception e) { /* continue */ }
+
         // Fallback: INFORMATION header AND a Started/IR-Photo-Type field together
         // (both present is unique to the session Details tab, unlike a lone tile).
         try {
