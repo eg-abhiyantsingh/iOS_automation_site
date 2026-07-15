@@ -2,6 +2,7 @@ package com.egalvanic.pages;
 
 import com.egalvanic.base.BasePage;
 import com.egalvanic.constants.AppConstants;
+import io.appium.java_client.AppiumBy;
 import io.appium.java_client.pagefactory.iOSXCUITFindBy;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.interactions.PointerInput;
@@ -589,7 +590,21 @@ public void clickShowPassword() {
     public void tapSignIn() {
         dismissKeyboard();
         shortWait();
-        
+
+        // Approach 0 (v1.50): coordinate press — element.click() on SwiftUI
+        // buttons is the documented silent no-op family; the Sign In no-op
+        // left the app on the Login screen while the flow "succeeded"
+        // (CI run 29402715226 cascade, reproduced locally 2026-07-15).
+        try {
+            WebElement btn = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND (name == 'Sign In' OR label == 'Sign In') AND visible == 1"));
+            org.openqa.selenium.Rectangle r = btn.getRect();
+            driver.executeScript("mobile: tap", java.util.Map.of(
+                "x", r.x + r.width / 2, "y", r.y + r.height / 2));
+            System.out.println("✅ Sign In pressed (coordinate)");
+            return;
+        } catch (Exception e0) { /* fall through to legacy chain */ }
+
         // Approach 1: Direct click
         try {
             signInButton.click();

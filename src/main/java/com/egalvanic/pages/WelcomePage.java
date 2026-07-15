@@ -164,11 +164,20 @@ public class WelcomePage extends BasePage {
     }
 
     /**
-     * Click continue button with explicit wait
+     * Click continue button with explicit wait.
+     * v1.50: element.click() on SwiftUI buttons is the documented silent
+     * no-op family (Continue no-ops left flows stranded on Welcome — CI run
+     * 29402715226 / local probe 2026-07-15). Coordinate press first.
      */
     public void clickContinue() {
         waitForClickable(continueButton);
-        continueButton.click();
+        try {
+            org.openqa.selenium.Rectangle r = continueButton.getRect();
+            driver.executeScript("mobile: tap", java.util.Map.of(
+                "x", r.x + r.width / 2, "y", r.y + r.height / 2));
+        } catch (Exception e) {
+            continueButton.click();
+        }
     }
 
     /**

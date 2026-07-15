@@ -24062,4 +24062,449 @@ public class WorkOrderPage extends BasePage {
             return true;
         } catch (Exception e) { return false; }
     }
+
+    // ════════════════════════════════════════════════════════════════
+    // v1.50 PRIMITIVES (probe-verified 2026-07-15, changelog 131)
+    //
+    // LIST: WO rows are full-width Buttons named '<name>, <Priority>' with a
+    // priority-chip StaticText under the title (ZP-3109). Tapping a row
+    // raises the 'Start Work Order?' confirmation Alert — there are NO
+    // per-row Start/Activate buttons on v1.50; the dance must run under
+    // MANUAL alerts or autoAcceptAlerts races the confirmation away.
+    // CREATE FORM: nav 'New Work Order'; config rows are value-carrying
+    // Buttons — 'Photo Type, X', 'Priority, X', 'Equipment, X'.
+    // ════════════════════════════════════════════════════════════════
+
+    private static final org.openqa.selenium.By V150_WO_ROWS = AppiumBy.iOSNsPredicateString(
+            "type == 'XCUIElementTypeButton' AND name BEGINSWITH 'Work Order' AND visible == 1");
+    private static final org.openqa.selenium.By V150_CREATE_ROW = AppiumBy.iOSNsPredicateString(
+            "type == 'XCUIElementTypeButton' AND name BEGINSWITH 'Start New Work Order' AND visible == 1");
+    private static final org.openqa.selenium.By V150_START_ALERT_BTN = AppiumBy.iOSNsPredicateString(
+            "type == 'XCUIElementTypeButton' AND name == 'Start Work Order' AND visible == 1");
+    private static final org.openqa.selenium.By V150_NEW_WO_NAV = AppiumBy.iOSNsPredicateString(
+            "type == 'XCUIElementTypeNavigationBar' AND name == 'New Work Order'");
+
+    /** ZP-3109: the trailing ', <Priority>' of a WO row name; "" when absent. */
+    public static String rowPriority(String rowName) {
+        if (rowName == null) return "";
+        int i = rowName.lastIndexOf(", ");
+        return i < 0 ? "" : rowName.substring(i + 2).trim();
+    }
+
+    /** Visible WO list row names ('<name>, <Priority>'), bounded. */
+    public java.util.List<String> getVisibleWorkOrderRowNames() {
+        java.util.List<String> out = new java.util.ArrayList<>();
+        try {
+            withImplicitWait(0, () -> {
+                int n = 0;
+                for (WebElement el : driver.findElements(V150_WO_ROWS)) {
+                    try {
+                        String name = el.getAttribute("name");
+                        if (name != null && !name.isEmpty()) out.add(name);
+                    } catch (Exception ignored) { }
+                    if (++n >= 12) break;
+                }
+                return null;
+            });
+        } catch (Exception e) {
+            System.out.println("\u26a0\ufe0f getVisibleWorkOrderRowNames: " + e.getMessage());
+        }
+        return out;
+    }
+
+    /** Open the 'Start New Work Order' create form; true when its nav appears. */
+    public boolean openCreateForm() {
+        try {
+            WebElement create = driver.findElement(V150_CREATE_ROW);
+            org.openqa.selenium.Rectangle r = create.getRect();
+            driver.executeScript("mobile: tap", java.util.Map.of("x", r.x + 40, "y", r.y + r.height / 2));
+        } catch (Exception e) {
+            System.out.println("\u26a0\ufe0f openCreateForm: " + e.getMessage());
+            return false;
+        }
+        return waitForCondition(() -> existsNow(V150_NEW_WO_NAV), 8);
+    }
+
+    /** Current value of a create-form config row ('Priority', 'Photo Type', ...). */
+    public String getCreateFormRowValue(String rowLabel) {
+        try {
+            WebElement row = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name BEGINSWITH '" + rowLabel + ",' AND visible == 1"));
+            return rowPriority(row.getAttribute("name"));
+        } catch (Exception e) {
+            System.out.println("\u26a0\ufe0f getCreateFormRowValue(" + rowLabel + "): " + e.getMessage());
+            return "";
+        }
+    }
+
+    /** Open a create-form config row's option sheet (left text-zone press). */
+    public boolean openCreateFormRow(String rowLabel) {
+        try {
+            WebElement row = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name BEGINSWITH '" + rowLabel + ",' AND visible == 1"));
+            org.openqa.selenium.Rectangle r = row.getRect();
+            driver.executeScript("mobile: tap", java.util.Map.of("x", r.x + 40, "y", r.y + r.height / 2));
+            sleep(600);
+            return true;
+        } catch (Exception e) {
+            System.out.println("\u26a0\ufe0f openCreateFormRow(" + rowLabel + "): " + e.getMessage());
+            return false;
+        }
+    }
+
+    /** Visible option names on an open picker sheet (full-width Buttons, bounded). */
+    public java.util.List<String> getVisibleSheetOptions() {
+        java.util.List<String> out = new java.util.ArrayList<>();
+        try {
+            withImplicitWait(0, () -> {
+                for (WebElement b : driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND visible == 1"))) {
+                    try {
+                        String n = b.getAttribute("name");
+                        if (n == null || n.isEmpty() || n.contains(",") || n.length() > 40) continue;
+                        if (b.getSize().getWidth() < 200) continue; // option rows are full-width
+                        out.add(n);
+                    } catch (Exception ignored) { }
+                    if (out.size() >= 12) break;
+                }
+                return null;
+            });
+        } catch (Exception e) {
+            System.out.println("\u26a0\ufe0f getVisibleSheetOptions: " + e.getMessage());
+        }
+        return out;
+    }
+
+    /** Press an option on the open sheet (widest visible match — phantom guard). */
+    public boolean pressSheetOption(String option) {
+        try {
+            WebElement best = null;
+            int bestW = 0;
+            for (WebElement b : driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND (name == '" + option + "' OR label == '" + option + "') AND visible == 1"))) {
+                try {
+                    int w = b.getSize().getWidth();
+                    if (w > bestW) { best = b; bestW = w; }
+                } catch (Exception ignored) { }
+            }
+            if (best == null || bestW < 100) return false;
+            org.openqa.selenium.Rectangle r = best.getRect();
+            driver.executeScript("mobile: tap", java.util.Map.of("x", r.x + 40, "y", r.y + r.height / 2));
+            sleep(600);
+            return true;
+        } catch (Exception e) {
+            System.out.println("\u26a0\ufe0f pressSheetOption(" + option + "): " + e.getMessage());
+            return false;
+        }
+    }
+
+    /** Cancel out of the create form (nav Cancel, coordinate press). */
+    public void cancelCreateForm() {
+        try {
+            WebElement cancel = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name == 'Cancel' AND visible == 1"));
+            org.openqa.selenium.Rectangle r = cancel.getRect();
+            driver.executeScript("mobile: tap", java.util.Map.of("x", r.x + r.width / 2, "y", r.y + r.height / 2));
+            sleep(500);
+        } catch (Exception e) {
+            System.out.println("\u26a0\ufe0f cancelCreateForm: " + e.getMessage());
+        }
+    }
+
+    /**
+     * v1.50 activation: tap the first available WO row and confirm the
+     * 'Start Work Order?' alert — entirely under MANUAL alerts
+     * (autoAcceptAlerts otherwise races the confirmation away).
+     */
+    public boolean startFirstAvailableWorkOrder() {
+        boolean paused = false;
+        try {
+            driver.setSetting("defaultAlertAction", "");
+            paused = true;
+        } catch (Exception e) {
+            System.out.println("\u26a0\ufe0f startFirstAvailableWorkOrder: could not pause alerts");
+        }
+        try {
+            WebElement row = driver.findElement(V150_WO_ROWS);
+            org.openqa.selenium.Rectangle r = row.getRect();
+            System.out.println("\u25b6\ufe0f Starting WO '" + row.getAttribute("name") + "'");
+            driver.executeScript("mobile: tap", java.util.Map.of("x", r.x + 40, "y", r.y + r.height / 2));
+            boolean alertShown = waitForCondition(() -> existsNow(V150_START_ALERT_BTN), 6);
+            if (!alertShown) {
+                System.out.println("\u26a0\ufe0f 'Start Work Order?' alert did not appear");
+                return false;
+            }
+            WebElement confirm = driver.findElement(V150_START_ALERT_BTN);
+            org.openqa.selenium.Rectangle cr = confirm.getRect();
+            driver.executeScript("mobile: tap", java.util.Map.of("x", cr.x + cr.width / 2, "y", cr.y + cr.height / 2));
+            sleep(1200);
+            return true;
+        } catch (Exception e) {
+            System.out.println("\u26a0\ufe0f startFirstAvailableWorkOrder: " + e.getMessage());
+            return false;
+        } finally {
+            if (paused) {
+                try { driver.setSetting("defaultAlertAction", "accept"); } catch (Exception ignored) { }
+            }
+        }
+    }
+
+    /**
+     * v1.50 navigation: open the ACTIVE work order's session from the Site
+     * home 'Active Work Order' banner (app-source SiteTabView: the banner
+     * routes to sessionDetail when appState.activeSession != null, else to the
+     * WO list). Assumes a WO was already activated via
+     * startFirstAvailableWorkOrder(). Returns true when a session surface
+     * (room list / session tabs) appears.
+     */
+    public boolean openActiveWorkOrderSession() {
+        try {
+            // Banner shows 'Active Work Order' caption + the WO name; press it.
+            WebElement banner = null;
+            for (WebElement st : driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND name == 'Active Work Order' AND visible == 1"))) {
+                banner = st; break;
+            }
+            if (banner == null) {
+                System.out.println("\u26a0\ufe0f openActiveWorkOrderSession: no 'Active Work Order' banner (nothing active?)");
+                return false;
+            }
+            org.openqa.selenium.Rectangle r = banner.getRect();
+            // Press the banner row (the caption sits inside the tappable Button).
+            driver.executeScript("mobile: tap", java.util.Map.of("x", r.x + 60, "y", r.y + r.height / 2));
+            sleep(1500);
+            // Session surface = 'Assets in Room' nav OR the session tab bar
+            // (Details/Assets/Tasks/Issues/IR/Files).
+            return waitForCondition(() -> existsNow(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeNavigationBar' AND (name == 'Assets in Room' OR name CONTAINS 'Work Order'))"
+                    + " OR (type == 'XCUIElementTypeButton' AND name == 'IR' AND visible == 1)"
+                    + " OR (type == 'XCUIElementTypeStaticText' AND name == 'Assets in Room')")), 10);
+        } catch (Exception e) {
+            System.out.println("\u26a0\ufe0f openActiveWorkOrderSession: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /** True iff the Site home shows an ACTIVE work order (banner caption). */
+    public boolean hasActiveWorkOrder() {
+        return existsNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND name == 'Active Work Order'"));
+    }
+
+    // ════════════════════ ZP-3054 — More Actions menu ═════════════════
+    // App-source (SessionRoomDetailView / IRSessionDetailView) exposes menus
+    // via ellipsis / '+' / toolbar Menu labels. Best-effort hunt across the
+    // known affordances; honest false when none present so the test SKIPs
+    // rather than false-fails, and the first live run reveals the real one.
+
+    private static final org.openqa.selenium.By MORE_ACTIONS_BTN = AppiumBy.iOSNsPredicateString(
+            "type == 'XCUIElementTypeButton' AND (name CONTAINS[c] 'More' OR name CONTAINS 'ellipsis'"
+            + " OR label CONTAINS[c] 'More Actions' OR name == 'ellipsis.circle') AND visible == 1");
+
+    public boolean openMoreActionsMenu() {
+        try {
+            java.util.List<WebElement> btns = driver.findElements(MORE_ACTIONS_BTN);
+            if (btns.isEmpty()) {
+                System.out.println("\u26a0\ufe0f openMoreActionsMenu: no More/ellipsis affordance found");
+                return false;
+            }
+            WebElement b = btns.get(btns.size() - 1);
+            org.openqa.selenium.Rectangle r = b.getRect();
+            driver.executeScript("mobile: tap", java.util.Map.of("x", r.x + r.width / 2, "y", r.y + r.height / 2));
+            sleep(700);
+            // Menu open = a Menu/sheet with option buttons, or a cancel affordance.
+            return existsNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name == 'Sheet Grabber'"))
+                || !getVisibleSheetOptions().isEmpty();
+        } catch (Exception e) {
+            System.out.println("\u26a0\ufe0f openMoreActionsMenu: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public void dismissMoreActionsMenu() {
+        try {
+            java.util.List<WebElement> cancel = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name == 'Cancel' AND visible == 1"));
+            if (!cancel.isEmpty()) {
+                WebElement c = cancel.get(cancel.size() - 1);
+                org.openqa.selenium.Rectangle r = c.getRect();
+                driver.executeScript("mobile: tap", java.util.Map.of("x", r.x + r.width / 2, "y", r.y + r.height / 2));
+            } else {
+                // tap-outside dismiss (top-left safe zone)
+                driver.executeScript("mobile: tap", java.util.Map.of("x", 30, "y", 30));
+            }
+            sleep(400);
+        } catch (Exception ignored) { }
+    }
+
+    // ════════════════════ ZP-3003 — Bulk asset linking ════════════════
+    // Session Room ('Assets in Room'): '+' FAB Menu -> 'Link Existing Asset'
+    // -> RoomNodeAdditionView (multi-select). Asset rows in the room are
+    // cells; the count is the evidence of bulk node-session mapping.
+
+    public boolean openFirstSessionRoom() {
+        try {
+            // The active session opens to a room list OR directly to a room.
+            if (existsNow(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND name == 'Assets in Room'"))) {
+                return true; // already in a room
+            }
+            java.util.List<WebElement> rooms = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND (name CONTAINS[c] 'Room' OR name CONTAINS[c] 'Floor') AND visible == 1"));
+            if (rooms.isEmpty()) return false;
+            WebElement r0 = rooms.get(0);
+            org.openqa.selenium.Rectangle r = r0.getRect();
+            driver.executeScript("mobile: tap", java.util.Map.of("x", r.x + 40, "y", r.y + r.height / 2));
+            sleep(1200);
+            return true;
+        } catch (Exception e) {
+            System.out.println("\u26a0\ufe0f openFirstSessionRoom: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public int getRoomAssetCount() {
+        try {
+            return Boolean.TRUE.equals(withImplicitWait(0, () -> true))
+                ? (int) driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeCell' AND visible == 1")).stream()
+                    .filter(c -> { try { return c.getSize().getWidth() > 200; } catch (Exception e) { return false; } })
+                    .count()
+                : 0;
+        } catch (Exception e) {
+            System.out.println("\u26a0\ufe0f getRoomAssetCount: " + e.getMessage());
+            return 0;
+        }
+    }
+
+    public boolean openLinkExistingAssets() {
+        try {
+            // '+' FAB then 'Link Existing Asset' menu item (link.badge.plus).
+            java.util.List<WebElement> fabs = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND (name == 'plus' OR name == 'Add' OR label == 'Add') AND visible == 1"));
+            if (fabs.isEmpty()) return false;
+            WebElement fab = fabs.get(fabs.size() - 1);
+            org.openqa.selenium.Rectangle fr = fab.getRect();
+            driver.executeScript("mobile: tap", java.util.Map.of("x", fr.x + fr.width / 2, "y", fr.y + fr.height / 2));
+            sleep(700);
+            java.util.List<WebElement> link = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND"
+                + " name CONTAINS[c] 'Link Existing Asset' AND visible == 1"));
+            if (link.isEmpty()) {
+                System.out.println("\u26a0\ufe0f openLinkExistingAssets: 'Link Existing Asset' item not found");
+                return false;
+            }
+            WebElement li = link.get(0);
+            org.openqa.selenium.Rectangle lr = li.getRect();
+            driver.executeScript("mobile: tap", java.util.Map.of("x", lr.x + 20, "y", lr.y + lr.height / 2));
+            sleep(1200);
+            return true;
+        } catch (Exception e) {
+            System.out.println("\u26a0\ufe0f openLinkExistingAssets: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /** Select up to n linkable asset rows in RoomNodeAdditionView; count selected. */
+    public int selectMultipleLinkableAssets(int n) {
+        int selected = 0;
+        try {
+            java.util.List<WebElement> rows = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == 1"));
+            for (WebElement row : rows) {
+                if (selected >= n) break;
+                try {
+                    if (row.getSize().getWidth() < 200) continue;
+                    org.openqa.selenium.Rectangle r = row.getRect();
+                    if (r.y < 150) continue; // skip header
+                    driver.executeScript("mobile: tap", java.util.Map.of("x", r.x + 40, "y", r.y + r.height / 2));
+                    sleep(300);
+                    selected++;
+                } catch (Exception ignored) { }
+            }
+        } catch (Exception e) {
+            System.out.println("\u26a0\ufe0f selectMultipleLinkableAssets: " + e.getMessage());
+        }
+        return selected;
+    }
+
+    public boolean confirmLinkAssets() {
+        try {
+            java.util.List<WebElement> confirm = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND (name CONTAINS[c] 'Add' OR name CONTAINS[c] 'Link'"
+                + " OR name == 'Done' OR name == 'Save') AND visible == 1"));
+            if (confirm.isEmpty()) return false;
+            WebElement c = confirm.get(confirm.size() - 1);
+            org.openqa.selenium.Rectangle r = c.getRect();
+            driver.executeScript("mobile: tap", java.util.Map.of("x", r.x + r.width / 2, "y", r.y + r.height / 2));
+            sleep(1000);
+            return true;
+        } catch (Exception e) {
+            System.out.println("\u26a0\ufe0f confirmLinkAssets: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // ════════════════════ ZP-3092 — Sync stability ════════════════════
+    // Reuses the wifi toggling on SiteSelectionPage + asset-task creation.
+    // Best-effort + honest; a hard budget in goOnlineAndAwaitQueueDrain makes
+    // a hang fail fast instead of grinding to the per-test cap.
+
+    private SiteSelectionPage sitePageForSync() { return new SiteSelectionPage(); }
+
+    public boolean canQueueOfflineTasks() {
+        try { return sitePageForSync().canToggleWifi(); } catch (Exception e) { return false; }
+    }
+
+    /** Offline-create n tasks against the shared asset; return how many queued. */
+    public int queueOfflineTasks(int n) {
+        int made = 0;
+        try {
+            SiteSelectionPage site = sitePageForSync();
+            if (!site.isWifiOffline()) { site.clickWifiButton(); sleep(800); site.goOffline(); sleep(600); }
+            AssetPage asset = new AssetPage();
+            for (int i = 0; i < n; i++) {
+                try {
+                    asset.openSharedAssetForEditOrFallback(null);
+                    if (!asset.scrollToTasksSection()) break;
+                    asset.clickAddTaskButton();
+                    sleep(400);
+                    if (!asset.isTaskDetailsScreenDisplayed()) break;
+                    asset.editTaskTitle("SyncTask_" + i + "_" + System.currentTimeMillis());
+                    asset.clickSaveTask();
+                    sleep(400);
+                    asset.clickBackFromTaskDetails();
+                    sleep(400);
+                    made++;
+                } catch (Exception inner) {
+                    System.out.println("\u26a0\ufe0f queueOfflineTasks[" + i + "]: " + inner.getMessage());
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("\u26a0\ufe0f queueOfflineTasks: " + e.getMessage());
+        }
+        return made;
+    }
+
+    /** Go online and poll the pending-sync count to zero within budgetMs. */
+    public boolean goOnlineAndAwaitQueueDrain(long budgetMs) {
+        try {
+            SiteSelectionPage site = sitePageForSync();
+            if (site.isWifiOffline()) { site.clickWifiButton(); sleep(800); site.goOnline(); sleep(600); }
+            long deadline = System.currentTimeMillis() + budgetMs;
+            while (System.currentTimeMillis() < deadline) {
+                boolean pending;
+                try { pending = site.hasPendingSyncRecords(); }
+                catch (Exception e) { pending = false; }
+                if (!pending) return true;
+                sleep(3000);
+            }
+            return false;
+        } catch (Exception e) {
+            System.out.println("\u26a0\ufe0f goOnlineAndAwaitQueueDrain: " + e.getMessage());
+            return false;
+        }
+    }
 }

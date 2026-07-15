@@ -299,8 +299,11 @@ public class SiteSelectionPage extends BasePage {
                     }
                 } catch (Exception ignored) {}
                 try {
+                    // 'Welcome to <site>' is the DASHBOARD header. Bare
+                    // BEGINSWITH 'Welcome' also matched the LOGIN Welcome
+                    // screen (probe 2026-07-15) — a false dashboard signal.
                     java.util.List<WebElement> welcome = driver.findElements(
-                        AppiumBy.iOSNsPredicateString("label BEGINSWITH 'Welcome' OR name BEGINSWITH 'Welcome'"));
+                        AppiumBy.iOSNsPredicateString("label BEGINSWITH 'Welcome to' OR name BEGINSWITH 'Welcome to'"));
                     if (!welcome.isEmpty()) {
                         return "Welcome header visible";
                     }
@@ -936,8 +939,9 @@ public class SiteSelectionPage extends BasePage {
             }
             if (!rows.isEmpty()) {
                 String name = rows.get(0).getAttribute("name");
-                rows.get(0).click();
-                waitForSitePickerDismissed();
+                if (!pressSiteRowVerified(rows.get(0))) {
+                    System.out.println("⚠️ site row press never dismissed the picker for '" + name + "'");
+                }
                 return name;
             }
             // Fallback: client-side rejection scan (kept in case MATCHES
@@ -958,8 +962,9 @@ public class SiteSelectionPage extends BasePage {
                 if (lower.equals("xmark.circle.fill")) continue;
                 // Must look like a site: name + address pieces (≥2 commas)
                 if (name.indexOf(',') == name.lastIndexOf(',')) continue;
-                btn.click();
-                waitForSitePickerDismissed();
+                if (!pressSiteRowVerified(btn)) {
+                    System.out.println("⚠️ site row press never dismissed the picker for '" + name + "'");
+                }
                 return name;
             }
             System.out.println("⚠️ Fast site select found no valid site row, falling back");
@@ -976,12 +981,32 @@ public class SiteSelectionPage extends BasePage {
      * sleep — typically a couple hundred ms, 3s worst case.
      * waitForDashboardReady() handles the rest of the loading wait.
      */
-    private void waitForSitePickerDismissed() {
-        withImplicitWait(0, () -> Waits.until(() -> driver.findElements(
+    private boolean waitForSitePickerDismissed() {
+        Boolean gone = withImplicitWait(0, () -> Waits.until(() -> driver.findElements(
             AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeSearchField') AND " +
                 "(placeholderValue CONTAINS[c] 'search' OR value CONTAINS[c] 'search')")).isEmpty(),
             3000));
+        return Boolean.TRUE.equals(gone);
+    }
+
+    /** Press a site row LEFT-zone by coordinates, verify the picker dismissed,
+     *  retry once at center. element.click() on v1.50 rows is the documented
+     *  silent no-op family — it left every CI job stranded on the picker
+     *  (run 29402715226 suite-wide cascade, reproduced locally 2026-07-15). */
+    private boolean pressSiteRowVerified(WebElement row) {
+        try {
+            org.openqa.selenium.Rectangle r = row.getRect();
+            driver.executeScript("mobile: tap", java.util.Map.of("x", r.x + 40, "y", r.y + r.height / 2));
+            if (waitForSitePickerDismissed()) return true;
+            System.out.println("⚠️ site row left-zone press didn't dismiss the picker — retrying at center");
+            driver.executeScript("mobile: tap", java.util.Map.of("x", r.x + r.width / 2, "y", r.y + r.height / 2));
+            return waitForSitePickerDismissed();
+        } catch (Exception e) {
+            System.out.println("⚠️ pressSiteRowVerified: " + e.getMessage());
+            try { row.click(); } catch (Exception ignored) { }
+            return waitForSitePickerDismissed();
+        }
     }
 
     /**
