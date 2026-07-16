@@ -206,3 +206,20 @@ normal SwiftUI nesting — **not filed as a product bug without stronger evidenc
 - **Frequency:** intermittent — canary passed the 2026-07-13 iPhone and iPad runs on the same build.
 - **Impact:** field users can lose the Engineering Library (and other gated features) for a session on a flaky network despite entitlement.
 - **Suggested dev fix:** retry/refresh feature flags after a failed fetch; surface a transient state instead of the "not enabled for your company" message when the fetch (not the entitlement) failed.
+
+## CONN-VAL-01 (candidate, 2026-07-16) — Connection creatable WITHOUT Target Node → "Not Assigned" debris rows
+
+**Evidence (TC_CONN_041, v1.50 local):** with a Source selected and Target Node
+deliberately left empty, the Create button reads ENABLED, tapping it submits,
+and the form dismisses back to the Connections list — i.e., the connection is
+created with no target. Independently corroborated by the "Not Assigned →
+Not Assigned" rows visible at the top of the Connections list (iPad artifact
+screenshot, run 29402715226) — exactly the debris this validation gap would
+produce, and our own regression runs may have been generating them.
+
+**Expected:** Create disabled (or a validation error) until BOTH Source and
+Target are selected — parity with the web behavior.
+
+**Test:** TC_CONN_041_verifyCreateDisabledWithoutTargetNode asserts the
+correct contract and stays RED until the validation lands — this failure is
+the test doing its job, not an automation bug.
