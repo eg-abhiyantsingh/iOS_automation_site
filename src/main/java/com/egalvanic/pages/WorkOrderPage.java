@@ -1137,6 +1137,26 @@ public class WorkOrderPage extends BasePage {
             System.out.println("✅ ensureSessionDetailsOpen: already on Session Details");
             return true;
         }
+        // The SITE HOME false-positives the 'Work Orders' header probe (its
+        // quick-action tile is '109, Work Orders') — probe 2026-07-16. If an
+        // active WO exists, its banner is on the site home already; otherwise
+        // hop to the real WO list via the quick-action tile before hunting rows.
+        if (existsNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND name == 'Quick Actions' AND visible == 1"))
+                && !hasActiveWorkOrderOnList()) {
+            try {
+                WebElement tile = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND visible == 1 AND "
+                    + "(name ENDSWITH ', Work Orders' OR name == 'Work Orders')"));
+                org.openqa.selenium.Rectangle tr = tile.getRect();
+                driver.executeScript("mobile: tap", java.util.Map.of(
+                    "x", tr.x + tr.width / 2, "y", tr.y + tr.height / 2));
+                sleep(1200);
+                System.out.println("📍 ensureSessionDetailsOpen: hopped site home → Work Orders list");
+            } catch (Exception e) {
+                System.out.println("⚠️ ensureSessionDetailsOpen: WO tile hop failed: " + e.getMessage());
+            }
+        }
         // Should be on the Work Orders list at this point
         waitForWorkOrdersScreen();
 
@@ -2426,19 +2446,25 @@ public class WorkOrderPage extends BasePage {
             System.out.println("✅ Already inside a room (v1.50 'Assets in Room')");
             return true;
         }
-        // v1.50: on the session tab surface, rooms live under the session's
-        // ASSETS tab (mid-screen TabButton, not the app tab bar) — hop there.
+        // v1.50: on the session surface, rooms live under the session's ASSETS
+        // tab. The session tab strip (Details/Assets/Tasks/Issues/IR/Files)
+        // renders at the BOTTOM (y≈868, where the app tab bar was — probe
+        // 2026-07-16), so don't band on y: identify the strip by its unique
+        // 'IR' sibling at the same height as the 'Assets' button.
         try {
+            List<WebElement> irTabs = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name == 'IR' AND visible == 1"));
+            int irY = irTabs.isEmpty() ? -999 : irTabs.get(0).getLocation().getY();
             List<WebElement> assetsTabs = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND name == 'Assets' AND visible == 1"));
             for (WebElement t : assetsTabs) {
                 int y = t.getLocation().getY();
-                if (y > 120 && y < 400) { // session tab strip, not app tab bar (~900)
+                if (irY > 0 && Math.abs(y - irY) < 30) { // same strip as the 'IR' tab
                     org.openqa.selenium.Rectangle r = t.getRect();
                     driver.executeScript("mobile: tap", java.util.Map.of(
                         "x", r.x + r.width / 2, "y", r.y + r.height / 2));
                     sleep(1000);
-                    System.out.println("✅ Hopped to session Assets tab (v1.50)");
+                    System.out.println("✅ Hopped to session Assets tab (v1.50, strip y=" + y + ")");
                     break;
                 }
             }
@@ -24225,8 +24251,14 @@ public class WorkOrderPage extends BasePage {
     // Buttons — 'Photo Type, X', 'Priority, X', 'Equipment, X'.
     // ════════════════════════════════════════════════════════════════
 
+    // Rows are Buttons named '<wo name>, <Priority>'. Default WOs begin with
+    // 'Work Order', but user-named ones don't (probe: 'test job, Medium') —
+    // the trailing priority suffix is the reliable signature for those.
     private static final org.openqa.selenium.By V150_WO_ROWS = AppiumBy.iOSNsPredicateString(
-            "type == 'XCUIElementTypeButton' AND name BEGINSWITH 'Work Order' AND visible == 1");
+            "type == 'XCUIElementTypeButton' AND visible == 1 AND "
+            + "NOT name BEGINSWITH 'Priority' AND "
+            + "(name BEGINSWITH 'Work Order' OR name ENDSWITH ', Low' OR "
+            + "name ENDSWITH ', Medium' OR name ENDSWITH ', High' OR name ENDSWITH ', Critical')");
     private static final org.openqa.selenium.By V150_CREATE_ROW = AppiumBy.iOSNsPredicateString(
             "type == 'XCUIElementTypeButton' AND name BEGINSWITH 'Start New Work Order' AND visible == 1");
     private static final org.openqa.selenium.By V150_START_ALERT_BTN = AppiumBy.iOSNsPredicateString(

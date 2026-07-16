@@ -3773,21 +3773,52 @@ public class ConnectionsPage {
             System.out.println("👆 Selecting Connection Type: " + typeName);
             sleep(300);
 
+            String optionPredicate =
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeCell' OR " +
+                "type == 'XCUIElementTypeOther') AND visible == 1 AND " +
+                "(label ==[c] '" + typeName + "' OR label CONTAINS[c] '" + typeName + "' OR " +
+                "name CONTAINS[c] '" + typeName + "')";
+
+            // The option sheet may not be open yet (callers like the TC_CONN_097
+            // path invoke this directly on the New Connection form). If no option
+            // row for the type is visible, open the Connection Type dropdown first.
+            if (findFirstNow(AppiumBy.iOSNsPredicateString(optionPredicate)) == null) {
+                System.out.println("  Type option not visible — opening Connection Type dropdown first");
+                tapOnConnectionTypeField();
+                sleep(400);
+            }
+
             // Strategy 1: SwiftUI Sheet picker — option rows are XCUIElementTypeOther
             // / Button / Cell carrying the type label (the v1.36+ menu pattern).
-            // Prefer a tappable container over a bare StaticText so the tap lands.
-            WebElement optionRow = findFirstNow(AppiumBy.iOSNsPredicateString(
-                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeCell' OR " +
-                "type == 'XCUIElementTypeOther') AND " +
-                "(label ==[c] '" + typeName + "' OR label CONTAINS[c] '" + typeName + "' OR " +
-                "name CONTAINS[c] '" + typeName + "')"));
+            // Pick the WIDEST visible match (phantom twins carry bogus geometry)
+            // and press its LEFT zone — full-width rows have a Spacer dead zone
+            // at center that swallows presses.
+            List<WebElement> optionRows = findAllNow(AppiumBy.iOSNsPredicateString(optionPredicate));
+            WebElement optionRow = null;
+            int bestW = 0;
+            for (WebElement cand : optionRows) {
+                try {
+                    org.openqa.selenium.Rectangle r = cand.getRect();
+                    if (r.width > bestW) { bestW = r.width; optionRow = cand; }
+                } catch (Exception ignored) {}
+            }
             if (optionRow != null) {
                 try {
-                    w3cPress(optionRow);
+                    org.openqa.selenium.Rectangle r = optionRow.getRect();
+                    int tx = r.x + Math.min(40, Math.max(20, r.width / 2));
+                    int ty = r.y + r.height / 2;
+                    driver.executeScript("mobile: tap", java.util.Map.of("x", tx, "y", ty));
                     sleep(200);
-                    System.out.println("✓ Selected Connection Type (sheet row): " + typeName);
+                    System.out.println("✓ Selected Connection Type (sheet row @" + tx + "," + ty + "): " + typeName);
                     return true;
-                } catch (Exception ignored) {}
+                } catch (Exception e1) {
+                    try {
+                        w3cPress(optionRow);
+                        sleep(200);
+                        System.out.println("✓ Selected Connection Type (sheet row, w3c): " + typeName);
+                        return true;
+                    } catch (Exception ignored) {}
+                }
             }
 
             // Strategy 2: Exact label match on any element type.
@@ -9068,10 +9099,13 @@ public class ConnectionsPage {
      */
     public boolean isCoreAttributesSectionVisible() {
         try {
+            // v1.50 renamed the section 'Edge Properties' (probe 2026-07-16:
+            // header + 0/N counter + 'Required fields only' toggle + type-specific
+            // fields like 'Length (ft)' / 'Conductor Material' for Cable).
             WebElement section = driver.findElement(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND " +
                 "(label == 'CORE ATTRIBUTES' OR label == 'Core Attributes' OR label == 'CUSTOM ATTRIBUTES' OR label == 'Custom Attributes' OR " +
-                "label CONTAINS[c] 'core attribute')"));
+                "label == 'Edge Properties' OR label CONTAINS[c] 'core attribute')"));
             return section.isDisplayed();
         } catch (Exception e) {
             return false;
@@ -9108,7 +9142,7 @@ public class ConnectionsPage {
             int sectionY = -1;
             try {
                 WebElement header = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND (label == 'CORE ATTRIBUTES' OR label == 'CUSTOM ATTRIBUTES')"));
+                    "type == 'XCUIElementTypeStaticText' AND (label == 'CORE ATTRIBUTES' OR label == 'CUSTOM ATTRIBUTES' OR label == 'Edge Properties')"));
                 sectionY = header.getLocation().y;
             } catch (Exception ignored) {}
 

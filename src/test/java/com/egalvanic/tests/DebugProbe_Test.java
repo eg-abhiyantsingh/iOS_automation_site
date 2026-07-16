@@ -260,4 +260,159 @@ public class DebugProbe_Test extends BaseTest {
             System.out.println("PROBE: New Issue form dumped");
         } catch (Exception e) { System.out.println("PROBE: form dump failed: " + e.getMessage()); }
     }
+
+    @Test
+    public void PROBE_connTypeCableForm() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_CONNECTIONS,
+            AppConstants.FEATURE_CREATE_CONNECTION,
+            "PROBE - v1.50 New Connection form after selecting type 'Cable'"
+        );
+        String dir = "/private/tmp/claude-501/-Users-abhiyantsingh-Downloads-iOS-automation-site/ba210b3e-faec-46c4-bbed-eb1cec075170/scratchpad";
+        io.appium.java_client.ios.IOSDriver d = com.egalvanic.utils.DriverManager.getDriver();
+
+        loginAndSelectSite();
+        com.egalvanic.pages.ConnectionsPage cp = new com.egalvanic.pages.ConnectionsPage();
+        cp.navigateToConnectionsScreen();
+        mediumWait();
+        cp.tapOnAddButton();
+        mediumWait();
+
+        cp.tapOnConnectionTypeField();
+        mediumWait();
+        try {
+            java.nio.file.Files.writeString(java.nio.file.Path.of(dir + "/conn-type-sheet.xml"), d.getPageSource());
+            System.out.println("PROBE: type sheet dumped");
+        } catch (Exception e) { System.out.println("PROBE: sheet dump failed: " + e.getMessage()); }
+
+        boolean sel = cp.selectConnectionType("Cable");
+        System.out.println("PROBE: selectConnectionType(Cable) = " + sel);
+        mediumWait();
+        try {
+            java.nio.file.Files.writeString(java.nio.file.Path.of(dir + "/conn-form-after-cable.xml"), d.getPageSource());
+            System.out.println("PROBE: post-Cable form dumped");
+        } catch (Exception e) { System.out.println("PROBE: form dump failed: " + e.getMessage()); }
+
+        // One scroll down in case CORE ATTRIBUTES renders below the fold
+        try {
+            d.executeScript("mobile: scroll", java.util.Map.of("direction", "down"));
+            mediumWait();
+            java.nio.file.Files.writeString(java.nio.file.Path.of(dir + "/conn-form-after-cable-scrolled.xml"), d.getPageSource());
+            System.out.println("PROBE: post-Cable scrolled form dumped");
+        } catch (Exception e) { System.out.println("PROBE: scroll dump failed: " + e.getMessage()); }
+    }
+
+    @Test
+    public void PROBE_issueDetailsAnatomy() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ISSUES,
+            AppConstants.FEATURE_ISSUES_LIST,
+            "PROBE - v1.50 Issue Details anatomy (class/status/subcategory/photos/delete)"
+        );
+        String dir = "/private/tmp/claude-501/-Users-abhiyantsingh-Downloads-iOS-automation-site/ba210b3e-faec-46c4-bbed-eb1cec075170/scratchpad";
+        io.appium.java_client.ios.IOSDriver d = com.egalvanic.utils.DriverManager.getDriver();
+
+        loginAndSelectSite();
+        com.egalvanic.pages.IssuePage ip = new com.egalvanic.pages.IssuePage();
+        ip.navigateToIssuesScreen();
+        mediumWait();
+        boolean opened = ip.tapFirstIssue();
+        System.out.println("PROBE: tapFirstIssue = " + opened);
+        longWait();
+        try {
+            java.nio.file.Files.writeString(java.nio.file.Path.of(dir + "/issue-details-1-top.xml"), d.getPageSource());
+            System.out.println("PROBE: details top dumped");
+        } catch (Exception e) { System.out.println("PROBE: dump1 failed: " + e.getMessage()); }
+
+        // Class dropdown open + dump
+        boolean classOpen = ip.openIssueClassDropdown();
+        System.out.println("PROBE: openIssueClassDropdown = " + classOpen);
+        mediumWait();
+        try {
+            java.nio.file.Files.writeString(java.nio.file.Path.of(dir + "/issue-details-2-classdd.xml"), d.getPageSource());
+            System.out.println("PROBE: class dropdown dumped");
+        } catch (Exception e) { System.out.println("PROBE: dump2 failed: " + e.getMessage()); }
+        // dismiss whatever opened
+        try { d.executeScript("mobile: tap", java.util.Map.of("x", 200, "y", 100)); } catch (Exception ignored) {}
+        mediumWait();
+
+        // Status dropdown open + dump
+        boolean statusOpen = ip.openStatusDropdown();
+        System.out.println("PROBE: openStatusDropdown = " + statusOpen);
+        mediumWait();
+        try {
+            java.nio.file.Files.writeString(java.nio.file.Path.of(dir + "/issue-details-3-statusdd.xml"), d.getPageSource());
+            System.out.println("PROBE: status dropdown dumped");
+        } catch (Exception e) { System.out.println("PROBE: dump3 failed: " + e.getMessage()); }
+        try { d.executeScript("mobile: tap", java.util.Map.of("x", 200, "y", 100)); } catch (Exception ignored) {}
+        mediumWait();
+
+        // Scroll to bottom in two steps, dumping each (photos / delete / save zones)
+        for (int i = 1; i <= 2; i++) {
+            try {
+                d.executeScript("mobile: scroll", java.util.Map.of("direction", "down"));
+                mediumWait();
+                java.nio.file.Files.writeString(java.nio.file.Path.of(dir + "/issue-details-4-scroll" + i + ".xml"), d.getPageSource());
+                System.out.println("PROBE: details scroll" + i + " dumped");
+            } catch (Exception e) { System.out.println("PROBE: scroll" + i + " dump failed: " + e.getMessage()); }
+        }
+    }
+
+    @Test
+    public void PROBE_sessionRoomSurface() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_JOBS,
+            AppConstants.FEATURE_SESSION_DETAILS,
+            "PROBE - v1.50 session surface room anatomy (AF_024/025 skips)"
+        );
+        String dir = "/private/tmp/claude-501/-Users-abhiyantsingh-Downloads-iOS-automation-site/ba210b3e-faec-46c4-bbed-eb1cec075170/scratchpad";
+        io.appium.java_client.ios.IOSDriver d = com.egalvanic.utils.DriverManager.getDriver();
+
+        loginAndSelectSite();
+        com.egalvanic.pages.WorkOrderPage wp = new com.egalvanic.pages.WorkOrderPage();
+        boolean open = wp.ensureSessionDetailsOpen();
+        System.out.println("PROBE: ensureSessionDetailsOpen = " + open);
+        longWait();
+        try {
+            java.nio.file.Files.writeString(java.nio.file.Path.of(dir + "/session-surface-1.xml"), d.getPageSource());
+            System.out.println("PROBE: session surface 1 dumped");
+        } catch (Exception e) { System.out.println("PROBE: surface-1 dump failed: " + e.getMessage()); }
+
+        // Hop to the session Assets tab — press-verify-retry: center press first,
+        // then the label StaticText below the strip (probe 1: center no-opped).
+        try {
+            String before = d.getPageSource();
+            org.openqa.selenium.WebElement tab = d.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name == 'Assets' AND visible == 1"));
+            org.openqa.selenium.Rectangle r = tab.getRect();
+            System.out.println("PROBE: 'Assets' tab rect x=" + r.x + " y=" + r.y + " w=" + r.width + " h=" + r.height);
+            d.executeScript("mobile: tap", java.util.Map.of("x", r.x + r.width / 2, "y", r.y + r.height / 2));
+            longWait();
+            String after = d.getPageSource();
+            if (after.length() == before.length()) {
+                System.out.println("PROBE: center press no-opped — pressing label StaticText");
+                org.openqa.selenium.WebElement lbl = d.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND name == 'Assets' AND visible == 1 AND rect.y > 800"));
+                org.openqa.selenium.Rectangle lr = lbl.getRect();
+                d.executeScript("mobile: tap", java.util.Map.of("x", lr.x + lr.width / 2, "y", lr.y + lr.height / 2));
+                longWait();
+                after = d.getPageSource();
+                if (after.length() == before.length()) {
+                    System.out.println("PROBE: label press ALSO no-opped — trying w3c click on button");
+                    tab.click();
+                    longWait();
+                }
+            }
+            java.nio.file.Files.writeString(java.nio.file.Path.of(dir + "/session-surface-2-assets.xml"), d.getPageSource());
+            System.out.println("PROBE: session surface 2 (Assets tab) dumped");
+        } catch (Exception e) { System.out.println("PROBE: surface-2 dump failed: " + e.getMessage()); }
+
+        // One scroll down — room rows may be below the fold
+        try {
+            d.executeScript("mobile: scroll", java.util.Map.of("direction", "down"));
+            mediumWait();
+            java.nio.file.Files.writeString(java.nio.file.Path.of(dir + "/session-surface-3-scrolled.xml"), d.getPageSource());
+            System.out.println("PROBE: session surface 3 (scrolled) dumped");
+        } catch (Exception e) { System.out.println("PROBE: surface-3 dump failed: " + e.getMessage()); }
+    }
 }
