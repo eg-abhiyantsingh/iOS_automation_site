@@ -377,17 +377,22 @@ public class ArcFlashPage extends BasePage {
         return false;
     }
 
-    /** Open the tab's ellipsis menu; true when at least one menu row appeared. */
+    /** Open the tab's ellipsis menu; true when at least one menu row appeared.
+     *  Press-verify-retry: a single press occasionally misses on CI runners
+     *  (TC_AF_093 'punchlist option must be present', run 29419337314). */
     public boolean openEllipsisMenu() {
-        try {
-            WebElement el = lastVisible(ELLIPSIS_MENU);
-            if (el == null) return false;
-            pressElement(el);
-            return waitForCondition(() -> isPunchlistOptionVisible(), 5);
-        } catch (Exception e) {
-            System.out.println("⚠️ openEllipsisMenu: " + e.getMessage());
-            return false;
+        for (int attempt = 1; attempt <= 2; attempt++) {
+            try {
+                WebElement el = lastVisible(ELLIPSIS_MENU);
+                if (el == null) return false;
+                pressElement(el);
+                if (waitForCondition(() -> isPunchlistOptionVisible(), 5)) return true;
+                System.out.println("⚠️ openEllipsisMenu: menu rows not visible after press " + attempt);
+            } catch (Exception e) {
+                System.out.println("⚠️ openEllipsisMenu (attempt " + attempt + "): " + e.getMessage());
+            }
         }
+        return false;
     }
 
     public boolean isPunchlistOptionVisible() {
