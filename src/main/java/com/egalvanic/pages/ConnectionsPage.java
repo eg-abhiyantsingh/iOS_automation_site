@@ -2584,30 +2584,53 @@ public class ConnectionsPage {
 
             String escapedName = pickedName.replace("'", "\\'");
 
-            // Search field is ABOVE the ScrollView — always accessible, no scroll-back needed
+            // The picker list is LAZY — off-screen assets are NOT in the DOM,
+            // so search must actually land. The old last-field heuristic could
+            // type into a bleed-through field BEHIND the sheet (name never
+            // appeared → 'not found after search', 036 runs). Type into each
+            // visible field from last to first and VERIFY the name rendered.
+            boolean filtered = false;
             try {
                 List<WebElement> allFields = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeSearchField' OR type == 'XCUIElementTypeTextField'"));
+                    "(type == 'XCUIElementTypeSearchField' OR type == 'XCUIElementTypeTextField') AND visible == 1"));
                 if (allFields.isEmpty()) throw new RuntimeException("No search field found");
-                WebElement searchField = allFields.get(allFields.size() - 1); // last = active dropdown's field
-                searchField.click();
-                sleep(150);
-                searchField.clear();
-                searchField.sendKeys(pickedName);
-                sleep(500);
-                try { driver.hideKeyboard(); } catch (Exception e) {}
-                sleep(200);
+                for (int i = allFields.size() - 1; i >= 0 && !filtered; i--) {
+                    try {
+                        WebElement f = allFields.get(i);
+                        f.click();
+                        sleep(150);
+                        f.clear();
+                        f.sendKeys(pickedName);
+                        sleep(600);
+                        try { driver.hideKeyboard(); } catch (Exception e) {}
+                        sleep(200);
+                        filtered = !driver.findElements(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeStaticText' AND label CONTAINS '" + escapedName + "' AND visible == 1"))
+                            .isEmpty();
+                        if (!filtered) {
+                            System.out.println("   ⚠️ field " + i + " didn't filter the picker — trying next");
+                            try { f.clear(); } catch (Exception ignored) {}
+                        }
+                    } catch (Exception fieldEx) { /* try next field */ }
+                }
             } catch (Exception e) {
                 System.out.println("   ⚠️ Search field error: " + e.getMessage());
             }
 
-            // Find and click the asset (labels have padding spaces, use CONTAINS)
+            // Find and press the asset (labels have padding spaces, use CONTAINS)
             List<WebElement> matches = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND label CONTAINS '" + escapedName + "'"));
+                "type == 'XCUIElementTypeStaticText' AND label CONTAINS '" + escapedName + "' AND visible == 1"));
+            if (matches.isEmpty()) {
+                matches = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND label CONTAINS '" + escapedName + "'"));
+            }
             if (matches.isEmpty()) {
                 throw new RuntimeException("Could not find asset '" + pickedName + "' in dropdown after search");
             }
-            matches.get(0).click(); // first match = filtered dropdown result
+            // coordinate press — click() no-ops on v1.50 rows
+            org.openqa.selenium.Rectangle mr = matches.get(0).getRect();
+            driver.executeScript("mobile: tap", java.util.Map.of(
+                "x", mr.x + Math.max(20, mr.width / 2), "y", mr.y + mr.height / 2));
 
             sleep(300);
             lastSelectedAssetName = pickedName;
@@ -4366,39 +4389,27 @@ public class ConnectionsPage {
         try {
             System.out.println("🔽 Tapping on Target Node dropdown...");
 
-            // Strategy 0 (wave-5 parity with Source Node): press the wide row
-            // below the 'Target Node' label — width filter excludes the QR
-            // button; left-zone press dodges the HStack Spacer dead zone.
+            // The Target Node row sits BELOW the fold after Source selection —
+            // native scroll-to-label first (coordinate drags are unreliable and
+            // whole-DOM fallback hunts at session implicit wait wedged WDA to
+            // death, TC_CONN_036 run 2026-07-16).
             try {
-                WebElement label0 = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND label == 'Target Node'"));
-                int labelY0 = label0.getLocation().getY();
-                List<WebElement> rows0 = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeOther' OR type == 'XCUIElementTypeCell')"
-                    + " AND visible == 1"));
-                WebElement best0 = null; int bestW0 = 0;
-                for (WebElement r : rows0) {
-                    try {
-                        int dy = r.getLocation().getY() - labelY0;
-                        if (dy <= 0 || dy >= 140) continue;
-                        int w = r.getSize().getWidth();
-                        if (w < 200) continue;
-                        if (w > bestW0) { best0 = r; bestW0 = w; }
-                    } catch (Exception stale) { /* list re-rendered — skip element */ }
+                if (driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND label == 'Target Node' AND visible == 1")).isEmpty()) {
+                    driver.executeScript("mobile: scroll", java.util.Map.of(
+                        "predicateString", "type == 'XCUIElementTypeStaticText' AND label == 'Target Node'",
+                        "toVisible", true));
+                    sleep(600);
                 }
-                if (best0 != null) {
-                    org.openqa.selenium.Rectangle r0 = best0.getRect();
-                    driver.executeScript("mobile: tap", java.util.Map.of(
-                        "x", r0.x + 40, "y", r0.y + r0.height / 2));
-                    sleep(400);
-                    System.out.println("✓ Pressed Target Node row left-zone ('" + best0.getAttribute("label") + "', w=" + bestW0 + ")");
-                    return true;
-                }
-            } catch (Exception e0) {
-                System.out.println("   strategy 0 miss: " + e0.getMessage());
+            } catch (Exception scrollEx) {
+                System.out.println("   scroll-to-Target-Node: " + scrollEx.getMessage());
             }
 
-            // Strategy 1: Look for "Select target" text
+            // Strategy 1 FIRST: the 'Select target node' placeholder press —
+            // cheap and it's what actually lands (Source's flow succeeds via
+            // its placeholder too). The old broad (Button|Other|Cell) visible
+            // scan with per-element getRect KILLED WDA on the giant form DOM
+            // (TC_CONN_036 runs 2026-07-16) and is deleted.
             try {
                 WebElement selectTarget = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "(label CONTAINS 'Select target' OR label CONTAINS 'target node' OR name == 'Select target')"));
@@ -4407,6 +4418,22 @@ public class ConnectionsPage {
                 System.out.println("✓ W3C-pressed 'Select target node' dropdown");
                 return true;
             } catch (Exception e1) {}
+
+            // Strategy 1b: label + fixed-offset coordinate press (row sits
+            // ~30-50pt below its label on these SwiftUI forms) — one bounded
+            // query, zero broad scans.
+            try {
+                WebElement label0 = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND label == 'Target Node' AND visible == 1"));
+                org.openqa.selenium.Rectangle lr = label0.getRect();
+                driver.executeScript("mobile: tap", java.util.Map.of(
+                    "x", lr.x + 40, "y", lr.y + lr.height + 28));
+                sleep(400);
+                System.out.println("✓ Coordinate-pressed Target Node row (label+offset)");
+                return true;
+            } catch (Exception e0) {
+                System.out.println("   label+offset miss: " + e0.getMessage());
+            }
 
             // Strategy 2: Look for Target Node field/button
             try {
