@@ -1242,6 +1242,16 @@ public class IssuePage extends BasePage {
     public void selectIssueClass(String className) {
         System.out.println("📋 Selecting Issue Class: " + className);
 
+        // v1.50 Issue DETAILS: class row → bottom sheet → option Button press.
+        // (Never ensureNewIssueFormOpen here — phantom Add presses strand the
+        // test on Status History.)
+        if (isOnIssueDetails()) {
+            if (openDetailsRowSheet("Issue Class") && pressSheetOptionButton(className)) {
+                return;
+            }
+            System.out.println("⚠️ v1.50 details class sheet path failed — falling through");
+        }
+
         // Self-heal: the Issue Class picker is inside the New Issue form.
         ensureNewIssueFormOpen();
 
@@ -1262,7 +1272,12 @@ public class IssuePage extends BasePage {
                 "type == 'XCUIElementTypeMenuItem' OR type == 'XCUIElementTypeOther')";
             boolean selected = false;
             for (int attempt = 1; attempt <= 3 && !selected; attempt++) {
-                // Try exact match first
+                // v1.50 sheet path first (full-width option Buttons, coordinate press)
+                if (pressSheetOptionButton(className)) {
+                    selected = true;
+                    break;
+                }
+                // Try exact match
                 try {
                     List<WebElement> options = driver.findElements(AppiumBy.iOSNsPredicateString(
                         typeFilter + " AND label == '" + className + "'"));
@@ -1328,6 +1343,16 @@ public class IssuePage extends BasePage {
     public void selectPriority(String priority) {
         System.out.println("📋 Selecting Priority: " + priority);
 
+        // Self-heal: the priority row lives on the New Issue form — tests like
+        // TC_ISS_038-040 call this without opening the form first. Only heal
+        // when NOT already on a form/details surface that carries the row.
+        if (findPriorityRowValueText() == null
+                && !existsNow(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND name == 'Issue Details' AND visible == 1"))) {
+            ensureNewIssueFormOpen();
+            sleep(400);
+        }
+
         // CRITICAL: Dismiss keyboard — selectPriority() is called right after enterIssueTitle()
         // which uses sendKeys() and leaves the keyboard open. Without dismissing, the Priority
         // picker button is behind the keyboard and invisible to the accessibility tree.
@@ -1337,6 +1362,21 @@ public class IssuePage extends BasePage {
         try {
             // ===== OPEN PRIORITY PICKER (3 strategies) =====
             boolean pickerOpened = false;
+
+            // Strategy 0 (v1.50): the row has NO 'Priority' label on the create
+            // form — icon exclamationmark.circle + value text + chevron.down.
+            // Press the value text (left zone of the row).
+            try {
+                WebElement rowValue = findPriorityRowValueText();
+                if (rowValue != null) {
+                    org.openqa.selenium.Rectangle r = rowValue.getRect();
+                    driver.executeScript("mobile: tap", java.util.Map.of(
+                        "x", r.x + Math.max(10, r.width / 2), "y", r.y + r.height / 2));
+                    sleep(600);
+                    pickerOpened = true;
+                    System.out.println("   Opened Priority picker (v1.50 icon-adjacent row)");
+                }
+            } catch (Exception ignored) {}
 
             // Strategy 1: Direct button match (case-insensitive)
             try {
@@ -1409,15 +1449,26 @@ public class IssuePage extends BasePage {
                 "type == 'XCUIElementTypeMenuItem' OR type == 'XCUIElementTypeOther')";
             boolean selected = false;
             for (int attempt = 1; attempt <= 3 && !selected; attempt++) {
-                // Try exact match first
+                // Try exact match first — coordinate press on the WIDEST visible
+                // match (click() no-ops on v1.50 sheet rows; phantom twins carry
+                // bogus geometry).
                 try {
                     List<WebElement> options = driver.findElements(AppiumBy.iOSNsPredicateString(
-                        typeFilter + " AND label == '" + priority + "'"));
-                    if (!options.isEmpty()) {
-                        options.get(0).click();
+                        typeFilter + " AND label == '" + priority + "' AND visible == 1"));
+                    WebElement best = null; int bestW = 0;
+                    for (WebElement o : options) {
+                        try {
+                            int w = o.getRect().width;
+                            if (w > bestW) { bestW = w; best = o; }
+                        } catch (Exception ignored) {}
+                    }
+                    if (best != null) {
+                        org.openqa.selenium.Rectangle r = best.getRect();
+                        driver.executeScript("mobile: tap", java.util.Map.of(
+                            "x", r.x + Math.min(40, Math.max(15, r.width / 2)), "y", r.y + r.height / 2));
                         sleep(300);
                         selected = true;
-                        System.out.println("✅ Selected Priority: " + priority);
+                        System.out.println("✅ Selected Priority: " + priority + " (coordinate)");
                         break;
                     }
                 } catch (Exception ignored) {}
@@ -1425,9 +1476,9 @@ public class IssuePage extends BasePage {
                 // Try case-insensitive CONTAINS
                 try {
                     List<WebElement> options = driver.findElements(AppiumBy.iOSNsPredicateString(
-                        typeFilter + " AND label CONTAINS[c] '" + priority + "'"));
+                        typeFilter + " AND label CONTAINS[c] '" + priority + "' AND visible == 1"));
                     if (!options.isEmpty()) {
-                        options.get(0).click();
+                        pressElementCenter(options.get(0));
                         sleep(300);
                         selected = true;
                         System.out.println("✅ Selected Priority: " + priority + " (contains match)");
@@ -2480,6 +2531,13 @@ public class IssuePage extends BasePage {
      * Returns true if dropdown opened successfully.
      */
     public boolean openIssueClassDropdown() {
+        // v1.50 Issue DETAILS: the class picker is a bottom sheet opened from
+        // the 'Issue Class' row. Do NOT ensureNewIssueFormOpen here — on the
+        // details screen that presses phantom Add buttons and strands the test
+        // on the Status History sheet (probe 2026-07-16).
+        if (isOnIssueDetails()) {
+            return openDetailsRowSheet("Issue Class");
+        }
         // Self-heal: the Issue Class picker lives inside the New Issue form, so the
         // form must be open first (many tests relied on it being open but never
         // opened it — see ensureNewIssueFormOpen()).
@@ -2492,20 +2550,16 @@ public class IssuePage extends BasePage {
      * @param option The option text to look for (e.g., "NEC Violation")
      */
     public boolean isDropdownOptionDisplayed(String option) {
-        try {
-            WebElement optBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND label == '" + option + "'"));
-            return optBtn.isDisplayed();
-        } catch (Exception e) {
-            // Fallback: check static text (some menus render options as text)
-            try {
-                WebElement optText = driver.findElement(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND label == '" + option + "'"));
-                return optText.isDisplayed();
-            } catch (Exception e2) {
-                return false;
-            }
+        // visible==1 in the PREDICATE, not first-match isDisplayed(): the list
+        // screen's hidden filter-tab twins ('In Progress' etc., visible=false)
+        // come first in DOM order and shadow the real sheet buttons.
+        if (existsNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == '" + option + "' AND visible == 1"))) {
+            return true;
         }
+        // Fallback: check static text (some menus render options as text)
+        return existsNow(AppiumBy.iOSNsPredicateString(
+            "type == 'XCUIElementTypeStaticText' AND label == '" + option + "' AND visible == 1"));
     }
 
     /**
@@ -2523,6 +2577,16 @@ public class IssuePage extends BasePage {
      * Used when verifying dropdown options without selecting one.
      */
     public void dismissDropdownMenu() {
+        // v1.50 bottom sheets carry their own Cancel — use it; a blind tap at
+        // 85% height lands ON the sheet's lower options and selects one.
+        try {
+            WebElement cancel = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name == 'Cancel' AND visible == 1 AND rect.y > 300"));
+            pressElementCenter(cancel);
+            sleep(400);
+            System.out.println("✅ Dismissed sheet via its Cancel button");
+            return;
+        } catch (Exception ignored) {}
         try {
             // Get screen dimensions for dynamic coordinate calculation.
             // CRITICAL: Never tap at Y < 120 — that's the iOS nav bar zone
@@ -3353,16 +3417,17 @@ public class IssuePage extends BasePage {
     public String getIssueDetailStatus() {
         try {
             // Look for status badge text — known statuses
-            String[] statuses = {"Open", "In Progress", "Resolved", "Closed"};
+            String[] statuses = {"Open", "In Progress", "Pending", "Resolved", "Closed"};
             for (String status : statuses) {
                 try {
-                    WebElement badge = driver.findElement(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeStaticText' AND label == '" + status + "'"));
-                    int y = badge.getLocation().getY();
-                    // Status badge is in the header area (not filter tabs which are higher)
-                    if (y > 150 && y < 400) {
-                        System.out.println("   Issue status: " + status);
-                        return status;
+                    for (WebElement badge : driver.findElements(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeStaticText' AND label == '" + status + "' AND visible == 1"))) {
+                        int y = badge.getLocation().getY();
+                        // Status badge is in the header area (not filter tabs which are higher)
+                        if (y > 150 && y < 400) {
+                            System.out.println("   Issue status: " + status);
+                            return status;
+                        }
                     }
                 } catch (Exception ignored) {}
             }
@@ -3489,11 +3554,78 @@ public class IssuePage extends BasePage {
         }
     }
 
+    /** True when the Issue DETAILS screen is frontmost (nav title check). */
+    public boolean isOnIssueDetails() {
+        return existsNow(AppiumBy.iOSNsPredicateString(
+            "type == 'XCUIElementTypeStaticText' AND name == 'Issue Details' AND visible == 1"));
+    }
+
+    /**
+     * v1.50 Issue Details rows ('Status', 'Issue Class', 'Subcategory', …) are
+     * 'label StaticText + control ~38px below'; pressing the control opens a
+     * BOTTOM SHEET titled with the same label (Cancel button + option Buttons)
+     * — probe 2026-07-16. Presses the control row and verifies the sheet.
+     */
+    public boolean openDetailsRowSheet(String rowLabel) {
+        for (int attempt = 0; attempt < 2; attempt++) {
+            try {
+                WebElement lbl = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND label == '" + rowLabel + "' AND visible == 1"));
+                org.openqa.selenium.Rectangle r = lbl.getRect();
+                int ty = r.y + (attempt == 0 ? 38 : 50);
+                driver.executeScript("mobile: tap", java.util.Map.of("x", r.x + 30, "y", ty));
+                sleep(700);
+                boolean sheetOpen = existsNow(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND name == 'Cancel' AND visible == 1 AND rect.y > 300"));
+                if (sheetOpen) {
+                    System.out.println("✅ Opened '" + rowLabel + "' sheet (v1.50 details row)");
+                    return true;
+                }
+                System.out.println("   '" + rowLabel + "' row press attempt " + (attempt + 1) + " — no sheet yet");
+            } catch (Exception e) {
+                System.out.println("   openDetailsRowSheet('" + rowLabel + "') attempt " + (attempt + 1) + ": " + e.getMessage());
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Press an option Button on an open v1.50 bottom sheet (widest visible
+     * match, left-zone coordinate press — click() no-ops on sheet rows).
+     */
+    public boolean pressSheetOptionButton(String option) {
+        try {
+            List<WebElement> opts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == '" + option + "' AND visible == 1"));
+            WebElement best = null; int bestW = 0;
+            for (WebElement o : opts) {
+                try {
+                    org.openqa.selenium.Rectangle r = o.getRect();
+                    if (r.y > 300 && r.width > bestW) { bestW = r.width; best = o; }
+                } catch (Exception ignored) {}
+            }
+            if (best == null) return false;
+            org.openqa.selenium.Rectangle r = best.getRect();
+            driver.executeScript("mobile: tap", java.util.Map.of(
+                "x", r.x + Math.min(40, Math.max(15, r.width / 2)), "y", r.y + r.height / 2));
+            sleep(600);
+            System.out.println("✅ Pressed sheet option: " + option);
+            return true;
+        } catch (Exception e) {
+            System.out.println("⚠️ pressSheetOptionButton('" + option + "'): " + e.getMessage());
+            return false;
+        }
+    }
+
     /**
      * Open Status dropdown on Issue Details screen.
      * The status picker button shows current status.
      */
     public boolean openStatusDropdown() {
+        // Strategy 0 (v1.50): details row → bottom sheet.
+        if (isOnIssueDetails() && openDetailsRowSheet("Status")) {
+            return true;
+        }
         try {
             // Strategy 1: Button with current status value
             WebElement picker = driver.findElement(AppiumBy.iOSNsPredicateString(
@@ -3538,6 +3670,10 @@ public class IssuePage extends BasePage {
      */
     public void selectStatus(String status) {
         System.out.println("📋 Selecting status: " + status);
+        // v1.50: options are full-width sheet Buttons — coordinate press.
+        if (pressSheetOptionButton(status)) {
+            return;
+        }
         try {
             WebElement option = driver.findElement(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND label == '" + status + "'"));
@@ -3631,6 +3767,27 @@ public class IssuePage extends BasePage {
     public String getIssueClassOnDetails() {
         String result = findIssueClassPickerValue();
         if (!result.isEmpty()) return result;
+
+        // v1.50 details: value StaticText ~36px below the 'Issue Class' label
+        // (probe 2026-07-16: label y=651, value 'NEC Violation' y=687).
+        try {
+            WebElement lbl = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label == 'Issue Class' AND visible == 1"));
+            int ly = lbl.getLocation().getY();
+            for (WebElement t : driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND visible == 1 AND "
+                    + "(label CONTAINS 'Violation' OR label CONTAINS 'Anomaly' OR "
+                    + "label CONTAINS 'Repair' OR label CONTAINS 'Replacement')"))) {
+                try {
+                    int ty = t.getLocation().getY();
+                    if (ty > ly && ty - ly < 70) {
+                        String v = t.getAttribute("label");
+                        System.out.println("   Issue Class on details (v1.50 row value): '" + v + "'");
+                        return v == null ? "" : v.trim();
+                    }
+                } catch (Exception ignored) {}
+            }
+        } catch (Exception ignored) {}
 
         System.out.println("⚠️ Issue Class picker not found on details screen");
         return "";
@@ -3759,6 +3916,17 @@ public class IssuePage extends BasePage {
      * Expected UI: toggle with count like "0/1".
      */
     public boolean isRequiredFieldsToggleDisplayed() {
+        // v1.50: the toggle sits under 'Issue Properties' BELOW the fold on
+        // Issue Details (probe 2026-07-16) — scroll it into the lazy DOM first.
+        org.openqa.selenium.By switchBy = AppiumBy.iOSNsPredicateString(
+            "type == 'XCUIElementTypeSwitch' AND "
+            + "(label CONTAINS 'Required' OR name CONTAINS 'Required') AND visible == 1");
+        for (int i = 0; i < 2 && !existsNow(switchBy); i++) {
+            try {
+                driver.executeScript("mobile: scroll", java.util.Map.of("direction", "down"));
+                sleep(500);
+            } catch (Exception ignored) { break; }
+        }
         try {
             // Strategy 1: Look for switch/toggle with "Required" text
             WebElement toggle = driver.findElement(AppiumBy.iOSNsPredicateString(
@@ -4003,6 +4171,29 @@ public class IssuePage extends BasePage {
             if (subcatY < 0) {
                 System.out.println("⚠️ Could not find Subcategory label anywhere on screen");
                 return;
+            }
+
+            // Strategy 0 (v1.50): details row → bottom sheet (label + value row
+            // ~33px below with chevron.down; probe 2026-07-16). The label can sit
+            // OFF-SCREEN below (Y=1125 seen live) — native-scroll it into view.
+            if (isOnIssueDetails()) {
+                try {
+                    if (!existsNow(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeStaticText' AND label == 'Subcategory' AND visible == 1"))) {
+                        driver.executeScript("mobile: scroll", java.util.Map.of(
+                            "direction", "down",
+                            "predicateString", "label == 'Subcategory' AND type == 'XCUIElementTypeStaticText'"));
+                        sleep(500);
+                    }
+                } catch (Exception scrollE) {
+                    try {
+                        driver.executeScript("mobile: scroll", java.util.Map.of("direction", "down"));
+                        sleep(500);
+                    } catch (Exception ignored) {}
+                }
+                if (openDetailsRowSheet("Subcategory")) {
+                    return;
+                }
             }
 
             // ================================================================
@@ -4316,12 +4507,14 @@ public class IssuePage extends BasePage {
         try {
             // Implicit-wait 0 — a miss on the heavy OSHA bleed-through DOM costs ~ms,
             // not the full implicit wait (known WDA-wedge spot).
+            // visible==1 in the predicate — hidden bleed-through twins come
+            // first in DOM order and would shadow the real sheet rows.
             org.openqa.selenium.By optionBy = AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' OR " +
-                "type == 'XCUIElementTypeCell') AND label CONTAINS '" + option + "'");
+                "type == 'XCUIElementTypeCell') AND visible == 1 AND label CONTAINS '" + option + "'");
             List<WebElement> options = withImplicitWait(0, () ->
                 driver.findElements(optionBy));
-            return !options.isEmpty() && options.get(0).isDisplayed();
+            return !options.isEmpty();
         } catch (Exception e) {
             return false;
         }
@@ -4338,16 +4531,27 @@ public class IssuePage extends BasePage {
         // Use findElements (instant return) to avoid 5s implicit wait on each miss
         String predicate =
             "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' OR " +
-            "type == 'XCUIElementTypeCell') AND label CONTAINS '" + subcategory + "'";
+            "type == 'XCUIElementTypeCell') AND visible == 1 AND label CONTAINS '" + subcategory + "'";
 
         try {
-            // Strategy 1: Direct find (implicit-wait 0 — a miss costs ~ms, not 5s)
+            // Strategy 1: Direct find (implicit-wait 0 — a miss costs ~ms, not 5s).
+            // Coordinate press on the widest visible match — click() no-ops on
+            // v1.50 sheet rows and hidden twins carry bogus geometry.
             List<WebElement> options = withImplicitWait(0, () ->
                 driver.findElements(AppiumBy.iOSNsPredicateString(predicate)));
-            if (!options.isEmpty()) {
-                options.get(0).click();
+            WebElement best = null; int bestW = 0;
+            for (WebElement o : options) {
+                try {
+                    int w = o.getRect().width;
+                    if (w > bestW) { bestW = w; best = o; }
+                } catch (Exception ignored) {}
+            }
+            if (best != null) {
+                org.openqa.selenium.Rectangle r = best.getRect();
+                driver.executeScript("mobile: tap", java.util.Map.of(
+                    "x", r.x + Math.min(40, Math.max(15, r.width / 2)), "y", r.y + r.height / 2));
                 sleep(400);
-                System.out.println("✅ Selected subcategory: " + subcategory);
+                System.out.println("✅ Selected subcategory (coordinate): " + subcategory);
                 return;
             }
 
@@ -5996,6 +6200,20 @@ public class IssuePage extends BasePage {
         // can block the Issue Class picker on CI machines
         dismissKeyboard();
         sleep(100);
+
+        // v1.50: 'Issue Class' details row → bottom sheet → option Button.
+        if (isOnIssueDetails()) {
+            if (!existsNow(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND label == 'Issue Class' AND visible == 1"))) {
+                scrollToTopOfDetails();
+                sleep(300);
+            }
+            if (openDetailsRowSheet("Issue Class") && pressSheetOptionButton(newClass)) {
+                sleep(400);
+                return true;
+            }
+            System.out.println("⚠️ v1.50 details class sheet path failed — falling through");
+        }
 
         try {
             boolean pickerOpened = tryOpenIssueClassPicker();

@@ -303,6 +303,57 @@ public class DebugProbe_Test extends BaseTest {
     }
 
     @Test
+    public void PROBE_newBuildingForm() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_OFFLINE,
+            AppConstants.FEATURE_OFFLINE_CREATION,
+            "PROBE - v1.50 Locations add-building form anatomy"
+        );
+        String dir = "/private/tmp/claude-501/-Users-abhiyantsingh-Downloads-iOS-automation-site/ba210b3e-faec-46c4-bbed-eb1cec075170/scratchpad";
+        io.appium.java_client.ios.IOSDriver d = com.egalvanic.utils.DriverManager.getDriver();
+
+        loginAndSelectSite();
+        siteSelectionPage.clickLocations();
+        mediumWait();
+        try { siteSelectionPage.waitForLocationsReady(); } catch (Exception ignored) {}
+        try {
+            java.nio.file.Files.writeString(java.nio.file.Path.of(dir + "/locations-screen.xml"), d.getPageSource());
+            System.out.println("PROBE: locations screen dumped");
+        } catch (Exception e) { System.out.println("PROBE: locations dump failed: " + e.getMessage()); }
+
+        try {
+            siteSelectionPage.clickAddButton();
+            mediumWait();
+        } catch (Exception e) { System.out.println("PROBE: add button failed: " + e.getMessage()); }
+        try {
+            java.nio.file.Files.writeString(java.nio.file.Path.of(dir + "/new-building-form.xml"), d.getPageSource());
+            System.out.println("PROBE: new-building form dumped");
+        } catch (Exception e) { System.out.println("PROBE: form dump failed: " + e.getMessage()); }
+
+        // Press the 'Building, New Building…' value row and dump what opens
+        try {
+            org.openqa.selenium.WebElement row = d.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name BEGINSWITH 'Building' AND visible == 1"));
+            org.openqa.selenium.Rectangle r = row.getRect();
+            System.out.println("PROBE: pressing Building row '" + row.getAttribute("name") + "'");
+            d.executeScript("mobile: tap", java.util.Map.of("x", r.x + 40, "y", r.y + r.height / 2));
+            longWait();
+            java.nio.file.Files.writeString(java.nio.file.Path.of(dir + "/new-building-step2.xml"), d.getPageSource());
+            System.out.println("PROBE: building step2 dumped");
+        } catch (Exception e) { System.out.println("PROBE: building row press failed: " + e.getMessage()); }
+
+        // If a text field appeared, type a name and dump once more
+        try {
+            org.openqa.selenium.WebElement tf = d.findElement(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeSearchField') AND visible == 1"));
+            tf.sendKeys("ProbeBldg_1");
+            mediumWait();
+            java.nio.file.Files.writeString(java.nio.file.Path.of(dir + "/new-building-step3-typed.xml"), d.getPageSource());
+            System.out.println("PROBE: building step3 (typed) dumped");
+        } catch (Exception e) { System.out.println("PROBE: no text field after Building row: " + e.getMessage()); }
+    }
+
+    @Test
     public void PROBE_issueDetailsAnatomy() {
         ExtentReportManager.createTest(
             AppConstants.MODULE_ISSUES,
@@ -324,30 +375,45 @@ public class DebugProbe_Test extends BaseTest {
             System.out.println("PROBE: details top dumped");
         } catch (Exception e) { System.out.println("PROBE: dump1 failed: " + e.getMessage()); }
 
-        // Class dropdown open + dump
-        boolean classOpen = ip.openIssueClassDropdown();
-        System.out.println("PROBE: openIssueClassDropdown = " + classOpen);
-        mediumWait();
-        try {
-            java.nio.file.Files.writeString(java.nio.file.Path.of(dir + "/issue-details-2-classdd.xml"), d.getPageSource());
-            System.out.println("PROBE: class dropdown dumped");
-        } catch (Exception e) { System.out.println("PROBE: dump2 failed: " + e.getMessage()); }
-        // dismiss whatever opened
-        try { d.executeScript("mobile: tap", java.util.Map.of("x", 200, "y", 100)); } catch (Exception ignored) {}
-        mediumWait();
+        // Details rows are 'label StaticText + control ~35px below' (probe 1).
+        // Press each row DIRECTLY (left zone) and dump what opens; dismiss via
+        // the sheet's own Close/Cancel, NEVER a blind (200,100) tap — that hits
+        // the clock.arrow.circlepath history icon.
+        String[][] rows = { {"Status", "issue-details-2-statusdd"}, {"Issue Class", "issue-details-3-classdd"} };
+        for (String[] row : rows) {
+            try {
+                org.openqa.selenium.WebElement lbl = d.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND label == '" + row[0] + "' AND visible == 1"));
+                org.openqa.selenium.Rectangle r = lbl.getRect();
+                System.out.println("PROBE: '" + row[0] + "' label at y=" + r.y + " — pressing control row below");
+                d.executeScript("mobile: tap", java.util.Map.of("x", r.x + 30, "y", r.y + 38));
+                longWait();
+                java.nio.file.Files.writeString(java.nio.file.Path.of(dir + "/" + row[1] + ".xml"), d.getPageSource());
+                System.out.println("PROBE: " + row[1] + " dumped");
+            } catch (Exception e) { System.out.println("PROBE: " + row[0] + " row press failed: " + e.getMessage()); }
+            // dismiss: sheet Close/Cancel button, else swipe the sheet down
+            try {
+                org.openqa.selenium.WebElement close = d.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND (name == 'Close' OR name == 'Cancel') AND visible == 1"));
+                close.click();
+            } catch (Exception e) {
+                try { d.executeScript("mobile: swipe", java.util.Map.of("direction", "down")); } catch (Exception ignored) {}
+            }
+            mediumWait();
+            // if we fell off the details screen entirely, re-open the first issue
+            try {
+                d.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND name == 'Issue Details' AND visible == 1"));
+            } catch (Exception e) {
+                System.out.println("PROBE: fell off details — re-opening first issue");
+                ip.navigateToIssuesScreen();
+                mediumWait();
+                ip.tapFirstIssue();
+                longWait();
+            }
+        }
 
-        // Status dropdown open + dump
-        boolean statusOpen = ip.openStatusDropdown();
-        System.out.println("PROBE: openStatusDropdown = " + statusOpen);
-        mediumWait();
-        try {
-            java.nio.file.Files.writeString(java.nio.file.Path.of(dir + "/issue-details-3-statusdd.xml"), d.getPageSource());
-            System.out.println("PROBE: status dropdown dumped");
-        } catch (Exception e) { System.out.println("PROBE: dump3 failed: " + e.getMessage()); }
-        try { d.executeScript("mobile: tap", java.util.Map.of("x", 200, "y", 100)); } catch (Exception ignored) {}
-        mediumWait();
-
-        // Scroll to bottom in two steps, dumping each (photos / delete / save zones)
+        // Scroll to bottom in two steps, dumping each (subcategory / photos / delete / save zones)
         for (int i = 1; i <= 2; i++) {
             try {
                 d.executeScript("mobile: scroll", java.util.Map.of("direction", "down"));

@@ -2451,6 +2451,8 @@ public class WorkOrderPage extends BasePage {
         // renders at the BOTTOM (y≈868, where the app tab bar was — probe
         // 2026-07-16), so don't band on y: identify the strip by its unique
         // 'IR' sibling at the same height as the 'Assets' button.
+        org.openqa.selenium.By v150RoomRows = AppiumBy.iOSNsPredicateString(
+            "type == 'XCUIElementTypeButton' AND visible == 1 AND name CONTAINS ' › '");
         try {
             List<WebElement> irTabs = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND name == 'IR' AND visible == 1"));
@@ -2464,9 +2466,48 @@ public class WorkOrderPage extends BasePage {
                     driver.executeScript("mobile: tap", java.util.Map.of(
                         "x", r.x + r.width / 2, "y", r.y + r.height / 2));
                     sleep(1000);
+                    // verify the hop landed (room rows render); retry on the
+                    // strip LABEL text — the tab press no-ops intermittently
+                    if (!existsNow(v150RoomRows)) {
+                        try {
+                            WebElement lbl = driver.findElement(AppiumBy.iOSNsPredicateString(
+                                "type == 'XCUIElementTypeStaticText' AND name == 'Assets' AND visible == 1 AND rect.y > " + (irY + 10)));
+                            org.openqa.selenium.Rectangle lr = lbl.getRect();
+                            driver.executeScript("mobile: tap", java.util.Map.of(
+                                "x", lr.x + lr.width / 2, "y", lr.y + lr.height / 2));
+                            sleep(1000);
+                        } catch (Exception ignored) {}
+                    }
                     System.out.println("✅ Hopped to session Assets tab (v1.50, strip y=" + y + ")");
                     break;
                 }
+            }
+        } catch (Exception ignored) {}
+
+        // v1.50 room rows (probe 2026-07-16): Buttons named
+        // '<Building> › <Floor>, <room>' on the session Assets tab. Press the
+        // left zone; success = 'Assets in Room' surface (checked by callers via
+        // the short-circuit above on re-entry, and here directly).
+        try {
+            List<WebElement> rows = driver.findElements(v150RoomRows);
+            int tried = 0;
+            for (WebElement row : rows) {
+                if (++tried > 5) break;
+                try {
+                    String nm = row.getAttribute("name");
+                    org.openqa.selenium.Rectangle rr = row.getRect();
+                    driver.executeScript("mobile: tap", java.util.Map.of(
+                        "x", rr.x + 40, "y", rr.y + rr.height / 2));
+                    sleep(1200);
+                    if (existsNow(AppiumBy.iOSNsPredicateString(
+                            "(type == 'XCUIElementTypeNavigationBar' OR type == 'XCUIElementTypeStaticText')"
+                            + " AND name == 'Assets in Room'"))) {
+                        System.out.println("✅ Opened room (v1.50 '›' row): " + nm);
+                        return true;
+                    }
+                    // No room screen — maybe the press no-opped; loop to next row
+                    System.out.println("  '›' row press did not open a room: " + nm);
+                } catch (Exception ignored) {}
             }
         } catch (Exception ignored) {}
 
