@@ -319,6 +319,16 @@ public class WorkOrderPage extends BasePage {
      * Looks for cells or distinct work order items in the list.
      */
     public int getWorkOrderEntryCount() {
+        // Strategy 0 (v1.50, probe-verified): WO rows are full-width Buttons
+        // named '<name>, <Priority>' — count those directly.
+        try {
+            int v150 = getVisibleWorkOrderRowNames().size();
+            if (v150 > 0) {
+                System.out.println("📊 Found " + v150 + " work order entries (v1.50 rows)");
+                return v150;
+            }
+        } catch (Exception e) { /* continue */ }
+
         // Strategy 1: Count cells (work order entries are typically cells)
         try {
             List<WebElement> cells = driver.findElements(AppiumBy.iOSNsPredicateString(
@@ -422,6 +432,19 @@ public class WorkOrderPage extends BasePage {
     }
 
     public String getWorkOrderName(int index) {
+        // v1.50 fast path: derive from the row a11y names ('<title>, <Priority>')
+        // — the legacy all-StaticText scan wedges on the grown DOM (TC_JOB_006
+        // ThreadTimeout, 2026-07-16).
+        try {
+            List<String> rows = getVisibleWorkOrderRowNames();
+            if (index >= 0 && index < rows.size()) {
+                String full = rows.get(index);
+                int cut = full.lastIndexOf(", ");
+                String name = cut > 0 ? full.substring(0, cut) : full;
+                System.out.println("📝 Work order name at index " + index + " (v1.50 row): " + name);
+                return name;
+            }
+        } catch (Exception ignored) { }
         List<WebElement> titles = getWorkOrderTitleElements();
         if (index >= 0 && index < titles.size()) {
             try {
@@ -469,6 +492,17 @@ public class WorkOrderPage extends BasePage {
      * an "AVAILABLE" text badge.
      */
     public boolean isAvailableBadgeDisplayed(int index) {
+        // v1.50 (probe-verified): there are NO per-row Start buttons —
+        // "available" IS the row's presence under the 'Available Work Orders'
+        // section (activation happens via row-tap + confirmation alert).
+        try {
+            if (existsNow(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND name == 'Available Work Orders'"))
+                    && index < getVisibleWorkOrderRowNames().size()) {
+                System.out.println("✅ Available state at index " + index + " (v1.50: row under 'Available Work Orders')");
+                return true;
+            }
+        } catch (Exception ignored) { }
         try {
             List<WebElement> startButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND label == 'Start'"
@@ -491,9 +525,18 @@ public class WorkOrderPage extends BasePage {
     }
 
     /**
-     * Check if any available work order exists (has a "Start" button).
+     * Check if any available work order exists.
+     * v1.50: no Start buttons — rows under 'Available Work Orders' ARE available.
      */
     public boolean isAnyAvailableBadgeDisplayed() {
+        try {
+            if (existsNow(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND name == 'Available Work Orders'"))
+                    && !getVisibleWorkOrderRowNames().isEmpty()) {
+                System.out.println("✅ Available work orders found (v1.50: rows under section header)");
+                return true;
+            }
+        } catch (Exception ignored) { }
         try {
             List<WebElement> startButtons = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND label == 'Start'"
@@ -654,6 +697,18 @@ public class WorkOrderPage extends BasePage {
      * The app uses "Start" button (not "Activate") on available job cards.
      */
     public boolean isActivateButtonDisplayed() {
+        // Strategy 0 (v1.50): there ARE no per-row Start buttons — the
+        // activation affordance is the available row itself (tap → 'Start
+        // Work Order?' alert). Affordance present = available rows listed.
+        try {
+            if (existsNow(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND name == 'Available Work Orders'"))
+                    && !getVisibleWorkOrderRowNames().isEmpty()) {
+                System.out.println("✅ Activation affordance present (v1.50: available rows listed)");
+                return true;
+            }
+        } catch (Exception ignored) { }
+
         // Strategy 1: Button with label "Start"
         try {
             List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
@@ -819,18 +874,33 @@ public class WorkOrderPage extends BasePage {
      */
     public int getActiveBadgeCount() {
         try {
-            int count = 0;
-            // Count Active/Stop/In Progress indicators in list area
+            // v1.50 contract: count ACTIVE WORK ORDERS, not raw indicator
+            // texts. List-area 'Active'/'Stop' row badges count distinctly
+            // (a real two-active app bug WOULD show two); the singular
+            // 'Active Work Order' banner counts as one only when no list
+            // badges exist. Dedupe SwiftUI phantom twins by geometry.
+            java.util.Set<String> rowBadges = new java.util.HashSet<>();
             List<WebElement> indicators = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "(label ==[c] 'ACTIVE' OR label ==[c] 'Active' OR label == 'Stop' OR label CONTAINS 'In Progress' OR label == 'Started')"
+                "(label ==[c] 'ACTIVE' OR label ==[c] 'Active' OR label == 'Stop'"
+                + " OR label CONTAINS 'In Progress' OR label == 'Started') AND visible == 1"
             ));
             for (WebElement el : indicators) {
                 try {
-                    if (el.getLocation().getY() > 150) count++;
+                    org.openqa.selenium.Rectangle r = el.getRect();
+                    if (r.y > 150) rowBadges.add(r.y / 20 + ":" + r.x / 20); // 20pt buckets
                 } catch (Exception e) { /* skip */ }
             }
-            System.out.println("📊 ACTIVE badge count: " + count);
-            return count;
+            if (!rowBadges.isEmpty()) {
+                System.out.println("📊 ACTIVE badge count (list rows, deduped): " + rowBadges.size());
+                return rowBadges.size();
+            }
+            if (existsNow(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND name == 'Active Work Order'"))) {
+                System.out.println("📊 ACTIVE badge count: 1 (v1.50 'Active Work Order' banner, no list badges)");
+                return 1;
+            }
+            System.out.println("📊 ACTIVE badge count: 0");
+            return 0;
         } catch (Exception e) {
             System.out.println("⚠️ Error counting ACTIVE badges: " + e.getMessage());
             return 0;
@@ -2348,19 +2418,49 @@ public class WorkOrderPage extends BasePage {
     public boolean tapFirstRoomWithAssets() {
         System.out.println("📍 Looking for room with assets (fast path)...");
 
+        // v1.50 short-circuit: the Active-WO banner can deep-open a room
+        // directly ('Assets in Room' nav) — nothing to tap.
+        if (existsNow(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeNavigationBar' OR type == 'XCUIElementTypeStaticText')"
+                + " AND name == 'Assets in Room'"))) {
+            System.out.println("✅ Already inside a room (v1.50 'Assets in Room')");
+            return true;
+        }
+        // v1.50: on the session tab surface, rooms live under the session's
+        // ASSETS tab (mid-screen TabButton, not the app tab bar) — hop there.
+        try {
+            List<WebElement> assetsTabs = driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name == 'Assets' AND visible == 1"));
+            for (WebElement t : assetsTabs) {
+                int y = t.getLocation().getY();
+                if (y > 120 && y < 400) { // session tab strip, not app tab bar (~900)
+                    org.openqa.selenium.Rectangle r = t.getRect();
+                    driver.executeScript("mobile: tap", java.util.Map.of(
+                        "x", r.x + r.width / 2, "y", r.y + r.height / 2));
+                    sleep(1000);
+                    System.out.println("✅ Hopped to session Assets tab (v1.50)");
+                    break;
+                }
+            }
+        } catch (Exception ignored) {}
+
         // Strategy 0 (v1.48, mapped live 2026-07-03): room rows are plain BUTTONS
         // named after the room ("Room 101 - Conference_239") in the already-expanded
         // tree; tapping one opens Assets in Room directly — no expansion needed and
         // no risk of collapsing pre-expanded buildings/floors.
         try {
             List<WebElement> roomBtns = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND name BEGINSWITH 'Room'"));
+                "type == 'XCUIElementTypeButton' AND name BEGINSWITH 'Room' AND visible == 1"));
             for (WebElement r : roomBtns) {
                 try {
                     if (r.getLocation().getY() > 200) {
                         String nm = r.getAttribute("name");
-                        r.click();
-                        System.out.println("✅ Tapped room button (v1.48 direct): " + nm);
+                        org.openqa.selenium.Rectangle rr = r.getRect();
+                        // left-zone coordinate press — click() no-ops on v1.50 rows
+                        driver.executeScript("mobile: tap", java.util.Map.of(
+                            "x", rr.x + 40, "y", rr.y + rr.height / 2));
+                        sleep(900);
+                        System.out.println("✅ Pressed room row (v1.50 left-zone): " + nm);
                         return true;
                     }
                 } catch (Exception ignored) {}
