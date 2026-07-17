@@ -193,7 +193,10 @@ public class ArcFlashPunchlist_Test extends BaseTest {
         logStep("Step 3: Tapping it opens the 'Collect AF Data' editor");
         assertTrue(afPage.tapCollectAFData(), "Editor with nav title 'Collect AF Data' must open");
         verifyAppAlive("Collect AF Data editor");
-        verifyNotBlank("Collect AF Data");
+        // NOTE: no verifyNotBlank here — the editor's Engineering DOM is giant
+        // (whole-tree census = known WDA wedge, ThreadTimeout run 2026-07-16);
+        // tapCollectAFData already verified the content signature
+        // ('Engineering' + 'System Voltage' visible), which subsumes non-blank.
         logStepWithScreenshot("TC_AF_025: Collect AF Data editor verified");
     }
 

@@ -2439,12 +2439,27 @@ public class WorkOrderPage extends BasePage {
         System.out.println("📍 Looking for room with assets (fast path)...");
 
         // v1.50 short-circuit: the Active-WO banner can deep-open a room
-        // directly ('Assets in Room' nav) — nothing to tap.
+        // directly ('Assets in Room' nav) — nothing to tap. But if THIS room is
+        // empty, back out to the room list and hunt for one with assets.
         if (existsNow(AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeNavigationBar' OR type == 'XCUIElementTypeStaticText')"
                 + " AND name == 'Assets in Room'"))) {
-            System.out.println("✅ Already inside a room (v1.50 'Assets in Room')");
-            return true;
+            boolean emptyHere = existsNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == 1 AND "
+                + "(name CONTAINS 'No assets in this room' OR name == 'No Active Assets')"));
+            if (!emptyHere) {
+                System.out.println("✅ Already inside a room (v1.50 'Assets in Room')");
+                return true;
+            }
+            System.out.println("  Already inside a room but it is EMPTY — backing out to hunt");
+            try {
+                WebElement back = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND name == 'BackButton' AND visible == 1"));
+                back.click();
+            } catch (Exception be) {
+                try { driver.executeScript("mobile: tap", java.util.Map.of("x", 30, "y", 60)); } catch (Exception ignored) {}
+            }
+            sleep(900);
         }
         // v1.50: on the session surface, rooms live under the session's ASSETS
         // tab. The session tab strip (Details/Assets/Tasks/Issues/IR/Files)
@@ -2486,28 +2501,73 @@ public class WorkOrderPage extends BasePage {
 
         // v1.50 room rows (probe 2026-07-16): Buttons named
         // '<Building> › <Floor>, <room>' on the session Assets tab. Press the
-        // left zone; success = 'Assets in Room' surface (checked by callers via
-        // the short-circuit above on re-entry, and here directly).
+        // left zone; success = 'Assets in Room' surface WITH assets — empty
+        // rooms ('No assets in this room yet…') are backed out of and the next
+        // row tried (TC_AF_024: first room '233' was empty).
         try {
-            List<WebElement> rows = driver.findElements(v150RoomRows);
-            int tried = 0;
-            for (WebElement row : rows) {
-                if (++tried > 5) break;
+            long huntDeadline = System.currentTimeMillis() + 150_000; // stay under the 360s test cap
+            boolean provisioningTried = false;
+            for (int idx = 0; idx < 6 && System.currentTimeMillis() < huntDeadline; idx++) {
+                List<WebElement> rows = driver.findElements(v150RoomRows);
+                if (idx >= rows.size()) break;
+                String nm = "";
                 try {
-                    String nm = row.getAttribute("name");
+                    WebElement row = rows.get(idx);
+                    nm = row.getAttribute("name");
                     org.openqa.selenium.Rectangle rr = row.getRect();
                     driver.executeScript("mobile: tap", java.util.Map.of(
                         "x", rr.x + 40, "y", rr.y + rr.height / 2));
                     sleep(1200);
-                    if (existsNow(AppiumBy.iOSNsPredicateString(
+                    if (!existsNow(AppiumBy.iOSNsPredicateString(
                             "(type == 'XCUIElementTypeNavigationBar' OR type == 'XCUIElementTypeStaticText')"
                             + " AND name == 'Assets in Room'"))) {
-                        System.out.println("✅ Opened room (v1.50 '›' row): " + nm);
+                        System.out.println("  '›' row press did not open a room: " + nm);
+                        continue;
+                    }
+                    boolean empty = existsNow(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND visible == 1 AND "
+                        + "(name CONTAINS 'No assets in this room' OR name == 'No Active Assets')"));
+                    if (!empty) {
+                        System.out.println("✅ Opened room with assets (v1.50 '›' row): " + nm);
                         return true;
                     }
-                    // No room screen — maybe the press no-opped; loop to next row
-                    System.out.println("  '›' row press did not open a room: " + nm);
-                } catch (Exception ignored) {}
+                    // Self-provision ONCE: the empty room offers 'Create or Link
+                    // Existing' — link one asset via the ZP-3003 flow so the
+                    // fixture heals itself (persists on the QA backend).
+                    if (!provisioningTried) {
+                        provisioningTried = true;
+                        System.out.println("  Room is empty — attempting one-time asset link (ZP-3003 flow): " + nm);
+                        try {
+                            if (openLinkExistingAssets()
+                                    && selectMultipleLinkableAssets(1) >= 1
+                                    && confirmLinkAssets()) {
+                                sleep(1500);
+                                boolean stillEmpty = existsNow(AppiumBy.iOSNsPredicateString(
+                                    "type == 'XCUIElementTypeStaticText' AND visible == 1 AND "
+                                    + "(name CONTAINS 'No assets in this room' OR name == 'No Active Assets')"));
+                                if (!stillEmpty) {
+                                    System.out.println("✅ Linked an asset into the room — proceeding: " + nm);
+                                    return true;
+                                }
+                            }
+                            System.out.println("  Asset link did not populate the room — backing out");
+                        } catch (Exception pe) {
+                            System.out.println("  Provisioning attempt failed: " + pe.getMessage());
+                        }
+                    } else {
+                        System.out.println("  Room is empty — backing out: " + nm);
+                    }
+                    try {
+                        WebElement back = driver.findElement(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeButton' AND name == 'BackButton' AND visible == 1"));
+                        back.click();
+                    } catch (Exception be) {
+                        driver.executeScript("mobile: tap", java.util.Map.of("x", 30, "y", 60));
+                    }
+                    sleep(900);
+                } catch (Exception e) {
+                    System.out.println("  '›' row attempt " + idx + " (" + nm + "): " + e.getMessage());
+                }
             }
         } catch (Exception ignored) {}
 
@@ -24611,11 +24671,20 @@ public class WorkOrderPage extends BasePage {
             org.openqa.selenium.Rectangle fr = fab.getRect();
             driver.executeScript("mobile: tap", java.util.Map.of("x", fr.x + fr.width / 2, "y", fr.y + fr.height / 2));
             sleep(700);
+            // v1.50: the FAB menu is ICON-ONLY buttons (dump 2026-07-16):
+            // plus.square=create, link.badge.plus=LINK EXISTING, camera.viewfinder=QR.
             java.util.List<WebElement> link = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText') AND"
-                + " name CONTAINS[c] 'Link Existing Asset' AND visible == 1"));
+                + " (name == 'link.badge.plus' OR name CONTAINS[c] 'Link Existing' OR"
+                + " name CONTAINS[c] 'Link Asset') AND visible == 1"));
             if (link.isEmpty()) {
-                System.out.println("\u26a0\ufe0f openLinkExistingAssets: 'Link Existing Asset' item not found");
+                System.out.println("\u26a0\ufe0f openLinkExistingAssets: 'Link Existing \u2026' item not found");
+                try {
+                    java.nio.file.Path dir = java.nio.file.Paths.get("target", "afdump");
+                    java.nio.file.Files.createDirectories(dir);
+                    java.nio.file.Files.writeString(dir.resolve("link-menu-miss.xml"), driver.getPageSource());
+                    System.out.println("\ud83d\uddc2  link-menu DOM dumped: target/afdump/link-menu-miss.xml");
+                } catch (Exception ignored) {}
                 return false;
             }
             WebElement li = link.get(0);

@@ -466,6 +466,16 @@ public class ArcFlashPage extends BasePage {
             "type == 'XCUIElementTypeNavigationBar' AND name == 'Collect AF Data'");
     private static final By COLLECT_AF_TITLE = AppiumBy.iOSNsPredicateString(
             "type == 'XCUIElementTypeStaticText' AND name == 'Collect AF Data'");
+    // v1.50: the editor is titled with the ASSET NAME; its signature is the
+    // 'Engineering' section + 'System Voltage' field (dump 2026-07-16).
+    private static final By COLLECT_AF_EDITOR_V150 = AppiumBy.iOSNsPredicateString(
+            "type == 'XCUIElementTypeStaticText' AND name == 'System Voltage' AND visible == 1");
+
+    private boolean isCollectAFEditorSignature() {
+        return existsNow(COLLECT_AF_NAVBAR) || existsNow(COLLECT_AF_TITLE)
+                || (existsNow(COLLECT_AF_EDITOR_V150) && existsNow(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND name == 'Engineering' AND visible == 1")));
+    }
 
     /**
      * Open the session-room trailing filter menu and pick the "Arc Flash"
@@ -563,7 +573,12 @@ public class ArcFlashPage extends BasePage {
                     try {
                         if (!"true".equals(el.getAttribute("visible"))) continue;
                         org.openqa.selenium.Rectangle r = el.getRect();
-                        if (r.getY() > 150 && r.getHeight() > 40) return el;
+                        // y < 780 excludes the '+' FAB (y≈781) and the session
+                        // tab strip (y≈868, 74pt buttons) — long-pressing a tab
+                        // button navigated the test off the room (TC_AF_025).
+                        // width > 200 keeps only full-width asset rows.
+                        if (r.getY() > 150 && r.getY() < 780 && r.getHeight() > 40
+                                && r.getWidth() > 200) return el;
                     } catch (Exception ignored) { }
                 }
             } catch (Exception e) {
@@ -578,8 +593,24 @@ public class ArcFlashPage extends BasePage {
         try {
             WebElement row = lastVisible(COLLECT_AF_ROW);
             if (row == null) return false;
-            pressElement(row);
-            return waitForCondition(() -> existsNow(COLLECT_AF_NAVBAR) || existsNow(COLLECT_AF_TITLE), 8);
+            // Context-menu rows carry the Spacer dead zone too — LEFT-zone
+            // press first, verify the editor, then retry at center.
+            org.openqa.selenium.Rectangle r = row.getRect();
+            driver.executeScript("mobile: tap", java.util.Map.of(
+                    "x", r.getX() + Math.min(40, Math.max(15, r.getWidth() / 2)),
+                    "y", r.getY() + r.getHeight() / 2));
+            if (waitForCondition(() -> isCollectAFEditorSignature(), 6)) {
+                return true;
+            }
+            WebElement again = lastVisible(COLLECT_AF_ROW);
+            if (again != null) {
+                System.out.println("   left-zone press did not open the editor — retrying at center");
+                pressElement(again);
+                return waitForCondition(() -> isCollectAFEditorSignature(), 8);
+            }
+            // Menu row gone but no editor — dump for diagnosis.
+            dumpSource("collectaf-no-editor");
+            return waitForCondition(() -> isCollectAFEditorSignature(), 4);
         } catch (Exception e) {
             System.out.println("⚠️ tapCollectAFData: " + e.getMessage());
             return false;
@@ -587,7 +618,7 @@ public class ArcFlashPage extends BasePage {
     }
 
     public boolean isCollectAFEditorOpen(int timeoutSeconds) {
-        return waitForCondition(() -> existsNow(COLLECT_AF_NAVBAR) || existsNow(COLLECT_AF_TITLE),
+        return waitForCondition(() -> isCollectAFEditorSignature(),
                 timeoutSeconds);
     }
 

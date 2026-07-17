@@ -3127,6 +3127,81 @@ public class SiteSelectionPage extends BasePage {
      */
     public void createBuilding(String buildingName) {
         clickAddButton();
+        sleep(700);
+
+        // v1.50 (probe 2026-07-16): '+' opens the 'New Location' COMPOSITE form
+        // (BUILDING/FLOOR/ROOM sections, Cancel/Create). Flow: 'Building' row →
+        // picker sheet (existing buildings + 'New Building…') → 'New Building…'
+        // → 'Building name' TextField appears on the form → type → Create.
+        if (isElementDisplayed(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND name == 'New Location' AND visible == 1"), 2)) {
+            try {
+                WebElement bldgRow = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND name BEGINSWITH 'Building' AND visible == 1"));
+                org.openqa.selenium.Rectangle r = bldgRow.getRect();
+                driver.executeScript("mobile: tap", java.util.Map.of("x", r.x + 40, "y", r.y + r.height / 2));
+                sleep(700);
+                WebElement newBldg = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND name BEGINSWITH 'New Building' AND visible == 1"));
+                org.openqa.selenium.Rectangle nr = newBldg.getRect();
+                driver.executeScript("mobile: tap", java.util.Map.of("x", nr.x + 40, "y", nr.y + nr.height / 2));
+                sleep(700);
+                // Create stays DISABLED until Building, Floor AND Room names are
+                // all filled (screenshot 2026-07-16: greyed Create with only the
+                // building name typed) — fill all three.
+                WebElement nameField = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeTextField' AND (value == 'Building name' OR value == '') AND visible == 1"));
+                nameField.sendKeys(buildingName);
+                sleep(300);
+                for (String placeholder : new String[] {"Floor name", "Room name"}) {
+                    try {
+                        WebElement f = driver.findElement(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeTextField' AND value == '" + placeholder + "' AND visible == 1"));
+                        f.sendKeys(placeholder.startsWith("Floor") ? "F1" : "R1");
+                        sleep(300);
+                    } catch (Exception fe) {
+                        System.out.println("   '" + placeholder + "' field not fillable: " + fe.getMessage());
+                    }
+                }
+                // Dismiss the keyboard: mobile: hideKeyboard silently fails on
+                // this form — tap neutral form space (below the ROOM field).
+                try { driver.executeScript("mobile: hideKeyboard"); } catch (Exception ignored) {}
+                sleep(300);
+                if (existsNow(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeKeyboard' AND visible == 1"))) {
+                    driver.executeScript("mobile: tap", java.util.Map.of("x", 220, "y", 560));
+                    sleep(400);
+                }
+                WebElement create = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND name == 'Create' AND visible == 1"));
+                pressElementCenter(create);
+                sleep(900);
+                boolean formClosed = !existsNow(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND name == 'New Location' AND visible == 1"));
+                if (formClosed) {
+                    System.out.println("✅ Created location via v1.50 'New Location' form: "
+                        + buildingName + " / F1 / R1");
+                    return;
+                }
+                System.out.println("⚠️ 'New Location' form still open after Create — pressing again");
+                pressElementCenter(driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND name == 'Create' AND visible == 1")));
+                sleep(900);
+                if (!existsNow(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND name == 'New Location' AND visible == 1"))) {
+                    System.out.println("✅ Created location via v1.50 form (2nd press): " + buildingName);
+                    return;
+                }
+                // leave the form for the legacy fallback / caller diagnostics
+                System.out.println("⚠️ v1.50 Create did not close the form");
+                return;
+            } catch (Exception e) {
+                System.out.println("⚠️ v1.50 New Location flow failed (" + e.getMessage()
+                    + ") — falling back to legacy path");
+            }
+        }
+
+        // Legacy (≤v1.49): direct 'Building Name' field on the add sheet.
         // Wait for building name field to appear
         waitForElementToBeClickable(buildingNameField, 3);
         enterBuildingName(buildingName);
@@ -3156,7 +3231,24 @@ public class SiteSelectionPage extends BasePage {
      * Click Done button (Locations)
      */
     public void clickDone() {
-        click(doneButton);
+        try {
+            click(doneButton);
+        } catch (Exception e) {
+            // v1.50: 'Done' exists but the clickable-wait can fail post-create
+            // (transient overlay). Coordinate-press the visible button instead.
+            try {
+                WebElement done = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND name == 'Done' AND visible == 1"));
+                org.openqa.selenium.Rectangle r = done.getRect();
+                driver.executeScript("mobile: tap", java.util.Map.of(
+                    "x", r.x + r.width / 2, "y", r.y + r.height / 2));
+                sleep(500);
+                System.out.println("✅ Done pressed via coordinate fallback");
+            } catch (Exception e2) {
+                System.out.println("⚠️ clickDone: both paths failed: " + e2.getMessage());
+                throw e;
+            }
+        }
     }
 
     // ================================================================

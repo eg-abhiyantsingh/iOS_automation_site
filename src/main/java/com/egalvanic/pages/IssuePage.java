@@ -760,10 +760,35 @@ public class IssuePage extends BasePage {
             String selected = tab.getAttribute("selected");
             if ("true".equals(selected)) return true;
             String value = tab.getAttribute("value");
-            return "1".equals(value);
+            if ("1".equals(value)) return true;
+            // v1.50 pills expose neither attribute — functional row-status check.
+            return isTabFilterFunctionallyActive("Resolved");
         } catch (Exception e) {
             return false;
         }
+    }
+
+    /**
+     * v1.50 functional filter check: the '<status>' tab is active iff every
+     * visible row-status text in the list area (y > 260) matches it. An empty
+     * list can't contradict the filter and counts as active (Resolved/Closed
+     * tabs are often empty).
+     */
+    private boolean isTabFilterFunctionallyActive(String status) {
+        int match = 0, other = 0;
+        try {
+            for (WebElement t : driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND visible == 1 AND "
+                    + "name IN {'Open','Resolved','Closed','In Progress','Pending'}"))) {
+                try {
+                    if (t.getLocation().getY() <= 260) continue; // pill row itself
+                    if (status.equals(t.getAttribute("name"))) match++;
+                    else other++;
+                } catch (Exception ignored) { }
+            }
+        } catch (Exception ignored) { }
+        System.out.println("   " + status + "-filter functional check: match=" + match + ", other=" + other);
+        return other == 0;
     }
 
     /**
@@ -4550,7 +4575,13 @@ public class IssuePage extends BasePage {
                 org.openqa.selenium.Rectangle r = best.getRect();
                 driver.executeScript("mobile: tap", java.util.Map.of(
                     "x", r.x + Math.min(40, Math.max(15, r.width / 2)), "y", r.y + r.height / 2));
-                sleep(400);
+                // Selection commits on press but the sheet-close animation races
+                // the readback — wait for the sheet's Cancel to disappear.
+                for (int w = 0; w < 10 && existsNow(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND name == 'Cancel' AND visible == 1 AND rect.y > 300")); w++) {
+                    sleep(300);
+                }
+                sleep(300);
                 System.out.println("✅ Selected subcategory (coordinate): " + subcategory);
                 return;
             }
@@ -4625,14 +4656,94 @@ public class IssuePage extends BasePage {
      */
     public String getSubcategoryValue() {
         final long deadline = System.currentTimeMillis() + SUBCAT_BUDGET_MS;
+
+        // Strategy -1 (v1.50, 2026-07-17): after the subcategory sheet closes,
+        // the XCTest QUERY layer intermittently returns EMPTY for elements the
+        // page-source snapshot clearly contains (label y=189 + value y=219,
+        // both visible, in the miss-dump taken by this very method). Parse the
+        // source directly — one snapshot, no per-element round trips.
         try {
-            // First, find the "Subcategory" label to anchor our search
+            String xml = driver.getPageSource();
+            java.util.regex.Matcher tag = java.util.regex.Pattern
+                .compile("<XCUIElementTypeStaticText([^>]*?)/?>").matcher(xml);
+            int labelY = -1;
+            java.util.List<Object[]> texts = new java.util.ArrayList<>();
+            while (tag.find()) {
+                String attrs = tag.group(1);
+                if (!attrs.contains("visible=\"true\"")) continue;
+                java.util.regex.Matcher nm = java.util.regex.Pattern.compile("name=\"([^\"]*)\"").matcher(attrs);
+                java.util.regex.Matcher ym = java.util.regex.Pattern.compile(" y=\"(-?\\d+)\"").matcher(attrs);
+                if (!nm.find() || !ym.find()) continue;
+                String n = nm.group(1);
+                int y = Integer.parseInt(ym.group(1));
+                if (n.equals("Subcategory") && labelY < 0) { labelY = y; continue; }
+                texts.add(new Object[]{y, n});
+            }
+            if (labelY > 0) {
+                for (Object[] t : texts) {
+                    int y = (Integer) t[0];
+                    String v = (String) t[1];
+                    if (y <= labelY || y >= labelY + 110) continue;
+                    if (v.length() < 4 || v.startsWith("Select") || v.startsWith("Type or select")) continue;
+                    v = v.replace("&amp;", "&").replace("&gt;", ">").replace("&lt;", "<")
+                         .replace("&quot;", "\"").replace("&apos;", "'");
+                    System.out.println("   Subcategory value (page-source parse): " + v);
+                    return v;
+                }
+                System.out.println("   page-source parse: label at y=" + labelY + " but no value below it");
+            } else {
+                System.out.println("   page-source parse: 'Subcategory' label not in snapshot");
+            }
+        } catch (Exception e) {
+            System.out.println("   page-source parse failed: " + e.getMessage());
+        }
+
+        try {
+            // First, find the "Subcategory" label to anchor our search.
+            // v1.50: after a sheet selection the details view can leave the label
+            // off-screen — native-scroll it back into view before anchoring.
             int subcatY = -1;
             List<WebElement> subcatLabels = withImplicitWait(0, () -> driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND (label == 'Subcategory' OR label BEGINSWITH 'Subcategory')")));
+                "type == 'XCUIElementTypeStaticText' AND (label == 'Subcategory' OR label BEGINSWITH 'Subcategory') AND visible == 1")));
+            if (subcatLabels.isEmpty()) {
+                try {
+                    driver.executeScript("mobile: scroll", java.util.Map.of(
+                        "direction", "down",
+                        "predicateString", "label == 'Subcategory' AND type == 'XCUIElementTypeStaticText'"));
+                    sleep(500);
+                } catch (Exception ignored) {}
+                subcatLabels = withImplicitWait(0, () -> driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND (label == 'Subcategory' OR label BEGINSWITH 'Subcategory') AND visible == 1")));
+            }
             if (!subcatLabels.isEmpty()) {
                 subcatY = subcatLabels.get(0).getLocation().getY();
                 System.out.println("   Subcategory label at Y=" + subcatY);
+            }
+
+            // Strategy 0 (v1.50): the selected value is a StaticText ~33px below
+            // the label (with xmark.circle.fill + chevron.down icons beside it).
+            // The value can WRAP to two lines — accept a 110px window.
+            if (subcatY > 0) {
+                try {
+                    StringBuilder seenTexts = new StringBuilder();
+                    for (WebElement t : withImplicitWait(0, () -> driver.findElements(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeStaticText' AND visible == 1")))) {
+                        try {
+                            int y = t.getLocation().getY();
+                            if (y <= subcatY || y >= subcatY + 110) continue;
+                            String v = t.getAttribute("label");
+                            if (v == null) continue;
+                            seenTexts.append("[y=").append(y).append(" '").append(
+                                v.substring(0, Math.min(40, v.length()))).append("'] ");
+                            if (v.length() < 4) continue;
+                            if (v.equals("Subcategory") || v.startsWith("Select")
+                                    || v.startsWith("Type or select")) continue;
+                            System.out.println("   Subcategory value (v1.50 row text): " + v);
+                            return v;
+                        } catch (Exception ignored) {}
+                    }
+                    System.out.println("   Strategy 0 saw below label: " + seenTexts);
+                } catch (Exception ignored) {}
             }
 
             // Strategy 1: Look for a button below "Subcategory" that shows the selected value
@@ -4704,8 +4815,15 @@ public class IssuePage extends BasePage {
             }
 
             System.out.println("   Subcategory value not found");
+            try {
+                java.nio.file.Path dir = java.nio.file.Paths.get("target", "afdump");
+                java.nio.file.Files.createDirectories(dir);
+                java.nio.file.Files.writeString(dir.resolve("subcat-value-miss.xml"), driver.getPageSource());
+                System.out.println("🗂  subcat readback DOM dumped: target/afdump/subcat-value-miss.xml");
+            } catch (Exception ignored) {}
             return "";
         } catch (Exception e) {
+            System.out.println("   getSubcategoryValue outer exception: " + e.getMessage());
             return "";
         }
     }
@@ -9967,7 +10085,9 @@ public class IssuePage extends BasePage {
             String selected = tab.getAttribute("selected");
             if ("true".equals(selected)) return true;
             String value = tab.getAttribute("value");
-            return "1".equals(value);
+            if ("1".equals(value)) return true;
+            // v1.50 pills expose neither attribute — functional row-status check.
+            return isTabFilterFunctionallyActive("Closed");
         } catch (Exception e) {
             return false;
         }

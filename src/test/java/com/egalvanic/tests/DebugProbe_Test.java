@@ -303,6 +303,43 @@ public class DebugProbe_Test extends BaseTest {
     }
 
     @Test
+    public void PROBE_subcategorySheet() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ISSUES,
+            AppConstants.FEATURE_ISSUES_LIST,
+            "PROBE - v1.50 Subcategory sheet anatomy + selection commit"
+        );
+        String dir = "/private/tmp/claude-501/-Users-abhiyantsingh-Downloads-iOS-automation-site/ba210b3e-faec-46c4-bbed-eb1cec075170/scratchpad";
+        io.appium.java_client.ios.IOSDriver d = com.egalvanic.utils.DriverManager.getDriver();
+
+        loginAndSelectSite();
+        com.egalvanic.pages.IssuePage ip = new com.egalvanic.pages.IssuePage();
+        ip.navigateToIssuesScreen();
+        mediumWait();
+        ip.tapFirstIssue();
+        longWait();
+        ip.tapSubcategoryField();
+        mediumWait();
+        try {
+            java.nio.file.Files.writeString(java.nio.file.Path.of(dir + "/subcat-sheet-1-open.xml"), d.getPageSource());
+            System.out.println("PROBE: subcat sheet dumped");
+        } catch (Exception e) { System.out.println("PROBE: sheet dump failed: " + e.getMessage()); }
+
+        // Press the first NEC option row and dump immediately after
+        try {
+            org.openqa.selenium.WebElement opt = d.findElement(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeOther')"
+                + " AND visible == 1 AND label CONTAINS 'Breaker is restricted'"));
+            org.openqa.selenium.Rectangle r = opt.getRect();
+            System.out.println("PROBE: option rect x=" + r.x + " y=" + r.y + " w=" + r.width + " h=" + r.height + " type pressed left-zone");
+            d.executeScript("mobile: tap", java.util.Map.of("x", r.x + 40, "y", r.y + r.height / 2));
+            longWait();
+            java.nio.file.Files.writeString(java.nio.file.Path.of(dir + "/subcat-sheet-2-after-press.xml"), d.getPageSource());
+            System.out.println("PROBE: post-press dumped");
+        } catch (Exception e) { System.out.println("PROBE: option press failed: " + e.getMessage()); }
+    }
+
+    @Test
     public void PROBE_newBuildingForm() {
         ExtentReportManager.createTest(
             AppConstants.MODULE_OFFLINE,
@@ -342,15 +379,27 @@ public class DebugProbe_Test extends BaseTest {
             System.out.println("PROBE: building step2 dumped");
         } catch (Exception e) { System.out.println("PROBE: building row press failed: " + e.getMessage()); }
 
+        // The Building row opens a PICKER SHEET ('New Building…' + existing
+        // buildings) — press 'New Building…' and dump what appears.
+        try {
+            org.openqa.selenium.WebElement newBldg = d.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name BEGINSWITH 'New Building' AND visible == 1"));
+            org.openqa.selenium.Rectangle r = newBldg.getRect();
+            d.executeScript("mobile: tap", java.util.Map.of("x", r.x + 40, "y", r.y + r.height / 2));
+            longWait();
+            java.nio.file.Files.writeString(java.nio.file.Path.of(dir + "/new-building-step3.xml"), d.getPageSource());
+            System.out.println("PROBE: building step3 ('New Building…' pressed) dumped");
+        } catch (Exception e) { System.out.println("PROBE: 'New Building…' press failed: " + e.getMessage()); }
+
         // If a text field appeared, type a name and dump once more
         try {
             org.openqa.selenium.WebElement tf = d.findElement(AppiumBy.iOSNsPredicateString(
                 "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeSearchField') AND visible == 1"));
             tf.sendKeys("ProbeBldg_1");
             mediumWait();
-            java.nio.file.Files.writeString(java.nio.file.Path.of(dir + "/new-building-step3-typed.xml"), d.getPageSource());
-            System.out.println("PROBE: building step3 (typed) dumped");
-        } catch (Exception e) { System.out.println("PROBE: no text field after Building row: " + e.getMessage()); }
+            java.nio.file.Files.writeString(java.nio.file.Path.of(dir + "/new-building-step4-typed.xml"), d.getPageSource());
+            System.out.println("PROBE: building step4 (typed) dumped");
+        } catch (Exception e) { System.out.println("PROBE: no text field after New Building…: " + e.getMessage()); }
     }
 
     @Test
