@@ -3195,6 +3195,14 @@ public class IssuePage extends BasePage {
         resetDetailsScrollCount();
         boolean tapped = false;
 
+        // v1.50: the filter tab persists across restarts — status-change tests
+        // leave the list on a now-empty filter (Open after everything went
+        // Resolved/Closed) and 'no issue cells' cascades. Reset to All first.
+        if (isIssueListEmpty()) {
+            System.out.println("   list looks empty — resetting to the All tab");
+            try { tapAllTab(); sleep(700); } catch (Exception ignored) {}
+        }
+
         // Seed-on-demand: offline-first sites can have an empty local Issues store.
         if (isIssueListEmpty()) {
             ensureAtLeastOneIssueExists();
@@ -5454,7 +5462,85 @@ public class IssuePage extends BasePage {
      * Check if the Issue Photos section is displayed.
      * Expected: section with "Issue Photos" label and Gallery/Camera buttons.
      */
+    /** Page-source truth check: the XCTest QUERY layer intermittently reports
+     *  visible=false (or empty results) for on-screen elements — details
+     *  bottom, post-sheet — while the source snapshot is correct
+     *  (2026-07-17, same mechanism as getSubcategoryValue Strategy -1). */
+    public boolean pageSourceHasVisible(String nameContains) {
+        try {
+            String xml = driver.getPageSource();
+            java.util.regex.Matcher m = java.util.regex.Pattern
+                .compile("<XCUIElementType\\w+([^>]*?)/?>").matcher(xml);
+            while (m.find()) {
+                String attrs = m.group(1);
+                if (!attrs.contains("visible=\"true\"")) continue;
+                java.util.regex.Matcher nm = java.util.regex.Pattern.compile("name=\"([^\"]*)\"").matcher(attrs);
+                if (nm.find() && nm.group(1).contains(nameContains)) return true;
+            }
+        } catch (Exception ignored) {}
+        return false;
+    }
+
+    /** Coordinate-press a visible Button found by PAGE-SOURCE parse — full
+     *  bypass of the query layer (see pageSourceHasVisible). */
+    public boolean pressBySourceCoordinates(String nameContains) {
+        try {
+            String xml = driver.getPageSource();
+            java.util.regex.Matcher m = java.util.regex.Pattern
+                .compile("<XCUIElementTypeButton([^>]*?)/?>").matcher(xml);
+            while (m.find()) {
+                String attrs = m.group(1);
+                if (!attrs.contains("visible=\"true\"")) continue;
+                java.util.regex.Matcher nm = java.util.regex.Pattern.compile("name=\"([^\"]*)\"").matcher(attrs);
+                if (!nm.find() || !nm.group(1).contains(nameContains)) continue;
+                java.util.regex.Matcher xm = java.util.regex.Pattern.compile(" x=\"(-?\\d+)\"").matcher(attrs);
+                java.util.regex.Matcher ym = java.util.regex.Pattern.compile(" y=\"(-?\\d+)\"").matcher(attrs);
+                java.util.regex.Matcher wm = java.util.regex.Pattern.compile(" width=\"(\\d+)\"").matcher(attrs);
+                java.util.regex.Matcher hm = java.util.regex.Pattern.compile(" height=\"(\\d+)\"").matcher(attrs);
+                if (!xm.find() || !ym.find() || !wm.find() || !hm.find()) continue;
+                int cx = Integer.parseInt(xm.group(1)) + Integer.parseInt(wm.group(1)) / 2;
+                int cy = Integer.parseInt(ym.group(1)) + Integer.parseInt(hm.group(1)) / 2;
+                driver.executeScript("mobile: tap", java.util.Map.of("x", cx, "y", cy));
+                sleep(600);
+                System.out.println("✅ Pressed '" + nm.group(1) + "' via page-source coordinates @" + cx + "," + cy);
+                return true;
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ pressBySourceCoordinates('" + nameContains + "'): " + e.getMessage());
+        }
+        return false;
+    }
+
+    /** Predicate-scroll a below-fold details landmark into the lazy DOM.
+     *  Targeted scroll only — a generic swipe can focus a TextView and raise
+     *  the keyboard (probe 2026-07-17). Safe no-op when already visible. */
+    private void scrollDetailsToLandmark(String nameContains) {
+        try {
+            if (pageSourceHasVisible(nameContains)) return;
+            try {
+                driver.executeScript("mobile: scroll", java.util.Map.of(
+                    "direction", "down",
+                    "predicateString", "name CONTAINS '" + nameContains + "'"));
+                sleep(500);
+            } catch (Exception ignored) {}
+            // Lazy list: the target may not be IN the tree yet, so the
+            // predicate-scroll can't find it — bounded raw swipes (probe
+            // recipe 2026-07-17), page-source-checked each step.
+            for (int i = 0; i < 3 && !pageSourceHasVisible(nameContains); i++) {
+                driver.executeScript("mobile: swipe", java.util.Map.of("direction", "up"));
+                sleep(500);
+            }
+            System.out.println("   scrollDetailsToLandmark('" + nameContains + "') → "
+                + (pageSourceHasVisible(nameContains) ? "visible" : "NOT FOUND"));
+        } catch (Exception e) {
+            System.out.println("   scrollDetailsToLandmark('" + nameContains + "'): " + e.getMessage());
+        }
+    }
+
     public boolean isIssuePhotosSectionDisplayed() {
+        // v1.50: the section sits BELOW the fold (probe: 'Issue Photos' y=323
+        // only after swipes) — bring it into the lazy DOM first.
+        scrollDetailsToLandmark("Issue Photos");
         try {
             // Check current DOM only — no scrolling. Test handles positioning.
             List<WebElement> labels = driver.findElements(AppiumBy.iOSNsPredicateString(
@@ -5486,6 +5572,18 @@ public class IssuePage extends BasePage {
      * Check if the Gallery button is displayed in the Issue Photos section.
      */
     public boolean isGalleryButtonDisplayed() {
+        scrollDetailsToLandmark("Gallery");
+        // Page-source truth first — the query layer lies about visibility here.
+        if (pageSourceHasVisible("Gallery")) {
+            System.out.println("   Gallery button found (page-source)");
+            return true;
+        }
+        if (existsNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND visible == 1 AND " +
+                "(name == 'Gallery' OR label == 'Gallery' OR name CONTAINS 'photo.on.rectangle')"))) {
+            System.out.println("   Gallery button found (visible)");
+            return true;
+        }
         try {
             WebElement gallery = driver.findElement(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND " +
@@ -5524,6 +5622,12 @@ public class IssuePage extends BasePage {
      */
     public void tapGalleryButton() {
         System.out.println("🖼️ Tapping Gallery button...");
+        scrollDetailsToLandmark("Gallery");
+        // v1.50: press via PAGE-SOURCE coordinates — the query layer lies here.
+        if (pressBySourceCoordinates("Gallery")) {
+            sleep(400);
+            return;
+        }
         try {
             WebElement gallery = driver.findElement(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND " +
@@ -5683,6 +5787,18 @@ public class IssuePage extends BasePage {
      * Expected: button with trash icon and red text.
      */
     public boolean isDeleteIssueButtonDisplayed() {
+        // v1.50: 'Delete Issue' (trash) sits at the very bottom (probe y=452
+        // after swipes) — targeted scroll first, visible==1 to dodge twins.
+        scrollDetailsToLandmark("Delete Issue");
+        if (pageSourceHasVisible("Delete Issue")) {
+            System.out.println("   Delete Issue button found (page-source)");
+            return true;
+        }
+        if (existsNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name CONTAINS 'Delete Issue' AND visible == 1"))) {
+            System.out.println("   Delete Issue button found (v1.50 visible)");
+            return true;
+        }
         try {
             String predicate = "type == 'XCUIElementTypeButton' AND " +
                 "(label CONTAINS 'Delete Issue' OR label CONTAINS 'Delete issue' OR " +
@@ -5728,6 +5844,21 @@ public class IssuePage extends BasePage {
      */
     public void tapDeleteIssueButton() {
         System.out.println("🗑️ Tapping Delete Issue button...");
+        // CRITICAL: pause auto-accept BEFORE pressing — autoAcceptAlerts
+        // auto-confirms the DESTRUCTIVE dialog, silently deleting a real issue
+        // per run (this drained the QA Issues fixture on 2026-07-17). The
+        // setting dies with the session; tests assert/dismiss the dialog.
+        try {
+            driver.setSetting("defaultAlertAction", "");
+            System.out.println("   alerts set to MANUAL for the delete dance");
+        } catch (Exception e) {
+            System.out.println("   could not pause auto-accept: " + e.getMessage());
+        }
+        scrollDetailsToLandmark("Delete Issue");
+        // v1.50: press via PAGE-SOURCE coordinates — the query layer lies here.
+        if (pressBySourceCoordinates("Delete Issue")) {
+            return;
+        }
         try {
             String predicate = "type == 'XCUIElementTypeButton' AND " +
                 "(label CONTAINS 'Delete Issue' OR label CONTAINS 'Delete issue' OR " +

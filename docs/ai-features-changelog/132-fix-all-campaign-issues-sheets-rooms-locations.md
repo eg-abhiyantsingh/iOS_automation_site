@@ -50,3 +50,37 @@
 ## Files
 ConnectionsPage, IssuePage, WorkOrderPage, SiteSelectionPage, DebugProbe_Test
 (6 new probes), BUGS.md (CONN-VAL-01).
+
+## Session addendum (2026-07-17 afternoon)
+
+**Additional greens:** TC_ISS_106/107/108 (NFPA subcategory family — stale-chip
+anchor + hardened delegation + sheet-scoped option census), TC_ISS_046/066/
+SAFETY_01/010/065/083/091/114-117, TC_OFF_017/020 (healed by the createBuilding
+remap). Campaign total: **31 tests re-greened + 2 correctly-red app bugs.**
+
+**CRITICAL incident — Issues fixture drained:** repeated validation runs of
+TC_ISS_075 each pressed 'Delete Issue' while autoAcceptAlerts auto-CONFIRMED
+the destructive dialog → one real issue deleted per run until the QA site's
+Issues store was EMPTY (and API seeding is blocked: 'no SLD visible to the QA
+user'). Guard added: tapDeleteIssueButton now sets defaultAlertAction='' (manual)
+BEFORE pressing — the dialog stays for the test to assert and the setting dies
+with the session. tapFirstIssue also resets to the All tab when the persisted
+filter tab hides everything.
+
+**Open items (blocked on the empty fixture, not on locators):**
+- TC_ISS_071/072/074/075/077/079 (photos/gallery/delete/save families):
+  detectors + page-source-parse helpers all in place (pageSourceHasVisible /
+  pressBySourceCoordinates / scrollDetailsToLandmark) — they need issues to
+  exist. UI seeder (ensureAtLeastOneIssueExists) runs but needs a live check
+  on this drained site; re-run the family after re-seeding issues.
+- TC_ISS_015: search verified into the field but list shows 0 matches for an
+  exact visible title — candidate app search-scope quirk; needs a manual look.
+- TC_ISS_084/110/118/119: not yet revalidated this session (084/110 likely
+  healed by the sheet remap; 118/119 are OSHA giant-DOM budget cases).
+- TC_CONN_059/062: not yet revalidated (likely healed by picker fixes).
+
+**New load-bearing pattern:** the XCTest QUERY layer intermittently reports
+on-screen elements as visible=false (or returns empty) on the Issue Details
+surface while getPageSource is correct — readbacks and presses there now go
+through page-source parsing (getSubcategoryValue Strategy -1,
+pageSourceHasVisible, pressBySourceCoordinates).
