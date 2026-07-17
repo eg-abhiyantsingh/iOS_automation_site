@@ -84,3 +84,7 @@ on-screen elements as visible=false (or returns empty) on the Issue Details
 surface while getPageSource is correct — readbacks and presses there now go
 through page-source parsing (getSubcategoryValue Strategy -1,
 pageSourceHasVisible, pressBySourceCoordinates).
+
+**TC_CONN_059/062 (revalidated 2026-07-17):** still ThreadTimeout at 360s —
+NOT healed by the picker fixes; they are the deep whole-tree-scan family and
+need the same per-method budget/bounding treatment as the Issues cluster.
