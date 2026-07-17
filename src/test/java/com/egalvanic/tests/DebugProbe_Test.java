@@ -303,6 +303,53 @@ public class DebugProbe_Test extends BaseTest {
     }
 
     @Test
+    public void PROBE_issueDetailsBottom() {
+        ExtentReportManager.createTest(
+            AppConstants.MODULE_ISSUES,
+            AppConstants.FEATURE_ISSUES_LIST,
+            "PROBE - v1.50 Issue Details BOTTOM anatomy (photos/gallery/delete zones)"
+        );
+        String dir = "/private/tmp/claude-501/-Users-abhiyantsingh-Downloads-iOS-automation-site/ba210b3e-faec-46c4-bbed-eb1cec075170/scratchpad";
+        io.appium.java_client.ios.IOSDriver d = com.egalvanic.utils.DriverManager.getDriver();
+
+        loginAndSelectSite();
+        com.egalvanic.pages.IssuePage ip = new com.egalvanic.pages.IssuePage();
+        ip.navigateToIssuesScreen();
+        mediumWait();
+        ip.tapFirstIssue();
+        longWait();
+
+        // Predicate-scroll to landmarks so generic scrolls never focus a
+        // TextView (that raised the keyboard and hijacked earlier probes).
+        String[][] targets = {
+            {"Photos", "issue-bottom-1-photos"},
+            {"Issue Photos", "issue-bottom-1b-issuephotos"},
+            {"Delete Issue", "issue-bottom-2-delete"},
+        };
+        for (String[] t : targets) {
+            try {
+                d.executeScript("mobile: scroll", java.util.Map.of(
+                    "direction", "down",
+                    "predicateString", "name CONTAINS '" + t[0] + "' AND visible == 1"));
+                mediumWait();
+                java.nio.file.Files.writeString(java.nio.file.Path.of(dir + "/" + t[1] + ".xml"), d.getPageSource());
+                System.out.println("PROBE: scrolled to '" + t[0] + "' and dumped " + t[1]);
+            } catch (Exception e) {
+                System.out.println("PROBE: scroll-to '" + t[0] + "' failed: " + e.getMessage());
+            }
+        }
+        // Final bottom dump regardless
+        try {
+            for (int i = 0; i < 3; i++) {
+                d.executeScript("mobile: swipe", java.util.Map.of("direction", "up"));
+                sleep(400);
+            }
+            java.nio.file.Files.writeString(java.nio.file.Path.of(dir + "/issue-bottom-3-swiped.xml"), d.getPageSource());
+            System.out.println("PROBE: bottom swiped dump saved");
+        } catch (Exception e) { System.out.println("PROBE: bottom swipe failed: " + e.getMessage()); }
+    }
+
+    @Test
     public void PROBE_subcategorySheet() {
         ExtentReportManager.createTest(
             AppConstants.MODULE_ISSUES,

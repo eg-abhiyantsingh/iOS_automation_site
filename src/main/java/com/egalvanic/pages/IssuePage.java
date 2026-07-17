@@ -480,13 +480,42 @@ public class IssuePage extends BasePage {
     public void searchIssues(String query) {
         System.out.println("🔍 Searching for: " + query);
         try {
-            WebElement searchBar = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeSearchField'"));
-            searchBar.click();
-            sleep(300);
-            searchBar.sendKeys(query);
-            sleep(500);
-            System.out.println("✅ Entered search query: " + query);
+            // visible==1: a hidden bleed twin of the search field swallows the
+            // typing. Coordinate-tap to focus, type, then VERIFY the field's
+            // value took the query — retry once on miss (v1.50 lazy list).
+            for (int attempt = 1; attempt <= 2; attempt++) {
+                WebElement searchBar = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeSearchField' AND visible == 1"));
+                org.openqa.selenium.Rectangle r = searchBar.getRect();
+                driver.executeScript("mobile: tap", java.util.Map.of(
+                    "x", r.x + r.width / 2, "y", r.y + r.height / 2));
+                sleep(300);
+                searchBar.sendKeys(query);
+                sleep(600);
+                String val = "";
+                try { val = String.valueOf(searchBar.getAttribute("value")); } catch (Exception ignored) {}
+                if (val.contains(query)) {
+                    // Commit via the keyboard's own Search/Return key — the
+                    // generic dismissKeyboard's (mid,200) fallback tap lands on
+                    // a list row's status chip and opens STATUS HISTORY
+                    // (TC_ISS_015 screenshot 2026-07-17).
+                    try {
+                        WebElement searchKey = driver.findElement(AppiumBy.iOSNsPredicateString(
+                            "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeKey') AND "
+                            + "(label == 'Search' OR label == 'search' OR label == 'Return') AND "
+                            + "visible == 1 AND rect.y > 600"));
+                        searchKey.click();
+                    } catch (Exception ke) {
+                        System.out.println("   no keyboard Search key — leaving keyboard up (safe)");
+                    }
+                    // Server-backed filter — give results a beat to land.
+                    sleep(1500);
+                    System.out.println("✅ Entered search query (verified): " + query);
+                    return;
+                }
+                System.out.println("   search field value '" + val + "' missing query — retry " + attempt);
+            }
+            System.out.println("⚠️ Search typing never verified for: " + query);
         } catch (Exception e) {
             System.out.println("⚠️ Search failed: " + e.getMessage());
         }
@@ -2986,14 +3015,11 @@ public class IssuePage extends BasePage {
      * This allows creating a new asset from within the picker.
      */
     public boolean isAddAssetButtonOnPickerDisplayed() {
-        try {
-            WebElement addBtn = driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND " +
-                "(name == 'Add' OR name == 'plus' OR name CONTAINS 'plus' OR label == 'Add')"));
-            return addBtn.isDisplayed();
-        } catch (Exception e) {
-            return false;
-        }
+        // visible==1 in the predicate — hidden 'plus' twins from other surfaces
+        // come first in DOM order and made first-match isDisplayed() lie.
+        return existsNow(AppiumBy.iOSNsPredicateString(
+            "type == 'XCUIElementTypeButton' AND visible == 1 AND " +
+            "(name == 'Add' OR name == 'plus' OR name CONTAINS 'plus' OR label == 'Add')"));
     }
 
     /**
@@ -3592,6 +3618,24 @@ public class IssuePage extends BasePage {
      * — probe 2026-07-16. Presses the control row and verifies the sheet.
      */
     public boolean openDetailsRowSheet(String rowLabel) {
+        // A PREVIOUS sheet (e.g. the class picker that just committed) may
+        // still be animating closed — pressing through it lands on the sheet,
+        // not the row (TC_ISS_107 'no sheet yet' race). Wait it out first.
+        for (int w = 0; w < 14 && existsNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name == 'Cancel' AND visible == 1 AND rect.y > 300")); w++) {
+            sleep(300);
+        }
+        // A focused TextView leaves the KEYBOARD up (class-change aftermath,
+        // TC_ISS_106 dump) — it swallows row presses. hideKeyboard only; the
+        // coordinate-fallback dismiss taps rows and opens Status History.
+        if (existsNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeKeyboard' AND visible == 1"))) {
+            try {
+                driver.executeScript("mobile: hideKeyboard");
+                sleep(500);
+                System.out.println("   openDetailsRowSheet: dismissed lingering keyboard");
+            } catch (Exception ignored) {}
+        }
         for (int attempt = 0; attempt < 2; attempt++) {
             try {
                 WebElement lbl = driver.findElement(AppiumBy.iOSNsPredicateString(
@@ -3611,6 +3655,60 @@ public class IssuePage extends BasePage {
                 System.out.println("   openDetailsRowSheet('" + rowLabel + "') attempt " + (attempt + 1) + ": " + e.getMessage());
             }
         }
+
+        // Anchor strategies — after a class change the row can hold a STALE
+        // CHIP (xmark.circle.fill with NO value text; TC_ISS_106 dump) and the
+        // fixed label+38 offset misses the pressable zone. Press at the row
+        // icon's own height; clear the stale chip first when present.
+        try {
+            if (existsNow(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeKeyboard' AND visible == 1"))) {
+                try { driver.executeScript("mobile: hideKeyboard"); sleep(500); } catch (Exception ignored) {}
+            }
+            WebElement lbl = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label == '" + rowLabel + "' AND visible == 1"));
+            org.openqa.selenium.Rectangle lr = lbl.getRect();
+            // Stale chip: clear it, let the row re-render, then press the row.
+            for (WebElement x : driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeImage') AND "
+                    + "name == 'xmark.circle.fill' AND visible == 1"))) {
+                try {
+                    int xy = x.getLocation().getY();
+                    if (xy > lr.y && xy < lr.y + 90) {
+                        System.out.println("   stale chip in '" + rowLabel + "' row — clearing via xmark @" + xy);
+                        pressElementCenter(x);
+                        sleep(800);
+                        break;
+                    }
+                } catch (Exception ignored) {}
+            }
+            // Press at the row control's own height: chevron.down anchor if
+            // present, else label.y+38 once more post-clear.
+            int pressY = lr.y + 38;
+            try {
+                WebElement chev = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeImage' AND name == 'chevron.down' AND visible == 1 AND "
+                    + "rect.y > " + lr.y + " AND rect.y < " + (lr.y + 90)));
+                pressY = chev.getLocation().getY() + 3;
+            } catch (Exception ignored) {}
+            driver.executeScript("mobile: tap", java.util.Map.of("x", lr.x + 30, "y", pressY));
+            sleep(700);
+            if (existsNow(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND name == 'Cancel' AND visible == 1 AND rect.y > 300"))) {
+                System.out.println("✅ Opened '" + rowLabel + "' sheet (anchor strategy @y=" + pressY + ")");
+                return true;
+            }
+            System.out.println("   anchor press @y=" + pressY + " — still no sheet");
+        } catch (Exception e) {
+            System.out.println("   anchor strategy failed: " + e.getMessage());
+        }
+        try {
+            java.nio.file.Path dir = java.nio.file.Paths.get("target", "afdump");
+            java.nio.file.Files.createDirectories(dir);
+            java.nio.file.Files.writeString(dir.resolve("rowsheet-miss-" + rowLabel.replace(' ', '_') + ".xml"),
+                driver.getPageSource());
+            System.out.println("🗂  rowsheet-miss dump saved for '" + rowLabel + "'");
+        } catch (Exception ignored) {}
         return false;
     }
 
@@ -4559,46 +4657,79 @@ public class IssuePage extends BasePage {
             "type == 'XCUIElementTypeCell') AND visible == 1 AND label CONTAINS '" + subcategory + "'";
 
         try {
+            List<WebElement> options;
             // Strategy 1: Direct find (implicit-wait 0 — a miss costs ~ms, not 5s).
             // Coordinate press on the widest visible match — click() no-ops on
-            // v1.50 sheet rows and hidden twins carry bogus geometry.
-            List<WebElement> options = withImplicitWait(0, () ->
-                driver.findElements(AppiumBy.iOSNsPredicateString(predicate)));
-            WebElement best = null; int bestW = 0;
-            for (WebElement o : options) {
+            // v1.50 sheet rows and hidden twins carry bogus geometry. The sheet
+            // re-renders right after opening — retry once on stale elements
+            // (kAXErrorInvalidUIElement, TC_ISS_106).
+            for (int findAttempt = 1; findAttempt <= 2; findAttempt++) {
                 try {
-                    int w = o.getRect().width;
-                    if (w > bestW) { bestW = w; best = o; }
-                } catch (Exception ignored) {}
-            }
-            if (best != null) {
-                org.openqa.selenium.Rectangle r = best.getRect();
-                driver.executeScript("mobile: tap", java.util.Map.of(
-                    "x", r.x + Math.min(40, Math.max(15, r.width / 2)), "y", r.y + r.height / 2));
-                // Selection commits on press but the sheet-close animation races
-                // the readback — wait for the sheet's Cancel to disappear.
-                for (int w = 0; w < 10 && existsNow(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeButton' AND name == 'Cancel' AND visible == 1 AND rect.y > 300")); w++) {
+                    options = withImplicitWait(0, () ->
+                        driver.findElements(AppiumBy.iOSNsPredicateString(predicate)));
+                    WebElement best = null; int bestW = 0;
+                    org.openqa.selenium.Rectangle bestRect = null;
+                    for (WebElement o : options) {
+                        try {
+                            org.openqa.selenium.Rectangle rr = o.getRect();
+                            if (rr.width > bestW) { bestW = rr.width; best = o; bestRect = rr; }
+                        } catch (Exception ignored) {}
+                    }
+                    if (best == null) break; // fall through to scroll strategy
+                    driver.executeScript("mobile: tap", java.util.Map.of(
+                        "x", bestRect.x + Math.min(40, Math.max(15, bestRect.width / 2)),
+                        "y", bestRect.y + bestRect.height / 2));
+                    // Selection commits on press but the sheet-close animation races
+                    // the readback — wait for the sheet's Cancel to disappear.
+                    for (int w = 0; w < 10 && existsNow(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeButton' AND name == 'Cancel' AND visible == 1 AND rect.y > 300")); w++) {
+                        sleep(300);
+                    }
                     sleep(300);
+                    System.out.println("✅ Selected subcategory (coordinate): " + subcategory);
+                    return;
+                } catch (Exception se) {
+                    // Appium wraps the stale as different classes; match on message.
+                    String msg = String.valueOf(se.getMessage());
+                    if (findAttempt < 2 && (msg.contains("not present in the current view")
+                            || msg.contains("Invalid") || se instanceof org.openqa.selenium.StaleElementReferenceException)) {
+                        System.out.println("   stale element on attempt " + findAttempt + " — re-finding");
+                        sleep(700);
+                    } else {
+                        throw se;
+                    }
                 }
-                sleep(300);
-                System.out.println("✅ Selected subcategory (coordinate): " + subcategory);
-                return;
             }
 
             // Strategy 2: Scroll within the picker to find the option. Loop is bounded
             // by BOTH the iteration cap AND the wall-clock deadline so it can never
-            // run away into the 360s test cap. scrollDownOnDetailsScreen() is itself
-            // capped at MAX_DETAILS_SCROLL_DOWN.
-            System.out.println("   Subcategory not visible, scrolling to find it...");
+            // run away into the 360s test cap.
+            // v1.50: with the bottom sheet open, scroll the SHEET (swipe up) —
+            // scrollDownOnDetailsScreen moves the form underneath, not the sheet.
+            boolean sheetOpen = existsNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name == 'Cancel' AND visible == 1 AND rect.y > 300"));
+            System.out.println("   Subcategory not visible, scrolling to find it... (sheetOpen=" + sheetOpen + ")");
             for (int scroll = 0; scroll < 5 && System.currentTimeMillis() < deadline; scroll++) {
-                scrollDownOnDetailsScreen();
-                sleep(200);
+                if (sheetOpen) {
+                    try { driver.executeScript("mobile: swipe", java.util.Map.of("direction", "up")); } catch (Exception ignored) {}
+                } else {
+                    scrollDownOnDetailsScreen();
+                }
+                sleep(300);
                 options = withImplicitWait(0, () ->
                     driver.findElements(AppiumBy.iOSNsPredicateString(predicate)));
-                if (!options.isEmpty()) {
-                    options.get(0).click();
-                    sleep(400);
+                WebElement bestScroll = null; int bestScrollW = 0;
+                for (WebElement o : options) {
+                    try {
+                        int w = o.getRect().width;
+                        if (w > bestScrollW) { bestScrollW = w; bestScroll = o; }
+                    } catch (Exception ignored) {}
+                }
+                if (bestScroll != null) {
+                    org.openqa.selenium.Rectangle r = bestScroll.getRect();
+                    driver.executeScript("mobile: tap", java.util.Map.of(
+                        "x", r.x + Math.min(40, Math.max(15, r.width / 2)), "y", r.y + r.height / 2));
+                    sleep(600);
                     System.out.println("✅ Selected subcategory after scroll: " + subcategory);
                     return;
                 }
@@ -4868,11 +4999,33 @@ public class IssuePage extends BasePage {
         // the OSHA bleed-through DOM can wedge WDA at the full implicit wait.
         long deadline = System.currentTimeMillis() + SUBCAT_BUDGET_MS;
         try {
+            // Strategy 0 (v1.50): the subcategory sheet has NO search field
+            // (probe 2026-07-17) — emulate filtering by scrolling the sheet's
+            // option list until a matching option is visible. Bounded.
+            if (existsNow(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND name == 'Cancel' AND visible == 1 AND rect.y > 300"))) {
+                for (int i = 0; i < 4; i++) {
+                    if (isSubcategoryOptionDisplayed(searchText)) {
+                        System.out.println("✅ v1.50 sheet: option matching '" + searchText + "' scrolled into view");
+                        return;
+                    }
+                    if (System.currentTimeMillis() >= deadline) break;
+                    try {
+                        driver.executeScript("mobile: swipe", java.util.Map.of("direction", "up"));
+                        sleep(400);
+                    } catch (Exception se) { break; }
+                }
+                System.out.println("   v1.50 sheet: no option matching '" + searchText + "' after scroll");
+                return;
+            }
+
             // Strategy 1: Find a text field in the subcategory area. Cheap absence
             // probe first (implicit-wait 0); only resolve the field when present.
+            // visible == 1 is load-bearing: the Issues LIST's hidden 'Search
+            // issues' field bleeds through and would swallow the typing.
             try {
                 org.openqa.selenium.By searchBy = AppiumBy.iOSNsPredicateString(
-                    "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeSearchField') AND " +
+                    "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeSearchField') AND visible == 1 AND " +
                     "(name CONTAINS 'Subcategory' OR name CONTAINS 'subcategory' OR " +
                     "value CONTAINS 'Type or select' OR label CONTAINS 'Type or select' OR " +
                     "label CONTAINS 'Search' OR label CONTAINS 'search')");
@@ -6970,47 +7123,16 @@ public class IssuePage extends BasePage {
      */
     public String selectSubcategoryAndGetValue(String optionPartialText) {
         System.out.println("📋 Selecting subcategory containing: " + optionPartialText);
-        // Hard per-call wall-clock budget — the CONTAINS resolve + mobile:scroll
-        // over the OSHA bleed-through DOM is the documented WDA-wedge family.
-        long deadline = System.currentTimeMillis() + SUBCAT_BUDGET_MS;
-        org.openqa.selenium.By optionBy = AppiumBy.iOSNsPredicateString(
-            "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' OR " +
-            "type == 'XCUIElementTypeCell') AND label CONTAINS '" + optionPartialText + "'");
-        try {
-            // Find and tap the option. Cheap absence probe first (implicit-wait 0);
-            // only resolve+tap when present, else fall through to a bounded scroll.
-            if (existsNow(optionBy)) {
-                WebElement option = driver.findElement(optionBy);
-                option.click();
-                sleep(500);
-                System.out.println("✅ Tapped subcategory option: " + option.getAttribute("label"));
-            } else if (System.currentTimeMillis() < deadline) {
-                // Scroll to find it first (single native scroll), then re-probe cheaply.
-                Map<String, Object> scrollParams = new HashMap<>();
-                scrollParams.put("direction", "down");
-                scrollParams.put("predicateString", "label CONTAINS '" + optionPartialText + "'");
-                driver.executeScript("mobile: scroll", scrollParams);
-                sleep(300);
-
-                if (existsNow(optionBy)) {
-                    WebElement option = driver.findElement(optionBy);
-                    option.click();
-                    sleep(500);
-                    System.out.println("✅ Tapped subcategory option after scroll");
-                } else {
-                    System.out.println("⚠️ Subcategory option '" + optionPartialText + "' not found after scroll");
-                }
-            }
-
-            // Read back the selected value
-            sleep(300);
-            String selectedValue = getSubcategoryValue();
-            System.out.println("   Selected subcategory value: '" + selectedValue + "'");
-            return selectedValue;
-        } catch (Exception e) {
-            System.out.println("⚠️ Error selecting subcategory: " + e.getMessage());
-            return "";
-        }
+        // Delegate to the hardened primitives: selectSubcategory does the
+        // visible-widest coordinate press with stale retry + sheet-close wait
+        // (the old inline first-match click() threw kAXErrorInvalidUIElement on
+        // the re-rendering sheet — TC_ISS_106); getSubcategoryValue leads with
+        // the page-source parse.
+        selectSubcategory(optionPartialText);
+        sleep(300);
+        String selectedValue = getSubcategoryValue();
+        System.out.println("   Selected subcategory value: '" + selectedValue + "'");
+        return selectedValue;
     }
 
     /**
@@ -7075,7 +7197,7 @@ public class IssuePage extends BasePage {
             List<WebElement> results = withImplicitWait(0, () -> driver.findElements(
                 AppiumBy.iOSNsPredicateString(
                     "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' OR " +
-                    "type == 'XCUIElementTypeCell') AND label CONTAINS '" + searchText + "'")));
+                    "type == 'XCUIElementTypeCell') AND visible == 1 AND label CONTAINS '" + searchText + "'")));
 
             // Filter out non-option elements
             int count = 0;
@@ -7105,16 +7227,25 @@ public class IssuePage extends BasePage {
             // Search for subcategory dropdown items — typically cells or static text in the picker area.
             // Implicit-wait 0 — an empty result set returns instantly instead of burning
             // the full implicit wait on a whole-tree scan over the heavy OSHA DOM.
+            // v1.50: with the bottom sheet open, options are its full-width
+            // BUTTONS below the sheet title (y>480). visible==1 + the y-scope
+            // keep tab-bar names / filter pills / bleed-through out — without
+            // them this returned 72 junk rows whose per-item logging blew the
+            // 360s test cap (TC_ISS_107/108).
+            boolean sheetOpen = existsNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name == 'Cancel' AND visible == 1 AND rect.y > 300"));
+            int minY = sheetOpen ? 480 : 100;
             List<WebElement> elements = withImplicitWait(0, () -> driver.findElements(
                 AppiumBy.iOSNsPredicateString(
                     "(type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeButton' OR " +
-                    "type == 'XCUIElementTypeCell')")));
+                    "type == 'XCUIElementTypeCell') AND visible == 1")));
             for (WebElement el : elements) {
                 String label = el.getAttribute("label");
                 int y = el.getLocation().getY();
-                // Filter: must be in dropdown area (Y > 100), non-trivial text (length > 5),
+                if (label != null && label.equals("Sheet Grabber")) continue;
+                // Filter: must be in dropdown area, non-trivial text (length > 5),
                 // and NOT a UI chrome element (tabs, buttons, labels)
-                if (label != null && !label.isEmpty() && y > 100 && label.length() > 5 &&
+                if (label != null && !label.isEmpty() && y > minY && label.length() > 5 &&
                     !label.equals("Subcategory") && !label.contains("Type or select") &&
                     !label.equals("Cancel") && !label.equals("Done") && !label.equals("Close") &&
                     !label.equals("Issue Details") && !label.contains("Required") &&
@@ -11901,20 +12032,23 @@ public class IssuePage extends BasePage {
      */
     public boolean isIssueClassDropdownOpen() {
         try {
-            // Look for one of the expected option labels OR a sheet/picker
-            try {
-                driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND " +
+            // v1.50: options are full-width BUTTONS on a bottom sheet — require
+            // visible==1 (hidden list-row twins carry the same labels).
+            if (existsNow(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND visible == 1 AND " +
                     "(label == 'NEC Violation' OR label == 'NFPA 70B Violation' OR " +
-                    "label == 'Thermal Anomaly')"));
+                    "label == 'Thermal Anomaly' OR label == 'OSHA Violation')"))) {
                 return true;
-            } catch (Exception ignored) {}
-            try {
-                driver.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeSheet' OR type == 'XCUIElementTypePickerWheel'"));
+            }
+            // Look for one of the expected option labels OR a sheet/picker
+            if (existsNow(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND visible == 1 AND " +
+                    "(label == 'NEC Violation' OR label == 'NFPA 70B Violation' OR " +
+                    "label == 'Thermal Anomaly')"))) {
                 return true;
-            } catch (Exception ignored) {}
-            return false;
+            }
+            return existsNow(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeSheet' OR type == 'XCUIElementTypePickerWheel'"));
         } catch (Exception e) {
             return false;
         }
