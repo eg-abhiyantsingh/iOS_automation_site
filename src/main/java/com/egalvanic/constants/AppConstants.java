@@ -213,6 +213,7 @@ public class AppConstants {
     public static final String FEATURE_AF_PUNCHLIST = "AF Punchlist Overlays";
     public static final String FEATURE_AF_COLLECT = "Collect AF Data";
     public static final String FEATURE_AF_PHOTO = "Arc Flash Sticker Photos";
+    public static final String FEATURE_AF_READINESS = "Per-Asset Readiness Contribution";
 
     // ============================================
     // FEATURE NAMES - JOBS / SITE VISITS

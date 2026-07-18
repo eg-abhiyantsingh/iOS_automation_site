@@ -68,5 +68,10 @@
             <class name="com.egalvanic.tests.AssetEngineerFlagCanary_Test"/>
         </classes>
     </test>
+    <test name="Arc Flash - Per-Asset Readiness Contribution (fill values ⇒ % rises)">
+        <classes>
+            <class name="com.egalvanic.tests.ArcFlashReadinessByAsset_Test"/>
+        </classes>
+    </test>
 
 </suite>

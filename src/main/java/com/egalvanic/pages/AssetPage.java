@@ -9626,6 +9626,72 @@ public class AssetPage extends BasePage {
         System.out.println("✅ Filled all ATS required fields");
     }
 
+    /**
+     * Best-effort "fill every core electrical value the current Asset edit form
+     * exposes", so the asset becomes as Arc-Flash-complete as its class allows.
+     *
+     * Used by {@code ArcFlashReadinessByAsset_Test} to prove that populating an
+     * asset's values actually RAISES its Arc Flash completion. Every field is
+     * guarded by {@link #isFieldLabelPresent} + try/catch, so a class that lacks
+     * a given field simply skips it — one method covers CB / Transformer /
+     * Panelboard / etc. Values are the gold options already validated by the
+     * Asset_Phase* suites (Ampere Rating 100A/800A, Fault Withstand 65 kA,
+     * Manufacturer Allen-Bradley, Mains Type MCB/MLO, kVA 500, % Impedance 5).
+     *
+     * @return the number of fields it successfully populated (for logging;
+     *         the readiness oracle reads the on-screen counter, not this count).
+     */
+    public int fillAllReadinessFieldsBestEffort() {
+        System.out.println("📋 Filling all readiness-driving fields (best effort)...");
+        int filled = 0;
+
+        // Dropdown/picker fields — label then ordered candidate option values.
+        String[][] dropdowns = {
+            {"Voltage", "480V", "480", "208V"},
+            {"Secondary Voltage", "208V", "208", "480V"},
+            {"Ampere Rating", "100A", "200A", "800A"},
+            {"Mains Type", "MCB", "MLO"},
+            {"Fault Withstand Rating", "65 kA", "65kA", "25 kA"},
+            {"Manufacturer", "Allen-Bradley", "Square D", "Eaton"},
+            {"Pole Count", "3", "2", "4"},
+            {"Poles", "3", "2", "4"},
+            {"Configuration", "3-Phase", "3 Phase"},
+            {"Phase Configuration", "3 Phase 4 Wire", "3 Phase", "3-Phase"},
+            {"Trip Type", "Thermal Magnetic", "Electronic"},
+        };
+        for (String[] d : dropdowns) {
+            if (!isFieldLabelPresent(d[0])) continue;
+            for (int i = 1; i < d.length; i++) {
+                try {
+                    if (selectDetailsDropdown(d[0], d[i])) { filled++; break; }
+                    selectDropdownOption(d[0], d[i]); // void; throws on miss
+                    filled++;
+                    break;
+                } catch (Exception ignored) { /* try next candidate value */ }
+            }
+            sleep(150);
+        }
+
+        // Free-text numeric fields.
+        String[][] texts = {
+            {"kVA Rating", "500"}, {"kVA", "500"},
+            {"Percent Impedance", "5"}, {"% Impedance", "5"},
+            {"Frame Amps", "100"}, {"Sensor Amps", "100"},
+            {"Length", "10"},
+        };
+        for (String[] t : texts) {
+            if (!isFieldLabelPresent(t[0])) continue;
+            try {
+                scrollFormDown();
+                if (editTextField(t[0], t[1])) filled++;
+            } catch (Exception ignored) { /* field not editable here */ }
+        }
+
+        scrollFormUp();
+        System.out.println("✅ Populated " + filled + " readiness field(s)");
+        return filled;
+    }
+
     // ================================================================
     // BUSWAY ASSET CLASS METHODS
     // ================================================================

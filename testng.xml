@@ -130,6 +130,7 @@
             <class name="com.egalvanic.tests.ArcFlashPunchlist_Test"/>
             <class name="com.egalvanic.tests.ArcFlashBreakdown_Test"/>
             <class name="com.egalvanic.tests.AssetEngineerFlagCanary_Test"/>
+            <class name="com.egalvanic.tests.ArcFlashReadinessByAsset_Test"/>
         </classes>
     </test>
 
