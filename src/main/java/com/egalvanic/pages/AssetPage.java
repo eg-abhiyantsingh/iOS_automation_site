@@ -9641,54 +9641,79 @@ public class AssetPage extends BasePage {
      * @return the number of fields it successfully populated (for logging;
      *         the readiness oracle reads the on-screen counter, not this count).
      */
-    public int fillAllReadinessFieldsBestEffort() {
-        System.out.println("📋 Filling all readiness-driving fields (best effort)...");
+    public int fillReadinessFieldsForClass(String assetClass) {
+        System.out.println("📋 Filling readiness fields for class '" + assetClass + "' (lean, time-boxed)...");
         int filled = 0;
+        // Hard wall-clock cap. On a slow CI simulator a dropdown MISS triggers
+        // dumpVisibleFormLabels + scroll retries; a whole-form scan of many
+        // fields blew past the 360s per-test ThreadTimeout in run 29654781571.
+        // Bail well before that so a slow form yields a clean "readiness
+        // unchanged" assertion, never a timeout.
+        final long deadline = System.currentTimeMillis() + 90_000L;
 
-        // Dropdown/picker fields — label then ordered candidate option values.
-        String[][] dropdowns = {
-            {"Voltage", "480V", "480", "208V"},
-            {"Secondary Voltage", "208V", "208", "480V"},
-            {"Ampere Rating", "100A", "200A", "800A"},
-            {"Mains Type", "MCB", "MLO"},
-            {"Fault Withstand Rating", "65 kA", "65kA", "25 kA"},
-            {"Manufacturer", "Allen-Bradley", "Square D", "Eaton"},
-            {"Pole Count", "3", "2", "4"},
-            {"Poles", "3", "2", "4"},
-            {"Configuration", "3-Phase", "3 Phase"},
-            {"Phase Configuration", "3 Phase 4 Wire", "3 Phase", "3-Phase"},
-            {"Trip Type", "Thermal Magnetic", "Electronic"},
-        };
-        for (String[] d : dropdowns) {
-            if (!isFieldLabelPresent(d[0])) continue;
-            for (int i = 1; i < d.length; i++) {
-                try {
-                    if (selectDetailsDropdown(d[0], d[i])) { filled++; break; }
-                    selectDropdownOption(d[0], d[i]); // void; throws on miss
-                    filled++;
-                    break;
-                } catch (Exception ignored) { /* try next candidate value */ }
+        // Class-SPECIFIC gold field sets — only the fields a class actually has,
+        // so there are essentially no misses (a miss is the expensive path).
+        // {label, value, kind}. Values are the options validated by Asset_Phase*.
+        String[][] fields;
+        switch (assetClass) {
+            case "ATS":
+                fields = new String[][] {
+                    {"Ampere Rating", "100A", "dropdown"},
+                    {"Voltage", "480V", "dropdown"},
+                    {"Mains Type", "MCB", "dropdown"},
+                };
+                break;
+            case "Circuit Breaker":
+                fields = new String[][] {
+                    {"Ampere Rating", "800A", "dropdown"},
+                    {"Voltage", "480V", "dropdown"},
+                    {"Fault Withstand Rating", "65 kA", "dropdown"},
+                    {"Manufacturer", "Allen-Bradley", "dropdown"},
+                };
+                break;
+            case "Transformer":
+                fields = new String[][] {
+                    {"Voltage", "480V", "dropdown"},
+                    {"Secondary Voltage", "208V", "dropdown"},
+                    {"kVA Rating", "500", "text"},
+                    {"Percent Impedance", "5", "text"},
+                };
+                break;
+            case "Panelboard":
+                fields = new String[][] {
+                    {"Voltage", "480V", "dropdown"},
+                    {"Mains Type", "MCB", "dropdown"},
+                    {"Fault Withstand Rating", "65 kA", "dropdown"},
+                };
+                break;
+            default:
+                fields = new String[][] {
+                    {"Voltage", "480V", "dropdown"},
+                    {"Ampere Rating", "100A", "dropdown"},
+                };
+        }
+
+        // Bring the mid-form electrical fields into view (selectDetailsDropdown/
+        // editTextField then locate + fill), mirroring fillAllATSRequiredFields.
+        try { scrollFormDown(); } catch (Exception ignored) {}
+
+        for (String[] f : fields) {
+            if (System.currentTimeMillis() > deadline) {
+                System.out.println("⏱️ readiness fill time budget reached — stopping at " + filled + " field(s)");
+                break;
             }
-            sleep(150);
-        }
-
-        // Free-text numeric fields.
-        String[][] texts = {
-            {"kVA Rating", "500"}, {"kVA", "500"},
-            {"Percent Impedance", "5"}, {"% Impedance", "5"},
-            {"Frame Amps", "100"}, {"Sensor Amps", "100"},
-            {"Length", "10"},
-        };
-        for (String[] t : texts) {
-            if (!isFieldLabelPresent(t[0])) continue;
             try {
-                scrollFormDown();
-                if (editTextField(t[0], t[1])) filled++;
-            } catch (Exception ignored) { /* field not editable here */ }
+                boolean ok = "text".equals(f[2]) ? editTextField(f[0], f[1])
+                                                  : selectDetailsDropdown(f[0], f[1]);
+                if (ok) {
+                    filled++;
+                    System.out.println("   ✓ " + f[0] + " = " + f[1]);
+                }
+            } catch (Exception ignored) { /* field not fillable here — skip */ }
         }
 
-        scrollFormUp();
-        System.out.println("✅ Populated " + filled + " readiness field(s)");
+        try { scrollFormUp(); } catch (Exception ignored) {}
+        System.out.println("✅ Populated " + filled + " readiness field(s) for " + assetClass);
         return filled;
     }
 
