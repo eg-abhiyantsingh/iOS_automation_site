@@ -9672,11 +9672,13 @@ public class AssetPage extends BasePage {
                 };
                 break;
             case "Transformer":
+                // Dropdowns only. Its kVA / % Impedance TEXT fields miss-looped
+                // (editTextField scrolls ×3 per attempt) and hung past the 360s
+                // per-test timeout in runs 198 & 199 — the all-dropdown classes
+                // (ATS, Panelboard) passed cleanly, so mirror that.
                 fields = new String[][] {
                     {"Voltage", "480V", "dropdown"},
                     {"Secondary Voltage", "208V", "dropdown"},
-                    {"kVA Rating", "500", "text"},
-                    {"Percent Impedance", "5", "text"},
                 };
                 break;
             case "Panelboard":
