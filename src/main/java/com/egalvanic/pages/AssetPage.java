@@ -10128,22 +10128,52 @@ public class AssetPage extends BasePage {
         }
         assertClassChangeDeadline(className, deadline, "after reading current class");
 
-        if (!openAssetClassPicker()) {
-            System.out.println("⚠️ Failed to open Asset Class picker for " + className);
-            return;
-        }
-        assertClassChangeDeadline(className, deadline, "after opening picker");
+        // HARDENED (changelog 137): this used to fail SILENTLY (print + return)
+        // on every step — ~450 per-class test call sites then kept running on a
+        // WRONG-CLASS asset and asserted green. Now the change is retried once
+        // and VERIFIED by readback; only a class genuinely absent from the
+        // picker becomes a SKIP, everything else is a hard VerificationError.
+        for (int attempt = 1; attempt <= 2; attempt++) {
+            if (!openAssetClassPicker()) {
+                System.out.println("⚠️ Asset Class picker did not open for " + className
+                        + " (attempt " + attempt + ")");
+                if (attempt == 2) {
+                    throw new VerificationError("Asset Class picker did not open for '" + className
+                            + "' after 2 attempts — class NOT changed; refusing to continue on a wrong-class asset");
+                }
+                continue;
+            }
+            assertClassChangeDeadline(className, deadline, "after opening picker");
 
-        if (!tapAssetClassItem(className)) {
-            System.out.println("⚠️ Could not select " + className + " — dismissing picker");
+            if (!tapAssetClassItem(className)) {
+                System.out.println("⚠️ Could not select " + className + " — dismissing picker (attempt " + attempt + ")");
+                tapDoneOnPicker();
+                if (attempt == 2) {
+                    // Option absent from the searchable picker = environment /
+                    // catalog gap (e.g. B11: Loadcenter missing), not a flake.
+                    throw new org.testng.SkipException("Asset class '" + className
+                            + "' is not selectable in this environment's picker");
+                }
+                continue;
+            }
+            assertClassChangeDeadline(className, deadline, "after selecting class");
+
+            sleep(300);
             tapDoneOnPicker();
-            return;
-        }
-        assertClassChangeDeadline(className, deadline, "after selecting class");
 
-        sleep(300);
-        tapDoneOnPicker();
-        System.out.println("✅ Changed asset class to " + className);
+            // VERIFIED readback — the value the form really holds decides.
+            final boolean[] confirmed = {false};
+            com.egalvanic.utils.Waits.until(
+                    () -> (confirmed[0] = isCurrentAssetClassEqualTo(className)), 5000);
+            if (confirmed[0]) {
+                System.out.println("✅ Changed asset class to " + className + " (readback confirmed)");
+                return;
+            }
+            System.out.println("⚠️ Class readback != '" + className + "' after change (attempt " + attempt + ")");
+            assertClassChangeDeadline(className, deadline, "after readback mismatch");
+        }
+        throw new VerificationError("Asset class change to '" + className
+                + "' NOT confirmed by readback after 2 attempts — refusing to continue on a wrong-class asset");
     }
 
     /** Throw a fast VerificationError (NOT swallowable by catch(Exception)) if the
