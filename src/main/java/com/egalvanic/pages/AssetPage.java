@@ -13241,36 +13241,52 @@ public class AssetPage extends BasePage {
 
     /**
      * Find an asset whose list cell declares the target CLASS and leave it
-     * ON SCREEN. Search first (class-named assets filter well), then
-     * class-suffix-scan the visible cells with a bounded scroll; last resort
-     * is a VERIFIED-unfiltered rescan. Returns the cell's full composite name
-     * (pass it to {@link #selectAssetByName}) or null → caller should SKIP
-     * naming the missing fixture. Caller must be on the Asset List.
+     * ON SCREEN. Search is only a NAME shortcut (search matches asset NAMES,
+     * not classes — user-confirmed 2026-07-20): it helps when fixtures are
+     * named after their class, but the AUTHORITATIVE path is the exhaustive
+     * unfiltered scan of the whole list with end-of-list detection. The
+     * class-suffix scan is the verdict on both paths, so a name hit can
+     * never lie. Returns the cell's full composite name (pass it to
+     * {@link #selectAssetByName}) or null → caller should SKIP naming the
+     * missing fixture. Caller must be on the Asset List.
      */
     public String findAssetOfClass(String className) {
         final String[] found = {null};
+        // Phase 1 (cheap shortcut): NAME search — many fixtures are named by
+        // class. The suffix scan still decides, so this can't false-match.
         searchAsset(className);
         dismissKeyboard();
         // Real condition-poll (sleep()/shortWait() are documented no-ops):
         // give the filtered list up to 3s to materialize a matching cell.
         com.egalvanic.utils.Waits.until(
                 () -> (found[0] = firstVisibleAssetOfClass(className)) != null, 3000);
-        for (int s = 0; found[0] == null && s < 2; s++) {
-            if (!scrollAssetListDown()) break;
+        if (found[0] == null && scrollAssetListDown()) {
             found[0] = firstVisibleAssetOfClass(className);
         }
-        if (found[0] == null) {
-            // Unfiltered rescan — the class may exist under names/types the
-            // search text didn't match. The clear must be VERIFIED: a silently
-            // still-filtered list here becomes a false 'no fixture' SKIP.
-            boolean cleared = clearSearchFilterVerified();
-            if (!cleared) System.out.println("⚠️ search filter may still be active — rescan is best-effort");
-            com.egalvanic.utils.Waits.until(
-                    () -> (found[0] = firstVisibleAssetOfClass(className)) != null, 3000);
-            for (int s = 0; found[0] == null && s < 3; s++) {
-                if (!scrollAssetListDown()) break;
-                found[0] = firstVisibleAssetOfClass(className);
+        if (found[0] != null) return found[0];
+
+        // Phase 2 (authoritative): exhaustive UNFILTERED scan — assets of the
+        // class can carry ANY name, so only a full-list walk can prove
+        // presence/absence. The clear must be VERIFIED: a silently
+        // still-filtered list here becomes a false 'no fixture' SKIP.
+        boolean cleared = clearSearchFilterVerified();
+        if (!cleared) System.out.println("⚠️ search filter may still be active — full-list scan is best-effort");
+        com.egalvanic.utils.Waits.until(
+                () -> (found[0] = firstVisibleAssetOfClass(className)) != null, 3000);
+        String prevSignature = null;
+        int scrolls = 0;
+        while (found[0] == null && scrolls < 40) {
+            java.util.List<String> rows = visibleAssetRowComposites();
+            String signature = String.join("\n", rows);
+            if (!rows.isEmpty() && signature.equals(prevSignature)) {
+                System.out.println("   end of asset list after " + scrolls + " scroll(s) — class '"
+                        + className + "' not present");
+                break;
             }
+            prevSignature = signature;
+            if (!scrollAssetListDown()) break;
+            scrolls++;
+            found[0] = firstVisibleAssetOfClass(className);
         }
         return found[0];
     }
@@ -13283,12 +13299,33 @@ public class AssetPage extends BasePage {
      * PAGE SOURCE, not element queries (query layer lies on heavy DOMs).
      */
     public String firstVisibleAssetOfClass(String className) {
+        String suffixLc = (", " + className).toLowerCase();
+        for (String n : visibleAssetRowComposites()) {
+            if (!n.toLowerCase().endsWith(suffixLc)) continue;
+            // Cell composite is "<name>, <room>, <Class>" (>=2 separators).
+            // A 2-segment match is accepted only when its prefix is NOT a
+            // field label — "Class, Transformer" is a label-value row.
+            String prefix = n.substring(0, n.length() - suffixLc.length()).trim();
+            int separators = n.split(", ", -1).length - 1;
+            if (separators < 2 && CLASS_FIELD_LABEL_PREFIXES.contains(prefix.toLowerCase())) continue;
+            if (prefix.isEmpty()) continue;                     // degenerate ", Class"
+            return n;
+        }
+        return null;
+    }
+
+    /**
+     * All visible candidate asset-row composite names in the list content
+     * zone, in document order — ONE page-source pull. Also serves as the
+     * scroll signature for end-of-list detection (same rows twice = bottom).
+     */
+    private java.util.List<String> visibleAssetRowComposites() {
+        java.util.List<String> rows = new java.util.ArrayList<>();
         int maxY = assetListContentMaxY();
         try {
             String src = driver.getPageSource();
             java.util.regex.Matcher m = java.util.regex.Pattern
                     .compile("<XCUIElementType(?:StaticText|Button|Cell|Other)([^>]*?)/?>").matcher(src);
-            String suffixLc = (", " + className).toLowerCase();
             while (m.find()) {
                 String attrs = m.group(1);
                 if (!attrs.contains("visible=\"true\"")) continue;
@@ -13303,20 +13340,13 @@ public class AssetPage extends BasePage {
                 // the class suffix anyway; the floor is defense-in-depth only.
                 if (y < 100 || y > maxY) continue;
                 if (n.length() > 250 || n.contains(" › ")) continue; // room rows etc.
-                if (!n.toLowerCase().endsWith(suffixLc)) continue;
-                // Cell composite is "<name>, <room>, <Class>" (>=2 separators).
-                // A 2-segment match is accepted only when its prefix is NOT a
-                // field label — "Class, Transformer" is a label-value row.
-                String prefix = n.substring(0, n.length() - suffixLc.length()).trim();
-                int separators = n.split(", ", -1).length - 1;
-                if (separators < 2 && CLASS_FIELD_LABEL_PREFIXES.contains(prefix.toLowerCase())) continue;
-                if (prefix.isEmpty()) continue;                 // degenerate ", Class"
-                return n;
+                if (!n.contains(", ")) continue;                // composites only
+                rows.add(n);
             }
         } catch (Exception e) {
-            System.out.println("   firstVisibleAssetOfClass: " + e.getMessage());
+            System.out.println("   visibleAssetRowComposites: " + e.getMessage());
         }
-        return null;
+        return rows;
     }
 
     /** Clear the asset-list search filter and CONFIRM the field is empty. */
