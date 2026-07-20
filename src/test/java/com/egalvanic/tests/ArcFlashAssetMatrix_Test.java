@@ -333,7 +333,7 @@ public class ArcFlashAssetMatrix_Test extends BaseTest {
         mediumWait();
 
         logStep("Step 2: Find an asset whose CLASS is '" + className + "' (never matched by name)");
-        final String found = findAssetOfClass(className);
+        final String found = assetPageLocal.findAssetOfClass(className);
         skipIfPreconditionMissing(() -> found != null,
                 "no asset of class '" + className + "' on this site — add a fixture asset to cover this class");
         logStep("Asset under test: '" + found + "' (cell declares class '" + className + "')");
@@ -344,7 +344,7 @@ public class ArcFlashAssetMatrix_Test extends BaseTest {
         // found via the unfiltered rescan disappear under that filter).
         boolean opened = assetPageLocal.selectAssetByName(found);
         if (!opened) {
-            findAssetOfClass(className);
+            assetPageLocal.findAssetOfClass(className);
             opened = assetPageLocal.selectAssetByName(found);
         }
         assertTrue(opened, className + " asset '" + found + "' must open from the list");
@@ -404,124 +404,9 @@ public class ArcFlashAssetMatrix_Test extends BaseTest {
         }
     }
 
-    // ── Class-based asset discovery ──────────────────────────────────────
-
-    /**
-     * Find an asset whose list cell declares the target CLASS.
-     * Search first (the field covers name/type/location, and class-named
-     * fixtures filter well), then class-suffix-scan the visible cells with a
-     * bounded scroll; last resort is an unfiltered rescan of the list.
-     */
-    private String findAssetOfClass(String className) {
-        final String[] found = {null};
-        assetPageLocal.searchAsset(className);
-        assetPageLocal.dismissKeyboard();
-        // Real condition-poll (shortWait/mediumWait are documented no-ops):
-        // give the filtered list up to 3s to materialize a matching cell.
-        com.egalvanic.utils.Waits.until(
-                () -> (found[0] = firstVisibleAssetOfClass(className)) != null, 3000);
-        for (int s = 0; found[0] == null && s < 2; s++) {
-            if (!scrollListDown()) break;
-            found[0] = firstVisibleAssetOfClass(className);
-        }
-        if (found[0] == null) {
-            // Unfiltered rescan — the class may exist under names/types the
-            // search text didn't match. The clear must be VERIFIED: a silently
-            // still-filtered list here would turn into a false 'no fixture' SKIP.
-            boolean cleared = clearSearchFilterVerified();
-            if (!cleared) System.out.println("⚠️ search filter may still be active — rescan is best-effort");
-            com.egalvanic.utils.Waits.until(
-                    () -> (found[0] = firstVisibleAssetOfClass(className)) != null, 3000);
-            for (int s = 0; found[0] == null && s < 3; s++) {
-                if (!scrollListDown()) break;
-                found[0] = firstVisibleAssetOfClass(className);
-            }
-        }
-        return found[0];
-    }
-
-    /** Clear the asset-list search filter and CONFIRM the field is empty. */
-    private boolean clearSearchFilterVerified() {
-        try {
-            org.openqa.selenium.WebElement field = DriverManager.getDriver().findElement(
-                    io.appium.java_client.AppiumBy.className("XCUIElementTypeSearchField"));
-            field.click();
-            field.clear();
-            assetPageLocal.dismissKeyboard();
-            String value = field.getAttribute("value");
-            return value == null || value.isEmpty()
-                    || value.toLowerCase().contains("search"); // placeholder text
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    /**
-     * First visible asset cell whose composite accessibility name
-     * "<asset name>, <id>, <Class>" ENDS WITH the target class. The ", "
-     * boundary keeps every class an unambiguous suffix (Load vs Loadcenter,
-     * MCC vs MCC Bucket, Transformer vs Transformer (3-Winding), …), and the
-     * asset's free-text NAME is never consulted — users can call a Node Bus
-     * "Transformer-1-Transformer-2-BUS" and this still won't bite.
-     */
-    // Field-label words that can legitimately precede a class value in a
-    // 2-segment "label, value" composite — those rows are NOT asset cells.
-    private static final java.util.Set<String> FIELD_LABEL_PREFIXES = java.util.Set.of(
-            "class", "type", "asset class", "subtype");
-
-    private String firstVisibleAssetOfClass(String className) {
-        int maxY = listContentMaxY();
-        try {
-            String src = DriverManager.getDriver().getPageSource();
-            Matcher m = Pattern.compile("<XCUIElementType(?:StaticText|Button|Cell|Other)([^>]*?)/?>").matcher(src);
-            String suffixLc = (", " + className).toLowerCase();
-            while (m.find()) {
-                String attrs = m.group(1);
-                if (!attrs.contains("visible=\"true\"")) continue;
-                Matcher nm = Pattern.compile("name=\"([^\"]*)\"").matcher(attrs);
-                Matcher ym = Pattern.compile(" y=\"(-?\\d+)\"").matcher(attrs);
-                if (!nm.find() || !ym.find()) continue;
-                String n = unescape(nm.group(1));
-                int y = Integer.parseInt(ym.group(1));
-                if (y < 150 || y > maxY) continue;             // list content zone
-                if (n.length() > 250 || n.contains(" › ")) continue; // room rows etc.
-                if (!n.toLowerCase().endsWith(suffixLc)) continue;
-                // Cell composite is "<name>, <room>, <Class>" (>=2 separators).
-                // A 2-segment match is accepted only when its prefix is NOT a
-                // field label — "Class, Transformer" is a label-value row.
-                String prefix = n.substring(0, n.length() - suffixLc.length()).trim();
-                int separators = n.split(", ", -1).length - 1;
-                if (separators < 2 && FIELD_LABEL_PREFIXES.contains(prefix.toLowerCase())) continue;
-                if (prefix.isEmpty()) continue;                 // degenerate ", Class"
-                return n;
-            }
-        } catch (Exception e) {
-            System.out.println("   firstVisibleAssetOfClass: " + e.getMessage());
-        }
-        return null;
-    }
-
-    /** Bottom of the scrollable list zone, derived from the live window (iPad-safe). */
-    private int listContentMaxY() {
-        try {
-            return DriverManager.getDriver().manage().window().getSize().getHeight() - 90;
-        } catch (Exception e) {
-            return 860; // iPhone fallback
-        }
-    }
-
-    /** One bounded list scroll; false if the gesture failed (end of list / wedge). */
-    private boolean scrollListDown() {
-        try {
-            DriverManager.getDriver().executeScript("mobile: scroll",
-                    java.util.Map.of("direction", "down"));
-            // Real 400ms settle (shortWait() is a documented no-op).
-            com.egalvanic.utils.Waits.until(() -> false, 400);
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
-    }
+    // ── Class-based asset discovery lives in AssetPage (shared by all
+    //    modules since changelog 135): findAssetOfClass / firstVisibleAssetOfClass
+    //    / clearSearchFilterVerified / scrollAssetListDown. ──
 
     // ── Page-source helpers (no element queries on the heavy detail DOM) ──
 
@@ -575,12 +460,7 @@ public class ArcFlashAssetMatrix_Test extends BaseTest {
     }
 
     private static String unescape(String s) {
-        // Exact reverse of escape(): &amp; LAST, or "Panel &lt;3" (serialized
-        // as "&amp;lt;3") double-decodes to "Panel <3". Numeric refs cover
-        // libxml2's attribute serialization of whitespace (&#10; &#9; &#13;).
-        return s.replace("&#10;", "\n").replace("&#9;", "\t").replace("&#13;", "\r")
-                .replace("&gt;", ">").replace("&lt;", "<")
-                .replace("&quot;", "\"").replace("&apos;", "'").replace("&amp;", "&");
+        return AssetPage.unescapePageSource(s);
     }
 
     private static String escape(String s) {

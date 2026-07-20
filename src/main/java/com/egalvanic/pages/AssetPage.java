@@ -1702,11 +1702,18 @@ public class AssetPage extends BasePage {
     public void selectFirstSourceNode() {
         System.out.println("🔗 Selecting first available source node...");
         try {
-            // Find all asset buttons in the source list
+            // Prefer a row whose CLASS is ATS (composite ends ', ATS') — the
+            // old CONTAINS 'ATS' also matched any asset merely NAMED "…ATS…".
             List<WebElement> options = driver.findElements(
-                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name CONTAINS ', ' AND name CONTAINS 'ATS'")
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name ENDSWITH ', ATS'")
             );
-            
+            if (options.isEmpty()) {
+                // Any composite asset row — the method's contract is "first
+                // available node", not "an ATS".
+                options = driver.findElements(
+                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name CONTAINS ', '")
+                );
+            }
             if (options.isEmpty()) {
                 // Try broader search
                 options = driver.findElements(
@@ -1807,11 +1814,18 @@ public class AssetPage extends BasePage {
     public void selectFirstTargetNode() {
         System.out.println("🔗 Selecting first available target node...");
         try {
-            // Find all asset buttons in the target list
+            // Prefer a row whose CLASS is ATS (composite ends ', ATS') — the
+            // old CONTAINS 'ATS' also matched any asset merely NAMED "…ATS…".
             List<WebElement> options = driver.findElements(
-                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name CONTAINS ', ' AND name CONTAINS 'ATS'")
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name ENDSWITH ', ATS'")
             );
-            
+            if (options.isEmpty()) {
+                // Any composite asset row — the method's contract is "first
+                // available node", not "an ATS".
+                options = driver.findElements(
+                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name CONTAINS ', '")
+                );
+            }
             if (options.isEmpty()) {
                 // Try broader search
                 options = driver.findElements(
@@ -2074,28 +2088,43 @@ public class AssetPage extends BasePage {
     /**
      * Long press on first OCP item to show context menu
      */
+    // OCP rows matched by trailing CLASS segment (", <Class>") — CONTAINS on
+    // bare class words also matched assets merely NAMED "…Fuse…" (changelog 135).
+    private static final String OCP_SUFFIX_PREDICATE =
+            "type == 'XCUIElementTypeButton' AND " +
+            "(name ENDSWITH ', Relay' OR name ENDSWITH ', Disconnect Switch' OR name ENDSWITH ', Fuse' OR " +
+            "name ENDSWITH ', MCC Bucket' OR name ENDSWITH ', Other (OCP)' OR name CONTAINS 'LinkTest')";
+    private static final String OCP_CONTAINS_PREDICATE =
+            "type == 'XCUIElementTypeButton' AND " +
+            "(name CONTAINS 'Relay' OR name CONTAINS 'Disconnect Switch' OR name CONTAINS 'Fuse' OR " +
+            "name CONTAINS 'MCC Bucket' OR name CONTAINS 'Other (OCP)' OR name CONTAINS 'LinkTest')";
+
     public void longPressFirstOCPItem() {
         System.out.println("👆 Long pressing first OCP item...");
         try {
             // First try to find OCP items WITHOUT scrolling (we may already be at the right position)
+            // Class-suffix match first; name-CONTAINS kept as fallback for rows
+            // whose composite doesn't end with the class.
             List<WebElement> ocpItems = driver.findElements(
-                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND " +
-                    "(name CONTAINS 'Relay' OR name CONTAINS 'Disconnect Switch' OR name CONTAINS 'Fuse' OR " +
-                    "name CONTAINS 'MCC Bucket' OR name CONTAINS 'Other (OCP)' OR name CONTAINS 'LinkTest')")
-            );
-            
+                AppiumBy.iOSNsPredicateString(OCP_SUFFIX_PREDICATE));
+            if (ocpItems.isEmpty()) {
+                ocpItems = driver.findElements(
+                    AppiumBy.iOSNsPredicateString(OCP_CONTAINS_PREDICATE));
+            }
+
             System.out.println("   Found " + ocpItems.size() + " OCP items");
-            
+
             // Only scroll if no OCP items found
             if (ocpItems.isEmpty()) {
                 System.out.println("   Scrolling to find OCP items...");
                 scrollFormDown();
                 sleep(300);
                 ocpItems = driver.findElements(
-                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND " +
-                        "(name CONTAINS 'Relay' OR name CONTAINS 'Disconnect Switch' OR name CONTAINS 'Fuse' OR " +
-                        "name CONTAINS 'MCC Bucket' OR name CONTAINS 'Other (OCP)' OR name CONTAINS 'LinkTest')")
-                );
+                    AppiumBy.iOSNsPredicateString(OCP_SUFFIX_PREDICATE));
+                if (ocpItems.isEmpty()) {
+                    ocpItems = driver.findElements(
+                        AppiumBy.iOSNsPredicateString(OCP_CONTAINS_PREDICATE));
+                }
                 System.out.println("   After scroll: Found " + ocpItems.size() + " OCP items");
             }
             
@@ -13193,6 +13222,150 @@ public class AssetPage extends BasePage {
     /** Convenience overload: action and reapply are the same lambda. */
     public boolean withPickerCloseRecovery(Runnable action) {
         return withPickerCloseRecovery(action, action);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // CLASS-BASED ASSET DISCOVERY (changelog 134) — shared by all modules.
+    //
+    // Asset names are USER FREE TEXT: a Node Bus can be named
+    // "Transformer-1-Transformer-2-BUS" (caught live 2026-07-20). The only
+    // honest way to pick "an asset of class X" is the asset-list cell's own
+    // composite accessibility name "<asset name>, <room>, <Class>" — its
+    // TRAILING segment is the app-declared class. Never class-match by name.
+    // ══════════════════════════════════════════════════════════════════════
+
+    // Field-label words that can legitimately precede a class value in a
+    // 2-segment "label, value" composite — those rows are NOT asset cells.
+    private static final java.util.Set<String> CLASS_FIELD_LABEL_PREFIXES = java.util.Set.of(
+            "class", "type", "asset class", "subtype");
+
+    /**
+     * Find an asset whose list cell declares the target CLASS and leave it
+     * ON SCREEN. Search first (class-named assets filter well), then
+     * class-suffix-scan the visible cells with a bounded scroll; last resort
+     * is a VERIFIED-unfiltered rescan. Returns the cell's full composite name
+     * (pass it to {@link #selectAssetByName}) or null → caller should SKIP
+     * naming the missing fixture. Caller must be on the Asset List.
+     */
+    public String findAssetOfClass(String className) {
+        final String[] found = {null};
+        searchAsset(className);
+        dismissKeyboard();
+        // Real condition-poll (sleep()/shortWait() are documented no-ops):
+        // give the filtered list up to 3s to materialize a matching cell.
+        com.egalvanic.utils.Waits.until(
+                () -> (found[0] = firstVisibleAssetOfClass(className)) != null, 3000);
+        for (int s = 0; found[0] == null && s < 2; s++) {
+            if (!scrollAssetListDown()) break;
+            found[0] = firstVisibleAssetOfClass(className);
+        }
+        if (found[0] == null) {
+            // Unfiltered rescan — the class may exist under names/types the
+            // search text didn't match. The clear must be VERIFIED: a silently
+            // still-filtered list here becomes a false 'no fixture' SKIP.
+            boolean cleared = clearSearchFilterVerified();
+            if (!cleared) System.out.println("⚠️ search filter may still be active — rescan is best-effort");
+            com.egalvanic.utils.Waits.until(
+                    () -> (found[0] = firstVisibleAssetOfClass(className)) != null, 3000);
+            for (int s = 0; found[0] == null && s < 3; s++) {
+                if (!scrollAssetListDown()) break;
+                found[0] = firstVisibleAssetOfClass(className);
+            }
+        }
+        return found[0];
+    }
+
+    /**
+     * First visible asset cell whose composite accessibility name ENDS WITH
+     * ", <Class>" — the ", " boundary keeps every class an unambiguous suffix
+     * (Load vs Loadcenter, MCC vs MCC Bucket, Motor vs Motor Starter,
+     * Transformer vs Transformer (3-Winding), VFD vs VFD Panel, …). Reads
+     * PAGE SOURCE, not element queries (query layer lies on heavy DOMs).
+     */
+    public String firstVisibleAssetOfClass(String className) {
+        int maxY = assetListContentMaxY();
+        try {
+            String src = driver.getPageSource();
+            java.util.regex.Matcher m = java.util.regex.Pattern
+                    .compile("<XCUIElementType(?:StaticText|Button|Cell|Other)([^>]*?)/?>").matcher(src);
+            String suffixLc = (", " + className).toLowerCase();
+            while (m.find()) {
+                String attrs = m.group(1);
+                if (!attrs.contains("visible=\"true\"")) continue;
+                java.util.regex.Matcher nm = java.util.regex.Pattern.compile("name=\"([^\"]*)\"").matcher(attrs);
+                java.util.regex.Matcher ym = java.util.regex.Pattern.compile(" y=\"(-?\\d+)\"").matcher(attrs);
+                if (!nm.find() || !ym.find()) continue;
+                String n = unescapePageSource(nm.group(1));
+                int y = Integer.parseInt(ym.group(1));
+                // Content zone: in search-active mode the collapsed search bar
+                // sits at y≈64 and the FIRST result cell at y≈108 (probed live
+                // — a 150/120 floor both cut it). Chrome above 100 can't match
+                // the class suffix anyway; the floor is defense-in-depth only.
+                if (y < 100 || y > maxY) continue;
+                if (n.length() > 250 || n.contains(" › ")) continue; // room rows etc.
+                if (!n.toLowerCase().endsWith(suffixLc)) continue;
+                // Cell composite is "<name>, <room>, <Class>" (>=2 separators).
+                // A 2-segment match is accepted only when its prefix is NOT a
+                // field label — "Class, Transformer" is a label-value row.
+                String prefix = n.substring(0, n.length() - suffixLc.length()).trim();
+                int separators = n.split(", ", -1).length - 1;
+                if (separators < 2 && CLASS_FIELD_LABEL_PREFIXES.contains(prefix.toLowerCase())) continue;
+                if (prefix.isEmpty()) continue;                 // degenerate ", Class"
+                return n;
+            }
+        } catch (Exception e) {
+            System.out.println("   firstVisibleAssetOfClass: " + e.getMessage());
+        }
+        return null;
+    }
+
+    /** Clear the asset-list search filter and CONFIRM the field is empty. */
+    public boolean clearSearchFilterVerified() {
+        try {
+            WebElement field = driver.findElement(
+                    AppiumBy.className("XCUIElementTypeSearchField"));
+            field.click();
+            field.clear();
+            dismissKeyboard();
+            String value = field.getAttribute("value");
+            return value == null || value.isEmpty()
+                    || value.toLowerCase().contains("search"); // placeholder text
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** One bounded list scroll; false if the gesture failed (end of list / wedge). */
+    public boolean scrollAssetListDown() {
+        try {
+            driver.executeScript("mobile: scroll",
+                    java.util.Map.of("direction", "down"));
+            // Real 400ms settle (shortWait() is a documented no-op).
+            com.egalvanic.utils.Waits.until(() -> false, 400);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** Bottom of the scrollable list zone, derived from the live window (iPad-safe). */
+    private int assetListContentMaxY() {
+        try {
+            return driver.manage().window().getSize().getHeight() - 90;
+        } catch (Exception e) {
+            return 860; // iPhone fallback
+        }
+    }
+
+    /**
+     * Exact reverse of XML attribute escaping: &amp; LAST, or "Panel &lt;3"
+     * (serialized "&amp;lt;3") double-decodes. Numeric refs cover libxml2's
+     * attribute serialization of whitespace (&#10; &#9; &#13;).
+     */
+    public static String unescapePageSource(String s) {
+        return s.replace("&#10;", "\n").replace("&#9;", "\t").replace("&#13;", "\r")
+                .replace("&gt;", ">").replace("&lt;", "<")
+                .replace("&quot;", "\"").replace("&apos;", "'").replace("&amp;", "&");
     }
 
 }

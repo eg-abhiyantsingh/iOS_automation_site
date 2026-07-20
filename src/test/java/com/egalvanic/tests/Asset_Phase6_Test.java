@@ -5626,30 +5626,33 @@ public class Asset_Phase6_Test extends BaseTest {
             boolean assetListDisplayed = assetPage.isAssetListDisplayed();
             logStep("Asset List displayed: " + assetListDisplayed);
 
-            logStep("Step 3: Searching by asset type 'ATS'");
-            assetPage.searchAsset("ATS");
-            mediumWait();
-            
-            int atsCount = assetPage.getAssetCount();
-            logStep("ATS search results: " + atsCount);
-            
-            logStep("Step 4: Searching by asset type 'MCC'");
-            assetPage.searchAsset("MCC");
-            mediumWait();
-            
-            int mccCount = assetPage.getAssetCount();
-            logStep("MCC search results: " + mccCount);
-            
-            logStep("Step 5: Searching by asset type 'Fuse'");
-            assetPage.searchAsset("Fuse");
-            mediumWait();
-            
-            int fuseCount = assetPage.getAssetCount();
-            logStep("Fuse search results: " + fuseCount);
-            
-            logStep("Step 6: Verifying search by type works");
-            logStep("Total results - ATS: " + atsCount + ", MCC: " + mccCount + ", Fuse: " + fuseCount);
-            logStepWithScreenshot("AS-03 - Search by asset type verified");
+            // Real oracle (changelog 135): "search by TYPE" is only proven if a
+            // returned cell's trailing CLASS segment equals the searched type —
+            // counting rows also counts name-matches ("Fuse-panel-feed, …, Cable").
+            int typeVerified = 0;
+            String[] types = {"ATS", "MCC", "Fuse"};
+            for (int i = 0; i < types.length; i++) {
+                String type = types[i];
+                logStep("Step " + (3 + i) + ": Searching by asset type '" + type + "'");
+                assetPage.searchAsset(type);
+                assetPage.dismissKeyboard();
+                mediumWait();
+                int count = assetPage.getAssetCount();
+                // Condition-poll (mediumWait is a no-op): results settle async.
+                final String[] classMatch = {null};
+                com.egalvanic.utils.Waits.until(
+                        () -> (classMatch[0] = assetPage.firstVisibleAssetOfClass(type)) != null, 2000);
+                logStep(type + " search: " + count + " row(s); class-verified match: "
+                        + (classMatch[0] != null ? "'" + classMatch[0] + "'" : "none"));
+                if (classMatch[0] != null) typeVerified++;
+            }
+
+            logStep("Step 6: Verifying search by type works (class-suffix proof)");
+            assertTrue(typeVerified >= 1,
+                    "Searching by type must surface at least one asset whose CLASS matches the "
+                    + "searched type (checked ATS/MCC/Fuse; a Fuse-class fixture exists on the QA site). "
+                    + "0 class-verified matches means type search is broken or fixtures are gone.");
+            logStepWithScreenshot("AS-03 - Search by asset type verified for " + typeVerified + "/3 types");
             
         } catch (Exception e) {
             logStep("Exception occurred: " + e.getMessage());

@@ -16453,13 +16453,24 @@ public class WorkOrderPage extends BasePage {
     public boolean isOCPDChildDisplayedUnderParent() {
         System.out.println("📍 Checking for OCPD child entries in Review Assets...");
         try {
-            // Look for OCPD-related text (Fuse, Disconnect Switch, etc.) in the list
+            // Class-suffix match first (composite rows end ", <Class>") — a
+            // parent asset merely NAMED "…Fuse…" must not count (changelog 135).
             List<WebElement> ocpdTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND "
-                + "(label CONTAINS 'Fuse' OR label CONTAINS 'Disconnect' "
-                + "OR label CONTAINS 'Relay' OR label CONTAINS 'MCC Bucket' "
-                + "OR label CONTAINS 'Other (OCP)')"
+                + "(label ENDSWITH ', Fuse' OR label ENDSWITH ', Disconnect Switch' "
+                + "OR label ENDSWITH ', Relay' OR label ENDSWITH ', MCC Bucket' "
+                + "OR label ENDSWITH ', Other (OCP)')"
             ));
+            if (ocpdTexts.isEmpty()) {
+                // Fallback: plain-name rows (Review Assets children may not
+                // carry the composite) — original heuristic.
+                ocpdTexts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND "
+                    + "(label CONTAINS 'Fuse' OR label CONTAINS 'Disconnect' "
+                    + "OR label CONTAINS 'Relay' OR label CONTAINS 'MCC Bucket' "
+                    + "OR label CONTAINS 'Other (OCP)')"
+                ));
+            }
             if (!ocpdTexts.isEmpty()) {
                 System.out.println("✅ OCPD child entry found: " + ocpdTexts.get(0).getAttribute("label"));
                 return true;
