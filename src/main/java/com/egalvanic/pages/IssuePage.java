@@ -1414,7 +1414,31 @@ public class IssuePage extends BasePage {
         sleep(500); // Wait for keyboard animation + DOM refresh
 
         try {
-            // ===== OPEN PRIORITY PICKER (3 strategies) =====
+            // ===== Strategy v1.51 (details/create card, probed 2026-07-20):
+            // the row is "'Priority' label + icon/value ~30px below + chevron.down"
+            // and opens a BOTTOM SHEET with its own 'Priority' nav bar + Cancel +
+            // full-width option Buttons (Critical/High/Medium/Low — new
+            // 'Critical' level). Element-clicks on the value text do NOT fire
+            // the SwiftUI row; the verified v1.50 sheet primitives do. =====
+            if (openDetailsRowSheet("Priority")) {
+                if (pressSheetOptionButton(priority)) {
+                    sleep(300);
+                    System.out.println("✅ Selected Priority: " + priority + " (v1.51 row sheet)");
+                    return;
+                }
+                // Sheet open but option missing — cancel it so fallbacks start
+                // from the row, not through a stuck sheet.
+                try {
+                    WebElement cancel = driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND name == 'Cancel' AND visible == 1 AND rect.y > 300"));
+                    pressElementCenter(cancel);
+                    sleep(400);
+                } catch (Exception ignored) {}
+            }
+
+            // ===== OPEN PRIORITY PICKER (legacy fallbacks — every strategy must
+            // VERIFY a choice surface; a blind pickerOpened=true made the
+            // select loop hunt options on a screen with no sheet at all) =====
             boolean pickerOpened = false;
 
             // Strategy 0 (v1.50): the row has NO 'Priority' label on the create
@@ -1427,8 +1451,8 @@ public class IssuePage extends BasePage {
                     driver.executeScript("mobile: tap", java.util.Map.of(
                         "x", r.x + Math.max(10, r.width / 2), "y", r.y + r.height / 2));
                     sleep(600);
-                    pickerOpened = true;
-                    System.out.println("   Opened Priority picker (v1.50 icon-adjacent row)");
+                    pickerOpened = isChoiceSurfaceOpenNow();
+                    if (pickerOpened) System.out.println("   Opened Priority picker (v1.50 icon-adjacent row)");
                 }
             } catch (Exception ignored) {}
 
@@ -1440,8 +1464,8 @@ public class IssuePage extends BasePage {
                 System.out.println("   Found Priority picker: '" + picker.getAttribute("label") + "'");
                 picker.click();
                 sleep(500);
-                pickerOpened = true;
-                System.out.println("   Opened Priority picker (button)");
+                pickerOpened = isChoiceSurfaceOpenNow();
+                if (pickerOpened) System.out.println("   Opened Priority picker (button)");
             } catch (Exception ignored) {}
 
             // Strategy 2: Find button near the "Priority" label (positional)
@@ -1459,8 +1483,8 @@ public class IssuePage extends BasePage {
                         if (Math.abs(y - labelY) < 50) {
                             btn.click();
                             sleep(500);
-                            pickerOpened = true;
-                            System.out.println("   Opened Priority picker (positional match at Y=" + y + ")");
+                            pickerOpened = isChoiceSurfaceOpenNow();
+                            if (pickerOpened) System.out.println("   Opened Priority picker (positional match at Y=" + y + ")");
                             break;
                         }
                     }
@@ -1488,8 +1512,8 @@ public class IssuePage extends BasePage {
                         org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
                     driver.perform(java.util.Collections.singletonList(tap));
                     sleep(500);
-                    pickerOpened = true;
-                    System.out.println("   Opened Priority picker (coordinate tap at Y=" + labelY + ")");
+                    pickerOpened = isChoiceSurfaceOpenNow();
+                    if (pickerOpened) System.out.println("   Opened Priority picker (coordinate tap at Y=" + labelY + ")");
                 } catch (Exception ignored) {}
             }
 
@@ -3718,6 +3742,19 @@ public class IssuePage extends BasePage {
             System.out.println("🗂  rowsheet-miss dump saved for '" + rowLabel + "'");
         } catch (Exception ignored) {}
         return false;
+    }
+
+    /**
+     * Any option-choice surface open NOW: a v1.5x bottom sheet (Cancel below
+     * y=300), UIMenu items, or a Sheet Grabber. Open-picker strategies must
+     * verify with this — a blind "opened" claim sends the option-select loop
+     * hunting on a sheetless screen (TC_ISS_038 v1.51 failure mechanism).
+     */
+    private boolean isChoiceSurfaceOpenNow() {
+        return existsNow(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' AND name == 'Cancel' AND visible == 1 AND rect.y > 300)"
+                + " OR (type == 'XCUIElementTypeMenuItem' AND visible == 1)"
+                + " OR (name == 'Sheet Grabber' AND visible == 1)"));
     }
 
     /**

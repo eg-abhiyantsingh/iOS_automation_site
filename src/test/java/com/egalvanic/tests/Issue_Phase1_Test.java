@@ -1368,6 +1368,28 @@ public final class Issue_Phase1_Test extends BaseTest {
     }
 
     /**
+     * TC_ISS_238: Verify selecting Critical priority (NEW in app v1.51 —
+     * the priority sheet gained a 'Critical' level above High).
+     */
+    @Test(priority = 38)
+    public void TC_ISS_238_verifySelectingCriticalPriority() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, AppConstants.FEATURE_ISSUE_PRIORITY,
+            "TC_ISS_238 - Verify selecting Critical priority (v1.51)");
+
+        logStep("Step 2: Select Critical priority");
+        String selectedValue = issuePage.selectPriorityAndGetValue("Critical");
+        logStep("Priority value after selection: '" + selectedValue + "'");
+        assertTrue(selectedValue != null && selectedValue.contains("Critical"),
+            "Priority field should show 'Critical' after selection (was: '" + selectedValue + "')");
+        logStep("✅ Critical priority selection completed");
+
+        logStepWithScreenshot("TC_ISS_238: Critical priority selected");
+
+        // Clean up
+        issuePage.tapCancelNewIssue();
+    }
+
+    /**
      * TC_ISS_039: Verify selecting Medium priority
      * Expected: Medium selected with !! indicator
      */
