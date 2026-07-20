@@ -17,20 +17,29 @@ import com.egalvanic.utils.DriverManager;
 import com.egalvanic.utils.ExtentReportManager;
 
 /**
- * ARC FLASH BY ASSET — 100% per-asset-class coverage (TC_AF_101-138).
+ * ARC FLASH BY ASSET — 100% per-asset-class coverage (TC_AF_101-139).
  *
  * The feature-driven AF suite (dashboard buckets, punchlist toggles,
  * invariants) never says WHICH ASSET had its arc-flash data checked. This
  * class flips the axis: ONE simply-named test per asset class ("Fuse Arc
- * Flash", "ATS Arc Flash", …) covering ALL 38 classes of the node-classes
- * gold spec, so the report reads "Fuse Arc Flash: PASS/FAIL" and logs the
- * values actually read for that asset.
+ * Flash", "ATS Arc Flash", …) covering ALL classes of the node-classes
+ * gold spec (+ live-only Node Bus), so the report reads "Fuse Arc Flash:
+ * PASS/FAIL" and logs the values actually read for that asset.
+ *
+ * MATCHING IS BY CLASS, NEVER BY NAME (learned live 2026-07-20): users name
+ * assets anything — "Transformer-1-Transformer-2-BUS" is a Node Bus. The
+ * asset-list cell's accessibility name is a composite
+ *     "<asset name>, <id>, <Class>"
+ * so a candidate is accepted ONLY when its trailing segment equals the
+ * target class. The ", " boundary makes every gold class an unambiguous
+ * suffix (Load vs Loadcenter, MCC vs MCC Bucket, Motor vs Motor Starter,
+ * Transformer vs Transformer (3-Winding), VFD vs VFD Panel…).
  *
  * Contract per class:
- *   1. An asset of the class exists on the fixture site (found by class-token
- *      search with sibling-class exclusion — "Motor Starter 1" can never
- *      satisfy the Motor test). If the site has no such asset → honest SKIP
- *      naming the missing fixture.
+ *   1. An asset OF THE CLASS exists on the fixture site (class-name search —
+ *      the search field covers "name, type, location" — then class-suffix
+ *      scan of the cells; bounded scroll + unfiltered rescan as fallback).
+ *      If the site has none → honest SKIP naming the missing fixture.
  *   2. Its details screen opens.
  *   3. The arc-flash data surface renders for it: at least one AF-relevant
  *      field label (Voltage / Ampere Rating / Interrupting Rating / …) is
@@ -48,7 +57,7 @@ public class ArcFlashAssetMatrix_Test extends BaseTest {
 
     @BeforeClass(alwaysRun = true)
     public void classSetup() {
-        System.out.println("\n📋 Arc Flash BY ASSET matrix — Starting (38 classes)");
+        System.out.println("\n📋 Arc Flash BY ASSET matrix — Starting (39 classes)");
         DriverManager.setNoReset(true); // login once, soft-restart between tests
     }
 
@@ -63,254 +72,257 @@ public class ArcFlashAssetMatrix_Test extends BaseTest {
         DriverManager.resetNoResetOverride();
     }
 
-    // ── All 38 asset classes (node-classes gold / live picker) ──────────
-    // Used for sibling exclusion: a candidate name that contains a LONGER
-    // class name embedding the search token belongs to that other class.
-    private static final String[] ALL_CLASSES = {
-        "ATS", "Battery", "Busduct", "Busway", "Cable", "Capacitor",
-        "Capacitor Bank", "Circuit Breaker", "Disconnect Switch", "Fuse",
-        "Generator", "Junction Box", "Lighting Controls", "Load",
-        "Loadcenter", "MCC", "MCC Bucket", "Meter", "Motor",
-        "Motor Controller", "Motor Starter", "Other", "Other (OCP)",
-        "Panelboard", "PDU", "Rectifier", "Relay", "Series Reactor",
-        "Shunt Reactor", "Switch", "Switchboard", "Tie Breaker",
-        "Transformer", "Transformer (3-Winding)", "UPS", "Utility",
-        "VFD", "VFD Panel",
-    };
-
     // ── One simply-named test per class ─────────────────────────────────
 
     @Test
     public void TC_AF_101_atsArcFlash() {
-        checkArcFlash("TC_AF_101", "ATS", "ATS",
+        checkArcFlash("TC_AF_101", "ATS",
                 "Voltage", "Ampere Rating", "Interrupting Rating", "Mains Type");
     }
 
     @Test
     public void TC_AF_102_batteryArcFlash() {
-        checkArcFlash("TC_AF_102", "Battery", "Battery",
+        checkArcFlash("TC_AF_102", "Battery",
                 "Voltage", "Ampere Rating");
     }
 
     @Test
     public void TC_AF_103_busductArcFlash() {
-        checkArcFlash("TC_AF_103", "Busduct", "Busduct",
+        checkArcFlash("TC_AF_103", "Busduct",
                 "Voltage", "Ampere Rating");
     }
 
     @Test
     public void TC_AF_104_buswayArcFlash() {
-        checkArcFlash("TC_AF_104", "Busway", "Busway",
+        checkArcFlash("TC_AF_104", "Busway",
                 "Voltage", "Ampere Rating");
     }
 
     @Test
     public void TC_AF_105_cableArcFlash() {
-        checkArcFlash("TC_AF_105", "Cable", "Cable",
+        checkArcFlash("TC_AF_105", "Cable",
                 "Voltage", "Conductor Material");
     }
 
     @Test
     public void TC_AF_106_capacitorArcFlash() {
-        checkArcFlash("TC_AF_106", "Capacitor", "Capacitor",
+        checkArcFlash("TC_AF_106", "Capacitor",
                 "Voltage", "Ampere Rating");
     }
 
     @Test
     public void TC_AF_107_capacitorBankArcFlash() {
-        checkArcFlash("TC_AF_107", "Capacitor Bank", "Capacitor Bank",
+        checkArcFlash("TC_AF_107", "Capacitor Bank",
                 "Voltage", "Ampere Rating");
     }
 
     @Test
     public void TC_AF_108_circuitBreakerArcFlash() {
-        checkArcFlash("TC_AF_108", "Circuit Breaker", "Breaker",
+        checkArcFlash("TC_AF_108", "Circuit Breaker",
                 "Voltage", "Ampere Rating", "Interrupting Rating", "Pole Count");
     }
 
     @Test
     public void TC_AF_109_disconnectSwitchArcFlash() {
-        checkArcFlash("TC_AF_109", "Disconnect Switch", "Disconnect",
+        checkArcFlash("TC_AF_109", "Disconnect Switch",
                 "Voltage", "Ampere Rating", "Interrupting Rating");
     }
 
     @Test
     public void TC_AF_110_fuseArcFlash() {
-        checkArcFlash("TC_AF_110", "Fuse", "Fuse",
+        checkArcFlash("TC_AF_110", "Fuse",
                 "Voltage", "Ampere Rating", "Interrupting Rating", "Fuse Count");
     }
 
     @Test
     public void TC_AF_111_generatorArcFlash() {
-        checkArcFlash("TC_AF_111", "Generator", "Generator",
+        checkArcFlash("TC_AF_111", "Generator",
                 "Voltage", "K W");
     }
 
     @Test
     public void TC_AF_112_junctionBoxArcFlash() {
-        checkArcFlash("TC_AF_112", "Junction Box", "Junction",
+        checkArcFlash("TC_AF_112", "Junction Box",
                 "Voltage");
     }
 
     @Test
     public void TC_AF_113_lightingControlsArcFlash() {
-        checkArcFlash("TC_AF_113", "Lighting Controls", "Lighting",
+        checkArcFlash("TC_AF_113", "Lighting Controls",
                 "Voltage");
     }
 
     @Test
     public void TC_AF_114_loadArcFlash() {
-        checkArcFlash("TC_AF_114", "Load", "Load",
+        checkArcFlash("TC_AF_114", "Load",
                 "Voltage");
     }
 
     @Test
     public void TC_AF_115_loadcenterArcFlash() {
-        checkArcFlash("TC_AF_115", "Loadcenter", "Loadcenter",
+        checkArcFlash("TC_AF_115", "Loadcenter",
                 "Voltage", "Ampere Rating", "Interrupting Rating", "Mains Type");
     }
 
     @Test
     public void TC_AF_116_mccArcFlash() {
-        checkArcFlash("TC_AF_116", "MCC", "MCC",
+        checkArcFlash("TC_AF_116", "MCC",
                 "Voltage", "Ampere Rating");
     }
 
     @Test
     public void TC_AF_117_mccBucketArcFlash() {
-        checkArcFlash("TC_AF_117", "MCC Bucket", "MCC Bucket",
+        checkArcFlash("TC_AF_117", "MCC Bucket",
                 "Voltage", "Ampere Rating");
     }
 
     @Test
     public void TC_AF_118_meterArcFlash() {
-        checkArcFlash("TC_AF_118", "Meter", "Meter",
+        checkArcFlash("TC_AF_118", "Meter",
                 "Voltage");
     }
 
     @Test
     public void TC_AF_119_motorArcFlash() {
-        checkArcFlash("TC_AF_119", "Motor", "Motor",
+        checkArcFlash("TC_AF_119", "Motor",
                 "Voltage", "R P M", "Horsepower");
     }
 
     @Test
     public void TC_AF_120_motorControllerArcFlash() {
-        checkArcFlash("TC_AF_120", "Motor Controller", "Motor Controller",
+        checkArcFlash("TC_AF_120", "Motor Controller",
                 "Voltage", "Ampere Rating");
     }
 
     @Test
     public void TC_AF_121_motorStarterArcFlash() {
-        checkArcFlash("TC_AF_121", "Motor Starter", "Motor Starter",
+        checkArcFlash("TC_AF_121", "Motor Starter",
                 "Voltage", "Ampere Rating");
     }
 
     @Test
     public void TC_AF_122_otherArcFlash() {
-        checkArcFlash("TC_AF_122", "Other", "Other",
+        checkArcFlash("TC_AF_122", "Other",
                 "Voltage");
     }
 
     @Test
     public void TC_AF_123_otherOcpArcFlash() {
-        checkArcFlash("TC_AF_123", "Other (OCP)", "OCP",
+        checkArcFlash("TC_AF_123", "Other (OCP)",
                 "Voltage", "Ampere Rating");
     }
 
     @Test
     public void TC_AF_124_panelboardArcFlash() {
-        checkArcFlash("TC_AF_124", "Panelboard", "Panelboard",
+        checkArcFlash("TC_AF_124", "Panelboard",
                 "Voltage", "Ampere Rating", "Interrupting Rating", "Mains Type");
     }
 
     @Test
     public void TC_AF_125_pduArcFlash() {
-        checkArcFlash("TC_AF_125", "PDU", "PDU",
+        checkArcFlash("TC_AF_125", "PDU",
                 "Voltage", "K V A");
     }
 
     @Test
     public void TC_AF_126_rectifierArcFlash() {
-        checkArcFlash("TC_AF_126", "Rectifier", "Rectifier",
+        checkArcFlash("TC_AF_126", "Rectifier",
                 "Voltage", "K V A");
     }
 
     @Test
     public void TC_AF_127_relayArcFlash() {
-        checkArcFlash("TC_AF_127", "Relay", "Relay",
+        checkArcFlash("TC_AF_127", "Relay",
                 "Voltage", "Manufacturer");
     }
 
     @Test
     public void TC_AF_128_seriesReactorArcFlash() {
-        checkArcFlash("TC_AF_128", "Series Reactor", "Series Reactor",
+        checkArcFlash("TC_AF_128", "Series Reactor",
                 "Voltage");
     }
 
     @Test
     public void TC_AF_129_shuntReactorArcFlash() {
-        checkArcFlash("TC_AF_129", "Shunt Reactor", "Shunt Reactor",
+        checkArcFlash("TC_AF_129", "Shunt Reactor",
                 "Voltage");
     }
 
     @Test
     public void TC_AF_130_switchArcFlash() {
-        checkArcFlash("TC_AF_130", "Switch", "Switch",
+        checkArcFlash("TC_AF_130", "Switch",
                 "Voltage", "Ampere Rating");
     }
 
     @Test
     public void TC_AF_131_switchboardArcFlash() {
-        checkArcFlash("TC_AF_131", "Switchboard", "Switchboard",
+        checkArcFlash("TC_AF_131", "Switchboard",
                 "Voltage", "Ampere Rating", "Interrupting Rating");
     }
 
     @Test
     public void TC_AF_132_tieBreakerArcFlash() {
-        checkArcFlash("TC_AF_132", "Tie Breaker", "Tie Breaker",
+        checkArcFlash("TC_AF_132", "Tie Breaker",
                 "Voltage", "Ampere Rating", "Interrupting Rating");
     }
 
     @Test
     public void TC_AF_133_transformerArcFlash() {
-        checkArcFlash("TC_AF_133", "Transformer", "Transformer",
+        checkArcFlash("TC_AF_133", "Transformer",
                 "Voltage", "Primary Voltage", "Secondary Voltage", "K V A");
     }
 
     @Test
     public void TC_AF_134_transformer3WindingArcFlash() {
-        checkArcFlash("TC_AF_134", "Transformer (3-Winding)", "Winding",
+        checkArcFlash("TC_AF_134", "Transformer (3-Winding)",
                 "Voltage", "Primary Voltage", "Secondary Voltage", "K V A");
     }
 
     @Test
     public void TC_AF_135_upsArcFlash() {
-        checkArcFlash("TC_AF_135", "UPS", "UPS",
+        checkArcFlash("TC_AF_135", "UPS",
                 "Voltage", "Ampere Rating", "K V A");
     }
 
     @Test
     public void TC_AF_136_utilityArcFlash() {
-        checkArcFlash("TC_AF_136", "Utility", "Utility",
+        checkArcFlash("TC_AF_136", "Utility",
                 "Voltage");
     }
 
     @Test
     public void TC_AF_137_vfdArcFlash() {
-        checkArcFlash("TC_AF_137", "VFD", "VFD",
+        checkArcFlash("TC_AF_137", "VFD",
                 "Voltage", "Ampere Rating");
     }
 
     @Test
     public void TC_AF_138_vfdPanelArcFlash() {
-        checkArcFlash("TC_AF_138", "VFD Panel", "VFD Panel",
+        checkArcFlash("TC_AF_138", "VFD Panel",
                 "Voltage", "Ampere Rating");
+    }
+
+    @Test
+    public void TC_AF_139_nodeBusArcFlash() {
+        // Live-only system class (not in the gold picker) — bus nodes carry
+        // AF-relevant electrical data too (System Voltage + Mains Type seen
+        // live 2026-07-20), and the fixture site has them.
+        checkArcFlash("TC_AF_139", "Node Bus",
+                "Voltage", "Mains Type");
     }
 
     // ── Shared per-class check ───────────────────────────────────────────
 
-    private void checkArcFlash(String caseId, String className, String token, String... labels) {
+    // v1.50 renders the universal AF field as "System Voltage" (Engineering
+    // section, seen live on Node Bus 2026-07-20); "Voltage" kept for older
+    // builds. Merged ahead of every class's own label list.
+    private static final String[] UNIVERSAL_AF_LABELS = {"System Voltage", "Voltage"};
+
+    private void checkArcFlash(String caseId, String className, String... classLabels) {
+        java.util.LinkedHashSet<String> merged = new java.util.LinkedHashSet<>();
+        for (String l : UNIVERSAL_AF_LABELS) merged.add(l);
+        for (String l : classLabels) merged.add(l);
+        String[] labels = merged.toArray(new String[0]);
         ExtentReportManager.createTest(AppConstants.MODULE_ARC_FLASH, "Arc Flash by Asset",
                 caseId + " - " + className + " Arc Flash — AF data renders on a "
                 + className + " asset's details");
@@ -320,36 +332,35 @@ public class ArcFlashAssetMatrix_Test extends BaseTest {
         assetPageLocal.navigateToAssetList();
         mediumWait();
 
-        logStep("Step 2: Find a " + className + " asset (search token '" + token + "')");
-        assetPageLocal.searchAsset(token);
-        mediumWait();
-        String assetName = firstVisibleAssetNameFromSource(className, token);
-        if (assetName == null) {
-            // Second chance: some fixtures are named by function not class —
-            // clear search and scan the full first page for the token.
-            assetPageLocal.clearSearchAndSelectFirst();
-            shortWait();
-            navigateBackToListIfDetailOpened();
-            assetName = firstVisibleAssetNameFromSource(className, token);
-        }
-        final String found = assetName;
+        logStep("Step 2: Find an asset whose CLASS is '" + className + "' (never matched by name)");
+        final String found = findAssetOfClass(className);
         skipIfPreconditionMissing(() -> found != null,
-                "no '" + className + "' asset on this site (search token '" + token
-                + "') — add a fixture asset to cover this class");
-        logStep("Asset under test: '" + found + "'");
+                "no asset of class '" + className + "' on this site — add a fixture asset to cover this class");
+        logStep("Asset under test: '" + found + "' (cell declares class '" + className + "')");
 
         logStep("Step 3: Open the asset's details");
+        // findAssetOfClass returns with the asset ON SCREEN; the retry must
+        // reproduce that discovery state (NOT re-search className — assets
+        // found via the unfiltered rescan disappear under that filter).
         boolean opened = assetPageLocal.selectAssetByName(found);
         if (!opened) {
-            assetPageLocal.searchAsset(token);
-            shortWait();
+            findAssetOfClass(className);
             opened = assetPageLocal.selectAssetByName(found);
         }
         assertTrue(opened, className + " asset '" + found + "' must open from the list");
-        mediumWait();
         verifyAppAlive(className + " details open");
 
         logStep("Step 4: Arc-flash data surface renders for this " + className);
+        // Real details-ready poll (mediumWait is a documented no-op and the
+        // driver runs animationCoolOffTimeout=0): wait for the details nav
+        // title before trusting a page-source snapshot, else the scan can
+        // catch the push transition mid-flight and false-fail.
+        com.egalvanic.utils.Waits.until(() -> {
+            try {
+                String s = DriverManager.getDriver().getPageSource();
+                return sourceHasVisibleText(s, "Asset Details") || sourceHasVisibleText(s, className);
+            } catch (Exception e) { return false; }
+        }, 6000);
         // Read the whole detail surface ONCE via page source (query layer is
         // unreliable on heavy detail DOMs) and evaluate labels + values on it.
         String source = DriverManager.getDriver().getPageSource();
@@ -357,10 +368,10 @@ public class ArcFlashAssetMatrix_Test extends BaseTest {
         StringBuilder valueLog = new StringBuilder();
         scanLabels(source, labels, presentLabels, valueLog);
 
-        // The class value itself confirms we opened the right kind of asset.
+        // Informational only — the list cell already declared the class.
         boolean classConfirmed = sourceHasVisibleText(source, className);
         logStep("Class text on details: " + (classConfirmed
-                ? "confirmed '" + className + "'" : "not shown (name-match only)"));
+                ? "confirmed '" + className + "'" : "not rendered as its own element (cell-composite match)"));
 
         if (presentLabels.isEmpty()) {
             // One scroll — AF fields can start below the fold on long forms.
@@ -393,19 +404,77 @@ public class ArcFlashAssetMatrix_Test extends BaseTest {
         }
     }
 
-    // ── Page-source helpers (no element queries on the heavy detail DOM) ──
+    // ── Class-based asset discovery ──────────────────────────────────────
 
     /**
-     * First visible asset-cell name containing the token (case-insensitive),
-     * excluding names that belong to a SIBLING class — i.e. names containing
-     * another, longer class name that itself embeds the token ("Main Motor
-     * Starter" is a Motor Starter, never a Motor; "Loadcenter A" never a Load).
+     * Find an asset whose list cell declares the target CLASS.
+     * Search first (the field covers name/type/location, and class-named
+     * fixtures filter well), then class-suffix-scan the visible cells with a
+     * bounded scroll; last resort is an unfiltered rescan of the list.
      */
-    private String firstVisibleAssetNameFromSource(String className, String token) {
+    private String findAssetOfClass(String className) {
+        final String[] found = {null};
+        assetPageLocal.searchAsset(className);
+        assetPageLocal.dismissKeyboard();
+        // Real condition-poll (shortWait/mediumWait are documented no-ops):
+        // give the filtered list up to 3s to materialize a matching cell.
+        com.egalvanic.utils.Waits.until(
+                () -> (found[0] = firstVisibleAssetOfClass(className)) != null, 3000);
+        for (int s = 0; found[0] == null && s < 2; s++) {
+            if (!scrollListDown()) break;
+            found[0] = firstVisibleAssetOfClass(className);
+        }
+        if (found[0] == null) {
+            // Unfiltered rescan — the class may exist under names/types the
+            // search text didn't match. The clear must be VERIFIED: a silently
+            // still-filtered list here would turn into a false 'no fixture' SKIP.
+            boolean cleared = clearSearchFilterVerified();
+            if (!cleared) System.out.println("⚠️ search filter may still be active — rescan is best-effort");
+            com.egalvanic.utils.Waits.until(
+                    () -> (found[0] = firstVisibleAssetOfClass(className)) != null, 3000);
+            for (int s = 0; found[0] == null && s < 3; s++) {
+                if (!scrollListDown()) break;
+                found[0] = firstVisibleAssetOfClass(className);
+            }
+        }
+        return found[0];
+    }
+
+    /** Clear the asset-list search filter and CONFIRM the field is empty. */
+    private boolean clearSearchFilterVerified() {
+        try {
+            org.openqa.selenium.WebElement field = DriverManager.getDriver().findElement(
+                    io.appium.java_client.AppiumBy.className("XCUIElementTypeSearchField"));
+            field.click();
+            field.clear();
+            assetPageLocal.dismissKeyboard();
+            String value = field.getAttribute("value");
+            return value == null || value.isEmpty()
+                    || value.toLowerCase().contains("search"); // placeholder text
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * First visible asset cell whose composite accessibility name
+     * "<asset name>, <id>, <Class>" ENDS WITH the target class. The ", "
+     * boundary keeps every class an unambiguous suffix (Load vs Loadcenter,
+     * MCC vs MCC Bucket, Transformer vs Transformer (3-Winding), …), and the
+     * asset's free-text NAME is never consulted — users can call a Node Bus
+     * "Transformer-1-Transformer-2-BUS" and this still won't bite.
+     */
+    // Field-label words that can legitimately precede a class value in a
+    // 2-segment "label, value" composite — those rows are NOT asset cells.
+    private static final java.util.Set<String> FIELD_LABEL_PREFIXES = java.util.Set.of(
+            "class", "type", "asset class", "subtype");
+
+    private String firstVisibleAssetOfClass(String className) {
+        int maxY = listContentMaxY();
         try {
             String src = DriverManager.getDriver().getPageSource();
-            Matcher m = Pattern.compile("<XCUIElementType(?:StaticText|Button|Cell)([^>]*?)/?>").matcher(src);
-            String tokenLc = token.toLowerCase();
+            Matcher m = Pattern.compile("<XCUIElementType(?:StaticText|Button|Cell|Other)([^>]*?)/?>").matcher(src);
+            String suffixLc = (", " + className).toLowerCase();
             while (m.find()) {
                 String attrs = m.group(1);
                 if (!attrs.contains("visible=\"true\"")) continue;
@@ -414,28 +483,47 @@ public class ArcFlashAssetMatrix_Test extends BaseTest {
                 if (!nm.find() || !ym.find()) continue;
                 String n = unescape(nm.group(1));
                 int y = Integer.parseInt(ym.group(1));
-                if (y < 150 || y > 860) continue;              // list content zone
-                if (!n.toLowerCase().contains(tokenLc)) continue;
-                if (n.length() > 80 || n.contains(" › ")) continue; // room rows etc.
-                if (belongsToSiblingClass(n, className, tokenLc)) continue;
+                if (y < 150 || y > maxY) continue;             // list content zone
+                if (n.length() > 250 || n.contains(" › ")) continue; // room rows etc.
+                if (!n.toLowerCase().endsWith(suffixLc)) continue;
+                // Cell composite is "<name>, <room>, <Class>" (>=2 separators).
+                // A 2-segment match is accepted only when its prefix is NOT a
+                // field label — "Class, Transformer" is a label-value row.
+                String prefix = n.substring(0, n.length() - suffixLc.length()).trim();
+                int separators = n.split(", ", -1).length - 1;
+                if (separators < 2 && FIELD_LABEL_PREFIXES.contains(prefix.toLowerCase())) continue;
+                if (prefix.isEmpty()) continue;                 // degenerate ", Class"
                 return n;
             }
         } catch (Exception e) {
-            System.out.println("   firstVisibleAssetNameFromSource: " + e.getMessage());
+            System.out.println("   firstVisibleAssetOfClass: " + e.getMessage());
         }
         return null;
     }
 
-    /** True if the candidate name contains another class's name that embeds the token. */
-    private boolean belongsToSiblingClass(String candidate, String className, String tokenLc) {
-        String candLc = candidate.toLowerCase();
-        for (String other : ALL_CLASSES) {
-            if (other.equalsIgnoreCase(className)) continue;
-            String otherLc = other.toLowerCase();
-            if (otherLc.contains(tokenLc) && candLc.contains(otherLc)) return true;
+    /** Bottom of the scrollable list zone, derived from the live window (iPad-safe). */
+    private int listContentMaxY() {
+        try {
+            return DriverManager.getDriver().manage().window().getSize().getHeight() - 90;
+        } catch (Exception e) {
+            return 860; // iPhone fallback
         }
-        return false;
     }
+
+    /** One bounded list scroll; false if the gesture failed (end of list / wedge). */
+    private boolean scrollListDown() {
+        try {
+            DriverManager.getDriver().executeScript("mobile: scroll",
+                    java.util.Map.of("direction", "down"));
+            // Real 400ms settle (shortWait() is a documented no-op).
+            com.egalvanic.utils.Waits.until(() -> false, 400);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    // ── Page-source helpers (no element queries on the heavy detail DOM) ──
 
     /** Visible element with this exact name/label anywhere on the source. */
     private boolean sourceHasVisibleText(String source, String text) {
@@ -486,20 +574,13 @@ public class ArcFlashAssetMatrix_Test extends BaseTest {
         return null;
     }
 
-    /** If a search fallback accidentally opened a detail, go back to the list. */
-    private void navigateBackToListIfDetailOpened() {
-        try {
-            org.openqa.selenium.WebElement back = DriverManager.getDriver().findElement(
-                io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND (name == 'BackButton' OR name == 'Back') AND visible == 1"));
-            back.click();
-            shortWait();
-        } catch (Exception ignored) { }
-    }
-
     private static String unescape(String s) {
-        return s.replace("&amp;", "&").replace("&gt;", ">").replace("&lt;", "<")
-                .replace("&quot;", "\"").replace("&apos;", "'");
+        // Exact reverse of escape(): &amp; LAST, or "Panel &lt;3" (serialized
+        // as "&amp;lt;3") double-decodes to "Panel <3". Numeric refs cover
+        // libxml2's attribute serialization of whitespace (&#10; &#9; &#13;).
+        return s.replace("&#10;", "\n").replace("&#9;", "\t").replace("&#13;", "\r")
+                .replace("&gt;", ">").replace("&lt;", "<")
+                .replace("&quot;", "\"").replace("&apos;", "'").replace("&amp;", "&");
     }
 
     private static String escape(String s) {

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<suite time-out="480000" name="Arc Flash (72 tests)" verbose="0">
+<suite time-out="480000" name="Arc Flash (73 tests)" verbose="0">
     <!--
     ============================================================
     ARC FLASH MODULE — v1.49 data-readiness tracker (changelog 111)
@@ -11,14 +11,19 @@
       invariants (Completed+Remaining==Total, card % == round(X/Y),
       overall == weighted average) — they cannot pass tautologically.
 
-      1. ArcFlash_Test (13)          — Site-tab quick action →
-         "Arc Flash Analysis" dashboard: ring, stats, 3 metric cards,
-         breakdown switching, bucket expansion, reentry determinism.
-      2. ArcFlashPunchlist_Test (6)  — Assets/Connections tab
-         "Show/Hide AF Punchlist" badge toggles; session-room
-         "Arc Flash" overlay filter + long-press "Collect AF Data"
-         (session tests precondition-skip when no active WO fixture).
-      3. AssetEngineerFlagCanary_Test (1) — eng-lib flag ⇄ Settings
+      1. ArcFlash_Test — Site-tab quick action → "Arc Flash Analysis"
+         dashboard: ring, stats, 3 metric cards, breakdown switching,
+         bucket expansion, reentry determinism.
+      2. ArcFlashPunchlist_Test — Assets/Connections tab "Show/Hide AF
+         Punchlist" badge toggles; session-room "Arc Flash" overlay
+         filter + long-press "Collect AF Data" (session tests
+         precondition-skip when no active WO fixture).
+      3. ArcFlashBreakdown/Responsive/ClassMatrix/Invariants/
+         PunchlistDeep — deep laws (changelogs 118/120).
+      4. ArcFlashAssetMatrix_Test (39) — TC_AF_101-139, one simply-named
+         test per asset class ("Fuse Arc Flash"); matches by the cell's
+         trailing CLASS segment, never by asset name (changelog 134).
+      5. AssetEngineerFlagCanary_Test (1) — eng-lib flag ⇄ Settings
          card UI consistency canary; NOT gated so it runs in both
          tenant modes and screams on flag/UI drift.
     ============================================================
@@ -63,7 +68,7 @@
             <class name="com.egalvanic.tests.ArcFlashPunchlistDeep_Test"/>
         </classes>
     </test>
-    <test name="Arc Flash - By Asset (100% class coverage, TC_AF_101-138)">
+    <test name="Arc Flash - By Asset (100% class coverage, TC_AF_101-139)">
         <classes>
             <class name="com.egalvanic.tests.ArcFlashAssetMatrix_Test"/>
         </classes>
