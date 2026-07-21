@@ -24644,6 +24644,14 @@ public class WorkOrderPage extends BasePage {
                     "type == 'XCUIElementTypeStaticText' AND name == 'Assets in Room'"))) {
                 return true; // already in a room
             }
+            // v1.51: the session lands on the DETAILS tab — rooms live under
+            // the 'Assets' tab of the session tab strip (y≈868).
+            try {
+                WebElement assetsTab = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND name == 'Assets' AND visible == 1 AND rect.y > 800"));
+                assetsTab.click();
+                sleep(900);
+            } catch (Exception ignored) { }
             java.util.List<WebElement> rooms = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND (name CONTAINS[c] 'Room' OR name CONTAINS[c] 'Floor') AND visible == 1"));
             if (rooms.isEmpty()) return false;
