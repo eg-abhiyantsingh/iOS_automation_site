@@ -111,11 +111,16 @@ public class WorkType_List_Test extends WorkTypeBaseTest {
 
     // ────────────────────────── shared check bodies ──────────────────────────
 
-    /** Entry with crash/blank guards: login → dashboard → Work Orders list. */
+    /**
+     * Entry with a crash guard: login → dashboard → Work Orders list.
+     * No verifyNotBlank here on purpose — waitForWorkOrdersScreen (inside
+     * openWorkOrdersScreenWT) already proves rendered content, and the full
+     * visible==1 census is a WDA-wedge hazard on 100+ row lists (live-hit
+     * 2026-07-21; see UIStateValidator.visibleContentCount fallback).
+     */
     private void openListGuarded(String tc) {
         openWorkOrdersScreenWT();
         verifyAppAlive(tc + ": Work Orders list opened");
-        verifyNotBlank("Work Orders list (" + tc + ")");
     }
 
     /**
@@ -1094,5 +1099,119 @@ public class WorkType_List_Test extends WorkTypeBaseTest {
                 "The 14 fixture composites must be pairwise distinct (BEGINSWITH cross-contamination check)"
                 + " — got " + composites.size() + ": " + composites);
         logStepWithScreenshot("TC_WT_LIST_212 verified: 14 well-formed, distinct composites");
+    }
+
+    // ═══════ Block 8: label-in-composite contract (probe run 7, TC_WT_LIST_301..313) ═══════
+    // Live-verified 2026-07-21 (gold spec §3c): typed WO rows are Buttons named
+    // '<name>, <work-type display name>, <priority>' — the work-type label is
+    // ON the list row, punctuation intact ('QA-WT04 Clean Tighten Torque,
+    // Clean, Tighten, Torque, Medium'). Pin it per type: the composite must
+    // contain ', <displayName>,' between the name prefix and priority suffix.
+
+    private void runLabelInComposite(WorkTypeCatalog wt, String tc) {
+        openListGuarded(tc);
+        String fixture = wt.fixtureName();
+        boolean onScreen = wo.scrollWorkOrderListTo(fixture);
+        skipIfPreconditionMissing(() -> onScreen,
+                tc + ": fixture '" + fixture + "' not present in the Work Orders list");
+        String composite = wo.getWorkOrderRowComposite(fixture);
+        assertTrue(composite != null && composite.startsWith(fixture),
+                tc + ": composite must start with the fixture name — got '" + composite + "'");
+        String expectedSegment = ", " + wt.displayName() + ",";
+        assertTrue(composite != null && composite.contains(expectedSegment),
+                tc + ": row composite must embed the work-type label segment '" + expectedSegment
+                        + "' (probe-verified v1.51 anatomy) — got '" + composite + "'");
+        logStepWithScreenshot(tc + " verified: label-in-composite for " + wt.displayName());
+    }
+
+    @Test(priority = 97)
+    public void TC_WT_LIST_301_wt01LabelInComposite() {
+        ExtentReportManager.createTest(AppConstants.MODULE_JOBS, FEATURE,
+                "TC_WT_LIST_301 - QA-WT01 row embeds work-type label 'Arc Flash Data Collection' (probe-verified anatomy)");
+        runLabelInComposite(WorkTypeCatalog.ARC_FLASH_DATA_COLLECTION, "TC_WT_LIST_301");
+    }
+
+    @Test(priority = 98)
+    public void TC_WT_LIST_302_wt02LabelInComposite() {
+        ExtentReportManager.createTest(AppConstants.MODULE_JOBS, FEATURE,
+                "TC_WT_LIST_302 - QA-WT02 row embeds work-type label 'Arc Flash Label Placement'");
+        runLabelInComposite(WorkTypeCatalog.ARC_FLASH_LABEL_PLACEMENT, "TC_WT_LIST_302");
+    }
+
+    @Test(priority = 99)
+    public void TC_WT_LIST_303_wt03LabelInComposite() {
+        ExtentReportManager.createTest(AppConstants.MODULE_JOBS, FEATURE,
+                "TC_WT_LIST_303 - QA-WT03 row embeds work-type label 'Cleaning'");
+        runLabelInComposite(WorkTypeCatalog.CLEANING, "TC_WT_LIST_303");
+    }
+
+    @Test(priority = 100)
+    public void TC_WT_LIST_304_wt04LabelInComposite() {
+        ExtentReportManager.createTest(AppConstants.MODULE_JOBS, FEATURE,
+                "TC_WT_LIST_304 - QA-WT04 row embeds comma-bearing label 'Clean, Tighten, Torque' (punctuation intact)");
+        runLabelInComposite(WorkTypeCatalog.CLEAN_TIGHTEN_TORQUE, "TC_WT_LIST_304");
+    }
+
+    @Test(priority = 101)
+    public void TC_WT_LIST_305_wt05LabelInComposite() {
+        ExtentReportManager.createTest(AppConstants.MODULE_JOBS, FEATURE,
+                "TC_WT_LIST_305 - QA-WT05 row embeds work-type label 'Condition Assessment'");
+        runLabelInComposite(WorkTypeCatalog.CONDITION_ASSESSMENT, "TC_WT_LIST_305");
+    }
+
+    @Test(priority = 102)
+    public void TC_WT_LIST_306_wt06LabelInComposite() {
+        ExtentReportManager.createTest(AppConstants.MODULE_JOBS, FEATURE,
+                "TC_WT_LIST_306 - QA-WT06 row embeds work-type label 'De-Energized Visual Inspection'");
+        runLabelInComposite(WorkTypeCatalog.DE_ENERGIZED_VISUAL, "TC_WT_LIST_306");
+    }
+
+    @Test(priority = 103)
+    public void TC_WT_LIST_307_wt07LabelInComposite() {
+        ExtentReportManager.createTest(AppConstants.MODULE_JOBS, FEATURE,
+                "TC_WT_LIST_307 - QA-WT07 row embeds slash-bearing label 'DGA / Fluid Sample Analysis'");
+        runLabelInComposite(WorkTypeCatalog.DGA_FLUID_SAMPLE, "TC_WT_LIST_307");
+    }
+
+    @Test(priority = 104)
+    public void TC_WT_LIST_308_wt08LabelInComposite() {
+        ExtentReportManager.createTest(AppConstants.MODULE_JOBS, FEATURE,
+                "TC_WT_LIST_308 - QA-WT08 row embeds work-type label 'Infrared Thermography' (probe-verified composite)");
+        runLabelInComposite(WorkTypeCatalog.INFRARED_THERMOGRAPHY, "TC_WT_LIST_308");
+    }
+
+    @Test(priority = 105)
+    public void TC_WT_LIST_309_wt09LabelInComposite() {
+        ExtentReportManager.createTest(AppConstants.MODULE_JOBS, FEATURE,
+                "TC_WT_LIST_309 - QA-WT09 row embeds work-type label 'Insulation Resistance Testing'");
+        runLabelInComposite(WorkTypeCatalog.INSULATION_RESISTANCE, "TC_WT_LIST_309");
+    }
+
+    @Test(priority = 106)
+    public void TC_WT_LIST_310_wt10LabelInComposite() {
+        ExtentReportManager.createTest(AppConstants.MODULE_JOBS, FEATURE,
+                "TC_WT_LIST_310 - QA-WT10 row embeds work-type label 'NETA Testing' (key de-energized-testing, name NETA)");
+        runLabelInComposite(WorkTypeCatalog.NETA_TESTING, "TC_WT_LIST_310");
+    }
+
+    @Test(priority = 107)
+    public void TC_WT_LIST_311_wt11LabelInComposite() {
+        ExtentReportManager.createTest(AppConstants.MODULE_JOBS, FEATURE,
+                "TC_WT_LIST_311 - QA-WT11 row embeds work-type label 'Panel Schedule Updates'");
+        runLabelInComposite(WorkTypeCatalog.PANEL_SCHEDULE_UPDATES, "TC_WT_LIST_311");
+    }
+
+    @Test(priority = 108)
+    public void TC_WT_LIST_312_wt12LabelInComposite() {
+        ExtentReportManager.createTest(AppConstants.MODULE_JOBS, FEATURE,
+                "TC_WT_LIST_312 - QA-WT12 row embeds parenthesis-bearing label 'Shutdown (Composite)'");
+        runLabelInComposite(WorkTypeCatalog.SHUTDOWN_COMPOSITE, "TC_WT_LIST_312");
+    }
+
+    @Test(priority = 109)
+    public void TC_WT_LIST_313_wt13LabelInComposite() {
+        ExtentReportManager.createTest(AppConstants.MODULE_JOBS, FEATURE,
+                "TC_WT_LIST_313 - QA-WT13 row embeds work-type label 'UPS Maintenance'");
+        runLabelInComposite(WorkTypeCatalog.UPS_MAINTENANCE, "TC_WT_LIST_313");
     }
 }

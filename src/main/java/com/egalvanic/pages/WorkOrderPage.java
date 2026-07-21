@@ -24881,23 +24881,50 @@ public class WorkOrderPage extends BasePage {
     }
 
     /**
-     * Scroll to and open the work order whose name begins with
-     * {@code namePrefix}. Verified-open: true only if the list row disappears
-     * (screen actually changed), per the verified-open house rule.
+     * Scroll to and OPEN (start) the work order whose name begins with
+     * {@code namePrefix}. Probe-verified v1.51 contract (runs 9-10): a plain
+     * element.click() on the SwiftUI row is a NO-OP; the working interaction
+     * is the startFirstAvailableWorkOrder pattern \u2014 pause auto-alerts,
+     * coordinate-tap the row, then confirm the 'Start Work Order?' alert
+     * (absent when the WO is already active \u2192 direct open). Verified-open =
+     * strict session-details check (row-gone alone false-negatives under
+     * SwiftUI previous-screen bleed-through).
      */
     public boolean openWorkOrderByName(String namePrefix) {
         if (!scrollWorkOrderListTo(namePrefix)) return false;
+        boolean paused = false;
         try {
-            driver.findElement(woRowByPrefix(namePrefix)).click();
+            driver.setSetting("defaultAlertAction", "");
+            paused = true;
         } catch (Exception e) {
-            System.out.println("\u26a0\ufe0f openWorkOrderByName tap: " + e.getMessage());
-            return false;
+            System.out.println("\u26a0\ufe0f openWorkOrderByName: could not pause alerts");
         }
-        // Row gone == navigation happened (details/session screen replaced list).
-        boolean navigated = com.egalvanic.utils.Waits.until(
-                () -> !isWorkOrderRowVisible(namePrefix), 8000);
-        if (!navigated) System.out.println("\u26a0\ufe0f openWorkOrderByName: row still visible \u2014 nav not confirmed");
-        return navigated;
+        try {
+            WebElement row = driver.findElement(woRowByPrefix(namePrefix));
+            org.openqa.selenium.Rectangle r = row.getRect();
+            System.out.println("\u25b6\ufe0f Opening WO '" + row.getAttribute("name") + "'");
+            driver.executeScript("mobile: tap", java.util.Map.of("x", r.x + 40, "y", r.y + r.height / 2));
+            boolean alertShown = waitForCondition(() -> existsNow(V150_START_ALERT_BTN), 6);
+            if (alertShown) {
+                WebElement confirm = driver.findElement(V150_START_ALERT_BTN);
+                org.openqa.selenium.Rectangle cr = confirm.getRect();
+                driver.executeScript("mobile: tap",
+                        java.util.Map.of("x", cr.x + cr.width / 2, "y", cr.y + cr.height / 2));
+            } else {
+                System.out.println("\u2139\ufe0f openWorkOrderByName: no Start alert \u2014 WO may already be active");
+            }
+            boolean navigated = com.egalvanic.utils.Waits.until(
+                    this::isSessionDetailsScreenDisplayed, 12000);
+            if (!navigated) System.out.println("\u26a0\ufe0f openWorkOrderByName: session details not confirmed");
+            return navigated;
+        } catch (Exception e) {
+            System.out.println("\u26a0\ufe0f openWorkOrderByName: " + e.getMessage());
+            return false;
+        } finally {
+            if (paused) {
+                try { driver.setSetting("defaultAlertAction", "accept"); } catch (Exception ignored) { }
+            }
+        }
     }
 
     /**

@@ -68,9 +68,38 @@ the dropdown.
 job `worktype-tests` (5 slices, gated `run_worktype` + `run_all`); root
 testng.xml "Work Type Tests" block; memory `worktype-catalog-gold`.
 
+## Probe journey (11 runs, heat-and-trial) + fixes it forced
+1. Runs 1-6: fixtures invisible on iOS despite being in `/sld/v3` — found the
+   TWO blockers: (a) user_session mapping required for list visibility AND the
+   mapping POST silently no-ops without a client `id`; (b) the app re-pulls
+   sessions ONLY on login site-selection (cold relaunch, pull-to-refresh, and
+   the dashboard Sites quick-action hop all do NOT re-sync).
+2. Run 7 (fresh install = the CI condition): fixtures visible; **row anatomy
+   discovered**: `<name>, <work-type label>, <priority>` — label on the row.
+3. Runs 8-10: plain `element.click()` on rows is a NO-OP; generic `visible==1`
+   whole-screen dumps WEDGE WDA on 100+ row lists.
+4. Run 11: house activation pattern (pause alerts → coordinate-tap →
+   confirm 'Start Work Order') opens the session; **header = WO name;
+   work-type label renders on session details = exact catalog name; iOS tab
+   strip is a COMMON strip** (SLD + Condition Assessment on an IR session) —
+   NOT per-category like web.
+
+Fixes: `openWorkOrderByName` → activation pattern + strict details-screen
+verified-open; `UIStateValidator.visibleContentCount` → bounded first-match
+fallback on census wedge (live-hit on TC_WT_LIST_308); Behavior cross-checks
+071-077 rewritten from per-category-absence (would false-fail) to the
+common-strip contract; +13 `TC_WT_LIST_301-313` label-in-composite tests
+(total 452); `WorkTypeBaseTest` resync only after actual creation, recovery
+via idempotent loginAndSelectSite. Also caught: IDE (ECJ) had poisoned
+`target/test-classes` with broken classes newer than sources — `mvn clean`
+required; "Cannot instantiate class" in surefire was that, not code.
+
 ## Validation
-- `mvn -o test-compile` green; verifier self-tests green (see session log).
-- Probe-verified navigation + fixture visibility path on local iPhone 17 Pro
-  Max sim (iOS 26.2, v1.51 app).
-- Probe-dependent surfaces (work-type label element, per-category tabs on iOS)
-  are skip-guarded until the first live-green run tightens them.
+- `mvn -o clean test-compile` green; verifier self-tests 34/34 green.
+- **Live-green on the local iPhone 17 Pro Max sim (iOS 26.2, v1.51):**
+  `TC_WT_LIST_308` (53s — label-in-composite) and `TC_WT_DET_083` (1m28s —
+  activation-open + label-on-details hard-assert). Both single-test driver-loop
+  runs, per house rule.
+- Remaining probe-dependent surfaces (per-category tabs beyond the common
+  strip, photo-type row on details) stay skip-guarded until a full CI run
+  inventories them per type.

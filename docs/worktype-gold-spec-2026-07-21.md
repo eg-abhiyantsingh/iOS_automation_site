@@ -136,6 +136,49 @@ tests target it by name.
   e.g. "QA-AUTO AF Data Collection 2026-07-21" — are invisible to the current
   first-site suite runs.)
 
+## 3c. iOS v1.51 WO list row anatomy (probe run 7, live-verified)
+
+Typed WO rows are Buttons named **`<name>, <work-type display name>, <priority>`**
+— the work-type label IS on the list row, punctuation intact:
+
+```
+QA-WT03 Cleaning, Cleaning, Medium
+QA-WT04 Clean Tighten Torque, Clean, Tighten, Torque, Medium
+QA-WT08 Infrared Thermography, Infrared Thermography, Medium
+```
+
+Legacy/null-type rows keep the old `<name>, <priority>` shape ("Work Order -
+Jul 18, 10:17 AM, Medium"). Consequences:
+- `BEGINSWITH <fixture name>` + `ENDSWITH ', <priority>'` remain safe parses;
+  positional comma-splitting is NOT (labels contain commas).
+- Verified-open must use the strict session-details check — the row-gone
+  check false-negatives under SwiftUI previous-screen bleed-through.
+- Rows visible after fresh-install sync ONLY (see §3b) — warm local sessions
+  show the stale pre-sync list; CI's per-job fresh install syncs naturally.
+
+## 3d. iOS v1.51 session-details anatomy + open contract (probe run 11)
+
+- **Opening a WO = STARTING it**: a plain element.click() on the list row is a
+  NO-OP. The working interaction (house pattern, startFirstAvailableWorkOrder):
+  pause auto-alerts (`defaultAlertAction=""`), coordinate-tap the row
+  (x+40, midY), confirm the **'Start Work Order?'** alert by coordinates, then
+  restore `defaultAlertAction=accept`. `WorkOrderPage.openWorkOrderByName`
+  encodes this; verified-open = strict `isSessionDetailsScreenDisplayed`.
+- **Session-details header = the WO name** ('QA-WT08 Infrared Thermography').
+- **The work-type label RENDERS on the session screen** and equals the catalog
+  display name exactly — `getWorkTypeLabelOnScreen()` returned
+  'Infrared Thermography' on QA-WT08. Class 3's conditional hard-asserts are
+  ACTIVE on this build.
+- **iOS session tabs are a COMMON strip, NOT per-category like the web**: on
+  the IR-type session the visible tabs were Details · Assets · Locations ·
+  Issues · Files · **Condition Assessment** · **SLD**. ("IR Photos", "Forms",
+  "Tasks", "Panel Schedules", "Equipment Designations", "Arc Flash" were NOT
+  detected there — not yet classified common-vs-per-category.) Behavior
+  cross-checks pin the common-strip contract for SLD/Condition Assessment and
+  skip-guard the unclassified tabs.
+- `getSessionType()` (photo-type stacked read) returned null on this screen —
+  photo-type row anatomy changed or lives elsewhere; keep that assert tolerant.
+
 ## 4. iOS v1.51 binary facts (strings dump of Z Platform-QA.app)
 
 - Binary contains `work_type_id`, `_work_type_id`, `WorkType`, `workTypeLabel`,

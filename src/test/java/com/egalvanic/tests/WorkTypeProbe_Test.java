@@ -31,6 +31,9 @@ public class WorkTypeProbe_Test extends BaseTest {
 
     @BeforeClass(alwaysRun = true)
     public void classSetup() {
+        // Run 7 (fresh install) proved the sync contract and populated the
+        // local store; warm sessions are fine again. Flip back to noReset=false
+        // only when the store must re-sync (see gold-spec §3b).
         DriverManager.setNoReset(true);
     }
 
@@ -55,6 +58,7 @@ public class WorkTypeProbe_Test extends BaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_JOBS, "WorkType Probe",
                 "PROBE - dump work-type surfaces for QA-WT fixtures");
         loginAndSelectSite();
+        System.out.println("PROBE| dashboard site: '" + siteSelectionPage.getCurrentSiteName() + "'");
         siteSelectionPage.clickWorkOrderCard();
         shortWait();
         assertTrue(wo.waitForWorkOrdersScreen(), "Work Orders screen must open");
@@ -68,86 +72,36 @@ public class WorkTypeProbe_Test extends BaseTest {
     }
 
     private void probeBody() {
-        // Stage 0 — what does the list top look like right now?
-        System.out.println("=== PROBE stage 0: list top, warm entry ===");
+        // Run 7: fresh-install session (classSetup noReset=false) — login and
+        // site selection already happened in the @Test preamble, which is the
+        // guaranteed SLD/session sync path. Just look at the list.
+        System.out.println("=== PROBE stage 4: fresh-install sync ===");
         dumpQaWtPresence();
 
-        // Stage 1 — cold restart (launch-time sync), generous settle, re-enter.
-        System.out.println("=== PROBE stage 1: cold restart + resync ===");
-        try {
-            DriverManager.getDriver().terminateApp(AppConstants.APP_BUNDLE_ID);
-            Thread.sleep(500);
-            DriverManager.getDriver().activateApp(AppConstants.APP_BUNDLE_ID);
-            Thread.sleep(12000); // allow post-launch session sync to land
-        } catch (Exception e) {
-            System.out.println("PROBE| restart failed: " + e.getMessage());
-        }
-        loginAndSelectSite();
-        siteSelectionPage.clickWorkOrderCard();
-        shortWait();
-        wo.waitForWorkOrdersScreen();
-        DriverManager.getDriver().manage().timeouts().implicitlyWait(java.time.Duration.ZERO);
-        dumpQaWtPresence();
-
-        // Stage 2 — pull-to-refresh gesture on the list, then recheck.
-        System.out.println("=== PROBE stage 2: pull-to-refresh ===");
-        try {
-            java.util.Map<String, Object> drag = new java.util.HashMap<>();
-            drag.put("fromX", 200); drag.put("fromY", 300);
-            drag.put("toX", 200);   drag.put("toY", 800);
-            drag.put("duration", 0.6);
-            DriverManager.getDriver().executeScript("mobile: dragFromToForDuration", drag);
-            Thread.sleep(8000);
-        } catch (Exception e) {
-            System.out.println("PROBE| pull-to-refresh failed: " + e.getMessage());
-        }
-        dumpQaWtPresence();
-
-        // Stage 3 — site re-selection (the SLD sync trigger), then recheck.
-        System.out.println("=== PROBE stage 3: site re-selection sync ===");
-        try {
-            DriverManager.getDriver().manage().timeouts()
-                    .implicitlyWait(java.time.Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
-            wo.goBack();
-            shortWait();
-            siteSelectionPage.switchToSiteByIndex(0);
-            siteSelectionPage.waitForDashboardFast();
-            Thread.sleep(8000); // let the SLD sync land
-            siteSelectionPage.clickWorkOrderCard();
-            shortWait();
-            wo.waitForWorkOrdersScreen();
-        } catch (Exception e) {
-            System.out.println("PROBE| site re-selection failed: " + e.getMessage());
-        }
-        DriverManager.getDriver().manage().timeouts().implicitlyWait(java.time.Duration.ZERO);
-        dumpQaWtPresence();
-
-        String[] targets = {
-                "QA-WT08 Infrared Thermography",     // IR
-                "QA-WT01 Arc Flash Data Collection", // AF
-                "QA-WT05 Condition Assessment"       // COM
-        };
-        for (String target : targets) {
-            System.out.println("=== PROBE: target [" + target + "] ===");
-            boolean found = wo.scrollWorkOrderListTo(target);
-            System.out.println("PROBE| row found on list: " + found);
-            if (!found) continue;
-            System.out.println("PROBE| row composite: '" + wo.getWorkOrderRowComposite(target) + "'");
+        // Run 10: activation-aware open. Run 9 showed a bare row tap leaves the
+        // list unchanged (no alert VISIBLE — autoAcceptAlerts may race it) and
+        // that generic visible==1 whole-screen dumps WEDGE WDA on this list.
+        // Only bounded queries below.
+        String target = "QA-WT08 Infrared Thermography";
+        System.out.println("=== PROBE: target [" + target + "] ===");
+        boolean found = wo.scrollWorkOrderListTo(target);
+        System.out.println("PROBE| row found on list: " + found);
+        if (found) {
+            System.out.println("PROBE| composite: '" + wo.getWorkOrderRowComposite(target) + "'");
+            System.out.println("PROBE| hasActiveWorkOrder BEFORE open: " + wo.hasActiveWorkOrder());
             boolean opened = wo.openWorkOrderByName(target);
             System.out.println("PROBE| opened (verified): " + opened);
-            if (!opened) continue;
-            mediumWait();
-            System.out.println("=== PROBE: static texts on [" + target + "] screen ===");
-            dumpVisible("XCUIElementTypeStaticText");
-            System.out.println("=== PROBE: buttons on [" + target + "] screen ===");
-            dumpVisible("XCUIElementTypeButton");
-            System.out.println("PROBE| getWorkTypeLabelOnScreen() = '" + wo.getWorkTypeLabelOnScreen() + "'");
-            wo.goBack();
-            shortWait();
-            if (!wo.isWorkOrdersScreenDisplayed()) {
-                siteSelectionPage.clickWorkOrderCard();
-                shortWait();
-                wo.waitForWorkOrdersScreen();
+            if (opened) {
+                System.out.println("PROBE| header: '" + wo.getSessionDetailsHeaderText() + "'");
+                for (String tab : new String[]{"Details", "Assets", "Locations", "Issues", "Tasks",
+                        "Files", "Forms", "IR Photos", "Photos", "Panel Schedules",
+                        "Condition Assessment", "SLD", "Equipment Designations"}) {
+                    try {
+                        if (wo.isTabDisplayed(tab)) System.out.println("PROBE| TAB present: " + tab);
+                    } catch (Exception ignored) { }
+                }
+                System.out.println("PROBE| getSessionType(): '" + wo.getSessionType() + "'");
+                System.out.println("PROBE| getWorkTypeLabelOnScreen(): '" + wo.getWorkTypeLabelOnScreen() + "'");
             }
         }
         logStepWithScreenshot("probe complete");

@@ -107,7 +107,12 @@ public abstract class WorkTypeBaseTest extends BaseTest {
             }
             System.out.println("🌱 ensuring QA-WT fixtures on '" + landedSiteName + "' (" + landedSldId + ")");
             for (WorkTypeCatalog wt : WorkTypeCatalog.values()) {
-                a.ensureWorkOrderFixture(wt.fixtureName(), wt.serviceId(), landedSldId);
+                String existing = a.findWorkOrderIdByName(wt.fixtureName());
+                if (existing == null) {
+                    a.createWorkOrder(wt.fixtureName(), wt.serviceId(), landedSldId,
+                            "FLUKE", "Medium", 8);
+                    fixturesCreatedThisSession = true;
+                }
             }
             fixturesEnsured = true;
             return true;
@@ -122,25 +127,35 @@ public abstract class WorkTypeBaseTest extends BaseTest {
 
     // ── navigation ──────────────────────────────────────────────────────────
 
+    private static boolean fixturesCreatedThisSession = false;
     private static boolean resyncedAfterEnsure = false;
 
     /**
      * Login → dashboard → ensure fixtures → Work Orders list.
      *
-     * Sync contract (probe-verified 2026-07-21, gold-spec §3b): the app pulls
-     * sessions ONLY inside the whole-SLD sync, and that sync fires on SITE
-     * SELECTION — cold relaunch and list pull-to-refresh do NOT refetch. So
-     * after the first provisioning pass we force one site re-selection to make
-     * freshly-created fixtures visible.
+     * Sync contract (probe-verified 2026-07-21, gold-spec §3b/§3d): the app
+     * pulls sessions ONLY inside the whole-SLD sync, which fires on the login
+     * site-selection — cold relaunch and list pull-to-refresh do NOT refetch,
+     * and the dashboard Sites quick-action hop is unreliable (probe run 6:
+     * silent no-select). CI's per-job fresh install syncs naturally; the
+     * BEST-EFFORT mid-session resync below only runs when this session
+     * actually CREATED a fixture (family self-heal), and any wreckage is
+     * recovered by re-running the idempotent loginAndSelectSite.
      */
     protected void openWorkOrdersScreenWT() {
         loginAndSelectSite();
-        boolean provisioned = ensureFixturesOnLandedSite();
-        if (provisioned && !resyncedAfterEnsure) {
+        ensureFixturesOnLandedSite();
+        if (fixturesCreatedThisSession && !resyncedAfterEnsure) {
             resyncedAfterEnsure = true;
-            System.out.println("🔄 re-selecting site to trigger SLD/session re-sync");
-            siteSelectionPage.switchToSiteByIndex(0);
-            siteSelectionPage.waitForDashboardFast();
+            System.out.println("🔄 fixtures were just created — best-effort site re-selection for re-sync");
+            try {
+                siteSelectionPage.switchToSiteByIndex(0);
+                siteSelectionPage.waitForDashboardFast();
+            } catch (Exception e) {
+                System.out.println("⚠️ resync attempt failed (non-fatal): " + e.getMessage());
+            }
+            // Recover to a known-good dashboard whatever the hop did.
+            loginAndSelectSite();
         }
         siteSelectionPage.clickWorkOrderCard();
         shortWait();

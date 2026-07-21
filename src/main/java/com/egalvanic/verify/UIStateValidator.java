@@ -70,10 +70,33 @@ public final class UIStateValidator {
     }
 
     private int visibleContentCount() {
-        return driver().findElements(AppiumBy.iOSNsPredicateString(
-                "visible == 1 AND (type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' "
-              + "OR type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeImage' "
-              + "OR type == 'XCUIElementTypeTextField')")).size();
+        try {
+            return driver().findElements(AppiumBy.iOSNsPredicateString(
+                    "visible == 1 AND (type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' "
+                  + "OR type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeImage' "
+                  + "OR type == 'XCUIElementTypeTextField')")).size();
+        } catch (Exception censusFailure) {
+            // Giant-DOM screens (e.g. 100+ row Work Orders lists) can wedge the
+            // full visible==1 census in WDA (proxy TimeoutException — observed
+            // live 2026-07-21 on TC_WT_LIST_308). Fall back to bounded
+            // first-match probes: MIN_CONTENT_ELEMENTS hits prove non-blank
+            // cheaply; a fully wedged WDA still fails loudly below.
+            int cheap = 0;
+            for (String probe : new String[]{
+                    "type == 'XCUIElementTypeNavigationBar'",
+                    "type == 'XCUIElementTypeButton'",
+                    "type == 'XCUIElementTypeStaticText'"}) {
+                try {
+                    driver().findElement(AppiumBy.iOSNsPredicateString(probe));
+                    if (++cheap >= MIN_CONTENT_ELEMENTS) return cheap;
+                } catch (Exception ignored) { }
+            }
+            if (cheap > 0) return cheap;
+            throw new VerificationError("Content census failed ("
+                    + censusFailure.getClass().getSimpleName()
+                    + ") and bounded fallback probes found nothing — WDA may be wedged",
+                    censusFailure);
+        }
     }
 
     /** Spinner or determinate progress bar — the screen is loading, not blank. */
