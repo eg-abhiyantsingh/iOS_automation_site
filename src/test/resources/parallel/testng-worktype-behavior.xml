@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite time-out="480000" name="Work Types - Work Type Per-Category Behavior [OPERATIONS]" verbose="0">
+    <!--
+    ============================================================
+    WORK TYPE SUITE (13-option dropdown) - behavior slice
+    ============================================================
+      Gold spec: docs/worktype-gold-spec-2026-07-21.md
+      Design:    docs/worktype-test-design-2026-07-21.md
+      Fixtures:  QA-WT00..13 (self-provisioning via WorkTypeBaseTest)
+      Class-atomic on purpose: rerun sharding splits by class.
+    ============================================================
+    -->
+    <listeners>
+        <listener class-name="com.egalvanic.listeners.GlobalTestTimeout"/>
+        <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
+    </listeners>
+    <test name="Work Type Per-Category Behavior">
+        <classes>
+            <class name="com.egalvanic.tests.WorkType_Behavior_Test"/>
+        </classes>
+    </test>
+</suite>

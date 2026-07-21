@@ -24818,4 +24818,122 @@ public class WorkOrderPage extends BasePage {
             return false;
         }
     }
+
+    // \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 Work-type suite helpers (TC_WT_*) \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+    // QA-WT fixture family navigation (docs/worktype-gold-spec-2026-07-21.md).
+    // Rows are Buttons named '<wo name>, <Priority>' (see V150_WO_ROWS), so a
+    // BEGINSWITH match on the fixture name is deterministic and suffix-proof.
+
+    private static String predQuote(String s) {
+        return "'" + s.replace("'", "\\'") + "'";
+    }
+
+    private org.openqa.selenium.By woRowByPrefix(String namePrefix) {
+        return AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND visible == 1 AND name BEGINSWITH "
+                + predQuote(namePrefix));
+    }
+
+    /** Row whose name begins with {@code namePrefix} currently on screen? (no wait) */
+    public boolean isWorkOrderRowVisible(String namePrefix) {
+        return existsNow(woRowByPrefix(namePrefix));
+    }
+
+    /** Full composite name ('QA-WT08 \u2026, Medium') of the row, or null. */
+    public String getWorkOrderRowComposite(String namePrefix) {
+        try {
+            return withImplicitWait(0, () -> {
+                List<WebElement> rows = driver.findElements(woRowByPrefix(namePrefix));
+                return rows.isEmpty() ? null : rows.get(0).getAttribute("name");
+            });
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Scroll the Work Orders list until a row beginning with {@code namePrefix}
+     * is on screen. Sweeps down first, then back up (handles both entry
+     * positions); bounded so a missing fixture can't hang the suite.
+     */
+    public boolean scrollWorkOrderListTo(String namePrefix) {
+        if (isWorkOrderRowVisible(namePrefix)) return true;
+        for (int i = 0; i < 15; i++) {
+            swipeListVertically("up");
+            if (isWorkOrderRowVisible(namePrefix)) return true;
+        }
+        for (int i = 0; i < 18; i++) {
+            swipeListVertically("down");
+            if (isWorkOrderRowVisible(namePrefix)) return true;
+        }
+        System.out.println("\u26a0\ufe0f scrollWorkOrderListTo: '" + namePrefix + "' not found after full sweep");
+        return false;
+    }
+
+    private void swipeListVertically(String direction) {
+        try {
+            java.util.Map<String, Object> args = new java.util.HashMap<>();
+            args.put("direction", direction);
+            driver.executeScript("mobile: swipe", args);
+        } catch (Exception e) {
+            System.out.println("\u26a0\ufe0f swipeListVertically(" + direction + "): " + e.getMessage());
+        }
+    }
+
+    /**
+     * Scroll to and open the work order whose name begins with
+     * {@code namePrefix}. Verified-open: true only if the list row disappears
+     * (screen actually changed), per the verified-open house rule.
+     */
+    public boolean openWorkOrderByName(String namePrefix) {
+        if (!scrollWorkOrderListTo(namePrefix)) return false;
+        try {
+            driver.findElement(woRowByPrefix(namePrefix)).click();
+        } catch (Exception e) {
+            System.out.println("\u26a0\ufe0f openWorkOrderByName tap: " + e.getMessage());
+            return false;
+        }
+        // Row gone == navigation happened (details/session screen replaced list).
+        boolean navigated = com.egalvanic.utils.Waits.until(
+                () -> !isWorkOrderRowVisible(namePrefix), 8000);
+        if (!navigated) System.out.println("\u26a0\ufe0f openWorkOrderByName: row still visible \u2014 nav not confirmed");
+        return navigated;
+    }
+
+    /**
+     * The work-type label on the opened WO screen, or null. Strategies:
+     *  1. any static text equal to one of the 14 catalog display names;
+     *  2. value stacked below a 'Work Type' / 'Type' label (v1.36+ stacked-form
+     *     anatomy, same geometry contract as getSessionType()).
+     */
+    public String getWorkTypeLabelOnScreen() {
+        try {
+            StringBuilder alts = new StringBuilder();
+            for (com.egalvanic.constants.WorkTypeCatalog wt
+                    : com.egalvanic.constants.WorkTypeCatalog.values()) {
+                if (alts.length() > 0) alts.append(" OR ");
+                alts.append("label == ").append(predQuote(wt.displayName()));
+            }
+            List<WebElement> hits = withImplicitWait(0, () -> driver.findElements(
+                    AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeStaticText' AND visible == 1 AND (" + alts + ")")));
+            if (hits != null && !hits.isEmpty()) {
+                String label = hits.get(0).getAttribute("label");
+                System.out.println("\ud83d\udcdd Work-type label (exact-name strategy): " + label);
+                return label;
+            }
+        } catch (Exception e) { /* fall through */ }
+        String stacked = valueStackedBelowLabel(
+                java.util.Arrays.asList("Work Type", "Work type", "Type"), 45);
+        if (stacked != null) {
+            System.out.println("\ud83d\udcdd Work-type label (stacked-form strategy): " + stacked);
+        }
+        return stacked;
+    }
+
+    /** Does the opened WO surface show exactly {@code displayName} as its work type? */
+    public boolean screenShowsWorkType(String displayName) {
+        String label = getWorkTypeLabelOnScreen();
+        return label != null && label.equals(displayName);
+    }
 }

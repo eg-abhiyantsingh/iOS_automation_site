@@ -236,6 +236,146 @@ public class TestDataApi {
         return hits;
     }
 
+    // ── work orders (IR sessions) + work-type services ─────────────────────
+    // Live-verified 2026-07-21 (docs/worktype-gold-spec-2026-07-21.md):
+    //   GET  /procedures-v2/services                      → the 13 work types
+    //   POST /company/{companyId}/workorders/v2           → WO list (POST, 405 on GET)
+    //   POST /ir_session/create                           → create WO (client uuid)
+    //   POST /mapping/user-session/create                 → certifier/technician mapping
+
+    private String companyId;
+
+    /** Current user's company id (from /auth/v2/me); cached after first call. */
+    public String companyId() {
+        if (companyId != null) return companyId;
+        HttpResponse<String> resp = get("/auth/v2/me");
+        if (resp.statusCode() / 100 != 2) {
+            throw new IllegalStateException("GET /auth/v2/me failed: HTTP " + resp.statusCode());
+        }
+        companyId = extract(resp.body(), "company_id");
+        if (companyId == null || companyId.isEmpty()) {
+            throw new IllegalStateException("No company_id in /auth/v2/me response: "
+                    + truncate(redact(resp.body()), 300));
+        }
+        return companyId;
+    }
+
+    /** Raw JSON of GET /procedures-v2/services — the work-type catalog. */
+    public String workTypeServicesJson() {
+        HttpResponse<String> resp = get("/procedures-v2/services");
+        if (resp.statusCode() / 100 != 2) {
+            throw new IllegalStateException("GET /procedures-v2/services failed: HTTP "
+                    + resp.statusCode() + " — " + truncate(redact(resp.body()), 300));
+        }
+        return resp.body();
+    }
+
+    /**
+     * Raw JSON of the company work-order list, optionally filtered by a search
+     * fragment (server-side name search — same call the web WO screen makes).
+     */
+    public String listWorkOrdersJson(String search) {
+        String body = "{\"page\":1,\"page_size\":100,\"search\":"
+                + jsonStr(search == null ? "" : search) + ",\"filters\":{}}";
+        HttpResponse<String> resp = post("/company/" + companyId() + "/workorders/v2", body);
+        if (resp.statusCode() / 100 != 2) {
+            throw new IllegalStateException("POST /company/{id}/workorders/v2 failed: HTTP "
+                    + resp.statusCode() + " — " + truncate(redact(resp.body()), 300));
+        }
+        return resp.body();
+    }
+
+    /** Id of the work order named exactly {@code name}, or null. */
+    public String findWorkOrderIdByName(String name) {
+        return extractSiblingField(listWorkOrdersJson(name), "name", name, "id");
+    }
+
+    /** work_type_id of the WO named {@code name} — null if unset (General/legacy) or WO absent. */
+    public String workOrderWorkTypeId(String name) {
+        return extractSiblingField(listWorkOrdersJson(name), "name", name, "work_type_id");
+    }
+
+    /**
+     * Create a work order (IR session) with an explicit work type. Payload
+     * mirrors the web create dialog byte-for-byte (captured live); the id is
+     * client-generated. {@code workTypeId} null ⇒ "General". Returns the WO id.
+     */
+    public String createWorkOrder(String name, String workTypeId, String sldId,
+                                  String photoType, String priority, Integer estHours) {
+        String id = java.util.UUID.randomUUID().toString();
+        // Millisecond-precision timestamps and ASCII-only description are
+        // load-bearing: microsecond instants / start_date:null drew HTTP 500
+        // from /ir_session/create (observed live 2026-07-21).
+        String nowMs = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+                .withZone(java.time.ZoneOffset.UTC).format(java.time.Instant.now());
+        String body = "{"
+                + "\"id\":" + jsonStr(id)
+                + ",\"name\":" + jsonStr(name)
+                + ",\"description\":" + jsonStr("QA automation work-type fixture - do not delete")
+                + ",\"photo_type\":" + jsonStr(photoType == null ? "FLUKE" : photoType)
+                + ",\"sld_id\":" + jsonStr(sldId)
+                + ",\"priority\":" + jsonStr(priority == null ? "Medium" : priority)
+                + ",\"start_date\":" + jsonStr(nowMs) + ",\"due_date\":null"
+                + ",\"date_created\":" + jsonStr(nowMs)
+                + ",\"active_visual_prefix\":\"visual_\",\"active_ir_prefix\":\"ir_\""
+                + ",\"active\":true,\"job_id\":null"
+                + ",\"est_hours\":" + (estHours == null ? "8" : estHours)
+                + ",\"work_type_id\":" + (workTypeId == null ? "null" : jsonStr(workTypeId))
+                + ",\"asset_scope\":null}";
+        HttpResponse<String> resp = post("/ir_session/create", body);
+        if (resp.statusCode() / 100 != 2) {
+            throw new IllegalStateException("POST /ir_session/create failed: HTTP "
+                    + resp.statusCode() + " — " + truncate(redact(resp.body()), 300));
+        }
+        // Attach the current user as field_technician + certifier. The mapping
+        // payload MUST carry a client-generated id (id-less POSTs "succeed" but
+        // don't persist — observed live 2026-07-21), and the field_technician
+        // mapping is what makes the WO visible in the iOS Work Orders list.
+        for (String mappingType : new String[]{"field_technician", "certifier"}) {
+            HttpResponse<String> m = post("/mapping/user-session/create",
+                    "{\"id\":" + jsonStr(java.util.UUID.randomUUID().toString())
+                    + ",\"user_id\":" + jsonStr(currentUserId())
+                    + ",\"session_id\":" + jsonStr(id)
+                    + ",\"mapping_type\":" + jsonStr(mappingType) + "}");
+            if (m.statusCode() / 100 != 2) {
+                System.out.println("⚠️ user-session mapping (" + mappingType + ") failed: HTTP "
+                        + m.statusCode() + " — " + truncate(redact(m.body()), 200));
+            }
+        }
+        System.out.println("🌱 Created WO '" + name + "' (work_type_id="
+                + (workTypeId == null ? "null" : workTypeId) + ", id=" + id + ")");
+        return id;
+    }
+
+    /**
+     * Find-or-create the durable QA-WT fixture for {@code fixtureName}. Returns
+     * the WO id — self-heals the fixture family if someone deletes one.
+     */
+    public String ensureWorkOrderFixture(String fixtureName, String workTypeId, String sldId) {
+        String existing = findWorkOrderIdByName(fixtureName);
+        if (existing != null) return existing;
+        return createWorkOrder(fixtureName, workTypeId, sldId, "FLUKE", "Medium", 8);
+    }
+
+    /**
+     * Resolve an SLD (site) id by display name. Tries the user SLD list first,
+     * then falls back to scanning the company WO list's sld_name fields —
+     * GET /users/{id}/slds returns [] for admin/RBAC accounts (see
+     * accessibleSldIds), so the fallback is load-bearing for the QA admin user.
+     */
+    public String resolveSldIdByName(String siteName) {
+        try {
+            String direct = findSldIdByName(siteName);
+            if (direct != null) return direct;
+        } catch (Exception e) { /* fall through to WO-list scan */ }
+        try {
+            return extractSiblingField(listWorkOrdersJson(""), "sld_name", siteName, "sld_id");
+        } catch (Exception e) {
+            System.out.println("⚠️ resolveSldIdByName('" + siteName + "'): " + e.getMessage());
+            return null;
+        }
+    }
+
     // ── internals ──────────────────────────────────────────────────────────
     private HttpRequest.Builder authed(HttpRequest.Builder b) {
         b.timeout(Duration.ofSeconds(30)).header("X-Language", "en");

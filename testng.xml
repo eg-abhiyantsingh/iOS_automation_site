@@ -92,6 +92,21 @@
     </test>
 
     <!--
+        Work Types (changelog 141): the 13-option Work Type dropdown suite.
+        Gold spec: docs/worktype-gold-spec-2026-07-21.md. Fixtures QA-WT00..13
+        self-provision on the landed site (WorkTypeBaseTest).
+    -->
+    <test name="Work Type Tests">
+        <classes>
+            <class name="com.egalvanic.tests.WorkTypeCatalog_Test"/>
+            <class name="com.egalvanic.tests.WorkType_List_Test"/>
+            <class name="com.egalvanic.tests.WorkType_Details_Test"/>
+            <class name="com.egalvanic.tests.WorkType_Behavior_Test"/>
+            <class name="com.egalvanic.tests.WorkType_CrossCutting_Test"/>
+        </classes>
+    </test>
+
+    <!--
         Asset Engineer module (changelog 107): v1.49 SKM equipment library
         (Settings download card + encrypted v2 transport) and the Engineering
         section on Asset Details (per-class blocks, match panel, bound card,

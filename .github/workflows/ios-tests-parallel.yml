@@ -82,6 +82,11 @@ on:
         required: false
         default: false
         type: boolean
+      run_worktype:
+        description: 'Work Types — 13-option dropdown suite (TC_WT_*, 5 sliced jobs)'
+        required: false
+        default: false
+        type: boolean
       run_offline_zp323:
         description: 'Offline + ZP-323'
         required: false
@@ -3190,6 +3195,166 @@ jobs:
         run: bash .github/scripts/test-result-gate.sh target/surefire-reports
 
   # ========================================
+  # JOB 15b2: Work Types — 13-option dropdown suite (TC_WT_*, ≥400 tests)
+  # 5 class-atomic slices in parallel (catalog/list/details/behavior/cross)
+  # Gold spec: docs/worktype-gold-spec-2026-07-21.md
+  # ========================================
+  worktype-tests:
+    name: "Work Types ${{ matrix.slice }}"
+    if: ${{ inputs.run_all || inputs.run_worktype }}
+    runs-on: macos-15
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        slice: [catalog, list, details, behavior, cross]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Appium
+        run: |
+          npm install -g appium@next
+          appium driver install xcuitest
+
+      - name: Unzip App
+        run: |
+          unzip -o apps/Z-Platform-QA.zip -d apps/
+          if [ -d "apps/Z-Platform-QA.app" ] && [ ! -d "apps/Z Platform-QA.app" ]; then
+            mv "apps/Z-Platform-QA.app" "apps/Z Platform-QA.app"
+            echo "✅ Renamed Z-Platform-QA.app → Z Platform-QA.app"
+          fi
+
+      - name: Boot Simulator and Wait Until Ready
+        run: |
+          UDID=$(xcrun simctl list devices available | grep -A 100 "iOS 18" | grep "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && UDID=$(xcrun simctl list devices available | grep -E "iPhone 16 Pro" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && UDID=$(xcrun simctl list devices available | grep -E "iPhone 1[5-6]" | head -1 | awk -F '[()]' '{print $2}')
+          [ -z "$UDID" ] && exit 1
+          xcrun simctl shutdown "$UDID" 2>/dev/null || true
+          sleep 3
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+          ELAPSED=0
+          while [ $ELAPSED -lt 240 ]; do
+            if xcrun simctl list devices | grep "$UDID" | grep -q "(Booted)"; then
+              echo "✅ Simulator booted after ${ELAPSED}s"
+              xcrun simctl bootstatus "$UDID" -b 2>/dev/null || sleep 20
+              break
+            fi
+            sleep 5
+            ELAPSED=$((ELAPSED + 5))
+          done
+          [ $ELAPSED -ge 240 ] && exit 1
+          DEVICE=$(xcrun simctl list devices available | grep "$UDID" | awk -F '(' '{print $1}' | xargs)
+          VERSION=$(xcrun simctl list devices available | grep -B 50 "$UDID" | grep "-- iOS" | tail -1 | sed 's/.*iOS \([0-9.]*\).*/\1/')
+          [ -z "$VERSION" ] && VERSION="18.5"
+          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+          echo "DEVICE_NAME=$DEVICE" >> $GITHUB_ENV
+          echo "PLATFORM_VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Pre-install App
+        run: xcrun simctl install "${{ env.SIMULATOR_UDID }}" "apps/Z Platform-QA.app"
+
+      - name: Pre-build WebDriverAgent
+        run: |
+          WDA_PATH=$(find ~/.appium -name "WebDriverAgent.xcodeproj" -type d 2>/dev/null | head -1 | xargs dirname)
+          if [ -n "$WDA_PATH" ]; then
+            cd "$WDA_PATH"
+            xcodebuild build-for-testing -project WebDriverAgent.xcodeproj -scheme WebDriverAgentRunner -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" -derivedDataPath /tmp/wda-build -quiet || true
+          fi
+
+      - name: Start Appium Server
+        run: |
+          appium --relaxed-security --log-level error > appium.log 2>&1 &
+          for i in {1..60}; do
+            [ "$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:4723/status 2>/dev/null)" = "200" ] && break
+            sleep 2
+          done
+          sleep 3
+
+      - name: Warm-up WDA Session
+        env:
+          SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
+          APP_PATH: ${{ github.workspace }}/apps/Z Platform-QA.app
+        run: |
+          WDA_SUCCESS=false
+          for attempt in 1 2 3 4 5; do
+            SESSION_RESPONSE=$(curl -s -X POST http://127.0.0.1:4723/session -H "Content-Type: application/json" -d '{"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:deviceName":"'"${{ env.DEVICE_NAME }}"'","appium:udid":"'"$SIMULATOR_UDID"'","appium:platformVersion":"'"${{ env.PLATFORM_VERSION }}"'","appium:app":"'"$APP_PATH"'","appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":300000,"appium:useNewWDA":false,"appium:noReset":false}}}' --max-time 600 2>&1) || true
+            SESSION_ID=$(echo "$SESSION_RESPONSE" | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4 || true)
+            if [ -n "$SESSION_ID" ]; then
+              sleep 3
+              curl -s -X DELETE "http://127.0.0.1:4723/session/$SESSION_ID" || true
+              sleep 5
+              WDA_SUCCESS=true
+              break
+            fi
+            [ $attempt -lt 5 ] && sleep 10
+          done
+
+          if [ "$WDA_SUCCESS" = false ]; then
+            echo "❌ WDA warm-up FAILED after 5 attempts!"
+            tail -50 appium.log 2>/dev/null || echo "(no appium log)"
+            xcrun simctl list devices | grep -A1 "Booted" || echo "(no booted sim)"
+            exit 1
+          fi
+
+      - name: Run Work Type Tests (${{ matrix.slice }})
+        continue-on-error: true
+        run: |
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${{ github.workspace }}/apps/Z Platform-QA.app/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
+
+          mvn test -ntp -B -DfailIfNoTests=true -DsuiteXmlFile=src/test/resources/parallel/testng-worktype-${{ matrix.slice }}.xml \
+            -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
+            -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
+            -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
+            -DAPP_BUNDLE_ID="$BUNDLE_ID" \
+            -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+
+      - name: Upload Work Type Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: worktype-${{ matrix.slice }}-report
+          path: |
+            target/surefire-reports/
+            reports/
+            screenshots/
+          retention-days: 30
+
+      - name: Send Module Email (worktype-${{ matrix.slice }})
+        if: always() && github.event.inputs.send_email != 'false'
+        env:
+          SMTP_USER: ${{ secrets.EMAIL_USERNAME }}
+          SMTP_PASS: ${{ secrets.EMAIL_PASSWORD }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          MODULE_NAME: worktype-${{ matrix.slice }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          EMAIL_TO=$(grep 'public static final String EMAIL_TO' src/main/java/com/egalvanic/constants/AppConstants.java | grep -v '^\s*//' | sed 's/.*"\(.*\)".*/\1/' | sed 's/,[[:space:]]*$//')
+          export EMAIL_TO
+          python3 -m pip install --quiet --break-system-packages defusedxml || python3 -m pip install --quiet defusedxml
+          python3 .github/scripts/send-module-email.py
+        continue-on-error: true
+
+      - name: Test Result Gate
+        run: bash .github/scripts/test-result-gate.sh target/surefire-reports
+
+  # ========================================
   # JOB 15c: ZP-323 New Features (28 tests) — was uncovered by any suite
   # ========================================
   zp323-tests:
@@ -3959,7 +4124,7 @@ jobs:
     # 285. Each shard gets a deterministic, class-atomic third of the failure suite
     # (build-failed-suite.py --shard N/3 — no coordination artifact needed) plus the
     # full job wall (SUITE_WALL_MINUTES=330, ~the 6h GitHub cap minus report upload).
-    needs: [smoke-tests, auth-tests, site-tests, assets-part1, assets-part2, assets-part3, assets-part4, assets-part5, assets-part6, issues-phase1, issues-phase2, issues-phase3, location-tests, connections-tests, offline-tests, sitevisit-tests, workorder-planning-tests, zp323-tests, asset-engineer-tests, arc-flash-tests, arc-flash-ipad-tests]
+    needs: [smoke-tests, auth-tests, site-tests, assets-part1, assets-part2, assets-part3, assets-part4, assets-part5, assets-part6, issues-phase1, issues-phase2, issues-phase3, location-tests, connections-tests, offline-tests, sitevisit-tests, workorder-planning-tests, worktype-tests, zp323-tests, asset-engineer-tests, arc-flash-tests, arc-flash-ipad-tests]
     if: ${{ always() && inputs.run_all }}
     runs-on: macos-15
     timeout-minutes: 360
@@ -4158,7 +4323,7 @@ jobs:
   # ========================================
   send-email:
     name: "Summary & Email"
-    needs: [smoke-tests, auth-tests, site-tests, assets-part1, assets-part2, assets-part3, assets-part4, assets-part5, assets-part6, issues-phase1, issues-phase2, issues-phase3, location-tests, connections-tests, offline-tests, sitevisit-tests, workorder-planning-tests, zp323-tests, asset-engineer-tests, arc-flash-tests, arc-flash-ipad-tests, rerun-failures]
+    needs: [smoke-tests, auth-tests, site-tests, assets-part1, assets-part2, assets-part3, assets-part4, assets-part5, assets-part6, issues-phase1, issues-phase2, issues-phase3, location-tests, connections-tests, offline-tests, sitevisit-tests, workorder-planning-tests, worktype-tests, zp323-tests, asset-engineer-tests, arc-flash-tests, arc-flash-ipad-tests, rerun-failures]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 350
@@ -4624,7 +4789,7 @@ jobs:
             SKIPPED_HTML=""
           fi
 
-          SELECTION="${{ inputs.run_all && 'ALL' || format('{0}{1}{2}{3}{4}{5}{6}{7}{8}{9}', inputs.run_smoke && 'smoke ' || '', inputs.run_auth_site && 'auth+site ' || '', inputs.run_assets && 'assets ' || '', inputs.run_issues && 'issues ' || '', inputs.run_connections_location && 'conn+loc ' || '', inputs.run_sitevisit_workorders && 'sitevisit+wo ' || '', inputs.run_offline_zp323 && 'offline+zp323 ' || '', inputs.run_asset_engineer && 'asset-engineer ' || '', inputs.run_arc_flash && 'arc-flash ' || '', inputs.run_api && 'api ' || '') }}"
+          SELECTION="${{ inputs.run_all && 'ALL' || format('{0}{1}{2}{3}{4}{5}{6}{7}{8}{9}', inputs.run_smoke && 'smoke ' || '', inputs.run_auth_site && 'auth+site ' || '', inputs.run_assets && 'assets ' || '', inputs.run_issues && 'issues ' || '', inputs.run_connections_location && 'conn+loc ' || '', inputs.run_sitevisit_workorders && 'sitevisit+wo ' || '', inputs.run_offline_zp323 && 'offline+zp323 ' || '', inputs.run_asset_engineer && 'asset-engineer ' || '', inputs.run_arc_flash && 'arc-flash ' || '', inputs.run_api && 'api ' || '') }}${{ inputs.run_worktype && 'worktype ' || '' }}"
           SMOKE="${{ needs.smoke-tests.result }}"
           AUTH="${{ needs.auth-tests.result }}"
           SITE="${{ needs.site-tests.result }}"
@@ -4642,6 +4807,7 @@ jobs:
           OFFL="${{ needs.offline-tests.result }}"
           SVISIT="${{ needs.sitevisit-tests.result }}"
           WOP="${{ needs.workorder-planning-tests.result }}"
+          WT="${{ needs.worktype-tests.result }}"
 
           if [ "$SELECTION" = "smoke" ]; then
             # ── Smoke mode ──
@@ -4856,7 +5022,7 @@ jobs:
 
       - name: Summary
         run: |
-          SELECTION="${{ inputs.run_all && 'ALL' || format('{0}{1}{2}{3}{4}{5}{6}{7}{8}{9}', inputs.run_smoke && 'smoke ' || '', inputs.run_auth_site && 'auth+site ' || '', inputs.run_assets && 'assets ' || '', inputs.run_issues && 'issues ' || '', inputs.run_connections_location && 'conn+loc ' || '', inputs.run_sitevisit_workorders && 'sitevisit+wo ' || '', inputs.run_offline_zp323 && 'offline+zp323 ' || '', inputs.run_asset_engineer && 'asset-engineer ' || '', inputs.run_arc_flash && 'arc-flash ' || '', inputs.run_api && 'api ' || '') }}"
+          SELECTION="${{ inputs.run_all && 'ALL' || format('{0}{1}{2}{3}{4}{5}{6}{7}{8}{9}', inputs.run_smoke && 'smoke ' || '', inputs.run_auth_site && 'auth+site ' || '', inputs.run_assets && 'assets ' || '', inputs.run_issues && 'issues ' || '', inputs.run_connections_location && 'conn+loc ' || '', inputs.run_sitevisit_workorders && 'sitevisit+wo ' || '', inputs.run_offline_zp323 && 'offline+zp323 ' || '', inputs.run_asset_engineer && 'asset-engineer ' || '', inputs.run_arc_flash && 'arc-flash ' || '', inputs.run_api && 'api ' || '') }}${{ inputs.run_worktype && 'worktype ' || '' }}"
           echo "╔══════════════════════════════════════════════════════════════════════════════╗"
           echo "║            TEST SUITE COMPLETE                                                ║"
           echo "╚══════════════════════════════════════════════════════════════════════════════╝"
