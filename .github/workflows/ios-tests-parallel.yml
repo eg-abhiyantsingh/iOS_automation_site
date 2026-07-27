@@ -3207,7 +3207,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        slice: [catalog, list, details, behavior, cross]
+        slice: [catalog, list, details, behavior, cross, forms]
 
     steps:
       - name: Checkout code

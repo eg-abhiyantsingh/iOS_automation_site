@@ -169,13 +169,24 @@ public class WorkType_List_Test extends WorkTypeBaseTest {
         logStepWithScreenshot(tc + " verified: name untruncated");
     }
 
+    /**
+     * ACTIVE rows append ', ACTIVE' to the composite (probe-verified
+     * 2026-07-27: 'QA-WT04 …, Medium, ACTIVE') — strip it before suffix and
+     * priority parses so an activated fixture never false-fails these checks.
+     */
+    private static String stripActiveSuffix(String composite) {
+        return composite != null && composite.endsWith(", ACTIVE")
+                ? composite.substring(0, composite.length() - ", ACTIVE".length())
+                : composite;
+    }
+
     /** Check 3 — composite ENDSWITH ', Medium' (ZP-3109 priority-chip contract). */
     private void runCompositeEndsMedium(WorkTypeCatalog wt, String tc) {
-        String composite = compositeOrSkip(wt, tc);
-        logStep(tc + " composite: '" + composite + "'");
+        String composite = stripActiveSuffix(compositeOrSkip(wt, tc));
+        logStep(tc + " composite (ACTIVE-stripped): '" + composite + "'");
         assertTrue(composite.endsWith(", Medium"),
-                "Row composite must END WITH ', Medium' (fixture priority chip, ZP-3109) — got '"
-                + composite + "'");
+                "Row composite must END WITH ', Medium' (fixture priority chip, ZP-3109; "
+                + "', ACTIVE' suffix tolerated) — got '" + composite + "'");
         logStepWithScreenshot(tc + " verified: ', Medium' suffix present");
     }
 
@@ -207,7 +218,7 @@ public class WorkType_List_Test extends WorkTypeBaseTest {
 
     /** Check 6 — rowPriority(composite) parses to exactly "Medium". */
     private void runRowPriorityMedium(WorkTypeCatalog wt, String tc) {
-        String composite = compositeOrSkip(wt, tc);
+        String composite = stripActiveSuffix(compositeOrSkip(wt, tc));
         String priority = WorkOrderPage.rowPriority(composite);
         logStep(tc + " composite='" + composite + "' → priority='" + priority + "'");
         assertEquals(priority, "Medium",
@@ -253,7 +264,7 @@ public class WorkType_List_Test extends WorkTypeBaseTest {
         String first = compositeOrSkip(wt, tc);
         assertTrue(first.startsWith(fixture),
                 "Baseline composite must start with '" + fixture + "' — got '" + first + "'");
-        assertEquals(WorkOrderPage.rowPriority(first), "Medium",
+        assertEquals(WorkOrderPage.rowPriority(stripActiveSuffix(first)), "Medium",
                 "Baseline priority must parse to Medium for '" + fixture + "'");
         for (int pass = 1; pass <= 2; pass++) {
             boolean away = wo.scrollWorkOrderListTo(awayAnchor.fixtureName());
@@ -1086,7 +1097,7 @@ public class WorkType_List_Test extends WorkTypeBaseTest {
             String composite = wo.getWorkOrderRowComposite(fixture);
             if (composite == null || !composite.startsWith(fixture)) {
                 problems.add("BAD-PREFIX: " + fixture + " -> '" + composite + "'");
-            } else if (!composite.endsWith(", Medium")) {
+            } else if (!stripActiveSuffix(composite).endsWith(", Medium")) {
                 problems.add("BAD-SUFFIX: '" + composite + "'");
             } else {
                 composites.add(composite);

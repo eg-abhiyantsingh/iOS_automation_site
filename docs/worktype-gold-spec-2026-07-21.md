@@ -179,6 +179,43 @@ Jul 18, 10:17 AM, Medium"). Consequences:
 - `getSessionType()` (photo-type stacked read) returned null on this screen —
   photo-type row anatomy changed or lives elsewhere; keep that assert tolerant.
 
+## 3e. Circle activation + PM-forms execution flow (probe runs 12-15, 2026-07-27)
+
+**Circle activation (WO list):** the row's trailing circle is a TAP ZONE on the
+single full-width row Button (right edge, x ≈ maxX-35) — there is NO separate
+accessibility element. Tap → 'Start Work Order'/'Cancel' alert → confirm =
+activation + session opens. After activation:
+- the row composite gains a suffix: `'<name>, <label>, Medium, ACTIVE'`
+  (suffix-sensitive parses must strip `', ACTIVE'` — List_Test does);
+- a StaticText 'ACTIVE' renders on the row;
+- the Start-New button's composite flips to
+  `'Start New Work Order, End current work order session first'`
+  (free state: `'…, Begin capturing IR photos, issues, and tasks'`).
+Already-active WO: row tap opens the session directly (no alert).
+Switch-while-active semantics (circle-tap of another row) still unprobed —
+discovery-guarded in TC_WT_FORM_009.
+
+**PM-forms flow (probed inside the QA-WT04 / CTT session):**
+1. Session opens on Details → `tapSessionTab("Assets")` → tree of
+   `'Bldg_9106, 15 floors'` / `'Floor 1 - Ground_416'` Buttons; expanding a
+   floor reveals room Buttons `'Optional Notes Room_21, 10 assets'`.
+2. Room tap → nav bar `'Assets in Room'`; asset rows are Buttons
+   `'<name>, <class>, <formCount>'` — the badge is PER-CLASS
+   (Switch=4, Busway=4, Transformer/Fuse/ATS=3 under CTT).
+3. Asset tap → FORM SCREEN: chip strip (y≈69) with one Button per form
+   instance named `'<Work Type> — <Procedure>'` ('Clean, Tighten, Torque —
+   Cleaning' / '— Lubrication' / '— Mechanical Servicing' / 'Torque Record')
+   + a 'plus' Button; nav Buttons 'Back'/'trash'/'square.and.pencil'/
+   'checkmark'; StaticText 'Procedure Steps…'; table headers 'Result' +
+   'Value / Notes'; per-step Result dropdown Buttons named '—' (→ 'Pass'/
+   'Fail') with one TextField per row. Chips of UNFILLED forms are also
+   named '—' — geometry (y < 160 vs y > 320) disambiguates chips from cells.
+4. Fail result reveals '… — Failure Details' (Description of Failure TextView,
+   Photos ≤5 with Add). NEVER drive the camera on simulators (SIGABRT).
+5. Invariant: asset badge N == form-chip count for that asset.
+Page object: `pages/WorkOrderFormsPage.java`. WEDGE REMINDER: untyped
+`name CONTAINS` scans killed WDA post-activation (run 13) — TYPE-bound only.
+
 ## 4. iOS v1.51 binary facts (strings dump of Z Platform-QA.app)
 
 - Binary contains `work_type_id`, `_work_type_id`, `WorkType`, `workTypeLabel`,

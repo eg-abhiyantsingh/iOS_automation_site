@@ -6,6 +6,7 @@ import com.egalvanic.pages.WorkOrderPage;
 import com.egalvanic.utils.DriverManager;
 import com.egalvanic.utils.ExtentReportManager;
 import io.appium.java_client.AppiumBy;
+import org.openqa.selenium.Rectangle;
 import org.openqa.selenium.WebElement;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -19,11 +20,12 @@ import java.util.List;
  * DIAGNOSTIC PROBE — not wired into any suite. Run manually:
  *   mvn test -Dtest=WorkTypeProbe_Test
  *
- * Ground-truths the v1.51 work-type surfaces against the QA-WT00..13 fixture
- * family (docs/worktype-gold-spec-2026-07-21.md): where the work-type label
- * renders on the Work Orders list rows and on the opened WO screen. Console
- * output is the deliverable. All raw queries run with implicit wait 0 —
- * probe v1 died on ThreadTimeout (360s) from implicit-wait burn.
+ * Probe run 14 (2026-07-27). Confirmed so far: WO row = ONE full-width Button;
+ * the trailing "circle" is a tap ZONE (right edge) that raises the
+ * 'Start Work Order'/'Cancel' alert; confirm → session details (activation).
+ * UNTYPED `name CONTAINS` scans wedge WDA after activation — every query here
+ * is TYPE-bound. This run: ACTIVE badge anatomy, switch-while-active alert,
+ * then the per-asset PM-forms flow.
  */
 public class WorkTypeProbe_Test extends BaseTest {
 
@@ -31,9 +33,6 @@ public class WorkTypeProbe_Test extends BaseTest {
 
     @BeforeClass(alwaysRun = true)
     public void classSetup() {
-        // Run 7 (fresh install) proved the sync contract and populated the
-        // local store; warm sessions are fine again. Flip back to noReset=false
-        // only when the store must re-sync (see gold-spec §3b).
         DriverManager.setNoReset(true);
     }
 
@@ -54,95 +53,159 @@ public class WorkTypeProbe_Test extends BaseTest {
     }
 
     @Test(priority = 1)
-    public void PROBE_workTypeSurfaces() {
+    public void PROBE_A_activationAndSwitch() {
         ExtentReportManager.createTest(AppConstants.MODULE_JOBS, "WorkType Probe",
-                "PROBE - dump work-type surfaces for QA-WT fixtures");
+                "PROBE A - activation badge + switch-while-active semantics");
         loginAndSelectSite();
-        System.out.println("PROBE| dashboard site: '" + siteSelectionPage.getCurrentSiteName() + "'");
         siteSelectionPage.clickWorkOrderCard();
         shortWait();
         assertTrue(wo.waitForWorkOrdersScreen(), "Work Orders screen must open");
+        boolean opened = wo.openWorkOrderByName("QA-WT04 Clean Tighten Torque");
+        System.out.println("PROBE| WT04 opened (activated): " + opened);
+        if (!opened) return;
+        wo.goBack();
+        mediumWait();
+        wo.waitForWorkOrdersScreen();
         DriverManager.getDriver().manage().timeouts().implicitlyWait(Duration.ZERO);
         try {
-            probeBody();
+            dumpMatches("activeBadge", "type == 'XCUIElementTypeStaticText' AND name == 'ACTIVE'");
+            dumpMatches("activeBtnBadge", "type == 'XCUIElementTypeButton' AND name CONTAINS 'ACTIVE'");
+            dumpMatches("startNewNow", "type == 'XCUIElementTypeButton' AND name BEGINSWITH 'Start New Work Order'");
+            System.out.println("PROBE| WT04 composite now: '" + wo.getWorkOrderRowComposite("QA-WT04") + "'");
+
+            // Switch semantics: circle-tap ANOTHER row while WT04 is active.
+            try { DriverManager.getDriver().setSetting("defaultAlertAction", ""); } catch (Exception ignored) { }
+            if (wo.scrollWorkOrderListTo("QA-WT05")) {
+                WebElement other = DriverManager.getDriver().findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND visible == 1 AND name BEGINSWITH 'QA-WT05'"));
+                Rectangle r = other.getRect();
+                DriverManager.getDriver().executeScript("mobile: tap",
+                        java.util.Map.of("x", r.x + r.width - 35, "y", r.y + r.height / 2));
+                mediumWait();
+                dumpMatches("switchAlertBtns", "type == 'XCUIElementTypeButton' AND visible == 1 AND "
+                        + "(name CONTAINS 'Start' OR name CONTAINS 'Cancel' OR name CONTAINS 'End' "
+                        + "OR name CONTAINS 'Switch' OR name CONTAINS 'OK')");
+                dumpMatches("switchAlertTexts", "type == 'XCUIElementTypeStaticText' AND visible == 1 AND "
+                        + "(name CONTAINS 'session' OR name CONTAINS 'Session' OR name CONTAINS 'current' "
+                        + "OR name CONTAINS 'End' OR name CONTAINS 'work order' OR name CONTAINS 'Work Order')");
+                // Dismiss with Cancel to keep WT04 active.
+                try {
+                    WebElement cancel = DriverManager.getDriver().findElement(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeButton' AND name == 'Cancel' AND visible == 1"));
+                    Rectangle cc = cancel.getRect();
+                    DriverManager.getDriver().executeScript("mobile: tap",
+                            java.util.Map.of("x", cc.x + cc.width / 2, "y", cc.y + cc.height / 2));
+                    System.out.println("PROBE| switch alert cancelled");
+                } catch (Exception e) {
+                    System.out.println("PROBE| no Cancel to tap: " + e.getMessage());
+                }
+            }
+            try { DriverManager.getDriver().setSetting("defaultAlertAction", "accept"); } catch (Exception ignored) { }
         } finally {
             DriverManager.getDriver().manage().timeouts()
                     .implicitlyWait(Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
         }
+        logStepWithScreenshot("probe A complete");
     }
 
-    private void probeBody() {
-        // Run 7: fresh-install session (classSetup noReset=false) — login and
-        // site selection already happened in the @Test preamble, which is the
-        // guaranteed SLD/session sync path. Just look at the list.
-        System.out.println("=== PROBE stage 4: fresh-install sync ===");
-        dumpQaWtPresence();
-
-        // Run 10: activation-aware open. Run 9 showed a bare row tap leaves the
-        // list unchanged (no alert VISIBLE — autoAcceptAlerts may race it) and
-        // that generic visible==1 whole-screen dumps WEDGE WDA on this list.
-        // Only bounded queries below.
-        String target = "QA-WT08 Infrared Thermography";
-        System.out.println("=== PROBE: target [" + target + "] ===");
-        boolean found = wo.scrollWorkOrderListTo(target);
-        System.out.println("PROBE| row found on list: " + found);
-        if (found) {
-            System.out.println("PROBE| composite: '" + wo.getWorkOrderRowComposite(target) + "'");
-            System.out.println("PROBE| hasActiveWorkOrder BEFORE open: " + wo.hasActiveWorkOrder());
-            boolean opened = wo.openWorkOrderByName(target);
-            System.out.println("PROBE| opened (verified): " + opened);
-            if (opened) {
-                System.out.println("PROBE| header: '" + wo.getSessionDetailsHeaderText() + "'");
-                for (String tab : new String[]{"Details", "Assets", "Locations", "Issues", "Tasks",
-                        "Files", "Forms", "IR Photos", "Photos", "Panel Schedules",
-                        "Condition Assessment", "SLD", "Equipment Designations"}) {
-                    try {
-                        if (wo.isTabDisplayed(tab)) System.out.println("PROBE| TAB present: " + tab);
-                    } catch (Exception ignored) { }
+    @Test(priority = 2)
+    public void PROBE_B_formsFlow() {
+        ExtentReportManager.createTest(AppConstants.MODULE_JOBS, "WorkType Probe",
+                "PROBE B - per-asset forms flow inside the active WT04 session");
+        loginAndSelectSite();
+        siteSelectionPage.clickWorkOrderCard();
+        shortWait();
+        assertTrue(wo.waitForWorkOrdersScreen(), "Work Orders screen must open");
+        // openWorkOrderByName handles the already-active case (no alert → direct open).
+        boolean opened = wo.openWorkOrderByName("QA-WT04 Clean Tighten Torque");
+        System.out.println("PROBE| session open: " + opened
+                + " isSessionDetails=" + wo.isSessionDetailsScreenDisplayed());
+        if (!wo.isSessionDetailsScreenDisplayed()) return;
+        // Session opens on Details — go to the Assets tab explicitly, then walk
+        // the locations tree (floors expand; room rows carry an "N assets" count).
+        boolean tab = wo.tapSessionTab("Assets");
+        System.out.println("PROBE| tapSessionTab(Assets)=" + tab);
+        mediumWait();
+        mediumWait();
+        DriverManager.getDriver().manage().timeouts().implicitlyWait(Duration.ZERO);
+        try {
+            dumpMatches("treeButtons", "type == 'XCUIElementTypeButton' AND visible == 1 AND "
+                    + "(name CONTAINS 'Floor' OR name CONTAINS 'Room' OR name CONTAINS 'assets' OR name CONTAINS 'Bldg')");
+            // Find a room row with assets; expand the first floor if none visible.
+            List<WebElement> roomRows = DriverManager.getDriver().findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND visible == 1 AND name CONTAINS ' assets'"));
+            if (roomRows.isEmpty()) {
+                List<WebElement> floors = DriverManager.getDriver().findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND visible == 1 AND name CONTAINS 'Floor 77'"));
+                if (floors.isEmpty()) floors = DriverManager.getDriver().findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND visible == 1 AND name BEGINSWITH 'Floor'"));
+                if (!floors.isEmpty()) {
+                    System.out.println("PROBE| expanding floor: '" + floors.get(0).getAttribute("name") + "'");
+                    floors.get(0).click();
+                    mediumWait(); mediumWait();
                 }
-                System.out.println("PROBE| getSessionType(): '" + wo.getSessionType() + "'");
-                System.out.println("PROBE| getWorkTypeLabelOnScreen(): '" + wo.getWorkTypeLabelOnScreen() + "'");
+                for (int i = 0; i < 6 && roomRows.isEmpty(); i++) {
+                    roomRows = DriverManager.getDriver().findElements(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeButton' AND visible == 1 AND name CONTAINS ' assets'"));
+                    if (roomRows.isEmpty()) {
+                        try {
+                            DriverManager.getDriver().executeScript("mobile: swipe",
+                                    java.util.Map.of("direction", "up"));
+                        } catch (Exception ignored) { }
+                    }
+                }
             }
+            System.out.println("PROBE| room-with-assets rows: " + roomRows.size());
+            if (roomRows.isEmpty()) { System.out.println("PROBE| no room row — abort"); return; }
+            System.out.println("PROBE| tapping room: '" + roomRows.get(0).getAttribute("name") + "'");
+            roomRows.get(0).click();
+            mediumWait(); mediumWait();
+            dumpMatches("roomNav", "type == 'XCUIElementTypeNavigationBar'");
+            dumpMatches("assetRows", "type == 'XCUIElementTypeButton' AND visible == 1 AND "
+                    + "(name CONTAINS 'Switch' OR name CONTAINS 'Transformer' OR name CONTAINS 'Busway' "
+                    + "OR name CONTAINS 'Fuse' OR name CONTAINS 'ATS' OR name CONTAINS 'Panelboard')");
+            List<WebElement> rows = DriverManager.getDriver().findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND visible == 1 AND "
+                    + "(name CONTAINS 'Switch' OR name CONTAINS 'Transformer' OR name CONTAINS 'Fuse' OR name CONTAINS 'ATS')"));
+            if (rows.isEmpty()) {
+                System.out.println("PROBE| no asset row matched");
+                return;
+            }
+            System.out.println("PROBE| tapping asset: '" + rows.get(0).getAttribute("name") + "'");
+            rows.get(0).click();
+            mediumWait();
+            mediumWait();
+            dumpMatches("afterAssetNav", "type == 'XCUIElementTypeNavigationBar'");
+            dumpMatches("formChipsBtn", "type == 'XCUIElementTypeButton' AND visible == 1 AND name CONTAINS '—'");
+            dumpMatches("formChipsTxt", "type == 'XCUIElementTypeStaticText' AND visible == 1 AND name CONTAINS '—'");
+            dumpMatches("formTopButtons", "type == 'XCUIElementTypeButton' AND visible == 1");
+            dumpMatches("resultTexts", "type == 'XCUIElementTypeStaticText' AND visible == 1 AND "
+                    + "(name == 'Result' OR name == 'Pass' OR name == 'Fail' OR name == '—' OR name CONTAINS 'Value')");
+            dumpMatches("formFields", "type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeTextView'");
+            dumpMatches("procedureSteps", "type == 'XCUIElementTypeStaticText' AND visible == 1 AND name CONTAINS 'Procedure'");
+        } finally {
+            DriverManager.getDriver().manage().timeouts()
+                    .implicitlyWait(Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
         }
-        logStepWithScreenshot("probe complete");
+        logStepWithScreenshot("probe B complete");
     }
 
-    /** Any element mentioning QA-WT on screen + the visible WO row names. */
-    private void dumpQaWtPresence() {
+    private void dumpMatches(String tag, String predicate) {
         try {
-            List<WebElement> any = DriverManager.getDriver().findElements(AppiumBy.iOSNsPredicateString(
-                    "name CONTAINS 'QA-WT' AND visible == 1"));
-            System.out.println("PROBE| elements containing 'QA-WT': " + any.size());
-            for (int i = 0; i < Math.min(any.size(), 5); i++) {
-                System.out.println("PROBE|   [" + any.get(i).getAttribute("type") + "] '"
-                        + any.get(i).getAttribute("name") + "'");
-            }
-        } catch (Exception e) {
-            System.out.println("PROBE| QA-WT scan failed: " + e.getMessage());
-        }
-        for (String row : wo.getVisibleWorkOrderRowNames()) {
-            System.out.println("ROW| " + row);
-        }
-    }
-
-    private void dumpVisible(String type) {
-        try {
-            List<WebElement> els = DriverManager.getDriver().findElements(AppiumBy.iOSNsPredicateString(
-                    "type == '" + type + "' AND visible == 1"));
+            List<WebElement> els = DriverManager.getDriver().findElements(
+                    AppiumBy.iOSNsPredicateString(predicate));
+            System.out.println("PROBE|" + tag + " count=" + els.size());
             int i = 0;
             for (WebElement el : els) {
+                if (++i > 14) { System.out.println("PROBE|" + tag + " …(truncated)"); break; }
                 try {
-                    String name = el.getAttribute("name");
-                    String label = el.getAttribute("label");
-                    org.openqa.selenium.Rectangle r = el.getRect();
-                    System.out.println(type.replace("XCUIElementType", "") + "| y=" + r.getY()
-                            + " name='" + name + "'"
-                            + (label != null && !label.equals(name) ? " label='" + label + "'" : ""));
+                    Rectangle r = el.getRect();
+                    System.out.println("PROBE|" + tag + " [" + el.getAttribute("type")
+                            + "] y=" + r.y + " '" + el.getAttribute("name") + "'");
                 } catch (Exception ignored) { }
-                if (++i > 60) { System.out.println("…(truncated)"); break; }
             }
         } catch (Exception e) {
-            System.out.println("PROBE| dumpVisible(" + type + ") failed: " + e.getMessage());
+            System.out.println("PROBE|" + tag + " query failed: " + e.getMessage());
         }
     }
 }

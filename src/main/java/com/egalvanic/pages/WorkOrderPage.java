@@ -24834,18 +24834,51 @@ public class WorkOrderPage extends BasePage {
                 + predQuote(namePrefix));
     }
 
-    /** Row whose name begins with {@code namePrefix} currently on screen? (no wait) */
-    public boolean isWorkOrderRowVisible(String namePrefix) {
-        return existsNow(woRowByPrefix(namePrefix));
+    /** Same match WITHOUT the visible filter \u2014 ACTIVE rows can report visible==0
+     *  while plainly rendering (probe 2026-07-27: the CONTAINS-'ACTIVE' scan saw
+     *  the row while the visible==1 BEGINSWITH query returned nothing). Callers
+     *  must rect-check candidates from this locator before trusting them. */
+    private org.openqa.selenium.By woRowByPrefixAny(String namePrefix) {
+        return AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name BEGINSWITH " + predQuote(namePrefix));
     }
 
-    /** Full composite name ('QA-WT08 \u2026, Medium') of the row, or null. */
-    public String getWorkOrderRowComposite(String namePrefix) {
+    /** First on-screen row element for the prefix, or null (visible==1 first,
+     *  then the rect-checked visible==0 fallback for ACTIVE rows). */
+    private WebElement onScreenRowOrNull(String namePrefix) {
         try {
             return withImplicitWait(0, () -> {
-                List<WebElement> rows = driver.findElements(woRowByPrefix(namePrefix));
-                return rows.isEmpty() ? null : rows.get(0).getAttribute("name");
+                List<WebElement> strict = driver.findElements(woRowByPrefix(namePrefix));
+                if (!strict.isEmpty()) return strict.get(0);
+                int screenH;
+                try {
+                    screenH = driver.manage().window().getSize().getHeight();
+                } catch (Exception e) {
+                    screenH = 900;
+                }
+                for (WebElement el : driver.findElements(woRowByPrefixAny(namePrefix))) {
+                    try {
+                        org.openqa.selenium.Rectangle r = el.getRect();
+                        if (r.height > 20 && r.y > 80 && r.y < screenH - 40) return el;
+                    } catch (Exception ignored) { }
+                }
+                return null;
             });
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** Row whose name begins with {@code namePrefix} currently on screen? (no wait) */
+    public boolean isWorkOrderRowVisible(String namePrefix) {
+        return onScreenRowOrNull(namePrefix) != null;
+    }
+
+    /** Full composite name ('QA-WT08 \u2026, Medium[, ACTIVE]') of the row, or null. */
+    public String getWorkOrderRowComposite(String namePrefix) {
+        try {
+            WebElement row = onScreenRowOrNull(namePrefix);
+            return row == null ? null : row.getAttribute("name");
         } catch (Exception e) {
             return null;
         }
@@ -24900,7 +24933,11 @@ public class WorkOrderPage extends BasePage {
             System.out.println("\u26a0\ufe0f openWorkOrderByName: could not pause alerts");
         }
         try {
-            WebElement row = driver.findElement(woRowByPrefix(namePrefix));
+            WebElement row = onScreenRowOrNull(namePrefix);
+            if (row == null) {
+                System.out.println("\u26a0\ufe0f openWorkOrderByName: row vanished before tap");
+                return false;
+            }
             org.openqa.selenium.Rectangle r = row.getRect();
             System.out.println("\u25b6\ufe0f Opening WO '" + row.getAttribute("name") + "'");
             driver.executeScript("mobile: tap", java.util.Map.of("x", r.x + 40, "y", r.y + r.height / 2));

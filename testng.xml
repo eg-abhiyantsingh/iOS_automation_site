@@ -103,6 +103,8 @@
             <class name="com.egalvanic.tests.WorkType_Details_Test"/>
             <class name="com.egalvanic.tests.WorkType_Behavior_Test"/>
             <class name="com.egalvanic.tests.WorkType_CrossCutting_Test"/>
+            <!-- changelog 142: circle activation + PM-forms execution -->
+            <class name="com.egalvanic.tests.WorkType_Forms_Test"/>
         </classes>
     </test>
 
