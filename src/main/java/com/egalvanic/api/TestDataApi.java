@@ -222,6 +222,12 @@ public class TestDataApi {
         return ids;
     }
 
+    /** Drop the cached /sld/v3 payload for {@code sldId} — the backend applies
+     *  mutations ASYNCHRONOUSLY, so post-sync verification must re-fetch. */
+    public void invalidateSldCache(String sldId) {
+        sldDetailsCache.remove(sldId);
+    }
+
     /** Full SLD details JSON (GET /sld/v3/{id}) — nodes + issues; cached per id. */
     public String getSldDetails(String sldId) {
         String cached = sldDetailsCache.get(sldId);

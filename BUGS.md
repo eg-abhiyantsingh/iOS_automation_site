@@ -243,3 +243,25 @@ work_type_id that resolves to nothing.
 the buggy acceptance (and clean their own junk rows). The moment the backend
 starts rejecting bogus ids they flip RED with instructions to restore the
 original rejection asserts and close this entry.
+
+## E2E-XSITE-01 (candidate, 2026-07-31) — offline edit queued on one site may replay onto the OTHER site's asset after an interrupted session
+
+**Evidence (local run names, TC_E2E_002 2026-07-31):** after an aborted run
+(automation killed mid-test between the Site-B edit and the sync), the NEXT
+run's asset names show cross-site markers embedded in the wrong site's asset:
+- Site A first asset: `_UC33…_B_1785442891516_A_…` — carries a **Site-B marker**
+  (`_B_1785442891516` was typed while Site B was loaded in the aborted run);
+- Site B first asset: `PNL-PP2B_A_1784988349655_B_…` — carries an old
+  **Site-A marker**.
+
+**Hypothesis:** the offline sync queue keys the pending edit by "current asset"
+rather than (site, asset) at replay time — after an app restart with a different
+site loaded, the queued rename applies to the newly-loaded site's asset.
+
+**Not yet minimally reproduced** (needs: edit offline on B → kill app → relaunch
+on A → sync → check which asset changed). TC_E2E_002's within-run contamination
+checks stay green, so this only bites across interrupted sessions.
+
+**Also noted:** the QA backend applies sync mutations asynchronously with
+multi-minute lag (ir_session is_deleted updates + node renames observed
+pending >30 min) — post-sync backend verification must poll or soft-report.
