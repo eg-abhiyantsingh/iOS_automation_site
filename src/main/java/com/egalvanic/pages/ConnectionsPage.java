@@ -1682,9 +1682,44 @@ public class ConnectionsPage {
     /**
      * Tap on Source Node field
      */
+    /**
+     * v1.51 (probe-verified 2026-07-31): the create form renders each node slot
+     * as a section label ('Source Node' / 'Target Node') with the tappable
+     * control BELOW it as a Button labeled 'Not Assigned' (or the picked asset
+     * name) next to a 'qrcode.viewfinder' button. Tap the non-QR button nearest
+     * below the label — one label query + one bounded button scan.
+     */
+    private boolean tapNodeFieldBelowLabel(String sectionLabel) {
+        try {
+            WebElement label = driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND label == '" + sectionLabel + "' AND visible == 1"));
+            int ly = label.getRect().y;
+            WebElement best = null;
+            int bestDy = Integer.MAX_VALUE;
+            for (WebElement b : driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND visible == 1 AND NOT name CONTAINS 'qrcode'"))) {
+                try {
+                    int dy = b.getRect().y - ly;
+                    if (dy > 0 && dy < 70 && dy < bestDy) { bestDy = dy; best = b; }
+                } catch (Exception ignored) {}
+            }
+            if (best == null) return false;
+            String name = best.getAttribute("name");
+            best.click();
+            sleep(400);
+            System.out.println("\u2713 Tapped " + sectionLabel + " control ('" + name + "', v1.51 label-anchored)");
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     public boolean tapOnSourceNodeField() {
         try {
             System.out.println("👆 Tapping Source Node field...");
+
+            // Strategy 0 (v1.51): label-anchored 'Not Assigned' button
+            if (tapNodeFieldBelowLabel("Source Node")) return true;
 
             // Strategy 1: Find button with Source Node
             try {
@@ -2959,6 +2994,9 @@ public class ConnectionsPage {
     public boolean tapOnTargetNodeField() {
         try {
             System.out.println("👆 Tapping Target Node field...");
+
+            // Strategy 0 (v1.51): label-anchored 'Not Assigned' button
+            if (tapNodeFieldBelowLabel("Target Node")) return true;
 
             // Strategy 1: Find button with Target Node
             try {
