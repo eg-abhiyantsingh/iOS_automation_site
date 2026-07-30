@@ -21,8 +21,9 @@ import static org.testng.Assert.assertTrue;
  * and that referential integrity holds (no orphaned connections/issues, no dup nodes).
  *
  * Source of truth: GET /sld/v3/{id} (the whole-SLD sync payload). SLD ids come from
- * /auth/v2/me's accessible_sld_ids (the /users/{id}/slds endpoint returns [] for the
- * admin/RBAC account).
+ * TestDataApi.accessibleSldIds(), which merges /auth/v2/me's accessible_sld_ids with
+ * the /users/{id}/slds list (the QA backend has flip-flopped between the two —
+ * accessible_sld_ids went [] on ~2026-07-22 while /users/{id}/slds came back alive).
  */
 public class ApiDataContractTest {
 
@@ -36,7 +37,8 @@ public class ApiDataContractTest {
         api.login();
         List<String> ids = api.accessibleSldIds();
         assertFalse(ids.isEmpty(),
-            "/auth/v2/me must expose accessible_sld_ids — the data layer is unusable without it");
+            "No SLD ids from EITHER /auth/v2/me accessible_sld_ids OR /users/{id}/slds "
+            + "— the data layer is unusable without a site source");
         sldId = ids.get(0);
         sld = JsonPath.from(api.getSldDetails(sldId));
     }

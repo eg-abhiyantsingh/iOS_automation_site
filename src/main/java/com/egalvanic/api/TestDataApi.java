@@ -80,20 +80,55 @@ public class TestDataApi {
             throw new IllegalStateException("Login OK but no access_token in response: "
                     + truncate(redact(resp.body()), 300));
         }
+        this.lastEmail = email;
+        this.lastPassword = password;
+        this.lastSubdomain = subdomain;
+        this.tokenIssuedAtMs = System.currentTimeMillis();
         System.out.println("🔑 TestDataApi authenticated (token len=" + token.length() + ")");
     }
 
     public boolean isAuthenticated() { return token != null && !token.isEmpty(); }
     public String token() { return token; }
 
+    // ── token refresh ──────────────────────────────────────────────────────
+    // The backend's access token lives 3600s (login "expires_in"). Suites hold
+    // one TestDataApi across multi-hour CI jobs, so calls made >1h after login
+    // started drawing 401 "Authentication failed" (run 30144117443: every
+    // WorkType CHIP-parity assert died this way). Refresh proactively before
+    // expiry and retry once reactively on a 401.
+    private String lastEmail, lastPassword, lastSubdomain;
+    private long tokenIssuedAtMs;
+    /** Re-login 5 min before nominal expiry. */
+    private static final long TOKEN_REFRESH_AGE_MS = (3600 - 300) * 1000L;
+
+    private void refreshTokenIfStale() {
+        if (token == null || lastEmail == null) return;   // never logged in — caller's problem
+        if (System.currentTimeMillis() - tokenIssuedAtMs < TOKEN_REFRESH_AGE_MS) return;
+        System.out.println("🔄 TestDataApi token is ~1h old — re-authenticating");
+        login(lastEmail, lastPassword, lastSubdomain);
+    }
+
+    private HttpResponse<String> sendAuthedWithRetry(java.util.function.Supplier<HttpRequest> reqFactory) {
+        refreshTokenIfStale();
+        HttpResponse<String> resp = send(reqFactory.get());
+        if (resp.statusCode() == 401 && lastEmail != null) {
+            System.out.println("🔄 401 on authed call — re-authenticating and retrying once");
+            login(lastEmail, lastPassword, lastSubdomain);
+            resp = send(reqFactory.get());
+        }
+        return resp;
+    }
+
     /** Authenticated GET; returns the response (caller inspects status/body). */
     public HttpResponse<String> get(String path) {
-        return send(authed(HttpRequest.newBuilder(URI.create(BASE + path))).GET().build());
+        return sendAuthedWithRetry(() ->
+                authed(HttpRequest.newBuilder(URI.create(BASE + path))).GET().build());
     }
 
     /** Authenticated POST with a raw JSON body. */
     public HttpResponse<String> post(String path, String json) {
-        return send(authed(HttpRequest.newBuilder(URI.create(BASE + path))
+        return sendAuthedWithRetry(() ->
+                authed(HttpRequest.newBuilder(URI.create(BASE + path))
                 .header("Content-Type", "application/json"))
                 .POST(HttpRequest.BodyPublishers.ofString(json == null ? "{}" : json)).build());
     }
@@ -107,14 +142,18 @@ public class TestDataApi {
     /** Per-SLD details cache — getAssetByName/getIssueByTitle both scan it. */
     private final java.util.Map<String, String> sldDetailsCache = new java.util.HashMap<>();
 
-    /** Current user's id (GET /auth/v2/me); cached after first call. */
+    /** Current user's id (GET /auth/v2/me); cached after first call.
+     *  Backend drift 2026-07-22: /me no longer has a top-level "id" — the user
+     *  uuid now lives in "cognito_username" (== the JWT sub). Prefer it; the old
+     *  "id" regex would otherwise first-match the roles[].id (Super Admin role). */
     public String currentUserId() {
         if (userId != null) return userId;
         HttpResponse<String> resp = get("/auth/v2/me");
         if (resp.statusCode() / 100 != 2) {
             throw new IllegalStateException("GET /auth/v2/me failed: HTTP " + resp.statusCode());
         }
-        userId = extract(resp.body(), "id");
+        String cognito = extract(resp.body(), "cognito_username");
+        userId = (cognito != null && !cognito.isEmpty()) ? cognito : extract(resp.body(), "id");
         if (userId == null || userId.isEmpty()) {
             throw new IllegalStateException("No user id in /auth/v2/me response: "
                     + truncate(redact(resp.body()), 300));
@@ -143,20 +182,42 @@ public class TestDataApi {
         return extract(listSlds(), "id");  // legacy fallback
     }
 
-    /** SLD ids the current user can access, from /auth/v2/me's "accessible_sld_ids".
-     *  The legacy GET /users/{id}/slds returns [] for admin/RBAC accounts, so this is
-     *  the reliable source (confirmed live 2026-06-17). */
+    /** SLD ids the current user can access. The backend has flip-flopped on the
+     *  source of truth: /auth/v2/me's "accessible_sld_ids" was the reliable source
+     *  2026-06-17..07-21 (legacy GET /users/{id}/slds returned [] for admin), then
+     *  on ~2026-07-22 the QA backend flipped — accessible_sld_ids went [] and
+     *  /users/{id}/slds started returning the real list. Merge BOTH so either
+     *  direction of future drift keeps working. */
     public java.util.List<String> accessibleSldIds() {
-        HttpResponse<String> resp = get("/auth/v2/me");
         java.util.List<String> ids = new java.util.ArrayList<>();
-        if (resp.statusCode() / 100 != 2) return ids;
-        java.util.regex.Matcher block = java.util.regex.Pattern
-                .compile("\"accessible_sld_ids\"\\s*:\\s*\\[(.*?)\\]", java.util.regex.Pattern.DOTALL)
-                .matcher(resp.body());
-        if (block.find()) {
-            java.util.regex.Matcher id = java.util.regex.Pattern
-                    .compile("\"([0-9a-fA-F-]{36})\"").matcher(block.group(1));
-            while (id.find()) ids.add(id.group(1));
+        HttpResponse<String> resp = get("/auth/v2/me");
+        if (resp.statusCode() / 100 != 2) {
+            System.out.println("⚠️ GET /auth/v2/me → HTTP " + resp.statusCode()
+                    + " — " + truncate(redact(resp.body()), 200));
+        } else {
+            java.util.regex.Matcher block = java.util.regex.Pattern
+                    .compile("\"accessible_sld_ids\"\\s*:\\s*\\[(.*?)\\]", java.util.regex.Pattern.DOTALL)
+                    .matcher(resp.body());
+            if (block.find()) {
+                java.util.regex.Matcher id = java.util.regex.Pattern
+                        .compile("\"([0-9a-fA-F-]{36})\"").matcher(block.group(1));
+                while (id.find()) ids.add(id.group(1));
+            }
+        }
+        if (ids.isEmpty()) {
+            try {
+                java.util.regex.Matcher id = java.util.regex.Pattern
+                        .compile("\"id\"\\s*:\\s*\"([0-9a-fA-F-]{36})\"").matcher(listSlds());
+                while (id.find()) {
+                    if (!ids.contains(id.group(1))) ids.add(id.group(1));
+                }
+                if (!ids.isEmpty()) {
+                    System.out.println("ℹ️ accessible_sld_ids empty — using /users/{id}/slds ("
+                            + ids.size() + " SLDs)");
+                }
+            } catch (Exception e) {
+                System.out.println("⚠️ /users/{id}/slds fallback failed: " + e.getMessage());
+            }
         }
         return ids;
     }
@@ -186,6 +247,52 @@ public class TestDataApi {
                 .compile("\"name\"\\s*:\\s*\"([^\"]*" + java.util.regex.Pattern.quote(fragment) + "[^\"]*)\"")
                 .matcher(getSldDetails(sldId));
         return m.find() ? extractSiblingField(getSldDetails(sldId), "name", m.group(1), "id") : null;
+    }
+
+    // ── asset (node) seeding ───────────────────────────────────────────────
+
+    /**
+     * Create an UNASSIGNED asset (no room/location) via POST /node/create —
+     * payload mirrors the app's own sync export (SyncQueueExportService
+     * .buildNodeRequest). Type/class are cloned from the SLD's first live node
+     * so the new asset renders with a real class. Verified live 2026-07-30.
+     * Used to self-provision the Locations 'No Location' section, which only
+     * renders when unassigned assets exist. Returns the node id, or null.
+     */
+    public String createUnassignedAsset(String sldId, String label) {
+        try {
+            String sld = getSldDetails(sldId);
+            java.util.regex.Matcher t = java.util.regex.Pattern
+                    .compile("\"type\"\\s*:\\s*\"(\\w+)\"").matcher(sld);
+            String type = t.find() ? t.group(1) : "custom";
+            java.util.regex.Matcher c = java.util.regex.Pattern
+                    .compile("\"node_class\"\\s*:\\s*\"([0-9a-fA-F-]{36})\"").matcher(sld);
+            String nodeClass = c.find() ? c.group(1) : null;
+
+            String id = java.util.UUID.randomUUID().toString().toUpperCase();
+            StringBuilder body = new StringBuilder("{")
+                    .append("\"id\":").append(jsonStr(id))
+                    .append(",\"type\":").append(jsonStr(type))
+                    .append(",\"label\":").append(jsonStr(label))
+                    .append(",\"sld_id\":").append(jsonStr(sldId))
+                    .append(",\"x\":100.0,\"y\":100.0,\"width\":200.0,\"height\":100.0")
+                    .append(",\"is_deleted\":false,\"core_attributes\":[]");
+            if (nodeClass != null) body.append(",\"node_class\":").append(jsonStr(nodeClass));
+            body.append("}");
+
+            HttpResponse<String> resp = post("/node/create", body.toString());
+            if (resp.statusCode() / 100 != 2) {
+                System.out.println("⚠️ POST /node/create failed: HTTP " + resp.statusCode()
+                        + " — " + truncate(redact(resp.body()), 200));
+                return null;
+            }
+            sldDetailsCache.remove(sldId);   // payload changed server-side
+            System.out.println("🌱 Created unassigned asset '" + label + "' (id=" + id + ")");
+            return id;
+        } catch (Exception e) {
+            System.out.println("⚠️ createUnassignedAsset: " + e.getMessage());
+            return null;
+        }
     }
 
     // ── issue seeding / lookups ────────────────────────────────────────────
@@ -348,6 +455,28 @@ public class TestDataApi {
     }
 
     /**
+     * Soft-delete a work order (PUT /ir_session/update/{id} {"is_deleted":true}).
+     * There is no DELETE route for ir_session — the update mutation is what the
+     * web app uses. Mutation processing is async server-side. Returns true when
+     * the update was accepted (2xx JSON).
+     */
+    public boolean deleteWorkOrder(String workOrderId) {
+        try {
+            HttpResponse<String> resp = send(authed(HttpRequest.newBuilder(
+                    URI.create(BASE + "/ir_session/update/" + workOrderId))
+                    .header("Content-Type", "application/json"))
+                    .PUT(HttpRequest.BodyPublishers.ofString("{\"is_deleted\":true}")).build());
+            boolean ok = resp.statusCode() / 100 == 2 && resp.body().trim().startsWith("{");
+            System.out.println((ok ? "🗑️ Soft-deleted WO " : "⚠️ WO soft-delete failed for ") + workOrderId
+                    + " (HTTP " + resp.statusCode() + ")");
+            return ok;
+        } catch (Exception e) {
+            System.out.println("⚠️ deleteWorkOrder(" + workOrderId + "): " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Find-or-create the durable QA-WT fixture for {@code fixtureName}. Returns
      * the WO id — self-heals the fixture family if someone deletes one.
      */
@@ -359,9 +488,9 @@ public class TestDataApi {
 
     /**
      * Resolve an SLD (site) id by display name. Tries the user SLD list first,
-     * then falls back to scanning the company WO list's sld_name fields —
-     * GET /users/{id}/slds returns [] for admin/RBAC accounts (see
-     * accessibleSldIds), so the fallback is load-bearing for the QA admin user.
+     * then falls back to scanning the company WO list's sld_name fields — the
+     * backend has historically flip-flopped on which SLD-list source is populated
+     * for admin accounts (see accessibleSldIds), so keep both paths.
      */
     public String resolveSldIdByName(String siteName) {
         try {

@@ -1551,7 +1551,13 @@ public final class Issue_Phase1_Test extends BaseTest {
         issuePage.tapCancelAssetPicker();
         issuePage.tapSelectAsset();
         issuePage.searchAssetsInPicker("ZZZNOSUCHASSET999");
+        // the picker filter is debounced — poll briefly instead of reading once
+        // (run 30144117443: immediate read still saw the unfiltered 16 cells)
         int noMatchCount = issuePage.getAssetListCount();
+        for (int i = 0; i < 8 && noMatchCount != 0; i++) {
+            shortWait();
+            noMatchCount = issuePage.getAssetListCount();
+        }
         assertEquals(noMatchCount, 0,
             "Searching a nonexistent asset name should filter the picker list to zero results");
         logStep("✅ Asset search filters the list (nonexistent query → 0 results)");

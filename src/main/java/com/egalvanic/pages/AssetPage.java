@@ -6112,6 +6112,16 @@ public class AssetPage extends BasePage {
     }
 
     public boolean isSelectAssetSubtypeDisplayed() {
+        if (isElementDisplayed(selectAssetSubtypeButton)) return true;
+        // v1.51: the Subtype row sits ~1.5 screens down the edit form (y≈1530) —
+        // a single scrollFormDown doesn't reach it. Drive a predicate-targeted
+        // scroll straight to the row, then re-check.
+        try {
+            driver.executeScript("mobile: scroll", java.util.Map.of(
+                "direction", "down",
+                "predicateString", "name == 'Select asset subtype'"));
+            sleep(300);
+        } catch (Exception ignored) {}
         return isElementDisplayed(selectAssetSubtypeButton);
     }
 
@@ -6253,6 +6263,55 @@ public class AssetPage extends BasePage {
      */
     public void clickSelectAssetSubtype() {
         System.out.println("📋 Clicking Select Asset Subtype...");
+
+        // Strategy 0 (v1.51): the Subtype row sits ~1.5 screens down the edit form
+        // and SwiftUI only MATERIALIZES rows near the viewport — a one-shot query
+        // (or predicate-targeted mobile:scroll) can't see it until we're close.
+        // Bounded loop: cheap implicit-0 checks + one screen-scroll per miss.
+        // Handles both the unset ('Select asset subtype' a11y id) and already-set
+        // (value-named control under the 'Subtype' label) states with single
+        // WDA calls — the legacy label-relative button scans below issue dozens
+        // of round trips on a giant DOM and have wedged/killed WDA.
+        for (int i = 0; i < 8; i++) {
+            Boolean clicked = withImplicitWait(0, () -> {
+                try {
+                    // one full-tree scan per pass (probe-verified fast on this form);
+                    // the a11y-id index alone does NOT surface these rows after an
+                    // unsaved class change, so match on the 'subtype' fragment.
+                    List<WebElement> hits = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "(type == 'XCUIElementTypeButton' AND name CONTAINS[c] 'subtype') OR "
+                        + "(type == 'XCUIElementTypeStaticText' AND (label == 'Subtype' OR label BEGINSWITH 'Asset Subtype'))"));
+                    int screenH = driver.manage().window().getSize().height;
+                    int screenW = driver.manage().window().getSize().width;
+                    for (WebElement el : hits) {
+                        String tag = el.getTagName();
+                        org.openqa.selenium.Rectangle r = el.getRect();
+                        boolean onScreen = r.y > 90 && r.y < screenH - 60;
+                        if ("XCUIElementTypeButton".equals(tag) && onScreen) {
+                            driver.executeScript("mobile: tap", java.util.Map.of(
+                                "x", r.x + r.width / 2, "y", r.y + r.height / 2));
+                            System.out.println("✅ Tapped subtype button '" + el.getAttribute("name") + "' (loop pass)");
+                            return true;
+                        }
+                        if (!"XCUIElementTypeButton".equals(tag) && onScreen && r.y + r.height + 18 < screenH - 30) {
+                            driver.executeScript("mobile: tap", java.util.Map.of(
+                                "x", screenW / 2, "y", r.y + r.height + 18));
+                            System.out.println("✅ Tapped subtype control below 'Subtype' label (loop pass)");
+                            return true;
+                        }
+                    }
+                    if (!hits.isEmpty()) {
+                        System.out.println("   … subtype row materialized but off-screen (y="
+                            + hits.get(0).getRect().y + ") — scrolling");
+                    }
+                } catch (Exception ignored) {}
+                return false;
+            });
+            if (Boolean.TRUE.equals(clicked)) return;
+            scrollFormDown();
+            sleep(300);
+        }
+        System.out.println("   📌 Strategy 0: bounded scroll loop missed — falling back");
 
         // Strategy 1: Find the BUTTON element for subtype picker (must be XCUIElementTypeButton)
         // CRITICAL: Use predicate with type filter to avoid matching StaticText labels
@@ -6479,7 +6538,10 @@ public class AssetPage extends BasePage {
                 "selectAssetSubtype: could not select subtype '" + subtypeName
                 + "' in the picker. On-screen option rows: " + visible);
         }
-        sleep(300);
+        // Picking a subtype re-renders the (huge) form behind the still-open
+        // picker; querying WDA mid-rebuild is what wedges the session. Let the
+        // rebuild settle before the Done dance.
+        sleep(1200);
         tapDoneOnPicker();
         System.out.println("✅ Selected asset subtype: " + subtypeName);
     }
@@ -10056,6 +10118,22 @@ public class AssetPage extends BasePage {
     }
 
     /**
+     * Visible 'Done' buttons via the cheap accessibility-id index + per-element
+     * visibility reads (bounded: only the few 'Done' matches get inspected).
+     */
+    private List<WebElement> visibleDoneButtons() {
+        List<WebElement> visible = new java.util.ArrayList<>();
+        try {
+            for (WebElement el : driver.findElements(AppiumBy.accessibilityId("Done"))) {
+                try {
+                    if ("true".equals(el.getAttribute("visible"))) visible.add(el);
+                } catch (Exception ignored) {}
+            }
+        } catch (Exception ignored) {}
+        return visible;
+    }
+
+    /**
      * Tap the "Done" button on the Asset Class or Subtype picker.
      * The iOS picker is a full-screen table view with "Done" in the nav bar.
      */
@@ -10067,8 +10145,11 @@ public class AssetPage extends BasePage {
         // Press with W3C pointer, VERIFY the sheet actually closed, retry.
         withImplicitWait(0, () -> {
             for (int attempt = 1; attempt <= 3; attempt++) {
-                List<WebElement> done = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeButton' AND (name == 'Done' OR label == 'Done') AND visible == true"));
+                // accessibility-id lookup is name-indexed and CHEAP; the previous
+                // full-tree `visible == true` predicate forced WDA to compute
+                // visibility for the whole giant post-picker DOM and wedged the
+                // session for 6+ minutes (TC_ATS_ST_04 hang, 2026-07-30).
+                List<WebElement> done = visibleDoneButtons();
                 if (done.isEmpty()) {
                     System.out.println("   ✓ Picker sheet closed (no Done button visible)");
                     return null;
@@ -10079,10 +10160,8 @@ public class AssetPage extends BasePage {
                 } catch (Exception e) {
                     System.out.println("   ⚠️ Done press failed: " + e.getMessage());
                 }
-                boolean closed = com.egalvanic.utils.Waits.until(() -> driver.findElements(
-                    AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeButton' AND (name == 'Done' OR label == 'Done') AND visible == true"))
-                    .isEmpty(), 3_000);
+                boolean closed = com.egalvanic.utils.Waits.until(
+                    () -> visibleDoneButtons().isEmpty(), 3_000);
                 if (closed) {
                     System.out.println("   ✓ Picker sheet dismissed");
                     return null;

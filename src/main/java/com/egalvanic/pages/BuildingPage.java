@@ -36,6 +36,170 @@ public class BuildingPage extends BasePage {
     }
 
     // ============================================================
+    // v1.51 "New Location" COMPOSITE FORM (probe-verified 2026-07-30)
+    //
+    // The dedicated New Building / New Floor / New Room screens are GONE.
+    // The Locations toolbar 'plus' now opens ONE sheet titled 'New Location':
+    //   - 'Building, New Building…' picker row + TextField placeholder 'Building name'
+    //   - FLOOR section  → TextField placeholder 'Floor name' (or 'Floor, …' picker)
+    //   - ROOM section   → TextField placeholder 'Room name'
+    //   - Cancel / Create (Create DISABLED until every visible name is filled)
+    // Picking an existing building via the Building row switches the form to
+    // new-floor mode (TFs: Floor name + Room name); picking an existing floor
+    // switches to new-room mode (TF: Room name).
+    // Long-press context menus are ICON-ONLY: note.text (access notes viewer),
+    // pencil (Edit sheet), trash (delete). Edit sheets keep nav titles
+    // 'Edit Building' / 'Edit Floor' / 'Edit Room' with TextField + TextView + Save.
+    // The 'No Location' section was REMOVED from the Locations list in v1.51.
+    // ============================================================
+
+    /** True when the v1.51 'New Location' composite sheet is open. */
+    public boolean isNewLocationFormOpen() {
+        return existsNow(AppiumBy.iOSNsPredicateString(
+            "type == 'XCUIElementTypeStaticText' AND label == 'New Location'"));
+    }
+
+    /** TextField whose placeholder (value while empty) is {@code placeholder}, else null. */
+    private WebElement formFieldByPlaceholder(String placeholder) {
+        try {
+            return driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeTextField' AND value == '" + placeholder + "'"));
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Field for one of the three name slots, robust to text already typed:
+     * by placeholder first, then by position within the current form mode.
+     * slot: 0=building, 1=floor, 2=room.
+     */
+    private WebElement formNameField(int slot, String placeholder) {
+        WebElement byPlaceholder = formFieldByPlaceholder(placeholder);
+        if (byPlaceholder != null) return byPlaceholder;
+        List<WebElement> tfs = driver.findElements(AppiumBy.className("XCUIElementTypeTextField"));
+        if (tfs.isEmpty()) return null;
+        // Form shows 3 TFs in building mode, 2 in floor mode, 1 in room mode —
+        // the requested slot shifts left as earlier slots become picker rows.
+        int shift = 3 - tfs.size();
+        int idx = slot - shift;
+        if (idx < 0 || idx >= tfs.size()) idx = Math.min(Math.max(slot, 0), tfs.size() - 1);
+        return tfs.get(idx);
+    }
+
+    private boolean typeIntoFormField(int slot, String placeholder, String text) {
+        try {
+            WebElement f = formNameField(slot, placeholder);
+            if (f == null) return false;
+            f.click();
+            try { f.clear(); } catch (Exception ignored) {}
+            f.sendKeys(text);
+            try { driver.executeScript("mobile: hideKeyboard"); } catch (Exception ignored) {}
+            sleep(150);
+            return true;
+        } catch (Exception e) {
+            System.out.println("⚠️ typeIntoFormField(" + placeholder + "): " + e.getMessage());
+            return false;
+        }
+    }
+
+    /** Open the New Location sheet from the Locations screen ('plus' toolbar button). */
+    public boolean openNewLocationForm() {
+        try {
+            if (isNewLocationFormOpen()) return true;
+            driver.findElement(AppiumBy.accessibilityId("plus")).click();
+            sleep(400);
+            return isNewLocationFormOpen();
+        } catch (Exception e) {
+            System.out.println("⚠️ openNewLocationForm: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /** Tap the 'Building, …' picker row and choose an existing building by name. */
+    public boolean pickExistingBuildingInForm(String buildingName) {
+        return pickInFormChooser("Building", buildingName);
+    }
+
+    /** Tap the 'Floor, …' picker row and choose an existing floor by name. */
+    public boolean pickExistingFloorInForm(String floorName) {
+        return pickInFormChooser("Floor", floorName);
+    }
+
+    /**
+     * Shared chooser flow for the New Location form's Building/Floor picker rows.
+     * The chooser opens OVER the (huge) Locations list whose rows share the same
+     * '<name>, N floors/rooms' labels — the option MUST be matched visible==1 or
+     * the tap lands on a covered underlying row and nothing gets selected.
+     * Success is verified by the picker row now carrying the chosen name.
+     */
+    private boolean pickInFormChooser(String rowKind, String optionName) {
+        try {
+            driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label BEGINSWITH '" + rowKind + ",' AND visible == 1")).click();
+            sleep(600);
+            WebElement opt = null;
+            for (int attempt = 0; attempt < 4 && opt == null; attempt++) {
+                try {
+                    opt = driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND label BEGINSWITH '"
+                        + optionName + ",' AND visible == 1"));
+                } catch (Exception notYet) {
+                    // scroll the chooser to reveal the option
+                    try {
+                        driver.executeScript("mobile: scroll",
+                            java.util.Map.of("direction", "down"));
+                    } catch (Exception ignored) {}
+                    sleep(300);
+                }
+            }
+            if (opt == null) {
+                System.out.println("⚠️ pickInFormChooser: option '" + optionName + "' never visible");
+                return false;
+            }
+            opt.click();
+            sleep(600);
+            boolean applied = existsNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label BEGINSWITH '" + rowKind + ", "
+                + optionName + "'"));
+            if (!applied) {
+                System.out.println("⚠️ pickInFormChooser: tapped '" + optionName
+                    + "' but the " + rowKind + " row did not update");
+            }
+            return applied;
+        } catch (Exception e) {
+            System.out.println("⚠️ pickInFormChooser(" + rowKind + ", '" + optionName + "'): " + e.getMessage());
+            return false;
+        }
+    }
+
+    /** The form's Create button (v1.51), or null. */
+    private WebElement createButton() {
+        try {
+            return driver.findElement(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND label == 'Create'"));
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Create is gated on EVERY visible name field being non-empty. When a test
+     * flow only cares about one slot (old per-screen semantics), auto-fill the
+     * other still-empty slots with generated names so the composite form can
+     * submit. Returns the names it filled (for logging/cleanup).
+     */
+    private void autofillRemainingFormFields() {
+        String stamp = String.valueOf(System.currentTimeMillis() % 100000);
+        WebElement f = formFieldByPlaceholder("Building name");
+        if (f != null) { typeIntoFormField(0, "Building name", "Bldg_Auto_" + stamp); }
+        f = formFieldByPlaceholder("Floor name");
+        if (f != null) { typeIntoFormField(1, "Floor name", "Floor_Auto_" + stamp); }
+        f = formFieldByPlaceholder("Room name");
+        if (f != null) { typeIntoFormField(2, "Room name", "Room_Auto_" + stamp); }
+    }
+
+    // ============================================================
     // NAVIGATION METHODS
     // ============================================================
 
@@ -106,10 +270,21 @@ public class BuildingPage extends BasePage {
     // ============================================================
 
     /**
-     * Check if New Building screen is displayed
+     * Check if New Building screen is displayed.
+     * v1.51: the 'New Location' composite sheet in new-building mode
+     * (a 'Building name' TextField is present). Legacy screen kept as fallback.
      */
     public boolean isNewBuildingScreenDisplayed() {
         try {
+            if (isNewLocationFormOpen()) {
+                // new-building mode: name TF still empty (placeholder visible) OR
+                // the Building picker row still says 'New Building…' after typing
+                if (formFieldByPlaceholder("Building name") != null) return true;
+                if (existsNow(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND label BEGINSWITH 'Building,' AND label CONTAINS 'New Building'"))) {
+                    return true;
+                }
+            }
             return driver.findElement(AppiumBy.iOSNsPredicateString(
                 "label == 'New Building' AND type == 'XCUIElementTypeStaticText'")).isDisplayed();
         } catch (Exception e) {
@@ -152,10 +327,13 @@ public class BuildingPage extends BasePage {
     }
 
     /**
-     * Check if Save button is displayed
+     * Check if Save button is displayed.
+     * v1.51: the composite New Location form's submit button is 'Create'.
      */
     public boolean isSaveButtonDisplayed() {
         try {
+            WebElement create = createButton();
+            if (create != null && create.isDisplayed()) return true;
             return driver.findElement(AppiumBy.accessibilityId(SAVE_BUTTON)).isDisplayed();
         } catch (Exception e) {
             return false;
@@ -163,10 +341,17 @@ public class BuildingPage extends BasePage {
     }
 
     /**
-     * Check if Save button is enabled
+     * Check if Save button is enabled.
+     * v1.51: reads the 'Create' button on the composite form; 'Save' on edit sheets.
      */
     public boolean isSaveButtonEnabled() {
         try {
+            WebElement create = createButton();
+            if (create != null) {
+                String enabled = create.getAttribute("enabled");
+                System.out.println("🔍 Create Button: enabled=" + enabled);
+                return "true".equalsIgnoreCase(enabled);
+            }
             // Find the actual XCUIElementTypeButton (not wrapper)
             WebElement saveBtn = null;
             try {
@@ -197,7 +382,7 @@ public class BuildingPage extends BasePage {
     public boolean isBuildingNameFieldDisplayed() {
         try {
             return driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeTextField' AND (value == 'Building Name' OR name CONTAINS 'Building Name')")).isDisplayed();
+                "type == 'XCUIElementTypeTextField' AND (value == 'Building Name' OR value == 'Building name' OR name CONTAINS 'Building Name')")).isDisplayed();
         } catch (Exception e) {
             // Try alternative locator
             try {
@@ -222,10 +407,13 @@ public class BuildingPage extends BasePage {
     }
 
     /**
-     * Check if New Building title is displayed
+     * Check if New Building title is displayed.
+     * v1.51: the sheet is titled 'New Location' and the Building picker row
+     * reads 'New Building…' — either counts as the new-building title surface.
      */
     public boolean isNewBuildingTitleDisplayed() {
         try {
+            if (isNewLocationFormOpen()) return true;
             return driver.findElement(AppiumBy.iOSNsPredicateString(
                 "label == 'New Building' AND type == 'XCUIElementTypeStaticText'")).isDisplayed();
         } catch (Exception e) {
@@ -251,10 +439,29 @@ public class BuildingPage extends BasePage {
     }
 
     /**
-     * Click Save button
+     * Click Save button.
+     * v1.51: on the composite New Location form the submit button is 'Create'
+     * and it requires EVERY visible name slot filled — if a legacy single-slot
+     * flow left other slots empty, auto-fill them so the submit can proceed.
      */
     public boolean clickSave() {
         try {
+            WebElement create = createButton();
+            if (create != null) {
+                if (!"true".equalsIgnoreCase(create.getAttribute("enabled"))) {
+                    System.out.println("ℹ️ Create disabled — auto-filling remaining New Location fields");
+                    autofillRemainingFormFields();
+                    create = createButton();
+                }
+                if (create != null && "true".equalsIgnoreCase(create.getAttribute("enabled"))) {
+                    create.click();
+                    System.out.println("✅ Clicked Create button (v1.51 New Location form)");
+                    sleep(400);
+                    return true;
+                }
+                System.out.println("⚠️ Create button still disabled after auto-fill");
+                return false;
+            }
             WebElement saveBtn = driver.findElement(AppiumBy.accessibilityId(SAVE_BUTTON));
             if ("true".equalsIgnoreCase(saveBtn.getAttribute("enabled"))) {
                 saveBtn.click();
@@ -272,10 +479,16 @@ public class BuildingPage extends BasePage {
     }
 
     /**
-     * Enter Building Name
+     * Enter Building Name (v1.51: the 'Building name' slot of the New Location form).
      */
     public void enterBuildingName(String name) {
         try {
+            if (isNewLocationFormOpen()) {
+                if (typeIntoFormField(0, "Building name", name)) {
+                    System.out.println("✅ Entered Building Name (v1.51 form): " + name);
+                    return;
+                }
+            }
             WebElement field = driver.findElement(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeTextField'"));
             field.clear();
@@ -647,6 +860,23 @@ public class BuildingPage extends BasePage {
             }
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    /**
+     * Name of the first building in the list (the part before the ', N floors'
+     * suffix of the composite row label), or null when no building rows exist.
+     */
+    public String getFirstBuildingName() {
+        try {
+            WebElement entry = getFirstBuildingEntry();
+            if (entry == null) return null;
+            String label = entry.getAttribute("label");
+            if (label == null) return null;
+            int comma = label.lastIndexOf(',');
+            return comma > 0 ? label.substring(0, comma).trim() : label.trim();
+        } catch (Exception e) {
+            return null;
         }
     }
 
@@ -1179,6 +1409,15 @@ public class BuildingPage extends BasePage {
     public boolean clickEditBuildingOption() {
         try {
             System.out.println("🔍 Clicking Edit Building option...");
+
+            // Strategy 0 (v1.51): context menus are icon-only — pencil = edit
+            try {
+                driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "name == 'pencil' AND visible == 1")).click();
+                sleep(400);
+                System.out.println("✅ Clicked pencil icon (v1.51 Edit Building)");
+                return true;
+            } catch (Exception ignored) {}
             
             // Strategy 1: Exact "Edit Building" label
             try {
@@ -1237,6 +1476,21 @@ public class BuildingPage extends BasePage {
     public boolean clickDeleteBuildingOption() {
         try {
             System.out.println("🗑️ Clicking Delete Building option...");
+
+            // Strategy 0 (v1.51): context menus are icon-only — trash = delete
+            try {
+                driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "name == 'trash' AND visible == 1")).click();
+                sleep(400);
+                // confirmation alert (if any)
+                try {
+                    driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND (label == 'Delete' OR label == 'Confirm' OR label == 'Yes')")).click();
+                    sleep(400);
+                } catch (Exception noConfirm) {}
+                System.out.println("✅ Clicked trash icon (v1.51 Delete Building)");
+                return true;
+            } catch (Exception ignored) {}
 
             WebElement deleteOption = null;
             
@@ -1858,6 +2112,17 @@ public class BuildingPage extends BasePage {
         try {
             System.out.println("📍 Navigating to New Floor screen for building: " + buildingName);
 
+            // v1.51 primary path: New Location form → pick the existing building →
+            // the form becomes new-floor mode ('Floor name' + 'Room name' fields).
+            if (openNewLocationForm()) {
+                if (pickExistingBuildingInForm(buildingName) && isNewFloorScreenDisplayed()) {
+                    System.out.println("✅ New Floor mode reached via New Location form (v1.51)");
+                    return true;
+                }
+                // form open but pick failed — close it before legacy fallback
+                try { clickCancel(); sleep(300); } catch (Exception ignored) {}
+            }
+
             WebElement building = findBuildingByName(buildingName);
             if (building == null) {
                 System.out.println("⚠️ Building not found: " + buildingName);
@@ -1941,10 +2206,21 @@ public class BuildingPage extends BasePage {
     }
 
     /**
-     * Check if New Floor screen is displayed
+     * Check if New Floor screen is displayed.
+     * v1.51: the New Location form in new-floor mode — a picked building on the
+     * Building row (no 'Building name' TF) and a 'Floor name' slot present.
      */
     public boolean isNewFloorScreenDisplayed() {
         try {
+            if (isNewLocationFormOpen()) {
+                boolean buildingPicked = formFieldByPlaceholder("Building name") == null
+                    && !existsNow(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND label BEGINSWITH 'Building,' AND label CONTAINS 'New Building'"));
+                boolean floorSlot = formFieldByPlaceholder("Floor name") != null
+                    || existsNow(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND label BEGINSWITH 'Floor,'"));
+                if (buildingPicked && floorSlot) return true;
+            }
             return driver.findElement(AppiumBy.iOSNsPredicateString(
                 "label == 'New Floor' AND type == 'XCUIElementTypeStaticText'")).isDisplayed();
         } catch (Exception e) {
@@ -2107,6 +2383,12 @@ public class BuildingPage extends BasePage {
      */
     public void enterFloorName(String name) {
         try {
+            if (isNewLocationFormOpen()) {
+                if (typeIntoFormField(1, "Floor name", name)) {
+                    System.out.println("✅ Entered Floor Name (v1.51 form): " + name);
+                    return;
+                }
+            }
             // Find the Floor Name text field (usually first text field)
             WebElement field = driver.findElement(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeTextField'"));
@@ -2197,12 +2479,14 @@ public class BuildingPage extends BasePage {
      */
     public boolean saveNewFloor() {
         try {
-            if (!isSaveButtonEnabled()) {
+            // v1.51 composite form: clickSave() auto-fills any still-empty name
+            // slots (Create requires all), so skip the enabled pre-check there.
+            if (!isNewLocationFormOpen() && !isSaveButtonEnabled()) {
                 System.out.println("⚠️ Save button is disabled - cannot save floor");
                 return false;
             }
-            
-            
+
+
             clickSave();
             
             // Use proper wait method instead of fixed sleep
@@ -2832,6 +3116,15 @@ public class BuildingPage extends BasePage {
     public boolean clickEditFloorOption() {
         try {
             System.out.println("🔍 Clicking Edit Floor option...");
+
+            // Strategy 0 (v1.51): context menus are icon-only — pencil = edit
+            try {
+                driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "name == 'pencil' AND visible == 1")).click();
+                sleep(400);
+                System.out.println("✅ Clicked pencil icon (v1.51 Edit Floor)");
+                return true;
+            } catch (Exception ignored) {}
             
             // Strategy 1: Exact label match
             try {
@@ -2879,6 +3172,19 @@ public class BuildingPage extends BasePage {
      */
     public boolean clickDeleteFloorOption() {
         try {
+            // Strategy 0 (v1.51): context menus are icon-only — trash = delete
+            try {
+                driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "name == 'trash' AND visible == 1")).click();
+                sleep(400);
+                try {
+                    driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND (label == 'Delete' OR label == 'Confirm' OR label == 'Yes')")).click();
+                    sleep(400);
+                } catch (Exception noConfirm) {}
+                System.out.println("✅ Clicked trash icon (v1.51 Delete Floor)");
+                return true;
+            } catch (Exception ignored) {}
             driver.findElement(AppiumBy.iOSNsPredicateString(
                 "label == 'Delete Floor' OR name == 'Delete Floor'")).click();
             sleep(300);
@@ -3396,7 +3702,19 @@ public class BuildingPage extends BasePage {
     public boolean navigateToNewRoom(String buildingName, String floorName) {
         try {
             System.out.println("📍 Navigating to New Room screen for floor: " + floorName);
-            
+
+            // v1.51 primary path: New Location form → pick building → pick floor →
+            // the form becomes new-room mode (only a 'Room name' field left).
+            if (openNewLocationForm()) {
+                if (pickExistingBuildingInForm(buildingName)
+                        && pickExistingFloorInForm(floorName)
+                        && isNewRoomScreenDisplayed()) {
+                    System.out.println("✅ New Room mode reached via New Location form (v1.51)");
+                    return true;
+                }
+                try { clickCancel(); sleep(300); } catch (Exception ignored) {}
+            }
+
             // First ensure building is expanded
             System.out.println("📋 Floors visible under " + buildingName + ": " + areFloorsVisibleUnderBuilding(buildingName));
             if (!areFloorsVisibleUnderBuilding(buildingName)) {
@@ -3503,6 +3821,17 @@ public class BuildingPage extends BasePage {
      */
     public boolean isNewRoomScreenDisplayed() {
         try {
+            // v1.51: New Location form in new-room mode — building AND floor both
+            // picked (their picker rows no longer say 'New …') and a Room slot left.
+            if (isNewLocationFormOpen()) {
+                boolean floorPicked = formFieldByPlaceholder("Floor name") == null
+                    && !existsNow(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND label BEGINSWITH 'Floor,' AND label CONTAINS 'New Floor'"));
+                boolean roomSlot = formFieldByPlaceholder("Room name") != null
+                    || existsNow(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeTextField'"));
+                if (floorPicked && roomSlot) return true;
+            }
             return driver.findElement(AppiumBy.iOSNsPredicateString(
                 "label == 'New Room' AND type == 'XCUIElementTypeStaticText'")).isDisplayed();
         } catch (Exception e) {
@@ -3566,6 +3895,12 @@ public class BuildingPage extends BasePage {
      */
     public void enterRoomName(String name) {
         try {
+            if (isNewLocationFormOpen()) {
+                if (typeIntoFormField(2, "Room name", name)) {
+                    System.out.println("✅ Entered Room Name (v1.51 form): " + name);
+                    return;
+                }
+            }
             // Find the first text field (Room Name field)
             List<WebElement> fields = driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeTextField'"));
@@ -3592,11 +3927,12 @@ public class BuildingPage extends BasePage {
      */
     public boolean saveNewRoom() {
         try {
-            if (!isSaveButtonEnabled()) {
+            // v1.51 composite form: clickSave() auto-fills any still-empty name slots
+            if (!isNewLocationFormOpen() && !isSaveButtonEnabled()) {
                 System.out.println("⚠️ Save button is disabled - cannot save room");
                 return false;
             }
-            
+
             clickSave();
             
             // Use proper wait method instead of fixed sleep
@@ -3957,6 +4293,15 @@ public class BuildingPage extends BasePage {
     public boolean clickEditRoomOption() {
         try {
             System.out.println("🔍 Clicking Edit Room option...");
+
+            // Strategy 0 (v1.51): context menus are icon-only — pencil = edit
+            try {
+                driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "name == 'pencil' AND visible == 1")).click();
+                sleep(400);
+                System.out.println("✅ Clicked pencil icon (v1.51 Edit Room)");
+                return true;
+            } catch (Exception ignored) {}
             
             // Strategy 1: Exact label
             try {
@@ -4003,6 +4348,19 @@ public class BuildingPage extends BasePage {
      */
     public boolean clickDeleteRoomOption() {
         try {
+            // Strategy 0 (v1.51): context menus are icon-only — trash = delete
+            try {
+                driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "name == 'trash' AND visible == 1")).click();
+                sleep(400);
+                try {
+                    driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND (label == 'Delete' OR label == 'Confirm' OR label == 'Yes')")).click();
+                    sleep(400);
+                } catch (Exception noConfirm) {}
+                System.out.println("✅ Clicked trash icon (v1.51 Delete Room)");
+                return true;
+            } catch (Exception ignored) {}
             WebElement deleteOption = driver.findElement(AppiumBy.iOSNsPredicateString(
                 "label == 'Delete Room' OR name == 'Delete Room'"));
             deleteOption.click();
@@ -4275,8 +4633,10 @@ public class BuildingPage extends BasePage {
      */
     public boolean isDoneButtonDisplayed() {
         try {
+            // visible==1 IN the predicate — a sheet leaves a hidden 'Done' twin on
+            // the covered base screen, and first-match isDisplayed() reads THAT one.
             return driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label == 'Done' OR name == 'Done'")).isDisplayed();
+                "(label == 'Done' OR name == 'Done') AND visible == 1")) != null;
         } catch (Exception e) {
             return false;
         }
@@ -4328,8 +4688,11 @@ public class BuildingPage extends BasePage {
      */
     public boolean isSearchBarDisplayed() {
         try {
+            // v1.51 sheets render the search bar as a plain TextField whose
+            // placeholder doesn't always contain 'Search' — accept any visible one.
             return driver.findElement(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeSearchField' OR (type == 'XCUIElementTypeTextField' AND (label CONTAINS 'Search' OR value CONTAINS 'Search'))")).isDisplayed();
+                "(type == 'XCUIElementTypeSearchField' AND visible == 1) OR "
+                + "(type == 'XCUIElementTypeTextField' AND visible == 1)")) != null;
         } catch (Exception e) {
             return false;
         }
@@ -5615,15 +5978,22 @@ public class BuildingPage extends BasePage {
     public WebElement getFirstUnassignedAsset() {
         try {
             java.util.List<WebElement> assets = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeCell'"));
+                "type == 'XCUIElementTypeCell' AND visible == 1"));
             if (!assets.isEmpty()) {
                 return assets.get(0);
             }
-            // Fallback to buttons
+            // v1.51: the No Location sheet lists assets as full-width VISIBLE
+            // buttons below the sheet header. The old unscoped fallback matched
+            // the tab-bar first (house/Site) and tapped the wrong screen —
+            // require visibility, y below the sheet chrome, and skip controls.
             assets = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND NOT label CONTAINS 'Done' AND NOT label == 'No Location' AND NOT name == 'plus'"));
-            if (!assets.isEmpty()) {
-                return assets.get(0);
+                "type == 'XCUIElementTypeButton' AND visible == 1 "
+                + "AND NOT label CONTAINS 'Done' AND NOT label CONTAINS 'No Location' "
+                + "AND NOT name == 'plus' AND NOT name == 'rectangle.grid.1x2'"));
+            for (WebElement a : assets) {
+                try {
+                    if (a.getRect().y > 150) return a;
+                } catch (Exception ignored) {}
             }
             return null;
         } catch (Exception e) {
@@ -5648,8 +6018,10 @@ public class BuildingPage extends BasePage {
      */
     public boolean hasSelectLocationField() {
         try {
+            // visible==1 in predicate — details sheets leave hidden twins behind
             return driver.findElement(AppiumBy.iOSNsPredicateString(
-                "label CONTAINS 'Select location' OR label CONTAINS 'Select Location' OR value CONTAINS 'Select location'")).isDisplayed();
+                "(label CONTAINS 'Select location' OR label CONTAINS 'Select Location' "
+                + "OR value CONTAINS 'Select location') AND visible == 1")) != null;
         } catch (Exception e) {
             return false;
         }

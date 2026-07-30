@@ -223,3 +223,23 @@ Target are selected — parity with the web behavior.
 **Test:** TC_CONN_041_verifyCreateDisabledWithoutTargetNode asserts the
 correct contract and stays RED until the validation lands — this failure is
 the test doing its job, not an automation bug.
+
+## WT-NEG-01 (confirmed, 2026-07-31) — /ir_session/create ACCEPTS a garbage work_type_id (missing FK validation)
+
+**Evidence (live probes 2026-07-25 CI run 30144117443 + 2026-07-31 direct API):**
+POST /ir_session/create with `work_type_id: "ffffffff-ffff-4fff-8fff-ffffffff5fff"`
+(no such service exists) returns **HTTP 200** and persists the work order — two
+`QA-WT-NEG-*` junk rows from the 07-25 run were still visible in the company WO
+list on 07-31 (since soft-deleted via /ir_session/update {"is_deleted": true}).
+
+**Expected:** the create is rejected (4xx) when work_type_id doesn't reference
+an existing /procedures-v2/services row — server-side FK/exists validation.
+
+**Impact:** garbage work types can be persisted by any client bug or crafted
+request; downstream consumers (forms resolution, category surfaces) read a
+work_type_id that resolves to nothing.
+
+**Tests:** TC_WT_X_NEG_01/NEG_02 are converted to KNOWN-BUG SENTINELS — they pin
+the buggy acceptance (and clean their own junk rows). The moment the backend
+starts rejecting bogus ids they flip RED with instructions to restore the
+original rejection asserts and close this entry.

@@ -315,7 +315,14 @@ public final class SiteSelectionTest extends BaseTest {
         logStep("Clearing search");
         siteSelectionPage.clearSearch();
 
+        // The list is a lazy SwiftUI stack — right after clearing, only the rows
+        // re-materialized so far are countable. Poll until the rendered count
+        // recovers to the pre-search value (up to 5s) instead of reading once.
         int finalCount = siteSelectionPage.getSiteCount();
+        for (int i = 0; i < 10 && finalCount != initialCount; i++) {
+            shortWait();
+            finalCount = siteSelectionPage.getSiteCount();
+        }
         logStepWithScreenshot("Verifying all sites are displayed");
         assertEquals(finalCount, initialCount, "All sites should be displayed after clearing search");
     }

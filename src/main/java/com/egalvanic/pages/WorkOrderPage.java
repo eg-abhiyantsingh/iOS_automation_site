@@ -2080,7 +2080,11 @@ public class WorkOrderPage extends BasePage {
      */
     public java.util.List<String> getSessionBottomTabLabels() {
         java.util.List<String> tabLabels = new java.util.ArrayList<>();
-        String[] expectedTabs = {"Details", "Assets", "Tasks", "Issues", "Files"};
+        // v1.51 sessions render a COMMON tab strip (probe run 11, 2026-07-21) —
+        // scan the union of legacy and v1.51 tab names so the census reflects
+        // whatever strip generation the app renders.
+        String[] expectedTabs = {"Details", "Assets", "Tasks", "Issues", "Files",
+                                 "Forms", "Attachments", "SLD", "Condition Assessment"};
 
         for (String tabName : expectedTabs) {
             try {

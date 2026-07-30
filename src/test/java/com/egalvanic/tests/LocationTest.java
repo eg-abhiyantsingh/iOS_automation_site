@@ -94,6 +94,61 @@ public class LocationTest extends BaseTest {
     }
 
     // ============================================================
+    // NO-LOCATION FIXTURE (v1.51 — section renders ONLY when unassigned
+    // assets exist; the QA site drifted to 0 unassigned on 2026-07-30)
+    // ============================================================
+
+    /**
+     * Ensure at least one UNASSIGNED asset exists so the Locations list renders
+     * its 'No Location' section. Self-provisions via POST /node/create (cloned
+     * class), then forces the app to re-pull site data (Dashboard → re-open
+     * Locations). Returns true when the section is present afterwards.
+     */
+    private boolean ensureNoLocationSectionAvailable() {
+        if (buildingPage.scrollToNoLocationTurbo() || buildingPage.isNoLocationDisplayedFast()) {
+            return true;
+        }
+        System.out.println("🌱 No unassigned assets — provisioning one via API...");
+        try {
+            com.egalvanic.api.TestDataApi api = new com.egalvanic.api.TestDataApi();
+            api.login();
+            // The suite always lands on the picker's first site, "(s) Wild Goose
+            // Brewery" (first-site drift memo 2026-07-21) — resolve it by name.
+            String sldId = api.resolveSldIdByName("(s) Wild Goose Brewery");
+            if (sldId == null) {
+                java.util.List<String> ids = api.accessibleSldIds();
+                sldId = ids.isEmpty() ? null : ids.get(0);
+            }
+            if (sldId == null) {
+                System.out.println("⚠️ Could not resolve SLD id for fixture provisioning");
+                return false;
+            }
+            String nodeId = api.createUnassignedAsset(sldId,
+                "QA-NoLoc-" + (System.currentTimeMillis() % 1000000));
+            if (nodeId == null) return false;
+        } catch (Exception e) {
+            System.out.println("⚠️ Fixture provisioning failed: " + e.getMessage());
+            return false;
+        }
+        // Re-sync. A dashboard Refresh does NOT repaint the Locations list with
+        // new nodes (verified 2026-07-30); a full app restart + site load does.
+        try {
+            com.egalvanic.utils.DriverManager.getDriver()
+                .terminateApp(com.egalvanic.constants.AppConstants.APP_BUNDLE_ID);
+            try { Thread.sleep(1000); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+            com.egalvanic.utils.DriverManager.getDriver()
+                .activateApp(com.egalvanic.constants.AppConstants.APP_BUNDLE_ID);
+            try { Thread.sleep(2000); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+            loginAndSelectSite();
+            buildingPage.navigateToLocationsScreen();
+            mediumWait();
+        } catch (Exception e) {
+            System.out.println("⚠️ Post-provision resync hiccup: " + e.getMessage());
+        }
+        return buildingPage.scrollToNoLocationTurbo() || buildingPage.isNoLocationDisplayedFast();
+    }
+
+    // ============================================================
     // NEW BUILDING UI TESTS (TC_NB_001 - TC_NB_003)
     // ============================================================
 
@@ -132,8 +187,11 @@ public class LocationTest extends BaseTest {
         logStep("Verifying Building Name field is displayed");
         assertTrue(buildingPage.isBuildingNameFieldDisplayed(), "Building Name field should be visible");
 
-        logStep("Verifying Access Notes field is displayed");
-        assertTrue(buildingPage.isAccessNotesFieldDisplayed(), "Access Notes field should be visible");
+        // v1.51: the New Location composite form has no Access Notes field —
+        // notes moved to the Edit Building sheet (TC_NB_008 covers them there).
+        logStep("Verifying v1.51 composite form exposes Floor and Room name slots");
+        assertTrue(buildingPage.isNewLocationFormOpen(),
+            "v1.51 'New Location' composite form should be open for new-building creation");
 
         logStepWithScreenshot("New Building screen UI elements verified");
     }
@@ -210,12 +268,24 @@ public class LocationTest extends BaseTest {
         logStep("Verifying Save button is initially disabled");
         assertFalse(buildingPage.isSaveButtonEnabled(), "Save button should be disabled with empty field");
 
-        logStep("Entering text in Building Name");
+        // v1.51: Create gates on ALL THREE name slots (Building + Floor + Room),
+        // not just the building name — fill each and watch the gate open.
+        logStep("Entering text in Building Name only");
         buildingPage.enterBuildingName("Test Building");
         shortWait();
 
-        logStep("Verifying Save button is now enabled");
-        assertTrue(buildingPage.isSaveButtonEnabled(), "Save button should be enabled with valid input");
+        logStep("Verifying Create stays disabled until Floor and Room are named (v1.51 gate)");
+        assertFalse(buildingPage.isSaveButtonEnabled(),
+            "Create should stay disabled while Floor/Room names are empty (v1.51 composite form)");
+
+        logStep("Entering Floor and Room names");
+        buildingPage.enterFloorName("Floor 1");
+        buildingPage.enterRoomName("Room 1");
+        shortWait();
+
+        logStep("Verifying Create is now enabled with all fields filled");
+        assertTrue(buildingPage.isSaveButtonEnabled(),
+            "Create should be enabled once Building+Floor+Room names are all provided");
 
         logStep("Clearing Building Name field");
         buildingPage.clearBuildingName();
@@ -226,7 +296,7 @@ public class LocationTest extends BaseTest {
 
         // Cleanup
         buildingPage.clickCancel();
-        
+
         logStepWithScreenshot("Save button state changes verified");
     }
 
@@ -363,13 +433,17 @@ public class LocationTest extends BaseTest {
         String buildingName = "Test Building " + System.currentTimeMillis();
         logStep("Entering valid Building Name: " + buildingName);
         buildingPage.enterBuildingName(buildingName);
+        // v1.51 composite form also gates Create on Floor + Room names —
+        // fill them so the only thing left "optional" is the notes.
+        buildingPage.enterFloorName("Floor 1");
+        buildingPage.enterRoomName("Room 1");
         shortWait();
 
-        logStep("Leaving Access Notes empty");
+        logStep("Leaving Access Notes empty (v1.51: create form has no notes field at all)");
         // Access Notes is already empty
 
         logStep("Verifying Save button is enabled");
-        assertTrue(buildingPage.isSaveButtonEnabled(), 
+        assertTrue(buildingPage.isSaveButtonEnabled(),
             "Save button should be enabled without Access Notes");
 
         logStep("Clicking Save");
@@ -397,18 +471,17 @@ public class LocationTest extends BaseTest {
             "TC_NB_009 - Verify Access Notes accepts multiline and special characters"
         );
 
-        logStep("Navigating to New Building screen");
-        boolean navigated = buildingPage.navigateToNewBuilding();
-        assertTrue(navigated, "Should successfully navigate to New Building screen");
+        // v1.51: the create form has no Access Notes — notes now live on the
+        // Edit Building sheet (long-press → pencil). Verify multiline/special
+        // characters there, then Cancel so no data is persisted.
+        logStep("Opening Edit Building sheet on the first building (v1.51 notes surface)");
+        String firstBuilding = buildingPage.getFirstBuildingName();
+        assertTrue(firstBuilding != null && !firstBuilding.isEmpty(),
+            "At least one building must exist to reach the notes editor");
+        assertTrue(buildingPage.longPressOnBuilding(firstBuilding), "Long-press should open the context menu");
+        assertTrue(buildingPage.clickEditBuildingOption(), "Pencil (edit) option should open Edit Building");
         shortWait();
-        
-        // Verify we're actually on New Building screen  
-        assertTrue(buildingPage.isNewBuildingScreenDisplayed(), "New Building screen should be displayed");
-
-        String buildingName = "MultilineTest " + System.currentTimeMillis();
-        logStep("Entering Building Name");
-        buildingPage.enterBuildingName(buildingName);
-        shortWait();
+        assertTrue(buildingPage.isEditBuildingScreenDisplayed(), "Edit Building sheet should be displayed");
 
         String multilineNotes = "Line 1: Main Gate\nLine 2: Use Card #123 @ Reception";
         logStep("Entering multiline text with special characters in Access Notes");
@@ -416,7 +489,7 @@ public class LocationTest extends BaseTest {
         shortWait();
 
         logStep("Verifying Save button is enabled");
-        assertTrue(buildingPage.isSaveButtonEnabled(), 
+        assertTrue(buildingPage.isSaveButtonEnabled(),
             "Save button should be enabled with multiline Access Notes");
 
         logStep("Verifying Access Notes contains special characters");
@@ -424,9 +497,9 @@ public class LocationTest extends BaseTest {
         // Notes should contain at least some of the special characters
         assertTrue(actualNotes.length() > 0, "Access Notes should accept input");
 
-        // Cleanup
+        // Cleanup — do NOT persist the probe notes
         buildingPage.clickCancel();
-        
+
         logStepWithScreenshot("Multiline and special characters verification complete");
     }
 
@@ -5809,6 +5882,10 @@ public class LocationTest extends BaseTest {
             AppConstants.FEATURE_NO_LOCATION,
             "TC_NL_001 - Verify No Location section displays in Locations list"
         );
+        logStep("Precondition: ensure an unassigned asset exists (No Location renders conditionally in v1.51)");
+        assertTrue(ensureNoLocationSectionAvailable(),
+            "'No Location' section must be available — self-provisioning an unassigned asset failed");
+
 
         // Step 1: Navigate to Locations
         shortWait();
@@ -5874,6 +5951,10 @@ public class LocationTest extends BaseTest {
             AppConstants.FEATURE_NO_LOCATION,
             "TC_NL_002 - Verify tapping No Location opens asset list"
         );
+        logStep("Precondition: ensure an unassigned asset exists (No Location renders conditionally in v1.51)");
+        assertTrue(ensureNoLocationSectionAvailable(),
+            "'No Location' section must be available — self-provisioning an unassigned asset failed");
+
 
         // Navigate to Locations screen
         shortWait();
@@ -5959,6 +6040,10 @@ public class LocationTest extends BaseTest {
             AppConstants.FEATURE_NO_LOCATION,
             "TC_NL_003 - Verify unassigned assets list displays correctly"
         );
+        logStep("Precondition: ensure an unassigned asset exists (No Location renders conditionally in v1.51)");
+        assertTrue(ensureNoLocationSectionAvailable(),
+            "'No Location' section must be available — self-provisioning an unassigned asset failed");
+
 
         // Navigate to Locations screen
         shortWait();
@@ -6052,6 +6137,10 @@ public class LocationTest extends BaseTest {
             AppConstants.FEATURE_NO_LOCATION,
             "TC_NL_004 - Verify tapping asset opens Asset Details from No Location"
         );
+        logStep("Precondition: ensure an unassigned asset exists (No Location renders conditionally in v1.51)");
+        assertTrue(ensureNoLocationSectionAvailable(),
+            "'No Location' section must be available — self-provisioning an unassigned asset failed");
+
 
         // Navigate to Locations screen
         shortWait();
@@ -6162,6 +6251,10 @@ public class LocationTest extends BaseTest {
             AppConstants.FEATURE_NO_LOCATION,
             "TC_NL_005 - Verify search in No Location screen"
         );
+        logStep("Precondition: ensure an unassigned asset exists (No Location renders conditionally in v1.51)");
+        assertTrue(ensureNoLocationSectionAvailable(),
+            "'No Location' section must be available — self-provisioning an unassigned asset failed");
+
 
         // Navigate to Locations screen
         shortWait();
@@ -6273,6 +6366,10 @@ public class LocationTest extends BaseTest {
             AppConstants.FEATURE_NO_LOCATION,
             "TC_NL_006 - Verify Done button on No Location screen"
         );
+        logStep("Precondition: ensure an unassigned asset exists (No Location renders conditionally in v1.51)");
+        assertTrue(ensureNoLocationSectionAvailable(),
+            "'No Location' section must be available — self-provisioning an unassigned asset failed");
+
 
         // Navigate to Locations screen
         shortWait();
@@ -6332,6 +6429,10 @@ public class LocationTest extends BaseTest {
             AppConstants.FEATURE_NO_LOCATION,
             "TC_NL_007 - Verify No Location is not editable/deletable"
         );
+        logStep("Precondition: ensure an unassigned asset exists (No Location renders conditionally in v1.51)");
+        assertTrue(ensureNoLocationSectionAvailable(),
+            "'No Location' section must be available — self-provisioning an unassigned asset failed");
+
 
         // Navigate to Locations screen
         shortWait();
@@ -6412,6 +6513,10 @@ public class LocationTest extends BaseTest {
             AppConstants.FEATURE_NO_LOCATION,
             "TC_NL_008 - Verify No Location count updates dynamically"
         );
+        logStep("Precondition: ensure an unassigned asset exists (No Location renders conditionally in v1.51)");
+        assertTrue(ensureNoLocationSectionAvailable(),
+            "'No Location' section must be available — self-provisioning an unassigned asset failed");
+
 
         // Navigate to Locations screen
         shortWait();
@@ -6549,6 +6654,10 @@ public class LocationTest extends BaseTest {
             AppConstants.FEATURE_ASSIGN_LOCATION,
             "TC_AL_001 - Verify Asset Details shows Select location for unassigned asset"
         );
+        logStep("Precondition: ensure an unassigned asset exists (No Location renders conditionally in v1.51)");
+        assertTrue(ensureNoLocationSectionAvailable(),
+            "'No Location' section must be available — self-provisioning an unassigned asset failed");
+
 
         // Navigate to Locations screen
         shortWait();
@@ -6645,6 +6754,10 @@ public class LocationTest extends BaseTest {
             AppConstants.FEATURE_ASSIGN_LOCATION,
             "TC_AL_002 - Verify tapping Location opens location picker"
         );
+        logStep("Precondition: ensure an unassigned asset exists (No Location renders conditionally in v1.51)");
+        assertTrue(ensureNoLocationSectionAvailable(),
+            "'No Location' section must be available — self-provisioning an unassigned asset failed");
+
 
         // Navigate to Locations and open No Location
         shortWait();
@@ -6754,6 +6867,10 @@ public class LocationTest extends BaseTest {
             AppConstants.FEATURE_ASSIGN_LOCATION,
             "TC_AL_003 - Verify selecting location shows Save Changes button"
         );
+        logStep("Precondition: ensure an unassigned asset exists (No Location renders conditionally in v1.51)");
+        assertTrue(ensureNoLocationSectionAvailable(),
+            "'No Location' section must be available — self-provisioning an unassigned asset failed");
+
 
         // CORRECT WORKFLOW:
         // 1. Navigate to Locations screen
@@ -6876,6 +6993,10 @@ public class LocationTest extends BaseTest {
             AppConstants.FEATURE_ASSIGN_LOCATION,
             "TC_AL_004 - Verify Save Changes assigns location to asset"
         );
+        logStep("Precondition: ensure an unassigned asset exists (No Location renders conditionally in v1.51)");
+        assertTrue(ensureNoLocationSectionAvailable(),
+            "'No Location' section must be available — self-provisioning an unassigned asset failed");
+
 
         // Navigate to No Location
         shortWait();
@@ -7042,6 +7163,10 @@ public class LocationTest extends BaseTest {
             AppConstants.FEATURE_ASSIGN_LOCATION,
             "TC_AL_006 - Verify No Location count decreases after assignment"
         );
+        logStep("Precondition: ensure an unassigned asset exists (No Location renders conditionally in v1.51)");
+        assertTrue(ensureNoLocationSectionAvailable(),
+            "'No Location' section must be available — self-provisioning an unassigned asset failed");
+
 
         // Navigate to Locations
         shortWait();
@@ -7158,6 +7283,10 @@ public class LocationTest extends BaseTest {
             AppConstants.FEATURE_ASSIGN_LOCATION,
             "TC_AL_007 - Verify Cancel discards location change"
         );
+        logStep("Precondition: ensure an unassigned asset exists (No Location renders conditionally in v1.51)");
+        assertTrue(ensureNoLocationSectionAvailable(),
+            "'No Location' section must be available — self-provisioning an unassigned asset failed");
+
 
         // Navigate to No Location
         shortWait();
@@ -7295,6 +7424,10 @@ public class LocationTest extends BaseTest {
             AppConstants.FEATURE_ASSIGN_LOCATION,
             "TC_AL_008 - Verify reassigning asset to different room"
         );
+        logStep("Precondition: ensure an unassigned asset exists (No Location renders conditionally in v1.51)");
+        assertTrue(ensureNoLocationSectionAvailable(),
+            "'No Location' section must be available — self-provisioning an unassigned asset failed");
+
 
         // Navigate to Locations
         shortWait();

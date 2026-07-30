@@ -152,6 +152,14 @@ public class DriverManager {
                 options.setCapability("appium:launchTimeout", 180000);
                 // Command timeout - 10 minutes idle (for long operations)
                 options.setNewCommandTimeout(Duration.ofSeconds(600));
+                // HARD per-command ceiling: a findElements issued while SwiftUI is
+                // rebuilding a giant bleed-through DOM can block WDA indefinitely —
+                // tests then burn their entire 360s ThreadTimeout inside ONE call
+                // (TC_ATS_ST_04, 2026-07-30). Have Appium abort any proxied command
+                // after 150s so the test fails fast with a real error and teardown
+                // recovery gets a chance to run. WDA build/launch/install are
+                // governed by their own timeouts above, not this one.
+                options.setCapability("appium:commandTimeouts", "{\"default\": 150000}");
 
                 // WDA startup retries: 2 x 20s — a WDA that failed twice with a warm
                 // cache won't be saved by attempts 3-5; fail fast and re-init instead

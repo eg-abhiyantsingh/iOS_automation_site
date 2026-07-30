@@ -28,7 +28,7 @@ import java.util.Set;
  * `type`, exact de_energized flag, pinned deterministic UUIDv5 service id;
  * catalog-wide — exactly 13 services, unique ids/keys, slug-shaped keys, no
  * "General" service (General is a UI-only 14th dropdown option persisting
- * work_type_id = null), PM Forms == 7, AF/Checklist/COM/IR/Schedule singletons,
+ * work_type_id = null), PM Forms == 8, AF/Checklist/COM/IR/Schedule singletons,
  * de-energized member set exact (6), procedure_count present + numeric.
  *
  * FIXTURE FAMILY: durable QA-WT00..13 work orders (one per type + General,
@@ -838,17 +838,21 @@ public class WorkTypeCatalog_Test extends WorkTypeBaseTest {
         logStep("No General service in catalog — UI-only option confirmed");
     }
 
-    @Test(priority = 70, description = "TC_WT_CAT_070 - exactly 7 of 13 services are category 'PM Forms' (server literal count + enum model)")
+    @Test(priority = 70, description = "TC_WT_CAT_070 - exactly 8 of 13 services are category 'PM Forms' (server literal count + enum model)")
     public void TC_WT_CAT_070_pmFormsCategoryHasExactlySeven() {
         ExtentReportManager.createTest(AppConstants.MODULE_JOBS, FEATURE,
-                "TC_WT_CAT_070 - exactly 7 of 13 services are category 'PM Forms' (server literal count + enum model)");
+                "TC_WT_CAT_070 - exactly 8 of 13 services are category 'PM Forms' (server literal count + enum model)");
+        // Live-verified 2026-07-31: the server carries 8 'PM Forms' services
+        // (Cleaning, CTT, De-Energized Visual, DGA, Insulation Resistance, NETA,
+        // Shutdown Composite, UPS Maintenance) \u2014 the enum has always modeled 8;
+        // the old literal 7 in this test contradicted both server and enum.
         String json = services("TC_WT_CAT_070");
         int serverPmForms = countToken(json, "\"PM Forms\"");
         logStep("Server \"PM Forms\" literal occurrences: " + serverPmForms);
-        assertEquals(Integer.valueOf(serverPmForms), Integer.valueOf(7),
-                "Exactly 7 services must carry type 'PM Forms' (gold spec \u00a71 distribution)");
-        assertEquals(Integer.valueOf(WorkTypeCatalog.ofCategory(Category.PM_FORMS).size()), Integer.valueOf(7),
-                "Enum must model exactly 7 PM_FORMS types");
+        assertEquals(Integer.valueOf(serverPmForms), Integer.valueOf(8),
+                "Exactly 8 services must carry type 'PM Forms' (live catalog 2026-07-31)");
+        assertEquals(Integer.valueOf(WorkTypeCatalog.ofCategory(Category.PM_FORMS).size()), Integer.valueOf(8),
+                "Enum must model exactly 8 PM_FORMS types");
     }
 
     @Test(priority = 71, description = "TC_WT_CAT_071 - category 'AF' is a singleton — only Arc Flash Data Collection")
