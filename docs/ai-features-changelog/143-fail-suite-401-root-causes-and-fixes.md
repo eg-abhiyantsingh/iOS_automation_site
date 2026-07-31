@@ -82,3 +82,26 @@ workflow (since 07-22).
   TC_NL_002, TC_AL_001, TC_NF_002, TC_NR_001, CAP_EAD_05, TC_ATS_ST_01,
   TC_ATS_ST_04, TC_SS_015, API contract suite.
 - Full failed-suite local run + CI rerun dispatch: see end of session notes.
+
+## CI verification round 1 (run 30577437951, 2026-07-31)
+
+3-shard rerun of the full 401-test failed suite at the fixed commit:
+- **Shard 1 (the only shard whose runner survived): 51 PASS / 74 FAIL / 9 SKIP** —
+  LocationTest alone went 63 fails → 34 PASS / 27 FAIL.
+- Shards 2+3: the macOS runners' WDA session died at init ("Could not start a
+  new session"), the DeadSessionCircuitBreaker opened and honestly skipped ~250
+  tests — runner-environment flake, not test outcomes. Re-dispatched as run
+  30597585221.
+- api-contract workflow: **GREEN in CI** (first green since 2026-07-22).
+
+Residual REAL clusters from shard-1 + local evidence (next iteration targets):
+1. Asset P5 subtype select family — giant-DOM wedge persists on CI (class-change
+   180s budget + 360s walls); set-state Subtype-row contract still unmapped.
+2. CAP_EAD save-evidence on CI (passed locally — timing/flake on runner).
+3. Issues P1: class-selection readback ('' after selection) + NFPA subcategory
+   option scans — the known stale families (v1.48-style remap needed).
+4. LocationTest TC_NR_* new-room path on CI + TC_ER_* edit-room pencil path +
+   delete flows (chooser 'never visible' on runner; legacy fallback also missed).
+5. SiteVisit p1: Quick QR dropdown not tappable; Started row anatomy changed.
+6. ArcFlash busway details fields; LC_EAD Loadcenter core attributes (B11:
+   picker can't select Loadcenter — fixture asset needed).
