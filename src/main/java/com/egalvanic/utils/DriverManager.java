@@ -37,6 +37,25 @@ public class DriverManager {
     // forceWdaRebuildOnce() on the retry path; auto-clears after one init.
     private static volatile boolean forceWdaRebuild = false;
 
+    // Armed on EVERY successful session creation: with NO_RESET=false (the
+    // default) each new session is a clean app install, which resets in-app
+    // settings — notably Settings › Session Recording, which defaults ON and
+    // slows the whole app under automation. BaseTest consumes this at the
+    // first safe Dashboard moment and turns the toggle off (a no-op detour
+    // when the install was actually preserved, e.g. noReset overrides).
+    private static final java.util.concurrent.atomic.AtomicBoolean freshInstallCheckPending =
+            new java.util.concurrent.atomic.AtomicBoolean(false);
+
+    /** Peek (without consuming) whether a fresh-install settings check is due. */
+    public static boolean isFreshInstallCheckPending() {
+        return freshInstallCheckPending.get();
+    }
+
+    /** Consume the fresh-install settings check. True exactly once per arming. */
+    public static boolean consumeFreshInstallCheckPending() {
+        return freshInstallCheckPending.getAndSet(false);
+    }
+
     /**
      * Request that the NEXT initDriver() rebuild WebDriverAgent (useNewWDA=true)
      * instead of reusing the cached one. Call this on a driver-init RETRY after a
@@ -288,6 +307,9 @@ public class DriverManager {
 
                 driver = newDriver;
                 RunHealth.recordInitSuccess(); // healthy init resets the hopeless streak
+                // New session ⇒ possibly a clean install ⇒ in-app settings reset to
+                // defaults. Arm the post-install settings check (Session Recording OFF).
+                freshInstallCheckPending.set(true);
                 System.out.println("✅ iOS Driver initialized successfully");
 
             } catch (Exception e) {

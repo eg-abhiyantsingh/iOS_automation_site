@@ -87,6 +87,18 @@ locators are predicate-heavy (2,944 predicate vs 257 accessibility-id).
   Issues remap like commit 8090737 did for SiteVisit. Location New-Floor/New-
   Room nav + CB_EAD "save not confirmed" are the next two clusters.
 
+## Session 2026-07-31 — Session Recording auto-disable (changelog 144)
+- Settings › Session Analytics › "Session Recording" defaults ON per clean
+  install and slows the app; NO_RESET=false ⇒ every new Appium session is a
+  clean install, so it re-arms mid-suite. Fix: `DriverManager.
+  freshInstallCheckPending` (armed per session creation) consumed by
+  `BaseTest.ensureSessionRecordingDisabledIfFreshInstall()` at the first safe
+  Dashboard moment (wired via loginAndSelectSite/Turbo wrappers — proven cores
+  renamed `*Core()`, untouched). New `pages/SettingsPage` (label-anchored switch
+  strategies — NEVER "first switch": Network Mode is on the same screen).
+  Kill switch `DISABLE_SESSION_RECORDING=false`. Canary
+  `SettingsSessionRecording_Test` (TC_SET_001-003) in testng-auth.xml + testng.xml.
+
 ## How to run
 - Self-tests (no device): `mvn -o -DsuiteXmlFile=testng-verify-selftest.xml test`
 - Exploratory crawl (macOS + live session): `RUN_EXPLORATORY=true mvn -Dtest=ExploratoryCrawlTest test`

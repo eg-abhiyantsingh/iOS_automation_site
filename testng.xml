@@ -8,6 +8,8 @@
         <classes>
             <class name="com.egalvanic.tests.AuthenticationTest"/>
             <class name="com.egalvanic.tests.Security_EdgeCase_Test"/>
+            <!-- Canary: fresh-install auto-disable of Settings › Session Recording (perf) -->
+            <class name="com.egalvanic.tests.SettingsSessionRecording_Test"/>
         </classes>
     </test>
 

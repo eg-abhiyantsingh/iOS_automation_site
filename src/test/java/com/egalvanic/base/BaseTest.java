@@ -3,6 +3,7 @@ package com.egalvanic.base;
 import com.egalvanic.constants.AppConstants;
 import com.egalvanic.pages.AssetPage;
 import com.egalvanic.pages.LoginPage;
+import com.egalvanic.pages.SettingsPage;
 import com.egalvanic.pages.SiteSelectionPage;
 import com.egalvanic.pages.WelcomePage;
 import com.egalvanic.utils.DriverManager;
@@ -23,6 +24,7 @@ public class BaseTest {
     protected LoginPage loginPage;
     protected SiteSelectionPage siteSelectionPage;
     protected AssetPage assetPage;
+    protected SettingsPage settingsPage;
 
     // Flag to skip setup/teardown for chained tests
     protected static boolean skipNextSetup = false;
@@ -182,6 +184,7 @@ public class BaseTest {
                 loginPage = new LoginPage();
                 siteSelectionPage = new SiteSelectionPage();
                 assetPage = new AssetPage();
+                settingsPage = new SettingsPage();
                 return;
             }
         }
@@ -247,6 +250,7 @@ public class BaseTest {
         loginPage = new LoginPage();
         siteSelectionPage = new SiteSelectionPage();
         assetPage = new AssetPage();
+        settingsPage = new SettingsPage();
 
         // FAST app state detection (2 seconds max)
         // Skip waiting for welcome page if already logged in
@@ -1039,6 +1043,77 @@ public class BaseTest {
     private static final java.util.concurrent.atomic.AtomicInteger consecutiveSiteLoadFailures =
             new java.util.concurrent.atomic.AtomicInteger(0);
 
+    /** Detour attempts that failed this JVM — after 2 the pass disarms for good. */
+    private static final java.util.concurrent.atomic.AtomicInteger sessionRecordingDetourFailures =
+            new java.util.concurrent.atomic.AtomicInteger(0);
+
+    /**
+     * One-shot post-install pass: Settings › Session Analytics › turn OFF
+     * "Session Recording". The toggle defaults ON in every clean install
+     * (NO_RESET=false ⇒ every new Appium session) and recording slows the app
+     * under automation. Armed by DriverManager at session creation; consumed
+     * here the first time we're safely on the Dashboard, so the detour can
+     * never hijack a test that resumed mid-app. Failure never fails the test —
+     * a missed pass costs speed, not correctness — but it is logged loudly and
+     * gives up after 2 attempts per JVM. Kill switch: DISABLE_SESSION_RECORDING=false.
+     */
+    protected final void ensureSessionRecordingDisabledIfFreshInstall() {
+        if (!AppConstants.DISABLE_SESSION_RECORDING) return;
+        if (!DriverManager.isFreshInstallCheckPending()) return;
+        if (sessionRecordingDetourFailures.get() >= 2) {
+            DriverManager.consumeFreshInstallCheckPending();
+            return; // already warned twice this JVM — stop burning time on it
+        }
+        // Only detour from the Dashboard (tab bar guaranteed, no test flow to
+        // disturb). If login ended mid-app, leave the flag armed — the next
+        // loginAndSelectSite() that lands on the Dashboard picks it up.
+        if (assetPage == null || !assetPage.isDashboardDisplayedFast()) return;
+        if (!DriverManager.consumeFreshInstallCheckPending()) return;
+
+        long t0 = System.currentTimeMillis();
+        // Fresh page object on purpose: the cached field may hold a dead driver
+        // after a WDA-rebuild recovery; the constructor grabs the live one.
+        SettingsPage sp = new SettingsPage();
+        try {
+            System.out.println("🎛️ New app session — ensuring Settings › Session Recording is OFF (perf)");
+            if (!sp.openSettingsTab()) {
+                throw new IllegalStateException("Settings tab did not open");
+            }
+            if (!sp.disableSessionRecordingIfOn()) {
+                throw new IllegalStateException("Session Recording could not be confirmed OFF");
+            }
+            System.out.println("🎛️ Session Recording confirmed OFF in "
+                    + (System.currentTimeMillis() - t0) + "ms");
+        } catch (Throwable t) {
+            sessionRecordingDetourFailures.incrementAndGet();
+            System.out.println("⚠️ Session Recording auto-disable failed (attempt "
+                    + sessionRecordingDetourFailures.get() + "/2, tests continue — app just "
+                    + "runs with recording ON): " + t.getMessage());
+        } finally {
+            // Tests assume login ends on the Dashboard — always come back.
+            try {
+                sp.openSiteTab();
+                if (assetPage != null && !assetPage.isDashboardDisplayedFast()) {
+                    sp.openSiteTab(); // one soft retry — tab tap can race the push animation
+                }
+            } catch (Throwable t2) {
+                System.out.println("⚠️ Return to Site tab after settings pass failed: "
+                        + t2.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Standard login entry point for all suites. Delegates to the proven core
+     * flow, then runs the one-shot fresh-install settings pass (Session
+     * Recording OFF) the first time we're safely on the Dashboard after a new
+     * Appium session. The pass is a no-op unless DriverManager armed it.
+     */
+    protected final void loginAndSelectSite() {
+        loginAndSelectSiteCore();
+        ensureSessionRecordingDisabledIfFreshInstall();
+    }
+
     /**
      * ╔══════════════════════════════════════════════════════════════╗
      * ║ CRITICAL: DO NOT MODIFY THIS METHOD ║
@@ -1047,7 +1122,7 @@ public class BaseTest {
      * ║ Status: PRODUCTION READY - TESTED & VERIFIED ║
      * ╚══════════════════════════════════════════════════════════════╝
      */
-    protected final void loginAndSelectSite() {
+    private void loginAndSelectSiteCore() {
         // FAST PATH: Check Dashboard first (1 second max) — skip full detection on happy path
         if (assetPage != null && assetPage.isDashboardDisplayedFast()) {
             System.out.println("✅ loginAndSelectSite — already on Dashboard (fast check)");
@@ -1261,6 +1336,11 @@ public class BaseTest {
      * ╚══════════════════════════════════════════════════════════════╝
      */
     protected final void loginAndSelectSiteTurbo() {
+        loginAndSelectSiteTurboCore();
+        ensureSessionRecordingDisabledIfFreshInstall();
+    }
+
+    private void loginAndSelectSiteTurboCore() {
         long start = System.currentTimeMillis();
 
         // FAST PATH: Check Dashboard first (1 second max)
@@ -1308,12 +1388,13 @@ public class BaseTest {
      */
     protected final void loginAndSelectRandomSiteFast() {
         performLogin();
-        
+
         System.out.println("⚡ Selecting random site (fast)...");
         String site = siteSelectionPage.selectRandomSiteUltraFast();
         System.out.println("⚡ Random site: " + site);
-        
+
         siteSelectionPage.waitForDashboardFast();
+        ensureSessionRecordingDisabledIfFreshInstall();
     }
 
 

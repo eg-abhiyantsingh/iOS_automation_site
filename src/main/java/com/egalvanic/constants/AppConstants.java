@@ -162,6 +162,7 @@ public class AppConstants {
     public static final String MODULE_ISSUES = "Issues";
     public static final String MODULE_JOBS = "Jobs/Site Visits";
     public static final String MODULE_OFFLINE = "Offline Mode";
+    public static final String MODULE_SETTINGS = "Settings";
     public static final String MODULE_SMOKE_TEST = "Smoke Test";
     public static final String MODULE_ASSET_ENGINEER = "Asset Engineering";
     public static final String MODULE_ARC_FLASH = "Arc Flash";
@@ -330,6 +331,15 @@ public class AppConstants {
     // Override in specific tests using DriverManager.setNoReset(true) for Edit Asset tests
     public static final boolean FULL_RESET = false;  // true = always reinstall app
     public static final boolean NO_RESET = false;    // DEFAULT: false = clean install
+
+    // Auto-disable Settings › Session Analytics › "Session Recording" after each
+    // fresh app install. The toggle defaults ON and (per the app's own subtitle)
+    // keeping it off improves performance and reduces battery usage — recording
+    // slows every screen under automation. Runs once per Appium session, right
+    // after the first login lands on the Dashboard. Kill switch for CI rollback:
+    // DISABLE_SESSION_RECORDING=false (env or -D).
+    public static final boolean DISABLE_SESSION_RECORDING = Boolean.parseBoolean(
+        getEnv("DISABLE_SESSION_RECORDING", "true"));
     
  // Set to true to send email reports
 
