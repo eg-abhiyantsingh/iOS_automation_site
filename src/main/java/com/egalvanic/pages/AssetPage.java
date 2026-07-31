@@ -6510,6 +6510,16 @@ public class AssetPage extends BasePage {
      */
     public void selectAssetSubtype(String subtypeName) {
         System.out.println("📋 Selecting asset subtype: " + subtypeName);
+        // The whole dance runs with a clamped WDA snapshot depth: the ATS/Busway
+        // details form embeds Issues/Connections lists and full-depth queries
+        // mid-rebuild wedge or kill WDA (TC_ATS_ST_* family, runs 30577437951+).
+        withShallowSnapshots(20, () -> {
+            selectAssetSubtypeInner(subtypeName);
+            return null;
+        });
+    }
+
+    private void selectAssetSubtypeInner(String subtypeName) {
         clickSelectAssetSubtype();
         sleep(500);
 

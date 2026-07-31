@@ -325,6 +325,36 @@ public abstract class BasePage {
         }
     }
 
+    /**
+     * Run an action with a temporarily CLAMPED WDA snapshot depth, restoring
+     * the global value afterwards. The v1.51 Asset Details screen embeds whole
+     * Issues/Connections lists — at the global depth (40) a single findElements
+     * issued mid-rebuild can wedge or kill WDA (TC_ATS_ST_* family). Clamping
+     * to ~20 bounds every tree walk the action performs; controls on these
+     * forms all sit well above that depth.
+     */
+    protected <T> T withShallowSnapshots(int depth, java.util.function.Supplier<T> action) {
+        boolean clamped = false;
+        try {
+            ((io.appium.java_client.HasSettings) driver)
+                .setSetting("snapshotMaxDepth", depth);
+            clamped = true;
+        } catch (Exception e) {
+            System.out.println("⚠️ withShallowSnapshots: could not clamp depth: " + e.getMessage());
+        }
+        try {
+            return action.get();
+        } finally {
+            if (clamped) {
+                try {
+                    ((io.appium.java_client.HasSettings) driver)
+                        .setSetting("snapshotMaxDepth", com.egalvanic.constants.AppConstants.SNAPSHOT_MAX_DEPTH);
+                } catch (Exception ignored) {
+                }
+            }
+        }
+    }
+
     // ================================================================
     // UTILITY METHODS (CI-safe explicit waits)
     // ================================================================

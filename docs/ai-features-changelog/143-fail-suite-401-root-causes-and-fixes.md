@@ -105,3 +105,19 @@ Residual REAL clusters from shard-1 + local evidence (next iteration targets):
 5. SiteVisit p1: Quick QR dropdown not tappable; Started row anatomy changed.
 6. ArcFlash busway details fields; LC_EAD Loadcenter core attributes (B11:
    picker can't select Loadcenter — fixture asset needed).
+
+## CI verification round 2 + wedge containment (2026-07-31 早)
+
+- Rerun-2 (30597585221): all 3 runners' WDA died inside the alphabetically-first
+  Asset_Phase1/5 wedge tests → breaker starved ~330 downstream tests again.
+- **Containment shipped:** `build-failed-suite.py` now emits Asset_Phase1/3/5
+  LAST (`preserve-order="true"`); latest.xml regenerated; rerun-3 (30602992266)
+  dispatched on the reordered suite.
+- ArcFlashAssetMatrix: null page-source guard (was NPE 'this.text is null').
+- `BasePage.withShallowSnapshots(depth)` added and wrapped around
+  selectAssetSubtype (clamps WDA snapshotMaxDepth for the wedge-prone dance).
+- **Subtype-row lifecycle discovery:** the v1.51 Subtype picker row exists ONLY
+  while a class change is pending/unsaved; on an already-ATS asset there is no
+  row at all — the TC_*_ST_* family needs a dirty-state reshape (memory note
+  v151-subtype-row-lifecycle-hypothesis). Additionally the shared-asset cache
+  order got polluted by E2E marker renames, making repro flip-flop.
