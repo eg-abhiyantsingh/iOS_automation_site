@@ -121,3 +121,15 @@ Residual REAL clusters from shard-1 + local evidence (next iteration targets):
   row at all — the TC_*_ST_* family needs a dirty-state reshape (memory note
   v151-subtype-row-lifecycle-hypothesis). Additionally the shared-asset cache
   order got polluted by E2E marker renames, making repro flip-flop.
+
+## Final session state (2026-07-31)
+
+- Rerun-3 (30602992266, wedge-last suite): SiteSelection 16 fails → 13 PASS;
+  LocationTest holds (18 PASS in the shard that ran); CI macOS runners died
+  early on all 3 consecutive reruns (WDA session-init deaths — infra flake,
+  needs a quieter runner window).
+- TC_ISS_032 PASSES locally (v1.51 / iOS 26.2) — the Issue_Phase1 readback +
+  NFPA-scan cluster reproduces ONLY on CI's iOS 18.5 sims → follow-up needs a
+  CI-dispatched probe, not local iteration.
+- Follow-ups queued: TC_*_ST_* dirty-state reshape (subtype-row lifecycle),
+  Issues-P1 iOS-18.5 probe, LC_EAD Loadcenter fixture, runner-flake window.
