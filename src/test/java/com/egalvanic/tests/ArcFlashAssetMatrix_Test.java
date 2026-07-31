@@ -363,7 +363,17 @@ public class ArcFlashAssetMatrix_Test extends BaseTest {
         }, 6000);
         // Read the whole detail surface ONCE via page source (query layer is
         // unreliable on heavy detail DOMs) and evaluate labels + values on it.
+        // getPageSource can return NULL when WDA is mid-wedge (run 30597585221:
+        // Pattern.matcher(null) NPE'd as 'this.text is null') — retry once, then
+        // fail honestly instead of NPE-ing inside the regex scan.
         String source = DriverManager.getDriver().getPageSource();
+        if (source == null) {
+            sleep(1500);
+            source = DriverManager.getDriver().getPageSource();
+        }
+        assertTrue(source != null,
+            className + ": WDA returned a null page source twice — session is wedged/dying; "
+            + "failing fast with a diagnosable message instead of an NPE");
         List<String> presentLabels = new ArrayList<>();
         StringBuilder valueLog = new StringBuilder();
         scanLabels(source, labels, presentLabels, valueLog);

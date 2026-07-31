@@ -220,9 +220,22 @@ def shard_groups(failures, cascades, shard_idx, shard_total):
     return shard_fail, shard_casc
 
 
+# Classes whose v1.51 edit-form flows are known to WEDGE/KILL the WDA session
+# (giant post-class-change DOMs: ATS/Capacitor/Busway/Loadcenter edit screens).
+# They run LAST so a wedge-triggered DeadSessionCircuitBreaker can only starve
+# the tail — not the ~300 healthy tests that used to sort after them
+# alphabetically (runs 30577437951/30597585221: shards died in Asset_Phase1/5
+# and the breaker skipped everything downstream).
+WEDGE_PRONE_LAST = (
+    "com.egalvanic.tests.Asset_Phase1_Test",
+    "com.egalvanic.tests.Asset_Phase3_Test",
+    "com.egalvanic.tests.Asset_Phase5_Test",
+)
+
+
 def _classes_block(lines, group):
     lines.append('        <classes>')
-    for fqcn in sorted(group):
+    for fqcn in sorted(group, key=lambda c: (c in WEDGE_PRONE_LAST, c)):
         lines.append(f'            <class name="{fqcn}">')
         lines.append('                <methods>')
         for method in sorted(group[fqcn]):
@@ -258,11 +271,11 @@ def write_suite(failures, cascades, the_date, run_id):
              '    <listeners>',
              '        <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>',
              '    </listeners>',
-             f'    <test name="CI Failures {the_date}">']
+             f'    <test name="CI Failures {the_date}" preserve-order="true">']
     _classes_block(lines, failures if n_fail else cascades)
     lines.append('    </test>')
     if n_fail and n_casc:
-        lines.append(f'    <test name="Cascade-skip recovery {the_date}">')
+        lines.append(f'    <test name="Cascade-skip recovery {the_date}" preserve-order="true">')
         _classes_block(lines, cascades)
         lines.append('    </test>')
     lines += ['</suite>', '']
