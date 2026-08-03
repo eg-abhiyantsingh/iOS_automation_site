@@ -56,9 +56,58 @@ same-named rows, matches on the row's `sld_id`; brace-walk factored into
 `WorkTypeBaseTest.ensureFixturesOnLandedSite`. This also explains part of the
 CI 07-25 wave: outage + any drift makes all list-driven WT tests skip/fail.
 
-### WorkType_Details_Test (17) / WorkType_Behavior_Test (37) / WorkType_CrossCutting_Test (27)
+**Round 2 on the fixed build: 27/27 PASS (38 min).** The entire List cluster
+was environment (drift + unscoped ensure), zero app bugs, zero locator drift.
 
-(results pending — batches relaunched on the fixed build)
+### WorkType_Details_Test (17 failed on CI) — 17/17 PASS on the fixed build (33 min)
+
+Same root cause as List: fixture reachability. No app or locator issues.
+
+### WorkType_Behavior_Test (37 failed on CI) — 28 PASS / 9 honest-SKIP / 0 fail (63 min)
+
+The 9 skips are the designed probe-dependent gates ("no PM_FORMS candidate
+tab (Forms/Tasks) detectable" on WT03/04/06/07, "no IR candidate tab" on
+WT08): the freshly-provisioned fixtures on 'Test QA 16' carry no
+rooms/assets/forms yet, so the category surface legitimately doesn't
+materialize. Re-runs will exercise these once the fixtures accrete session
+content (or a room/asset seeding pass is added for the drifted site).
+
+### WorkType_CrossCutting_Test (27 failed on CI) — 2 framework defects found & fixed
+
+- **TC_WT_X_PAR_14 — NPE in the assert wrapper (framework bug, could never
+  pass).** `BaseTest.assertEquals` did `expected.equals(actual)` — throws NPE
+  the moment a test legitimately expects `null` (QA-WT00's
+  `work_type_id = null` contract). Fixed with `java.util.Objects.equals`.
+- **TC_WT_X_CAN_01 — verifyNotBlank false-RED on presented sheets (framework
+  bug).** The v1.51 "New Work Order" sheet renders full content while EVERY
+  descendant reports `visible == 0` to the accessibility census — the 10s DOM
+  poll saw 0 elements and failed, but the failure screenshot shows a fully
+  rendered form. Fix: pixel-level second opinion — when the DOM census stays
+  empty, `UIStateValidator` now screenshots and consults
+  `ImageAnalysis.looksBlank()` (same thresholds AssetLoadVerifier trusts);
+  a truly blank screen still goes RED. Three new driver-free self-tests in
+  `NotBlankPollingSelfTest` (fallback rescues sheet-quirk, does NOT weaken the
+  truly-blank verdict, and never runs when the census is healthy).
+
+**Batch result: 24 PASS / 3 FAIL (26 min); all 3 fails re-run GREEN on the
+fixed build** (PAR_14 6s, CAN_01 67s — log shows the 🖼️ pixel fallback firing
+on the sheet quirk exactly once, LEG_02 21s).
+
+## Final scorecard (112 CI failures re-checked live)
+
+| Class | CI 07-25 | Live 2026-08-03/04 | Verdict |
+|---|---|---|---|
+| WorkOrder_Features (MORE) | 2 fail | 2 fail (reproduced) | **REAL — WO-MORE-01** (ZP-3054 affordance absent in v1.51) |
+| WorkTypeCatalog | 2 fail | 2 pass | stale re-baseline + outage |
+| WorkType_List | 27 fail | 27 pass | outage/drift + unscoped-ensure framework bug (fixed) |
+| WorkType_Details | 17 fail | 17 pass | same |
+| WorkType_Behavior | 37 fail | 28 pass, 9 designed-skip | same; skips = fresh fixtures carry no rooms/forms yet |
+| WorkType_CrossCutting | 27 fail | 27 pass after 2 framework fixes | assertEquals null-NPE + verifyNotBlank sheet false-RED |
+
+Framework fixes shipped: site-scoped fixture ensure
+(`findWorkOrderIdByNameOnSld`), null-safe `BaseTest.assertEquals`,
+pixel-fallback `UIStateValidator.assertNotBlank` (+3 self-tests; suite 37/37
+green). Verifier self-test suite and `mvn -o test-compile` both green.
 
 ## New probes added
 

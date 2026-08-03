@@ -67,6 +67,33 @@ public class NotBlankPollingSelfTest {
     }
 
     @Test
+    public void emptyCensusButScreenshotRendered_passes_sheetVisibleQuirk() {
+        // v1.51 presented sheets: whole subtree reports visible==0 while the
+        // screen renders full content — the pixel fallback must rescue it.
+        UIStateValidator.assertNotBlank("presented sheet",
+                () -> 0, () -> false, () -> true, WINDOW_MS, INTERVAL_MS); // must NOT throw
+    }
+
+    @Test
+    public void emptyCensusAndBlankScreenshot_stillFAILS() {
+        // The fallback must not weaken the verifier: DOM empty + pixels blank = RED.
+        assertThrows(VerificationError.class, () ->
+                UIStateValidator.assertNotBlank("truly blank",
+                        () -> 0, () -> false, () -> false, WINDOW_MS, INTERVAL_MS));
+    }
+
+    @Test
+    public void renderedFallback_isLastResort_notConsultedWhenCensusPopulates() {
+        AtomicInteger fallbackCalls = new AtomicInteger();
+        UIStateValidator.assertNotBlank("healthy census",
+                () -> 7, () -> false,
+                () -> { fallbackCalls.incrementAndGet(); return true; },
+                WINDOW_MS, INTERVAL_MS);
+        assertEquals(fallbackCalls.get(), 0,
+                "screenshot fallback must not run when the DOM census already proves content");
+    }
+
+    @Test
     public void spinnerNeverResolvesIntoContent_FAILS_andVerdictSaysSo() {
         VerificationError e = expectThrows(VerificationError.class, () ->
                 UIStateValidator.assertNotBlank("stuck spinner",

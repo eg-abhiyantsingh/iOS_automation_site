@@ -36,7 +36,7 @@ public final class UIStateValidator {
             // to 0 so an empty census costs one snapshot (next probe in 500ms), not 5s.
             d.manage().timeouts().implicitlyWait(Duration.ZERO);
             assertNotBlank(screen, this::visibleContentCount, this::loadingIndicatorVisible,
-                    BLANK_POLL_WINDOW_MS, BLANK_POLL_INTERVAL_MS);
+                    this::screenshotLooksRendered, BLANK_POLL_WINDOW_MS, BLANK_POLL_INTERVAL_MS);
         } finally {
             try {
                 d.manage().timeouts().implicitlyWait(Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
@@ -52,6 +52,11 @@ public final class UIStateValidator {
      */
     static void assertNotBlank(String screen, IntSupplier census, BooleanSupplier loadingVisible,
                                long windowMs, long intervalMs) {
+        assertNotBlank(screen, census, loadingVisible, () -> false, windowMs, intervalMs);
+    }
+
+    static void assertNotBlank(String screen, IntSupplier census, BooleanSupplier loadingVisible,
+                               BooleanSupplier renderedFallback, long windowMs, long intervalMs) {
         long deadline = System.currentTimeMillis() + windowMs;
         boolean sawLoading = false;
         int content;
@@ -63,10 +68,37 @@ public final class UIStateValidator {
             if (System.currentTimeMillis() >= deadline) break;
             pause(intervalMs);
         }
+        // Pixel-level second opinion before failing: presented sheets can hide
+        // the whole subtree from the accessibility census (visible==0 quirk).
+        if (renderedFallback.getAsBoolean()) {
+            System.out.println("🖼️ assertNotBlank(" + screen + "): DOM census saw only " + content
+                    + " elements but the screenshot is visibly rendered — presented-sheet "
+                    + "visible==0 quirk; treating as non-blank");
+            return;
+        }
         throw new VerificationError("Blank/empty screen: " + screen
                 + " (only " + content + " visible content elements after " + (windowMs / 1000) + "s"
                 + (sawLoading ? "; a loading indicator was visible but never resolved into content" : "")
                 + ")");
+    }
+
+    /**
+     * Pixel-level second opinion for the DOM census. SwiftUI presented sheets
+     * (v1.51 New Work Order form, observed live 2026-08-04) can report EVERY
+     * descendant visible==0 while the screen renders full content — a 0-element
+     * census with a visibly rich screenshot. A blank screen has near-uniform
+     * pixels; a rendered form does not (ImageAnalysis thresholds are the same
+     * ones AssetLoadVerifier trusts).
+     */
+    private boolean screenshotLooksRendered() {
+        try {
+            byte[] png = driver().getScreenshotAs(org.openqa.selenium.OutputType.BYTES);
+            java.awt.image.BufferedImage img = javax.imageio.ImageIO.read(
+                    new java.io.ByteArrayInputStream(png));
+            return img != null && !ImageAnalysis.analyzeFull(img).looksBlank();
+        } catch (Exception e) {
+            return false; // no screenshot -> no second opinion, keep the DOM verdict
+        }
     }
 
     private int visibleContentCount() {

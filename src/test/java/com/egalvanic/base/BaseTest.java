@@ -1462,7 +1462,9 @@ public class BaseTest {
      * Assert equals with logging
      */
     protected void assertEquals(Object actual, Object expected, String message) {
-        if (expected.equals(actual)) {
+        // Null-safe: expected == null is a legitimate contract (e.g. QA-WT00's
+        // work_type_id must persist as null) — expected.equals(...) NPE'd here.
+        if (java.util.Objects.equals(expected, actual)) {
             logStep("✅ Assertion passed: " + message);
         } else {
             String errorMsg = message + " - Expected: " + expected + ", Actual: " + actual;
