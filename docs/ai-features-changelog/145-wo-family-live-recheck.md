@@ -31,7 +31,9 @@ app v1.51, backend healthy (login probe 400/1.4s).
   Back/refresh/QR. Logged as **WO-MORE-01** in BUGS.md (candidate — needs
   product confirmation the menu wasn't intentionally dropped). TC_WO_MORE_01/02
   stay RED honestly.
-- **TC_WO_SYNC_01 —** (result pending in this doc)
+- **TC_WO_SYNC_01 — PASS locally (2m19s):** 3 tasks queued offline, queue
+  drained to zero on reconnect without hanging (ZP-3092 healthy in v1.51);
+  the CI failure was an outage artifact.
 
 ### WorkTypeCatalog_Test (2 failed on CI) — 2/2 PASS locally
 
