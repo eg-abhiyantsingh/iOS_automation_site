@@ -107,7 +107,9 @@ public abstract class WorkTypeBaseTest extends BaseTest {
             }
             System.out.println("🌱 ensuring QA-WT fixtures on '" + landedSiteName + "' (" + landedSldId + ")");
             for (WorkTypeCatalog wt : WorkTypeCatalog.values()) {
-                String existing = a.findWorkOrderIdByName(wt.fixtureName());
+                // Site-scoped: same-named fixtures on OTHER sites must not
+                // satisfy the ensure (first-site drift, 2026-08-03).
+                String existing = a.findWorkOrderIdByNameOnSld(wt.fixtureName(), landedSldId);
                 if (existing == null) {
                     a.createWorkOrder(wt.fixtureName(), wt.serviceId(), landedSldId,
                             "FLUKE", "Medium", 8);

@@ -265,3 +265,23 @@ checks stay green, so this only bites across interrupted sessions.
 **Also noted:** the QA backend applies sync mutations asynchronously with
 multi-minute lag (ir_session is_deleted updates + node renames observed
 pending >30 min) — post-sync backend verification must poll or soft-report.
+
+## WO-MORE-01 (candidate, 2026-08-03) — ZP-3054 "More Actions" affordance ABSENT in v1.51 active-session UI
+
+**Evidence (exhaustive DOM sweep, local iPhone 17 Pro Max / iOS 26.2, app 1.51):**
+`WorkTypeProbe_Test.PROBE_C_moreActionsHunt` + `PROBE_D_moreActionsTabSweep`
+dumped every visible button on the WO list, ALL six session tabs
+(Details/Assets/Tasks/Issues/IR/Files), and the session room:
+- Nav zone contains only `Done` + `arrow.clockwise` (tapping it opens NO
+  sheet/menu — it is sync/refresh);
+- Zero buttons matching `More`/`ellipsis` on ANY surface (global scan);
+- Room surface: `BackButton`, `arrow.clockwise`, `qrcode.viewfinder` only.
+
+**Expected (ZP-3054):** an ellipsis/"More Actions" menu in the active Work
+Order session.
+
+**Impact:** whatever actions the menu carried are unreachable; feature either
+removed, redesigned, or regressed between v1.50 and v1.51.
+
+**Tests:** `TC_WO_MORE_01/02` stay RED (honest fail, not remapped) until
+dev/product confirms whether the affordance was intentionally dropped.

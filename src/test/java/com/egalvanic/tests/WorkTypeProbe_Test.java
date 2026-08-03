@@ -190,6 +190,104 @@ public class WorkTypeProbe_Test extends BaseTest {
         logStepWithScreenshot("probe B complete");
     }
 
+    @Test(priority = 3)
+    public void PROBE_C_moreActionsHunt() {
+        ExtentReportManager.createTest(AppConstants.MODULE_JOBS, "WorkType Probe",
+                "PROBE C - ZP-3054 More Actions affordance hunt in active session (v1.51)");
+        loginAndSelectSite();
+        siteSelectionPage.clickWorkOrderCard();
+        shortWait();
+        assertTrue(wo.waitForWorkOrdersScreen(), "Work Orders screen must open");
+        if (!wo.startFirstAvailableWorkOrder()) {
+            System.out.println("PROBE| could not activate a work order");
+            return;
+        }
+        if (!wo.openActiveWorkOrderSession()) {
+            System.out.println("PROBE| active session did not open");
+            return;
+        }
+        DriverManager.getDriver().manage().timeouts().implicitlyWait(Duration.ZERO);
+        try {
+            // 1. Every visible button in the nav zone (y < 200).
+            dumpMatches("navButtons", "type == 'XCUIElementTypeButton' AND visible == 1 AND rect.y < 200");
+            // 2. Any ellipsis/More/menu-ish affordance anywhere.
+            dumpMatches("moreish", "type == 'XCUIElementTypeButton' AND (name CONTAINS[c] 'more' "
+                    + "OR name CONTAINS 'ellipsis' OR name CONTAINS 'circle' OR name CONTAINS 'arrow')");
+            // 3. Nav bar identity.
+            dumpMatches("navBars", "type == 'XCUIElementTypeNavigationBar'");
+            // 4. Tap the top-right nav button (screenshot shows a circular-arrow icon) and dump result.
+            List<WebElement> nav = DriverManager.getDriver().findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND visible == 1 AND rect.y < 200 AND rect.x > 250"));
+            if (!nav.isEmpty()) {
+                WebElement tr = nav.get(nav.size() - 1);
+                System.out.println("PROBE| tapping top-right nav button '" + tr.getAttribute("name") + "'");
+                Rectangle r = tr.getRect();
+                DriverManager.getDriver().executeScript("mobile: tap",
+                        java.util.Map.of("x", r.x + r.width / 2, "y", r.y + r.height / 2));
+                mediumWait();
+                dumpMatches("afterTapButtons", "type == 'XCUIElementTypeButton' AND visible == 1");
+                dumpMatches("afterTapSheets", "type == 'XCUIElementTypeSheet' OR type == 'XCUIElementTypeAlert' "
+                        + "OR (type == 'XCUIElementTypeOther' AND name == 'Sheet Grabber')");
+                // Dismiss whatever opened.
+                wo.dismissMoreActionsMenu();
+            }
+            // 5. Also check the session ROOM surface (More may live there).
+            if (wo.openFirstSessionRoom()) {
+                dumpMatches("roomNavButtons", "type == 'XCUIElementTypeButton' AND visible == 1 AND rect.y < 200");
+                dumpMatches("roomMoreish", "type == 'XCUIElementTypeButton' AND (name CONTAINS[c] 'more' "
+                        + "OR name CONTAINS 'ellipsis')");
+            }
+        } finally {
+            DriverManager.getDriver().manage().timeouts()
+                    .implicitlyWait(Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
+        }
+        logStepWithScreenshot("probe C complete");
+    }
+
+    @Test(priority = 4)
+    public void PROBE_D_moreActionsTabSweep() {
+        ExtentReportManager.createTest(AppConstants.MODULE_JOBS, "WorkType Probe",
+                "PROBE D - ZP-3054 hunt across ALL session tabs + WO list nav");
+        loginAndSelectSite();
+        siteSelectionPage.clickWorkOrderCard();
+        shortWait();
+        assertTrue(wo.waitForWorkOrdersScreen(), "Work Orders screen must open");
+        DriverManager.getDriver().manage().timeouts().implicitlyWait(Duration.ZERO);
+        try {
+            // WO LIST surface first.
+            dumpMatches("listNavButtons", "type == 'XCUIElementTypeButton' AND visible == 1 AND rect.y < 200");
+            dumpMatches("listMoreish", "type == 'XCUIElementTypeButton' AND (name CONTAINS[c] 'more' OR name CONTAINS 'ellipsis')");
+        } finally {
+            DriverManager.getDriver().manage().timeouts()
+                    .implicitlyWait(Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
+        }
+        if (!wo.startFirstAvailableWorkOrder()) { System.out.println("PROBE| no WO activated"); return; }
+        if (!wo.openActiveWorkOrderSession()) { System.out.println("PROBE| session did not open"); return; }
+        DriverManager.getDriver().manage().timeouts().implicitlyWait(Duration.ZERO);
+        try {
+            for (String tab : new String[]{"Details", "Assets", "Tasks", "Issues", "IR", "Files"}) {
+                try {
+                    WebElement t = DriverManager.getDriver().findElement(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeButton' AND name == '" + tab + "' AND visible == 1 AND rect.y > 800"));
+                    Rectangle r = t.getRect();
+                    DriverManager.getDriver().executeScript("mobile: tap",
+                            java.util.Map.of("x", r.x + r.width / 2, "y", r.y + r.height / 2));
+                    mediumWait();
+                } catch (Exception e) {
+                    System.out.println("PROBE| tab '" + tab + "' not tappable: " + e.getMessage());
+                    continue;
+                }
+                dumpMatches(tab + ".moreish", "type == 'XCUIElementTypeButton' AND visible == 1 AND "
+                        + "(name CONTAINS[c] 'more' OR name CONTAINS 'ellipsis')");
+                dumpMatches(tab + ".navBtns", "type == 'XCUIElementTypeButton' AND visible == 1 AND rect.y < 200");
+            }
+        } finally {
+            DriverManager.getDriver().manage().timeouts()
+                    .implicitlyWait(Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
+        }
+        logStepWithScreenshot("probe D complete");
+    }
+
     private void dumpMatches(String tag, String predicate) {
         try {
             List<WebElement> els = DriverManager.getDriver().findElements(

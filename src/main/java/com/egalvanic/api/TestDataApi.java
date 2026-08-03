@@ -403,6 +403,31 @@ public class TestDataApi {
         return extractSiblingField(listWorkOrdersJson(name), "name", name, "id");
     }
 
+    /**
+     * Id of the work order named exactly {@code name} whose row carries
+     * {@code sld_id == sldId}, or null. The QA-WT fixture family deliberately
+     * exists on MULTIPLE sites with identical names (gold spec / TC_WT_FIX_017),
+     * so an unscoped name lookup can return another site's fixture — which made
+     * ensure-passes no-op after first-site drift (fixtures "existed", but not on
+     * the landed site; every list-driven test then honest-skipped, 2026-08-03).
+     * Falls back to the unscoped lookup when {@code sldId} is null.
+     */
+    public String findWorkOrderIdByNameOnSld(String name, String sldId) {
+        if (sldId == null) return findWorkOrderIdByName(name);
+        String json = listWorkOrdersJson(name);
+        if (json == null || name == null) return null;
+        java.util.regex.Matcher m = java.util.regex.Pattern
+                .compile("\"name\"\\s*:\\s*\"" + java.util.regex.Pattern.quote(name) + "\"")
+                .matcher(json);
+        while (m.find()) {
+            String row = enclosingObject(json, m.start());
+            if (row != null && sldId.equals(extract(row, "sld_id"))) {
+                return extract(row, "id");
+            }
+        }
+        return null;
+    }
+
     /** work_type_id of the WO named {@code name} — null if unset (General/legacy) or WO absent. */
     public String workOrderWorkTypeId(String name) {
         return extractSiblingField(listWorkOrdersJson(name), "name", name, "work_type_id");
@@ -487,7 +512,10 @@ public class TestDataApi {
      * the WO id — self-heals the fixture family if someone deletes one.
      */
     public String ensureWorkOrderFixture(String fixtureName, String workTypeId, String sldId) {
-        String existing = findWorkOrderIdByName(fixtureName);
+        // Site-scoped: a same-named fixture on ANOTHER site must not satisfy
+        // the ensure (first-site drift left the landed site fixture-less while
+        // the unscoped lookup kept "finding" Wild Goose Brewery's copies).
+        String existing = findWorkOrderIdByNameOnSld(fixtureName, sldId);
         if (existing != null) return existing;
         return createWorkOrder(fixtureName, workTypeId, sldId, "FLUKE", "Medium", 8);
     }
@@ -551,9 +579,15 @@ public class TestDataApi {
                         + java.util.regex.Pattern.quote(matchValue) + "\"")
                 .matcher(json);
         if (!m.find()) return null;
+        String slice = enclosingObject(json, m.start());
+        return slice == null ? null : extract(slice, wantField);
+    }
+
+    /** Brace-balanced slice of the JSON object enclosing {@code pos}, or null. */
+    private static String enclosingObject(String json, int pos) {
         // Walk back to the '{' that opens the enclosing object…
         int depth = 0, start = -1;
-        for (int i = m.start() - 1; i >= 0; i--) {
+        for (int i = pos - 1; i >= 0; i--) {
             char c = json.charAt(i);
             if (c == '}') depth++;
             else if (c == '{') {
@@ -562,13 +596,13 @@ public class TestDataApi {
             }
         }
         if (start < 0) return null;
-        // …then forward to its matching '}' and extract within that slice.
+        // …then forward to its matching '}'.
         depth = 0;
         for (int i = start; i < json.length(); i++) {
             char c = json.charAt(i);
             if (c == '{') depth++;
             else if (c == '}' && --depth == 0) {
-                return extract(json.substring(start, i + 1), wantField);
+                return json.substring(start, i + 1);
             }
         }
         return null;
