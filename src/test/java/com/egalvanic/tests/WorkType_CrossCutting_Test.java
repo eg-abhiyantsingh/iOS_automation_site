@@ -419,13 +419,16 @@ public class WorkType_CrossCutting_Test extends WorkTypeBaseTest {
         TestDataApi a = requireApi("TC_WT_X_IDEM_01");
         WorkTypeCatalog wt = WorkTypeCatalog.INFRARED_THERMOGRAPHY;
         String fixture = wt.fixtureName();
-        String preexisting = a.findWorkOrderIdByName(fixture);
+        // SITE-SCOPED capture (2026-08-04): ensure is site-scoped now — an
+        // unscoped preexisting lookup can grab ANOTHER site's same-named copy
+        // and the idempotency compare false-fails (CI run 30900816509).
+        String sldForLookup = a.resolveSldIdByName(CROSS_SITE_NAME);
+        String preexisting = a.findWorkOrderIdByNameOnSld(fixture, sldForLookup);
         skipIfPreconditionMissing(() -> preexisting != null,
-                "TC_WT_X_IDEM_01: durable fixture '" + fixture + "' absent — the idempotency contract "
-                + "needs a pre-existing row (fresh provisioning is Class 1 territory)");
-        // Real sld id keeps an accidental create well-formed; it is unused on
-        // the find path because the fixture is known-present at this point.
-        String sld = a.resolveSldIdByName(CROSS_SITE_NAME);
+                "TC_WT_X_IDEM_01: durable fixture '" + fixture + "' absent on the cross site — the "
+                + "idempotency contract needs a pre-existing row (fresh provisioning is Class 1 territory)");
+        // Same sld as the capture above — scoped find + scoped ensure must agree.
+        String sld = sldForLookup;
         String first = a.ensureWorkOrderFixture(fixture, wt.serviceId(), sld);
         String second = a.ensureWorkOrderFixture(fixture, wt.serviceId(), sld);
         logStep("pre-existing=" + preexisting + " first=" + first + " second=" + second);
@@ -591,10 +594,10 @@ public class WorkType_CrossCutting_Test extends WorkTypeBaseTest {
         logStepWithScreenshot("TC_WT_X_LEG_01 verified: legacy row '" + composite + "' opened and closed cleanly");
     }
 
-    @Test(priority = 37, description = "TC_WT_X_LEG_02 - the legacy row visible on iOS carries work_type_id = null server-side (gold spec: null on all pre-work-type WOs)")
+    @Test(priority = 37, description = "TC_WT_X_LEG_02 - first 'Work Order - ' row: on-list work-type segment matches server work_type_id (null for legacy/General; v1.55 composites)")
     public void TC_WT_X_LEG_02_legacyRowHasNullWorkTypeServerSide() {
         ExtentReportManager.createTest(AppConstants.MODULE_JOBS, FEATURE_WT,
-                "TC_WT_X_LEG_02 - the legacy row visible on iOS carries work_type_id = null server-side (gold spec: null on all pre-work-type WOs)");
+                "TC_WT_X_LEG_02 - first 'Work Order - ' row: on-list work-type segment matches server work_type_id (null for legacy/General; v1.55 composites)");
         TestDataApi a = requireApi("TC_WT_X_LEG_02");
         openWorkOrdersScreenWT();
         boolean present = wo.scrollWorkOrderListTo("Work Order - ");
@@ -609,15 +612,39 @@ public class WorkType_CrossCutting_Test extends WorkTypeBaseTest {
         skipIfPreconditionMissing(() -> chipParses,
                 "TC_WT_X_LEG_02: legacy composite '" + comp + "' has no parseable Low/Medium/High "
                 + "priority suffix — cannot derive the exact server-side name from the row");
-        String legacyName = comp.substring(0, comp.length() - (", " + chip).length());
-        logStep("Derived legacy WO name: '" + legacyName + "' (chip " + chip + ")");
-        String id = a.findWorkOrderIdByName(legacyName);
+        String afterChip = comp.substring(0, comp.length() - (", " + chip).length());
+        // v1.55: list composites are '<name>, <workType>, <priority>' — the
+        // type segment (which itself may contain commas: 'Clean, Tighten,
+        // Torque') must be stripped by EXACT match against the 14 catalog
+        // display names, never by comma arithmetic (CI run 30900816509:
+        // the un-stripped type left in the name broke the API lookup).
+        String rowName = afterChip;
+        WorkTypeCatalog rowType = null;
+        for (WorkTypeCatalog cand : WorkTypeCatalog.values()) {
+            String suffix = ", " + cand.displayName();
+            if (afterChip.endsWith(suffix)) {
+                rowType = cand;
+                rowName = afterChip.substring(0, afterChip.length() - suffix.length());
+                break;
+            }
+        }
+        logStep("Derived WO name: '" + rowName + "' (chip " + chip + ", row type "
+                + (rowType == null ? "NONE (legacy)" : rowType.displayName()) + ")");
+        String id = a.findWorkOrderIdByName(rowName);
         assertTrue(id != null,
-                "Legacy WO '" + legacyName + "' visible on iOS must exist in the company WO list API — "
+                "WO '" + rowName + "' visible on iOS must exist in the company WO list API — "
                 + "a miss means UI/API name divergence");
-        assertEquals(a.workOrderWorkTypeId(legacyName), null,
-                "Pre-work-type legacy WO '" + legacyName + "' must carry work_type_id = null (gold spec §2)");
-        logStep("TC_WT_X_LEG_02 verified: legacy row is null-typed server-side");
+        if (rowType == null || rowType == WorkTypeCatalog.GENERAL) {
+            assertEquals(a.workOrderWorkTypeId(rowName), null,
+                    "Row '" + rowName + "' shows no service work type — server-side work_type_id must be "
+                    + "null (legacy/General contract, gold spec §2)");
+            logStep("TC_WT_X_LEG_02 verified: un-typed row is null-typed server-side");
+        } else {
+            assertEquals(a.workOrderWorkTypeId(rowName), rowType.serviceId(),
+                    "Row '" + rowName + "' shows type '" + rowType.displayName()
+                    + "' — server-side work_type_id must match the pinned service id (list↔API parity)");
+            logStep("TC_WT_X_LEG_02 verified: typed row's list segment matches its server work_type_id");
+        }
     }
 
     // ═════════════════════════════════════════════════════════════════════

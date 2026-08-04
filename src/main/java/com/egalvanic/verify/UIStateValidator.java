@@ -118,6 +118,21 @@ public final class UIStateValidator {
     }
 
     private int visibleContentCount() {
+        // CHEAP-FIRST (2026-08-04): on rich screens the whole-tree visible==1
+        // census is the WDA-wedge vector (CI 18.5 sims died on the 47-row WO
+        // list: TimeoutException → session death across three slices). Two
+        // first-match probes prove "not blank" for a fraction of the snapshot
+        // cost — the full census only runs for genuinely sparse screens.
+        int cheap = 0;
+        for (String probe : new String[]{
+                "type == 'XCUIElementTypeNavigationBar'",
+                "type == 'XCUIElementTypeButton' AND visible == 1",
+                "type == 'XCUIElementTypeStaticText' AND visible == 1"}) {
+            try {
+                driver().findElement(AppiumBy.iOSNsPredicateString(probe));
+                if (++cheap >= MIN_CONTENT_ELEMENTS) return cheap;
+            } catch (Exception ignored) { }
+        }
         try {
             return driver().findElements(AppiumBy.iOSNsPredicateString(
                     "visible == 1 AND (type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' "
@@ -126,10 +141,11 @@ public final class UIStateValidator {
         } catch (Exception censusFailure) {
             // Giant-DOM screens (e.g. 100+ row Work Orders lists) can wedge the
             // full visible==1 census in WDA (proxy TimeoutException — observed
-            // live 2026-07-21 on TC_WT_LIST_308). Fall back to bounded
-            // first-match probes: MIN_CONTENT_ELEMENTS hits prove non-blank
-            // cheaply; a fully wedged WDA still fails loudly below.
-            int cheap = 0;
+            // live 2026-07-21 on TC_WT_LIST_308). Re-try the bounded
+            // first-match probes (the census may have wedged WDA into a state
+            // where they now behave differently); a fully wedged WDA still
+            // fails loudly below.
+            cheap = 0;
             for (String probe : new String[]{
                     "type == 'XCUIElementTypeNavigationBar'",
                     "type == 'XCUIElementTypeButton'",
