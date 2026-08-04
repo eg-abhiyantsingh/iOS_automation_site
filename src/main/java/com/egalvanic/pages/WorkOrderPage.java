@@ -24859,8 +24859,31 @@ public class WorkOrderPage extends BasePage {
      * startFirstAvailableWorkOrder(). Returns true when a session surface
      * (room list / session tabs) appears.
      */
+    /**
+     * Session surface = 'Assets in Room' nav OR the session tab bar. v1.55:
+     * the tab strip is WORK-TYPE-DEPENDENT (PM-forms sessions show
+     * Details/Assets/Issues/Files/More — no Tasks/IR; user screenshot +
+     * PROBE_L 2026-08-04) and the nav carries the WO's NAME (matches
+     * 'Work Order' only for default-named WOs) — the bottom-strip
+     * Details/Assets tabs are the variant-proof signal.
+     */
+    public boolean isSessionSurfacePresent() {
+        return existsNow(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeNavigationBar' AND (name == 'Assets in Room' OR name CONTAINS 'Work Order'))"
+                + " OR (type == 'XCUIElementTypeButton' AND name == 'IR' AND visible == 1)"
+                + " OR (type == 'XCUIElementTypeButton' AND name == 'Details' AND visible == 1 AND rect.y > 800)"
+                + " OR (type == 'XCUIElementTypeButton' AND name == 'Assets' AND visible == 1 AND rect.y > 800)"
+                + " OR (type == 'XCUIElementTypeStaticText' AND name == 'Assets in Room')"));
+    }
+
     public boolean openActiveWorkOrderSession() {
         try {
+            // v1.55: confirming the 'Start Work Order?' alert can land DIRECTLY
+            // on the session surface (no banner hop) — check before hunting.
+            if (isSessionSurfacePresent()) {
+                System.out.println("▶️ openActiveWorkOrderSession: already on the session surface (v1.55 direct-land)");
+                return true;
+            }
             // Banner shows 'Active Work Order' caption + the WO name; press it.
             WebElement banner = null;
             for (WebElement st : driver.findElements(AppiumBy.iOSNsPredicateString(
@@ -24868,19 +24891,30 @@ public class WorkOrderPage extends BasePage {
                 banner = st; break;
             }
             if (banner == null) {
-                System.out.println("\u26a0\ufe0f openActiveWorkOrderSession: no 'Active Work Order' banner (nothing active?)");
-                return false;
+                // v1.55: the Site-home 'Active Work Order' banner is GONE
+                // (dashboard WO chip replaced it) \u2014 open the ACTIVE-badged row
+                // on the Work Orders list instead (composites end ', ACTIVE').
+                WebElement activeRow = null;
+                for (WebElement rowEl : driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND visible == 1 AND name ENDSWITH ', ACTIVE'"))) {
+                    activeRow = rowEl;
+                    break;
+                }
+                if (activeRow == null) {
+                    System.out.println("\u26a0\ufe0f openActiveWorkOrderSession: no banner and no ACTIVE row (nothing active?)");
+                    return false;
+                }
+                System.out.println("\u25b6\ufe0f opening ACTIVE row '" + activeRow.getAttribute("name") + "' (v1.55 path)");
+                org.openqa.selenium.Rectangle ar = activeRow.getRect();
+                driver.executeScript("mobile: tap", java.util.Map.of("x", ar.x + 40, "y", ar.y + ar.height / 2));
+                sleep(1500);
+            } else {
+                org.openqa.selenium.Rectangle r = banner.getRect();
+                // Press the banner row (the caption sits inside the tappable Button).
+                driver.executeScript("mobile: tap", java.util.Map.of("x", r.x + 60, "y", r.y + r.height / 2));
+                sleep(1500);
             }
-            org.openqa.selenium.Rectangle r = banner.getRect();
-            // Press the banner row (the caption sits inside the tappable Button).
-            driver.executeScript("mobile: tap", java.util.Map.of("x", r.x + 60, "y", r.y + r.height / 2));
-            sleep(1500);
-            // Session surface = 'Assets in Room' nav OR the session tab bar
-            // (Details/Assets/Tasks/Issues/IR/Files).
-            return waitForCondition(() -> existsNow(AppiumBy.iOSNsPredicateString(
-                    "(type == 'XCUIElementTypeNavigationBar' AND (name == 'Assets in Room' OR name CONTAINS 'Work Order'))"
-                    + " OR (type == 'XCUIElementTypeButton' AND name == 'IR' AND visible == 1)"
-                    + " OR (type == 'XCUIElementTypeStaticText' AND name == 'Assets in Room')")), 10);
+            return waitForCondition(this::isSessionSurfacePresent, 10);
         } catch (Exception e) {
             System.out.println("\u26a0\ufe0f openActiveWorkOrderSession: " + e.getMessage());
             return false;

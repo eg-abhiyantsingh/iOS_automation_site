@@ -74,6 +74,56 @@ pass. Kill switch `ACCEPT_POLICY_UPDATE=false`.
   active WO is deleted server-side — End-Session primitive handles it
   (Start-alert path → cancel + report false).
 
-## Validation
+## Validation (local live, iPhone 17 Pro Max / iOS 26.2 / app v1.55)
 
-(filled in as the live runs complete)
+- **Create matrix (user ask "create 13 work orders one by one"): 14/14 PASS**
+  — one per catalog type incl. General; each = UI create with the type
+  selected in the picker → session auto-start proven (WO chip/banner) →
+  API `work_type_id` parity (null for General) → End Session via the chip
+  menu (alert-disambiguated primitive, "end-session → OK" in every log) →
+  soft-delete. E2E_007 first-pass failed on a >30s 'Creating work order...'
+  backend spike → dismiss window widened to 90s → retry green (95s).
+- QA-WTC residue swept via API post-run (14× HTTP 200; async-lag ghosts).
+- TC_WTC_FORM_001 green (40s) after the policy-sheet hook.
+- **Full module GREEN: Form 46/46, Picker 76/76, E2E create matrix 14/14,
+  canaries 2/2** (164/164 across two passes + fixes).
+- Two batch-run defects found & fixed en route:
+  1. **Sheet-open verifyNotBlank kills the WDA session** (unbounded visible==1
+     census over form+sheet; 2m40s wedge → 'session terminated') —
+     FORM_041/PICK_071 rewritten to the bounded 14-row census; both green.
+     UIStateValidator additionally lets a census-wedge fall through to the
+     pixel fallback (+2 self-tests) — fallback observed rescuing CAN_01 live.
+  2. **Mid-run simulator suspension** killed the first Picker batch at test 27
+     (breaker OPEN, 45 fast-skips) — rig recovered, tail re-run green.
+- CI: `run_worktype` dispatched on v1.55 (9 slices incl. the 3 new ones) —
+  run 30900816509.
+
+## Form-filing flow ("file the form", user-demonstrated) — IN PROGRESS
+
+User flow: session → Assets tree → asset → 'No forms for this asset' →
+**Add Form** → template sheet ('OTHER FORMS', 'Applies to:' class lists) →
+fill text areas + Printed Name + **drawn Technician Signature** → save via
+nav checkmark → asset row gains a green check; session Details shows the
+work-type chip + 'Forms Completed' ring. PROBE_L built + 8 live iterations:
+
+- LANDED (committed): v1.55 session opener (direct-land + ACTIVE-row
+  fallback, banner is GONE), Assets-tab entry, tree-expansion toggle fix,
+  bare-named-room strategy with empty-room back-out, singular-'asset'
+  matchers.
+- BLOCKED on fixture state: the landed site's session tree has no reliably
+  reachable ASSET-BEARING room (fixture rooms empty; tree anatomy varies by
+  level). Next step is deterministic seeding — API-provision building/floor/
+  room/asset for a QA-WTC WO (TestDataApi), then PROBE_L completes the
+  Add-Form/sign-off anatomy dump and WorkOrderFormFiling_Test (~15 cases:
+  empty state, template sheet, fill, W3C signature draw + pixel verify,
+  checkmark save, badge + 'Forms Completed' + work-type-chip oracles,
+  trash cleanup) gets written against pinned truth.
+
+## v1.55 session surface drift (found by PROBE_L)
+
+The session tab strip is WORK-TYPE-DEPENDENT: PM-forms sessions show
+Details/Assets/Issues/Files/**More** (no Tasks/IR). `openActiveWorkOrderSession`
+verified via the IR tab / 'Work Order' nav — fails for custom-named WOs and
+PM-forms strips. Fixed: bottom-strip Details/Assets Buttons (rect.y>800) added
+as variant-proof signals. The new **More tab** may host the relocated ZP-3054
+More Actions (WO-MORE-01 re-check pending PROBE_L's dump).

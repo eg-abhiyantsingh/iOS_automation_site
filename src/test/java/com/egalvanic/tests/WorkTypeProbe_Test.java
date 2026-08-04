@@ -687,7 +687,17 @@ public class WorkTypeProbe_Test extends BaseTest {
         if (!wo.startFirstAvailableWorkOrder()) { System.out.println("PROBE| no WO activated"); return; }
         if (!wo.openActiveWorkOrderSession()) { System.out.println("PROBE| session did not open"); return; }
         com.egalvanic.pages.WorkOrderFormsPage forms = new com.egalvanic.pages.WorkOrderFormsPage();
-        if (!forms.openFirstRoomWithAssetsInTree()) { System.out.println("PROBE| no room with assets"); return; }
+        if (!forms.openFirstRoomWithAssetsInTree()) {
+            System.out.println("PROBE| no room with assets — one bounded dump (giant tree: full sweeps wedge WDA)");
+            DriverManager.getDriver().manage().timeouts().implicitlyWait(Duration.ZERO);
+            try {
+                dumpMatches("treeCountTexts", "type == 'XCUIElementTypeStaticText' AND visible == 1 AND name MATCHES '[0-9]+ assets?'");
+            } finally {
+                DriverManager.getDriver().manage().timeouts()
+                        .implicitlyWait(Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
+            }
+            return;
+        }
         java.util.List<String> assets = forms.visibleAssetRowComposites();
         System.out.println("PROBE| assets in room: " + assets);
         if (assets.isEmpty()) { System.out.println("PROBE| no assets"); return; }

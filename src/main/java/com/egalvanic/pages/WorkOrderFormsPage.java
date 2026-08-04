@@ -191,30 +191,96 @@ public class WorkOrderFormsPage extends BasePage {
     public boolean openFirstRoomWithAssetsInTree() {
         try {
             return withImplicitWait(0, () -> {
+                // v1.55: the session lands on the DETAILS tab — enter the
+                // Assets tab first (bottom strip Button, rect.y>800).
+                if (roomsWithAssets().isEmpty() && !isAssetsInRoomOpen()) {
+                    try {
+                        WebElement assetsTab = driver.findElement(AppiumBy.iOSNsPredicateString(
+                                "type == 'XCUIElementTypeButton' AND name == 'Assets' AND visible == 1 AND rect.y > 800"));
+                        System.out.println("🌳 entering session Assets tab (v1.55)");
+                        org.openqa.selenium.Rectangle tr = assetsTab.getRect();
+                        driver.executeScript("mobile: tap",
+                                java.util.Map.of("x", tr.x + tr.width / 2, "y", tr.y + tr.height / 2));
+                        pauseMs(1000);
+                    } catch (Exception ignored) { }
+                }
                 List<WebElement> rooms = roomsWithAssets();
+                // Expansion cascade: building rows read '<name>, N floor(s)',
+                // floor rows '<name>, N room(s)' (v1.55 tree). Each level is
+                // expanded at most ONCE — a second tap TOGGLES it closed.
                 if (rooms.isEmpty()) {
-                    List<WebElement> floors = driver.findElements(AppiumBy.iOSNsPredicateString(
-                            "type == 'XCUIElementTypeButton' AND visible == 1 AND name BEGINSWITH 'Floor'"));
-                    if (!floors.isEmpty()) {
-                        try {
-                            System.out.println("🌳 expanding floor: " + floors.get(0).getAttribute("name"));
-                            floors.get(0).click();
-                        } catch (Exception ignored) { }
-                        pauseMs(800);
-                    }
-                    for (int i = 0; i < 6 && rooms.isEmpty(); i++) {
+                    for (String suffix : new String[]{" floor", " room"}) {
+                        List<WebElement> expandables = driver.findElements(AppiumBy.iOSNsPredicateString(
+                                "type == 'XCUIElementTypeButton' AND visible == 1 AND name CONTAINS '" + suffix + "'"));
+                        if (!expandables.isEmpty()) {
+                            try {
+                                System.out.println("🌳 expanding: " + expandables.get(0).getAttribute("name"));
+                                expandables.get(0).click();
+                            } catch (Exception ignored) { }
+                            pauseMs(800);
+                        }
                         rooms = roomsWithAssets();
-                        if (rooms.isEmpty()) swipe("up");
+                        if (!rooms.isEmpty()) break;
                     }
                 }
-                if (rooms.isEmpty()) {
-                    System.out.println("⚠️ no '<room>, N assets' row found in the session tree");
-                    return false;
+                for (int i = 0; i < 6 && rooms.isEmpty(); i++) {
+                    swipe("up");
+                    rooms = roomsWithAssets();
                 }
-                String name = rooms.get(0).getAttribute("name");
-                System.out.println("🚪 opening room: " + name);
-                rooms.get(0).click();
-                return true;
+                if (!rooms.isEmpty()) {
+                    String name = rooms.get(0).getAttribute("name");
+                    System.out.println("🚪 opening room: " + name);
+                    rooms.get(0).click();
+                    return true;
+                }
+                // v1.55 third strategy (PROBE_L): some trees expose room rows
+                // as BARE-NAMED Buttons (no count composite, no subtitle) —
+                // 'Room 101 - Conference_396'. Open candidates in tree order;
+                // empty rooms are backed out of (fixture rooms are often
+                // empty) until an ASSET-BEARING one is found. Candidates are
+                // RE-QUERIED per attempt: navigation invalidates elements.
+                java.util.Set<String> visited = new java.util.HashSet<>();
+                for (int attempt = 0; attempt < 4; attempt++) {
+                    WebElement cand = null;
+                    String candName = null;
+                    for (WebElement b : driver.findElements(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeButton' AND visible == 1 AND rect.y > 120 AND rect.y < 800"))) {
+                        String n;
+                        try { n = b.getAttribute("name"); } catch (Exception e) { continue; }
+                        if (n == null || n.isEmpty() || n.contains(" floor") || n.contains(" room")
+                                || "plus".equals(n) || "qrcode.viewfinder".equals(n)
+                                || "arrow.clockwise".equals(n) || "BackButton".equals(n) || "Done".equals(n)
+                                || n.startsWith("Search") || visited.contains(n)) continue;
+                        cand = b;
+                        candName = n;
+                        break;
+                    }
+                    if (cand == null) break;
+                    visited.add(candName);
+                    System.out.println("🚪 trying bare-named room row: '" + candName + "'");
+                    try {
+                        org.openqa.selenium.Rectangle r = cand.getRect();
+                        driver.executeScript("mobile: tap",
+                                java.util.Map.of("x", r.x + r.width / 2, "y", r.y + r.height / 2));
+                    } catch (Exception e) { continue; }
+                    pauseMs(1200);
+                    if (!isAssetsInRoomOpen()) continue;
+                    if (!visibleAssetRowComposites().isEmpty()) return true;
+                    System.out.println("🚪 room '" + candName + "' is empty — backing out to the tree");
+                    try {
+                        WebElement back = driver.findElement(AppiumBy.iOSNsPredicateString(
+                                "type == 'XCUIElementTypeButton' AND name == 'BackButton' AND visible == 1"));
+                        org.openqa.selenium.Rectangle br = back.getRect();
+                        driver.executeScript("mobile: tap",
+                                java.util.Map.of("x", br.x + br.width / 2, "y", br.y + br.height / 2));
+                        pauseMs(1000);
+                    } catch (Exception e) {
+                        System.out.println("⚠️ back-out failed: " + e.getMessage());
+                        return false;
+                    }
+                }
+                System.out.println("⚠️ no ASSET-BEARING room found (visited " + visited + ")");
+                return false;
             });
         } catch (Exception e) {
             System.out.println("⚠️ openFirstRoomWithAssetsInTree: " + e.getMessage());
@@ -223,14 +289,43 @@ public class WorkOrderFormsPage extends BasePage {
     }
 
     private List<WebElement> roomsWithAssets() {
+        // Legacy shape first: composite Button '<room>, N asset(s)'.
         List<WebElement> rows = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeButton' AND visible == 1 AND name CONTAINS ' assets'"));
+                "type == 'XCUIElementTypeButton' AND visible == 1 AND name CONTAINS ' asset'"));
         List<WebElement> nonZero = new ArrayList<>();
         for (WebElement r : rows) {
             try {
                 String n = r.getAttribute("name");
-                if (n != null && !n.matches(".*,\\s*0 assets.*")) nonZero.add(r);
+                if (n != null && n.matches(".*,\\s*[1-9]\\d*\\s+assets?\\s*$")) nonZero.add(r);
             } catch (Exception ignored) { }
+        }
+        if (!nonZero.isEmpty()) return nonZero;
+        // v1.55 tree (PROBE_L 2026-08-04): the room row Button is named JUST
+        // '<room name>' — the 'N asset(s)' count is a SUBTITLE StaticText twin.
+        // Pair count-texts to row Buttons by y-band (±40pt), bounded queries.
+        try {
+            List<WebElement> counts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND visible == 1 AND name MATCHES '[1-9][0-9]* assets?'"));
+            if (counts.isEmpty()) return nonZero;
+            List<WebElement> buttons = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND visible == 1 AND rect.y > 120 AND rect.y < 820"));
+            for (WebElement c : counts) {
+                int cy = c.getRect().y;
+                WebElement best = null;
+                int bestDy = Integer.MAX_VALUE;
+                for (WebElement b : buttons) {
+                    try {
+                        String n = b.getAttribute("name");
+                        if (n == null || n.isEmpty() || n.contains(" floor") || n.contains(" room")
+                                || "plus".equals(n) || "qrcode.viewfinder".equals(n)) continue;
+                        int dy = Math.abs(b.getRect().y - cy);
+                        if (dy < bestDy) { bestDy = dy; best = b; }
+                    } catch (Exception ignored) { }
+                }
+                if (best != null && bestDy <= 40) nonZero.add(best);
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ roomsWithAssets subtitle-pairing: " + e.getMessage());
         }
         return nonZero;
     }
