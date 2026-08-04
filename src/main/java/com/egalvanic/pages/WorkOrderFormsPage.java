@@ -174,8 +174,17 @@ public class WorkOrderFormsPage extends BasePage {
     /** Count of ACTIVE StaticText badges currently visible (radio invariant ≤ 1). */
     public int visibleActiveBadgeCount() {
         try {
-            return withImplicitWait(0, () -> driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeStaticText' AND name == 'ACTIVE' AND visible == 1")).size());
+            return withImplicitWait(0, () -> {
+                int texts = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND name == 'ACTIVE' AND visible == 1")).size();
+                if (texts > 0) return texts;
+                // v1.55: the badge StaticText stopped reporting visible==1
+                // (CI run 30900816509: composite said ACTIVE, badge count 0).
+                // The row composite still carries ', ACTIVE' — count rows;
+                // the radio invariant is identical.
+                return driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND visible == 1 AND name ENDSWITH ', ACTIVE'")).size();
+            });
         } catch (Exception e) {
             return -1;
         }

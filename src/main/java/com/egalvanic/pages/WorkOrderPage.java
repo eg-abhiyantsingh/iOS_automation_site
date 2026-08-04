@@ -24833,6 +24833,12 @@ public class WorkOrderPage extends BasePage {
             driver.executeScript("mobile: tap", java.util.Map.of("x", r.x + 40, "y", r.y + r.height / 2));
             boolean alertShown = waitForCondition(() -> existsNow(V150_START_ALERT_BTN), 6);
             if (!alertShown) {
+                // v1.55: tapping an ALREADY-ACTIVE row raises no alert \u2014 it
+                // opens the session directly. That satisfies every caller.
+                if (isSessionSurfacePresent()) {
+                    System.out.println("\u25b6\ufe0f row was already active \u2014 session opened directly (v1.55)");
+                    return true;
+                }
                 System.out.println("\u26a0\ufe0f 'Start Work Order?' alert did not appear");
                 return false;
             }

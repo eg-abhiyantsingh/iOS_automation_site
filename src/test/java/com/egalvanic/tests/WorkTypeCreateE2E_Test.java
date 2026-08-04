@@ -809,7 +809,9 @@ public class WorkTypeCreateE2E_Test extends WorkTypeBaseTest {
             tapCreate(tc);
             assertTrue(verifySessionActivated(tc),
                     tc + ": default-name Create must start a session (chip/banner within 10s)");
-            createdId = pollWoId(api, readName, 5);
+            // 12 rounds: CI backend list-index lag exceeded the 5-round budget
+            // (run 30900816509, E2E_027 — row existed, lookup gave up early).
+            createdId = pollWoId(api, readName, 12);
             assertTrue(createdId != null,
                     tc + ": a server row named '" + readName + "' must exist after the default-name create");
             logStepWithScreenshot(tc + " verified: default-name create reached the server (id=" + createdId + ")");

@@ -801,6 +801,62 @@ public class WorkTypeProbe_Test extends BaseTest {
         logStepWithScreenshot("probe L complete");
     }
 
+    @Test(priority = 13)
+    public void PROBE_M_moreTabAndSessionTreeEntry_v155() {
+        ExtentReportManager.createTest(AppConstants.MODULE_JOBS, "WorkType Probe",
+                "PROBE M - v1.55: 'More' tab contents (ZP-3054 relocation?) + session tab strip vs app tab bar anatomy");
+        loginAndSelectSite();
+        siteSelectionPage.clickWorkOrderCard();
+        shortWait();
+        assertTrue(wo.waitForWorkOrdersScreen(), "Work Orders screen must open");
+        if (!wo.startFirstAvailableWorkOrder()) { System.out.println("PROBE| no WO activated"); return; }
+        if (!wo.openActiveWorkOrderSession()) { System.out.println("PROBE| session did not open"); return; }
+        DriverManager.getDriver().manage().timeouts().implicitlyWait(Duration.ZERO);
+        try {
+            // 1. Bottom strip census with exact geometry (session strip vs app bar).
+            for (WebElement b : DriverManager.getDriver().findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND visible == 1 AND rect.y > 780"))) {
+                try {
+                    Rectangle r = b.getRect();
+                    System.out.println("PROBE|strip y=" + r.y + " x=" + r.x + " '" + b.getAttribute("name") + "'");
+                } catch (Exception ignored) { }
+            }
+            // 2. Nav bar identity on the session surface.
+            dumpMatches("sessNav", "type == 'XCUIElementTypeNavigationBar'");
+            // 3. 'More' tab: tap + dump (ZP-3054 relocation check).
+            java.util.List<WebElement> more = DriverManager.getDriver().findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND name == 'More' AND visible == 1 AND rect.y > 780"));
+            System.out.println("PROBE| More tab present: " + !more.isEmpty());
+            if (!more.isEmpty()) {
+                Rectangle r = more.get(0).getRect();
+                DriverManager.getDriver().executeScript("mobile: tap",
+                        java.util.Map.of("x", r.x + r.width / 2, "y", r.y + r.height / 2));
+                sleep(1200);
+                dumpMatches("moreButtons", "type == 'XCUIElementTypeButton' AND visible == 1 AND rect.y < 780");
+                dumpMatches("moreTexts", "type == 'XCUIElementTypeStaticText' AND visible == 1 AND rect.y < 780");
+                logStepWithScreenshot("More tab contents");
+            }
+            // 4. Session 'Assets' tab (strip zone) → nav + FIRST tree rows, tightly bounded.
+            java.util.List<WebElement> assets = DriverManager.getDriver().findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND name == 'Assets' AND visible == 1 AND rect.y > 780"));
+            if (!assets.isEmpty()) {
+                Rectangle r = assets.get(0).getRect();
+                System.out.println("PROBE| tapping session Assets tab at y=" + r.y);
+                DriverManager.getDriver().executeScript("mobile: tap",
+                        java.util.Map.of("x", r.x + r.width / 2, "y", r.y + r.height / 2));
+                sleep(1200);
+                dumpMatches("treeNav", "type == 'XCUIElementTypeNavigationBar'");
+                dumpMatches("treeTop", "type == 'XCUIElementTypeButton' AND visible == 1 AND rect.y > 120 AND rect.y < 460");
+                dumpMatches("treeTopTexts", "type == 'XCUIElementTypeStaticText' AND visible == 1 AND rect.y > 120 AND rect.y < 460");
+                logStepWithScreenshot("session tree top");
+            }
+        } finally {
+            DriverManager.getDriver().manage().timeouts()
+                    .implicitlyWait(Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
+        }
+        logStepWithScreenshot("probe M complete");
+    }
+
     private void tapWorkTypeRow() {
         try {
             WebElement row = DriverManager.getDriver().findElement(AppiumBy.iOSNsPredicateString(
