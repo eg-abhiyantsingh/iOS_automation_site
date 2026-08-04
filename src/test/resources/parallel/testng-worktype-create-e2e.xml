@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite time-out="480000" name="Work Types - Create E2E per type (v1.55 dropdown) [OPERATIONS]" verbose="0">
+    <!--
+    ============================================================
+    WORK TYPE v1.55 CREATE-DROPDOWN MODULE - create-e2e slice
+    ============================================================
+      Design:  docs/worktype-create-dropdown-design-2026-08-04.md
+      Truth:   probe-pinned PROBE_E..K 2026-08-04 (WorkTypeProbe_Test)
+      Class-atomic on purpose: rerun sharding splits by class.
+    ============================================================
+    -->
+    <listeners>
+        <listener class-name="com.egalvanic.listeners.GlobalTestTimeout"/>
+        <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
+    </listeners>
+    <test name="Work Type Create E2E per type (v1.55 dropdown)">
+        <classes>
+            <class name="com.egalvanic.tests.WorkTypeCreateE2E_Test"/>
+        </classes>
+    </test>
+</suite>

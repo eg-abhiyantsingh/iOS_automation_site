@@ -357,50 +357,55 @@ public class WorkType_CrossCutting_Test extends WorkTypeBaseTest {
     }
 
     // ═════════════════════════════════════════════════════════════════════
-    // Group CAN — iOS create-form CANARY (2). These FLIP when iOS gains the
-    // Work Type dropdown: a failure here most likely means the feature LANDED
-    // — update the gold spec + suite, do not patch the locator.
+    // Group CAN — iOS create-form CANARY (2). v1.55 SHIPPED the dropdown
+    // (2026-08-04, probe-pinned PROBE_E/F) — the canaries flipped exactly as
+    // designed and now guard the REVERSE contract: the required Work Type row
+    // must exist, defaulting to 'General'. Deep coverage lives in the
+    // TC_WTC_* module (WorkTypeCreateForm/Picker/E2E_Test).
     // ═════════════════════════════════════════════════════════════════════
 
-    @Test(priority = 29, description = "TC_WT_X_CAN_01 - CANARY: v1.51 Start New Work Order form has NO 'Work Type' row (flips when iOS gains the dropdown)")
-    public void TC_WT_X_CAN_01_createFormHasNoWorkTypeRow() {
+    @Test(priority = 29, description = "TC_WT_X_CAN_01 - CANARY: v1.55+ Start New Work Order form HAS the required 'Work Type' row (default General)")
+    public void TC_WT_X_CAN_01_createFormHasWorkTypeRow() {
         ExtentReportManager.createTest(AppConstants.MODULE_JOBS, FEATURE_WT,
-                "TC_WT_X_CAN_01 - CANARY: v1.51 Start New Work Order form has NO 'Work Type' row (flips when iOS gains the dropdown)");
+                "TC_WT_X_CAN_01 - CANARY: v1.55+ Start New Work Order form HAS the required 'Work Type' row (default General)");
         openWorkOrdersScreenWT();
         assertTrue(wo.openCreateForm(), "Start New Work Order form must open");
         verifyAppAlive("TC_WT_X_CAN_01: create form open");
         verifyNotBlank("Start New Work Order form");
-        String value = wo.getCreateFormRowValue("Work Type");
-        logStep("'Work Type' create-form row probe returned: '" + value + "'");
-        assertEquals(value, "",
-                "CANARY: the v1.51 iOS create form must NOT contain a populated 'Work Type' config row "
-                + "(the 13-option dropdown is web-only today). A non-empty value means iOS has gained the "
-                + "work-type dropdown — update the gold spec and this suite instead of patching the locator");
+        assertTrue(wo.isCreateFormWorkTypeRowPresent(),
+                "CANARY: the v1.55 create form must carry the 'Work Type, *, <value>' row — its "
+                + "disappearance means the dropdown REGRESSED (or moved); check the app before the suite");
+        assertEquals(wo.getCreateFormWorkTypeValue(), "General",
+                "Fresh form must default the Work Type to 'General'");
+        assertTrue(wo.workTypeRowHasRequiredMarker(),
+                "The required-marker '*' segment must be present on the row composite");
         wo.cancelCreateForm();
         shortWait();
         assertTrue(wo.waitForWorkOrdersScreen(), "Cancel must land back on the Work Orders list");
-        logStepWithScreenshot("TC_WT_X_CAN_01 verified: no Work Type row on the create form");
+        logStepWithScreenshot("TC_WT_X_CAN_01 verified: required Work Type row present, default General");
     }
 
-    @Test(priority = 30, description = "TC_WT_X_CAN_02 - CANARY stability: 'Work Type' row stays absent across two open/cancel cycles of the create form")
-    public void TC_WT_X_CAN_02_workTypeRowStaysAbsentAcrossReopen() {
+    @Test(priority = 30, description = "TC_WT_X_CAN_02 - CANARY stability: 'Work Type' row present with default 'General' across two open/cancel cycles")
+    public void TC_WT_X_CAN_02_workTypeRowStableAcrossReopen() {
         ExtentReportManager.createTest(AppConstants.MODULE_JOBS, FEATURE_WT,
-                "TC_WT_X_CAN_02 - CANARY stability: 'Work Type' row stays absent across two open/cancel cycles of the create form");
+                "TC_WT_X_CAN_02 - CANARY stability: 'Work Type' row present with default 'General' across two open/cancel cycles");
         openWorkOrdersScreenWT();
         for (int round = 1; round <= 2; round++) {
             assertTrue(wo.openCreateForm(), "Create form must open (round " + round + ")");
             verifyAppAlive("TC_WT_X_CAN_02: create form open, round " + round);
-            String value = wo.getCreateFormRowValue("Work Type");
-            assertEquals(value, "",
-                    "CANARY round " + round + ": 'Work Type' row must stay absent/empty on the v1.51 create form "
-                    + "— see TC_WT_X_CAN_01 for the flip semantics");
+            assertTrue(wo.isCreateFormWorkTypeRowPresent(),
+                    "CANARY round " + round + ": the v1.55 'Work Type' row must be present on every fresh form");
+            assertEquals(wo.getCreateFormWorkTypeValue(), "General",
+                    "CANARY round " + round + ": fresh form must default to 'General'");
+            assertTrue(wo.workTypeRowHasRequiredMarker(),
+                    "CANARY round " + round + ": required-marker '*' segment must be present");
             wo.cancelCreateForm();
             shortWait();
             assertTrue(wo.waitForWorkOrdersScreen(),
                     "Cancel must restore the Work Orders list (round " + round + ")");
         }
         verifyNoErrorAlert();
-        logStepWithScreenshot("TC_WT_X_CAN_02 verified: canary stable across two cycles");
+        logStepWithScreenshot("TC_WT_X_CAN_02 verified: row stable with General default across two cycles");
     }
 
     // ═════════════════════════════════════════════════════════════════════

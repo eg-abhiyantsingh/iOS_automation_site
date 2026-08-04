@@ -266,3 +266,34 @@ Category rules distilled:
   "Data Mask" action visible.
 - Asset-grid population after create is ASYNC (some fixtures showed 0 rows
   minutes in, others 52-71 rows); iOS tests must tolerate either state.
+
+## iOS create-form Work Type dropdown (v1.55+, probe-pinned 2026-08-04)
+
+v1.55 shipped the 13-option dropdown to iOS — the TC_WT_X_CAN_* canaries
+flipped as designed and now pin the REVERSE contract. App truth (PROBE_E/F/G/
+I/J/K, see docs/worktype-create-dropdown-design-2026-08-04.md):
+
+- Create-form row Button: **`'Work Type, *, <value>'`** — the required marker
+  `*` is its own name segment; default value **General**. Values must be
+  PREFIX-parsed (`WorkOrderPage.getCreateFormWorkTypeValue`) — a last-segment
+  parse breaks on `Clean, Tighten, Torque`.
+- Picker: stacked bottom sheet with its own `Work Type` NavigationBar; 14
+  full-width option Buttons, all on-screen (no scroll): `General` FIRST, then
+  the 13 service display names in case-sensitive lexicographic order
+  (`DGA / Fluid Sample Analysis` before `De-Energized Visual Inspection`).
+  Labels equal `WorkTypeCatalog.displayName()` byte-for-byte.
+- Radio semantics: selected row reads `value=='1'`/`selected==true`
+  (`checkmark.circle.fill`); a CENTER TAP **commits and closes** — there is
+  NO sheet Done (any 'Done' in a census is the background WO-list nav);
+  swipe-down does NOT dismiss; the only no-op close is re-tapping the selected
+  row (`closeWorkTypePickerNoChange`).
+- Post-create: session auto-starts; dashboard gains a top-right **`WO` chip**
+  (element type Other/StaticText, NOT a Button, rect ≈ (386,65,34,27)). Chip
+  menu rows are name-LESS Cells (x>150) with radio `circle` Buttons — row
+  labels (incl. `End Session`) are absent from the accessibility tree; menu
+  handling is structural (`openDashboardWoMenu`/`isDashboardWoMenuOpen`) and
+  End-Session is disambiguated via the ALERT, which does expose names
+  (`End Work Order Session?` → `Cancel`/`End Session`;
+  a `Start Work Order?` alert means the tapped row was a switcher row).
+- Coverage: TC_WTC_FORM_001-056 (row), TC_WTC_PICK_001-076 (sheet),
+  TC_WTC_E2E_001-0xx (create→parity→end→cleanup), canaries TC_WT_X_CAN_01/02.

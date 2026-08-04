@@ -107,6 +107,11 @@
             <class name="com.egalvanic.tests.WorkType_CrossCutting_Test"/>
             <!-- changelog 142: circle activation + PM-forms execution -->
             <class name="com.egalvanic.tests.WorkType_Forms_Test"/>
+            <!-- changelog 146: v1.55 create-form Work Type dropdown module
+                 (probe-pinned; design docs/worktype-create-dropdown-design-2026-08-04.md) -->
+            <class name="com.egalvanic.tests.WorkTypeCreateForm_Test"/>
+            <class name="com.egalvanic.tests.WorkTypeCreatePicker_Test"/>
+            <class name="com.egalvanic.tests.WorkTypeCreateE2E_Test"/>
         </classes>
     </test>
 

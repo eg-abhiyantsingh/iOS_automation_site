@@ -24496,6 +24496,310 @@ public class WorkOrderPage extends BasePage {
         }
     }
 
+    // ═══════════ v1.55 Work Type create-form dropdown (ZP work-type on iOS) ═══════════
+    // App truth (PROBE_E/F 2026-08-04): row Button named 'Work Type, *, <value>'
+    // (the required marker '*' is its own segment — value parsing MUST strip the
+    // 'Work Type, *, ' PREFIX, never take the last comma segment: 'Clean,
+    // Tighten, Torque' embeds commas). Picker = stacked bottom sheet with its
+    // own 'Work Type' NavigationBar; 14 full-width option Buttons named exactly
+    // WorkTypeCatalog.displayName(), radio-style (selected row: value='1',
+    // selected=true, checkmark.circle.fill; others 'circle'). A CENTER TAP on
+    // an option COMMITS AND CLOSES the sheet immediately — there is NO sheet
+    // Done (any 'Done' in the census is the background WO-list nav — trap!),
+    // and swipe-down does NOT dismiss the sheet (PROBE_F-pinned).
+
+    private static final String WT_ROW_PREFIX = "Work Type, *, ";
+    private static final org.openqa.selenium.By WT_CREATE_ROW = AppiumBy.iOSNsPredicateString(
+            "type == 'XCUIElementTypeButton' AND name BEGINSWITH 'Work Type,'");
+    private static final org.openqa.selenium.By WT_PICKER_NAV = AppiumBy.iOSNsPredicateString(
+            "type == 'XCUIElementTypeNavigationBar' AND name == 'Work Type'");
+
+    /** True when the create form carries the v1.55 Work Type config row. */
+    public boolean isCreateFormWorkTypeRowPresent() {
+        return existsNow(WT_CREATE_ROW);
+    }
+
+    /** True when the row's accessible name carries the required-marker '*' segment. */
+    public boolean workTypeRowHasRequiredMarker() {
+        try {
+            String n = driver.findElement(WT_CREATE_ROW).getAttribute("name");
+            return n != null && n.startsWith(WT_ROW_PREFIX.substring(0, WT_ROW_PREFIX.length() - 2) + ",");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Current Work Type row value — prefix-parsed (comma-safe for
+     * 'Clean, Tighten, Torque'). "" when the row is absent/unreadable.
+     */
+    public String getCreateFormWorkTypeValue() {
+        try {
+            String n = driver.findElement(WT_CREATE_ROW).getAttribute("name");
+            if (n == null) return "";
+            if (n.startsWith(WT_ROW_PREFIX)) return n.substring(WT_ROW_PREFIX.length()).trim();
+            // Tolerate a marker-less variant should the required flag ever drop.
+            if (n.startsWith("Work Type, ")) return n.substring("Work Type, ".length()).trim();
+            return "";
+        } catch (Exception e) {
+            System.out.println("⚠️ getCreateFormWorkTypeValue: " + e.getMessage());
+            return "";
+        }
+    }
+
+    /** Open the Work Type picker sheet (left-zone row press; verified open). */
+    public boolean openWorkTypePicker() {
+        try {
+            WebElement row = driver.findElement(WT_CREATE_ROW);
+            org.openqa.selenium.Rectangle r = row.getRect();
+            driver.executeScript("mobile: tap", java.util.Map.of("x", r.x + 40, "y", r.y + r.height / 2));
+        } catch (Exception e) {
+            System.out.println("⚠️ openWorkTypePicker: " + e.getMessage());
+            return false;
+        }
+        return waitForCondition(() -> existsNow(WT_PICKER_NAV), 8);
+    }
+
+    /** True while the Work Type sheet (own nav bar) is up. */
+    public boolean isWorkTypePickerOpen() {
+        return existsNow(WT_PICKER_NAV);
+    }
+
+    /**
+     * Option labels on the open Work Type sheet, top-to-bottom. Bounded,
+     * type-bound census (full-width option Buttons below the sheet nav);
+     * scrolls once if fewer than {@code expectAtLeast} rows are visible.
+     */
+    public java.util.List<String> getWorkTypePickerOptions(int expectAtLeast) {
+        java.util.LinkedHashSet<String> out = new java.util.LinkedHashSet<>();
+        try {
+            withImplicitWait(0, () -> {
+                collectWorkTypeOptionRows(out);
+                if (out.size() < expectAtLeast) {
+                    try {
+                        driver.executeScript("mobile: swipe", java.util.Map.of("direction", "up"));
+                        sleep(500);
+                    } catch (Exception ignored) { }
+                    collectWorkTypeOptionRows(out);
+                }
+                return null;
+            });
+        } catch (Exception e) {
+            System.out.println("⚠️ getWorkTypePickerOptions: " + e.getMessage());
+        }
+        return new java.util.ArrayList<>(out);
+    }
+
+    private void collectWorkTypeOptionRows(java.util.Collection<String> out) {
+        for (WebElement b : driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND visible == 1 AND rect.y > 120"))) {
+            try {
+                String n = b.getAttribute("name");
+                if (n == null || n.isEmpty() || "Done".equals(n) || "Create".equals(n) || "Cancel".equals(n)) continue;
+                if (n.startsWith("Work Type,") || n.startsWith("Photo Type,")
+                        || n.startsWith("Priority,") || n.startsWith("Equipment,")) continue;
+                if (b.getSize().getWidth() < 200) continue; // option rows are full-width
+                out.add(n);
+            } catch (Exception ignored) { }
+        }
+    }
+
+    /** Display name of the radio-selected option on the OPEN sheet ("" if none readable). */
+    public String getSelectedWorkTypeInPicker() {
+        try {
+            for (WebElement b : driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND visible == 1 AND rect.y > 120 AND value == '1'"))) {
+                try {
+                    String n = b.getAttribute("name");
+                    if (n != null && !n.isEmpty() && b.getSize().getWidth() >= 200) return n;
+                } catch (Exception ignored) { }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ getSelectedWorkTypeInPicker: " + e.getMessage());
+        }
+        return "";
+    }
+
+    /** True when the OPEN sheet marks {@code displayName} as the selected radio row. */
+    public boolean isWorkTypeOptionSelected(String displayName) {
+        return displayName.equals(getSelectedWorkTypeInPicker());
+    }
+
+    /** Press the sheet's own Done (nav-zone, y<120) when it exists; true if tapped. */
+    private boolean pressWorkTypeSheetDoneIfPresent() {
+        try {
+            for (WebElement d : driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND name == 'Done' AND visible == 1 AND rect.y < 120"))) {
+                org.openqa.selenium.Rectangle r = d.getRect();
+                driver.executeScript("mobile: tap", java.util.Map.of("x", r.x + r.width / 2, "y", r.y + r.height / 2));
+                sleep(600);
+                return true;
+            }
+        } catch (Exception ignored) { }
+        return false;
+    }
+
+    /**
+     * Full verified selection on the OPEN sheet — DUAL-SEMANTICS (2026-08-04):
+     * PROBE_F on the local v1.55 build saw a center tap COMMIT AND CLOSE the
+     * sheet; the user's build shows the tap only marking the radio (sheet
+     * stays open, its own nav 'Done' commits). Handle both: tap the option;
+     * if the sheet is still up, press the sheet Done; then verify sheet gone
+     * AND row value equals {@code displayName}.
+     */
+    public boolean selectWorkTypeInPicker(String displayName) {
+        try {
+            WebElement best = null;
+            int bestW = 0;
+            for (WebElement b : driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND name == '" + displayName.replace("'", "\\'")
+                    + "' AND visible == 1"))) {
+                try {
+                    int w = b.getSize().getWidth();
+                    if (w > bestW) { best = b; bestW = w; }
+                } catch (Exception ignored) { }
+            }
+            if (best == null || bestW < 150) {
+                System.out.println("⚠️ selectWorkTypeInPicker: option '" + displayName + "' not found");
+                return false;
+            }
+            org.openqa.selenium.Rectangle r = best.getRect();
+            driver.executeScript("mobile: tap", java.util.Map.of("x", r.x + r.width / 2, "y", r.y + r.height / 2));
+            sleep(600);
+            if (isWorkTypePickerOpen()) {
+                // Sheet-stays-open variant: the sheet's own Done commits.
+                pressWorkTypeSheetDoneIfPresent();
+            }
+            if (!waitForCondition(() -> !isWorkTypePickerOpen(), 6)) {
+                System.out.println("⚠️ selectWorkTypeInPicker: sheet did not close after tap(+Done)");
+                return false;
+            }
+            return waitForCondition(() -> displayName.equals(getCreateFormWorkTypeValue()), 6);
+        } catch (Exception e) {
+            System.out.println("⚠️ selectWorkTypeInPicker(" + displayName + "): " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Close the OPEN sheet WITHOUT changing the value. Preferred: the sheet's
+     * own Done (commits the current selection = no change). Fallback (build
+     * variant where tap auto-commits): re-tap the selected radio row.
+     * Swipe-down does NOT dismiss this sheet (PROBE_F).
+     */
+    public boolean closeWorkTypePickerNoChange() {
+        if (pressWorkTypeSheetDoneIfPresent()) {
+            return waitForCondition(() -> !isWorkTypePickerOpen(), 6);
+        }
+        String current = getSelectedWorkTypeInPicker();
+        if (current.isEmpty()) return false;
+        return selectWorkTypeInPicker(current);
+    }
+
+    // ─────────── v1.55 dashboard WO chip (active-session menu) ───────────
+    // While a session is active the dashboard carries a top-right 'WO' chip;
+    // tapping it opens a menu: 'End Session' + WO rows with radio selectors.
+    // 'End Session' raises the 'End Work Order Session?' Cancel/End alert.
+
+    /** True when the dashboard shows the active-session WO chip. */
+    public boolean isDashboardWoChipPresent() {
+        return existsNow(AppiumBy.iOSNsPredicateString(
+                "visible == 1 AND name == 'WO' AND (type == 'XCUIElementTypeButton' "
+                + "OR type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeOther')"));
+    }
+
+    /**
+     * Open the WO chip menu from the dashboard. PROBE_J/K-pinned: the menu is
+     * a custom overlay whose rows are Cells at rect.x>150 with radio 'circle'
+     * Buttons — the row LABELS (incl. 'End Session') are NOT in the
+     * accessibility tree, so menu-open is verified structurally.
+     */
+    public boolean openDashboardWoMenu() {
+        try {
+            WebElement chip = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeOther' AND visible == 1 AND name == 'WO' AND rect.y < 300"));
+            org.openqa.selenium.Rectangle r = chip.getRect();
+            driver.executeScript("mobile: tap", java.util.Map.of("x", r.x + r.width / 2, "y", r.y + r.height / 2));
+            sleep(700);
+        } catch (Exception e) {
+            System.out.println("⚠️ openDashboardWoMenu: " + e.getMessage());
+            return false;
+        }
+        return waitForCondition(this::isDashboardWoMenuOpen, 6);
+    }
+
+    /** Structural menu-open check: radio 'circle' Buttons in the right-side panel. */
+    public boolean isDashboardWoMenuOpen() {
+        return existsNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND name == 'circle' AND visible == 1 AND rect.x > 150"));
+    }
+
+    /** Close the chip menu without acting (tap the dimmed left zone). */
+    public void dismissDashboardWoMenu() {
+        try {
+            driver.executeScript("mobile: tap", java.util.Map.of("x", 40, "y", 420));
+            sleep(600);
+        } catch (Exception ignored) { }
+    }
+
+    /**
+     * End the active session from the OPEN chip menu. The 'End Session' row is
+     * the TOPMOST row when a live active session exists, but rows carry no
+     * names — so we tap the topmost Cell and disambiguate via the ALERT, which
+     * DOES expose names: 'End Work Order Session?' → confirm 'End Session';
+     * a 'Start Work Order?' alert instead means there was no live session row
+     * (e.g. the active WO was deleted server-side) → Cancel and report false.
+     * Manual alert handling throughout (autoAcceptAlerts races the confirm).
+     */
+    public boolean endActiveSessionViaDashboardMenu() {
+        try {
+            try { driver.setSetting("defaultAlertAction", ""); } catch (Exception ignored) { }
+            WebElement topRow = null;
+            int minY = Integer.MAX_VALUE;
+            for (WebElement c : driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeCell' AND visible == 1 AND rect.x > 150"))) {
+                try {
+                    int y = c.getRect().y;
+                    if (y < minY) { minY = y; topRow = c; }
+                } catch (Exception ignored) { }
+            }
+            if (topRow == null) {
+                System.out.println("⚠️ endActiveSessionViaDashboardMenu: no menu rows");
+                return false;
+            }
+            org.openqa.selenium.Rectangle r = topRow.getRect();
+            driver.executeScript("mobile: tap", java.util.Map.of("x", r.x + r.width / 2, "y", r.y + r.height / 2));
+            sleep(1000);
+            // Disambiguate via named alert buttons.
+            java.util.List<WebElement> endConfirm = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND name == 'End Session' AND visible == 1"));
+            if (!endConfirm.isEmpty()) {
+                WebElement c = endConfirm.get(endConfirm.size() - 1);
+                org.openqa.selenium.Rectangle cr = c.getRect();
+                driver.executeScript("mobile: tap", java.util.Map.of("x", cr.x + cr.width / 2, "y", cr.y + cr.height / 2));
+                sleep(1200);
+                return waitForCondition(() -> !isDashboardWoChipPresent(), 8);
+            }
+            // Wrong alert ('Start Work Order?') or none — back out cleanly.
+            java.util.List<WebElement> cancel = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND name == 'Cancel' AND visible == 1"));
+            if (!cancel.isEmpty()) {
+                WebElement c = cancel.get(cancel.size() - 1);
+                org.openqa.selenium.Rectangle cr = c.getRect();
+                driver.executeScript("mobile: tap", java.util.Map.of("x", cr.x + cr.width / 2, "y", cr.y + cr.height / 2));
+                sleep(600);
+            }
+            dismissDashboardWoMenu();
+            System.out.println("⚠️ endActiveSessionViaDashboardMenu: top row was not End Session");
+            return false;
+        } catch (Exception e) {
+            System.out.println("⚠️ endActiveSessionViaDashboardMenu: " + e.getMessage());
+            return false;
+        } finally {
+            try { driver.setSetting("defaultAlertAction", "accept"); } catch (Exception ignored) { }
+        }
+    }
+
     /** Cancel out of the create form (nav Cancel, coordinate press). */
     public void cancelCreateForm() {
         try {

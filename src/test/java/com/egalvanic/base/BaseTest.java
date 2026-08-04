@@ -1057,6 +1057,58 @@ public class BaseTest {
      * a missed pass costs speed, not correctness — but it is logged loudly and
      * gives up after 2 attempts per JVM. Kill switch: DISABLE_SESSION_RECORDING=false.
      */
+    /** Once-per-Appium-session guard for the Policy Update consent check. */
+    private static final java.util.concurrent.atomic.AtomicReference<String>
+            policyCheckedForSession = new java.util.concurrent.atomic.AtomicReference<>("");
+
+    /**
+     * v1.55+: the backend can raise a blocking "Policy Update" consent sheet
+     * ("Please review the updated policies to continue using the app." +
+     * 'Accept & Continue') over the Dashboard right after login — every tap
+     * underneath is swallowed until it is accepted (observed live 2026-08-04:
+     * it broke openWorkOrdersScreenWT for every test). Accepting is the only
+     * way forward, so this taps 'Accept & Continue' when present. Runs at
+     * most once per Appium session (NO_RESET=false ⇒ once per test); polls
+     * briefly because the sheet can render 1-3s after the Dashboard lands.
+     * Kill switch: ACCEPT_POLICY_UPDATE=false.
+     */
+    protected final void acceptPolicyUpdateIfPresent() {
+        if (!AppConstants.ACCEPT_POLICY_UPDATE) return;
+        final String sid;
+        try {
+            sid = String.valueOf(DriverManager.getDriver().getSessionId());
+        } catch (Exception e) {
+            return; // no live session — nothing to check
+        }
+        if (sid.equals(policyCheckedForSession.get())) return;
+        policyCheckedForSession.set(sid);
+        try {
+            DriverManager.getDriver().manage().timeouts().implicitlyWait(java.time.Duration.ZERO);
+            long deadline = System.currentTimeMillis() + 2500;
+            while (System.currentTimeMillis() < deadline) {
+                java.util.List<org.openqa.selenium.WebElement> accept =
+                        DriverManager.getDriver().findElements(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                                "type == 'XCUIElementTypeButton' AND name == 'Accept & Continue' AND visible == 1"));
+                if (!accept.isEmpty()) {
+                    org.openqa.selenium.Rectangle r = accept.get(0).getRect();
+                    DriverManager.getDriver().executeScript("mobile: tap",
+                            java.util.Map.of("x", r.x + r.width / 2, "y", r.y + r.height / 2));
+                    System.out.println("📜 'Policy Update' consent sheet accepted (Accept & Continue)");
+                    try { Thread.sleep(700); } catch (InterruptedException ignored) { }
+                    return;
+                }
+                try { Thread.sleep(400); } catch (InterruptedException ignored) { }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Policy Update check failed (non-fatal): " + e.getMessage());
+        } finally {
+            try {
+                DriverManager.getDriver().manage().timeouts()
+                        .implicitlyWait(java.time.Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
+            } catch (Exception ignored) { }
+        }
+    }
+
     protected final void ensureSessionRecordingDisabledIfFreshInstall() {
         if (!AppConstants.DISABLE_SESSION_RECORDING) return;
         if (!DriverManager.isFreshInstallCheckPending()) return;
@@ -1111,6 +1163,7 @@ public class BaseTest {
      */
     protected final void loginAndSelectSite() {
         loginAndSelectSiteCore();
+        acceptPolicyUpdateIfPresent(); // v1.55 consent sheet blocks EVERYTHING — clear it first
         ensureSessionRecordingDisabledIfFreshInstall();
     }
 
@@ -1337,6 +1390,7 @@ public class BaseTest {
      */
     protected final void loginAndSelectSiteTurbo() {
         loginAndSelectSiteTurboCore();
+        acceptPolicyUpdateIfPresent(); // v1.55 consent sheet blocks EVERYTHING — clear it first
         ensureSessionRecordingDisabledIfFreshInstall();
     }
 

@@ -340,6 +340,13 @@ public class AppConstants {
     // DISABLE_SESSION_RECORDING=false (env or -D).
     public static final boolean DISABLE_SESSION_RECORDING = Boolean.parseBoolean(
         getEnv("DISABLE_SESSION_RECORDING", "true"));
+
+    // v1.55+: auto-accept the blocking "Policy Update" consent sheet that the
+    // backend can raise over the Dashboard after login (observed live
+    // 2026-08-04; it swallows every tap underneath it until accepted).
+    // Kill switch: ACCEPT_POLICY_UPDATE=false (env or -D).
+    public static final boolean ACCEPT_POLICY_UPDATE = Boolean.parseBoolean(
+        getEnv("ACCEPT_POLICY_UPDATE", "true"));
     
  // Set to true to send email reports
 

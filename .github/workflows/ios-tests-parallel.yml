@@ -83,7 +83,7 @@ on:
         default: false
         type: boolean
       run_worktype:
-        description: 'Work Types — 13-option dropdown suite (TC_WT_*, 5 sliced jobs)'
+        description: 'Work Types — 13-option dropdown suite incl. v1.55 create-dropdown module (TC_WT_*/TC_WTC_*, 9 sliced jobs)'
         required: false
         default: false
         type: boolean
@@ -3207,7 +3207,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        slice: [catalog, list, details, behavior, cross, forms]
+        slice: [catalog, list, details, behavior, cross, forms, createform, createpicker, create-e2e]
 
     steps:
       - name: Checkout code
