@@ -204,10 +204,12 @@ public class WorkTypeCreateE2E_Test extends WorkTypeBaseTest {
     private void tapCreate(String tc) {
         assertTrue(tapButtonByName("Create"),
                 tc + ": 'Create' nav Button must be pressable on the create form");
-        // 30s window: the 'Creating work order...' spinner can hold the form
-        // for well over 10s against the QA backend (observed live 2026-08-04
-        // on '(s) Wild Goose Brewery' — create was in flight, not stuck).
-        assertTrue(waitForCondition(() -> !existsNowT(PRED_NEW_WO_NAV), 30,
+        // 90s window: the 'Creating work order...' spinner routinely holds the
+        // form 10-30s against the QA backend and spiked past 30s on E2E_007
+        // (observed live 2026-08-04, two latency spikes in one afternoon).
+        // The create is in flight, not stuck — a genuinely wedged form still
+        // fails, just after the widened budget.
+        assertTrue(waitForCondition(() -> !existsNowT(PRED_NEW_WO_NAV), 90,
                         "'New Work Order' form to dismiss after Create"),
                 tc + ": the create form must dismiss after Create is pressed");
     }
