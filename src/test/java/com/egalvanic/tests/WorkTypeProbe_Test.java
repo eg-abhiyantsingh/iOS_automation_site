@@ -676,6 +676,121 @@ public class WorkTypeProbe_Test extends BaseTest {
         logStepWithScreenshot("probe H complete");
     }
 
+    @Test(priority = 12)
+    public void PROBE_L_addFormAndSignOffAnatomy_v155() {
+        ExtentReportManager.createTest(AppConstants.MODULE_JOBS, "WorkType Probe",
+                "PROBE L - v1.55 per-asset Add Form sheet + Technician Sign-Off anatomy (user flow 'file the form')");
+        loginAndSelectSite();
+        siteSelectionPage.clickWorkOrderCard();
+        shortWait();
+        assertTrue(wo.waitForWorkOrdersScreen(), "Work Orders screen must open");
+        if (!wo.startFirstAvailableWorkOrder()) { System.out.println("PROBE| no WO activated"); return; }
+        if (!wo.openActiveWorkOrderSession()) { System.out.println("PROBE| session did not open"); return; }
+        com.egalvanic.pages.WorkOrderFormsPage forms = new com.egalvanic.pages.WorkOrderFormsPage();
+        if (!forms.openFirstRoomWithAssetsInTree()) { System.out.println("PROBE| no room with assets"); return; }
+        java.util.List<String> assets = forms.visibleAssetRowComposites();
+        System.out.println("PROBE| assets in room: " + assets);
+        if (assets.isEmpty()) { System.out.println("PROBE| no assets"); return; }
+        String firstAsset = assets.get(0).split(",")[0].trim();
+        if (!forms.openAssetForms(firstAsset)) { System.out.println("PROBE| asset forms did not open"); return; }
+        DriverManager.getDriver().manage().timeouts().implicitlyWait(Duration.ZERO);
+        try {
+            // 1. Empty-state anatomy ('No forms for this asset' + Add Form + Close).
+            dumpMatches("emptyState", "type == 'XCUIElementTypeStaticText' AND visible == 1 AND "
+                    + "(name CONTAINS 'No forms' OR name CONTAINS 'form')");
+            dumpMatches("emptyButtons", "type == 'XCUIElementTypeButton' AND visible == 1");
+            // 2. Open the Add Form sheet.
+            tapByName("Add Form");
+            mediumWait();
+            dumpMatches("sheetNav", "type == 'XCUIElementTypeNavigationBar'");
+            dumpMatches("sheetHeaders", "type == 'XCUIElementTypeStaticText' AND visible == 1 AND name CONTAINS 'FORM'");
+            dumpMatches("templateRows", "type == 'XCUIElementTypeButton' AND visible == 1 AND rect.y > 150");
+            dumpMatches("templateCells", "type == 'XCUIElementTypeCell' AND visible == 1");
+            dumpMatches("templateTexts", "type == 'XCUIElementTypeStaticText' AND visible == 1 AND rect.y > 150");
+            // 3. Pick the FIRST template (ATEST1-style row) — tap its text.
+            java.util.List<WebElement> tmpl = DriverManager.getDriver().findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND visible == 1 AND rect.y > 150 AND NOT (name BEGINSWITH 'Applies to')"));
+            if (!tmpl.isEmpty()) {
+                WebElement t = tmpl.get(0);
+                System.out.println("PROBE| picking template '" + t.getAttribute("name") + "'");
+                Rectangle r = t.getRect();
+                DriverManager.getDriver().executeScript("mobile: tap",
+                        java.util.Map.of("x", r.x + r.width / 2, "y", r.y + r.height / 2));
+                sleep(1500);
+            }
+            // 4. Opened form: nav buttons (Back/trash/edit/checkmark names), chip strip, sign-off block.
+            dumpMatches("formNavButtons", "type == 'XCUIElementTypeButton' AND visible == 1 AND rect.y < 260");
+            dumpMatches("formChips", "type == 'XCUIElementTypeButton' AND visible == 1 AND rect.y < 160");
+            dumpMatches("signOffTexts", "type == 'XCUIElementTypeStaticText' AND "
+                    + "(name CONTAINS 'Sign' OR name CONTAINS 'Printed' OR name CONTAINS 'Signature' OR name CONTAINS 'Date')");
+            dumpMatches("textViews", "type == 'XCUIElementTypeTextView'");
+            dumpMatches("textFields", "type == 'XCUIElementTypeTextField'");
+            dumpMatches("clearBtn", "name == 'Clear'");
+            // 5. Signature canvas hunt: dump Others/Images near the 'Sign above' text.
+            dumpMatches("signAbove", "name CONTAINS 'Sign above'");
+            dumpMatches("canvasOthers", "type == 'XCUIElementTypeOther' AND visible == 1 AND rect.y > 900");
+            // 6. Draw one stroke across the canvas zone (right half, below 'Technician Signature').
+            try {
+                java.util.List<WebElement> sig = DriverManager.getDriver().findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND name == 'Technician Signature'"));
+                if (!sig.isEmpty()) {
+                    Rectangle sr = sig.get(0).getRect();
+                    int cx = sr.x + 40, cy = sr.y + 120;
+                    DriverManager.getDriver().executeScript("mobile: dragFromToForDuration",
+                            java.util.Map.of("fromX", cx, "fromY", cy, "toX", cx + 160, "toY", cy + 60, "duration", 0.8));
+                    sleep(800);
+                    System.out.println("PROBE| drew signature stroke from (" + cx + "," + cy + ")");
+                    dumpMatches("clearAfterDraw", "name == 'Clear'");
+                }
+            } catch (Exception e) { System.out.println("PROBE| signature draw failed: " + e.getMessage()); }
+            logStepWithScreenshot("form filled state");
+            // 7. Save via the nav checkmark (name likely 'checkmark' — dump already shows it); try both.
+            for (String cand : new String[]{"checkmark", "Done", "Save"}) {
+                java.util.List<WebElement> btns = DriverManager.getDriver().findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND name == '" + cand + "' AND visible == 1 AND rect.y < 260"));
+                if (!btns.isEmpty()) {
+                    System.out.println("PROBE| tapping save candidate '" + cand + "'");
+                    Rectangle r = btns.get(0).getRect();
+                    DriverManager.getDriver().executeScript("mobile: tap",
+                            java.util.Map.of("x", r.x + r.width / 2, "y", r.y + r.height / 2));
+                    sleep(1200);
+                    break;
+                }
+            }
+            dumpMatches("postSaveNav", "type == 'XCUIElementTypeButton' AND visible == 1 AND rect.y < 260");
+            dumpMatches("postSaveAlerts", "type == 'XCUIElementTypeAlert'");
+            // 8. Back out to Assets-in-Room: asset row should now carry a green check badge.
+            tapByName("Back");
+            sleep(1200);
+            dumpMatches("roomRowImages", "type == 'XCUIElementTypeImage' AND visible == 1");
+            dumpMatches("roomRowsAfterFile", "type == 'XCUIElementTypeCell' AND visible == 1");
+            dumpMatches("roomRowChecks", "name CONTAINS 'checkmark'");
+            // 9. Session TAB STRIP on v1.55 (user build shows Details/Assets/Issues/Files/More
+            //    — Tasks/IR gone, 'More' NEW; if More exists, ZP-3054 may have moved there).
+            dumpMatches("tabStrip", "type == 'XCUIElementTypeButton' AND visible == 1 AND rect.y > 800");
+            java.util.List<WebElement> moreTab = DriverManager.getDriver().findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND name == 'More' AND visible == 1 AND rect.y > 800"));
+            if (!moreTab.isEmpty()) {
+                System.out.println("PROBE| 'More' TAB EXISTS on v1.55 — probing it (ZP-3054 relocation?)");
+                Rectangle r = moreTab.get(0).getRect();
+                DriverManager.getDriver().executeScript("mobile: tap",
+                        java.util.Map.of("x", r.x + r.width / 2, "y", r.y + r.height / 2));
+                sleep(1200);
+                dumpMatches("moreTabButtons", "type == 'XCUIElementTypeButton' AND visible == 1");
+                dumpMatches("moreTabTexts", "type == 'XCUIElementTypeStaticText' AND visible == 1");
+            }
+            // 10. Details tab: work-type chip + 'Forms Completed' ring (post-fill state).
+            tapByName("Details");
+            sleep(1200);
+            dumpMatches("detailsChips", "type == 'XCUIElementTypeStaticText' AND visible == 1 AND rect.y < 700");
+            dumpMatches("formsCompleted", "name CONTAINS 'Forms Completed' OR name CONTAINS 'Completed'");
+        } finally {
+            DriverManager.getDriver().manage().timeouts()
+                    .implicitlyWait(Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
+        }
+        logStepWithScreenshot("probe L complete");
+    }
+
     private void tapWorkTypeRow() {
         try {
             WebElement row = DriverManager.getDriver().findElement(AppiumBy.iOSNsPredicateString(

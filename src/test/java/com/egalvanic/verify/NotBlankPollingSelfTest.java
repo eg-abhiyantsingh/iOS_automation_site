@@ -94,6 +94,25 @@ public class NotBlankPollingSelfTest {
     }
 
     @Test
+    public void censusWedges_butScreenshotRendered_passes() {
+        // WDA snapshot timeout on giant/sheet-stacked DOMs: census THROWS.
+        // The pixel fallback must still rescue a visibly rendered screen.
+        UIStateValidator.assertNotBlank("wedged census, rendered screen",
+                () -> { throw new VerificationError("Content census failed (TimeoutException)"); },
+                () -> false, () -> true, WINDOW_MS, INTERVAL_MS); // must NOT throw
+    }
+
+    @Test
+    public void censusWedges_andScreenshotBlank_FAILS_withTheWedgeVerdict() {
+        VerificationError e = expectThrows(VerificationError.class, () ->
+                UIStateValidator.assertNotBlank("wedged census, blank screen",
+                        () -> { throw new VerificationError("Content census failed (TimeoutException)"); },
+                        () -> false, () -> false, WINDOW_MS, INTERVAL_MS));
+        assertTrue(e.getMessage().contains("census failed"),
+                "the census-wedge verdict must survive when pixels can't rescue: " + e.getMessage());
+    }
+
+    @Test
     public void spinnerNeverResolvesIntoContent_FAILS_andVerdictSaysSo() {
         VerificationError e = expectThrows(VerificationError.class, () ->
                 UIStateValidator.assertNotBlank("stuck spinner",

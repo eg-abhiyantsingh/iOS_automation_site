@@ -768,7 +768,12 @@ public class WorkTypeCreateForm_Test extends WorkTypeBaseTest {
         try {
             assertTrue(wo.openWorkTypePicker(), "Picker must open (" + tc + ")");
             verifyAppAlive(tc + ": picker sheet open");
-            verifyNotBlank("Work Type picker sheet (" + tc + ")");
+            // NEVER verifyNotBlank with the sheet stacked: the unbounded
+            // visible==1 census over form+sheet wedges WDA until the SESSION
+            // DIES (observed live 2026-08-04, 2m40s → 'session terminated').
+            // Bounded typed census proves rendering instead (giant-DOM rule).
+            assertEquals(Integer.valueOf(wo.getWorkTypePickerOptions(14).size()), Integer.valueOf(14),
+                    "Sheet must render all 14 option rows (bounded census — rendering proof)");
             verifyNoErrorAlert();
             logStepWithScreenshot(tc + " verified: healthy with sheet up");
         } finally {

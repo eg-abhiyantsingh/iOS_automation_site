@@ -59,23 +59,39 @@ public final class UIStateValidator {
                                BooleanSupplier renderedFallback, long windowMs, long intervalMs) {
         long deadline = System.currentTimeMillis() + windowMs;
         boolean sawLoading = false;
-        int content;
+        int content = 0;
+        VerificationError censusFailure = null;
         while (true) {
-            content = census.getAsInt();
+            try {
+                content = census.getAsInt();
+                censusFailure = null;
+            } catch (VerificationError wedge) {
+                // Census itself died (WDA snapshot timeout on a giant/sheet-
+                // stacked DOM — observed live 2026-08-04 with the Work Type
+                // picker open). Don't fail here: the pixel fallback below can
+                // still prove the screen is rendered.
+                censusFailure = wedge;
+                content = 0;
+            }
             if (content >= MIN_CONTENT_ELEMENTS) return;
             // spinner/progress visible == still loading, keep waiting out the window
-            sawLoading |= loadingVisible.getAsBoolean();
+            if (censusFailure == null) {
+                sawLoading |= loadingVisible.getAsBoolean();
+            }
             if (System.currentTimeMillis() >= deadline) break;
             pause(intervalMs);
         }
         // Pixel-level second opinion before failing: presented sheets can hide
-        // the whole subtree from the accessibility census (visible==0 quirk).
+        // the whole subtree from the accessibility census (visible==0 quirk),
+        // and a wedged census can't see ANYTHING while pixels render fine.
         if (renderedFallback.getAsBoolean()) {
-            System.out.println("🖼️ assertNotBlank(" + screen + "): DOM census saw only " + content
-                    + " elements but the screenshot is visibly rendered — presented-sheet "
-                    + "visible==0 quirk; treating as non-blank");
+            System.out.println("🖼️ assertNotBlank(" + screen + "): DOM census "
+                    + (censusFailure != null ? "WEDGED (" + censusFailure.getMessage() + ")"
+                                             : "saw only " + content + " elements")
+                    + " but the screenshot is visibly rendered — treating as non-blank");
             return;
         }
+        if (censusFailure != null) throw censusFailure;
         throw new VerificationError("Blank/empty screen: " + screen
                 + " (only " + content + " visible content elements after " + (windowMs / 1000) + "s"
                 + (sawLoading ? "; a loading indicator was visible but never resolved into content" : "")
