@@ -1076,11 +1076,11 @@ public class WorkTypeCreateE2E_Test extends WorkTypeBaseTest {
         verifyAppAlive(tc + ": back online");
     }
 
-    @Test(priority = 39, description = "TC_WTC_E2E_039 - OFFLINE: Work Type picker opens with all 14 options, General first")
+    @Test(priority = 39, description = "TC_WTC_E2E_039 - OFFLINE: Work Type picker opens with all catalog options, General first")
     public void TC_WTC_E2E_039_offlinePickerShowsAllFourteen() {
         String tc = "TC_WTC_E2E_039";
         ExtentReportManager.createTest(AppConstants.MODULE_JOBS, FEATURE,
-                tc + " - OFFLINE: Work Type picker opens with all 14 options, General first");
+                tc + " - OFFLINE: Work Type picker opens with all catalog options, General first");
         openWorkOrdersScreenWT();
         skipIfPreconditionMissing(() -> wo.canQueueOfflineTasks(),
                 tc + ": in-app wifi toggle unavailable on this build — offline smoke needs it");

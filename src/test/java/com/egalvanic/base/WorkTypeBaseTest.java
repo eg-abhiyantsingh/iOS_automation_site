@@ -81,6 +81,62 @@ public abstract class WorkTypeBaseTest extends BaseTest {
         return a;
     }
 
+    // ── work-type picker option set (BACKEND-DERIVED, self-updating) ────────
+
+    private static java.util.List<String> cachedPickerOptions;
+
+    /**
+     * The option list the iOS Work Type picker MUST show, derived from the
+     * BACKEND service catalog: 'General' pinned first, then every service
+     * display name in case-sensitive lexicographic order.
+     *
+     * WHY backend-derived (2026-08-05): the catalog is CUSTOMER-EXTENSIBLE.
+     * Two services ('abhiyant Preventive', 'abhiyant service corrective')
+     * were added in QA, the picker correctly grew to 16 options, and the
+     * hard-coded "exactly 14" assertions started reporting a FALSE FAILURE
+     * against a correct app (PROBE_O evidence: both extras have identical
+     * option geometry and appear in GET /procedures-v2/services). Deriving the
+     * expectation keeps the count/order contracts real while letting the
+     * product add work types without breaking the suite.
+     *
+     * Falls back to the pinned {@link WorkTypeCatalog} (14) when the backend
+     * is unreachable, so offline/air-gapped runs still assert something sane.
+     */
+    protected static synchronized java.util.List<String> expectedPickerOptions() {
+        if (cachedPickerOptions != null) return cachedPickerOptions;
+        java.util.List<String> names = new java.util.ArrayList<>();
+        TestDataApi a = api();
+        if (a != null) {
+            try {
+                String json = a.workTypeServicesJson();
+                java.util.regex.Matcher m = java.util.regex.Pattern
+                        .compile("\"name\"\\s*:\\s*\"([^\"]+)\"").matcher(json);
+                while (m.find()) names.add(m.group(1));
+            } catch (Exception e) {
+                System.out.println("⚠️ expectedPickerOptions: service catalog read failed — "
+                        + "falling back to the pinned enum: " + e.getMessage());
+                names.clear();
+            }
+        }
+        if (names.isEmpty()) {
+            for (WorkTypeCatalog wt : WorkTypeCatalog.values()) {
+                if (wt != WorkTypeCatalog.GENERAL) names.add(wt.displayName());
+            }
+        }
+        java.util.Collections.sort(names, String::compareTo);
+        java.util.List<String> full = new java.util.ArrayList<>();
+        full.add(WorkTypeCatalog.GENERAL.displayName());
+        full.addAll(names);
+        cachedPickerOptions = full;
+        System.out.println("📋 expected picker options (" + full.size() + ", backend-derived): " + full);
+        return full;
+    }
+
+    /** Expected picker option COUNT (backend services + the UI-only General). */
+    protected static int expectedPickerOptionCount() {
+        return expectedPickerOptions().size();
+    }
+
     // ── fixture provisioning on the landed site ────────────────────────────
 
     /**

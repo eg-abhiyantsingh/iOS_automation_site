@@ -889,6 +889,55 @@ public class WorkTypeProbe_Test extends BaseTest {
         logStepWithScreenshot("probe N list state");
     }
 
+    @Test(priority = 14)
+    public void PROBE_O_censusBleedIdentify_v155() {
+        ExtentReportManager.createTest(AppConstants.MODULE_JOBS, "WorkType Probe",
+                "PROBE O - identify the 2 EXTRA rows the picker option census picks up (16 vs 14)");
+        loginAndSelectSite();
+        siteSelectionPage.clickWorkOrderCard();
+        shortWait();
+        assertTrue(wo.waitForWorkOrdersScreen(), "Work Orders screen must open");
+        assertTrue(wo.openCreateForm(), "Create form must open");
+        assertTrue(wo.openWorkTypePicker(), "Picker must open");
+        DriverManager.getDriver().manage().timeouts().implicitlyWait(Duration.ZERO);
+        try {
+            java.util.List<String> census = wo.getWorkTypePickerOptions(14);
+            System.out.println("PROBE| census size=" + census.size());
+            java.util.Set<String> known = new java.util.HashSet<>();
+            for (com.egalvanic.constants.WorkTypeCatalog wt
+                    : com.egalvanic.constants.WorkTypeCatalog.values()) {
+                known.add(wt.displayName());
+            }
+            for (String c : census) {
+                System.out.println("PROBE| censusRow " + (known.contains(c) ? "[option] " : "[EXTRA!] ") + "'" + c + "'");
+            }
+            // Geometry of the extras vs a known option, to find a scoping rule.
+            for (String c : census) {
+                if (known.contains(c)) continue;
+                try {
+                    WebElement el = DriverManager.getDriver().findElement(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeButton' AND name == '" + c.replace("'", "\\'") + "'"));
+                    Rectangle r = el.getRect();
+                    System.out.println("PROBE| EXTRA rect=(" + r.x + "," + r.y + "," + r.width + "," + r.height
+                            + ") enabled=" + el.getAttribute("enabled") + " acc=" + el.getAttribute("accessible"));
+                } catch (Exception e) {
+                    System.out.println("PROBE| EXTRA '" + c + "' geometry failed: " + e.getMessage());
+                }
+            }
+            try {
+                WebElement opt = DriverManager.getDriver().findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND name == 'Cleaning'"));
+                Rectangle r = opt.getRect();
+                System.out.println("PROBE| OPTION 'Cleaning' rect=(" + r.x + "," + r.y + "," + r.width + ","
+                        + r.height + ") acc=" + opt.getAttribute("accessible"));
+            } catch (Exception ignored) { }
+        } finally {
+            DriverManager.getDriver().manage().timeouts()
+                    .implicitlyWait(Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
+        }
+        logStepWithScreenshot("probe O complete");
+    }
+
     private void tapWorkTypeRow() {
         try {
             WebElement row = DriverManager.getDriver().findElement(AppiumBy.iOSNsPredicateString(

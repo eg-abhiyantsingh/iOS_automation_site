@@ -64,21 +64,15 @@ public class WorkTypeCreatePicker_Test extends WorkTypeBaseTest {
      * BEFORE 'Cleaning').
      */
     private static List<String> expectedNonGeneralSorted() {
-        List<String> expected = new ArrayList<>();
-        for (WorkTypeCatalog wt : WorkTypeCatalog.values()) {
-            if (wt == WorkTypeCatalog.GENERAL) continue;
-            expected.add(wt.displayName());
-        }
-        Collections.sort(expected, String::compareTo);
-        return expected;
+        // Backend-derived (2026-08-05): the service catalog is customer-
+        // extensible — see WorkTypeBaseTest.expectedPickerOptions().
+        List<String> full = new ArrayList<>(expectedPickerOptions());
+        return full.subList(1, full.size());
     }
 
-    /** Full expected 14-entry census: 'General' pinned FIRST, then the sorted 13. */
+    /** Full expected census: 'General' pinned FIRST, then every backend service sorted. */
     private static List<String> expectedCensus() {
-        List<String> full = new ArrayList<>();
-        full.add(WorkTypeCatalog.GENERAL.displayName());
-        full.addAll(expectedNonGeneralSorted());
-        return full;
+        return new ArrayList<>(expectedPickerOptions());
     }
 
     // ─────────────────────────── shared flow helpers ───────────────────────────
@@ -106,7 +100,7 @@ public class WorkTypeCreatePicker_Test extends WorkTypeBaseTest {
 
     /** Read + log the option census (bounded, type-bound primitive). */
     private List<String> censusLogged(String tc) {
-        List<String> census = wo.getWorkTypePickerOptions(14);
+        List<String> census = wo.getWorkTypePickerOptions(expectedPickerOptionCount());
         logStep(tc + " census (" + census.size() + " rows): " + census);
         return census;
     }
@@ -244,14 +238,14 @@ public class WorkTypeCreatePicker_Test extends WorkTypeBaseTest {
     }
 
     @Test(priority = 3)
-    public void TC_WTC_PICK_003_censusExactlyFourteen() {
+    public void TC_WTC_PICK_003_censusMatchesBackendCatalog() {
         ExtentReportManager.createTest(AppConstants.MODULE_JOBS, FEATURE,
                 "TC_WTC_PICK_003 - option census is EXACTLY 14 (all visible, no scroll)");
         openCreateFormGuarded("TC_WTC_PICK_003");
         try {
             openPickerGuarded("TC_WTC_PICK_003");
             List<String> census = censusLogged("TC_WTC_PICK_003");
-            assertEquals(census.size(), 14,
+            assertEquals(census.size(), expectedPickerOptionCount(),
                     "Picker must expose EXACTLY 14 options (General + 13 services) — got " + census);
             logStepWithScreenshot("TC_WTC_PICK_003 verified: 14-option census");
         } finally {
@@ -319,7 +313,7 @@ public class WorkTypeCreatePicker_Test extends WorkTypeBaseTest {
         try {
             openPickerGuarded("TC_WTC_PICK_007");
             List<String> census = censusLogged("TC_WTC_PICK_007");
-            assertEquals(census.size(), 14,
+            assertEquals(census.size(), expectedPickerOptionCount(),
                     "Order check needs the full 14-entry census — got " + census);
             List<String> expected = expectedNonGeneralSorted();
             assertEquals(census.subList(1, 14), expected,
@@ -1003,8 +997,8 @@ public class WorkTypeCreatePicker_Test extends WorkTypeBaseTest {
             assertTrue(wo.openWorkTypePicker(),
                     "Picker must reopen after a commit (open→commit→open must not wedge the row)");
             List<String> census = censusLogged("TC_WTC_PICK_070");
-            assertEquals(census.size(), 14,
-                    "Reopened sheet must still expose all 14 options — got " + census);
+            assertEquals(census.size(), expectedPickerOptionCount(),
+                    "Reopened sheet must still expose all catalog options — got " + census);
             logStepWithScreenshot("TC_WTC_PICK_070 verified: reopen after commit shows full census");
         } finally {
             formHygiene();
@@ -1025,8 +1019,8 @@ public class WorkTypeCreatePicker_Test extends WorkTypeBaseTest {
             // visible==1 census over form+sheet wedges WDA until the SESSION
             // DIES (observed live 2026-08-04, 2m40s → 'session terminated').
             // Bounded typed census proves rendering instead (giant-DOM rule).
-            assertEquals(Integer.valueOf(wo.getWorkTypePickerOptions(14).size()), Integer.valueOf(14),
-                    "Sheet must render all 14 option rows (bounded census — rendering proof)");
+            assertEquals(Integer.valueOf(wo.getWorkTypePickerOptions(expectedPickerOptionCount()).size()), Integer.valueOf(expectedPickerOptionCount()),
+                    "Sheet must render all catalog option rows (bounded census — rendering proof)");
             verifyNoErrorAlert();
             logStepWithScreenshot("TC_WTC_PICK_071 verified: healthy with sheet open");
         } finally {
@@ -1111,7 +1105,7 @@ public class WorkTypeCreatePicker_Test extends WorkTypeBaseTest {
             openPickerGuarded("TC_WTC_PICK_075");
             List<String> first = censusLogged("TC_WTC_PICK_075 read-1");
             List<String> second = censusLogged("TC_WTC_PICK_075 read-2");
-            assertEquals(first.size(), 14,
+            assertEquals(first.size(), expectedPickerOptionCount(),
                     "First census read must return the full 14 options — got " + first);
             assertEquals(second, first,
                     "Second census read on the SAME open sheet must be identical in content and order "
