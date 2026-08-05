@@ -131,6 +131,15 @@ public class WorkOrderPage extends BasePage {
             screenWait.pollingEvery(Duration.ofMillis(500));
             return screenWait.until(d -> isWorkOrdersScreenDisplayed());
         } catch (Exception e) {
+            // Opportunistic v1.55 consent-sheet recovery (see openCreateForm):
+            // the sheet swallows the tile tap; accept it and re-check once.
+            if (acceptPolicyUpdateSheetIfPresent()) {
+                try {
+                    WebDriverWait retryWait = new WebDriverWait(driver, Duration.ofSeconds(8));
+                    retryWait.pollingEvery(Duration.ofMillis(500));
+                    return retryWait.until(d -> isWorkOrdersScreenDisplayed());
+                } catch (Exception ignored) { }
+            }
             System.out.println("⚠️ Timeout waiting for Work Orders screen");
             return false;
         }
@@ -24412,15 +24421,85 @@ public class WorkOrderPage extends BasePage {
 
     /** Open the 'Start New Work Order' create form; true when its nav appears. */
     public boolean openCreateForm() {
+        // v1.55 create-entry contract (2026-08-05, CI run 30923680769):
+        // fixture-row opens AUTO-START sessions (auto-accepted 'Start Work
+        // Order?' alert) and WT suites run noReset \u2014 a leftover in-memory
+        // session BLOCKS the Start-New CTA ('...End current work order
+        // session...') and cascaded 27 fails in the createpicker slice.
+        // Gate PRECISELY on the CTA composite (never on the WO chip \u2014 that is
+        // the session picker and is ~always present): when blocked, end the
+        // active session from the dashboard chip menu, then return and retry.
         try {
+            String composite = null;
+            try {
+                composite = withImplicitWait(0, () -> {
+                    java.util.List<WebElement> els = driver.findElements(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeButton' AND name BEGINSWITH 'Start New Work Order'"));
+                    return els.isEmpty() ? null : els.get(0).getAttribute("name");
+                });
+            } catch (Exception ignored) { }
+            if (composite != null && composite.contains("End current work order session")) {
+                System.out.println("\ud83e\uddf9 Start-New CTA blocked by an active session \u2014 ending it via the chip menu");
+                // The chip lives on the dashboard \u2014 hop out of the WO list.
+                try {
+                    WebElement done = driver.findElement(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeButton' AND name == 'Done' AND visible == 1 AND rect.y < 120"));
+                    org.openqa.selenium.Rectangle dr = done.getRect();
+                    driver.executeScript("mobile: tap", java.util.Map.of("x", dr.x + dr.width / 2, "y", dr.y + dr.height / 2));
+                    sleep(1000);
+                } catch (Exception ignored) { }
+                if (openDashboardWoMenu()) {
+                    endActiveSessionViaDashboardMenu();
+                }
+                // Back onto the Work Orders list for the retry.
+                try {
+                    WebElement tile = driver.findElement(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeButton' AND name ENDSWITH ', Work Orders' AND visible == 1"));
+                    org.openqa.selenium.Rectangle tr = tile.getRect();
+                    driver.executeScript("mobile: tap", java.util.Map.of("x", tr.x + tr.width / 2, "y", tr.y + tr.height / 2));
+                    sleep(1200);
+                } catch (Exception e) {
+                    System.out.println("\u26a0\ufe0f openCreateForm: WO tile re-entry failed \u2014 " + e.getMessage());
+                }
+            }
             WebElement create = driver.findElement(V150_CREATE_ROW);
             org.openqa.selenium.Rectangle r = create.getRect();
             driver.executeScript("mobile: tap", java.util.Map.of("x", r.x + 40, "y", r.y + r.height / 2));
         } catch (Exception e) {
+            // Opportunistic consent-sheet recovery (CI run 30923680769: the
+            // 'Policy Update' sheet outraced the login hook's poll on slow
+            // 18.5 sims and blocked the FIRST ~26 createpicker tests for 30
+            // minutes). Zero cost on green paths \u2014 only runs on failure.
+            if (acceptPolicyUpdateSheetIfPresent()) {
+                try {
+                    WebElement create = driver.findElement(V150_CREATE_ROW);
+                    org.openqa.selenium.Rectangle r = create.getRect();
+                    driver.executeScript("mobile: tap", java.util.Map.of("x", r.x + 40, "y", r.y + r.height / 2));
+                    return waitForCondition(() -> existsNow(V150_NEW_WO_NAV), 8);
+                } catch (Exception retry) {
+                    System.out.println("\u26a0\ufe0f openCreateForm retry after consent: " + retry.getMessage());
+                    return false;
+                }
+            }
             System.out.println("\u26a0\ufe0f openCreateForm: " + e.getMessage());
             return false;
         }
         return waitForCondition(() -> existsNow(V150_NEW_WO_NAV), 8);
+    }
+
+    /** Tap the blocking v1.55 'Policy Update' consent sheet's Accept button if it is up. */
+    public boolean acceptPolicyUpdateSheetIfPresent() {
+        try {
+            for (WebElement b : driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND name == 'Accept & Continue' AND visible == 1"))) {
+                org.openqa.selenium.Rectangle r = b.getRect();
+                driver.executeScript("mobile: tap", java.util.Map.of("x", r.x + r.width / 2, "y", r.y + r.height / 2));
+                System.out.println("\ud83d\udcdc 'Policy Update' sheet accepted (opportunistic recovery)");
+                sleep(800);
+                return true;
+            }
+        } catch (Exception ignored) { }
+        return false;
     }
 
     /** Current value of a create-form config row ('Priority', 'Photo Type', ...). */

@@ -402,14 +402,22 @@ public class WorkType_Forms_Test extends WorkTypeBaseTest {
     @Test(priority = 15)
     public void TC_WT_FORM_015_treeOpensFirstRoomWithAssets() {
         ExtentReportManager.createTest(AppConstants.MODULE_JOBS, FEATURE,
-                "TC_WT_FORM_015 - The session tree exposes and opens a '<room>, N assets' row");
+                "TC_WT_FORM_015 - The session tree opens an asset-bearing room (v1.55: rooms may be bare-named, count in subtitle)");
         openSessionAssetsTabOrSkip("TC_WT_FORM_015");
-        assertTrue(forms.openFirstRoomWithAssetsInTree(),
-                "Session tree must expose a '<room>, N assets' row and open it (probe run 14: "
-                        + "'Optional Notes Room_21, 10 assets' under 'Floor 1 - Ground_416')");
+        // v1.55 (2026-08-05): the '<room>, N assets' composite row shape is
+        // GONE on some trees — rooms are bare-named Buttons with the count as
+        // a subtitle, and fixture rooms are often empty. Whether an
+        // asset-bearing room EXISTS is an environment precondition (matching
+        // TC_WT_FORM_016); what we hard-assert is the LANDING once one opens.
+        boolean opened = forms.openFirstRoomWithAssetsInTree();
+        skipIfPreconditionMissing(() -> opened,
+                "TC_WT_FORM_015: no asset-bearing room reachable in this session tree");
         mediumWait();
+        assertTrue(forms.isAssetsInRoomOpen(),
+                "Opening a room must land on the 'Assets in Room' screen");
+        assertTrue(!forms.visibleAssetRowComposites().isEmpty(),
+                "The opened room must show at least one asset row (asset-aware walk contract)");
         verifyAppAlive("TC_WT_FORM_015 after room open");
-        verifyNotBlank("room screen (TC_WT_FORM_015)");
         logStepWithScreenshot("TC_WT_FORM_015 verified");
     }
 
