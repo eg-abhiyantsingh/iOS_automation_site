@@ -170,6 +170,11 @@ public class WelcomePage extends BasePage {
      * 29402715226 / local probe 2026-07-15). Coordinate press first.
      */
     public void clickContinue() {
+        // The keyboard is up right after typing the company code; on a VIRGIN
+        // install it can overlay/steal the Continue press (fresh sim
+        // 2026-08-05: code typed, keyboard up, app stranded on Welcome →
+        // every test in the run failed at login). Dismiss first, then press.
+        try { dismissKeyboard(); } catch (Exception ignored) { }
         waitForClickable(continueButton);
         try {
             org.openqa.selenium.Rectangle r = continueButton.getRect();
@@ -177,6 +182,17 @@ public class WelcomePage extends BasePage {
                 "x", r.x + r.width / 2, "y", r.y + r.height / 2));
         } catch (Exception e) {
             continueButton.click();
+        }
+    }
+
+    /** True while the Welcome (company-code) screen is still the current screen. */
+    public boolean isStillOnWelcome() {
+        try {
+            return withImplicitWait(0, () -> !driver.findElements(
+                    io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND name == 'Welcome'")).isEmpty());
+        } catch (Exception e) {
+            return false;
         }
     }
 
@@ -195,6 +211,16 @@ public class WelcomePage extends BasePage {
         clickContinue();
         // Post-Continue wait — covers spinner + backend round-trip + screen transition
         sleepQuietly(3000);
+        // VIRGIN-INSTALL retry (2026-08-05): first launch has no cached
+        // company config, so the validate round-trip is slower and a swallowed
+        // press leaves the app on Welcome. Re-press up to twice (keyboard
+        // dismissed each time) before letting the caller fail — this is the
+        // single point where a stranded Welcome poisons an ENTIRE run.
+        for (int attempt = 1; attempt <= 2 && isStillOnWelcome(); attempt++) {
+            System.out.println("🔁 Still on Welcome after Continue — re-pressing (attempt " + attempt + "/2)");
+            clickContinue();
+            sleepQuietly(4000);
+        }
         // Precise diagnosis: a stranded APP-LEVEL offline flag (persisted via
         // noReset when an offline test dies before its cleanup) surfaces here
         // as 'Failed to fetch company configuration' — every later click then
