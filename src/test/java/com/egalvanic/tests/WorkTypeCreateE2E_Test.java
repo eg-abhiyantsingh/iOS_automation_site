@@ -1099,14 +1099,15 @@ public class WorkTypeCreateE2E_Test extends WorkTypeBaseTest {
             assertTrue(wo.waitForWorkOrdersScreen(), tc + ": Work Orders list must open while OFFLINE");
             assertTrue(wo.openCreateForm(), tc + ": create form must open while OFFLINE");
             assertTrue(wo.openWorkTypePicker(), tc + ": Work Type picker must open while OFFLINE");
-            List<String> options = wo.getWorkTypePickerOptions(14);
+            List<String> options = wo.getWorkTypePickerOptions(expectedPickerOptionCount());
             logStep(tc + ": OFFLINE picker options = " + options);
-            assertTrue(options.size() == 14,
-                    tc + ": the OFFLINE picker must render ALL 14 options (local catalog) — got "
+            assertTrue(options.size() >= 14,
+                    tc + ": the OFFLINE picker must render the locally cached catalog (>=14 product types; "
+                    + "customer services may be absent if the cache predates them) — got "
                     + options.size() + ": " + options);
             assertEquals(options.get(0), "General",
                     tc + ": 'General' must stay the FIRST option offline");
-            logStepWithScreenshot(tc + " verified: full 14-option catalog renders offline");
+            logStepWithScreenshot(tc + " verified: full catalog renders offline");
             assertTrue(wo.closeWorkTypePickerNoChange(),
                     tc + ": the no-op close (re-tap selected row) must work offline");
             wo.cancelCreateForm();

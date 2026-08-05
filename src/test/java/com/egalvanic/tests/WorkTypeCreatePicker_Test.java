@@ -240,14 +240,14 @@ public class WorkTypeCreatePicker_Test extends WorkTypeBaseTest {
     @Test(priority = 3)
     public void TC_WTC_PICK_003_censusMatchesBackendCatalog() {
         ExtentReportManager.createTest(AppConstants.MODULE_JOBS, FEATURE,
-                "TC_WTC_PICK_003 - option census is EXACTLY 14 (all visible, no scroll)");
+                "TC_WTC_PICK_003 - option census EQUALS the backend catalog (all visible, no scroll)");
         openCreateFormGuarded("TC_WTC_PICK_003");
         try {
             openPickerGuarded("TC_WTC_PICK_003");
             List<String> census = censusLogged("TC_WTC_PICK_003");
             assertEquals(census.size(), expectedPickerOptionCount(),
-                    "Picker must expose EXACTLY 14 options (General + 13 services) — got " + census);
-            logStepWithScreenshot("TC_WTC_PICK_003 verified: 14-option census");
+                    "Picker must expose EXACTLY the backend catalog (General + every service) — got " + census);
+            logStepWithScreenshot("TC_WTC_PICK_003 verified: full-catalog census");
         } finally {
             formHygiene();
         }
@@ -308,18 +308,21 @@ public class WorkTypeCreatePicker_Test extends WorkTypeBaseTest {
     @Test(priority = 7)
     public void TC_WTC_PICK_007_nonGeneralLexicographicOrder() {
         ExtentReportManager.createTest(AppConstants.MODULE_JOBS, FEATURE,
-                "TC_WTC_PICK_007 - the 13 non-General entries are in case-sensitive lexicographic order");
+                "TC_WTC_PICK_007 - every non-General entry is in case-sensitive lexicographic order");
         openCreateFormGuarded("TC_WTC_PICK_007");
         try {
             openPickerGuarded("TC_WTC_PICK_007");
             List<String> census = censusLogged("TC_WTC_PICK_007");
             assertEquals(census.size(), expectedPickerOptionCount(),
-                    "Order check needs the full 14-entry census — got " + census);
+                    "Order check needs the full census — got " + census);
             List<String> expected = expectedNonGeneralSorted();
-            assertEquals(census.subList(1, 14), expected,
-                    "Entries 2..14 must equal WorkTypeCatalog display names sorted case-sensitively "
-                    + "(String::compareTo — 'DGA / Fluid Sample Analysis' before "
-                    + "'De-Energized Visual Inspection')");
+            // Dynamic bound: the catalog is customer-extensible (2026-08-05) —
+            // a fixed subList(1, 14) compared 15 expected names against 14
+            // taken and false-failed on a correct app.
+            assertEquals(census.subList(1, census.size()), expected,
+                    "Entries after 'General' must equal the backend service display names sorted "
+                    + "case-sensitively (String::compareTo — 'DGA / Fluid Sample Analysis' before "
+                    + "'De-Energized Visual Inspection'; customer-created types sort last)");
             logStepWithScreenshot("TC_WTC_PICK_007 verified: lexicographic order holds");
         } finally {
             formHygiene();
@@ -329,19 +332,24 @@ public class WorkTypeCreatePicker_Test extends WorkTypeBaseTest {
     @Test(priority = 8)
     public void TC_WTC_PICK_008_everyCensusEntryIsCatalogBacked() {
         ExtentReportManager.createTest(AppConstants.MODULE_JOBS, FEATURE,
-                "TC_WTC_PICK_008 - every census entry resolves to a WorkTypeCatalog display name (no foreign labels)");
+                "TC_WTC_PICK_008 - every census entry is a real catalog option (backend service or General; no foreign labels)");
         openCreateFormGuarded("TC_WTC_PICK_008");
         try {
             openPickerGuarded("TC_WTC_PICK_008");
             List<String> census = censusLogged("TC_WTC_PICK_008");
             assertTrue(!census.isEmpty(), "Census must not be empty");
+            // Backend-derived membership (2026-08-05): the enum pins the 14
+            // PRODUCT-STANDARD types, but companies can add services
+            // ('abhiyant Preventive'…) — validating against the enum alone
+            // false-flagged those correct options as "foreign labels".
+            List<String> allowed = expectedPickerOptions();
             List<String> foreign = new ArrayList<>();
             for (String label : census) {
-                if (WorkTypeCatalog.byDisplayName(label) == null) foreign.add(label);
+                if (!allowed.contains(label)) foreign.add(label);
             }
             assertTrue(foreign.isEmpty(),
-                    "Every picker label must EXACTLY equal a WorkTypeCatalog.displayName() — foreign "
-                    + "labels found: " + foreign);
+                    "Every picker label must EXACTLY equal a backend service display name (or 'General') "
+                    + "— foreign labels found: " + foreign + " (allowed: " + allowed + ")");
             logStepWithScreenshot("TC_WTC_PICK_008 verified: census is catalog-backed");
         } finally {
             formHygiene();
@@ -988,7 +996,7 @@ public class WorkTypeCreatePicker_Test extends WorkTypeBaseTest {
     @Test(priority = 70)
     public void TC_WTC_PICK_070_reopenAfterCommitStillFullCensus() {
         ExtentReportManager.createTest(AppConstants.MODULE_JOBS, FEATURE,
-                "TC_WTC_PICK_070 - picker reopens after a commit and still shows the full 14-option census");
+                "TC_WTC_PICK_070 - picker reopens after a commit and still shows the full catalog census");
         openCreateFormGuarded("TC_WTC_PICK_070");
         try {
             openPickerGuarded("TC_WTC_PICK_070");
@@ -1106,7 +1114,7 @@ public class WorkTypeCreatePicker_Test extends WorkTypeBaseTest {
             List<String> first = censusLogged("TC_WTC_PICK_075 read-1");
             List<String> second = censusLogged("TC_WTC_PICK_075 read-2");
             assertEquals(first.size(), expectedPickerOptionCount(),
-                    "First census read must return the full 14 options — got " + first);
+                    "First census read must return the full option set — got " + first);
             assertEquals(second, first,
                     "Second census read on the SAME open sheet must be identical in content and order "
                     + "(no reflow/ghost rows)");
