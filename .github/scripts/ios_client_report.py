@@ -200,7 +200,7 @@ def status_lower(s):
     return {"PASS": "pass", "FAIL": "fail", "SKIP": "skip"}.get(s, "skip")
 
 
-def build_html(methods, phase, run_url=None, recovered_count=0, still_failing_after=0):
+def build_html(methods, phase, run_url=None, recovered_count=0, still_failing_after=0, list_tests=False):
     # ── Aggregate by feature area ──
     areas = defaultdict(lambda: {"passed": 0, "failed": 0, "skipped": 0, "tests": []})
     for m in methods:
@@ -304,6 +304,33 @@ def build_html(methods, phase, run_url=None, recovered_count=0, still_failing_af
       <div class="section-header">
         <h2>Verifications Passed</h2>
         <p class="section-lead"><strong>{total_passed} verifications executed successfully</strong> across {len(areas)} product areas. See the Feature Area Coverage table above for the distribution.</p>
+      </div>
+    </section>"""
+
+    # ── Optional appendix: every test case by name with its outcome ──
+    # (opt-in via --list-tests; useful when the report itself is the ticket
+    # artifact and the reader wants to SEE the executed cases, not just counts)
+    if list_tests:
+        rows_html = []
+        for m in sorted(methods, key=lambda x: (x["area"], x["method"])):
+            status = m["status"]
+            cls = {"PASS": "text-passed", "FAIL": "text-failed"}.get(status, "")
+            label = {"PASS": "Passed", "FAIL": "Failed", "SKIP": "Skipped"}.get(status, status)
+            note = " (verified on re-run)" if m.get("recovered") else ""
+            rows_html.append(
+                f'<tr><td>{html_lib.escape(m["method"])}</td>'
+                f'<td class="{cls}">{label}{note}</td></tr>'
+            )
+        passing_summary += f"""
+    <section class="section">
+      <div class="section-header">
+        <h2>Executed Test Cases ({len(methods)})</h2>
+        <table class="coverage-table">
+          <thead><tr><th>Test Case</th><th>Result</th></tr></thead>
+          <tbody>
+            {''.join(rows_html)}
+          </tbody>
+        </table>
       </div>
     </section>"""
 
@@ -486,6 +513,7 @@ def main():
     ap.add_argument("--exclude", default="", help="comma-separated module substrings to drop from primary")
     ap.add_argument("--phase", default="", choices=["", "before", "after"], help="report phase label")
     ap.add_argument("--run-url", default=os.environ.get("RUN_URL", ""), help="CI run URL for the footer")
+    ap.add_argument("--list-tests", action="store_true", help="append an appendix listing every test case with its result")
     args = ap.parse_args()
 
     exclude = {e.strip() for e in args.exclude.split(",") if e.strip()}
@@ -502,6 +530,7 @@ def main():
     html_out = build_html(
         methods, args.phase, run_url=(args.run_url or None),
         recovered_count=recovered, still_failing_after=still_failing,
+        list_tests=args.list_tests,
     )
     os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
     with open(args.out, "w") as f:
