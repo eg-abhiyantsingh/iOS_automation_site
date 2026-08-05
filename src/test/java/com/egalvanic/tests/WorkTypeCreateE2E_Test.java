@@ -274,6 +274,19 @@ public class WorkTypeCreateE2E_Test extends WorkTypeBaseTest {
     }
 
     /** Dismiss an open chip menu without ending the session (outside tap; menus swallow it). */
+    /** Tap the TOPMOST chip-menu cell (rows are name-less — PROBE_J/K structural contract). */
+    private void tapTopMenuRow(String tc, IOSDriver d) {
+        org.openqa.selenium.WebElement topRow = null;
+        int minY = Integer.MAX_VALUE;
+        for (org.openqa.selenium.WebElement c : d.findElements(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeCell' AND visible == 1 AND rect.x > 150"))) {
+            try { int y = c.getRect().y; if (y < minY) { minY = y; topRow = c; } } catch (Exception ignored) { }
+        }
+        assertTrue(topRow != null, tc + ": the chip menu must expose its rows (structural census)");
+        org.openqa.selenium.Rectangle tr = topRow.getRect();
+        d.executeScript("mobile: tap", java.util.Map.of("x", tr.x + tr.width / 2, "y", tr.y + tr.height / 2));
+    }
+
     private void dismissChipMenuBestEffort() {
         try {
             if (!existsNowT(PRED_MENU_END_ROW)) return;
@@ -665,17 +678,35 @@ public class WorkTypeCreateE2E_Test extends WorkTypeBaseTest {
             try { d.setSetting("defaultAlertAction", ""); paused = true; } catch (Exception e) {
                 logStep(tc + ": could not pause auto-alerts — " + e.getMessage());
             }
-            // PROBE_K-pinned: the End Session row is the TOPMOST menu cell and
-            // carries no name — tap it structurally; the ALERT is the named oracle.
-            org.openqa.selenium.WebElement topRow = null;
-            int minY = Integer.MAX_VALUE;
-            for (org.openqa.selenium.WebElement c : d.findElements(io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                    "type == 'XCUIElementTypeCell' AND visible == 1 AND rect.x > 150"))) {
-                try { int y = c.getRect().y; if (y < minY) { minY = y; topRow = c; } } catch (Exception ignored) { }
+            // PROBE_K-pinned: menu rows are name-less — tap the TOPMOST cell
+            // structurally; ALERTS are the named oracles. Session-lifecycle
+            // truth (2026-08-05): sessions are IN-MEMORY and the harness
+            // soft-restarts the app per test, so no session is active when
+            // this test starts — the first top-row tap raises the
+            // 'Start Work Order?' SWITCHER alert. Confirm it (session becomes
+            // active in-process), reopen the menu — NOW the top row is
+            // End Session and the cancel-path contract can be exercised.
+            tapTopMenuRow(tc, d);
+            assertTrue(waitForCondition(() -> existsNowT(PRED_CANCEL_BTN), 8, "first menu alert"),
+                    tc + ": tapping the top menu row must raise a named alert");
+            if (existsNowT("type == 'XCUIElementTypeButton' AND name == 'Start Work Order' AND visible == 1")) {
+                logStep(tc + ": no in-process session — confirming the Start alert to activate one");
+                assertTrue(tapButtonByName("Start Work Order"),
+                        tc + ": 'Start Work Order' confirm must be tappable");
+                waitForCondition(() -> !existsNowT(PRED_CANCEL_BTN), 8, "start alert gone");
+                // The start may land in the session — return to the dashboard.
+                try {
+                    if (wo.isSessionSurfacePresent()) {
+                        org.openqa.selenium.WebElement done = d.findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                                "type == 'XCUIElementTypeButton' AND name == 'Done' AND visible == 1 AND rect.y < 120"));
+                        org.openqa.selenium.Rectangle dr = done.getRect();
+                        d.executeScript("mobile: tap", java.util.Map.of("x", dr.x + dr.width / 2, "y", dr.y + dr.height / 2));
+                        mediumWait();
+                    }
+                } catch (Exception e) { logStep(tc + ": post-start dashboard return — " + e.getMessage()); }
+                assertTrue(wo.openDashboardWoMenu(), tc + ": chip menu must reopen with the session active");
+                tapTopMenuRow(tc, d);
             }
-            assertTrue(topRow != null, tc + ": the chip menu must expose its rows (structural census)");
-            org.openqa.selenium.Rectangle tr = topRow.getRect();
-            d.executeScript("mobile: tap", java.util.Map.of("x", tr.x + tr.width / 2, "y", tr.y + tr.height / 2));
             assertTrue(waitForCondition(() -> existsNowT(PRED_CANCEL_BTN), 8,
                             "'End Work Order Session?' alert (Cancel button)"),
                     tc + ": the 'End Work Order Session?' alert must appear with a Cancel Button");
