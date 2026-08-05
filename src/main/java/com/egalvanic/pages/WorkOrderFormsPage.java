@@ -178,12 +178,18 @@ public class WorkOrderFormsPage extends BasePage {
                 int texts = driver.findElements(AppiumBy.iOSNsPredicateString(
                         "type == 'XCUIElementTypeStaticText' AND name == 'ACTIVE' AND visible == 1")).size();
                 if (texts > 0) return texts;
-                // v1.55: the badge StaticText stopped reporting visible==1
-                // (CI run 30900816509: composite said ACTIVE, badge count 0).
-                // The row composite still carries ', ACTIVE' — count rows;
-                // the radio invariant is identical.
-                return driver.findElements(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeButton' AND visible == 1 AND name ENDSWITH ', ACTIVE'")).size();
+                // v1.55: neither the badge StaticText nor the row Button
+                // reliably reports visible==1 (twin-visibility quirk; local
+                // 2026-08-05: gate read the ACTIVE composite while the
+                // visible==1 count was 0). Count DISTINCT ', ACTIVE' row
+                // composites at ANY visibility — SwiftUI recycler ghosts share
+                // the name, so the dedup keeps the radio invariant exact.
+                java.util.Set<String> distinct = new java.util.HashSet<>();
+                for (WebElement b : driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND name ENDSWITH ', ACTIVE'"))) {
+                    try { distinct.add(b.getAttribute("name")); } catch (Exception ignored) { }
+                }
+                return distinct.size();
             });
         } catch (Exception e) {
             return -1;

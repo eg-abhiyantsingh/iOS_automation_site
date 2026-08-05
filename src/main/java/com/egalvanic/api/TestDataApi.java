@@ -583,6 +583,13 @@ public class TestDataApi {
         return slice == null ? null : extract(slice, wantField);
     }
 
+    /** {@code field} from the JSON object enclosing {@code pos} — exact-row
+     *  attribution for multi-match scans (window heuristics misattribute). */
+    public static String extractFieldFromEnclosingObject(String json, int pos, String field) {
+        String slice = enclosingObject(json, pos);
+        return slice == null ? null : extract(slice, field);
+    }
+
     /** Brace-balanced slice of the JSON object enclosing {@code pos}, or null. */
     private static String enclosingObject(String json, int pos) {
         // Walk back to the '{' that opens the enclosing object…

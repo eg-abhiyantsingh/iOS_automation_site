@@ -952,25 +952,42 @@ public class WorkType_List_Test extends WorkTypeBaseTest {
     @Test(priority = 89)
     public void TC_WT_LIST_205_apiHoldsExactlyOneWorkOrderPerFixtureName() {
         ExtentReportManager.createTest(AppConstants.MODULE_JOBS, FEATURE,
-                "TC_WT_LIST_205 - backend holds exactly ONE work order per QA-WT fixture name");
+                "TC_WT_LIST_205 - backend holds exactly ONE work order per QA-WT fixture name PER SITE (family exists on multiple sites)");
         TestDataApi a = requireApi("TC_WT_LIST_205");
         loginAndSelectSite(); // dashboard needed so fixture-ensure can read the landed site
         boolean ensured = ensureFixturesOnLandedSite();
         skipIfPreconditionMissing(() -> ensured,
                 "TC_WT_LIST_205: fixture family could not be ensured on the landed site");
+        // PER-SITE uniqueness (2026-08-05): the QA-WT family deliberately
+        // exists on MULTIPLE sites with identical names (TC_WT_FIX_017 pins
+        // the symmetric cardinality; site-scoped ensure provisions drifted
+        // landed sites). Company-wide exactly-one contradicted that model —
+        // the real anti-duplication contract is one-per-name-per-sld_id.
         for (WorkTypeCatalog wt : fixtureOrder()) {
             String fixture = wt.fixtureName();
             String json = a.listWorkOrdersJson(fixture);
             assertTrue(json != null && !json.isEmpty(),
                     "listWorkOrdersJson must return a body when searching '" + fixture + "'");
-            int hits = countNeedle(json, "\"name\": \"" + fixture + "\"")
-                     + countNeedle(json, "\"name\":\"" + fixture + "\"");
-            logStep("TC_WT_LIST_205 '" + fixture + "' exact-name hits: " + hits);
-            assertEquals(hits, 1,
-                    "Backend must hold EXACTLY ONE work order named '" + fixture
-                    + "' — duplicates corrupt every list-anatomy contract");
+            java.util.Map<String, Integer> perSld = new java.util.HashMap<>();
+            java.util.regex.Matcher m = java.util.regex.Pattern
+                    .compile("\"name\"\\s*:\\s*\"" + java.util.regex.Pattern.quote(fixture) + "\"")
+                    .matcher(json);
+            int total = 0;
+            while (m.find()) {
+                total++;
+                String sld = TestDataApi.extractFieldFromEnclosingObject(json, m.start(), "sld_id");
+                perSld.merge(sld == null ? "?" : sld, 1, Integer::sum);
+            }
+            logStep("TC_WT_LIST_205 '" + fixture + "' hits: " + total + " across slds " + perSld);
+            assertTrue(total >= 1,
+                    "Fixture '" + fixture + "' must exist somewhere company-wide");
+            for (java.util.Map.Entry<String, Integer> e : perSld.entrySet()) {
+                assertEquals(e.getValue(), Integer.valueOf(1),
+                        "Backend must hold EXACTLY ONE '" + fixture + "' on sld " + e.getKey()
+                        + " — per-site duplicates corrupt the list-anatomy contracts");
+            }
         }
-        logStep("TC_WT_LIST_205 verified: 14/14 fixture names unique server-side");
+        logStep("TC_WT_LIST_205 verified: fixture names unique per site server-side");
     }
 
     /** TC_WT_LIST_206 — the list survives a dashboard round-trip with the row byte-identical. */
