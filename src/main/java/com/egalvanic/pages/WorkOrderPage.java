@@ -24752,6 +24752,15 @@ public class WorkOrderPage extends BasePage {
      * Manual alert handling throughout (autoAcceptAlerts races the confirm).
      */
     public boolean endActiveSessionViaDashboardMenu() {
+        return endActiveSessionViaDashboardMenuInner(true);
+    }
+
+    /** Non-recovering variant used as the recursion terminator. */
+    private boolean endActiveSessionViaDashboardMenuOnce() {
+        return endActiveSessionViaDashboardMenuInner(false);
+    }
+
+    private boolean endActiveSessionViaDashboardMenuInner(boolean allowPhantomRecovery) {
         try {
             try { driver.setSetting("defaultAlertAction", ""); } catch (Exception ignored) { }
             WebElement topRow = null;
@@ -24780,7 +24789,33 @@ public class WorkOrderPage extends BasePage {
                 sleep(1200);
                 return waitForCondition(() -> !isDashboardWoChipPresent(), 8);
             }
-            // Wrong alert ('Start Work Order?') or none — back out cleanly.
+            // Wrong alert ('Start Work Order?') = PHANTOM session (its WO was
+            // deleted server-side → no End Session row). Recovery: CONFIRM the
+            // start (replaces the phantom with a real session on this row),
+            // then reopen the menu — the top row is now End Session.
+            java.util.List<WebElement> startBtn = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND name == 'Start Work Order' AND visible == 1"));
+            if (!startBtn.isEmpty() && allowPhantomRecovery) {
+                System.out.println("🧹 phantom session detected — switching to a real WO to make it endable");
+                org.openqa.selenium.Rectangle sr = startBtn.get(startBtn.size() - 1).getRect();
+                driver.executeScript("mobile: tap", java.util.Map.of("x", sr.x + sr.width / 2, "y", sr.y + sr.height / 2));
+                sleep(1500);
+                // The switch may land in the new session — back to a chip surface.
+                if (isSessionSurfacePresent()) {
+                    try {
+                        WebElement done = driver.findElement(AppiumBy.iOSNsPredicateString(
+                                "type == 'XCUIElementTypeButton' AND name == 'Done' AND visible == 1 AND rect.y < 120"));
+                        org.openqa.selenium.Rectangle dr = done.getRect();
+                        driver.executeScript("mobile: tap", java.util.Map.of("x", dr.x + dr.width / 2, "y", dr.y + dr.height / 2));
+                        sleep(1000);
+                    } catch (Exception ignored) { }
+                }
+                if (openDashboardWoMenu()) {
+                    // One-shot recursion: the top row is a REAL End Session now.
+                    return endActiveSessionViaDashboardMenuOnce();
+                }
+                return false;
+            }
             java.util.List<WebElement> cancel = driver.findElements(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeButton' AND name == 'Cancel' AND visible == 1"));
             if (!cancel.isEmpty()) {
@@ -24929,8 +24964,12 @@ public class WorkOrderPage extends BasePage {
 
     /** True iff the Site home shows an ACTIVE work order (banner caption). */
     public boolean hasActiveWorkOrder() {
+        // v1.50 banner OR v1.55 signals (banner removed): dashboard WO chip,
+        // or an ', ACTIVE'-suffixed row on the visible WO list.
         return existsNow(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND name == 'Active Work Order'"));
+                "(type == 'XCUIElementTypeStaticText' AND name == 'Active Work Order')"
+                + " OR (visible == 1 AND name == 'WO' AND rect.y < 300)"
+                + " OR (type == 'XCUIElementTypeButton' AND visible == 1 AND name ENDSWITH ', ACTIVE')"));
     }
 
     // ════════════════════ ZP-3054 — More Actions menu ═════════════════

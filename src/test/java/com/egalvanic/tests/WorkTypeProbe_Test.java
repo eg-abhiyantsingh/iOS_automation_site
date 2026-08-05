@@ -857,6 +857,38 @@ public class WorkTypeProbe_Test extends BaseTest {
         logStepWithScreenshot("probe M complete");
     }
 
+    @Test(priority = 14)
+    public void PROBE_N_fixtureScrollMiss_v155() {
+        ExtentReportManager.createTest(AppConstants.MODULE_JOBS, "WorkType Probe",
+                "PROBE N - why does scrollWorkOrderListTo miss QA-WT00 on the v1.55 list?");
+        loginAndSelectSite();
+        siteSelectionPage.clickWorkOrderCard();
+        shortWait();
+        assertTrue(wo.waitForWorkOrdersScreen(), "Work Orders screen must open");
+        boolean found = wo.scrollWorkOrderListTo("QA-WT00 General");
+        System.out.println("PROBE| scroll to QA-WT00 General: " + found);
+        DriverManager.getDriver().manage().timeouts().implicitlyWait(Duration.ZERO);
+        try {
+            dumpMatches("listNav", "type == 'XCUIElementTypeNavigationBar'");
+            // Visible list rows right now (post-sweep position).
+            int i = 0;
+            for (WebElement b : DriverManager.getDriver().findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND visible == 1 AND rect.y > 100 AND rect.y < 820"))) {
+                if (++i > 14) break;
+                try {
+                    System.out.println("PROBE|row y=" + b.getRect().y + " '" + b.getAttribute("name") + "'");
+                } catch (Exception ignored) { }
+            }
+            // Any QA-WT row matchable WITHOUT visibility constraint?
+            dumpMatches("qaAnywhere", "type == 'XCUIElementTypeButton' AND name BEGINSWITH 'QA-WT'");
+            dumpMatches("qaTexts", "type == 'XCUIElementTypeStaticText' AND name BEGINSWITH 'QA-WT'");
+        } finally {
+            DriverManager.getDriver().manage().timeouts()
+                    .implicitlyWait(Duration.ofSeconds(AppConstants.IMPLICIT_WAIT));
+        }
+        logStepWithScreenshot("probe N list state");
+    }
+
     private void tapWorkTypeRow() {
         try {
             WebElement row = DriverManager.getDriver().findElement(AppiumBy.iOSNsPredicateString(

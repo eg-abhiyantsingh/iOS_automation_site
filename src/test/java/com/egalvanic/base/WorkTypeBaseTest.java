@@ -146,6 +146,13 @@ public abstract class WorkTypeBaseTest extends BaseTest {
      */
     protected void openWorkOrdersScreenWT() {
         loginAndSelectSite();
+        // NOTE (app-source verified 2026-08-05): the dashboard 'WO' chip is
+        // the session PICKER — it shows whenever active-flagged WOs exist on
+        // the site, NOT "a session is running". Session state is IN-MEMORY
+        // only (AppStateManager.setActiveSession — no persistence), so a
+        // fresh install can never carry a leftover session. Do NOT "end" the
+        // chip here; the redirect fallback below covers the one real case
+        // (a session started EARLIER IN THIS APP SESSION hijacks the tile).
         ensureFixturesOnLandedSite();
         if (fixturesCreatedThisSession && !resyncedAfterEnsure) {
             resyncedAfterEnsure = true;
@@ -161,8 +168,25 @@ public abstract class WorkTypeBaseTest extends BaseTest {
         }
         siteSelectionPage.clickWorkOrderCard();
         shortWait();
-        assertTrue(wo.waitForWorkOrdersScreen(),
-                "Work Orders screen must open from the dashboard tile");
+        boolean onList = wo.waitForWorkOrdersScreen();
+        if (!onList && wo.isSessionSurfacePresent()) {
+            // Redirect fallback: the tile landed in the (still-)active session
+            // — its nav 'Done' returns to the Work Orders list.
+            System.out.println("🧹 tile landed in the active session — exiting via Done");
+            try {
+                org.openqa.selenium.WebElement done = com.egalvanic.utils.DriverManager.getDriver()
+                        .findElement(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                                "type == 'XCUIElementTypeButton' AND name == 'Done' AND visible == 1 AND rect.y < 120"));
+                org.openqa.selenium.Rectangle r = done.getRect();
+                com.egalvanic.utils.DriverManager.getDriver().executeScript("mobile: tap",
+                        java.util.Map.of("x", r.x + r.width / 2, "y", r.y + r.height / 2));
+                mediumWait();
+            } catch (Exception e) {
+                System.out.println("⚠️ session-exit Done not found: " + e.getMessage());
+            }
+            onList = wo.waitForWorkOrdersScreen();
+        }
+        assertTrue(onList, "Work Orders screen must open from the dashboard tile");
     }
 
     /**

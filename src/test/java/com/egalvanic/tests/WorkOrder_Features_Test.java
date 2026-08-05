@@ -55,6 +55,8 @@ public class WorkOrder_Features_Test extends BaseTest {
 
     private void openWorkOrdersScreen() {
         loginAndSelectSite();
+        // (the dashboard 'WO' chip is the session PICKER, not a leftover-
+        // session signal — app-source verified 2026-08-05; no pre-end here)
         siteSelectionPage.clickWorkOrderCard();
         shortWait();
         assertTrue(wo.waitForWorkOrdersScreen(),
