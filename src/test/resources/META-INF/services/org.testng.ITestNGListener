@@ -1,2 +1,3 @@
 com.egalvanic.listeners.GlobalTestTimeout
 com.egalvanic.listeners.DeadSessionCircuitBreaker
+com.egalvanic.listeners.EnvironmentRetryTransformer
