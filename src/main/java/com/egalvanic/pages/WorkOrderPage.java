@@ -24677,6 +24677,15 @@ public class WorkOrderPage extends BasePage {
                 if (n == null || n.isEmpty() || "Done".equals(n) || "Create".equals(n) || "Cancel".equals(n)) continue;
                 if (n.startsWith("Work Type,") || n.startsWith("Photo Type,")
                         || n.startsWith("Priority,") || n.startsWith("Equipment,")) continue;
+                // BACKGROUND-BLEED GUARD (2026-08-05): SwiftUI keeps the
+                // stacked sheet's backdrop in the tree, and on a long Work
+                // Orders list some rows still report visible==1 — they leaked
+                // into the option census (16 instead of 14 once the list grew
+                // past ~30 rows). WO rows ALWAYS carry a trailing priority
+                // segment ('…, Medium'), picker options NEVER do — and a
+                // 'Start New Work Order…' CTA is list chrome by definition.
+                if (n.endsWith(", Low") || n.endsWith(", Medium") || n.endsWith(", High")
+                        || n.endsWith(", ACTIVE") || n.startsWith("Start New Work Order")) continue;
                 if (b.getSize().getWidth() < 200) continue; // option rows are full-width
                 out.add(n);
             } catch (Exception ignored) { }
