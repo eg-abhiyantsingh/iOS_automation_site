@@ -64,3 +64,36 @@ call). Consequences, now encoded in the framework:
   policy-sheet hook (direct `performLogin`); SiteVisit phase setups may need
   the tile-redirect fallback; ~30 soft-deleted QA-WTC rows still render
   in-app (backend async-delete lag — cosmetic).
+
+## FULL RUN 30923680769 — complete decomposition (2026-08-05)
+
+**PASS 1419 | FAIL 403 | SKIP 758** (33 artifacts classified by signature).
+
+### Skips (758) — the "lots of skipped" answer
+
+| Bucket | n | Verdict |
+|---|---|---|
+| fixture-missing (WT list/details/behavior/forms/cross) | 283 | INVALID — ONE root cause: fixtures API-created mid-session are invisible until the next login sync; the old site-hop resync silently no-ops. **FIXED**: deterministic app-relaunch + re-login after fixture creation. |
+| breaker-cascade (sitevisit-2/3, asset-engineer, assets-p5) | 248 | INVALID — dead-session breaker fast-skips after a handful of WDA deaths (giant-DOM families); by design, root = the wedge sources. |
+| by-design gates | ~180 | LEGIT — offline UC-series "Infra needed" (55), CI Wi-Fi-toggle gates, wall-clock-cap skips (240min), KNOWN-BUG sentinels (ATS-VAL-01/02). |
+| precondition-env | 111 | mostly LEGIT (arc-flash session fixtures, offline gates); shrink as fixture seeding improves. |
+
+### Failures (403)
+
+| Family | n | Verdict / next step |
+|---|---|---|
+| consent-sheet race (createpicker 27 + create-e2e 29 + auth 5) | ~61 | INVALID — **FIXED**: opportunistic accept-and-retry at entry points. |
+| global-timeout + dead-session | 94 | INVALID — hung waits after WDA wedges (giant-DOM); census fix removes the biggest source; SiteVisit/Location wedges remain (documented). |
+| EAD save family (assets p1-p5: "no positive save evidence", "Save Changes should appear") | ~40 | v1.55 Save-Changes anatomy remap NEEDED (next session; asset-details form drift). |
+| asset-engineer "Add Custom never visible" | 29 (+18 misc) | v1.55 SKM sheet anatomy remap NEEDED. |
+| sitevisit-phase1 list anatomy ("Start button on card") | ~33 | STALE v1.48 contracts — rows lost per-row Start in v1.50; remap to activation dance. |
+| issues-phase1 readback | 16 | known CI-18.5-only family (memory), needs CI-side probe. |
+| worktype-list 14 | ran pre-cascade with old code; superseded by the fixture-resync + census fixes. |
+| assert-mismatch (8) + remainder | ~50 | individually triaged next pass; includes FORM_005/015/042 (already fixed/reshaped). |
+
+**Bottom line: of 403 failures, ~60% are environment/harness-invalid (consent
+race, wedges, timeouts, cascade collateral), ~35% are stale v1.4x/v1.50 test
+contracts against v1.55 anatomy (EAD save, SKM Add Custom, SiteVisit phase1),
+and the residue is under individual triage — no confirmed new product bug in
+this run.** Every already-named fix is pushed; the three remap families are
+the next work packages.

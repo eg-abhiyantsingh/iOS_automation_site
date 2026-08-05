@@ -156,14 +156,28 @@ public abstract class WorkTypeBaseTest extends BaseTest {
         ensureFixturesOnLandedSite();
         if (fixturesCreatedThisSession && !resyncedAfterEnsure) {
             resyncedAfterEnsure = true;
-            System.out.println("🔄 fixtures were just created — best-effort site re-selection for re-sync");
+            // DETERMINISTIC resync (2026-08-05, CI run 30923680769): the app
+            // pulls work orders ONLY during the login/site-selection sync —
+            // fixtures API-created mid-session are invisible until the next
+            // full login. The old dashboard site-hop is unreliable (probe run
+            // 6: silent no-select) and let 283 CI tests skip with "fixture not
+            // present". Relaunch the app and log in again: guaranteed
+            // whole-SLD sync that includes the just-created fixtures.
+            System.out.println("🔄 fixtures were just created — app relaunch + re-login for a guaranteed WO re-sync");
             try {
-                siteSelectionPage.switchToSiteByIndex(0);
-                siteSelectionPage.waitForDashboardFast();
+                com.egalvanic.utils.DriverManager.getDriver()
+                        .terminateApp(com.egalvanic.constants.AppConstants.APP_BUNDLE_ID);
+                Thread.sleep(400);
             } catch (Exception e) {
-                System.out.println("⚠️ resync attempt failed (non-fatal): " + e.getMessage());
+                System.out.println("⚠️ terminateApp during resync: " + e.getMessage());
             }
-            // Recover to a known-good dashboard whatever the hop did.
+            try {
+                com.egalvanic.utils.DriverManager.getDriver()
+                        .activateApp(com.egalvanic.constants.AppConstants.APP_BUNDLE_ID);
+                Thread.sleep(600);
+            } catch (Exception e) {
+                System.out.println("⚠️ activateApp during resync: " + e.getMessage());
+            }
             loginAndSelectSite();
         }
         siteSelectionPage.clickWorkOrderCard();
