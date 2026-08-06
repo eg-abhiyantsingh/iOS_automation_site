@@ -24462,7 +24462,21 @@ public class WorkOrderPage extends BasePage {
                     System.out.println("\u26a0\ufe0f openCreateForm: WO tile re-entry failed \u2014 " + e.getMessage());
                 }
             }
-            WebElement create = driver.findElement(V150_CREATE_ROW);
+            WebElement create;
+            try {
+                create = driver.findElement(V150_CREATE_ROW);
+            } catch (Exception missing) {
+                // Transient CTA absence (local run 2026-08-06, FORM_015/016):
+                // the list nav was up but its top 'Start New Work Order' card
+                // had not rendered / was scrolled out. The CTA is the list's
+                // TOP card — one scroll-to-top + short settle recovers both.
+                System.out.println("🔁 openCreateForm: CTA absent — scroll-to-top retry");
+                try {
+                    driver.executeScript("mobile: swipe", java.util.Map.of("direction", "down"));
+                } catch (Exception ignored) { }
+                sleep(1200);
+                create = driver.findElement(V150_CREATE_ROW);
+            }
             org.openqa.selenium.Rectangle r = create.getRect();
             driver.executeScript("mobile: tap", java.util.Map.of("x", r.x + 40, "y", r.y + r.height / 2));
         } catch (Exception e) {

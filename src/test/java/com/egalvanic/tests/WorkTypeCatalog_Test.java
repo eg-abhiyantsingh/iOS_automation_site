@@ -769,16 +769,24 @@ public class WorkTypeCatalog_Test extends WorkTypeBaseTest {
 
     // ================== Catalog-wide contracts ==================
 
-    @Test(priority = 66, description = "TC_WT_CAT_066 - catalog returns exactly 13 service-backed work types (SERVICE_COUNT)")
+    @Test(priority = 66, description = "TC_WT_CAT_066 - catalog carries AT LEAST the 13 pinned product services (customer-extensible)")
     public void TC_WT_CAT_066_exactlyThirteenServices() {
         ExtentReportManager.createTest(AppConstants.MODULE_JOBS, FEATURE,
-                "TC_WT_CAT_066 - catalog returns exactly 13 service-backed work types (SERVICE_COUNT)");
+                "TC_WT_CAT_066 - catalog carries AT LEAST the 13 pinned product services (customer-extensible)");
         String json = services("TC_WT_CAT_066");
         int keyFields = countToken(json, "\"key\"");
-        logStep("\"key\" field occurrences in /procedures-v2/services: " + keyFields);
-        assertEquals(Integer.valueOf(keyFields), Integer.valueOf(WorkTypeCatalog.SERVICE_COUNT),
-                "Catalog must contain exactly " + WorkTypeCatalog.SERVICE_COUNT
-                        + " services (one \"key\" field each) — gold spec \u00a71");
+        // Customer-extensible catalog (2026-08-06): companies can add services
+        // ('abhiyant Preventive'/'abhiyant service corrective' appeared in QA
+        // and the picker correctly grew) — an exactly-13 pin false-fails a
+        // correct backend. The 13 pinned services keep their per-service
+        // tests; catalog-wide the pinned count is a FLOOR.
+        logStep("\"key\" field occurrences in /procedures-v2/services: " + keyFields
+                + (keyFields > WorkTypeCatalog.SERVICE_COUNT
+                        ? " (" + (keyFields - WorkTypeCatalog.SERVICE_COUNT) + " customer-added)" : ""));
+        assertTrue(keyFields >= WorkTypeCatalog.SERVICE_COUNT,
+                "Catalog must contain AT LEAST the " + WorkTypeCatalog.SERVICE_COUNT
+                        + " pinned product services — got " + keyFields
+                        + " (a DROP means a product service vanished; gold spec \u00a71)");
         assertEquals(Integer.valueOf(WorkTypeCatalog.serviceBacked().size()), Integer.valueOf(WorkTypeCatalog.SERVICE_COUNT),
                 "Enum must model exactly 13 service-backed types");
         assertEquals(Integer.valueOf(WorkTypeCatalog.values().length), Integer.valueOf(14),
@@ -849,8 +857,11 @@ public class WorkTypeCatalog_Test extends WorkTypeBaseTest {
         String json = services("TC_WT_CAT_070");
         int serverPmForms = countToken(json, "\"PM Forms\"");
         logStep("Server \"PM Forms\" literal occurrences: " + serverPmForms);
-        assertEquals(Integer.valueOf(serverPmForms), Integer.valueOf(8),
-                "Exactly 8 services must carry type 'PM Forms' (live catalog 2026-07-31)");
+        // Customer-added services default to type 'PM Forms' (both 2026-08 QA
+        // additions are PM Forms) — the pinned 8 are a FLOOR, not an exact pin.
+        assertTrue(serverPmForms >= 8,
+                "At least the 8 pinned 'PM Forms' services must exist — got " + serverPmForms
+                        + " (a DROP means a product PM-Forms service vanished)");
         assertEquals(Integer.valueOf(WorkTypeCatalog.ofCategory(Category.PM_FORMS).size()), Integer.valueOf(8),
                 "Enum must model exactly 8 PM_FORMS types");
     }
