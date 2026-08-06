@@ -1206,8 +1206,14 @@ public class WorkTypeCreateE2E_Test extends WorkTypeBaseTest {
         }
         verifyAppAlive(tc + ": after cleanup");
         verifyNoErrorAlert();
-        assertTrue(!wo.isDashboardWoChipPresent(),
-                tc + ": no active session may remain after the suite's cleanup (dashboard chip must be absent)");
+        // Session-model correction (2026-08-05/06): the dashboard WO chip is
+        // the session PICKER — it renders whenever active-flagged WOs exist
+        // on the site (≈always), NOT only while a session runs. Asserting its
+        // ABSENCE contradicts the verified model and false-fails a correct
+        // app. The real cleanup contracts are already hard-asserted above
+        // (end-session dance + backend soft-delete accepted).
+        logStep(tc + ": cleanup verified — session ended + soft-delete accepted "
+                + "(WO chip presence is expected: it is the session picker)");
         logStepWithScreenshot(tc + " verified: shared fixture cleaned up, app healthy on the dashboard");
     }
 }
