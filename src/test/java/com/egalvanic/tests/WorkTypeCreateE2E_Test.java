@@ -320,6 +320,38 @@ public class WorkTypeCreateE2E_Test extends WorkTypeBaseTest {
         return null;
     }
 
+    /**
+     * STABLE reproducible WO name (user directive 2026-08-06): the SAME name
+     * every run — e.g. "QA-WTC TC_WTC_E2E_003" — so a created row is instantly
+     * recognizable in the list and trivially reproducible by hand. Collision
+     * safety across runs comes from {@link #purgeStaleWoByName}, not timestamps.
+     */
+    private static String stableWoName(String tc) {
+        return "QA-WTC " + tc;
+    }
+
+    /**
+     * Delete any leftover server rows with this exact name on the landed SLD
+     * (debris from a previous crashed run). Stable names make this mandatory:
+     * cancel-path tests assert row ABSENCE and create-path polls resolve BY
+     * NAME — a stale twin would poison either.
+     */
+    private void purgeStaleWoByName(TestDataApi api, String name, String tc) {
+        if (api == null || name == null) return;
+        try {
+            for (int i = 0; i < 5; i++) {
+                String stale = api.findWorkOrderIdByNameOnSld(name, landedSldId());
+                if (stale == null) return;
+                boolean deleted = api.deleteWorkOrder(stale);
+                logStep(tc + ": purged stale WO '" + name + "' id=" + stale
+                        + " -> " + (deleted ? "deleted" : "DELETE FAILED"));
+                if (!deleted) return; // avoid spinning on a row we cannot remove
+            }
+        } catch (Exception e) {
+            logStep(tc + ": stale-WO purge skipped — " + e.getMessage());
+        }
+    }
+
     /** Exact-name row count in a listWorkOrdersJson payload (whitespace-tolerant). */
     private static int countExactNameRows(String json, String name) {
         if (json == null || name == null) return 0;
@@ -395,7 +427,8 @@ public class WorkTypeCreateE2E_Test extends WorkTypeBaseTest {
         openWorkOrdersScreenWT();
         assertTrue(wo.openCreateForm(), tc + ": 'Start New Work Order' create form must open");
         verifyAppAlive(tc + ": create form open");
-        String name = "QA-WTC " + tc + " " + System.currentTimeMillis();
+        String name = stableWoName(tc);
+        purgeStaleWoByName(api, name, tc);
         String createdId = null;
         try {
             typeCreateFormName(name, tc);
@@ -452,7 +485,8 @@ public class WorkTypeCreateE2E_Test extends WorkTypeBaseTest {
             endActiveSessionIfAny(tc + " (pre-shared leak guard)");
             openWorkOrdersScreenWT();
             assertTrue(wo.openCreateForm(), tc + ": create form must open for the shared fixture");
-            String name = "QA-WTC SHARED " + System.currentTimeMillis();
+            String name = "QA-WTC SHARED";
+            purgeStaleWoByName(api, name, tc);
             sharedName = name; // set BEFORE Create so TC_WTC_E2E_099 can always trace it
             typeCreateFormName(name, tc);
             assertEquals(wo.getCreateFormWorkTypeValue(), "General",
@@ -884,7 +918,8 @@ public class WorkTypeCreateE2E_Test extends WorkTypeBaseTest {
         TestDataApi api = requireApi(tc);
         openWorkOrdersScreenWT();
         assertTrue(wo.openCreateForm(), tc + ": create form must open");
-        String name = "QA-WTC " + tc + " " + System.currentTimeMillis();
+        String name = stableWoName(tc);
+        purgeStaleWoByName(api, name, tc); // absence-asserts below need a clean slate
         try {
             typeCreateFormName(name, tc);
             assertTrue(wo.openWorkTypePicker(), tc + ": Work Type picker must open");
@@ -949,7 +984,7 @@ public class WorkTypeCreateE2E_Test extends WorkTypeBaseTest {
         endActiveSessionIfAny(tc + " (pre-test session guard)");
         openWorkOrdersScreenWT();
         assertTrue(wo.openCreateForm(), tc + ": create form must open");
-        String name = "QA-WTC " + tc + " " + System.currentTimeMillis();
+        String name = stableWoName(tc);
         typeCreateFormName(name, tc);
         assertTrue(wo.openWorkTypePicker(), tc + ": Work Type picker must open");
         assertTrue(wo.selectWorkTypeInPicker(WorkTypeCatalog.CONDITION_ASSESSMENT.displayName()),
@@ -973,7 +1008,7 @@ public class WorkTypeCreateE2E_Test extends WorkTypeBaseTest {
                 tc + " - Work Orders list stays healthy and interactive after a cancelled create");
         openWorkOrdersScreenWT();
         assertTrue(wo.openCreateForm(), tc + ": create form must open");
-        String name = "QA-WTC " + tc + " " + System.currentTimeMillis();
+        String name = stableWoName(tc);
         typeCreateFormName(name, tc);
         assertTrue(wo.openWorkTypePicker(), tc + ": Work Type picker must open");
         assertTrue(wo.selectWorkTypeInPicker(WorkTypeCatalog.INFRARED_THERMOGRAPHY.displayName()),
@@ -1029,7 +1064,7 @@ public class WorkTypeCreateE2E_Test extends WorkTypeBaseTest {
                 tc + " - reopened form after Cancel restores the default name (typed name discarded)");
         openWorkOrdersScreenWT();
         assertTrue(wo.openCreateForm(), tc + ": create form must open");
-        String typedName = "QA-WTC " + tc + " " + System.currentTimeMillis();
+        String typedName = stableWoName(tc);
         typeCreateFormName(typedName, tc);
         wo.cancelCreateForm();
         shortWait();

@@ -31,6 +31,7 @@ public class EnvironmentRetryAnalyzer implements IRetryAnalyzer {
 
     private static final String[] ENV_SIGNATURES = {
             "session is either terminated or not started",
+            "Session does not exist",
             "may have died",
             "UnreachableBrowser",
             "Failed to initialize driver",
@@ -40,6 +41,10 @@ public class EnvironmentRetryAnalyzer implements IRetryAnalyzer {
             "Accept & Continue",
             "SocketTimeoutException",
             "connect timed out",
+            // Entry-navigation timing flakes (2026-08-06, PICK_019: one miss
+            // after 64 straight greens): a single identical retry either
+            // clears the blip or proves the breakage by failing twice.
+            "Work Orders screen must open from the dashboard tile",
     };
 
     @Override
