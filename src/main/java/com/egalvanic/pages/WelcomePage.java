@@ -174,7 +174,10 @@ public class WelcomePage extends BasePage {
         // install it can overlay/steal the Continue press (fresh sim
         // 2026-08-05: code typed, keyboard up, app stranded on Welcome →
         // every test in the run failed at login). Dismiss first, then press.
-        try { dismissKeyboard(); } catch (Exception ignored) { }
+        // (Raw script — BasePage has no dismissKeyboard(); the page-object
+        // variants live on Asset/WorkOrder pages only. CI javac caught the
+        // missing symbol that local stale IDE-compiled classes masked.)
+        try { driver.executeScript("mobile: hideKeyboard"); sleep(200); } catch (Exception ignored) { }
         waitForClickable(continueButton);
         try {
             org.openqa.selenium.Rectangle r = continueButton.getRect();
