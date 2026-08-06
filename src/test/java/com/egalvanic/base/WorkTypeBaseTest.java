@@ -256,6 +256,17 @@ public abstract class WorkTypeBaseTest extends BaseTest {
             }
             onList = wo.waitForWorkOrdersScreen();
         }
+        if (!onList) {
+            // Second identical attempt IN-PLACE (2026-08-06): the tile-nav
+            // timing flake hit 1× locally (PICK_019, one miss in 65) and 2×
+            // on CI run 31108181084 (E2E_015/032) — a fresh dashboard + tile
+            // tap clears the blip; failing twice in a row is the real signal.
+            System.out.println("🔁 entry-nav retry: dashboard → Work Orders tile (attempt 2)");
+            loginAndSelectSite();
+            siteSelectionPage.clickWorkOrderCard();
+            shortWait();
+            onList = wo.waitForWorkOrdersScreen();
+        }
         assertTrue(onList, "Work Orders screen must open from the dashboard tile");
     }
 

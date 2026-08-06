@@ -1138,12 +1138,16 @@ public class WorkTypeCatalog_Test extends WorkTypeBaseTest {
         ExtentReportManager.createTest(AppConstants.MODULE_JOBS, FEATURE,
                 "TC_WT_FIX_017 - the 14 fixture names are pairwise distinct and every name appears the same number of times company-wide (family exists on >1 site; symmetry catches per-fixture duplication/deletion)");
         TestDataApi a = requireApi("TC_WT_FIX_017");
-        String json = woList("TC_WT_FIX_017", a, "QA-WT");
         Set<String> names = new LinkedHashSet<>();
         int expectedCount = -1;
         for (WorkTypeCatalog wt : WorkTypeCatalog.values()) {
             String name = wt.fixtureName();
             assertTrue(names.add(name), "Fixture names must be pairwise distinct — duplicate '" + name + "'");
+            // Window-proof (2026-08-06, run 31108181084): ONE 'QA-WT' search
+            // page (page_size 100) was crowded out by 94 leaked QA-WTC rows →
+            // false "fixture missing". Query PER exact name — each fixture
+            // gets its own 100-row window, immune to sibling-family debris.
+            String json = woList("TC_WT_FIX_017", a, name);
             int c = countToken(json, "\"" + name + "\"");
             logStep("'" + name + "' occurrences company-wide: " + c);
             assertTrue(c >= 1, "Fixture '" + name + "' must appear in the company WO search for 'QA-WT'");

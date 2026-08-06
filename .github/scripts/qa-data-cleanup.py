@@ -8,7 +8,9 @@ audited 2026-07-03: 384 live buildings, 397 floors, 727 tasks, 82 work orders an
 the giant-DOM/WDA-wedge root cause for the Locations tree and Work Orders screens,
 and it inflates every /sld/v3 sync payload.
 
-WHAT IT DOES: soft-deletes (is_deleted=true — reversible) rows that are UNAMBIGUOUSLY
+WHAT IT DOES: deletes rows that are UNAMBIGUOUSLY
+(nodes/tasks: soft-delete is_deleted=true; ir_sessions: HARD delete — the
+update-route soft delete stopped applying 2026-08, see SESSION_PATH note)
 automation-created, using the app's own update endpoints:
   nodes:       PUT /node/update/{id}
   buildings:   PUT /location/building/{id}
@@ -80,15 +82,24 @@ RULES = {
               re.compile(rf"({EPOCH}|^Arc Flash Audit - Work Order - (Jan|Feb|Mar|Apr|May|Jun)\b)", re.IGNORECASE)),
 }
 # ir_sessions handled specially (active/date guards)
-SESSION_PATH = "/ir_session/update/{id}"
+# DRIFT 2026-08-06: PUT /ir_session/update {"is_deleted":true} goes into the
+# backend's async mutation queue and is NEVER applied (verified live — even
+# with x-direct-write the update route ignores is_deleted). The only working
+# session delete is the web app's: DELETE /ir_session/{id} + x-direct-write.
+# NOTE: this is a HARD delete — the undo JSONL can no longer restore sessions.
+SESSION_PATH = "/ir_session/{id}"
 OLD_WO = re.compile(r"^(Work Order|Job) - (Jan|Feb|Mar|Apr|May|Jun)\b", re.IGNORECASE)
 
 
-def req(path, method="GET", body=None, token=None, raw=False):
+def req(path, method="GET", body=None, token=None, raw=False, direct_write=False):
     r = urllib.request.Request(BASE + path, method=method)
     r.add_header("Content-Type", "application/json")
     r.add_header("X-Subdomain", os.environ.get("QA_API_SUBDOMAIN", "acme"))
     r.add_header("X-Language", "en")
+    if direct_write:
+        # bypass the async mutation queue (writes without it are accepted but
+        # may never apply — ir_session delete drift, 2026-08-06)
+        r.add_header("x-direct-write", "true")
     if token:
         r.add_header("Authorization", "Bearer " + token)
     data = json.dumps(body).encode() if body is not None else None
@@ -181,7 +192,7 @@ def main():
     if not DRY_RUN:
         ok = fail = 0
         for sid_, nm in targets:
-            c, _ = req(SESSION_PATH.format(id=sid_), "PUT", {"is_deleted": True}, token=token, raw=True)
+            c, _ = req(SESSION_PATH.format(id=sid_), "DELETE", {}, token=token, raw=True, direct_write=True)
             if c == 200:
                 ok += 1
                 undo.write(json.dumps({"collection": "ir_sessions", "id": sid_, "name": nm}) + "\n")

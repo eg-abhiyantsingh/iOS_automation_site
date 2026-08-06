@@ -492,14 +492,22 @@ public class TestDataApi {
      * the update was accepted (2xx JSON).
      */
     public boolean deleteWorkOrder(String workOrderId) {
+        // DRIFT FIX 2026-08-06: the old PUT /ir_session/update {"is_deleted":true}
+        // goes into the backend's ASYNC mutation queue (response `_mutation:
+        // {status: received}`) and is NEVER applied — 94 "deleted" QA rows were
+        // found live, crowding the WO search window. The web app's delete is
+        // DELETE /ir_session/{id} with `x-direct-write: true`, which bypasses
+        // the queue and returns {"success": true} — verified live (row gone).
         try {
             HttpResponse<String> resp = send(authed(HttpRequest.newBuilder(
-                    URI.create(BASE + "/ir_session/update/" + workOrderId))
-                    .header("Content-Type", "application/json"))
-                    .PUT(HttpRequest.BodyPublishers.ofString("{\"is_deleted\":true}")).build());
-            boolean ok = resp.statusCode() / 100 == 2 && resp.body().trim().startsWith("{");
-            System.out.println((ok ? "🗑️ Soft-deleted WO " : "⚠️ WO soft-delete failed for ") + workOrderId
-                    + " (HTTP " + resp.statusCode() + ")");
+                    URI.create(BASE + "/ir_session/" + workOrderId))
+                    .header("Content-Type", "application/json")
+                    .header("x-direct-write", "true"))
+                    .method("DELETE", HttpRequest.BodyPublishers.ofString("{}")).build());
+            boolean ok = resp.statusCode() / 100 == 2
+                    && resp.body().replaceAll("\\s", "").contains("\"success\":true");
+            System.out.println((ok ? "🗑️ Deleted WO " : "⚠️ WO delete failed for ") + workOrderId
+                    + " (HTTP " + resp.statusCode() + ") " + truncate(redact(resp.body()), 120));
             return ok;
         } catch (Exception e) {
             System.out.println("⚠️ deleteWorkOrder(" + workOrderId + "): " + e.getMessage());
