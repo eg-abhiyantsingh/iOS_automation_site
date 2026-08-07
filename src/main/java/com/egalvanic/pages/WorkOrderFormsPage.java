@@ -709,15 +709,65 @@ public class WorkOrderFormsPage extends BasePage {
         }
     }
 
-    /** Readback of the Nth step's Value/Notes field ('value' attribute). */
+    /**
+     * Readback of the Nth step's Value/Notes field. 'value' first; iOS 18.5
+     * returns null there after typing (CI run 31156460536: FORM_035/036
+     * "got 'null'" while 26.2 reads fine) — fall back to 'label', and
+     * re-query once (keyboard dismissal re-renders the field list).
+     */
     public String stepNotes(int index) {
-        List<WebElement> fields = noteFields();
-        if (index < 0 || index >= fields.size()) return null;
-        try {
-            return fields.get(index).getAttribute("value");
-        } catch (Exception e) {
-            return null;
+        for (int attempt = 0; attempt < 2; attempt++) {
+            List<WebElement> fields = noteFields();
+            if (index < 0 || index >= fields.size()) return null;
+            try {
+                WebElement f = fields.get(index);
+                String v = f.getAttribute("value");
+                if (v == null || v.isEmpty()) {
+                    String l = f.getAttribute("label");
+                    if (l != null && !l.isEmpty()) v = l;
+                }
+                if (v != null && !v.isEmpty()) return v;
+            } catch (Exception ignored) { }
+            pauseMs(600);
         }
+        return null;
+    }
+
+    /**
+     * Bounded diagnostic census of the form's interactive surface — CI-side
+     * ground truth for the 18.5 step-surface divergences. ONE getPageSource
+     * call parsed locally: per-element getAttribute reads cost a WDA round
+     * trip EACH and burned 9 minutes on this screen (local measurement,
+     * 2026-08-07) — never census that way. Never throws.
+     */
+    public List<String> debugTableZoneCensus() {
+        List<String> out = new ArrayList<>();
+        try {
+            String src = driver.getPageSource();
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile(
+                    "<(XCUIElementType(?:Button|TextField|TextView|StaticText|SegmentedControl))"
+                    + "([^>]*)/?>").matcher(src);
+            while (m.find() && out.size() < 60) {
+                String attrs = m.group(2);
+                String name = attrVal(attrs, "name");
+                String label = attrVal(attrs, "label");
+                String value = attrVal(attrs, "value");
+                String y = attrVal(attrs, "y");
+                String visible = attrVal(attrs, "visible");
+                if (!"true".equals(visible)) continue;
+                out.add(m.group(1).replace("XCUIElementType", "") + " y=" + y
+                        + " | name='" + name + "' | label='" + label + "' | value='" + value + "'");
+            }
+        } catch (Exception e) {
+            out.add("census error: " + e.getMessage());
+        }
+        return out;
+    }
+
+    private static String attrVal(String attrs, String key) {
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile(
+                key + "=\"([^\"]*)\"").matcher(attrs);
+        return m.find() ? m.group(1) : "";
     }
 
     /** The Fail-path failure card ('… — Failure Details' / 'Description of Failure'). */

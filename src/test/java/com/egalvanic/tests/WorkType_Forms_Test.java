@@ -992,4 +992,31 @@ public class WorkType_Forms_Test extends WorkTypeBaseTest {
         verifyAppAlive("TC_WT_FORM_045 end of loop");
         logStepWithScreenshot("TC_WT_FORM_045 full-loop smoke verified");
     }
+
+    /**
+     * DIAGNOSTIC (always passes unless the app dies): CI-side ground truth
+     * for the iOS 18.5 step-surface divergences — 5 wedge timeouts + notes
+     * value=null (run 31156460536) reproduce ONLY on the CI sims, so this
+     * dumps what the step controls actually expose there: set a result, type
+     * a note, then census the table zone (type|name|label|value). Read its
+     * output in the CI log; it makes no contract asserts by design.
+     */
+    @Test(priority = 46, timeOut = 540_000)
+    public void TC_WT_FORM_D01_ci185StepSurfaceProbe() {
+        ExtentReportManager.createTest(AppConstants.MODULE_JOBS, FEATURE,
+                "TC_WT_FORM_D01 - DIAGNOSTIC: 18.5 step-surface census (result set + note typed + table-zone dump)");
+        openSwitch1FormsOrSkip("TC_WT_FORM_D01");
+        logStep("D01 census BEFORE interaction:");
+        for (String row : forms.debugTableZoneCensus()) logStep("  " + row);
+        boolean resultSet = forms.setStepResult(0, "Pass");
+        logStep("D01 setStepResult(0, Pass) -> " + resultSet
+                + "; readback='" + forms.stepResult(0) + "'");
+        boolean noteTyped = forms.typeStepNotes(0, "CI-PROBE-NOTE");
+        logStep("D01 typeStepNotes(0) -> " + noteTyped
+                + "; readback='" + forms.stepNotes(0) + "'");
+        logStep("D01 census AFTER interaction:");
+        for (String row : forms.debugTableZoneCensus()) logStep("  " + row);
+        verifyAppAlive("TC_WT_FORM_D01 census complete");
+        logStepWithScreenshot("TC_WT_FORM_D01 diagnostic complete (evidence in log)");
+    }
 }
