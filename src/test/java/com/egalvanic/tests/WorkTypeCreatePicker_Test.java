@@ -84,7 +84,15 @@ public class WorkTypeCreatePicker_Test extends WorkTypeBaseTest {
      */
     private void openCreateFormGuarded(String tc) {
         openWorkOrdersScreenWT();
-        assertTrue(wo.openCreateForm(),
+        boolean open = wo.openCreateForm();
+        if (!open) {
+            // One retry from a fresh list anchor — '+'-tap nav flake on the
+            // 18.5 CI sims (run 31156460536: createform FORM_037, 1 in 46).
+            logStep(tc + ": create form did not open — retry from fresh list");
+            openWorkOrdersScreenWT();
+            open = wo.openCreateForm();
+        }
+        assertTrue(open,
                 "'New Work Order' create form must open from the Work Orders list (verified: form nav bar)");
         verifyAppAlive(tc + ": create form open");
         assertTrue(wo.isCreateFormWorkTypeRowPresent(),

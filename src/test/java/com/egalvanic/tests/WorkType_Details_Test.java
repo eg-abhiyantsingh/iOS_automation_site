@@ -1009,7 +1009,10 @@ public class WorkType_Details_Test extends WorkTypeBaseTest {
         runPunctuatedLabel(WorkTypeCatalog.SHUTDOWN_COMPOSITE, "(Composite)", "TC_WT_DET_203");
     }
 
-    @Test(priority = 102)
+    // Explicit cap (wins over GlobalTestTimeout): 13 restart+open+read cycles
+    // measured 9m09s locally; CI 18.5 runs ~2.6x local (forms data), so this
+    // one whole-catalog census gets 25 min. Do not "fix" back to the default.
+    @Test(priority = 102, timeOut = 1_500_000)
     public void TC_WT_DET_204_labelVsCatalogSweepAll13() {
         ExtentReportManager.createTest(AppConstants.MODULE_JOBS, FEATURE,
                 "TC_WT_DET_204 - label-vs-catalog sweep: every rendered work-type label across all 13 service fixtures matches WorkTypeCatalog exactly");
@@ -1017,13 +1020,41 @@ public class WorkType_Details_Test extends WorkTypeBaseTest {
         List<String> missing = new ArrayList<>();
         List<String> mismatches = new ArrayList<>();
         int labelled = 0;
+        // Nav-hijack-safe sweep (memory: wo-session-nav-hijack; CI run
+        // 31133978 + local repro): after goBack the open session hijacks the
+        // NEXT row tap on EVERY fixture switch — the generic verifies pass
+        // while the label reads the previous WO. Proactive app soft-restart
+        // between fixtures is the only proven cleanser (dashboard re-anchor
+        // is not); goBack is dropped entirely. Every open is verified BY NAME
+        // via the details header before its label is trusted.
+        List<String> misnav = new ArrayList<>();
+        boolean firstFixture = true;
         for (WorkTypeCatalog wt : WorkTypeCatalog.serviceBacked()) {
+            if (!firstFixture) {
+                try {
+                    com.egalvanic.utils.DriverManager.getDriver()
+                            .terminateApp(AppConstants.APP_BUNDLE_ID);
+                    shortWait();
+                    com.egalvanic.utils.DriverManager.getDriver()
+                            .activateApp(AppConstants.APP_BUNDLE_ID);
+                    loginAndSelectSite();
+                } catch (Exception re) {
+                    logStep("TC_WT_DET_204: soft-restart threw — " + re.getMessage());
+                }
+                openWorkOrdersScreenWT();
+            }
+            firstFixture = false;
             if (!wo.scrollWorkOrderListTo(wt.fixtureName())) {
                 missing.add(wt.fixtureName());
                 continue;
             }
-            assertTrue(wo.openWorkOrderByName(wt.fixtureName()),
-                    "Fixture must open (verified nav): " + wt.fixtureName());
+            boolean opened = wo.openWorkOrderByName(wt.fixtureName());
+            String hdr = opened ? wo.getSessionDetailsHeaderText() : null;
+            boolean onRightScreen = hdr != null && hdr.startsWith(wt.fixtureName());
+            if (!onRightScreen) {
+                misnav.add(wt.fixtureName() + " (header: '" + hdr + "')");
+                continue;
+            }
             verifyAppAlive("TC_WT_DET_204: opened " + wt.fixtureName());
             String label = wo.getWorkTypeLabelOnScreen();
             logStep("TC_WT_DET_204 " + wt.fixtureName() + " label: '" + label + "'");
@@ -1034,11 +1065,10 @@ public class WorkType_Details_Test extends WorkTypeBaseTest {
                             + "' (expected '" + wt.displayName() + "')");
                 }
             }
-            wo.goBack();
-            shortWait();
-            assertTrue(Waits.until(() -> wo.isWorkOrdersScreenDisplayed(), 15000),
-                    "Work Orders list must restore after " + wt.fixtureName());
         }
+        assertTrue(misnav.isEmpty(),
+                "TC_WT_DET_204: fixtures whose details screen could not be confirmed by name "
+                + "(nav hijack even after proactive soft-restart): " + misnav);
         skipIfPreconditionMissing(() -> missing.isEmpty(),
                 "TC_WT_DET_204: fixture rows unreachable in the Work Orders list: " + missing);
         final int labelledCount = labelled;
