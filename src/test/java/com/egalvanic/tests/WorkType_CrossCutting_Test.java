@@ -526,10 +526,20 @@ public class WorkType_CrossCutting_Test extends WorkTypeBaseTest {
         // the contract instead: the junk row must be soft-deletable via
         // /ir_session/update {"is_deleted":true} so QA data stays clean.
         if (createdId != null) {
-            assertTrue(a.deleteWorkOrder(createdId),
-                    "Junk WO '" + name + "' (id=" + createdId + ") could not be soft-deleted — bogus-create "
-                    + "residue is now durable AND uncleanable (worse than WT-NEG-01 alone)");
-            logStep("TC_WT_X_NEG_02: junk row soft-delete accepted (async mutation)");
+            boolean deleted = a.deleteWorkOrder(createdId);
+            if (!deleted) {
+                // The response can lie (CI saw a gateway HTML page with HTTP
+                // 200) — the CONTRACT is row absence, so verify state before
+                // failing.
+                String residual = a.findWorkOrderIdByName(name);
+                deleted = (residual == null);
+                logStep("Delete response not confirmable — absence probe says gone=" + deleted);
+            }
+            assertTrue(deleted,
+                    "Junk WO '" + name + "' (id=" + createdId + ") could not be deleted (and still "
+                    + "exists by name) — bogus-create residue is now durable AND uncleanable "
+                    + "(worse than WT-NEG-01 alone)");
+            logStep("TC_WT_X_NEG_02: junk row removed (hard delete verified)");
         } else {
             String residual = a.findWorkOrderIdByName(name);
             assertEquals(residual, null,

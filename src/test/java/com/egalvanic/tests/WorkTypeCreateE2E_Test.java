@@ -259,15 +259,42 @@ public class WorkTypeCreateE2E_Test extends WorkTypeBaseTest {
         return seen;
     }
 
-    /** End the active session via the dashboard chip menu when a chip is present (best-effort guard). */
+    /**
+     * End the active session via the dashboard chip menu when a chip is
+     * present. Determined, not one-shot: a stale session poisons every
+     * "no active session" assert downstream (CI run 31133987978: one
+     * menuOpened=false on 18.5 → E2E_032 false-fail + 19 cascade skips), so
+     * retry with a dashboard re-anchor, then an app relaunch, before giving up.
+     */
     private void endActiveSessionIfAny(String label) {
         try {
-            if (wo.isDashboardWoChipPresent()) {
-                logStep(label + ": active session detected — ending via dashboard chip menu");
+            if (!wo.isDashboardWoChipPresent()) return;
+            logStep(label + ": active session detected — ending via dashboard chip menu");
+            for (int attempt = 1; attempt <= 3; attempt++) {
                 boolean menu = wo.openDashboardWoMenu();
                 boolean ended = menu && wo.endActiveSessionViaDashboardMenu();
-                logStep(label + ": end-session -> " + (ended ? "OK" : "FAILED (menuOpened=" + menu + ")"));
+                if (ended || !wo.isDashboardWoChipPresent()) {
+                    logStep(label + ": end-session -> OK (attempt " + attempt + ")");
+                    return;
+                }
+                logStep(label + ": end-session attempt " + attempt
+                        + " FAILED (menuOpened=" + menu + ")");
+                if (attempt == 1) {
+                    goHomeBestEffort();
+                } else if (attempt == 2) {
+                    // Half-rendered dashboard survives re-anchoring on 18.5 —
+                    // relaunch resets the render before the last try.
+                    try {
+                        com.egalvanic.utils.DriverManager.getDriver().terminateApp(AppConstants.APP_BUNDLE_ID);
+                        shortWait();
+                        com.egalvanic.utils.DriverManager.getDriver().activateApp(AppConstants.APP_BUNDLE_ID);
+                        loginAndSelectSite();
+                    } catch (Exception re) {
+                        logStep(label + ": relaunch recovery threw — " + re.getMessage());
+                    }
+                }
             }
+            logStep(label + ": end-session FAILED after 3 attempts — chip still present");
         } catch (Exception e) {
             logStep(label + ": endActiveSessionIfAny threw — " + e.getMessage());
         }

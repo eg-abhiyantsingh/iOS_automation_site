@@ -280,7 +280,23 @@ public abstract class WorkTypeBaseTest extends BaseTest {
         boolean onScreen = wo.scrollWorkOrderListTo(wt.fixtureName());
         skipIfPreconditionMissing(() -> onScreen,
                 tcId + ": fixture '" + wt.fixtureName() + "' not present in the Work Orders list");
-        assertTrue(wo.openWorkOrderByName(wt.fixtureName()),
-                "Fixture row must open (verified nav): " + wt.fixtureName());
+        boolean opened = wo.openWorkOrderByName(wt.fixtureName());
+        if (!opened) {
+            // Row-tap flake (CI 18.5: BEH_006/036/040, DET_033/204 on run
+            // 31133987978 — first tap verified-nav timed out, retries green).
+            // Late nav first: the 12s verify can expire just before the
+            // details screen lands, and a second tap would then mis-fire.
+            if (wo.isSessionDetailsScreenDisplayed()) {
+                System.out.println("ℹ️ " + tcId + ": nav completed late — details screen present");
+                opened = true;
+            } else {
+                System.out.println("🔁 " + tcId + ": row-open retry (attempt 2): " + wt.fixtureName());
+                openWorkOrdersScreenWT();
+                if (wo.scrollWorkOrderListTo(wt.fixtureName())) {
+                    opened = wo.openWorkOrderByName(wt.fixtureName());
+                }
+            }
+        }
+        assertTrue(opened, "Fixture row must open (verified nav): " + wt.fixtureName());
     }
 }

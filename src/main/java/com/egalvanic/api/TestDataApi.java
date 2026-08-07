@@ -498,21 +498,34 @@ public class TestDataApi {
         // found live, crowding the WO search window. The web app's delete is
         // DELETE /ir_session/{id} with `x-direct-write: true`, which bypasses
         // the queue and returns {"success": true} — verified live (row gone).
-        try {
-            HttpResponse<String> resp = send(authed(HttpRequest.newBuilder(
-                    URI.create(BASE + "/ir_session/" + workOrderId))
-                    .header("Content-Type", "application/json")
-                    .header("x-direct-write", "true"))
-                    .method("DELETE", HttpRequest.BodyPublishers.ofString("{}")).build());
-            boolean ok = resp.statusCode() / 100 == 2
-                    && resp.body().replaceAll("\\s", "").contains("\"success\":true");
-            System.out.println((ok ? "🗑️ Deleted WO " : "⚠️ WO delete failed for ") + workOrderId
-                    + " (HTTP " + resp.statusCode() + ") " + truncate(redact(resp.body()), 120));
-            return ok;
-        } catch (Exception e) {
-            System.out.println("⚠️ deleteWorkOrder(" + workOrderId + "): " + e.getMessage());
-            return false;
+        // One retry: CI run 31133987978 saw a gateway answer HTTP 200 with an
+        // HTML page (request never reached the API) — transient, and the row
+        // survived. Body-shape validation caught it; a second attempt is the fix.
+        for (int attempt = 1; attempt <= 2; attempt++) {
+            try {
+                HttpResponse<String> resp = send(authed(HttpRequest.newBuilder(
+                        URI.create(BASE + "/ir_session/" + workOrderId))
+                        .header("Content-Type", "application/json")
+                        .header("x-direct-write", "true"))
+                        .method("DELETE", HttpRequest.BodyPublishers.ofString("{}")).build());
+                boolean ok = resp.statusCode() / 100 == 2
+                        && resp.body().replaceAll("\\s", "").contains("\"success\":true");
+                System.out.println((ok ? "🗑️ Deleted WO " : "⚠️ WO delete failed for ") + workOrderId
+                        + " (HTTP " + resp.statusCode() + ", attempt " + attempt + ") "
+                        + truncate(redact(resp.body()), 120));
+                if (ok) return true;
+            } catch (Exception e) {
+                System.out.println("⚠️ deleteWorkOrder(" + workOrderId + ", attempt " + attempt + "): "
+                        + e.getMessage());
+            }
+            if (attempt == 1) {
+                try { Thread.sleep(1500); } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    return false;
+                }
+            }
         }
+        return false;
     }
 
     /**

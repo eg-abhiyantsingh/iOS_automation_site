@@ -3316,11 +3316,21 @@ jobs:
         run: |
           BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${{ github.workspace }}/apps/Z Platform-QA.app/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
 
+          # forms + list need headroom on the 18.5 CI sims (run 31133987978):
+          # healthy forms tests finish at ~5m45s against the 360s default (one
+          # WDA hiccup = timeout + dead-session cascade), and the list
+          # full-sweep censuses are O(list length) at 2x local latency.
+          case "${{ matrix.slice }}" in
+            forms|list) TEST_CAP=540 ;;
+            *)          TEST_CAP=360 ;;
+          esac
+
           mvn test -ntp -B -DfailIfNoTests=true -DsuiteXmlFile=src/test/resources/parallel/testng-worktype-${{ matrix.slice }}.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
             -DAPP_BUNDLE_ID="$BUNDLE_ID" \
+            -DTEST_TIMEOUT_SECONDS="$TEST_CAP" \
             -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
 
       - name: Upload Work Type Report
