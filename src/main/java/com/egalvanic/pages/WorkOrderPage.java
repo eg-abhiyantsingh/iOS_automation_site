@@ -2127,6 +2127,20 @@ public class WorkOrderPage extends BasePage {
      * Check if a specific tab is displayed and optionally selected/active.
      * @param tabName Tab name (e.g., "Details", "Issues")
      */
+    /**
+     * Reveal content below the fold (one app-wide up-swipe). Shorter CI
+     * screens (18.5 / iPhone 16 Pro) push the session tab strip below the
+     * fold and SwiftUI drops off-screen strips from the a11y tree entirely —
+     * a plain find can NOT see them until revealed.
+     */
+    public void revealBelowTheFold() {
+        try {
+            driver.executeScript("mobile: swipe", java.util.Map.of("direction", "up"));
+        } catch (Exception e) {
+            System.out.println("⚠️ revealBelowTheFold: " + e.getMessage());
+        }
+    }
+
     public boolean isTabDisplayed(String tabName) {
         try {
             List<WebElement> elements = driver.findElements(AppiumBy.iOSNsPredicateString(

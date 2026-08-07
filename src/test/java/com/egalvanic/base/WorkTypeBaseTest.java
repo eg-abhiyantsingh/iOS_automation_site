@@ -297,6 +297,27 @@ public abstract class WorkTypeBaseTest extends BaseTest {
                 }
             }
         }
+        if (!opened) {
+            // Third attempt behind an app soft-restart: double-flakes survive
+            // re-anchoring (~3 per 200 opens on the 18.5 CI sims, run
+            // 31156460536: LIST_104/065, BEH_061) but restart clears the
+            // stuck nav state (same cure as the session nav hijack).
+            System.out.println("🔁 " + tcId + ": row-open attempt 3 (soft-restart): " + wt.fixtureName());
+            try {
+                com.egalvanic.utils.DriverManager.getDriver()
+                        .terminateApp(com.egalvanic.constants.AppConstants.APP_BUNDLE_ID);
+                shortWait();
+                com.egalvanic.utils.DriverManager.getDriver()
+                        .activateApp(com.egalvanic.constants.AppConstants.APP_BUNDLE_ID);
+                loginAndSelectSite();
+            } catch (Exception re) {
+                System.out.println("⚠️ " + tcId + ": soft-restart threw — " + re.getMessage());
+            }
+            openWorkOrdersScreenWT();
+            if (wo.scrollWorkOrderListTo(wt.fixtureName())) {
+                opened = wo.openWorkOrderByName(wt.fixtureName());
+            }
+        }
         assertTrue(opened, "Fixture row must open (verified nav): " + wt.fixtureName());
     }
 }

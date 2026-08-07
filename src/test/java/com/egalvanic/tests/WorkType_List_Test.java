@@ -1066,7 +1066,10 @@ public class WorkType_List_Test extends WorkTypeBaseTest {
      * the UP direction of the bidirectional scroll also reaches every family
      * row (the forward sweep 201 predominantly exercises DOWN swipes).
      */
-    @Test(priority = 95)
+    // Explicit cap (wins over GlobalTestTimeout): whole-list census at CI
+    // 18.5 latency exceeded even the slice's 540s (run 31156460536) while
+    // healthy — local 2m28s. Do not "fix" back to the default.
+    @Test(priority = 95, timeOut = 900_000)
     public void TC_WT_LIST_211_reverseSweepFindsAll14FixtureRows() {
         ExtentReportManager.createTest(AppConstants.MODULE_JOBS, FEATURE,
                 "TC_WT_LIST_211 - reverse-order sweep (WT13→WT00) finds all 14 fixture rows in one visit");
@@ -1095,7 +1098,9 @@ public class WorkType_List_Test extends WorkTypeBaseTest {
      * accidentally resolving to a sibling's row), which no single-fixture
      * check can see.
      */
-    @Test(priority = 96)
+    // Explicit cap: per-row attribute census — the expensive op on 18.5 sims
+    // (local 3m03s; blew 540s on CI run 31156460536 while healthy).
+    @Test(priority = 96, timeOut = 900_000)
     public void TC_WT_LIST_212_allCompositesWellFormedAndDistinctInOneVisit() {
         ExtentReportManager.createTest(AppConstants.MODULE_JOBS, FEATURE,
                 "TC_WT_LIST_212 - all 14 fixture composites well-formed ('<name>, Medium') and pairwise distinct");

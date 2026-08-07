@@ -88,13 +88,26 @@ public class WorkType_Behavior_Test extends WorkTypeBaseTest {
             case COM:       return new String[] { "Condition Assessment", "C.O.M." };
             case CHECKLIST: return new String[] { "Tasks" };
             case SCHEDULE:  return new String[] { "Panel Schedules", "Schedule" };
-            case PM_FORMS:  return new String[] { "Forms", "Tasks" };
+            // v1.55: no 'Forms'/'Tasks' session tab exists (verified locally
+            // AND on CI, 2026-08-07 — 26 skips) — PM forms live under the
+            // Assets tab (Assets → room → asset → form chips; the forms
+            // module walks it exhaustively). 'Assets' is the v1.55 entry
+            // surface; the web-prior names stay first in case they return.
+            case PM_FORMS:  return new String[] { "Forms", "Tasks", "Assets" };
             default:        return new String[0];
         }
     }
 
     /** First candidate category tab currently displayed for {@code wt}, or null. */
     private String detectCategoryTab(WorkTypeCatalog wt) {
+        for (String tab : candidateTabsFor(wt.category())) {
+            if (wo.isTabDisplayed(tab)) return tab;
+        }
+        // Shorter CI screens (18.5/16 Pro) push the tab strip below the fold
+        // and SwiftUI drops it from the a11y tree — reveal and re-probe (CI
+        // run 31156460536: this alone cost 26 honest-but-avoidable skips).
+        wo.revealBelowTheFold();
+        shortWait();
         for (String tab : candidateTabsFor(wt.category())) {
             if (wo.isTabDisplayed(tab)) return tab;
         }
