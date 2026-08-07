@@ -220,10 +220,88 @@ public class WorkOrderFormsPage extends BasePage {
                     } catch (Exception ignored) { }
                 }
                 List<WebElement> rooms = roomsWithAssets();
+                // v1.55 session tree, probe-pinned 2026-08-07: room rows are
+                // FULL-PATH composites '<bldg> › <floor>, <room>' and clicking
+                // one NAVIGATES into 'Assets in Room' (no expansion step; the
+                // trailing segment is the ROOM NAME, not a count). Iterate
+                // path rows until one holds ACTIVE assets; empty rooms
+                // ('No Active Assets') are backed out of.
+                // FAST PASS (2026-08-07): count-advertised rooms ('N assets')
+                // are definitive asset-bearers. Batch run 3 proved the walk
+                // must be DETERMINISTIC: tests inherit arbitrary scroll state,
+                // and the enter-and-back-out path walk burned 5 of the 6
+                // budget minutes touring empty debris rooms (7 timeout kills,
+                // 6 dry skips). So: scroll to TOP first, then sweep the WHOLE
+                // list for a count row; only then fall back to a BOUNDED walk.
+                if (rooms.isEmpty()) {
+                    for (int s = 0; s < 4; s++) swipe("down"); // deterministic start: top of tree
+                    rooms = roomsWithAssets();
+                    for (int s = 0; s < 8 && rooms.isEmpty(); s++) {
+                        swipe("up");
+                        rooms = roomsWithAssets();
+                    }
+                    if (rooms.isEmpty()) {
+                        for (int s = 0; s < 9; s++) swipe("down"); // restore top for the path walk
+                    }
+                }
+                if (!rooms.isEmpty()) {
+                    String name = rooms.get(0).getAttribute("name");
+                    System.out.println("🚪 opening room (fast pass): " + name);
+                    rooms.get(0).click();
+                    return true;
+                }
+                java.util.Set<String> seenPaths = new java.util.HashSet<>();
+                if (rooms.isEmpty()) {
+                    int pathSwipes = 0;
+                    // BOUNDED last resort: 3 room entries max — each entry
+                    // costs ~30-45s and the whole method must stay well under
+                    // the 6-minute test cap (batch run 3 lesson).
+                    for (int i = 0; i < 3; i++) {
+                        WebElement pathRow = null;
+                        String pathName = null;
+                        for (WebElement b : driver.findElements(AppiumBy.iOSNsPredicateString(
+                                "type == 'XCUIElementTypeButton' AND visible == 1 AND name CONTAINS ' › ' "
+                                + "AND rect.y > 120 AND rect.y < 800"))) {
+                            String n;
+                            try { n = b.getAttribute("name"); } catch (Exception e) { continue; }
+                            if (n == null || seenPaths.contains(n)) continue;
+                            pathRow = b;
+                            pathName = n;
+                            break;
+                        }
+                        if (pathRow == null) {
+                            if (seenPaths.isEmpty() || pathSwipes >= 2) break;
+                            pathSwipes++;
+                            swipe("up"); // more path rows may sit below the fold
+                            continue;
+                        }
+                        seenPaths.add(pathName);
+                        System.out.println("🚪 v1.55 path-row into room: '" + pathName + "'");
+                        try { pathRow.click(); } catch (Exception e) { continue; }
+                        pauseMs(1200);
+                        if (isAssetsInRoomOpen()) {
+                            if (!visibleAssetRowComposites().isEmpty()) return true;
+                            System.out.println("🚪 room has no ACTIVE assets — backing out to the tree");
+                            try {
+                                WebElement back = driver.findElement(AppiumBy.iOSNsPredicateString(
+                                        "type == 'XCUIElementTypeButton' AND name == 'BackButton' AND visible == 1"));
+                                org.openqa.selenium.Rectangle br = back.getRect();
+                                driver.executeScript("mobile: tap",
+                                        java.util.Map.of("x", br.x + br.width / 2, "y", br.y + br.height / 2));
+                                pauseMs(1000);
+                            } catch (Exception e) {
+                                System.out.println("⚠️ back-out failed after empty room: " + e.getMessage());
+                                return false;
+                            }
+                        }
+                    }
+                }
                 // Expansion cascade: building rows read '<name>, N floor(s)',
                 // floor rows '<name>, N room(s)' (v1.55 tree). Each level is
                 // expanded at most ONCE — a second tap TOGGLES it closed.
-                if (rooms.isEmpty()) {
+                // SKIPPED on the path-row tree shape (those rows contain
+                // ' floor' but clicking them ENTERS a room, not an expansion).
+                if (rooms.isEmpty() && seenPaths.isEmpty()) {
                     for (String suffix : new String[]{" floor", " room"}) {
                         List<WebElement> expandables = driver.findElements(AppiumBy.iOSNsPredicateString(
                                 "type == 'XCUIElementTypeButton' AND visible == 1 AND name CONTAINS '" + suffix + "'"));
@@ -256,21 +334,31 @@ public class WorkOrderFormsPage extends BasePage {
                 // RE-QUERIED per attempt: navigation invalidates elements.
                 java.util.Set<String> visited = new java.util.HashSet<>();
                 for (int attempt = 0; attempt < 4; attempt++) {
-                    WebElement cand = null;
-                    String candName = null;
-                    for (WebElement b : driver.findElements(AppiumBy.iOSNsPredicateString(
-                            "type == 'XCUIElementTypeButton' AND visible == 1 AND rect.y > 120 AND rect.y < 800"))) {
-                        String n;
-                        try { n = b.getAttribute("name"); } catch (Exception e) { continue; }
-                        if (n == null || n.isEmpty() || n.contains(" floor") || n.contains(" room")
-                                || "plus".equals(n) || "qrcode.viewfinder".equals(n)
-                                || "arrow.clockwise".equals(n) || "BackButton".equals(n) || "Done".equals(n)
-                                || n.startsWith("Search") || visited.contains(n)) continue;
-                        cand = b;
-                        candName = n;
-                        break;
+                    WebElement cand = findBareRoomCandidate(visited);
+                    if (cand == null && attempt > 0) {
+                        // Back-out RESETS the tree's expansion (observed
+                        // 2026-08-07: after one candidate the scan went dry
+                        // every time) — re-expand once, then rescan.
+                        for (String suffix : new String[]{" floor", " room"}) {
+                            List<WebElement> expandables = driver.findElements(AppiumBy.iOSNsPredicateString(
+                                    "type == 'XCUIElementTypeButton' AND visible == 1 AND name CONTAINS '" + suffix + "'"));
+                            if (!expandables.isEmpty()) {
+                                try { expandables.get(0).click(); } catch (Exception ignored) { }
+                                pauseMs(800);
+                            }
+                            if (findBareRoomCandidate(visited) != null || !roomsWithAssets().isEmpty()) break;
+                        }
+                        List<WebElement> counted = roomsWithAssets();
+                        if (!counted.isEmpty()) {
+                            System.out.println("🚪 opening count-advertised room after re-expansion");
+                            counted.get(0).click();
+                            return true;
+                        }
+                        cand = findBareRoomCandidate(visited);
                     }
                     if (cand == null) break;
+                    String candName;
+                    try { candName = cand.getAttribute("name"); } catch (Exception e) { break; }
                     visited.add(candName);
                     System.out.println("🚪 trying bare-named room row: '" + candName + "'");
                     try {
@@ -294,6 +382,24 @@ public class WorkOrderFormsPage extends BasePage {
                         return false;
                     }
                 }
+                // Give-up diagnostics: what IS on screen (names tell whether we
+                // are on the tree, inside a room, or somewhere unexpected).
+                try {
+                    StringBuilder sb = new StringBuilder();
+                    for (WebElement b : driver.findElements(AppiumBy.iOSNsPredicateString(
+                            "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' "
+                            + "OR type == 'XCUIElementTypeNavigationBar') AND visible == 1"))) {
+                        try {
+                            org.openqa.selenium.Rectangle r = b.getRect();
+                            sb.append("[").append(b.getAttribute("type").replace("XCUIElementType", ""))
+                              .append(" y").append(r.y).append(" '").append(b.getAttribute("name")).append("'] ");
+                        } catch (Exception ignored) { }
+                        if (sb.length() > 1800) break;
+                    }
+                    System.out.println("🔎 give-up screen census: " + sb);
+                } catch (Exception e) {
+                    System.out.println("🔎 give-up census failed: " + e.getMessage());
+                }
                 System.out.println("⚠️ no ASSET-BEARING room found (visited " + visited + ")");
                 return false;
             });
@@ -301,6 +407,27 @@ public class WorkOrderFormsPage extends BasePage {
             System.out.println("⚠️ openFirstRoomWithAssetsInTree: " + e.getMessage());
             return false;
         }
+    }
+
+    /**
+     * First visible bare-named room-row candidate (v1.55 tree) not yet
+     * visited. Excludes every known CONTROL name — 'Add' especially: it is a
+     * toolbar Button that passed the old filter and got tapped as a "room"
+     * (observed 2026-08-07, forms audit run 2).
+     */
+    private WebElement findBareRoomCandidate(java.util.Set<String> visited) {
+        for (WebElement b : driver.findElements(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND visible == 1 AND rect.y > 120 AND rect.y < 800"))) {
+            String n;
+            try { n = b.getAttribute("name"); } catch (Exception e) { continue; }
+            if (n == null || n.isEmpty() || n.contains(" floor") || n.contains(" room")
+                    || "plus".equals(n) || "qrcode.viewfinder".equals(n)
+                    || "arrow.clockwise".equals(n) || "BackButton".equals(n) || "Done".equals(n)
+                    || "Add".equals(n) || "Edit".equals(n) || "Filter".equals(n) || "Sort".equals(n)
+                    || n.startsWith("Search") || visited.contains(n)) continue;
+            return b;
+        }
+        return null;
     }
 
     private List<WebElement> roomsWithAssets() {
