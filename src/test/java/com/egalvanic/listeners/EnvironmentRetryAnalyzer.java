@@ -29,6 +29,15 @@ public class EnvironmentRetryAnalyzer implements IRetryAnalyzer {
 
     private static final String RETRIED_ATTR = "env.retried";
 
+    // HARD cap, keyed by test identity. The ITestResult attribute alone can
+    // NOT enforce "one retry": every retry execution gets a NEW result object
+    // with no attributes, so a test whose retry keeps failing with an
+    // environmental signature retried FOREVER — CI run 31185473008 looped
+    // TC_WTC_E2E_032 for ~3.5h (2:57→6:15 PM), wedged the driver, tripped the
+    // breaker and manufactured 19 cascade skips.
+    private static final java.util.concurrent.ConcurrentHashMap<String, Integer> RETRIES_BY_TEST =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
     private static final String[] ENV_SIGNATURES = {
             "session is either terminated or not started",
             "Session does not exist",
@@ -52,11 +61,18 @@ public class EnvironmentRetryAnalyzer implements IRetryAnalyzer {
         if (Boolean.TRUE.equals(result.getAttribute(RETRIED_ATTR))) {
             return false; // one retry max
         }
+        String key = result.getTestClass().getName() + "#" + result.getName();
+        if (RETRIES_BY_TEST.getOrDefault(key, 0) >= 1) {
+            System.out.println("🛑 ENV-RETRY: '" + result.getName()
+                    + "' already used its one retry — staying RED (no retry loop).");
+            return false;
+        }
         String reason = environmentalReason(result);
         if (reason == null) {
             return false;
         }
         result.setAttribute(RETRIED_ATTR, Boolean.TRUE);
+        RETRIES_BY_TEST.merge(key, 1, Integer::sum);
         System.out.println("🔁 ENV-RETRY: '" + result.getName() + "' failed for an ENVIRONMENTAL reason ("
                 + reason + ") — retrying once; a second identical failure stays RED.");
         recoverForegroundBestEffort();

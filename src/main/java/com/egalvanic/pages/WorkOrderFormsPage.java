@@ -692,21 +692,38 @@ public class WorkOrderFormsPage extends BasePage {
         return out;
     }
 
-    /** Type into the Nth step's Value/Notes field, then dismiss the keyboard. */
+    /**
+     * Type into the Nth step's Value/Notes field, then dismiss the keyboard.
+     * iOS 18.5: element.click() does NOT focus SwiftUI TextFields — the D01
+     * census (CI run 31185473008) showed the field completely empty after a
+     * "successful" click+sendKeys, while 26.2 typed fine. Coordinate-tap to
+     * focus, confirm the keyboard actually appeared, re-find the field
+     * (focus re-renders the list), type, then VERIFY the text landed.
+     */
     public boolean typeStepNotes(int index, String text) {
-        List<WebElement> fields = noteFields();
-        if (index < 0 || index >= fields.size()) return false;
-        try {
-            WebElement f = fields.get(index);
-            f.click();
-            f.clear();
-            f.sendKeys(text);
-            hideKeyboardSafe();
-            return true;
-        } catch (Exception e) {
-            System.out.println("⚠️ typeStepNotes: " + e.getMessage());
-            return false;
+        for (int attempt = 1; attempt <= 2; attempt++) {
+            List<WebElement> fields = noteFields();
+            if (index < 0 || index >= fields.size()) return false;
+            try {
+                Rectangle r = fields.get(index).getRect();
+                driver.executeScript("mobile: tap",
+                        java.util.Map.of("x", r.x + r.width / 2, "y", r.y + r.height / 2));
+                waitForCondition(() -> existsNow(AppiumBy.className("XCUIElementTypeKeyboard")), 4);
+                List<WebElement> fresh = noteFields();
+                if (index >= fresh.size()) continue;
+                WebElement f = fresh.get(index);
+                f.clear();
+                f.sendKeys(text);
+                hideKeyboardSafe();
+                String got = stepNotes(index);
+                if (got != null && got.contains(text)) return true;
+                System.out.println("⚠️ typeStepNotes attempt " + attempt
+                        + ": text did not land (readback '" + got + "')");
+            } catch (Exception e) {
+                System.out.println("⚠️ typeStepNotes attempt " + attempt + ": " + e.getMessage());
+            }
         }
+        return false;
     }
 
     /**

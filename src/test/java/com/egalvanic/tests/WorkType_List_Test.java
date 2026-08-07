@@ -900,7 +900,9 @@ public class WorkType_List_Test extends WorkTypeBaseTest {
      * 15-down/18-up bidirectional sweep still finds the row (or terminates)
      * — the order is an efficiency choice, never a correctness dependency.
      */
-    @Test(priority = 85)
+    // Explicit cap: whole-list census — 540s flip-flops on 18.5 (passed run
+    // 31156460536, timed out 31185473008); same treatment as 211/212.
+    @Test(priority = 85, timeOut = 900_000)
     public void TC_WT_LIST_201_fullSweepFindsAll14FixtureRows() {
         ExtentReportManager.createTest(AppConstants.MODULE_JOBS, FEATURE,
                 "TC_WT_LIST_201 - single-visit full sweep finds all 14 QA-WT fixture rows");
@@ -1019,7 +1021,9 @@ public class WorkType_List_Test extends WorkTypeBaseTest {
      * scroll sweep (the sweep is the stressor; completeness is TC_WT_LIST_201's
      * contract, so misses here are logged, not asserted).
      */
-    @Test(priority = 91)
+    // Explicit cap: full sweep + header re-check — same 540s flip-flop on
+    // 18.5 as LIST_201 (run 31185473008).
+    @Test(priority = 91, timeOut = 900_000)
     public void TC_WT_LIST_207_headerStaysCorrectAfterFullSweep() {
         ExtentReportManager.createTest(AppConstants.MODULE_JOBS, FEATURE,
                 "TC_WT_LIST_207 - Work Orders screen header still correct after a full 14-fixture sweep");
