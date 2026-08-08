@@ -554,8 +554,38 @@ public class AssetEngineerPage extends BasePage {
     public void openAssetCardByPrefix(String namePrefix) {
         By cell = AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND name BEGINSWITH '" + namePrefix + "'");
+        // SEARCH-FIRST (2026-08-08, 60-fail cluster on run 31214326457): the
+        // Assets list outgrew the 4-swipe scan — T-section fixtures sat ~10
+        // swipes deep and every ENG lookup failed. Searching the prefix
+        // surfaces the cell at the top regardless of list size; the bounded
+        // swipe (raised to 10) stays as the no-search-field fallback.
+        boolean searched = false;
+        try {
+            WebElement searchField = withImplicitWait(0, () -> {
+                java.util.List<WebElement> sf = driver.findElements(
+                        AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeSearchField'"));
+                return sf.isEmpty() ? null : sf.get(0);
+            });
+            if (searchField != null) {
+                searchField.click();
+                sleep(300);
+                searchField.clear();
+                searchField.sendKeys(namePrefix);
+                sleep(600);
+                searched = waitForCondition(() -> existsNow(cell), 5);
+                if (!searched) {
+                    // No match under search (stale sync, renamed fixture) —
+                    // clear so the fallback swipe scans the FULL list.
+                    try { searchField.clear(); } catch (Exception ignored) { }
+                    sleep(300);
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ openAssetCardByPrefix: search-first failed (" + e.getMessage()
+                    + ") — falling back to swipe scan");
+        }
         for (int attempt = 1; attempt <= 2; attempt++) {
-            if (!swipeUntilVisible(cell, 4)) {
+            if (!searched && !swipeUntilVisible(cell, 10)) {
                 throw new VerificationError("openAssetCardByPrefix: no asset cell starting with '"
                         + namePrefix + "' on the Assets list");
             }
