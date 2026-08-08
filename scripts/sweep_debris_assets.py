@@ -15,11 +15,15 @@ Usage:
 Defaults to the Wild Goose Brewery QA SLD. NEVER touches names outside the
 debris patterns below.
 """
-import argparse, json, re, sys, urllib.request
+import argparse, json, os, re, sys, urllib.request
 
 BASE = "https://api.qa.egalvanic.ai/api"
 DEFAULT_SLD = "9138fd14-a3c9-495a-b086-6ef520f92168"  # (s) Wild Goose Brewery
-EMAIL, PASSWORD, SUBDOMAIN = "abhiyant.singh+admin@egalvanic.com", "RP@egalvanic123", "acme"
+# Env-first; the fallbacks mirror the QA login the suite already uses
+# (AppConstants.VALID_EMAIL/VALID_PASSWORD) so CI needs no new secrets.
+EMAIL = os.environ.get("SWEEP_EMAIL", "abhiyant.singh+admin@egalvanic.com")
+PASSWORD = os.environ.get("SWEEP_PASSWORD", "RP@egalvanic123")
+SUBDOMAIN = os.environ.get("SWEEP_SUBDOMAIN", "acme")
 
 DEBRIS_PREFIX = re.compile(r"^(NoSubtype_|PERSISTED_|E2E_|DEL_|Dup_|DupTest_|ClassChange_|Rename_|Asset_Verify|CaseTest_|QRTest|QRLenTest_|EditQRTest)")
 DEBRIS_TAIL = re.compile(r"\(copy( \d+)?\)$")
