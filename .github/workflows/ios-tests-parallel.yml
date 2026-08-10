@@ -4758,7 +4758,7 @@ jobs:
           PDF="${{ steps.defect_pdf.outputs.pdf_path }}"
           if [ -n "$PDF" ] && [ -f "$PDF" ]; then
             PDF_MB=$(( $(stat -c%s "$PDF" 2>/dev/null || stat -f%z "$PDF") / 1048576 ))
-            if [ "$PDF_MB" -le 18 ]; then
+            if [ "$PDF_MB" -le 20 ]; then
               ATTACHMENT_LIST="${ATTACHMENT_LIST:+$ATTACHMENT_LIST,}$PDF"
               REPORT_COUNT=$((REPORT_COUNT+1))
               echo "Defect PDF attached (${PDF_MB} MB)"

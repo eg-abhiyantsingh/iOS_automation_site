@@ -449,14 +449,20 @@ def _is_diagnostic_echo(text: str, block_name: str) -> bool:
     return bool(tcid) and text.startswith(tcid + ":")
 
 
-def steps_from_block(block) -> (list, list, list):
-    """Return (steps, fail_texts, evidence_imgs[≤2]) from a detailed-report block."""
+def steps_from_block(block):
+    """Return (steps, fail_texts, shots) from a detailed-report block.
+
+    shots = [{'uri', 'caption', 'idx', 'role'}] in report order, where role is
+    'context' | 'action' | 'failure' — the narrative the PDF needs to show a
+    customer what happened before and at the moment of failure.
+    """
     steps, fails = [], []
-    img_rows = []                      # (row_idx, datauri)
+    img_rows = []                      # (row_idx, datauri, caption)
     first_fail_idx = None
     for idx, (badge, text, imgs) in enumerate(block["rows"]):
+        caption = _clean_step(text)
         for u in imgs:
-            img_rows.append((idx, u))
+            img_rows.append((idx, u, caption))
         # A failure is logged TWICE: first as an Info row "❌ Assertion failed: …"
         # (screenshotOnAssertionFail — this is the row that carries the
         # moment-of-failure screenshot), then as the Fail-badged row. Both are
@@ -486,18 +492,33 @@ def steps_from_block(block) -> (list, list, list):
         if steps and steps[-1] == t:
             continue
         steps.append(t)
-    # Evidence: last screenshot before the failure + the failure-moment shot.
-    evidence = []
+    # Build the visual narrative: opening state → the action that preceded the
+    # failure → the failure moment. Captions carry the step each shot belongs to.
+    shots = []
     if first_fail_idx is not None:
-        before = [u for i, u in img_rows if i < first_fail_idx]
-        at_after = [u for i, u in img_rows if i >= first_fail_idx]
-        if at_after:
-            evidence.append(("Screenshot at the moment of failure", at_after[0]))
+        before = [(i, u, c) for i, u, c in img_rows if i < first_fail_idx]
+        at_after = [(i, u, c) for i, u, c in img_rows if i >= first_fail_idx]
         if before:
-            evidence.append(("Last screen state before the failing step", before[-1]))
-    elif img_rows:
-        evidence.append(("Final captured screen state", img_rows[-1][1]))
-    return steps, fails, evidence[:2]
+            shots.append({"uri": before[0][1], "idx": before[0][0], "role": "context",
+                          "caption": before[0][2] or "Starting state"})
+        if len(before) > 2:
+            mid = before[len(before) // 2]
+            shots.append({"uri": mid[1], "idx": mid[0], "role": "context",
+                          "caption": mid[2] or "During the flow"})
+        if len(before) > 1:
+            shots.append({"uri": before[-1][1], "idx": before[-1][0], "role": "action",
+                          "caption": before[-1][2] or "Last step before the failure"})
+        if at_after:
+            shots.append({"uri": at_after[0][1], "idx": at_after[0][0], "role": "failure",
+                          "caption": "At the moment of failure"})
+    else:
+        for i, u, c in img_rows[:2]:
+            shots.append({"uri": u, "idx": i, "role": "context",
+                          "caption": c or "Captured screen state"})
+        if img_rows:
+            shots.append({"uri": img_rows[-1][1], "idx": img_rows[-1][0], "role": "failure",
+                          "caption": "Final captured screen state"})
+    return steps, fails, shots
 
 
 _STR_LIT = re.compile(r'"((?:[^"\\]|\\.)*)"')
@@ -585,6 +606,146 @@ def prettify_method(method: str) -> (str, str):
         tcid, rest = method, ""
     words = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", rest.replace("_", " ")).strip()
     return tcid, (words[:1].upper() + words[1:]) if words else ""
+
+
+# ── Plain-English issue classification ────────────────────────────────────────
+#
+# Customers should not have to read an assertion to learn what broke. Every bug
+# gets an "Issue" line naming the defect in ordinary words — "The Save button did
+# not respond", "No validation message was shown" — derived from the assertion
+# text, the failing step and (for unresponsive controls) the screenshots.
+
+_CONTROL_WORDS = (r"button|link|tab|toggle|switch|checkbox|field|dropdown|picker|menu|"
+                  r"chip|icon|control|option|row|card|banner|sheet|dialog|popup")
+
+# The control the assertion talks about: "'Save Changes' button", "Save button",
+# "Create button should be enabled".
+_CTRL_QUOTED = re.compile(r"['‘’\"]([^'‘’\"]{2,40})['‘’\"]\s+(?:" + _CONTROL_WORDS + r")\b", re.I)
+_CTRL_PLAIN = re.compile(r"\b([A-Z][\w+ ]{1,28}?)\s+(" + _CONTROL_WORDS + r")\b")
+
+_ACTION_VERB = re.compile(
+    r"\b(tap|taps|tapped|tapping|click|clicks|clicked|press|presses|pressed|"
+    r"submit|submits|save|saves|saving|create|creates|select|selects|enter|"
+    r"type|types|typed|choose|chooses|confirm|confirms|delete|deletes|apply)\b", re.I)
+_LEADING_VERB = re.compile(
+    r"^\s*(?:tap|tapping|tapped|click|clicking|clicked|press|pressing|pressed|"
+    r"submit|submitting|open|opening|use|using|hit|hitting)(?:ing)?\s+(?:the\s+)?", re.I)
+
+
+def extract_control(*texts):
+    """Name the on-screen control an assertion is about, if it names one."""
+    for t in texts:
+        if not t:
+            continue
+        m = _CTRL_QUOTED.search(t)
+        if m:
+            return m.group(1).strip()
+        m = _CTRL_PLAIN.search(t)
+        if m:
+            # "Clicking Save Changes button" → "Save Changes button". Strip only a
+            # LEADING verb: 'Save' is itself an action verb, and a blanket strip
+            # turned the Save Changes button into " Changes button".
+            name = _LEADING_VERB.sub("", m.group(1)).strip(" -–—:,")
+            if name and name.lower() not in ("the", "a", "an", "this", "that",
+                                             "each", "no", "any"):
+                return f"{name} {m.group(2).lower()}"
+    return ""
+
+
+ISSUE_TYPES = {
+    "unresponsive": "Control does not respond",
+    "validation": "Validation / error message missing",
+    "not_saved": "Data not saved",
+    "missing": "Element missing from screen",
+    "not_rendered": "Content does not render",
+    "navigation": "Screen does not open",
+    "wrong_value": "Incorrect value displayed",
+    "state": "Control in the wrong state",
+    "crash": "App stops responding",
+    "timeout": "Screen unresponsive (timed out)",
+    "slow": "Performance below expectation",
+    "other": "Verification failed",
+}
+
+
+def _looks_like_value(s):
+    """True for things worth quoting to a customer as a value ('Saved', '480V'),
+    false for requirement sentences ('Create button should be disabled when …')
+    that some assertions put in the Expected slot."""
+    s = (s or "").strip()
+    if not s or len(s) > 45:
+        return False
+    return not re.search(r"\b(must|should|shall|expected to|verify|verifies)\b", s, re.I)
+
+
+def classify_issue(fail_text, exc_line, method, steps, expected, actual,
+                   session_dead=False, timed_out=False, no_screen_change=False,
+                   last_action=""):
+    """Return (issue_key, plain_english_sentence). Evidence-driven, never invented."""
+    blob = " ".join(filter(None, [fail_text, exc_line, method])).lower()
+    control = extract_control(fail_text, exc_line, last_action)
+    # Only quote Expected/Actual back to the reader when they are actual values.
+    exp_v = expected if _looks_like_value(expected) else ""
+    act_v = actual if _looks_like_value(actual) else ""
+
+    if session_dead:
+        return "crash", ("The app stopped responding during this step and had to be "
+                         "restarted — this is a crash signature.")
+    if timed_out:
+        return "timeout", ("The screen stopped responding: the flow never completed within "
+                           "its time limit.")
+    # A tap that changes nothing on screen is the clearest "button not working" proof.
+    if no_screen_change and _ACTION_VERB.search(last_action or ""):
+        if control:
+            subject = f"The {control} did not respond"
+        else:
+            act = next((a.strip() for a in (last_action or "").split(" · ")
+                        if _ACTION_VERB.search(a)), "")
+            subject = (f"The step “{act[:70]}” had no effect" if act
+                       else "The action in this step had no effect")
+        return "unresponsive", (
+            f"{subject} — the screen is pixel-for-pixel identical before and after it, "
+            f"so nothing happened when the control was used.")
+
+    if re.search(r"\b(validation|error message|warning|toast|alert)\b", blob) and \
+       re.search(r"\b(missing|not shown|no |never|absent|should (?:show|appear|be shown))\b", blob):
+        return "validation", ("No validation message was shown. The app accepted the input "
+                              "without telling the user what was wrong.")
+    # These messages are all FAILED assertions, so a requirement phrased positively
+    # ("the room must be saved") already means it was not met — a negation word is
+    # not required, and demanding one silently misfiled every save defect.
+    if re.search(r"\b(?:be|was|is|get|got|gets) saved\b|\bsaved successfully\b|"
+                 r"\bsave(?:d)? evidence\b|\bpersist(?:ed|s)?\b|\bnot saved\b|"
+                 r"\bnever saved\b|\bretain(?:ed|s)?\b|\bstill shows\b", blob):
+        return "not_saved", (f"The change was not saved. After saving, the screen does not "
+                             f"show the new value"
+                             + (f" (it still shows “{act_v}”)." if act_v else "."))
+    if re.search(r"\b(must open|should open|did not open|navigate|opens? from|close back|"
+                 r"return(?:s|ed)? to)\b", blob):
+        return "navigation", (f"The expected screen did not open"
+                              + (f" after using {control}." if control else
+                                 " after this step — the app stayed on the previous screen."))
+    if re.search(r"\b(enabled|disabled|selected|checked|greyed|grayed|active)\b", blob):
+        return "state", (f"{('The ' + control) if control else 'The control'} is in the wrong "
+                         f"state" + (f" — expected “{exp_v}”, found “{act_v or 'nothing'}”."
+                                     if exp_v else "."))
+    if re.search(r"\b(no |not found|never (?:visible|appear)|missing|absent|"
+                 r"must be (?:visible|present|displayed)|should be (?:visible|present|displayed))\b",
+                 blob):
+        return "missing", (f"{('The ' + control) if control else 'An expected item'} is not "
+                           f"present on the screen where the user needs it.")
+    if re.search(r"\b(render|expose|display|show)\b", blob):
+        return "not_rendered", ("The screen does not display the information it should — the "
+                                "expected content is absent.")
+    if re.search(r"\b(slow|within \d+ ?(?:s|sec|seconds|ms)|performance|took)\b", blob):
+        return "slow", "The screen took longer to respond than the acceptable limit."
+    if exp_v and act_v and exp_v != act_v:
+        return "wrong_value", (f"The screen shows the wrong value — it displays “{act_v}” "
+                               f"where “{exp_v}” is expected.")
+    if exp_v and not actual:
+        return "not_saved", (f"The expected value “{exp_v}” is missing — the field reads "
+                             f"empty instead.")
+    return "other", ""
 
 
 # ── Bug field composition ─────────────────────────────────────────────────────
@@ -697,11 +858,11 @@ def compose_bug(rec, args, overrides, seq):
         if block:
             break
 
-    steps, fail_texts, evidence = ([], [], [])
+    steps, fail_texts, shots = ([], [], [])
     description = pretty
     steps_source = "template"
     if block:
-        steps, fail_texts, evidence = steps_from_block(block)
+        steps, fail_texts, shots = steps_from_block(block)
         if steps:
             steps_source = "report"
         name = block["name"]
@@ -820,9 +981,37 @@ def compose_bug(rec, args, overrides, seq):
     actual_result = actual_result[:1].upper() + actual_result[1:]
     expected_result = expected_result[:1].upper() + expected_result[1:]
 
+    # 3b) Visual evidence: compare the screen at the last action with the screen at
+    # failure. Identical pixels after a tap is direct proof the control did nothing.
+    action_shot = next((s for s in shots if s["role"] == "action"), None)
+    failure_shot = next((s for s in shots if s["role"] == "failure"), None)
+    diff_boxes, no_change = [], False
+    if action_shot and failure_shot:
+        a_img, f_img = _load_pil(action_shot["uri"]), _load_pil(failure_shot["uri"])
+        if a_img is not None and f_img is not None:
+            diff_boxes, frac = diff_regions(a_img, f_img)
+            no_change = frac < 0.0004
+    # Name the control from the most recent step that actually performs an action
+    # ("Clicking Save Changes button directly"), not merely the last log line
+    # ("Save completed: false"), which names nothing the user can tap.
+    action_texts = [s for s in steps if _ACTION_VERB.search(s)]
+    last_action = " · ".join(
+        [t for t in [(action_shot or {}).get("caption", ""),
+                     action_texts[-1] if action_texts else "",
+                     steps[-1] if steps else ""] if t])
+
+    issue_key, issue_text = classify_issue(
+        primary_fail, exc_line, method, steps, expected, actual,
+        session_dead=session_dead, timed_out=timeout or exc_only,
+        no_screen_change=no_change, last_action=last_action)
+    # The issue statement gets its own highlighted line on the page, so the Actual
+    # Result keeps the specific evidence rather than repeating that sentence.
+
     sev_basis = " ".join([primary_fail, exc_line, rec.get("exc_class", ""),
                           rec.get("exc_stack", "")])
     severity, priority, note = severity_for(sev_basis, overrides, tcid, cls)
+    if issue_key in ("crash", "not_saved") and severity == "Medium":
+        severity = priority = "High"
 
     # 4) title — a defect statement, not the test name
     if session_dead:
@@ -902,7 +1091,12 @@ def compose_bug(rec, args, overrides, seq):
         "duration_ms": rec.get("ms", 0),
         "reproducibility": reproducibility,
         "png": png,
-        "inline_evidence": evidence,
+        "shots": shots,
+        "issue_key": issue_key,
+        "issue_type": ISSUE_TYPES.get(issue_key, ISSUE_TYPES["other"]),
+        "issue_text": issue_text,
+        "no_screen_change": no_change,
+        "diff_boxes": diff_boxes,
         "session_dead": session_dead,
         "evidence_root": used_root,
     }
@@ -960,10 +1154,9 @@ BORDER = "#d6dce5"
 SEV_COLOR = {"High": "#b42318", "Medium": "#b54708", "Low": "#175cd3"}
 
 
-def _img_flowable(source, max_w, max_h, jpeg_quality):
-    """PNG path or data-URI → compressed reportlab Image, or None."""
+def _load_pil(source):
+    """PNG path or data-URI → RGB PIL image, or None."""
     from PIL import Image as PILImage
-    from reportlab.platypus import Image as RLImage
     try:
         if isinstance(source, str) and source.startswith("data:image/"):
             b64 = source.split(",", 1)[1]
@@ -971,17 +1164,189 @@ def _img_flowable(source, max_w, max_h, jpeg_quality):
             pil = PILImage.open(io.BytesIO(raw))
         else:
             pil = PILImage.open(source)
-        pil = pil.convert("RGB")
-        pil.thumbnail((1000, 1000))
-        buf = io.BytesIO()
-        pil.save(buf, format="JPEG", quality=jpeg_quality, optimize=True)
-        buf.seek(0)
-        w, h = pil.size
-        scale = min(max_w / w, max_h / h, 1.0)
-        return RLImage(buf, width=w * scale, height=h * scale)
+        return pil.convert("RGB")
     except Exception as e:
         print(f"  ! image skipped ({e})", file=sys.stderr)
         return None
+
+
+def _fingerprint(pil):
+    """Tiny perceptual hash so the report never shows the same screen twice."""
+    from PIL import Image as PILImage
+    small = pil.convert("L").resize((16, 16), PILImage.BILINEAR)
+    px = list(small.getdata())
+    avg = sum(px) / len(px)
+    return "".join("1" if p > avg else "0" for p in px)
+
+
+def _hamming(a, b):
+    return sum(1 for x, y in zip(a, b) if x != y) if a and b and len(a) == len(b) else 999
+
+
+def diff_regions(before, after, min_frac=0.0004):
+    """Bounding boxes of what changed between two screenshots.
+
+    Returns (boxes, changed_fraction). Compression noise is filtered by an
+    absolute-difference threshold; boxes are merged row-bands so a highlight
+    frames a UI region rather than scattering over glyph edges.
+    """
+    from PIL import Image as PILImage, ImageChops
+    if before is None or after is None:
+        return [], 0.0
+    if before.size != after.size:
+        after = after.resize(before.size, PILImage.BILINEAR)
+    diff = ImageChops.difference(before.convert("L"), after.convert("L"))
+    mask = diff.point(lambda p: 255 if p > 34 else 0)
+    w, h = mask.size
+    px = mask.load()
+    step = max(1, h // 400)
+    rows, changed = [], 0
+    for y in range(0, h, step):
+        xs = [x for x in range(0, w, max(1, w // 200)) if px[x, y]]
+        if xs:
+            changed += len(xs)
+            rows.append((y, min(xs), max(xs)))
+    total = (h // step) * (w // max(1, w // 200))
+    frac = changed / total if total else 0.0
+    if frac < min_frac or not rows:
+        return [], frac
+    # Merge adjacent changed rows into bands (gap tolerance = 3% of height).
+    gap = max(4, int(h * 0.03))
+    bands, cur = [], [rows[0][0], rows[0][0], rows[0][1], rows[0][2]]
+    for y, x0, x1 in rows[1:]:
+        if y - cur[1] <= gap:
+            cur[1] = y
+            cur[2] = min(cur[2], x0)
+            cur[3] = max(cur[3], x1)
+        else:
+            bands.append(cur)
+            cur = [y, y, x0, x1]
+    bands.append(cur)
+    pad = max(6, int(h * 0.008))
+    boxes = [(max(0, x0 - pad), max(0, y0 - pad), min(w, x1 + pad), min(h, y1 + step + pad))
+             for y0, y1, x0, x1 in bands
+             if (y1 - y0) > h * 0.004 or (x1 - x0) > w * 0.05]
+    boxes.sort(key=lambda b: (b[3] - b[1]) * (b[2] - b[0]), reverse=True)
+    return boxes[:4], frac
+
+
+def annotate(pil, banner_text="", boxes=(), accent=(200, 35, 24)):
+    """Draw the highlight boxes and an issue banner onto a screenshot."""
+    from PIL import ImageDraw, ImageFont
+    img = pil.copy()
+    draw = ImageDraw.Draw(img, "RGBA")
+    w, h = img.size
+    stroke = max(3, int(w * 0.008))
+    for (x0, y0, x1, y1) in boxes:
+        draw.rectangle([x0, y0, x1, y1], outline=accent + (255,), width=stroke)
+        draw.rectangle([x0, y0, x1, y1], fill=accent + (26,))
+    if banner_text:
+        pad = max(10, int(w * 0.022))
+        # The banner has to stay readable after the page shrinks the shot to a
+        # half-column thumbnail, so it is sized generously against image width.
+        size = max(22, int(w * 0.055))
+        font = None
+        for cand in ("/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+                     "/System/Library/Fonts/Helvetica.ttc",
+                     "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+                     "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"):
+            try:
+                font = ImageFont.truetype(cand, size)
+                break
+            except Exception:
+                continue
+        if font is None:
+            font = ImageFont.load_default()
+        # Wrap to the image width.
+        words, lines, cur = banner_text.split(), [], ""
+        for word in words:
+            trial = (cur + " " + word).strip()
+            if draw.textlength(trial, font=font) > w - 2 * pad and cur:
+                lines.append(cur)
+                cur = word
+            else:
+                cur = trial
+        if cur:
+            lines.append(cur)
+        lines = lines[:3]
+        lh = int(size * 1.3)
+        bh = lh * len(lines) + pad
+        draw.rectangle([0, 0, w, bh], fill=accent + (243,))
+        for i, ln in enumerate(lines):
+            draw.text((pad, pad // 2 + i * lh), ln, fill=(255, 255, 255, 255), font=font)
+    return img
+
+
+def _pil_to_flowable(pil, max_w, max_h, jpeg_quality, shot_px=700):
+    from reportlab.platypus import Image as RLImage
+    buf = io.BytesIO()
+    shrunk = pil.copy()
+    # Panels render ~250pt wide, so anything past ~700px is bytes the reader
+    # never sees — and with 4 shots per defect it is what pushes the report
+    # past the email attachment limit.
+    shrunk.thumbnail((shot_px, shot_px))
+    shrunk.save(buf, format="JPEG", quality=jpeg_quality, optimize=True)
+    buf.seek(0)
+    w, h = shrunk.size
+    scale = min(max_w / w, max_h / h, 1.0)
+    return RLImage(buf, width=w * scale, height=h * scale)
+
+
+def _img_flowable(source, max_w, max_h, jpeg_quality):
+    pil = _load_pil(source)
+    if pil is None:
+        return None
+    return _pil_to_flowable(pil, max_w, max_h, jpeg_quality)
+
+
+def _build_panels(b, args):
+    """The screenshot narrative for one bug: [(PIL image, caption), …].
+
+    Order: context → the action taken → the moment of failure (annotated with the
+    issue banner and highlight boxes) → the full-size failure capture. Visually
+    identical shots are dropped so the reader never sees the same screen twice.
+    """
+    panels, seen = [], []
+
+    def add(pil, caption):
+        if pil is None or len(panels) >= args.max_shots:
+            return
+        fp = _fingerprint(pil)
+        if any(_hamming(fp, s) <= 3 for s in seen):
+            return
+        seen.append(fp)
+        panels.append((pil, caption))
+
+    role_label = {"context": "Before", "action": "Action taken", "failure": "At failure"}
+    ordered = sorted(b.get("shots", []),
+                     key=lambda s: {"context": 0, "action": 1, "failure": 2}[s["role"]])
+    failure_uri = next((s["uri"] for s in ordered if s["role"] == "failure"), None)
+
+    for s in ordered:
+        pil = _load_pil(s["uri"])
+        if pil is None:
+            continue
+        caption = f"{role_label[s['role']]} — {s['caption']}" if s["caption"] \
+            else role_label[s["role"]]
+        if s["role"] == "failure":
+            banner = b.get("issue_text") or b.get("actual", "")
+            pil = annotate(pil, banner[:150], b.get("diff_boxes") or ())
+            if b.get("no_screen_change"):
+                caption += " · identical to the previous screen"
+            elif b.get("diff_boxes"):
+                caption += " · red outline marks what changed"
+        add(pil, caption)
+
+    # The on-disk PNG is the full-resolution capture; include it when it is not
+    # simply a duplicate of the inline failure shot.
+    if b.get("png"):
+        disk = _load_pil(b["png"])
+        if disk is not None:
+            if failure_uri is None:
+                banner = b.get("issue_text") or b.get("actual", "")
+                disk = annotate(disk, banner[:150], b.get("diff_boxes") or ())
+            add(disk, "Full-resolution capture taken when the test failed")
+    return panels
 
 
 def build_pdf(bugs, stats, args):
@@ -1027,6 +1392,8 @@ def build_pdf(bugs, stats, args):
         "caption": ParagraphStyle("cp", fontName="Helvetica-Oblique", fontSize=8,
                                   textColor=colors.HexColor(GREY), leading=11,
                                   spaceBefore=2),
+        "issue": ParagraphStyle("is", fontName="Helvetica", fontSize=10.5,
+                                textColor=colors.HexColor("#7a271a"), leading=14.5),
         "idx": ParagraphStyle("ix", fontName="Helvetica", fontSize=8.5,
                               textColor=colors.HexColor("#1d2939"), leading=11.5),
     }
@@ -1166,7 +1533,7 @@ def build_pdf(bugs, stats, args):
 
     # ── Bug pages ──
     img_w = content_w / 2 - 8
-    img_h = 4.6 * inch
+    img_h = 3.5 * inch
     for i, b in enumerate(bugs):
         head = [
             Paragraph(esc(b["bug_id"]) + "  ·  " + esc(b["tcid"]), styles["bug_id"]),
@@ -1177,12 +1544,12 @@ def build_pdf(bugs, stats, args):
         pri_html = (f'<font color="{SEV_COLOR.get(b["priority"], GREY)}">'
                     f'<b>{esc(b["priority"])}</b></font>')
         meta_rows = [
-            ["Feature area", b["area"], "Severity", Paragraph(sev_html, styles["body"])],
-            ["Automated test", b["test_ref"], "Priority", Paragraph(pri_html, styles["body"])],
-            ["Environment", args.env_name + " · " + args.platform, "App version",
-             args.app_version or "—"],
-            ["Device", args.device + " · iOS " + args.ios_version, "Status",
-             "Open (new)"],
+            ["Issue type", b.get("issue_type", ""), "Severity",
+             Paragraph(sev_html, styles["body"])],
+            ["Feature area", b["area"], "Priority", Paragraph(pri_html, styles["body"])],
+            ["Automated test", b["test_ref"], "App version", args.app_version or "—"],
+            ["Environment", args.env_name + " · " + args.platform, "Status", "Open (new)"],
+            ["Device", args.device + " · iOS " + args.ios_version, "Reported", args.run_date],
         ]
         meta_tbl = Table(
             [[Paragraph(f"<b>{esc(r[0])}</b>", styles["meta"]),
@@ -1202,6 +1569,19 @@ def build_pdf(bugs, stats, args):
         ]))
 
         section = head + [Spacer(1, 6), meta_tbl, Spacer(1, 4)]
+
+        if b.get("issue_text"):
+            issue_tbl = Table([[Paragraph("<b>What is wrong:</b> " + esc(b["issue_text"]),
+                                          styles["issue"])]], colWidths=[content_w])
+            issue_tbl.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#fdf3f2")),
+                ("LINEBEFORE", (0, 0), (0, -1), 3, colors.HexColor(RED)),
+                ("LEFTPADDING", (0, 0), (-1, -1), 10),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+                ("TOPPADDING", (0, 0), (-1, -1), 7),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+            ]))
+            section += [Spacer(1, 4), issue_tbl]
 
         section.append(Paragraph("Preconditions", styles["label"]))
         for p in b["preconditions"]:
@@ -1238,34 +1618,34 @@ def build_pdf(bugs, stats, args):
         story.append(KeepTogether(section[:3]))
         story += section[3:]
 
-        # Attachments
-        shots = []
-        if b["png"]:
-            img = _img_flowable(b["png"], img_w, img_h, args.jpeg_quality)
-            if img:
-                shots.append((img, "Failure screenshot (captured on test failure)"))
-        for caption, uri in b["inline_evidence"]:
-            if len(shots) >= args.max_shots:
-                break
-            img = _img_flowable(uri, img_w, img_h, args.jpeg_quality)
-            if img:
-                shots.append((img, caption))
-        shots = shots[:args.max_shots]
-
-        if shots:
-            row = [[s[0] for s in shots]]
-            cap = [[Paragraph(esc(s[1]), styles["caption"]) for s in shots]]
-            at = Table(row + cap, colWidths=[img_w] * len(shots))
+        # ── Attachments: a captioned visual narrative, failure shot annotated ──
+        panels = _build_panels(b, args)
+        if panels:
+            cells = []
+            for pil, caption in panels:
+                flow = _pil_to_flowable(pil, img_w, img_h, args.jpeg_quality,
+                                        args.shot_px)
+                cells.append((flow, caption))
+            rows = []
+            for i in range(0, len(cells), 2):
+                pair = cells[i:i + 2]
+                rows.append([c[0] for c in pair])
+                rows.append([Paragraph(esc(c[1]), styles["caption"]) for c in pair])
+            widths = [img_w] * min(2, len(cells))
+            at = Table(rows, colWidths=widths)
             at.setStyle(TableStyle([
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
                 ("ALIGN", (0, 0), (-1, -1), "CENTER"),
                 ("TOPPADDING", (0, 0), (-1, -1), 3),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
             ]))
-            # Keep the header glued to the images so it can't strand at a
-            # page bottom while the table flows to the next page.
-            story.append(KeepTogether([Paragraph("Attachments", styles["label"]), at]))
+            head_txt = "Attachments — screen-by-screen evidence"
+            if b.get("diff_boxes"):
+                head_txt += " (red outline = what changed on screen)"
+            elif b.get("no_screen_change"):
+                head_txt += " (screens are identical — the action had no effect)"
+            story.append(KeepTogether([Paragraph(head_txt, styles["label"]), at]))
         else:
-            story.append(Paragraph("Attachments", styles["label"]))
             reason = ("No screenshot could be captured — the app session was no longer "
                       "responding when the failure occurred (frequently a crash signature)."
                       if b["session_dead"] else
@@ -1392,13 +1772,58 @@ def run_selftest(args) -> int:
         check("Saved" in bug["expected"] and "Draft" in bug["actual"],
               "Expected/Actual parsed from assert message")
         check(bug["png"] is not None, "failure PNG located on disk")
-        check(len(bug["inline_evidence"]) == 2, "in-report evidence screenshots selected")
+        check({s["role"] for s in bug["shots"]} >= {"context", "action", "failure"},
+              "before / action / failure screenshot narrative captured")
+        check(all(s["caption"] for s in bug["shots"]),
+              "every screenshot carries the step it belongs to as its caption")
         check(bug["title"].startswith("["), "title carries [Area] prefix")
 
         case_bug = compose_bug(by_name[("TC_SELF_002_classContract", "Fuse")], A, [], 2)
         check("[case: Fuse]" in case_bug["title"], "failing data case named in the title")
         check(any("Fuse" in s for s in case_bug["steps"]),
               "failing data case named in the steps")
+
+        # Plain-English issue statements — the customer must never have to read
+        # an assertion to learn what broke.
+        check(bug["issue_text"] and "assert" not in bug["issue_text"].lower(),
+              "plain-English issue statement produced")
+        cases = [
+            (dict(fail_text="Save Changes button should be visible after edit",
+                  no_screen_change=True, last_action="Step 4: Tap Save Changes"),
+             "unresponsive", "Save Changes"),
+            (dict(fail_text="Validation error message should be shown for empty name",
+                  expected="required", actual=""), "validation", None),
+            (dict(fail_text="Room must be saved successfully", actual="Draft"),
+             "not_saved", None),
+            (dict(fail_text="Asset row tap must open the asset editor full-screen"),
+             "navigation", None),
+            (dict(fail_text="no asset cell starting with 'Ns' on the Assets list"),
+             "missing", None),
+        ]
+        check(extract_control("", "", "Clicking Save Changes button directly")
+              == "Save Changes button",
+              "control name keeps its own words when the leading verb is stripped")
+        for kwargs, want_key, want_ctrl in cases:
+            k, txt = classify_issue(kwargs.pop("fail_text"), "", "TC_X_001", [],
+                                    kwargs.pop("expected", ""), kwargs.pop("actual", ""),
+                                    **kwargs)
+            ok = (k == want_key) and bool(txt) and (not want_ctrl or want_ctrl in txt)
+            check(ok, f"issue classified as '{want_key}' → {txt[:66] or '(empty)'}")
+
+        # Pixel-identical before/after is the proof a control did nothing.
+        from PIL import Image as PILImage, ImageDraw as PILDraw
+        base = PILImage.new("RGB", (120, 240), (250, 250, 252))
+        same_boxes, same_frac = diff_regions(base, base.copy())
+        moved = base.copy()
+        PILDraw.Draw(moved).rectangle([10, 90, 110, 150], fill=(200, 30, 30))
+        moved_boxes, moved_frac = diff_regions(base, moved)
+        check(not same_boxes and same_frac < 0.0004,
+              "identical screens report no change (control-did-nothing proof)")
+        check(moved_boxes and moved_frac > 0.0004,
+              "changed region detected and boxed for highlighting")
+        banner = annotate(base, "The Save button did not respond", moved_boxes)
+        check(banner.size == base.size and list(banner.getdata()) != list(base.getdata()),
+              "annotation draws the issue banner and highlight onto the screenshot")
 
         # An overrides file with an out-of-range severity must not kill the report.
         odd = compose_bug(fails[0], A,
@@ -1445,8 +1870,11 @@ def main():
                     help="reproducibility text for non-reran fails (e.g. the rerun "
                          "workflow, where the shards ARE the primary run)")
     ap.add_argument("--max-steps", type=int, default=30)
-    ap.add_argument("--max-shots", type=int, default=2)
-    ap.add_argument("--jpeg-quality", type=int, default=58)
+    ap.add_argument("--max-shots", type=int, default=4,
+                    help="screenshots per defect (before / action / failure / full-res)")
+    ap.add_argument("--jpeg-quality", type=int, default=56)
+    ap.add_argument("--shot-px", type=int, default=700,
+                    help="max screenshot edge in px (report size vs zoom detail)")
     ap.add_argument("--include-stack", action="store_true", default=True,
                     help="(default) include the technical stack excerpt")
     ap.add_argument("--no-include-stack", action="store_false", dest="include_stack",
@@ -1525,8 +1953,14 @@ def main():
     for b in bugs:
         src_counts[b["steps_source"]] += 1
     print(f"  steps source: {dict(src_counts)}")
-    with_shot = sum(1 for b in bugs if b["png"] or b["inline_evidence"])
-    print(f"  {with_shot}/{len(bugs)} bugs have screenshots")
+    with_shot = sum(1 for b in bugs if b["png"] or b["shots"])
+    annotated = sum(1 for b in bugs if b["diff_boxes"])
+    proven_dead = sum(1 for b in bugs if b["no_screen_change"])
+    classified = sum(1 for b in bugs if b["issue_text"])
+    print(f"  {with_shot}/{len(bugs)} bugs have screenshots "
+          f"({annotated} with change-highlight boxes, "
+          f"{proven_dead} proven unchanged after the action)")
+    print(f"  {classified}/{len(bugs)} carry a plain-English issue statement")
 
     os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
     print(f"Rendering PDF → {args.out} …")

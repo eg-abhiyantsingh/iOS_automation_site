@@ -111,7 +111,15 @@ locators are predicate-heavy (2,944 predicate vs 257 accessibility-id).
 - Wired: ios-tests-parallel.yml send-email job (`defect_pdf` step → artifact
   `defect-report-pdf`, attached to summary email when ≤18 MB); rerun-failed-by-date
   `defect-report` job; static-checks runs `--selftest` (synthetic artifacts → PDF).
-- Driver-free check: `python3 .github/scripts/generate_bug_report.py --selftest`.
+- Driver-free check: `python3 .github/scripts/generate_bug_report.py --selftest` (27 checks).
+- Changelog 157 added: plain-English "What is wrong" line + Issue type (`classify_issue`:
+  unresponsive / validation / not_saved / navigation / missing / not_rendered / state /
+  wrong_value / crash / timeout / slow); up to 4 role-tagged screenshots per defect
+  (before → action → failure → full capture) each captioned with its step and
+  de-duplicated by average-hash; red highlight boxes from `diff_regions()` + issue banner
+  drawn by `annotate()`. **Pixel-identical before/after after a real action = proof the
+  control did nothing** — that is the "button not working" evidence. `--shot-px` (700)
+  controls report size; 4 shots at 1000px produced a 27.9 MB file vs 17.2 MB now.
 
 ## How to run
 - Self-tests (no device): `mvn -o -DsuiteXmlFile=testng-verify-selftest.xml test`
