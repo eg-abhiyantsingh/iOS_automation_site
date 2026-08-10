@@ -10,6 +10,7 @@ on:
       - 'pom.xml'
       - 'testng*.xml'
       - 'scripts/**'
+      - '.github/scripts/**'
       - '.github/workflows/static-checks.yml'
   pull_request:
   workflow_dispatch:
@@ -45,6 +46,12 @@ jobs:
 
       - name: Verifier self-tests (driver-free, must go RED on injected defects)
         run: mvn -B -DsuiteXmlFile=testng-verify-selftest.xml test
+
+      - name: Defect-report generator self-test (synthetic artifacts → PDF)
+        run: |
+          python3 -m pip install --quiet --break-system-packages reportlab pillow defusedxml \
+            || python3 -m pip install --quiet reportlab pillow defusedxml
+          python3 .github/scripts/generate_bug_report.py --selftest
 
   assertion-coverage:
     name: Assertion-coverage gate (informational)

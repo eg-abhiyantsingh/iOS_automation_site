@@ -367,3 +367,64 @@ jobs:
           python3 -m pip install --quiet --break-system-packages defusedxml || python3 -m pip install --quiet defusedxml
           python3 .github/scripts/send-module-email.py
         continue-on-error: true
+
+  # ── CUSTOMER DEFECT REPORT (PDF) ────────────────────────────────────────────
+  # Aggregates all 3 rerun shards and emits one formal bug entry per test that
+  # STILL fails on the isolated re-run (fresh sim + login-first = deterministic),
+  # with steps-to-reproduce and failure screenshots. Same generator as the full
+  # parallel suite (see ios-tests-parallel.yml "Generate customer defect report").
+  # --rerun-key "" because here the shards ARE the primary result set.
+  defect-report:
+    name: "Customer defect report (PDF)"
+    needs: [resolve, rerun]
+    if: always() && needs.resolve.outputs.run_tests == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      LABEL: ${{ needs.resolve.outputs.label }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download rerun shard reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: rerun-*-report
+          path: all-reports
+        continue-on-error: true
+
+      - name: Generate defect report PDF
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 -m pip install --quiet --break-system-packages reportlab pillow defusedxml \
+            || python3 -m pip install --quiet reportlab pillow defusedxml || true
+          mkdir -p consolidated-reports
+          # Shallow checkout ⇒ `git log -- apps` is empty; ask the API instead.
+          APP_VERSION=""
+          SUBJECT=$(gh api "repos/${{ github.repository }}/commits?path=apps&per_page=1" \
+            --jq '.[0].commit.message' 2>/dev/null | head -1 || true)
+          VER=$(printf '%s' "$SUBJECT" | sed -n 's/.*[Tt]o v\([0-9][0-9.]*\).*/\1/p')
+          [ -n "$VER" ] && APP_VERSION="Z Platform-QA v${VER}"
+          python3 .github/scripts/generate_bug_report.py \
+            --results all-reports --rerun-key "" \
+            --repro-note "Failed on an isolated re-run of previously-failed tests (fresh simulator, login-first) — deterministic." \
+            --out "consolidated-reports/Defect_Report_Rerun_${LABEL}.pdf" \
+            --run-url "$RUN_URL" --run-id "${{ github.run_id }}" \
+            --run-date "$(date +%F)" --ios-version "18.5 (CI simulator)" \
+            --app-version "$APP_VERSION" \
+            --summary-json consolidated-reports/defect_report_summary.json \
+            || echo "⚠️ defect report generation skipped"
+          ls -la consolidated-reports/ 2>/dev/null || true
+
+      - name: Upload defect report (PDF)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: defect-report-pdf
+          path: |
+            consolidated-reports/Defect_Report_Rerun_*.pdf
+            consolidated-reports/defect_report_summary.json
+          retention-days: 30
+          overwrite: true
+        continue-on-error: true

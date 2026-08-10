@@ -57,6 +57,9 @@ except ImportError:  # pragma: no cover
 AREA_RULES = [
     ("auth", "User Login & Access"),
     ("smoke", "Smoke / Core CRUD"),
+    # 'sitevisit' must precede the 'site' prefix rule or it can never match
+    # (sitevisit-phaseN modules were landing in Site & Facility Selection).
+    ("sitevisit", "Site Visits & Work Orders"),
     ("site-selection", "Site & Facility Selection"),
     ("site", "Site & Facility Selection"),
     ("connections", "Electrical Connections"),
@@ -67,7 +70,6 @@ AREA_RULES = [
     ("assets", "Asset Management"),
     ("asset", "Asset Management"),
     ("offline", "Offline & Sync"),
-    ("sitevisit", "Site Visits & Work Orders"),
     ("workorder", "Work Order Planning"),
     ("zp323", "ZP-323 New Features"),
     ("api-contract", "API Contract & Data Integrity"),

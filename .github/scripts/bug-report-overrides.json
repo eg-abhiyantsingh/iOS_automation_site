@@ -1,0 +1,20 @@
+[
+  {
+    "match": "PhotoWalkthrough",
+    "severity": "High",
+    "priority": "High",
+    "note": "Known product bug CAM-CRASH-01: tapping Camera crashes the app on simulators (UIImagePickerController without an isSourceTypeAvailable check)."
+  },
+  {
+    "match": "TC_WT_X_NEG",
+    "severity": "High",
+    "priority": "Medium",
+    "note": "Known product bug WT-NEG-01: the backend accepts a work-order create with a non-existent work_type_id instead of rejecting it."
+  },
+  {
+    "match": "CONN_VAL",
+    "severity": "Medium",
+    "priority": "Medium",
+    "note": "Related to product bug CONN-VAL-01: creating a connection without a target leaves a 'Not Assigned' debris row."
+  }
+]

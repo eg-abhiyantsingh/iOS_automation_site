@@ -4342,8 +4342,12 @@ jobs:
       - name: Checkout Code (for email config + failed-suite/gate scripts)
         uses: actions/checkout@v4
         with:
+          # src/test/java is needed by generate_bug_report.py: when a job was
+          # killed before Extent flushed its Detailed report, steps-to-reproduce
+          # are mined from the logStep() literals in the test source instead.
           sparse-checkout: |
             src/main/java/com/egalvanic/constants/AppConstants.java
+            src/test/java
             .github/scripts
             scripts
             failed-suites
@@ -4519,6 +4523,60 @@ jobs:
           retention-days: 30
         continue-on-error: true
 
+      - name: Generate customer defect report (PDF)
+        id: defect_pdf
+        if: always()
+        continue-on-error: true
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # App version under test: this job uses a shallow sparse checkout, so
+          # `git log -- apps` sees nothing — ask the API for the last commit that
+          # touched apps/ ("chore(app): update Z Platform-QA to v1.55 for CI").
+          APP_VERSION=""
+          SUBJECT=$(gh api "repos/${{ github.repository }}/commits?path=apps&per_page=1" \
+            --jq '.[0].commit.message' 2>/dev/null | head -1 || true)
+          VER=$(printf '%s' "$SUBJECT" | sed -n 's/.*[Tt]o v\([0-9][0-9.]*\).*/\1/p')
+          [ -n "$VER" ] && APP_VERSION="Z Platform-QA v${VER}"
+          echo "App version under test: ${APP_VERSION:-<unknown>}"
+
+          # One formal, customer-shareable bug entry per FINAL-failed test
+          # (post-rerun): [Area] title, environment, preconditions, steps to
+          # reproduce (mined from the Detailed ExtentReport logStep rows, with
+          # Java-source fallback), actual vs expected result, severity/priority,
+          # and the failure screenshots. Rerun shards inside all-reports/ are
+          # detected by --rerun-key; merge semantics mirror ios_client_report.py
+          # (a rerun SKIP never overrides a FAIL).
+          python3 -m pip install --quiet --break-system-packages reportlab pillow defusedxml \
+            || python3 -m pip install --quiet reportlab pillow defusedxml || true
+          STAMP=$(date +%Y%m%d)
+          python3 .github/scripts/generate_bug_report.py \
+            --results all-reports \
+            --out "consolidated-reports/Defect_Report_${STAMP}.pdf" \
+            --run-url "$RUN_URL" --run-id "${{ github.run_id }}" \
+            --run-date "$(date +%F)" --ios-version "18.5 (CI simulator)" \
+            --app-version "$APP_VERSION" \
+            --summary-json consolidated-reports/defect_report_summary.json \
+            || echo "⚠️ defect report generation skipped"
+          if [ -f "consolidated-reports/Defect_Report_${STAMP}.pdf" ]; then
+            cp "consolidated-reports/Defect_Report_${STAMP}.pdf" consolidated-reports/Defect_Report.pdf
+            echo "pdf_path=consolidated-reports/Defect_Report_${STAMP}.pdf" >> "$GITHUB_OUTPUT"
+          fi
+          ls -la consolidated-reports/*.pdf 2>/dev/null || true
+
+      - name: Upload customer defect report (PDF)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: defect-report-pdf
+          path: |
+            consolidated-reports/Defect_Report*.pdf
+            consolidated-reports/defect_report_summary.json
+          retention-days: 30
+          overwrite: true
+        continue-on-error: true
+
       - name: Consolidate Client Reports
         id: reports
         run: |
@@ -4682,6 +4740,9 @@ jobs:
           #   4. Consolidated_Automation_Report_After_Rerun  (detailed, final state
           #      — recovered tests show PASS + RECOVERED badge)
           # Nothing else: the old ~20 per-module attachments buried these.
+          # Exception: the customer Defect_Report PDF rides along ONLY when it is
+          # small enough (≤18 MB) to clear Gmail's 25 MB cap alongside the four
+          # HTML reports; otherwise it stays artifact-only (defect-report-pdf).
           ATTACHMENT_LIST=""
           REPORT_COUNT=0
           for f in \
@@ -4694,6 +4755,17 @@ jobs:
               REPORT_COUNT=$((REPORT_COUNT+1))
             fi
           done
+          PDF="${{ steps.defect_pdf.outputs.pdf_path }}"
+          if [ -n "$PDF" ] && [ -f "$PDF" ]; then
+            PDF_MB=$(( $(stat -c%s "$PDF" 2>/dev/null || stat -f%z "$PDF") / 1048576 ))
+            if [ "$PDF_MB" -le 18 ]; then
+              ATTACHMENT_LIST="${ATTACHMENT_LIST:+$ATTACHMENT_LIST,}$PDF"
+              REPORT_COUNT=$((REPORT_COUNT+1))
+              echo "Defect PDF attached (${PDF_MB} MB)"
+            else
+              echo "Defect PDF too large for email (${PDF_MB} MB) — artifact-only (defect-report-pdf)"
+            fi
+          fi
           echo "REPORT_COUNT=$REPORT_COUNT" >> "$GITHUB_OUTPUT"
           echo "ATTACHMENT_LIST=$ATTACHMENT_LIST" >> "$GITHUB_OUTPUT"
           echo "Attachments ($REPORT_COUNT): $ATTACHMENT_LIST"

@@ -99,6 +99,20 @@ locators are predicate-heavy (2,944 predicate vs 257 accessibility-id).
   Kill switch `DISABLE_SESSION_RECORDING=false`. Canary
   `SettingsSessionRecording_Test` (TC_SET_001-003) in testng-auth.xml + testng.xml.
 
+## Session 2026-08-10 — Customer Defect Report PDF (changelog 156)
+- `.github/scripts/generate_bug_report.py`: after every run, every FINAL-failed test
+  (post-rerun, merge mirrors ios_client_report.py) becomes a formal bug entry in one
+  customer-shareable PDF — [Area] title, environment (app version from `git log -1
+  -- apps`, NOT the stale Info.plist), preconditions, steps-to-reproduce (Detailed
+  ExtentReport logStep rows → Java-source logStep literals → template), actual vs
+  expected (parsed from "… - Expected: X, Actual: Y" assert messages), severity
+  heuristics + `.github/scripts/bug-report-overrides.json`, failure screenshots
+  (`screenshots/<method>_FAILED_*.png` + in-report eg-shot data URIs).
+- Wired: ios-tests-parallel.yml send-email job (`defect_pdf` step → artifact
+  `defect-report-pdf`, attached to summary email when ≤18 MB); rerun-failed-by-date
+  `defect-report` job; static-checks runs `--selftest` (synthetic artifacts → PDF).
+- Driver-free check: `python3 .github/scripts/generate_bug_report.py --selftest`.
+
 ## How to run
 - Self-tests (no device): `mvn -o -DsuiteXmlFile=testng-verify-selftest.xml test`
 - Exploratory crawl (macOS + live session): `RUN_EXPLORATORY=true mvn -Dtest=ExploratoryCrawlTest test`
