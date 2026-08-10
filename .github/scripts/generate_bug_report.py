@@ -1102,6 +1102,89 @@ def compose_bug(rec, args, overrides, seq):
     }
 
 
+# ── Jira CSV export ───────────────────────────────────────────────────────────
+#
+# One "Bug" row per defect, importable via Jira's CSV importer (External System
+# Import → CSV). Descriptions use Jira wiki markup (h3. / * / #) so the sections
+# render as headings and lists after import. We only produce the FILE — tickets
+# are never created against a live Jira (standing rule: no external systems).
+
+def _jira_label(s):
+    return re.sub(r"-{2,}", "-", re.sub(r"[^a-z0-9]+", "-", (s or "").lower())).strip("-")
+
+
+def jira_description(b, args):
+    lines = []
+    if b.get("issue_text"):
+        lines += ["h3. Issue", b["issue_text"], ""]
+    lines += ["h3. Environment",
+              f"* Environment: {args.env_name}",
+              f"* Platform: {args.platform}",
+              f"* App Version: {args.app_version or 'not recorded for this run'}",
+              f"* Device: {args.device} (iOS {args.ios_version})",
+              ""]
+    lines += ["h3. Preconditions"]
+    lines += [f"* {p}" for p in b["preconditions"]]
+    lines += ["", "h3. Steps to Reproduce"]
+    lines += [f"# {s}" for s in b["steps"]]
+    if b.get("steps_truncated"):
+        lines += [f"# …plus {b['steps_truncated']} further scripted steps "
+                  f"(see automated test {b['test_ref']})"]
+    lines += ["", "h3. Actual Result", b["actual"],
+              "", "h3. Expected Result", b["expected"],
+              "", "h3. Reproducibility", b["reproducibility"]]
+    if b.get("note"):
+        lines += ["", "h3. Note", b["note"]]
+    shots = []
+    if b.get("png"):
+        shots.append(os.path.basename(b["png"]))
+    n_inline = len(b.get("shots", []))
+    lines += ["", "h3. Attachments",
+              f"* Annotated screenshots ({n_inline} panels: before / action / at failure) "
+              f"are embedded under entry {b['bug_id']} in the Defect Report PDF for this run."]
+    if shots:
+        lines += [f"* Failure capture file: {shots[0]} (in the run's {b.get('module', '')} "
+                  f"artifact, screenshots/ folder)"]
+    if args.run_url:
+        lines += [f"* CI run: {args.run_url}"]
+    return "\n".join(lines)
+
+
+def emit_jira_csv(bugs, args, path):
+    import csv
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    # utf-8-sig so Excel/Jira both read the BOM and the em-dashes survive.
+    with open(path, "w", newline="", encoding="utf-8-sig") as fh:
+        w = csv.writer(fh, quoting=csv.QUOTE_ALL)
+        w.writerow(["Summary", "Issue Type", "Severity", "Priority", "Component",
+                    "Affects Version", "Labels", "Bug ID", "Test Reference",
+                    "Issue Category", "Reproducibility", "Description"])
+        for b in bugs:
+            labels = " ".join(filter(None, [
+                "qa-automation", "ios",
+                _jira_label(b["area"]),
+                _jira_label(b.get("issue_key", "")),
+                f"run-{args.run_id}" if args.run_id else "",
+                "rerun-confirmed" if "deterministic" in b["reproducibility"] else "not-rerun",
+            ]))
+            w.writerow([
+                b["title"],
+                "Bug",
+                b["severity"],
+                b["priority"],
+                b["area"],
+                args.app_version or "",
+                labels,
+                b["bug_id"],
+                b["test_ref"],
+                b.get("issue_type", ""),
+                b["reproducibility"],
+                jira_description(b, args),
+            ])
+    size_kb = os.path.getsize(path) / 1024.0
+    print(f"  wrote {path} ({size_kb:.0f} KB, {len(bugs)} Jira bug rows)")
+
+
 # ── App / environment metadata ────────────────────────────────────────────────
 
 def detect_app_version(plist_path: str) -> str:
@@ -1840,6 +1923,22 @@ def run_selftest(args) -> int:
                   {"total": 2, "passed": 0, "failed": 2, "skipped": 0, "rate": 0.0}, ns)
         check(os.path.isfile(out) and os.path.getsize(out) > 5000, "PDF written")
 
+        # Jira CSV round-trip: every bug becomes one importable row with the
+        # template sections intact in the description.
+        import csv as _csv
+        jpath = os.path.join(td, "jira.csv")
+        emit_jira_csv([bug, case_bug], ns, jpath)
+        with open(jpath, encoding="utf-8-sig") as fh:
+            rows = list(_csv.DictReader(fh))
+        check(len(rows) == 2 and rows[0]["Issue Type"] == "Bug",
+              "Jira CSV has one Bug row per defect")
+        d = rows[0]["Description"]
+        check(all(h in d for h in ("h3. Steps to Reproduce", "h3. Actual Result",
+                                   "h3. Expected Result", "h3. Preconditions")),
+              "Jira description carries the full bug template sections")
+        check(rows[0]["Summary"].startswith("[") and rows[0]["Severity"] in SEV_COLOR,
+              "Jira summary/severity populated from the composed bug")
+
     print(f"\nself-test: {'PASS' if not failures else 'FAIL'} "
           f"({len(failures)} failing checks)")
     return 1 if failures else 0
@@ -1881,6 +1980,8 @@ def main():
                     help="omit the technical stack excerpt from each bug page")
     ap.add_argument("--limit", type=int, default=0, help="cap bug count (0 = all)")
     ap.add_argument("--summary-json", default="", help="write machine summary here")
+    ap.add_argument("--jira-csv", default="",
+                    help="also write a Jira-importable CSV (one Bug row per defect) here")
     ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args()
 
@@ -1961,6 +2062,9 @@ def main():
           f"({annotated} with change-highlight boxes, "
           f"{proven_dead} proven unchanged after the action)")
     print(f"  {classified}/{len(bugs)} carry a plain-English issue statement")
+
+    if args.jira_csv:
+        emit_jira_csv(bugs, args, args.jira_csv)
 
     os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
     print(f"Rendering PDF → {args.out} …")

@@ -12,7 +12,7 @@ Report basis: `Client_Report_After_Rerun.html` from run 31278492395
 | Passed | 1,850 |
 | Failed | 245 |
 | Skipped | 474 |
-| Not re-run (kept FAIL, grey badge) | 22 |
+| Not re-run (kept FAIL, grey badge) | 89 ~~22~~ (corrected 2026-08-10: the shipped Consolidated_Automation_Report_After_Rerun.html carries exactly 89 NOT RERUN badges — rerun shard wall/breaker fast-skips; verified while building the Jira export, changelog 158) |
 | Pass rate of executed | 88.3% |
 
 **Flake integrity: PROVEN.** 62 (run 1) and 37 (run 2) flaky failures were

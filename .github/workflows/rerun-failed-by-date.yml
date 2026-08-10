@@ -414,6 +414,7 @@ jobs:
             --run-date "$(date +%F)" --ios-version "18.5 (CI simulator)" \
             --app-version "$APP_VERSION" \
             --summary-json consolidated-reports/defect_report_summary.json \
+            --jira-csv "consolidated-reports/Jira_Import_Rerun_${LABEL}.csv" \
             || echo "⚠️ defect report generation skipped"
           ls -la consolidated-reports/ 2>/dev/null || true
 
@@ -424,6 +425,7 @@ jobs:
           name: defect-report-pdf
           path: |
             consolidated-reports/Defect_Report_Rerun_*.pdf
+            consolidated-reports/Jira_Import_Rerun_*.csv
             consolidated-reports/defect_report_summary.json
           retention-days: 30
           overwrite: true
