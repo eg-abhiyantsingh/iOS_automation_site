@@ -763,8 +763,12 @@ public class AssetEngineerPage extends BasePage {
      */
     public boolean ensureUseLibraryEnabled() {
         // Fast path: the panel is already mounted → toggle is ON.
-        if (existsNow(ADD_CUSTOM_BUTTON) || existsNow(MATCH_HEADER)
-                || isEngineeringLabelPresent("Manufacturer")) {
+        // ONLY the Add Custom button / match header are valid ON-signals:
+        // the OFF state renders FREE-FORM entry fields including a required
+        // 'Manufacturer *' label and the Subtype row (seen live on CI run
+        // 31471199506, where a Manufacturer-label fast path made this method
+        // return true without ever flipping the toggle).
+        if (existsNow(ADD_CUSTOM_BUTTON) || existsNow(MATCH_HEADER)) {
             return true;
         }
         if (!scrollToEngineeringLabel("Use library")) {
@@ -790,11 +794,10 @@ public class AssetEngineerPage extends BasePage {
             System.out.println("⚠️ ensureUseLibraryEnabled: toggle press failed: " + e.getMessage());
             return false;
         }
-        // The SKM block mounts async after the flip — wait for any panel signal.
+        // The SKM block mounts async after the flip — wait for a TRUE panel
+        // signal only (Manufacturer/Subtype exist in the OFF state too).
         boolean unlocked = waitForCondition(() ->
-                existsNow(ADD_CUSTOM_BUTTON) || existsNow(MATCH_HEADER)
-                        || isEngineeringLabelPresent("Manufacturer")
-                        || isEngineeringLabelPresent("Subtype"), 8);
+                existsNow(ADD_CUSTOM_BUTTON) || existsNow(MATCH_HEADER), 8);
         if (!unlocked) {
             // Signal may sit below the fold — the switch value is the fallback truth.
             try {

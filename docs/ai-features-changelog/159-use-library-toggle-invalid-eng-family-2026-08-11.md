@@ -54,3 +54,15 @@ manufacturer-chip readback, CustomSave 2).
 "When tests fail, OUR automation has the bug, NOT the production iOS app" — this is the
 canonical example: a deterministic, rerun-confirmed, screenshot-backed failure that was
 still not an app bug, because the precondition (toggle ON) was the automation's to set.
+
+## Validation round 2 (run 31471199506) — first fix attempt was wrong, corrected
+
+The dispatched asset-engineer run still failed the family with the new
+"(even after ensuring the 'Use library' toggle is ON)" suffix — the ensure RAN but
+never flipped the toggle. Per-step screenshots from the run's Detailed report show
+why: **the OFF state renders free-form entry fields including a required
+'Manufacturer *' label and the Subtype row**, and `ensureUseLibraryEnabled()`'s
+fast path treated a visible 'Manufacturer' label as proof the toggle was ON,
+returning early. Corrected: only the Add Custom button / match header count as
+ON-signals (fast path AND post-flip wait). Toggle row confirmed present-and-OFF on
+CI (screenshot of 'Trim600639 Fuse' Asset Details). Re-dispatched for round 3.
