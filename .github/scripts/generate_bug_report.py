@@ -805,8 +805,39 @@ def _norm_level(value, default="Medium"):
     return default
 
 
+def exclusion_for(bug, overrides):
+    """Reason string when an overrides entry reclassifies this bug as
+    automation-side (``"exclude": true``), else None.
+
+    Entry match semantics (AND): ``match`` against TC id / class reference,
+    ``match_text`` (string or list) against title + issue + actual text.
+    Exclusions must be precise — a wrongly-excluded real defect is worse than
+    an extra row for triage — so entries should pin both dimensions.
+    """
+    blob = " ".join([bug.get("title", ""), bug.get("issue_text", ""),
+                     bug.get("actual", "")]).lower()
+    ref = (bug.get("tcid", "") + " " + bug.get("test_ref", ""))
+    for o in overrides:
+        if not o.get("exclude"):
+            continue
+        pat = o.get("match", "")
+        if pat and pat not in ref:
+            continue
+        texts = o.get("match_text", [])
+        if isinstance(texts, str):
+            texts = [texts]
+        if texts and not any(t.lower() in blob for t in texts):
+            continue
+        if not pat and not texts:
+            continue
+        return o.get("reason", "reclassified as automation-side")
+    return None
+
+
 def severity_for(text: str, overrides, tcid: str, cls: str):
     for o in overrides:
+        if o.get("exclude"):
+            continue  # exclusion entries never set severity for surviving bugs
         pat = o.get("match", "")
         if pat and (pat in tcid or pat in cls):
             return (_norm_level(o.get("severity")), _norm_level(o.get("priority")),
@@ -1526,6 +1557,12 @@ def build_pdf(bugs, stats, args):
             f"contribute one defect per failing case)"
             if len(bugs) != stats["failed"] else "")],
     ]
+    if stats.get("excluded"):
+        cover_rows.append([
+            "Excluded from this report",
+            f"{stats['excluded']} test failures were verified to be automation-side "
+            f"issues (test-framework defects, not app defects) and are excluded. "
+            f"They are tracked and fixed on the QA side."])
     cover_tbl = Table(
         [[Paragraph(f"<b>{esc(k)}</b>", styles["body"]),
           Paragraph(esc(v), styles["body"])] for k, v in cover_rows],
@@ -1908,6 +1945,17 @@ def run_selftest(args) -> int:
         check(banner.size == base.size and list(banner.getdata()) != list(base.getdata()),
               "annotation draws the issue banner and highlight onto the screenshot")
 
+        # Verified-invalid families are excluded from customer outputs, and the
+        # exclusion must be precise: both dimensions (test ref AND text) gate it.
+        exc_over = [{"match": "SelfTest", "match_text": ["must be saved"],
+                     "exclude": True}]
+        check(exclusion_for(bug, exc_over) is not None,
+              "exclusion matches on test-ref AND failure text")
+        check(exclusion_for(case_bug, exc_over) is None,
+              "exclusion does not overreach to unrelated bugs in the same class")
+        check(severity_for("x", exc_over, "TC_SELF_001", "SelfTest")[0] == "Medium",
+              "exclusion entries never leak into severity assignment")
+
         # An overrides file with an out-of-range severity must not kill the report.
         odd = compose_bug(fails[0], A,
                           [{"match": "TC_SELF", "severity": "Critical",
@@ -2050,6 +2098,26 @@ def main():
         if i % 25 == 0:
             print(f"  … composed {i}/{len(fails)} bug entries")
 
+    # Reclassified-as-automation-side exclusions (overrides "exclude": true) —
+    # verified-invalid entries must never reach a customer as app defects.
+    excluded = []
+    kept = []
+    for b in bugs:
+        reason = exclusion_for(b, overrides)
+        (excluded if reason else kept).append((b, reason))
+    if excluded:
+        print(f"  EXCLUDED {len(excluded)} entries reclassified as automation-side:")
+        by_reason = defaultdict(int)
+        for b, reason in excluded:
+            by_reason[reason] += 1
+        for reason, n in by_reason.items():
+            print(f"    {n:3} × {reason[:110]}")
+        bugs = [b for b, _ in kept]
+        for i, b in enumerate(bugs, 1):  # renumber so Bug IDs stay contiguous
+            b["seq"] = i
+            b["bug_id"] = f"BUG-{args.run_id[-6:] if args.run_id else 'LOCAL'}-{i:03d}"
+    stats["excluded"] = len(excluded)
+
     src_counts = defaultdict(int)
     for b in bugs:
         src_counts[b["steps_source"]] += 1
@@ -2074,7 +2142,8 @@ def main():
 
     if args.summary_json:
         json.dump({"bugs": len(bugs), "pdf": args.out, "size_mb": round(size_mb, 2),
-                   "with_screenshots": with_shot, "stats": stats},
+                   "with_screenshots": with_shot, "excluded": stats.get("excluded", 0),
+                   "stats": stats},
                   open(args.summary_json, "w"), indent=2)
 
 

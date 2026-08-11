@@ -1,5 +1,11 @@
 [
   {
+    "match": "AssetEngineer",
+    "match_text": ["add custom", "match panel", "match header", "custom entry", "custom sheet", "manufacturer chip"],
+    "exclude": true,
+    "reason": "INVALID-AUTOMATION (user-verified live 2026-08-11): v1.55 gates the SKM match panel behind the Engineering 'Use library' toggle, which defaults OFF; the automation never enabled it, so 'Add Custom'/match-panel elements were genuinely absent for the tests but NOT for a user who flips the toggle. Fixed via AssetEngineerPage.ensureUseLibraryEnabled(); remove this entry once the family is green on CI."
+  },
+  {
     "match": "PhotoWalkthrough",
     "severity": "High",
     "priority": "High",

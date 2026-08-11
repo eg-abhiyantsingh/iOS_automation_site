@@ -121,6 +121,15 @@ locators are predicate-heavy (2,944 predicate vs 257 accessibility-id).
   control did nothing** — that is the "button not working" evidence. `--shot-px` (700)
   controls report size; 4 shots at 1000px produced a 27.9 MB file vs 17.2 MB now.
 
+## Session 2026-08-11 — v1.55 'Use library' toggle (changelog 159)
+- USER-VERIFIED: v1.55 gates the whole SKM block (match panel/Add Custom/Manufacturer
+  rows) behind the Engineering-card "Use library" toggle, default OFF ⇒ the 50-entry
+  "Add Custom never visible" ENG defect family was INVALID (automation bug, not app).
+- Fix: `AssetEngineerPage.ensureUseLibraryEnabled()` (label-anchored switch, never
+  first-switch) self-heals `tapAddCustom` + `openEngineeringPickerBelowLabel` on miss.
+- Report: overrides support `"exclude": true` (+ `match_text`) → dropped from customer
+  PDF/CSV with an explicit cover note; remove the ENG entry once the family is CI-green.
+
 ## How to run
 - Self-tests (no device): `mvn -o -DsuiteXmlFile=testng-verify-selftest.xml test`
 - Exploratory crawl (macOS + live session): `RUN_EXPLORATORY=true mvn -Dtest=ExploratoryCrawlTest test`

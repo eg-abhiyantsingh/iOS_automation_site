@@ -100,6 +100,12 @@ public class AssetEngineerPage extends BasePage {
             + " OR (type == 'XCUIElementTypeStaticText' AND name == 'Search connections...')");
     private static final By ADD_CUSTOM_BUTTON = AppiumBy.iOSNsPredicateString(
             "type == 'XCUIElementTypeButton' AND label CONTAINS 'Add Custom'");
+    /** v1.55: the Engineering card's "Use library" toggle row (gates the SKM block). */
+    private static final By USE_LIBRARY_LABEL = AppiumBy.iOSNsPredicateString(
+            "type == 'XCUIElementTypeStaticText' AND name == 'Use library'");
+    private static final By USE_LIBRARY_SWITCH_LABELED = AppiumBy.iOSNsPredicateString(
+            "type == 'XCUIElementTypeSwitch' AND (label == 'Use library'"
+            + " OR name == 'Use library' OR label CONTAINS 'Use library')");
     private static final By BOUND_CARD_TITLE = AppiumBy.iOSNsPredicateString(
             "type == 'XCUIElementTypeStaticText' AND (name == '" + BOUND_LIBRARY_MATCHED_UPPER
                     + "' OR name == '" + BOUND_LIBRARY_MATCHED + "')");
@@ -738,6 +744,108 @@ public class AssetEngineerPage extends BasePage {
         return existsNow(BANNER);
     }
 
+    /**
+     * v1.55 gates the ENTIRE SKM block (Subtype, match panel, Add Custom,
+     * Manufacturer/Type pickers) behind a "Use library" toggle in the
+     * Engineering card that reads OFF for our drafts — proven live
+     * 2026-08-11 on Asset Details: with it OFF the match panel simply does
+     * not exist, which mass-failed the custom-sheet/match-panel families as
+     * "'Add Custom' button never visible" (50 invalid defect entries in run
+     * 31278492395's customer report).
+     *
+     * Idempotent and backwards compatible: no-ops when the SKM block is
+     * already mounted or the toggle row doesn't exist (pre-1.55 layouts).
+     * NEVER "first switch" (the Session-Recording lesson): this same screen
+     * carries the 'Trust the Photos' switch, so the switch is resolved from
+     * the 'Use library' label row, by label first and row geometry second.
+     *
+     * @return true when the SKM block is available after the call.
+     */
+    public boolean ensureUseLibraryEnabled() {
+        // Fast path: the panel is already mounted → toggle is ON.
+        if (existsNow(ADD_CUSTOM_BUTTON) || existsNow(MATCH_HEADER)
+                || isEngineeringLabelPresent("Manufacturer")) {
+            return true;
+        }
+        if (!scrollToEngineeringLabel("Use library")) {
+            System.out.println("ℹ️ ensureUseLibraryEnabled: no 'Use library' row"
+                    + " (pre-v1.55 layout or non-library class) — nothing to do");
+            return false;
+        }
+        WebElement sw = findUseLibrarySwitch();
+        if (sw == null) {
+            System.out.println("⚠️ ensureUseLibraryEnabled: 'Use library' label present"
+                    + " but no switch resolved on its row");
+            return false;
+        }
+        try {
+            String val = String.valueOf(sw.getAttribute("value"));
+            if ("1".equals(val) || "on".equalsIgnoreCase(val) || "true".equalsIgnoreCase(val)) {
+                System.out.println("ℹ️ ensureUseLibraryEnabled: already ON");
+                return true;
+            }
+            System.out.println("🔓 ensureUseLibraryEnabled: toggling 'Use library' ON");
+            pressElement(sw);
+        } catch (Exception e) {
+            System.out.println("⚠️ ensureUseLibraryEnabled: toggle press failed: " + e.getMessage());
+            return false;
+        }
+        // The SKM block mounts async after the flip — wait for any panel signal.
+        boolean unlocked = waitForCondition(() ->
+                existsNow(ADD_CUSTOM_BUTTON) || existsNow(MATCH_HEADER)
+                        || isEngineeringLabelPresent("Manufacturer")
+                        || isEngineeringLabelPresent("Subtype"), 8);
+        if (!unlocked) {
+            // Signal may sit below the fold — the switch value is the fallback truth.
+            try {
+                WebElement fresh = findUseLibrarySwitch();
+                unlocked = fresh != null
+                        && "1".equals(String.valueOf(fresh.getAttribute("value")));
+            } catch (Exception ignored) { }
+        }
+        System.out.println(unlocked
+                ? "✅ ensureUseLibraryEnabled: SKM block unlocked"
+                : "⚠️ ensureUseLibraryEnabled: toggle pressed but no SKM signal appeared");
+        return unlocked;
+    }
+
+    /** Resolve the 'Use library' switch: labeled predicate → same-row geometry. */
+    private WebElement findUseLibrarySwitch() {
+        // Strategy 1: SwiftUI Toggles usually expose the row label on the switch.
+        try {
+            WebElement labeled = firstVisible(USE_LIBRARY_SWITCH_LABELED);
+            if (labeled != null) return labeled;
+        } catch (Exception ignored) { }
+        // Strategy 2: nearest switch on the SAME ROW as the 'Use library' label
+        // (|Δy-center| ≤ 60px, to the label's right) — excludes 'Trust the Photos'.
+        return withImplicitWait(0, () -> {
+            try {
+                WebElement lbl = firstVisible(USE_LIBRARY_LABEL);
+                if (lbl == null) lbl = driver.findElement(USE_LIBRARY_LABEL);
+                int labelMidY = lbl.getLocation().getY() + lbl.getSize().getHeight() / 2;
+                int labelX = lbl.getLocation().getX();
+                WebElement best = null;
+                int bestDy = Integer.MAX_VALUE;
+                for (WebElement s : driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeSwitch'"))) {
+                    try {
+                        if (!"true".equals(s.getAttribute("visible"))) continue;
+                        int midY = s.getLocation().getY() + s.getSize().getHeight() / 2;
+                        int dy = Math.abs(midY - labelMidY);
+                        if (dy <= 60 && s.getLocation().getX() > labelX && dy < bestDy) {
+                            bestDy = dy;
+                            best = s;
+                        }
+                    } catch (Exception ignored) { }
+                }
+                return best;
+            } catch (Exception e) {
+                System.out.println("⚠️ findUseLibrarySwitch geometry: " + e.getMessage());
+                return null;
+            }
+        });
+    }
+
     /** Exact-match engineering field label presence (StaticText). */
     public boolean isEngineeringLabelPresent(String label) {
         return existsNow(AppiumBy.iOSNsPredicateString(
@@ -996,9 +1104,15 @@ public class AssetEngineerPage extends BasePage {
     public void openEngineeringPickerBelowLabel(String fieldLabel) {
         By labelBy = AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeStaticText' AND name == '" + fieldLabel + "'");
-        if (!swipeUntilVisible(labelBy, 6)) {
-            throw new VerificationError("openEngineeringPickerBelowLabel: label '" + fieldLabel
-                    + "' never became visible");
+        if (!swipeUntilVisible(labelBy, 4)) {
+            // v1.55: SKM-block field rows (Manufacturer / Type / Function …) only
+            // exist while "Use library" is ON — self-heal once, then retry. For
+            // non-gated labels the ensure no-ops (no 'Use library' row found).
+            ensureUseLibraryEnabled();
+            if (!swipeUntilVisible(labelBy, 4)) {
+                throw new VerificationError("openEngineeringPickerBelowLabel: label '" + fieldLabel
+                        + "' never became visible (even after ensuring 'Use library' is ON)");
+            }
         }
         WebElement target = withImplicitWait(0, () -> {
             try {
@@ -1484,8 +1598,15 @@ public class AssetEngineerPage extends BasePage {
     }
 
     public void tapAddCustom() {
-        if (!swipeUntilVisible(ADD_CUSTOM_BUTTON, 4)) {
-            throw new VerificationError("tapAddCustom: 'Add Custom' button never visible");
+        if (!swipeUntilVisible(ADD_CUSTOM_BUTTON, 2)) {
+            // v1.55: the whole SKM block (incl. Add Custom) is gated behind the
+            // Engineering card's "Use library" toggle — flip it and retry before
+            // declaring the button missing (it was never a product bug).
+            ensureUseLibraryEnabled();
+            if (!swipeUntilVisible(ADD_CUSTOM_BUTTON, 4)) {
+                throw new VerificationError("tapAddCustom: 'Add Custom' button never visible"
+                        + " (even after ensuring the 'Use library' toggle is ON)");
+            }
         }
         try {
             if (!pressElement(driver.findElement(ADD_CUSTOM_BUTTON))) {
