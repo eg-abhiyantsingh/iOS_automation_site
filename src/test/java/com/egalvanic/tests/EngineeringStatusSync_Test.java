@@ -94,6 +94,108 @@ public final class EngineeringStatusSync_Test extends BaseTest {
         logStepWithScreenshot("TC_ES_020: edit screen has no engineering_status UI (as specified)");
     }
 
+    /** Round-trip fixture: site + asset with web-grid "Approved" set (2026-08-20). Override via -D. */
+    private static final String RT_SITE  = System.getProperty("es.rt.site",  "Android Qa Site1");
+    private static final String RT_ASSET = System.getProperty("es.rt.asset", "ABB Emax 2 E1.2 — QA created");
+
+    /**
+     * TC_ES_005 — the ticket's round-trip flow, executed with the engineering field that
+     * EXISTS on this backend today: web grid sets Approved (eqp_engineering_approved=true,
+     * done via the real Equipment Designations checkbox) → device syncs the site → device
+     * EDITS that same node and saves (produces the round-trip payload) → re-sync → the
+     * approval must come back to web UNCHANGED. This proves the sync machinery + payload
+     * builders carry engineering fields through a device edit; TC_ES_010 repeats it for
+     * the four-state engineering_status the moment backend #1057 lands. RT_SITE has 199
+     * nodes → this exercises the ticket's SMALL sync path (SLDSyncService, <=200).
+     */
+    @Test(priority = 3)
+    public void TC_ES_005_legacyApprovalSurvivesDeviceRoundTrip() {
+        ExtentReportManager.createTest(AppConstants.MODULE_ASSET, FEATURE_ES,
+                "TC_ES_005 - Web-set engineering approval survives a device edit + re-sync (legacy field, small sync path)");
+
+        logStep("Step 1: API — locate fixture node '" + RT_ASSET + "' on site '" + RT_SITE + "'");
+        TestDataApi api = new TestDataApi();
+        api.login();
+        String sldId = api.findSldIdByName(RT_SITE);
+        if (sldId == null || sldId.isEmpty()) {
+            throw new SkipException("Fixture site '" + RT_SITE + "' not found via API — cannot run the round-trip");
+        }
+        Boolean before = readApprovedFlag(api, sldId, RT_ASSET);
+        if (before == null) {
+            throw new SkipException("Fixture asset '" + RT_ASSET + "' not found on '" + RT_SITE + "'");
+        }
+        if (!before) {
+            throw new SkipException("Fixture precondition missing: set the Approved checkbox for '"
+                    + RT_ASSET + "' on the web Equipment Designations grid first (it reads false)");
+        }
+        logStep("Web-set approval confirmed on the sync payload: eqp_engineering_approved = true");
+
+        logStep("Step 2: Device sync-in — select site '" + RT_SITE + "'");
+        loginAndSelectSite();
+        siteSelectionPage.clickSitesButton();
+        assertTrue(siteSelectionPage.selectSiteByName(RT_SITE),
+                "Should be able to select fixture site '" + RT_SITE + "' on the device");
+        siteSelectionPage.waitForDashboardReady();
+
+        logStep("Step 3: Device edit — open the SAME node, change Notes, save");
+        assetPage.navigateToAssetListTurbo();
+        assetPage.searchAsset("ABB Emax");
+        boolean opened = assetPage.selectAssetByName(RT_ASSET);
+        if (!opened) opened = assetPage.selectAssetByName("ABB Emax 2 E1.2");
+        assertTrue(opened, "Fixture asset '" + RT_ASSET + "' should open from search results");
+        mediumWait();
+        boolean edited = assetPage.editTextField("Notes", "QA-ES legacy round-trip probe");
+        if (!edited) {
+            throw new SkipException("Could not edit Notes on the fixture asset — no round-trip payload produced");
+        }
+        assetPage.clickSaveChanges();
+        mediumWait();
+        verifyAppAlive("after saving the fixture asset edit");
+
+        logStep("Step 4: Re-sync — back to Dashboard, then site re-selection pushes/pulls the round-trip payload");
+        // The Sites button lives on the DASHBOARD — close the Asset details sheet first
+        // (first local run failed here: clickSitesButton from the Asset screen tapped a
+        // lookalike and the site picker never opened).
+        assetPage.clickCloseButton();
+        mediumWait();
+        settingsPage.openSiteTab();
+        mediumWait();
+        siteSelectionPage.clickSitesButton();
+        siteSelectionPage.selectSiteByName(RT_SITE);
+        siteSelectionPage.waitForDashboardReady();
+
+        logStep("Step 5: API re-read (3 polls / 30s — backend applies mutations asynchronously): "
+                + "approval must remain true");
+        for (int poll = 1; poll <= 3; poll++) {
+            try { Thread.sleep(10_000); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+            api.invalidateSldCache(sldId);
+            Boolean now = readApprovedFlag(api, sldId, RT_ASSET);
+            logStep("  poll " + poll + "/3: eqp_engineering_approved = " + now);
+            assertTrue(Boolean.TRUE.equals(now),
+                    "Web-set engineering approval was LOST/CHANGED by the device round-trip "
+                    + "(poll " + poll + " reads " + now + ") — this is the exact data-loss class "
+                    + "iOS #482 exists to prevent");
+        }
+        logStepWithScreenshot("TC_ES_005: approval survived the device edit + re-sync (small sync path, "
+                + RT_SITE + ")");
+    }
+
+    /** eqp_engineering_approved for the named node, or null when the node isn't found. */
+    private Boolean readApprovedFlag(TestDataApi api, String sldId, String assetName) {
+        JsonPath sld = JsonPath.from(api.getSldDetails(sldId));
+        List<Map<String, Object>> nodes = sld.getList("nodes");
+        if (nodes == null) return null;
+        for (Map<String, Object> n : nodes) {
+            String nm = String.valueOf(n.get("name"));
+            String lb = String.valueOf(n.get("label"));
+            if (assetName.equals(nm) || assetName.equals(lb)) {
+                Object v = n.get("eqp_engineering_approved");
+                return v == null ? Boolean.FALSE : Boolean.valueOf(String.valueOf(v));
+            }
+        }
+        return null;
+    }
+
     /**
      * TC_ES_010 — the core regression the PR fixes: a device round-trip must not lose or
      * mutate engineering_status. Snapshot every node's value via API, perform a real device
