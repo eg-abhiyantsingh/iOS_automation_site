@@ -122,6 +122,46 @@ public class ApiDataContractTest {
         assertTrue(bad == 0, bad + " live issues missing issue_class/status (contract drift)");
     }
 
+    /**
+     * READINESS CANARY for iOS PR #482 / backend #1057 (prepared 2026-06-25, feature not in QA yet).
+     * The backend is replacing the eqp_engineering_approved boolean with a four-state
+     * engineering_status (SKM Data State vocabulary). Until the column reaches this env, this
+     * test SKIPs with a clear message; the run it starts PASSING is the signal that gate G2 in
+     * docs/engineering-status-sync-test-design.md is open and the TC_ES_* round-trip suite can
+     * be activated. Once present, it also guards the vocabulary contract the iOS decoder
+     * (EngineeringStatus.swift) mirrors.
+     */
+    @Test(description = "engineering_status readiness canary + vocabulary contract (Incomplete/Estimated/Complete/Verified)")
+    public void engineeringStatusReadiness() {
+        List<Map<String, Object>> nodes = sld.getList("nodes");
+        boolean fieldSeen = false;
+        java.util.Map<String, Integer> distribution = new java.util.TreeMap<>();
+        StringBuilder unknown = new StringBuilder();
+        Set<String> vocab = new HashSet<>(java.util.Arrays.asList(
+            "Incomplete", "Estimated", "Complete", "Verified"));
+        for (Map<String, Object> n : nodes) {
+            if (!n.containsKey("engineering_status")) continue;
+            fieldSeen = true;
+            String v = str(n.get("engineering_status"));
+            distribution.merge(v == null ? "(null)" : v, 1, Integer::sum);
+            // null tolerated at the payload level (iOS degrades unknown->nil); a NON-null value
+            // outside the vocabulary is contract drift the iOS enum would silently drop.
+            if (v != null && !vocab.contains(v)) {
+                unknown.append("\n  node ").append(n.get("id")).append(" -> '").append(v).append("'");
+            }
+        }
+        if (!fieldSeen) {
+            throw new org.testng.SkipException(
+                "engineering_status not on this backend yet (backend #1057 unpromoted) — "
+                + "TC_ES_* suite stays blocked; see docs/engineering-status-sync-test-design.md");
+        }
+        System.out.println("engineering_status IS LIVE on this env — distribution: " + distribution);
+        assertTrue(unknown.length() == 0,
+            "engineering_status value(s) outside the SKM vocabulary "
+            + "{Incomplete, Estimated, Complete, Verified} — iOS decode would degrade these to nil:"
+            + unknown);
+    }
+
     @Test(description = "Node ids are unique (no duplicate assets in the sync payload)")
     public void nodeIdsUnique() {
         List<Map<String, Object>> nodes = sld.getList("nodes");
