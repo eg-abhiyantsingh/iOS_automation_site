@@ -23,10 +23,10 @@ needs a promotion AND a backend with the `engineering_status` column before QA c
     (independent ship cadence).
 
 ## 2. Readiness gates
-| Gate | What |
-|---|---|
-| G1 | iOS promotion: `EngineeringStatus.swift` on the build we install (dev scheme "Egalvanic PZ-Dev" or promoted QA build) |
-| G2 | Backend `engineering_status` column live on the env we point at — **detected automatically by the API canary (below) once on qa** |
+| Gate | What | Status 2026-08-20 |
+|---|---|---|
+| G1 | iOS promotion: `EngineeringStatus.swift` on the build we install | **OPEN** — app v1.59 verified by binary-strings probe (`engineering_status` ×4 + `EngineeringStatus` type in `Z Platform-QA.debug.dylib`; legacy field present as control); v1.59 zipped into `apps/Z-Platform-QA.zip` for CI |
+| G2 | Backend `engineering_status` column live on the env we point at — **detected automatically by the API canary (below) once on qa** | **CLOSED** — canary run live 2026-08-20: field absent from `/sld/v3` nodes on api.qa (backend #1057 unpromoted). `EngineeringStatusSync_Test` is wired and SELF-GATING: TC_ES_020 (no-UI sweep) runs now; TC_ES_010 (round-trip) auto-unlocks when the backend lands |
 | G3 | Web Equipment Designations grid exposes the four-state control on that env |
 | G4 | Fixture: a site with **> 200 nodes** to force the BackgroundImporter path (acme "Android Qa Site1" has ~168 — needs topping up via API or another site) |
 | Q1 | Question for dev: derived-mirror rule — which states map to legacy `eqp_engineering_approved=true`? (needed for TC_ES_040) |
