@@ -775,6 +775,18 @@ public class BaseTest {
     protected String detectCurrentScreen() {
         System.out.println("🔍 Detecting current screen...");
 
+        // v1.59 ROOT FIX (run 32372956140): the post-sign-in "Choose your experience"
+        // onboarding misdetects as WELCOME_PAGE, sending every caller down the wrong
+        // branch (TC_SS_001-014 failed at ~42s each before anything cleared it).
+        // Dismissing it is ALWAYS correct — it blocks every other screen — so clear it
+        // here and detect the REAL screen underneath. Wait-0 probe: ~ms when absent.
+        try {
+            if (siteSelectionPage != null
+                    && siteSelectionPage.dismissChooseExperienceIfPresent()) {
+                System.out.println("   (cleared 'Choose your experience' — detecting the real screen)");
+            }
+        } catch (Exception ignored) { }
+
         // PERFORMANCE FIX: Temporarily reduce implicit wait during screen detection.
         // Each failed findElement waits the full implicit wait (5s). With 7 screen checks
         // and multiple element lookups per check, the worst case was ~75 seconds.
