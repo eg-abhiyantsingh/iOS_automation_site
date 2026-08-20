@@ -1162,9 +1162,25 @@ public class BaseTest {
      * Appium session. The pass is a no-op unless DriverManager armed it.
      */
     protected final void loginAndSelectSite() {
+        dismissChooseExperienceBeforeLogin(); // v1.59 chooser left by a prior test misdetects as WELCOME_PAGE
         loginAndSelectSiteCore();
         acceptPolicyUpdateIfPresent(); // v1.55 consent sheet blocks EVERYTHING — clear it first
         ensureSessionRecordingDisabledIfFreshInstall();
+    }
+
+    /**
+     * v1.59: the post-sign-in "Choose your experience" screen can be left on-screen by a
+     * PREVIOUS test's failed login. detectCurrentScreen misreads it as WELCOME_PAGE, so
+     * the core flow types a company code into a screen with no such field and every test
+     * in the job dies ~43s (CI run 32365892019: Site Selection 43/52 failed this way —
+     * the site-select-level handler never runs because login dies first). Clearing it
+     * BEFORE screen detection makes the core flow see the app's real state. Wait-0 probe:
+     * ~ms no-op when absent.
+     */
+    private void dismissChooseExperienceBeforeLogin() {
+        try {
+            if (siteSelectionPage != null) siteSelectionPage.dismissChooseExperienceIfPresent();
+        } catch (Exception ignored) { }
     }
 
     /**
@@ -1389,6 +1405,7 @@ public class BaseTest {
      * ╚══════════════════════════════════════════════════════════════╝
      */
     protected final void loginAndSelectSiteTurbo() {
+        dismissChooseExperienceBeforeLogin(); // v1.59 chooser left by a prior test misdetects as WELCOME_PAGE
         loginAndSelectSiteTurboCore();
         acceptPolicyUpdateIfPresent(); // v1.55 consent sheet blocks EVERYTHING — clear it first
         ensureSessionRecordingDisabledIfFreshInstall();
