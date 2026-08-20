@@ -884,11 +884,90 @@ public class SiteSelectionPage extends BasePage {
     }
 
     /**
+     * v1.59+: a post-sign-in "Choose your experience" onboarding screen
+     * (Field Technician / Account Manager radio cards + Continue) renders exactly
+     * where the site picker is expected. The Field Technician card's composite
+     * label — "Field Technician, Sites, assets, connections and single-line
+     * diagrams" — carries >= 2 commas, so the site-row predicates matched IT and
+     * the flow tapped a radio card instead of a site (observed live 2026-08-20 on
+     * v1.59: Dashboard never rendered, mass login failure). Field Technician is
+     * the QA-correct experience (Sites/assets/connections/SLDs) and ships
+     * pre-selected — ensure it's selected, then tap Continue. Wait-0 probe: ~ms
+     * no-op on builds without the screen. Called at the top of every site-select
+     * entry point.
+     */
+    public boolean dismissChooseExperienceIfPresent() {
+        try {
+            // The screen title is the one unambiguous signal (never appears elsewhere).
+            if (!existsNow(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND label == 'Choose your experience'"))) {
+                return false;
+            }
+            System.out.println("🧭 v1.59 'Choose your experience' detected — selecting Field Technician + Continue");
+            // 1) Ensure Field Technician is selected (it is by default — tap defensively;
+            //    selecting an already-selected radio is idempotent).
+            try {
+                WebElement ftRow = withImplicitWait(0, () -> {
+                    java.util.List<WebElement> rows = driver.findElements(AppiumBy.iOSNsPredicateString(
+                            "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeCell' OR "
+                            + "type == 'XCUIElementTypeOther') AND label BEGINSWITH 'Field Technician'"));
+                    if (rows.isEmpty()) {
+                        rows = driver.findElements(AppiumBy.iOSNsPredicateString(
+                                "type == 'XCUIElementTypeStaticText' AND label == 'Field Technician'"));
+                    }
+                    return rows.isEmpty() ? null : rows.get(0);
+                });
+                if (ftRow != null) {
+                    ftRow.click();
+                    sleep(200);
+                    System.out.println("   ✓ Field Technician card tapped");
+                }
+            } catch (Exception e) {
+                System.out.println("   (Field Technician tap skipped: " + e.getMessage() + " — it is pre-selected by default)");
+            }
+            // 2) Tap Continue — element click first, coordinate tap as fallback.
+            boolean continued = false;
+            try {
+                WebElement cont = withImplicitWait(0, () -> {
+                    java.util.List<WebElement> btns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeButton' AND label == 'Continue' AND visible == 1"));
+                    if (btns.isEmpty()) {
+                        btns = driver.findElements(AppiumBy.iOSNsPredicateString("label == 'Continue'"));
+                    }
+                    return btns.isEmpty() ? null : btns.get(0);
+                });
+                if (cont != null) {
+                    try {
+                        cont.click();
+                        continued = true;
+                    } catch (Exception clickEx) {
+                        org.openqa.selenium.Rectangle r = cont.getRect();
+                        driver.executeScript("mobile: tap",
+                                java.util.Map.of("x", r.x + r.width / 2, "y", r.y + r.height / 2));
+                        continued = true;
+                    }
+                }
+            } catch (Exception ignored) { }
+            if (continued) {
+                System.out.println("   ✓ Continue tapped — experience chosen, proceeding to site flow");
+                sleep(800); // let the next screen (site picker / dashboard) push in
+            } else {
+                System.out.println("   ⚠️ 'Choose your experience' present but Continue not tappable");
+            }
+            return continued;
+        } catch (Exception e) {
+            System.out.println("⚠️ Choose-experience check failed (non-fatal): " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Select first site quickly - optimized for speed
      * Uses direct XPath to find first site button without iterating all buttons
      */
     public String selectFirstSite() {
         try {
+            dismissChooseExperienceIfPresent(); // v1.59 onboarding renders where the picker should be
             // Site rows carry name + address pieces (>= 2 commas). A bare
             // single-comma match grabbed the DASHBOARD's '25, Assets' tile
             // bleeding through the picker (probe 2026-07-15) — same rejection
@@ -918,6 +997,7 @@ public class SiteSelectionPage extends BasePage {
      */
     public String selectFirstSiteFast() {
         try {
+            dismissChooseExperienceIfPresent(); // v1.59 onboarding renders where the picker should be
             // v1.36 (changelog 075): a bare comma-name predicate matched
             // Dashboard's WO card "WO, No Active Work Order, Tap to select a
             // work order" when the screen happened to be Dashboard, not Site
@@ -1060,6 +1140,7 @@ public class SiteSelectionPage extends BasePage {
      */
     public boolean selectSiteByName(String siteName) {
         System.out.println("🔍 Selecting site by name: " + siteName);
+        dismissChooseExperienceIfPresent(); // v1.59 onboarding renders where the picker should be
 
         // Clear any previous search first to avoid cache issues. Don't wait
         // for results to "appear" here — the field is now empty, so a full

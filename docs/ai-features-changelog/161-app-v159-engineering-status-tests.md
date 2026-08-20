@@ -35,3 +35,21 @@ objects yet), unrecognized-status injection (needs mock/dev backend), ×4 web-gr
 ## Validation
 - Compile exit 0; verifier self-tests **39 run / 0 fail**.
 - CI dispatched with the new app: auth job (runs TC_ES_*), smoke, api-contract.
+
+## v1.59 breaking flow change found + fixed (local sim, heat-and-trial)
+First local run failed login: **v1.59 adds a post-sign-in "Choose your experience" onboarding
+screen** (Field Technician / Account Manager radio cards + Continue). The Field Technician card's
+composite label ("Field Technician, Sites, assets, connections and single-line diagrams") carries
+>= 2 commas — it matched the site-row predicate, so the flow tapped a radio card as a "site" and
+hung. Without a fix, EVERY test fails at login on v1.59 (the in-flight CI run was cancelled for
+exactly this).
+
+Fix: `SiteSelectionPage.dismissChooseExperienceIfPresent()` — wait-0 probe on the unambiguous
+title text, defensive Field-Technician tap (pre-selected by default), Continue (click →
+coordinate-tap fallback). Called at the top of all three site-select entry points
+(`selectFirstSite`, `selectFirstSiteFast`, `selectSiteByName`); ~ms no-op on builds without the
+screen. DO-NOT-MODIFY login core untouched.
+
+Local verification on iPhone 17 Pro Max (visible sim): chooser cleared → real site selected →
+**TC_ES_020 PASSED (2m37s)** — v1.59 edit screen shows no engineering_status UI; TC_ES_010
+SKIPped at the backend gate as designed. CI re-dispatched with the fix.
