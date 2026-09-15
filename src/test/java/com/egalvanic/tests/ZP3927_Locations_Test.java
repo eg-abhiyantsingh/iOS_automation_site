@@ -5,6 +5,7 @@ import com.egalvanic.constants.AppConstants;
 import com.egalvanic.pages.BuildingPage;
 import com.egalvanic.utils.ExtentReportManager;
 import org.testng.SkipException;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.Test;
 
 /**
@@ -40,8 +41,33 @@ public final class ZP3927_Locations_Test extends BaseTest {
         return buildings;
     }
 
-    /** Land on the Locations screen; skip (never fail) if navigation itself is unavailable. */
+    /** Dismiss a half-filled create form so it cannot poison the next test. */
+    private void closeAnyOpenForm() {
+        try {
+            if (locations().isV163CreateFormOpen()) {
+                locations().cancelForm();
+                mediumWait();
+            }
+        } catch (Exception ignored) { }
+    }
+
+    @AfterMethod(alwaysRun = true)
+    public void leaveLocationsClean() {
+        closeAnyOpenForm();
+        try { settingsPage.openSiteTab(); } catch (Exception ignored) { }
+    }
+
+    /**
+     * Land on the Locations screen.
+     *
+     * The first live run (2026-09-15) failed 2 and skipped 7 for one reason: each test left
+     * the app ON Locations or inside a create form, so the NEXT test's loginAndSelectSite()
+     * saw screen=UNKNOWN, tried to pick a site named 'null', and died. Tests must not inherit
+     * the previous test's screen — so anchor back to the Dashboard first, then navigate.
+     */
     private void openLocations() {
+        closeAnyOpenForm();
+        try { settingsPage.openSiteTab(); } catch (Exception ignored) { }
         loginAndSelectSite();
         // Retry once: a previous test can leave the app mid-flow, and the first
         // navigate then lands somewhere else before settling.
@@ -53,6 +79,7 @@ public final class ZP3927_Locations_Test extends BaseTest {
         if (!on) {
             throw new SkipException("Locations screen did not open — cannot exercise the location view");
         }
+        mediumWait();   // the tree renders asynchronously after the tap
         mediumWait();
     }
 

@@ -7447,30 +7447,45 @@ public class BuildingPage extends BasePage {
 
     /**
      * How many building/floor/room rows the locations tree is showing.
-     * Live DOM (v1.63, probed 2026-09-15): each building is a Button whose label is the
-     * building name (e.g. "1_Del_36275"), sitting beside a "Business" image and its own
-     * "Add" button. So the count is "labelled Buttons minus the chrome" — counting every
-     * labelled Button would inflate the total with Done/Add/grid-toggle and make the
-     * re-sync comparison meaningless.
+     *
+     * Reads ONE page-source snapshot and parses it, instead of asking WDA for elements.
+     * That is deliberate: the Locations tree is the documented giant-DOM wedge — an
+     * unscoped `findElements(type == 'XCUIElementTypeButton')` on this screen does not
+     * return slowly, it TIMES OUT (measured 2026-09-15: 260s, java.util.concurrent
+     * .TimeoutException), which is what silently produced "0 rows" and failed TC_LV_02
+     * three runs in a row. getPageSource() is a single snapshot call and comes back in
+     * seconds on the same screen.
+     *
+     * Live DOM (v1.63): each building is a Button labelled with its name (e.g.
+     * "1_Del_36275"), beside a "Business" image and its own "Add" button — so the count
+     * is "labelled Buttons minus chrome".
      */
     public int visibleLocationRowCount() {
         java.util.Set<String> chrome = java.util.Set.of(
                 "Done", "Add", "Cancel", "Save", "Back", "Edit", "plus", "Search",
-                "rectangle.grid.1x2", "list.bullet", "ellipsis", "More");
+                "rectangle.grid.1x2", "list.bullet", "ellipsis", "More", "Locations");
         try {
-            java.util.List<WebElement> buttons = withImplicitWait(0, () -> driver.findElements(
-                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND label != ''")));
+            String xml = driver.getPageSource();
+            java.util.regex.Matcher m = java.util.regex.Pattern
+                    .compile("<XCUIElementTypeButton\\b([^>]*)")
+                    .matcher(xml);
             int n = 0;
-            for (WebElement b : buttons) {
-                String l = b.getAttribute("label");
-                if (l == null || l.isBlank()) continue;
-                l = l.trim();
-                if (chrome.contains(l)) continue;
-                if (l.contains(".") && !l.contains(" ")) continue;   // SF Symbol ids
+            while (m.find()) {
+                String attrs = m.group(1);
+                java.util.regex.Matcher lm = java.util.regex.Pattern
+                        .compile("label=\"([^\"]*)\"").matcher(attrs);
+                if (!lm.find()) continue;
+                String label = lm.group(1).trim();
+                if (label.isEmpty() || chrome.contains(label)) continue;
+                if (label.contains(".") && !label.contains(" ")) continue;  // SF Symbol ids
                 n++;
             }
+            System.out.println("📍 Locations rows (from page source): " + n);
             return n;
-        } catch (Exception e) { return 0; }
+        } catch (Exception e) {
+            System.out.println("⚠️ visibleLocationRowCount failed: " + e.getMessage());
+            return 0;
+        }
     }
 
 }
