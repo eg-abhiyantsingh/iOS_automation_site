@@ -967,6 +967,7 @@ public class SiteSelectionPage extends BasePage {
      */
     public String selectFirstSite() {
         try {
+            dismissMfaSetupPromptIfPresent();  // v1.63 MFA prompt: its card label looks like a site row
             dismissChooseExperienceIfPresent(); // v1.59 onboarding renders where the picker should be
             // Site rows carry name + address pieces (>= 2 commas). A bare
             // single-comma match grabbed the DASHBOARD's '25, Assets' tile
@@ -997,6 +998,7 @@ public class SiteSelectionPage extends BasePage {
      */
     public String selectFirstSiteFast() {
         try {
+            dismissMfaSetupPromptIfPresent();  // v1.63 MFA prompt: its card label looks like a site row
             dismissChooseExperienceIfPresent(); // v1.59 onboarding renders where the picker should be
             // v1.36 (changelog 075): a bare comma-name predicate matched
             // Dashboard's WO card "WO, No Active Work Order, Tap to select a
@@ -1140,7 +1142,8 @@ public class SiteSelectionPage extends BasePage {
      */
     public boolean selectSiteByName(String siteName) {
         System.out.println("🔍 Selecting site by name: " + siteName);
-        dismissChooseExperienceIfPresent(); // v1.59 onboarding renders where the picker should be
+        dismissMfaSetupPromptIfPresent();  // v1.63 MFA prompt: its card label looks like a site row
+            dismissChooseExperienceIfPresent(); // v1.59 onboarding renders where the picker should be
 
         // Clear any previous search first to avoid cache issues. Don't wait
         // for results to "appear" here — the field is now empty, so a full

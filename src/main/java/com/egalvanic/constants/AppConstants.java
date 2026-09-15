@@ -345,6 +345,9 @@ public class AppConstants {
     // backend can raise over the Dashboard after login (observed live
     // 2026-08-04; it swallows every tap underneath it until accepted).
     // Kill switch: ACCEPT_POLICY_UPDATE=false (env or -D).
+    /** v1.63 "Set Up Two-Factor Authentication" prompt: tap "Set up later". Set false to leave it on screen. */
+    public static final boolean SKIP_MFA_SETUP_PROMPT =
+            !"false".equalsIgnoreCase(getEnv("SKIP_MFA_SETUP_PROMPT", "true"));
     public static final boolean ACCEPT_POLICY_UPDATE = Boolean.parseBoolean(
         getEnv("ACCEPT_POLICY_UPDATE", "true"));
     

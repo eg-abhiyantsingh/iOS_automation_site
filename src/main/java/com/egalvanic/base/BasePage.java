@@ -7,6 +7,7 @@ import io.appium.java_client.pagefactory.AppiumFieldDecorator;
 import org.openqa.selenium.By;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.StaleElementReferenceException;
+import io.appium.java_client.AppiumBy;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.PageFactory;
 import org.openqa.selenium.support.ui.ExpectedConditions;
@@ -669,4 +670,69 @@ public abstract class BasePage {
             return false;
         }
     }
+    /**
+     * v1.63+: after Sign In the app can raise a blocking
+     * "Set Up Two-Factor Authentication" screen (Authenticator app / Email OTP
+     * cards + Continue + "Set up later"). Two problems for automation:
+     *   1. detectCurrentScreen misreads it as WELCOME_PAGE, so the login core
+     *      types a company code into a screen that has no such field.
+     *   2. The "Authenticator app" card's composite label carries >= 2 commas
+     *      ("Authenticator app, Recommended, Google Authenticator, ..."), so the
+     *      site-row predicate MATCHES it and selectFirstSite taps a radio card
+     *      instead of a site — the same trap the v1.59 experience chooser sprang.
+     * Observed live on v1.63 (2026-09-15): every test died at login this way.
+     *
+     * "Set up later" is the correct choice, never Continue: enrolling a factor
+     * would demand a TOTP/email code at EVERY later sign-in and hard-block the
+     * suite. The prompt reappears each sign-in by design ("You'll be asked again
+     * next time you sign in"), which is fine — this runs on every login.
+     *
+     * Wait-0 probe on the unambiguous title, so it costs ~ms on builds without
+     * the screen. Kill switch: SKIP_MFA_SETUP_PROMPT=false.
+     */
+    public boolean dismissMfaSetupPromptIfPresent() {
+        if (!AppConstants.SKIP_MFA_SETUP_PROMPT) return false;
+        try {
+            if (!existsNow(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND label == 'Set Up Two-Factor Authentication'"))) {
+                return false;
+            }
+            System.out.println("🔐 v1.63 'Set Up Two-Factor Authentication' detected — tapping 'Set up later'");
+
+            WebElement later = withImplicitWait(0, () -> {
+                java.util.List<WebElement> b = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND label == 'Set up later'"));
+                if (b.isEmpty()) {
+                    b = driver.findElements(AppiumBy.iOSNsPredicateString(
+                            "label CONTAINS[c] 'Set up later'"));
+                }
+                return b.isEmpty() ? null : b.get(0);
+            });
+
+            if (later == null) {
+                // No skip button => the org enforces MFA (auth.mfaRequiredByPolicy).
+                // Automation cannot satisfy a second factor, so say so loudly
+                // rather than let the run die 120s later as "site never loaded".
+                System.out.println("❌ 'Set up later' is ABSENT — this organization now REQUIRES two-factor "
+                        + "authentication. Automation cannot sign in without a TOTP secret or an MFA "
+                        + "exemption for the QA account. See memory: v163-mfa-setup-prompt.");
+                return false;
+            }
+
+            try {
+                later.click();
+            } catch (Exception clickEx) {
+                org.openqa.selenium.Rectangle r = later.getRect();
+                driver.executeScript("mobile: tap",
+                        java.util.Map.of("x", r.x + r.width / 2, "y", r.y + r.height / 2));
+            }
+            sleep(800); // let the next screen (site picker / chooser / dashboard) push in
+            System.out.println("   ✓ MFA setup skipped — continuing to the site flow");
+            return true;
+        } catch (Exception e) {
+            System.out.println("⚠️ MFA setup-prompt check failed (non-fatal): " + e.getMessage());
+            return false;
+        }
+    }
+
 }

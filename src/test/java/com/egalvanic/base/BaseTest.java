@@ -781,6 +781,11 @@ public class BaseTest {
         // Dismissing it is ALWAYS correct — it blocks every other screen — so clear it
         // here and detect the REAL screen underneath. Wait-0 probe: ~ms when absent.
         try {
+            // v1.63 MFA setup prompt sits BEFORE the chooser in the sign-in flow and
+            // misdetects as WELCOME_PAGE just the same — clear it first.
+            if (loginPage != null && loginPage.dismissMfaSetupPromptIfPresent()) {
+                System.out.println("   (skipped the two-factor setup prompt)");
+            }
             if (siteSelectionPage != null
                     && siteSelectionPage.dismissChooseExperienceIfPresent()) {
                 System.out.println("   (cleared 'Choose your experience' — detecting the real screen)");
@@ -1191,6 +1196,7 @@ public class BaseTest {
      */
     private void dismissChooseExperienceBeforeLogin() {
         try {
+            if (loginPage != null) loginPage.dismissMfaSetupPromptIfPresent();
             if (siteSelectionPage != null) siteSelectionPage.dismissChooseExperienceIfPresent();
         } catch (Exception ignored) { }
     }
