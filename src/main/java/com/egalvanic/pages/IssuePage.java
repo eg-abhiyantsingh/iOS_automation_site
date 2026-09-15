@@ -12395,4 +12395,149 @@ public class IssuePage extends BasePage {
             return false;
         }
     }
+
+    // ════════════════════════════════════════════════════════════════════
+    // v1.56 PHOTO FILTERS (ZP-3928 §1)
+    // ════════════════════════════════════════════════════════════════════
+    // "With Photos" and "Without Photos" are hardcoded SwiftUI strings (they are
+    // in the binary, not in Localizable.strings), so match on the literal text
+    // with several element types — the filter chips have rendered as Button,
+    // StaticText and Other across recent builds.
+
+    public static final String FILTER_WITH_PHOTOS    = "With Photos";
+    public static final String FILTER_WITHOUT_PHOTOS = "Without Photos";
+
+    private By filterChip(String text) {
+        return AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' "
+              + "OR type == 'XCUIElementTypeOther' OR type == 'XCUIElementTypeCell') AND "
+              + "(label ==[c] '" + text + "' OR name ==[c] '" + text + "')");
+    }
+
+    /** Is the named photo filter present on the Issues list? */
+    public boolean isPhotoFilterDisplayed(String text) {
+        if (existsNow(filterChip(text))) return true;
+        // chips can sit off-screen in the horizontally scrolling filter row
+        try {
+            driver.executeScript("mobile: scroll", java.util.Map.of(
+                    "direction", "right", "predicateString", "label ==[c] '" + text + "'"));
+        } catch (Exception ignored) { }
+        return existsNow(filterChip(text));
+    }
+
+    /** Tap a photo filter chip; returns false when it is not on this build. */
+    public boolean tapPhotoFilter(String text) {
+        if (!isPhotoFilterDisplayed(text)) {
+            System.out.println("⚠️ Photo filter not found: " + text);
+            return false;
+        }
+        try {
+            WebElement chip = withImplicitWait(0, () -> {
+                java.util.List<WebElement> l = driver.findElements(filterChip(text));
+                return l.isEmpty() ? null : l.get(0);
+            });
+            if (chip == null) return false;
+            chip.click();
+            sleep(700);   // let the list re-filter
+            System.out.println("✅ Applied photo filter: " + text);
+            return true;
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not tap photo filter '" + text + "': " + e.getMessage());
+            return false;
+        }
+    }
+
+    /** Does the OPEN issue-details screen show at least one photo in Issue Photos? */
+    public boolean currentIssueHasPhoto() {
+        return existsNow(AppiumBy.iOSNsPredicateString(
+                       "type == 'XCUIElementTypeImage' AND visible == 1 AND "
+                     + "NOT (name CONTAINS 'icon') AND NOT (name CONTAINS 'chevron')"))
+            || existsNow(AppiumBy.iOSNsPredicateString(
+                       "type == 'XCUIElementTypeButton' AND (name CONTAINS[c] 'photo' AND NOT (name CONTAINS[c] 'add'))"));
+    }
+
+
+    // ════════════════════════════════════════════════════════════════════
+    // v1.57 UNLINK ISSUE (ZP-3927 §1)
+    // ════════════════════════════════════════════════════════════════════
+    // Build-verified: "Unlink Issue" x4 plus longPress handlers and the offline
+    // path "Issue unlink queued for sync".
+    public static final String MENU_UNLINK_ISSUE = "Unlink Issue";
+
+    /** Long-press the first issue row on the current screen. */
+    public boolean longPressFirstIssueRow() {
+        WebElement row = withImplicitWait(0, () -> {
+            java.util.List<WebElement> l = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeButton') AND "
+                  + "visible == 1 AND label != '' AND label CONTAINS ' on '"));
+            if (l.isEmpty()) {
+                l = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeCell' AND visible == 1 AND label != ''"));
+            }
+            return l.isEmpty() ? null : l.get(0);
+        });
+        if (row == null) { System.out.println("⚠️ No issue row to long-press"); return false; }
+        System.out.println("👆 Long-pressing issue row: " + row.getAttribute("label"));
+        return longPressElement(row, 1.2);
+    }
+
+    public boolean isUnlinkIssueOffered() { return isMenuItemPresent(MENU_UNLINK_ISSUE); }
+
+    public boolean tapUnlinkIssue() { return tapMenuItem(MENU_UNLINK_ISSUE); }
+
+    /** Dismiss an open context menu without choosing anything. */
+    public boolean dismissContextMenu() {
+        try {
+            org.openqa.selenium.Dimension d = driver.manage().window().getSize();
+            driver.executeScript("mobile: tap", java.util.Map.of("x", d.getWidth() / 2, "y", 60));
+            sleep(500);
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+
+    // ── v1.56 IssueWorkOrderLinkCard (ZP-3928 §3) ─────────────────────────
+    /** The work-order link card / row on the issue screen. */
+    public boolean isWorkOrderLinkCardPresent() {
+        return isAnyTextContaining("Work Order")
+            || isAnyTextContaining("Link to Work Order")
+            || isAnyTextContaining("Linked to");
+    }
+
+    /** Tap whatever exposes the link action on that card. */
+    public boolean tapWorkOrderLinkControl() {
+        String[] labels = {"Link to Work Order", "Link Work Order", "Link", "Work Order"};
+        for (String l : labels) if (tapText(l)) return true;
+        try {
+            WebElement b = withImplicitWait(0, () -> {
+                java.util.List<WebElement> x = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND visible == 1 AND label CONTAINS[c] 'work order'"));
+                return x.isEmpty() ? null : x.get(0);
+            });
+            if (b != null) { b.click(); sleep(700); return true; }
+        } catch (Exception ignored) { }
+        return false;
+    }
+
+    /** Is a picker of work orders / sessions on screen? */
+    public boolean isWorkOrderPickerOpen() {
+        return isAnyTextContaining("QA-WT")
+            || isAnyTextContaining("Select Work Order")
+            || isAnyTextContaining("Work Orders");
+    }
+
+    /** Name of the currently linked work order, or null when unlinked. */
+    public String linkedWorkOrderName() {
+        try {
+            java.util.List<WebElement> rows = withImplicitWait(0, () -> driver.findElements(
+                    AppiumBy.iOSNsPredicateString(
+                        "visible == 1 AND (label CONTAINS 'QA-WT' OR label CONTAINS[c] 'linked to')")));
+            for (WebElement r : rows) {
+                String l = r.getAttribute("label");
+                if (l != null && !l.isEmpty()) return l.trim();
+            }
+        } catch (Exception ignored) { }
+        return null;
+    }
+
 }

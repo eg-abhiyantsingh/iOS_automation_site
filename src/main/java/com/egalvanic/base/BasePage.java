@@ -735,4 +735,94 @@ public abstract class BasePage {
         }
     }
 
+
+    /**
+     * Long-press an element (v1.57 "Unlink Issue" context menus and friends).
+     * Uses mobile:touchAndHold, falling back to a W3C press-pause-release so the
+     * gesture still lands on builds where the script gesture is rejected.
+     */
+    protected boolean longPressElement(WebElement el, double seconds) {
+        if (el == null) return false;
+        try {
+            driver.executeScript("mobile: touchAndHold",
+                    java.util.Map.of("elementId", ((org.openqa.selenium.remote.RemoteWebElement) el).getId(),
+                                     "duration", seconds));
+            sleep(600);
+            return true;
+        } catch (Exception scriptFailed) {
+            try {
+                org.openqa.selenium.Rectangle r = el.getRect();
+                int cx = r.x + r.width / 2, cy = r.y + r.height / 2;
+                org.openqa.selenium.interactions.PointerInput finger =
+                        new org.openqa.selenium.interactions.PointerInput(
+                                org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
+                org.openqa.selenium.interactions.Sequence seq =
+                        new org.openqa.selenium.interactions.Sequence(finger, 0);
+                seq.addAction(finger.createPointerMove(java.time.Duration.ZERO,
+                        org.openqa.selenium.interactions.PointerInput.Origin.viewport(), cx, cy));
+                seq.addAction(finger.createPointerDown(
+                        org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+                seq.addAction(new org.openqa.selenium.interactions.Pause(finger,
+                        java.time.Duration.ofMillis((long) (seconds * 1000))));
+                seq.addAction(finger.createPointerUp(
+                        org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+                driver.perform(java.util.Collections.singletonList(seq));
+                sleep(600);
+                return true;
+            } catch (Exception e) {
+                System.out.println("⚠️ long-press failed: " + e.getMessage());
+                return false;
+            }
+        }
+    }
+
+    /** Is a menu item with this exact label on screen (context menus, action sheets)? */
+    protected boolean isMenuItemPresent(String label) {
+        return existsNow(AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeMenuItem' "
+              + "OR type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeStaticText') AND "
+              + "(label ==[c] '" + label + "' OR name ==[c] '" + label + "')"));
+    }
+
+    /** Tap a context-menu / action-sheet item by exact label. */
+    protected boolean tapMenuItem(String label) {
+        try {
+            WebElement m = withImplicitWait(0, () -> {
+                java.util.List<WebElement> l = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeMenuItem' "
+                      + "OR type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeStaticText') AND "
+                      + "(label ==[c] '" + label + "' OR name ==[c] '" + label + "')"));
+                return l.isEmpty() ? null : l.get(0);
+            });
+            if (m == null) return false;
+            m.click(); sleep(700); return true;
+        } catch (Exception e) { return false; }
+    }
+
+
+    /** True if ANY visible element carries this exact text (name or label). */
+    protected boolean isAnyTextPresent(String text) {
+        return existsNow(AppiumBy.iOSNsPredicateString(
+                "visible == 1 AND (label ==[c] '" + text + "' OR name ==[c] '" + text + "')"));
+    }
+
+    /** True if ANY visible element CONTAINS this text. */
+    protected boolean isAnyTextContaining(String text) {
+        return existsNow(AppiumBy.iOSNsPredicateString(
+                "visible == 1 AND (label CONTAINS[c] '" + text + "' OR name CONTAINS[c] '" + text + "')"));
+    }
+
+    /** Tap the first visible element whose text matches exactly. */
+    protected boolean tapText(String text) {
+        try {
+            WebElement e = withImplicitWait(0, () -> {
+                java.util.List<WebElement> l = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "visible == 1 AND (label ==[c] '" + text + "' OR name ==[c] '" + text + "')"));
+                return l.isEmpty() ? null : l.get(0);
+            });
+            if (e == null) return false;
+            e.click(); sleep(600); return true;
+        } catch (Exception ex) { return false; }
+    }
+
 }

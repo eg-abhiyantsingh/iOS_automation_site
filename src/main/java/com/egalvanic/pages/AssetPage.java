@@ -13517,4 +13517,48 @@ public class AssetPage extends BasePage {
                 .replace("&quot;", "\"").replace("&apos;", "'").replace("&amp;", "&");
     }
 
+
+    /** True when ANY search field is on screen (used by the v1.56 Copy-Data-To search check). */
+    public boolean isSearchFieldPresentOnScreen() {
+        return existsNow(AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeSearchField'"))
+            || existsNow(AppiumBy.iOSNsPredicateString(
+                   "(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeSearchField') AND "
+                 + "(value CONTAINS[c] 'search' OR name CONTAINS[c] 'search' OR label CONTAINS[c] 'search')"));
+    }
+
+
+    // ── v1.56 asset Issues section filter chips (ZP-3928 §2) ──────────────
+    private By issueFilterChip(String name) {
+        return AppiumBy.iOSNsPredicateString(
+                "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' "
+              + "OR type == 'XCUIElementTypeOther') AND visible == 1 AND "
+              + "(label ==[c] '" + name + "' OR name ==[c] '" + name + "')");
+    }
+
+    /** Is the named issue-filter chip present AND marked selected? */
+    public boolean isIssueFilterSelected(String name) {
+        try {
+            WebElement chip = withImplicitWait(0, () -> {
+                List<WebElement> l = driver.findElements(issueFilterChip(name));
+                return l.isEmpty() ? null : l.get(0);
+            });
+            if (chip == null) return false;
+            String sel = chip.getAttribute("selected");
+            String val = chip.getAttribute("value");
+            // SwiftUI pills often expose neither; fall back to the selected/value hints.
+            return "true".equals(sel) || "1".equals(val);
+        } catch (Exception e) { return false; }
+    }
+
+    public boolean tapIssueFilter(String name) {
+        try {
+            WebElement chip = withImplicitWait(0, () -> {
+                List<WebElement> l = driver.findElements(issueFilterChip(name));
+                return l.isEmpty() ? null : l.get(0);
+            });
+            if (chip == null) return false;
+            chip.click(); sleep(600); return true;
+        } catch (Exception e) { return false; }
+    }
+
 }

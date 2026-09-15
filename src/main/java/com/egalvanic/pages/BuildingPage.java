@@ -7278,4 +7278,199 @@ public class BuildingPage extends BasePage {
             Thread.sleep(400);
         } catch (Exception ignored) {}
     }
+
+    // ════════════════════════════════════════════════════════════════════
+    // v1.63 LOCATION CREATION (ZP-3927 §2/§3)
+    // ════════════════════════════════════════════════════════════════════
+    // Strings below are taken verbatim from the v1.63 bundle's
+    // en.lproj/Localizable.strings, NOT guessed:
+    //   "New Building…" / "New Floor…"   (note the real ELLIPSIS char)
+    //   "Building name" / "Floor name" / "Room name"      (field placeholders)
+    //   "Floor (Optional)" / "Room (Optional)"            (section headers)
+    //   "Leave blank to create only the building."        (independent create)
+    //   "A floor is required to create a room"            (real constraint)
+    //   "Building name is required"                       (validation)
+    // The ellipsis is U+2026, so every locator matches on the PREFIX and never
+    // on an ASCII "..." — the same trap the asset-engineer "Select…" rows sprang.
+
+    /** v1.63 copy, exactly as shipped. */
+    public static final String V163_NEW_BUILDING   = "New Building…";
+    public static final String V163_NEW_FLOOR      = "New Floor…";
+    public static final String V163_BUILDING_ONLY  = "Leave blank to create only the building.";
+    public static final String V163_FLOOR_REQUIRED = "A floor is required to create a room";
+    public static final String V163_NAME_REQUIRED  = "Building name is required";
+    public static final String V163_FLOOR_OPTIONAL = "Floor (Optional)";
+    public static final String V163_ROOM_OPTIONAL  = "Room (Optional)";
+
+    /** Any element whose name/label STARTS WITH the given text (ellipsis-safe). */
+    private By startsWith(String text) {
+        return AppiumBy.iOSNsPredicateString(
+                "name BEGINSWITH '" + text + "' OR label BEGINSWITH '" + text + "'");
+    }
+
+    private By exactly(String text) {
+        return AppiumBy.iOSNsPredicateString(
+                "name == '" + text + "' OR label == '" + text + "'");
+    }
+
+    /** True when the v1.63 create form (Building name + optional Floor/Room) is on screen. */
+    public boolean isV163CreateFormOpen() {
+        return existsNow(startsWith("Building name"))
+            || existsNow(exactly(V163_BUILDING_ONLY))
+            || existsNow(exactly(V163_FLOOR_OPTIONAL));
+    }
+
+    /**
+     * Open the v1.63 create-location form. Multi-strategy per the standing rule:
+     * the "New Building…" row, a plain "New Building" row, the floating +, then a
+     * nav-bar Add. Returns false rather than throwing so callers can skip cleanly.
+     */
+    public boolean openNewBuildingSheetV163() {
+        By[] entries = {
+            startsWith("New Building"),
+            exactly("New Building"),
+            AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND name CONTAINS[c] 'new building'"),
+            AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND (name == 'plus' OR name == 'Add' OR label == 'Add')"),
+            AppiumBy.accessibilityId("plus"),
+        };
+        for (By by : entries) {
+            try {
+                WebElement e = withImplicitWait(0, () -> {
+                    List<WebElement> l = driver.findElements(by);
+                    return l.isEmpty() ? null : l.get(0);
+                });
+                if (e == null) continue;
+                e.click();
+                sleep(700);
+                if (isV163CreateFormOpen()) {
+                    System.out.println("✅ v1.63 create-location form opened");
+                    return true;
+                }
+            } catch (Exception ignored) { }
+        }
+        System.out.println("⚠️ Could not open the v1.63 create-location form");
+        return false;
+    }
+
+    /** Type into one of the create form's named fields ("Building name"/"Floor name"/"Room name"). */
+    public boolean typeLocationField(String placeholder, String value) {
+        By[] strategies = {
+            AppiumBy.iOSNsPredicateString("(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeTextView') AND "
+                    + "(value == '" + placeholder + "' OR name == '" + placeholder + "' OR label == '" + placeholder + "')"),
+            AppiumBy.iOSNsPredicateString("(type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeTextView') AND "
+                    + "(value CONTAINS[c] '" + placeholder + "' OR name CONTAINS[c] '" + placeholder + "')"),
+            AppiumBy.accessibilityId(placeholder),
+        };
+        for (By by : strategies) {
+            try {
+                WebElement f = withImplicitWait(0, () -> {
+                    List<WebElement> l = driver.findElements(by);
+                    return l.isEmpty() ? null : l.get(0);
+                });
+                if (f == null) continue;
+                f.click(); sleep(200);
+                try { f.clear(); } catch (Exception ignored) { }
+                f.sendKeys(value);
+                dismissKeyboard();   // standing rule: never tap Create with the keyboard up
+                System.out.println("✅ '" + placeholder + "' = " + value);
+                return true;
+            } catch (Exception ignored) { }
+        }
+        System.out.println("⚠️ Field not found: " + placeholder);
+        return false;
+    }
+
+    /** The form's primary action (Create/Save/Done), whichever this build ships. */
+    private WebElement createButton() {
+        By by = AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND "
+                + "(label == 'Create' OR name == 'Create' OR label == 'Save' OR name == 'Save' OR label == 'Done')");
+        return withImplicitWait(0, () -> {
+            List<WebElement> l = driver.findElements(by);
+            return l.isEmpty() ? null : l.get(0);
+        });
+    }
+
+    public boolean isCreateEnabled() {
+        WebElement b = createButton();
+        if (b == null) return false;
+        String en = b.getAttribute("enabled");
+        return en == null || "true".equals(en);
+    }
+
+    public boolean tapCreate() {
+        WebElement b = createButton();
+        if (b == null) { System.out.println("⚠️ Create/Save button not found"); return false; }
+        dismissKeyboard();
+        try { b.click(); } catch (Exception e) {
+            org.openqa.selenium.Rectangle r = b.getRect();
+            driver.executeScript("mobile: tap", Map.of("x", r.x + r.width / 2, "y", r.y + r.height / 2));
+        }
+        sleep(900);
+        return true;
+    }
+
+    /** Validation copy shown when the building name is blank. */
+    public boolean isNameRequiredErrorShown() {
+        return existsNow(exactly(V163_NAME_REQUIRED))
+            || existsNow(AppiumBy.iOSNsPredicateString("label CONTAINS[c] 'name is required'"));
+    }
+
+    /** The v1.63 hint proving a building can be made WITHOUT a floor or room. */
+    public boolean isBuildingOnlyHintShown() {
+        return existsNow(exactly(V163_BUILDING_ONLY))
+            || existsNow(AppiumBy.iOSNsPredicateString("label CONTAINS[c] 'only the building'"));
+    }
+
+    /** The v1.63 constraint copy: a room needs a floor. */
+    public boolean isFloorRequiredForRoomShown() {
+        return existsNow(exactly(V163_FLOOR_REQUIRED))
+            || existsNow(AppiumBy.iOSNsPredicateString("label CONTAINS[c] 'floor is required'"));
+    }
+
+    /** Any row in the locations tree whose label starts with the given name. */
+    public boolean isLocationListed(String name) {
+        return existsNow(startsWith(name))
+            || existsNow(AppiumBy.iOSNsPredicateString("label CONTAINS '" + name + "'"));
+    }
+
+    public boolean cancelForm() {
+        try {
+            WebElement c = withImplicitWait(0, () -> {
+                List<WebElement> l = driver.findElements(exactly("Cancel"));
+                return l.isEmpty() ? null : l.get(0);
+            });
+            if (c == null) return false;
+            c.click(); sleep(600); return true;
+        } catch (Exception e) { return false; }
+    }
+
+
+    /**
+     * How many building/floor/room rows the locations tree is showing.
+     * Live DOM (v1.63, probed 2026-09-15): each building is a Button whose label is the
+     * building name (e.g. "1_Del_36275"), sitting beside a "Business" image and its own
+     * "Add" button. So the count is "labelled Buttons minus the chrome" — counting every
+     * labelled Button would inflate the total with Done/Add/grid-toggle and make the
+     * re-sync comparison meaningless.
+     */
+    public int visibleLocationRowCount() {
+        java.util.Set<String> chrome = java.util.Set.of(
+                "Done", "Add", "Cancel", "Save", "Back", "Edit", "plus", "Search",
+                "rectangle.grid.1x2", "list.bullet", "ellipsis", "More");
+        try {
+            java.util.List<WebElement> buttons = withImplicitWait(0, () -> driver.findElements(
+                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND label != ''")));
+            int n = 0;
+            for (WebElement b : buttons) {
+                String l = b.getAttribute("label");
+                if (l == null || l.isBlank()) continue;
+                l = l.trim();
+                if (chrome.contains(l)) continue;
+                if (l.contains(".") && !l.contains(" ")) continue;   // SF Symbol ids
+                n++;
+            }
+            return n;
+        } catch (Exception e) { return 0; }
+    }
+
 }
