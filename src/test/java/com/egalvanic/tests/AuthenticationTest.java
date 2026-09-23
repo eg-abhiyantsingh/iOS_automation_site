@@ -298,6 +298,16 @@ public final class AuthenticationTest extends BaseTest {
         logStep("Waiting for login page to be ready");
         loginPage.waitForPageReady();
         longWait(); // Extra wait for CI environment
+
+        // v1.67 (changelog 178): the login page first renders as the passwordless
+        // chooser (Email + passkey / Google / email code / 'Use my password'); the
+        // password field and Sign In only exist after 'Use my password'. Reveal
+        // the classic form so all three elements can be verified.
+        if (loginPage.isPasswordlessChooserDisplayed()) {
+            logStep("v1.67 sign-in chooser shown — pressing 'Use my password' to reveal the password form");
+            boolean revealed = loginPage.revealPasswordFormIfNeeded(null);
+            logStep("Password form revealed: " + revealed);
+        }
         
         logStep("Verifying login screen elements");
         boolean emailVisible = loginPage.isEmailFieldDisplayed();

@@ -130,6 +130,27 @@ locators are predicate-heavy (2,944 predicate vs 257 accessibility-id).
 - Report: overrides support `"exclude": true` (+ `match_text`) → dropped from customer
   PDF/CSV with an explicit cover note; remove the ENG entry once the family is CI-green.
 
+## Session 2026-09-23 — App v1.67 into CI + v1.67 sign-in chooser (changelog 178)
+- `apps/Z-Platform-QA.zip` = **v1.67** (from `~/Downloads/Z Platform-QA.app`, ditto CI layout,
+  83.9 MB). **Commit subjects for app bumps MUST read `… Z Platform-QA to v<ver> …`** — the
+  workflows' `sed 's/.*[Tt]o v…'` and `generate_bug_report.detect_app_version` parse that form;
+  the 1.63 subject ("v1.63 into CI") matched neither, so every report since 09-15 said
+  "not recorded".
+- **v1.67 sign-in is passwordless-first** (live DOM in changelog 178): after Continue → Email
+  TextField + `Sign in with a passkey` / `Continue with Google` / `Email me a code` /
+  **`Use my password`**; NO SecureTextField / Sign In until `Use my password` is pressed; Terms
+  checkbox GONE (implicit-consent text + links). Handler: `LoginPage.revealPasswordFormIfNeeded`
+  (6-strategy locator, coordinate → click → W3C tap, presence-verified), wired into
+  waitForPageReady / loginTurbo / enterEmail / enterPassword / acceptTermsIfPresent / tapSignIn;
+  `detectCurrentScreen` → LOGIN_PAGE for the chooser; `performLogin` skips the company code unless
+  `WelcomePage.isCompanyCodeScreenNow()`. Kill switch `HANDLE_PASSWORD_CHOOSER=false`.
+- **`element.click()` is a silent no-op on v1.67 SwiftUI buttons** (`Set up later` verified):
+  `dismissMfaSetupPromptIfPresent` / `dismissChooseExperienceIfPresent` now press by coordinates
+  and VERIFY the title is gone (retry with other press methods). Apply the same rule to any new
+  dismisser. Welcome retry loop no longer re-presses a `Continue` that already left.
+- Verified locally (iPhone 17 Pro Max, iOS 26.2, clean install): TC_SET_001 full login → dashboard
+  → Settings green in 2m15s (was FAIL at 55s before the fix).
+
 ## How to run
 - Self-tests (no device): `mvn -o -DsuiteXmlFile=testng-verify-selftest.xml test`
 - Exploratory crawl (macOS + live session): `RUN_EXPLORATORY=true mvn -Dtest=ExploratoryCrawlTest test`

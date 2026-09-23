@@ -80,16 +80,242 @@ public class LoginPage extends BasePage {
                     io.appium.java_client.AppiumBy.accessibilityId("Sign In")),
                 ExpectedConditions.presenceOfElementLocated(
                     io.appium.java_client.AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeButton' AND (name == 'Sign In' OR label == 'Sign In')"))
+                        "type == 'XCUIElementTypeButton' AND (name == 'Sign In' OR label == 'Sign In')")),
+                // v1.67: the passwordless-first chooser IS the login page now
+                ExpectedConditions.presenceOfElementLocated(CHOOSER_MARKER_BY)
             ));
             try { Thread.sleep(800); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
-            System.out.println("✅ Login page ready (Sign In / SecureTextField present)");
+            if (isPasswordlessChooserDisplayed()) {
+                System.out.println("✅ Login page ready (v1.67 sign-in chooser — password form is revealed on the first credential action)");
+            } else {
+                System.out.println("✅ Login page ready (Sign In / SecureTextField present)");
+            }
         } catch (Exception e) {
             // Don't proceed silently — log the issue so it's visible in the report
             System.out.println("⚠️ waitForPageReady timed out waiting for Login screen: " + e.getMessage());
         }
     }
     
+    // ================================================================
+    // v1.67 PASSWORDLESS-FIRST SIGN-IN CHOOSER (changelog 178, 2026-09-23)
+    // ================================================================
+    // Live DOM after Continue on v1.67 ("EG-ACME" / "Sign in to continue"):
+    //   StaticText 'Email' + TextField (placeholder 'Enter your email')
+    //   Button 'Sign in with a passkey'   (disabled until an email is typed)
+    //   StaticText 'or continue with'
+    //   Button 'Continue with Google'
+    //   Button 'Email me a code'          (disabled until an email is typed)
+    //   Button 'Use my password'          (always enabled)   ← the one we need
+    //   Button 'Change Company'           (back)
+    // There is NO SecureTextField and NO 'Sign In' until 'Use my password' is
+    // pressed; the password form then renders on the SAME screen (email kept,
+    // 'Password' SecureTextField, 'eye.slash' Hide, 'Sign In' disabled until a
+    // password is typed, implicit-consent text "By signing in, you agree to our
+    // Terms & Conditions and Privacy Policy" with two Links, 'Forgot your
+    // password?', 'Back to faster options'). The v1.63 Terms CHECKBOX IS GONE.
+    // Buttons on this build are the SwiftUI silent-no-op family for
+    // element.click() (probe 2026-09-23: 'Set up later' click changed nothing
+    // across 3 snapshots) — press by coordinates first and VERIFY.
+
+    private static final org.openqa.selenium.By CHOOSER_MARKER_BY = AppiumBy.iOSNsPredicateString(
+        "(type == 'XCUIElementTypeButton' AND (name == 'Use my password' OR label == 'Use my password'))"
+        + " OR (type == 'XCUIElementTypeStaticText' AND (label == 'or continue with' OR label == 'Sign in with a passkey'))");
+    private static final org.openqa.selenium.By SECURE_FIELD_BY =
+        AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeSecureTextField'");
+    private static final org.openqa.selenium.By PASSWORD_FORM_BY = AppiumBy.iOSNsPredicateString(
+        "type == 'XCUIElementTypeSecureTextField'"
+        + " OR (type == 'XCUIElementTypeButton' AND (name == 'Sign In' OR label == 'Sign In'))");
+    private static final org.openqa.selenium.By IMPLICIT_CONSENT_BY = AppiumBy.iOSNsPredicateString(
+        "type == 'XCUIElementTypeStaticText' AND label BEGINSWITH[c] 'By signing in'");
+    private static final org.openqa.selenium.By TERMS_CHECKBOX_ANY_BY = AppiumBy.iOSNsPredicateString(
+        "type == 'XCUIElementTypeSwitch' OR ((type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeImage')"
+        + " AND (name CONTAINS 'checkmark' OR name CONTAINS 'checkbox' OR name CONTAINS 'square'))");
+    /** Multi-strategy locators for the 'Use my password' control (accessibility id → predicates → structure). */
+    private static final org.openqa.selenium.By[] USE_MY_PASSWORD_STRATEGIES = {
+        AppiumBy.accessibilityId("Use my password"),
+        AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND (name == 'Use my password' OR label == 'Use my password')"),
+        AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND label CONTAINS[c] 'my password'"),
+        AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText' AND label == 'Use my password'"),
+        AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND label CONTAINS[c] 'password' AND NOT label CONTAINS[c] 'forgot'"),
+        AppiumBy.xpath("//XCUIElementTypeButton[.//XCUIElementTypeImage[@name='lock']]"),
+    };
+
+    /** True when the v1.67 passwordless-first chooser is the current surface (wait-0, ~ms). */
+    public boolean isPasswordlessChooserDisplayed() {
+        try {
+            return existsNow(CHOOSER_MARKER_BY) && !existsNow(SECURE_FIELD_BY);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** True when the password form (SecureTextField / Sign In) is rendered (wait-0). */
+    public boolean isPasswordFormDisplayed() {
+        try {
+            return existsNow(PASSWORD_FORM_BY);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** True when the v1.67 implicit-consent text replaces the Terms checkbox. */
+    public boolean isConsentImplicit() {
+        try {
+            return existsNow(IMPLICIT_CONSENT_BY) && !existsNow(TERMS_CHECKBOX_ANY_BY);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** Wait-0: does the (single) email TextField currently hold {@code email}? */
+    public boolean emailFieldHolds(String email) {
+        if (email == null || email.isEmpty()) return false;
+        try {
+            return withImplicitWait(0, () -> {
+                List<WebElement> f = driver.findElements(AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField'"));
+                if (f.isEmpty()) return false;
+                String v = f.get(0).getAttribute("value");
+                // EXACT match: a stray coordinate tap on the still-open keyboard once appended
+                // 'g' to the address ("…@egalvanic.comg" → "Invalid email or password") and
+                // contains() waved it through. Anything but the exact address gets retyped.
+                return v != null && v.trim().equalsIgnoreCase(email.trim());
+            });
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * v1.67: if the passwordless chooser is up, type the email there (optional)
+     * and press "Use my password" until the password form renders. Coordinate
+     * press first, element.click() second, W3C tap third — each verified by a
+     * presence poll for the SecureTextField / Sign In (presence, not
+     * isDisplayed: SecureTextField reports visible=false on iOS 18.5 runners).
+     *
+     * @param emailOrNull email to type on the chooser first, or null to leave the field alone
+     * @return true when the password form is present afterwards (revealed, or was already there)
+     */
+    public boolean revealPasswordFormIfNeeded(String emailOrNull) {
+        if (!AppConstants.HANDLE_PASSWORD_CHOOSER) return isPasswordFormDisplayed();
+        try {
+            if (isPasswordFormDisplayed()) return true;
+            if (!isPasswordlessChooserDisplayed()) return false;
+            System.out.println("🔑 v1.67 passwordless-first sign-in chooser detected — revealing the password form via 'Use my password'");
+            // Two chooser variants (live DOM 2026-09-23):
+            //  • email-entry: Email TextField present → type here, it is kept on the form.
+            //  • returning-user ("AA, Welcome back, <name>, a•••@…", no TextField; the remembered
+            //    user survives a clean reinstall via the keychain): 'Use my password' opens the
+            //    SAME form with the Email TextField PREFILLED and editable — so skip typing here;
+            //    enterEmail()/emailFieldHolds() reconcile the value on the form afterwards.
+            //    ('Not <name>? Sign in as someone else' returns to the email-entry variant.)
+            if (emailOrNull != null && !emailOrNull.isEmpty()) {
+                if (existsNow(AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' AND visible == 1"))) {
+                    typeEmailOnChooser(emailOrNull);
+                } else {
+                    System.out.println("   returning-user chooser (Welcome back) — no email field here; the password form comes prefilled");
+                }
+            }
+            // The keyboard covers the lower half of the screen where 'Use my password' sits.
+            // 2026-09-23 run 3: a coordinate press with the keyboard still up hit the 'g' key
+            // instead — dismiss with the full 4-strategy cascade, VERIFY it is gone, and let
+            // pressUseMyPassword() refuse to coordinate-tap while a keyboard is present.
+            if (existsNow(KEYBOARD_BY)) {
+                try { dismissKeyboard(); } catch (Exception ignored) { }
+                if (!isElementGone(KEYBOARD_BY, 2)) {
+                    System.out.println("   ⚠️ keyboard still up after dismiss cascade — will press 'Use my password' by element, not by coordinates");
+                } else {
+                    sleep(300); // layout settles after the keyboard slides away
+                }
+            }
+            for (int attempt = 1; attempt <= 3; attempt++) {
+                if (!pressUseMyPassword(attempt)) {
+                    System.out.println("   ⚠️ 'Use my password' not found by any strategy (attempt " + attempt + ")");
+                    break;
+                }
+                boolean revealed = withImplicitWait(0, () -> com.egalvanic.utils.Waits.until(
+                        () -> !driver.findElements(PASSWORD_FORM_BY).isEmpty(), 4000));
+                if (revealed) {
+                    System.out.println("   ✓ password form revealed (attempt " + attempt + ")");
+                    sleep(300); // let the field/button finish animating in
+                    if (emailOrNull != null && !emailOrNull.isEmpty() && !emailFieldHolds(emailOrNull)) {
+                        System.out.println("   ℹ️ form email differs from the target address — it will be retyped");
+                    }
+                    return true;
+                }
+                System.out.println("   🔁 password form not rendered after press " + attempt + " — retrying with another press method");
+            }
+            System.out.println("   ❌ 'Use my password' pressed but no password form appeared");
+            return isPasswordFormDisplayed();
+        } catch (Exception e) {
+            System.out.println("⚠️ revealPasswordFormIfNeeded failed (non-fatal): " + e.getMessage());
+            return isPasswordFormDisplayed();
+        }
+    }
+
+    /** Type + verify the email on the chooser's single TextField (2 attempts). */
+    private void typeEmailOnChooser(String email) {
+        if (!existsNow(AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeTextField' AND visible == 1"))) return;
+        for (int attempt = 1; attempt <= 2; attempt++) {
+            try {
+                WebElement field = driver.findElement(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeTextField' AND visible == 1"));
+                try { field.click(); } catch (Exception ignored) { }
+                sleep(300);
+                try { field.clear(); } catch (Exception ignored) { }
+                field.sendKeys(email);
+                sleep(500);
+                if (emailFieldHolds(email)) {
+                    System.out.println("   ✓ email typed on the chooser");
+                    return;
+                }
+                System.out.println("   ⚠️ chooser email attempt " + attempt + " did not stick — retrying");
+            } catch (Exception e) {
+                System.out.println("   ⚠️ chooser email attempt " + attempt + " threw: " + e.getMessage());
+            }
+            sleep(500);
+        }
+    }
+
+    /** One press of 'Use my password' using the strategy cascade; press method varies per attempt. */
+    private boolean pressUseMyPassword(int attempt) {
+        WebElement target = withImplicitWait(0, () -> {
+            for (org.openqa.selenium.By by : USE_MY_PASSWORD_STRATEGIES) {
+                try {
+                    List<WebElement> found = driver.findElements(by);
+                    for (WebElement w : found) {
+                        try {
+                            if (w.getRect().getHeight() > 0) return w;
+                        } catch (Exception ignored) { }
+                    }
+                } catch (Exception ignored) { }
+            }
+            return null;
+        });
+        if (target == null) return false;
+        try {
+            org.openqa.selenium.Rectangle r = target.getRect();
+            int cx = r.x + r.width / 2, cy = r.y + r.height / 2;
+            boolean keyboardUp = existsNow(KEYBOARD_BY);
+            if (keyboardUp || attempt == 2) {
+                // Never blind-tap coordinates under an open keyboard (it types a letter into
+                // the focused field). Element click lets XCUITest resolve the real hit point.
+                target.click();
+                System.out.println("   'Use my password' → element.click()" + (keyboardUp ? " (keyboard up)" : ""));
+            } else if (attempt == 3) {
+                performTap(cx, cy);
+                System.out.println("   'Use my password' → W3C tap (" + cx + "," + cy + ")");
+            } else {
+                driver.executeScript("mobile: tap", java.util.Map.of("x", cx, "y", cy));
+                System.out.println("   'Use my password' → coordinate press (" + cx + "," + cy + ")");
+            }
+            return true;
+        } catch (Exception e) {
+            System.out.println("   ⚠️ press attempt " + attempt + " threw: " + e.getMessage());
+            try { target.click(); return true; } catch (Exception ignored) { }
+            return false;
+        }
+    }
+
     /**
      * FAST: Wait for login page (3 seconds max)
      */
@@ -165,6 +391,15 @@ public class LoginPage extends BasePage {
         // present, SecureTextField absent), we'd otherwise type the EMAIL
         // into the Company Code field. Wait up to 25 s for the Login screen
         // to actually render before touching anything.
+        // v1.67: the chooser has the email field but no password form yet —
+        // type here, reveal the form (the value is kept), and we are done.
+        if (isPasswordlessChooserDisplayed()) {
+            revealPasswordFormIfNeeded(email);
+            if (emailFieldHolds(email)) {
+                System.out.println("✅ Email entered on the v1.67 sign-in chooser");
+                return;
+            }
+        }
         try {
             WebDriverWait safetyWait = new WebDriverWait(driver, Duration.ofSeconds(25));
             safetyWait.pollingEvery(Duration.ofMillis(400));
@@ -231,6 +466,7 @@ public class LoginPage extends BasePage {
     }
 
     public void enterPassword(String password) {
+        revealPasswordFormIfNeeded(null); // v1.67: chooser → password form
         // v1.36 (changelog 075): on iOS 18.5 CI runners the SecureTextField
         // has visible=false (iOS security behaviour) which makes
         // waitForClickable time out. Try a direct find+click first, falling
@@ -319,6 +555,11 @@ public class LoginPage extends BasePage {
      * Safe to call even if the checkbox doesn't exist (older app versions).
      */
     public void acceptTermsIfPresent() {
+        revealPasswordFormIfNeeded(null); // v1.67: consent text lives on the password form
+        if (isConsentImplicit()) {
+            System.out.println("ℹ️ v1.67: consent is implicit ('By signing in, you agree to our Terms & Conditions and Privacy Policy') — no checkbox to tick");
+            return;
+        }
         // CRITICAL: Dismiss keyboard first! After enterPassword(), the keyboard covers the
         // T&C checkbox area at the bottom of the login screen. Elements behind the keyboard
         // are not "visible" in iOS accessibility, so all visible-based searches fail.
@@ -588,6 +829,7 @@ public void clickShowPassword() {
      * Tap Sign In button - Multiple approaches for reliability
      */
     public void tapSignIn() {
+        revealPasswordFormIfNeeded(null); // v1.67: Sign In only exists on the revealed password form
         dismissKeyboard();
         shortWait();
 
@@ -990,9 +1232,15 @@ public void clickShowPassword() {
                 "type == 'XCUIElementTypeTextField' AND visible == 1")).isEmpty()
             && (!driver.findElements(io.appium.java_client.AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeSecureTextField'")).isEmpty()
-                || !driver.findElements(io.appium.java_client.AppiumBy.accessibilityId("Sign In")).isEmpty()),
+                || !driver.findElements(io.appium.java_client.AppiumBy.accessibilityId("Sign In")).isEmpty()
+                || !driver.findElements(CHOOSER_MARKER_BY).isEmpty()),
             3000));
-        enterEmail(email);
+        // v1.67: passwordless-first chooser → type the email there and press
+        // "Use my password"; enterEmail() is only needed if the value was lost.
+        boolean revealed = revealPasswordFormIfNeeded(email);
+        if (!(revealed && emailFieldHolds(email))) {
+            enterEmail(email);
+        }
         // Settle before password tap: poll for the password field itself (3s cap)
         // instead of a fixed 500ms — enterPassword() taps it next.
         withImplicitWait(0, () -> com.egalvanic.utils.Waits.until(() ->

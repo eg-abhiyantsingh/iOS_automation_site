@@ -348,6 +348,16 @@ public class AppConstants {
     /** v1.63 "Set Up Two-Factor Authentication" prompt: tap "Set up later". Set false to leave it on screen. */
     public static final boolean SKIP_MFA_SETUP_PROMPT =
             !"false".equalsIgnoreCase(getEnv("SKIP_MFA_SETUP_PROMPT", "true"));
+
+    /**
+     * v1.67 (changelog 178): after the company code the app renders a
+     * passwordless-first chooser (Sign in with a passkey / Continue with Google /
+     * Email me a code / Use my password) with NO password field or Sign In
+     * button until "Use my password" is pressed. LoginPage reveals the password
+     * form automatically. Kill switch: HANDLE_PASSWORD_CHOOSER=false.
+     */
+    public static final boolean HANDLE_PASSWORD_CHOOSER = Boolean.parseBoolean(
+            getEnv("HANDLE_PASSWORD_CHOOSER", "true"));
     public static final boolean ACCEPT_POLICY_UPDATE = Boolean.parseBoolean(
         getEnv("ACCEPT_POLICY_UPDATE", "true"));
     

@@ -719,14 +719,54 @@ public abstract class BasePage {
                 return false;
             }
 
-            try {
-                later.click();
-            } catch (Exception clickEx) {
-                org.openqa.selenium.Rectangle r = later.getRect();
-                driver.executeScript("mobile: tap",
-                        java.util.Map.of("x", r.x + r.width / 2, "y", r.y + r.height / 2));
+            // v1.67 (changelog 178): element.click() on 'Set up later' is a silent
+            // no-op on this build (probe 2026-09-23: prompt unchanged across 3
+            // snapshots after click()). Coordinate press FIRST, then verify the
+            // title is gone; fall back to click() and a W3C tap, verifying each.
+            final By mfaTitle = AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND label == 'Set Up Two-Factor Authentication'");
+            boolean gone = false;
+            for (int attempt = 1; attempt <= 3 && !gone; attempt++) {
+                try {
+                    org.openqa.selenium.Rectangle r = later.getRect();
+                    int cx = r.x + r.width / 2, cy = r.y + r.height / 2;
+                    if (attempt == 2) {
+                        later.click();
+                    } else if (attempt == 3) {
+                        org.openqa.selenium.interactions.PointerInput finger =
+                                new org.openqa.selenium.interactions.PointerInput(
+                                        org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
+                        org.openqa.selenium.interactions.Sequence tap =
+                                new org.openqa.selenium.interactions.Sequence(finger, 1)
+                                .addAction(finger.createPointerMove(Duration.ZERO,
+                                        org.openqa.selenium.interactions.PointerInput.Origin.viewport(), cx, cy))
+                                .addAction(finger.createPointerDown(org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()))
+                                .addAction(finger.createPointerUp(org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+                        ((org.openqa.selenium.interactions.Interactive) driver).perform(java.util.List.of(tap));
+                    } else {
+                        driver.executeScript("mobile: tap", java.util.Map.of("x", cx, "y", cy));
+                    }
+                } catch (Exception pressEx) {
+                    System.out.println("   ⚠️ 'Set up later' press " + attempt + " threw: " + pressEx.getMessage());
+                }
+                gone = isElementGone(mfaTitle, 3);
+                if (!gone) {
+                    System.out.println("   🔁 MFA prompt still up after press " + attempt + " — retrying with another press method");
+                    try {
+                        later = withImplicitWait(0, () -> {
+                            java.util.List<WebElement> b = driver.findElements(AppiumBy.iOSNsPredicateString(
+                                    "type == 'XCUIElementTypeButton' AND label == 'Set up later'"));
+                            return b.isEmpty() ? null : b.get(0);
+                        });
+                        if (later == null) break;
+                    } catch (Exception ignored) { break; }
+                }
             }
-            sleep(800); // let the next screen (site picker / chooser / dashboard) push in
+            if (!gone) {
+                System.out.println("   ❌ 'Set up later' did not dismiss the two-factor prompt after 3 presses");
+                return false;
+            }
+            sleep(500); // let the next screen (site picker / chooser / dashboard) push in
             System.out.println("   ✓ MFA setup skipped — continuing to the site flow");
             return true;
         } catch (Exception e) {

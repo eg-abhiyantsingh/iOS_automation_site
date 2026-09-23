@@ -750,8 +750,16 @@ public class BaseTest {
     protected final void performLogin() {
         System.out.println("🔐 Performing login...");
 
-        // Enter company code - wait for login page to appear
-        welcomePage.submitCompanyCode(AppConstants.VALID_COMPANY_CODE);
+        // Enter company code - wait for login page to appear.
+        // v1.67 (changelog 178): only when the company-code screen is actually up —
+        // the LOGIN_PAGE branch (sign-in chooser / password form) has a TextField too,
+        // and typing the company code into the EMAIL field then pressing a Continue
+        // that does not exist was a guaranteed 10s timeout.
+        if (welcomePage.isCompanyCodeScreenNow()) {
+            welcomePage.submitCompanyCode(AppConstants.VALID_COMPANY_CODE);
+        } else {
+            System.out.println("   (already past the company-code screen — skipping Continue)");
+        }
         loginPage.waitForPageReady();
 
         // Enter credentials and login (Save Password popup is handled inside login())
@@ -841,6 +849,15 @@ public class BaseTest {
                 if (welcomePage.isContinueButtonDisplayed()) {
                     System.out.println("   → Welcome Page (Company Code)");
                     return "WELCOME_PAGE";
+                }
+            } catch (Exception e) {}
+
+            // v1.67: passwordless-first sign-in chooser (Email + 'Use my password') —
+            // no Sign In button yet, but it IS the login page. Wait-0 probe.
+            try {
+                if (loginPage.isPasswordlessChooserDisplayed()) {
+                    System.out.println("   → Login Page (v1.67 sign-in chooser)");
+                    return "LOGIN_PAGE";
                 }
             } catch (Exception e) {}
 

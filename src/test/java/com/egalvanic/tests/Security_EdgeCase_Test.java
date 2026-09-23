@@ -51,9 +51,14 @@ public final class Security_EdgeCase_Test extends BaseTest {
         }
     }
 
-    /** Welcome screen has no SecureTextField — its presence means we reached Login. */
+    /**
+     * Welcome screen has no SecureTextField — its presence means we reached Login.
+     * v1.67 (changelog 178): the login page first renders as the passwordless
+     * chooser (Email + 'Use my password'); that counts as reached too — the
+     * page object reveals the password form on the first credential action.
+     */
     private boolean reachedLoginScreen() {
-        return loginPage.isPasswordFieldDisplayed();
+        return loginPage.isPasswordlessChooserDisplayed() || loginPage.isPasswordFieldDisplayed();
     }
 
     /**

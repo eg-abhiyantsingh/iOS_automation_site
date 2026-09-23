@@ -188,6 +188,22 @@ public class WelcomePage extends BasePage {
         }
     }
 
+    /**
+     * Wait-0 probe: is the company-code screen (Welcome title OR Continue button)
+     * the current surface? Used by BaseTest.performLogin to skip the company-code
+     * step when the app is already on the v1.67 sign-in chooser / login form.
+     */
+    public boolean isCompanyCodeScreenNow() {
+        try {
+            return withImplicitWait(0, () ->
+                !driver.findElements(io.appium.java_client.AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND name == 'Welcome'")).isEmpty()
+                || !driver.findElements(io.appium.java_client.AppiumBy.accessibilityId("Continue")).isEmpty());
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     /** True while the Welcome (company-code) screen is still the current screen. */
     public boolean isStillOnWelcome() {
         try {
@@ -220,8 +236,21 @@ public class WelcomePage extends BasePage {
         // dismissed each time) before letting the caller fail — this is the
         // single point where a stranded Welcome poisons an ENTIRE run.
         for (int attempt = 1; attempt <= 2 && isStillOnWelcome(); attempt++) {
+            // v1.67 (changelog 178): the first press on a virgin install can still be
+            // validating when this loop starts; if Continue has already gone, the screen
+            // is transitioning — re-pressing would wait 10s for a button that never
+            // returns and throw (the 2026-09-23 canary died exactly here).
+            if (!existsNow(io.appium.java_client.AppiumBy.accessibilityId("Continue"))) {
+                System.out.println("   (Continue already gone — Welcome is transitioning, not stranded)");
+                break;
+            }
             System.out.println("🔁 Still on Welcome after Continue — re-pressing (attempt " + attempt + "/2)");
-            clickContinue();
+            try {
+                clickContinue();
+            } catch (Exception movedOn) {
+                System.out.println("   (Continue vanished mid-retry — screen moved on)");
+                break;
+            }
             sleepQuietly(4000);
         }
         // Precise diagnosis: a stranded APP-LEVEL offline flag (persisted via

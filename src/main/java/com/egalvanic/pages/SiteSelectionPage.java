@@ -949,6 +949,29 @@ public class SiteSelectionPage extends BasePage {
                 }
             } catch (Exception ignored) { }
             if (continued) {
+                // v1.67 (changelog 178): element.click() can be a silent no-op on this
+                // build's SwiftUI buttons — verify the title is gone, else press by
+                // coordinates and verify again.
+                org.openqa.selenium.By chooserTitle = AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND label == 'Choose your experience'");
+                if (!isElementGone(chooserTitle, 3)) {
+                    System.out.println("   🔁 'Choose your experience' still up after click() — coordinate press");
+                    try {
+                        WebElement cont2 = withImplicitWait(0, () -> {
+                            java.util.List<WebElement> btns = driver.findElements(AppiumBy.iOSNsPredicateString(
+                                    "type == 'XCUIElementTypeButton' AND label == 'Continue' AND visible == 1"));
+                            return btns.isEmpty() ? null : btns.get(0);
+                        });
+                        if (cont2 != null) {
+                            org.openqa.selenium.Rectangle r = cont2.getRect();
+                            driver.executeScript("mobile: tap",
+                                    java.util.Map.of("x", r.x + r.width / 2, "y", r.y + r.height / 2));
+                        }
+                    } catch (Exception ignored) { }
+                    continued = isElementGone(chooserTitle, 3);
+                }
+            }
+            if (continued) {
                 System.out.println("   ✓ Continue tapped — experience chosen, proceeding to site flow");
                 sleep(800); // let the next screen (site picker / dashboard) push in
             } else {
