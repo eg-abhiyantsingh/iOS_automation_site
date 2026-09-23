@@ -7293,6 +7293,49 @@ public class BuildingPage extends BasePage {
     // The ellipsis is U+2026, so every locator matches on the PREFIX and never
     // on an ASCII "..." — the same trap the asset-engineer "Select…" rows sprang.
 
+
+    /** Dismiss the on-screen keyboard (mirrors AssetPage#dismissKeyboard — BasePage has no shared
+     *  variant because the page classes disagree on its return type). Standing rule: never tap
+     *  Create/Save with the keyboard up; a covered button is the classic silent-save failure. */
+    public void dismissKeyboard() {
+        // Strategy 1: Try Done/Return button on keyboard toolbar
+        try {
+            WebElement doneButton = driver.findElement(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND (name == 'Done' OR name == 'Return' OR name == 'return')")
+            );
+            doneButton.click();
+            System.out.println("✅ Keyboard dismissed (Done/Return button)");
+            return;
+        } catch (Exception e) {}
+        
+        // Strategy 2: Try Appium hideKeyboard
+        try {
+            driver.hideKeyboard();
+            System.out.println("✅ Keyboard dismissed (hideKeyboard)");
+            return;
+        } catch (Exception e) {}
+        
+        // Strategy 3: Tap outside keyboard area (safe zone at top)
+        try {
+            int screenWidth = driver.manage().window().getSize().width;
+            driver.executeScript("mobile: tap", Map.of("x", screenWidth / 2, "y", 100));
+            System.out.println("✅ Keyboard dismissed (tap outside)");
+            return;
+        } catch (Exception e) {}
+        
+        // Strategy 4: Press keyboard key to confirm (Enter/Return on keyboard)
+        try {
+            WebElement keyboardKey = driver.findElement(
+                AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeKey' AND (name CONTAINS 'Return' OR name CONTAINS 'return' OR name CONTAINS 'Go' OR name CONTAINS 'Next')")
+            );
+            keyboardKey.click();
+            System.out.println("✅ Keyboard dismissed (keyboard key)");
+            return;
+        } catch (Exception e) {}
+        
+        System.out.println("⚠️ Keyboard may still be open - all dismiss strategies exhausted");
+    }
+
     /** v1.63 copy, exactly as shipped. */
     public static final String V163_NEW_BUILDING   = "New Building…";
     public static final String V163_NEW_FLOOR      = "New Floor…";
@@ -7381,7 +7424,7 @@ public class BuildingPage extends BasePage {
     }
 
     /** The form's primary action (Create/Save/Done), whichever this build ships. */
-    private WebElement createButton() {
+    private WebElement v163CreateButton() {
         By by = AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND "
                 + "(label == 'Create' OR name == 'Create' OR label == 'Save' OR name == 'Save' OR label == 'Done')");
         return withImplicitWait(0, () -> {
@@ -7391,14 +7434,14 @@ public class BuildingPage extends BasePage {
     }
 
     public boolean isCreateEnabled() {
-        WebElement b = createButton();
+        WebElement b = v163CreateButton();
         if (b == null) return false;
         String en = b.getAttribute("enabled");
         return en == null || "true".equals(en);
     }
 
     public boolean tapCreate() {
-        WebElement b = createButton();
+        WebElement b = v163CreateButton();
         if (b == null) { System.out.println("⚠️ Create/Save button not found"); return false; }
         dismissKeyboard();
         try { b.click(); } catch (Exception e) {
