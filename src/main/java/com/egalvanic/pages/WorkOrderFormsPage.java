@@ -583,6 +583,23 @@ public class WorkOrderFormsPage extends BasePage {
         }
     }
 
+    /** Tap the nav-zone '+' (Add Form) control. False when it is not on screen. */
+    public boolean tapAddFormControl() {
+        try {
+            WebElement plus = withImplicitWait(0, () -> {
+                List<WebElement> l = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND name == 'plus' AND visible == 1"));
+                return l.isEmpty() ? null : l.get(0);
+            });
+            if (plus == null) return false;
+            plus.click();
+            return true;
+        } catch (Exception e) {
+            System.out.println("⚠️ tapAddFormControl: " + e.getMessage());
+            return false;
+        }
+    }
+
     /** Nav-zone control presence (Back / trash / square.and.pencil / checkmark / plus). */
     public boolean isFormControlPresent(String controlName) {
         return existsNow(AppiumBy.iOSNsPredicateString(

@@ -7344,6 +7344,12 @@ public class BuildingPage extends BasePage {
     public static final String V163_NAME_REQUIRED  = "Building name is required";
     public static final String V163_FLOOR_OPTIONAL = "Floor (Optional)";
     public static final String V163_ROOM_OPTIONAL  = "Room (Optional)";
+    public static final String V163_SELECT_BUILDING   = "Select Building";
+    public static final String V163_SELECT_FLOOR      = "Select Floor";
+    public static final String V163_ADD_FLOOR_OPTIONAL= "Add floor (optional)";
+    public static final String V163_NEW_ROOM          = "New Room";
+    public static final String V163_ADD_ROOM          = "Add Room";
+    public static final String V163_FLOOR_PICK_HINT   = "Name a new floor, or pick an existing one to add a room to.";
 
     /** Any element whose name/label STARTS WITH the given text (ellipsis-safe). */
     private By startsWith(String text) {

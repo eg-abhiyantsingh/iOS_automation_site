@@ -1113,8 +1113,22 @@ public class AssetPage extends BasePage {
      */
     public void scrollToIssuesSection() {
         System.out.println("📜 Scrolling to Issues section...");
+        // Probe 2026-09-21 (1.63): the 'Issues' section header sits ~3,300pt down the details form —
+        // twelve blind swipes stopped at y≈1263 and reported "not found". Ask XCUITest to scroll the
+        // header into view directly; the swipe loop below remains the fallback.
+        try {
+            driver.executeScript("mobile: scroll", java.util.Map.of(
+                    "predicateString", "type == 'XCUIElementTypeStaticText' AND label == 'Issues'"));
+            sleep(400);
+            WebElement hdr = driver.findElement(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND label == 'Issues' AND visible == 1"));
+            System.out.println("✅ Issues section scrolled into view (predicate scroll) at y=" + hdr.getLocation().getY());
+            return;
+        } catch (Exception e) {
+            System.out.println("   predicate scroll to 'Issues' did not land — falling back to swipes");
+        }
         
-        for (int i = 0; i < 12; i++) {
+        for (int i = 0; i < 24; i++) {
             try {
                 // Check if Issues label is visible and in a good position (y between 300-600)
                 WebElement issuesLabel = driver.findElement(
@@ -1125,7 +1139,7 @@ public class AssetPage extends BasePage {
                 System.out.println("   Found Issues at y=" + y);
                 
                 // Issues should be in middle of screen (y between 300-600 for optimal clicking)
-                if (y >= 300 && y <= 650) {
+                if (y >= 100 && y <= 800) {   // probe 1.63: header lands at y≈150 after the section scrolls in
                     System.out.println("✅ Found Issues section at good position (y=" + y + ")");
                     sleep(200);
                     return;
@@ -13526,6 +13540,125 @@ public class AssetPage extends BasePage {
                  + "(value CONTAINS[c] 'search' OR name CONTAINS[c] 'search' OR label CONTAINS[c] 'search')"));
     }
 
+
+    /** Any visible element carrying exactly this text (name or label). */
+    public boolean isTextPresentOnScreen(String text) {
+        return existsNow(AppiumBy.iOSNsPredicateString(
+                "visible == 1 AND (label ==[c] '" + text + "' OR name ==[c] '" + text + "')"));
+    }
+
+    /** Tap a visible 'Cancel' if there is one (sheet / picker dismissal). */
+    public boolean tapCancelIfPresent() {
+        try {
+            List<WebElement> l = withImplicitWait(0, () -> driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND visible == 1 AND (label == 'Cancel' OR name == 'Cancel')")));
+            if (l.isEmpty()) return false;
+            l.get(0).click(); sleep(500); return true;
+        } catch (Exception e) { return false; }
+    }
+
+    // ── v1.56 asset Issues SECTION (ZP-3928 §2) — probe 1.63: «Issues» «(N)» + «Filter» + «Add», rows = Buttons ──
+    /** N from the section header's "(N)" StaticText (next to the 'Issues' label), or -1 when the header is off screen. */
+    public int assetIssuesHeaderCount() {
+        try {
+            return withImplicitWait(0, () -> {
+                List<WebElement> hdr = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND visible == 1 AND label == 'Issues'"));
+                if (hdr.isEmpty()) return -1;
+                int hy = hdr.get(0).getLocation().getY();
+                for (WebElement t : driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND visible == 1 AND label BEGINSWITH '(' AND label ENDSWITH ')'"))) {
+                    if (Math.abs(t.getLocation().getY() - hy) <= 12) {
+                        return Integer.parseInt(t.getAttribute("label").replaceAll("[()]", "").trim());
+                    }
+                }
+                return 0;   // header without a count = no issues
+            });
+        } catch (Exception e) { return -1; }
+    }
+
+    /** Issue rows listed under the section header (Buttons whose composite ends with a status). */
+    public int assetIssueRowCount() {
+        try {
+            return withImplicitWait(0, () -> {
+                List<WebElement> hdr = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND visible == 1 AND label == 'Issues'"));
+                int hy = hdr.isEmpty() ? 0 : hdr.get(0).getLocation().getY();
+                int n = 0;
+                for (WebElement b : driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND visible == 1 AND (label ENDSWITH ', Open' OR label ENDSWITH ', Resolved' "
+                      + "OR label ENDSWITH ', Closed' OR label ENDSWITH ', In Progress' OR label ENDSWITH ', Pending')"))) {
+                    if (b.getLocation().getY() > hy) n++;
+                }
+                return n;
+            });
+        } catch (Exception e) { return -1; }
+    }
+
+    /** Tap the section's 'Filter' button (the one on the Issues header row). */
+    public boolean tapAssetIssuesFilter() {
+        try {
+            return Boolean.TRUE.equals(withImplicitWait(0, () -> {
+                List<WebElement> hdr = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND visible == 1 AND label == 'Issues'"));
+                if (hdr.isEmpty()) return false;
+                int hy = hdr.get(0).getLocation().getY();
+                for (WebElement f : driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND visible == 1 AND (label == 'Filter' OR name == 'Filter')"))) {
+                    if (Math.abs(f.getLocation().getY() - hy) <= 16) { f.click(); sleep(600); return true; }
+                }
+                return false;
+            }));
+        } catch (Exception e) { return false; }
+    }
+
+    private static final String[] ISSUE_FILTER_OPTIONS = {"All", "Show All Issues", "Open", "In Progress", "Pending", "Resolved", "Closed"};
+
+    /** Status options visible in the open Filter menu, in the build's order. */
+    public List<String> visibleIssueFilterOptions() {
+        List<String> out = new java.util.ArrayList<>();
+        for (String o : ISSUE_FILTER_OPTIONS) {
+            if (existsNow(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeMenuItem' OR type == 'XCUIElementTypeCell' "
+                  + "OR type == 'XCUIElementTypeStaticText') AND visible == 1 AND (label ==[c] '" + o + "' OR name ==[c] '" + o + "')"))) out.add(o);
+        }
+        return out;
+    }
+
+    /** The option the menu marks as current (selected attribute / value 1 / checkmark sibling), or null. */
+    public String currentIssueFilterOption() {
+        for (String o : ISSUE_FILTER_OPTIONS) {
+            try {
+                for (WebElement e : withImplicitWait(0, () -> driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "visible == 1 AND (label ==[c] '" + o + "' OR name ==[c] '" + o + "' OR label BEGINSWITH '" + o + ", ')")))) {
+                    String lbl = e.getAttribute("label");
+                    if ("true".equals(e.getAttribute("selected")) || "1".equals(e.getAttribute("value"))
+                            || (lbl != null && lbl.toLowerCase().contains("selected"))) return o;
+                }
+            } catch (Exception ignored) { }
+        }
+        return null;
+    }
+
+    public boolean chooseIssueFilterOption(String option) {
+        try {
+            List<WebElement> l = withImplicitWait(0, () -> driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeMenuItem' OR type == 'XCUIElementTypeCell' "
+                  + "OR type == 'XCUIElementTypeStaticText') AND visible == 1 AND (label ==[c] '" + option + "' OR name ==[c] '" + option + "')")));
+            if (l.isEmpty()) return false;
+            l.get(0).click(); sleep(600); return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /** Close an open menu/sheet without choosing. */
+    public boolean dismissMenuIfOpen() {
+        if (tapCancelIfPresent()) return true;
+        try {
+            org.openqa.selenium.Dimension d = driver.manage().window().getSize();
+            driver.executeScript("mobile: tap", java.util.Map.of("x", d.getWidth() / 2, "y", 70));
+            sleep(400); return true;
+        } catch (Exception e) { return false; }
+    }
 
     // ── v1.56 asset Issues section filter chips (ZP-3928 §2) ──────────────
     private By issueFilterChip(String name) {

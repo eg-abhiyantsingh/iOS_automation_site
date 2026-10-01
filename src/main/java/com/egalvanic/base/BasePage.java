@@ -824,6 +824,37 @@ public abstract class BasePage {
               + "(label ==[c] '" + label + "' OR name ==[c] '" + label + "')"));
     }
 
+    /** Long-press at screen coordinates (for rows that expose no tappable element of their own). */
+    protected boolean longPressAt(int x, int y, double seconds) {
+        try {
+            driver.executeScript("mobile: touchAndHold", java.util.Map.of("x", x, "y", y, "duration", seconds));
+            sleep(600);
+            return true;
+        } catch (Exception scriptFailed) {
+            try {
+                org.openqa.selenium.interactions.PointerInput finger =
+                        new org.openqa.selenium.interactions.PointerInput(
+                                org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
+                org.openqa.selenium.interactions.Sequence seq =
+                        new org.openqa.selenium.interactions.Sequence(finger, 0);
+                seq.addAction(finger.createPointerMove(java.time.Duration.ZERO,
+                        org.openqa.selenium.interactions.PointerInput.Origin.viewport(), x, y));
+                seq.addAction(finger.createPointerDown(
+                        org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+                seq.addAction(new org.openqa.selenium.interactions.Pause(finger,
+                        java.time.Duration.ofMillis((long) (seconds * 1000))));
+                seq.addAction(finger.createPointerUp(
+                        org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+                driver.perform(java.util.List.of(seq));
+                sleep(600);
+                return true;
+            } catch (Exception e) {
+                System.out.println("⚠️ longPressAt(" + x + "," + y + ") failed: " + e.getMessage());
+                return false;
+            }
+        }
+    }
+
     /** Tap a context-menu / action-sheet item by exact label. */
     protected boolean tapMenuItem(String label) {
         try {

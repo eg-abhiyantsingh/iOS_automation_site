@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="Local breadth-first sweep (1 per module)" verbose="1">
+  <test name="breadth">
+    <classes>
+      <class name="com.egalvanic.tests.AuthenticationTest">
+        <methods><include name="TC01_verifyWelcomeScreenUILoads"/></methods>
+      </class>
+      <class name="com.egalvanic.tests.SiteSelectionTest">
+        <methods><include name="TC_SS_001_verifySelectSiteScreenUIElements"/></methods>
+      </class>
+      <class name="com.egalvanic.tests.Asset_Phase1_Test">
+        <methods><include name="ATS_ECR_01_verifyNewAssetScreenLoadsSuccessfully"/></methods>
+      </class>
+      <class name="com.egalvanic.tests.Asset_Phase3_Test">
+        <methods><include name="LC_EAD_01_openEditAssetDetailsScreen"/></methods>
+      </class>
+      <class name="com.egalvanic.tests.Issue_Phase1_Test">
+        <methods><include name="TC_ISS_001_verifyIssuesScreenHeaderElements"/></methods>
+      </class>
+      <class name="com.egalvanic.tests.Issue_Phase2_Test">
+        <methods><include name="TC_ISS_120_verifyOSHASubcategoryDropdownOptions"/></methods>
+      </class>
+      <class name="com.egalvanic.tests.Connections_Test">
+        <methods><include name="TC_CONN_001_verifyConnectionsTabInBottomNavigation"/></methods>
+      </class>
+      <class name="com.egalvanic.tests.SiteVisit_phase1">
+        <methods><include name="TC_JOB_001_verifyNoActiveJobCardOnDashboard"/></methods>
+      </class>
+      <class name="com.egalvanic.tests.WorkOrderPlanning_Test">
+        <methods><include name="TC_WOP_001_verifyWorkOrdersScreenReachable"/></methods>
+      </class>
+      <class name="com.egalvanic.tests.LocationTest">
+        <methods><include name="TC_NB_001_verifyNewBuildingScreenUIElements"/></methods>
+      </class>
+      <class name="com.egalvanic.tests.OfflineTest">
+        <methods><include name="TC_OFF_001_verifyGoOfflineButtonOnSiteDashboard"/></methods>
+      </class>
+      <class name="com.egalvanic.tests.ZP323_NewFeatures_Test">
+        <methods><include name="TC_ZP323_06_01_verifySuggestedShortcutsSectionVisibleOnEdit"/></methods>
+      </class>
+      <class name="com.egalvanic.tests.Security_EdgeCase_Test">
+        <methods><include name="TC_SEC_001_sqlInjectionInCompanyCodeIsRejected"/></methods>
+      </class>
+      <class name="com.egalvanic.tests.SettingsSessionRecording_Test">
+        <methods><include name="TC_SET_001_sessionRecordingIsOffAfterFreshInstallLogin"/></methods>
+      </class>
+      <class name="com.egalvanic.tests.EngineeringStatusSync_Test">
+        <methods><include name="TC_ES_020_noEngineeringStatusUiOnAssetEditScreen"/></methods>
+      </class>
+      <class name="com.egalvanic.tests.ZP3927_Locations_Test">
+        <methods><include name="TC_LV_01_locationViewOpens"/></methods>
+      </class>
+      <class name="com.egalvanic.tests.ZP3927_UnlinkIssue_Test">
+        <methods><include name="TC_UL_01_longPressOffersUnlink"/></methods>
+      </class>
+      <class name="com.egalvanic.tests.ZP3928_IssuePhotoFilter_Test">
+        <methods><include name="TC_IF_01_withPhotosFilterIsThere"/></methods>
+      </class>
+      <class name="com.egalvanic.tests.ZP3928_AssetIssuesDefault_Test">
+        <methods><include name="TC_AI_01_defaultFilterIsAll"/></methods>
+      </class>
+      <class name="com.egalvanic.tests.ZP3928_IssueWorkOrderLink_Test">
+        <methods><include name="TC_ILW_01_linkCardIsOnTheIssueScreen"/></methods>
+      </class>
+      <class name="com.egalvanic.tests.ZP3928_NumberPadDecimal_Test">
+        <methods><include name="TC_NPD_02_problemTempKeepsItsDecimal"/></methods>
+      </class>
+      <class name="com.egalvanic.tests.ZP3928_Misc_Test">
+        <methods><include name="TC_CDT_01_searchBarIsInTheCopyToPicker"/></methods>
+      </class>
+    </classes>
+  </test>
+</suite>

@@ -12465,26 +12465,62 @@ public class IssuePage extends BasePage {
     // path "Issue unlink queued for sync".
     public static final String MENU_UNLINK_ISSUE = "Unlink Issue";
 
-    /** Long-press the first issue row on the current screen. */
+    /**
+     * Long-press the first issue row on the current screen.
+     *
+     * Probe (1.63, 2026-09-21): list rows are NOT labelled Cells/Buttons — each row is a cluster of
+     * StaticTexts ("NEC Violation on Busduct 90" / "Medium" / description / asset / "Open") plus a
+     * chevron Image, and the enclosing Cell carries an empty label. The old element-handle press
+     * therefore landed on a null-labelled element and no menu appeared. Press the row's TITLE text
+     * by coordinates instead; fall back to the first list-zone element handle.
+     */
     public boolean longPressFirstIssueRow() {
+        WebElement title = withImplicitWait(0, () -> {
+            java.util.List<WebElement> l = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeStaticText' AND visible == 1 AND label CONTAINS ' on '"));
+            for (WebElement e : l) {
+                try { if (e.getLocation().getY() > 250) return e; } catch (Exception ignored) { }
+            }
+            return null;
+        });
+        if (title != null) {
+            org.openqa.selenium.Rectangle r = title.getRect();
+            int x = r.x + Math.min(r.width / 2, 120), y = r.y + r.height / 2;
+            System.out.println("👆 Long-pressing issue row title '" + title.getAttribute("label") + "' at (" + x + "," + y + ")");
+            return longPressAt(x, y, 1.5);
+        }
         WebElement row = withImplicitWait(0, () -> {
             java.util.List<WebElement> l = driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "(type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeButton') AND "
-                  + "visible == 1 AND label != '' AND label CONTAINS ' on '"));
-            if (l.isEmpty()) {
-                l = driver.findElements(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeCell' AND visible == 1 AND label != ''"));
+                    "(type == 'XCUIElementTypeCell' OR type == 'XCUIElementTypeButton') AND visible == 1"));
+            for (WebElement e : l) {
+                try { if (e.getLocation().getY() > 250 && e.getSize().getHeight() > 60) return e; } catch (Exception ignored) { }
             }
-            return l.isEmpty() ? null : l.get(0);
+            return null;
         });
         if (row == null) { System.out.println("⚠️ No issue row to long-press"); return false; }
-        System.out.println("👆 Long-pressing issue row: " + row.getAttribute("label"));
-        return longPressElement(row, 1.2);
+        System.out.println("👆 Long-pressing issue row element (label '" + row.getAttribute("label") + "')");
+        return longPressElement(row, 1.5);
+    }
+
+    /** Long-press the 'All' filter tab — a deliberately NON-row target for the negative case. */
+    public boolean longPressAllTab() {
+        WebElement tab = withImplicitWait(0, () -> {
+            java.util.List<WebElement> l = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND label BEGINSWITH 'All' AND visible == 1"));
+            return l.isEmpty() ? null : l.get(0);
+        });
+        if (tab == null) return false;
+        return longPressElement(tab, 1.2);
     }
 
     public boolean isUnlinkIssueOffered() { return isMenuItemPresent(MENU_UNLINK_ISSUE); }
 
     public boolean tapUnlinkIssue() { return tapMenuItem(MENU_UNLINK_ISSUE); }
+
+    /** Tap a sheet/picker's own Cancel (or Done/Close) when one is visible. */
+    public boolean cancelSheetIfOpen() {
+        return tapText("Cancel") || tapText("Close") || tapText("Done");
+    }
 
     /** Dismiss an open context menu without choosing anything. */
     public boolean dismissContextMenu() {
@@ -12498,47 +12534,343 @@ public class IssuePage extends BasePage {
 
 
     // ── v1.56 IssueWorkOrderLinkCard (ZP-3928 §3) ─────────────────────────
-    /** The work-order link card / row on the issue screen. */
+    // Copy below is verbatim from the 1.63 binary (Z Platform-QA.debug.dylib — the hardcoded
+    // SwiftUI literals are NOT in Localizable.strings), never guessed.
+    public static final String WO_CARD_NOT_LINKED     = "Not linked to a work order";
+    public static final String WO_CARD_LINKED_PREFIX  = "linked to work order";
+    public static final String WO_CARD_SELECT         = "Select Work Order";
+    public static final String WO_CARD_CHANGE         = "Change work order";
+    public static final String WO_CARD_UNLINK         = "Unlink Work Order";
+    public static final String WO_PICKER_EMPTY        = "No Work Orders Yet";
+
+    /**
+     * The work-order link card on the issue screen — recognised by ITS OWN copy only. The previous
+     * oracle accepted any element containing "Work Order", which the issue screen satisfies even
+     * when the card is absent (e.g. a "Work Order" breadcrumb), i.e. it could not fail.
+     */
     public boolean isWorkOrderLinkCardPresent() {
-        return isAnyTextContaining("Work Order")
-            || isAnyTextContaining("Link to Work Order")
-            || isAnyTextContaining("Linked to");
+        return isAnyTextContaining(WO_CARD_NOT_LINKED)
+            || isAnyTextPresent(WO_CARD_SELECT)
+            || isAnyTextPresent(WO_CARD_CHANGE)
+            || existsNow(AppiumBy.iOSNsPredicateString(
+                   "type == 'XCUIElementTypeButton' AND visible == 1 AND label BEGINSWITH '" + WO_CARD_UNLINK + "'"));
     }
 
-    /** Tap whatever exposes the link action on that card. */
+    /** True when the card says the issue is NOT linked (the state in which linking is offered). */
+    public boolean isIssueUnlinkedFromWorkOrder() { return isAnyTextContaining(WO_CARD_NOT_LINKED); }
+
+    /** True when the card shows a linked work order (probe 1.63: 'Change work order' + 'Unlink Work Order - …'). */
+    public boolean isIssueLinkedToWorkOrder() {
+        return isAnyTextPresent(WO_CARD_CHANGE) || linkedWorkOrderName() != null;
+    }
+
+    /** Tap the card's link/select control. Returns false when the card offers no such control. */
     public boolean tapWorkOrderLinkControl() {
-        String[] labels = {"Link to Work Order", "Link Work Order", "Link", "Work Order"};
-        for (String l : labels) if (tapText(l)) return true;
+        if (tapText(WO_CARD_SELECT) || tapText(WO_CARD_CHANGE)) return true;
         try {
-            WebElement b = withImplicitWait(0, () -> {
+            WebElement card = withImplicitWait(0, () -> {
                 java.util.List<WebElement> x = driver.findElements(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeButton' AND visible == 1 AND label CONTAINS[c] 'work order'"));
+                        "visible == 1 AND (label CONTAINS[c] '" + WO_CARD_NOT_LINKED + "' OR label ==[c] '" + WO_CARD_SELECT + "')"));
                 return x.isEmpty() ? null : x.get(0);
             });
-            if (b != null) { b.click(); sleep(700); return true; }
+            if (card != null) { card.click(); sleep(700); return true; }
         } catch (Exception ignored) { }
         return false;
     }
 
-    /** Is a picker of work orders / sessions on screen? */
+    /** Is the work-order picker open? Its title or its empty state — not just any "Work Orders" text. */
     public boolean isWorkOrderPickerOpen() {
-        return isAnyTextContaining("QA-WT")
-            || isAnyTextContaining("Select Work Order")
-            || isAnyTextContaining("Work Orders");
+        return isAnyTextPresent(WO_CARD_SELECT) || isAnyTextPresent(WO_PICKER_EMPTY)
+            || existsNow(AppiumBy.iOSNsPredicateString(
+                   "type == 'XCUIElementTypeNavigationBar' AND (name ==[c] '" + WO_CARD_SELECT + "' OR label ==[c] '" + WO_CARD_SELECT + "')"));
     }
 
-    /** Name of the currently linked work order, or null when unlinked. */
+    /**
+     * Name of the linked work order, or null when unlinked. Read from the card's Unlink button, whose
+     * label folds the name in ("Unlink Work Order - Sep 16, 5:22 PM" → "Work Order - Sep 16, 5:22 PM").
+     */
     public String linkedWorkOrderName() {
         try {
-            java.util.List<WebElement> rows = withImplicitWait(0, () -> driver.findElements(
-                    AppiumBy.iOSNsPredicateString(
-                        "visible == 1 AND (label CONTAINS 'QA-WT' OR label CONTAINS[c] 'linked to')")));
-            for (WebElement r : rows) {
-                String l = r.getAttribute("label");
-                if (l != null && !l.isEmpty()) return l.trim();
+            java.util.List<WebElement> btns = withImplicitWait(0, () -> driver.findElements(
+                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND visible == 1 AND label BEGINSWITH 'Unlink '")));
+            for (WebElement b : btns) {
+                String l = b.getAttribute("label");
+                if (l == null || l.equals(MENU_UNLINK_ISSUE) || l.equals(UNLINK_CONFIRM_BUTTON)) continue;
+                String name = l.substring("Unlink ".length()).trim();
+                if (!name.isEmpty()) return name;
             }
         } catch (Exception ignored) { }
         return null;
     }
 
+    // ── small navigation helpers shared by the ZP-392x classes ───────────────
+    /** Is an issue with exactly this title visible in the Issues list (scrolls once if needed)? */
+    public boolean isIssueTitleListed(String title) {
+        String esc = title.replace("'", "\\'");
+        By by = AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeStaticText' AND visible == 1 AND label == '" + esc + "'");
+        if (existsNow(by)) return true;
+        try { driver.executeScript("mobile: scroll", java.util.Map.of("predicateString", "label == '" + esc + "'")); sleep(400); }
+        catch (Exception ignored) { }
+        return existsNow(by);
+    }
+
+    /** Public wrapper for the protected BasePage text probe. */
+    public boolean isAnyVisibleTextContaining(String text) { return isAnyTextContaining(text); }
+
+    /** A chip/pill with this text reads as selected ('selected' attribute or value 1). */
+    public boolean isChipSelected(String text) {
+        try {
+            java.util.List<WebElement> l = withImplicitWait(0, () -> driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "visible == 1 AND (label ==[c] '" + text + "' OR name ==[c] '" + text + "')")));
+            for (WebElement e : l) {
+                if ("true".equals(e.getAttribute("selected")) || "1".equals(e.getAttribute("value"))) return true;
+            }
+        } catch (Exception ignored) { }
+        return false;
+    }
+
+    /** Tap a visible element with exactly this text, if present. */
+    public boolean tapTextIfPresent(String text) { return tapText(text); }
+
+    /** Scroll the details form until the 'IR Photos' header is on screen. */
+    public boolean scrollToIrPhotosSection() {
+        for (int i = 0; i < 3 && !existsNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == 1 AND label == 'IR Photos'")); i++) {
+            try {
+                driver.executeScript("mobile: scroll", java.util.Map.of(
+                        "predicateString", "type == 'XCUIElementTypeStaticText' AND label == 'IR Photos'"));
+            } catch (Exception e) {
+                try { driver.executeScript("mobile: scroll", java.util.Map.of("direction", "down")); } catch (Exception ignored) { }
+            }
+            sleep(400);
+        }
+        return existsNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == 1 AND label == 'IR Photos'"));
+    }
+
+    // ── v1.56 photo categories (ZP-3928 §7) ──────────────────────────────────
+    /**
+     * PhotoCategoryChipsRow tokens present in the 1.63 binary. The ticket says "Other / Misc" was
+     * added; the build ships "Other" and has NO "Misc" — assert the former, record the latter.
+     */
+    public static final String[] PHOTO_CATEGORIES_163 = {
+        "Nameplate", "Visual", "Defect", "Before", "After", "Label", "Location", "Panel", "Equipment", "General", "IR", "Other"
+    };
+    public static final String PHOTO_CATEGORY_OTHER = "Other";
+    public static final String PHOTO_CATEGORY_MISC  = "Misc";
+
+    /** Category chips visible on the current screen, in the binary's declaration order. */
+    public java.util.List<String> visiblePhotoCategoryChips() {
+        java.util.List<String> out = new java.util.ArrayList<>();
+        for (String c : PHOTO_CATEGORIES_163) {
+            if (existsNow(AppiumBy.iOSNsPredicateString(
+                    "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeStaticText' OR type == 'XCUIElementTypeOther') "
+                  + "AND visible == 1 AND (label == '" + c + "' OR name == '" + c + "')"))) out.add(c);
+        }
+        return out;
+    }
+
+    // ── v1.56 number-pad support (ZP-3928 §6) ────────────────────────────────
+    /** Is the Thermal 'Problem Temp' field on the open details screen (anywhere in the lazy form)? */
+    public boolean isProblemTempFieldPresent() {
+        if (existsNow(AppiumBy.iOSNsPredicateString("label CONTAINS 'Problem Temp' OR name CONTAINS 'Problem Temp'"))) return true;
+        try {
+            driver.executeScript("mobile: scroll", java.util.Map.of(
+                    "predicateString", "type == 'XCUIElementTypeStaticText' AND label CONTAINS 'Problem Temp'"));
+            sleep(300);
+        } catch (Exception ignored) { }
+        return existsNow(AppiumBy.iOSNsPredicateString("label CONTAINS 'Problem Temp' OR name CONTAINS 'Problem Temp'"));
+    }
+
+    /** The open issue's title (the 'Title' TextField value), or null. */
+    public String openIssueTitle() {
+        try {
+            java.util.List<WebElement> f = withImplicitWait(0, () -> driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeTextField' AND visible == 1")));
+            for (WebElement e : f) {
+                String v = e.getAttribute("value");
+                if (v != null && !v.isEmpty() && !v.toLowerCase().startsWith("enter ")) return v.trim();
+            }
+        } catch (Exception ignored) { }
+        return null;
+    }
+
+    // ── v1.57 Photo Import into Issue Photos (ZP-3927 §6/§7) ─────────────────
+    // Probe 1.63 (2026-09-21): Issue Details › "Issue Photos" section = header StaticText + Gallery
+    // Button (photo.on.rectangle) + Camera Button; below it "Delete Issue". Tapping Gallery presents
+    // the system PHPicker as a full-height sheet (Other at y≈72, h≈884) whose grid is NOT in the
+    // app's accessibility tree while it loads (2 ActivityIndicators in the dump) — so the picker
+    // must be WAITED for, and its cells may only ever be addressable by coordinates.
+
+    /** True while the photo picker sheet is presented (the app's own screen is hidden behind it). */
+    public boolean isPhotoPickerSheetPresented() { return isPhotoPickerSheetPresented("Issue Photos"); }
+
+    /** Same, for any host screen: {@code appChromeLabel} is a label that is visible only when the picker is gone. */
+    public boolean isPhotoPickerSheetPresented(String appChromeLabel) {
+        boolean detailsVisible = existsNow(AppiumBy.iOSNsPredicateString(
+                "visible == 1 AND (label == '" + appChromeLabel + "' OR name == '" + appChromeLabel + "')"));
+        boolean pickerHints = existsNow(AppiumBy.iOSNsPredicateString(
+                "visible == 1 AND (label == 'Photos' OR label == 'Recents' OR label == 'All Photos' OR label == 'Albums' "
+              + "OR name == 'Photos' OR label CONTAINS 'Photo, ' OR label BEGINSWITH 'Photo,')"));
+        return pickerHints || !detailsVisible;
+    }
+
+    /** Wait for the picker grid to expose photo cells; returns how many appeared (0 = grid stayed opaque). */
+    public int waitForPickerPhotos(int maxSeconds) {
+        for (int i = 0; i < maxSeconds * 2; i++) {
+            int n = pickerPhotoCells().size();
+            if (n > 0) return n;
+            sleep(500);
+        }
+        return 0;
+    }
+
+    private java.util.List<WebElement> pickerPhotoCells() {
+        try {
+            return withImplicitWait(0, () -> driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "visible == 1 AND ((type == 'XCUIElementTypeCell' AND (label BEGINSWITH 'Photo' OR label CONTAINS 'Photo, ')) "
+                  + "OR (type == 'XCUIElementTypeImage' AND (label BEGINSWITH 'Photo' OR name BEGINSWITH 'IMG_' OR name CONTAINS 'qa_')))")));
+        } catch (Exception e) { return java.util.List.of(); }
+    }
+
+    /**
+     * Pick the first photo in the presented picker. Element handles first; when the grid never becomes
+     * addressable, fall back to the first grid slot by coordinates (PHPicker 3-up grid on a phone: the
+     * first thumbnail's centre sits ~1/6 of the width in and ~150pt below the sheet top). Returns true
+     * only when the picker actually dismissed afterwards — that is the one reliable success signal.
+     */
+    public boolean pickFirstPhotoFromLibrary() { return pickFirstPhotoFromLibrary("Issue Photos"); }
+
+    /** Same, for any host screen (see {@link #isPhotoPickerSheetPresented(String)}). */
+    public boolean pickFirstPhotoFromLibrary(String appChromeLabel) {
+        int n = waitForPickerPhotos(8);
+        System.out.println("   picker photo cells addressable: " + n);
+        boolean tapped = false;
+        if (n > 0) {
+            try { pickerPhotoCells().get(0).click(); tapped = true; } catch (Exception ignored) { }
+        }
+        if (!tapped) {
+            try {
+                org.openqa.selenium.Dimension d = driver.manage().window().getSize();
+                int x = d.getWidth() / 6, y = 72 + 150;
+                System.out.println("   grid opaque — tapping first slot by coordinates (" + x + "," + y + ")");
+                driver.executeScript("mobile: tap", java.util.Map.of("x", x, "y", y));
+                tapped = true;
+            } catch (Exception e) { System.out.println("⚠️ coordinate tap failed: " + e.getMessage()); }
+        }
+        sleep(700);
+        // Multi-select pickers need an explicit confirm; single-select ones dismiss on tap.
+        for (String confirm : new String[]{"Add", "Done", "Choose", "Select"}) {
+            if (tapMenuItem(confirm)) { System.out.println("   confirmed picker with '" + confirm + "'"); break; }
+        }
+        for (int i = 0; i < 16; i++) {          // up to 8s for the sheet to go away and the photo to land
+            if (!isPhotoPickerSheetPresented(appChromeLabel)) { sleep(600); return true; }
+            sleep(500);
+        }
+        System.out.println("⚠️ picker still presented after selection attempt");
+        return false;
+    }
+
+    /** Cancel the presented picker (best-effort; true when the Issue Details chrome is visible again). */
+    public boolean cancelPhotoPicker() {
+        tapMenuItem("Cancel");
+        sleep(600);
+        return !isPhotoPickerSheetPresented();
+    }
+
+    /**
+     * Number of photo thumbnails in the "Issue Photos" section of the OPEN issue: visible Images between
+     * the section header and the 'Delete Issue' row, minus the section's own SF-symbol icons.
+     */
+    public int issuePhotoThumbnailCount() {
+        try {
+            return withImplicitWait(0, () -> {
+                java.util.List<WebElement> hdrs = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeStaticText' AND visible == 1 AND label == 'Issue Photos'"));
+                if (hdrs.isEmpty()) return -1;
+                int top = hdrs.get(0).getLocation().getY();
+                int bottom = Integer.MAX_VALUE;
+                java.util.List<WebElement> del = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND visible == 1 AND label == 'Delete Issue'"));
+                if (!del.isEmpty()) bottom = del.get(0).getLocation().getY();
+                java.util.Set<String> icons = java.util.Set.of("photo.on.rectangle", "Camera", "Bin", "Filters", "Link", "Gallery");
+                int n = 0;
+                for (WebElement img : driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeImage' AND visible == 1"))) {
+                    try {
+                        int y = img.getLocation().getY();
+                        if (y <= top || y >= bottom) continue;
+                        String name = img.getAttribute("name");
+                        if (name != null && icons.contains(name)) continue;
+                        if (img.getSize().getHeight() < 40) continue;   // glyphs, not thumbnails
+                        n++;
+                    } catch (Exception ignored) { }
+                }
+                return n;
+            });
+        } catch (Exception e) { return -1; }
+    }
+
+    /** Scroll the details form until the 'Issue Photos' header is on screen. */
+    public boolean scrollToIssuePhotosSection() {
+        for (int i = 0; i < 3 && !existsNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == 1 AND label == 'Issue Photos'")); i++) {
+            try {
+                driver.executeScript("mobile: scroll", java.util.Map.of(
+                        "predicateString", "type == 'XCUIElementTypeStaticText' AND label == 'Issue Photos'"));
+            } catch (Exception e) {
+                try { driver.executeScript("mobile: scroll", java.util.Map.of("direction", "down")); } catch (Exception ignored) { }
+            }
+            sleep(400);
+        }
+        return existsNow(AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeStaticText' AND visible == 1 AND label == 'Issue Photos'"));
+    }
+
+    // ── v1.57 Unlink Issue confirmation (ZP-3927 §1) ────────────────────────
+    public static final String UNLINK_CONFIRM_TITLE  = "Unlink Issue?";
+    public static final String UNLINK_CONFIRM_BUTTON = "Unlink";
+    public static final String UNLINKED_ANNOUNCEMENT = "unlinked from work order";
+
+    /**
+     * 1.63 asks "Unlink Issue?" before severing the link. autoAcceptAlerts may already have pressed
+     * it (that race is documented) — so this is best-effort: confirm if the sheet is still up, and
+     * report whether a confirmation was needed at all.
+     */
+    public boolean confirmUnlinkIssueIfAsked() {
+        if (!isAnyTextContaining(UNLINK_CONFIRM_TITLE) && !isMenuItemPresent(UNLINK_CONFIRM_BUTTON)) return false;
+        boolean tapped = tapMenuItem(UNLINK_CONFIRM_BUTTON);
+        sleep(600);
+        return tapped;
+    }
+
+    /** The post-unlink announcement ("… unlinked from work order") if it is on screen right now. */
+    public boolean isUnlinkAnnouncementShown() { return isAnyTextContaining(UNLINKED_ANNOUNCEMENT); }
+
+    // ── v1.56 photo-filter tab counts (ZP-3928 §1) ──────────────────────────
+    /** Count shown on a filter tab whose label starts with {@code tabPrefix} ("Without Photos 3"), -1 if absent. */
+    public int getTabCount(String tabPrefix) {
+        try {
+            WebElement tab = withImplicitWait(0, () -> {
+                java.util.List<WebElement> l = driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND label BEGINSWITH '" + tabPrefix + "'"));
+                return l.isEmpty() ? null : l.get(0);
+            });
+            if (tab == null) {
+                try { driver.executeScript("mobile: scroll", java.util.Map.of("direction", "right",
+                        "predicateString", "label BEGINSWITH '" + tabPrefix + "'")); } catch (Exception ignored) { }
+                tab = withImplicitWait(0, () -> {
+                    java.util.List<WebElement> l = driver.findElements(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeButton' AND label BEGINSWITH '" + tabPrefix + "'"));
+                    return l.isEmpty() ? null : l.get(0);
+                });
+            }
+            if (tab == null) return -1;
+            String label = tab.getAttribute("label");
+            System.out.println("   tab '" + tabPrefix + "' label: '" + label + "'");
+            return extractCountFromTabLabel(label);
+        } catch (Exception e) { return -1; }
+    }
+
+    public int getWithoutPhotosTabCount() { return getTabCount(FILTER_WITHOUT_PHOTOS); }
 }

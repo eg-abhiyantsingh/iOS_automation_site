@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="ZP-3927 + ZP-3928 (all implemented)" verbose="1">
+  <test name="zp-all">
+    <classes>
+      <class name="com.egalvanic.tests.ZP3927_Locations_Test"/>
+      <class name="com.egalvanic.tests.ZP3927_UnlinkIssue_Test"/>
+      <class name="com.egalvanic.tests.ZP3928_IssuePhotoFilter_Test"/>
+      <class name="com.egalvanic.tests.ZP3928_AssetIssuesDefault_Test"/>
+      <class name="com.egalvanic.tests.ZP3928_IssueWorkOrderLink_Test"/>
+      <class name="com.egalvanic.tests.ZP3928_NumberPadDecimal_Test"/>
+      <class name="com.egalvanic.tests.ZP3928_Misc_Test"/>
+    </classes>
+  </test>
+</suite>

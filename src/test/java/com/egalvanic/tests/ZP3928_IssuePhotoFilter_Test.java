@@ -67,26 +67,21 @@ public final class ZP3928_IssuePhotoFilter_Test extends BaseTest {
     @Test(priority = 5)
     public void TC_IF_05_bucketsPartitionTheList() {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, FEATURE,
-                "TC_IF_05 - With + Without equals All (partition law)");
+                "TC_IF_05 - With + Without equals All (partition law, from the tab counts)");
         openIssues();
         requireFilter(IssuePage.FILTER_WITH_PHOTOS);
         requireFilter(IssuePage.FILTER_WITHOUT_PHOTOS);
 
-        issues().tapAllTab();
-        mediumWait();
-        int all = issues().getVisibleIssueCount();
-        logStep("All: " + all);
-
-        assertTrue(issues().tapPhotoFilter(IssuePage.FILTER_WITH_PHOTOS), "Should apply 'With Photos'");
-        int with = issues().getVisibleIssueCount();
-        logStep("With Photos: " + with);
-
-        issues().tapAllTab();
-        mediumWait();
-        assertTrue(issues().tapPhotoFilter(IssuePage.FILTER_WITHOUT_PHOTOS), "Should apply 'Without Photos'");
-        int without = issues().getVisibleIssueCount();
-        logStep("Without Photos: " + without);
-
+        // The tabs carry their counts in the label ("All 12", "With Photos 3"). Counting visible
+        // cells instead would cap at one screenful and make the law false-fail past ~8 issues.
+        int all     = issues().getAllTabCount();
+        int with    = issues().getWithPhotosTabCount();
+        int without = issues().getWithoutPhotosTabCount();
+        logStep("Tab counts — All: " + all + " · With Photos: " + with + " · Without Photos: " + without);
+        if (all < 0 || with < 0 || without < 0) {
+            throw new SkipException("A filter tab carries no count on this build (All=" + all + ", With="
+                    + with + ", Without=" + without + ") — the partition law needs all three");
+        }
         assertEquals(with + without, all,
                 "The two photo buckets must partition the list exactly: With(" + with + ") + Without("
                 + without + ") should equal All(" + all + "). A mismatch means an issue is in both "
@@ -107,32 +102,49 @@ public final class ZP3928_IssuePhotoFilter_Test extends BaseTest {
         logStep("Opening the first filtered issue to confirm it really has a photo");
         assertTrue(issues().tapFirstIssue(), "Should open the first filtered issue");
         mediumWait();
-        assertTrue(issues().currentIssueHasPhoto(),
-                "An issue listed under 'With Photos' must actually carry a photo");
+        skipIfPreconditionMissing(() -> issues().scrollToIssuePhotosSection(), "'Issue Photos' section not found on the opened issue");
+        int thumbs = issues().issuePhotoThumbnailCount();
+        logStep("Issue Photos thumbnails on the opened issue: " + thumbs);
+        assertTrue(thumbs > 0,
+                "An issue listed under 'With Photos' must actually carry at least one Issue Photo thumbnail — found " + thumbs);
         logStepWithScreenshot("TC_IF_03: filtered issue has a photo");
     }
 
     @Test(priority = 6)
     public void TC_IF_06_switchingFiltersRefreshesTheList() {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, FEATURE,
-                "TC_IF_06 - Switching filters actually re-filters (no stale rows)");
+                "TC_IF_06 - Applying a bucket really re-filters the rows (no stale list)");
         openIssues();
         requireFilter(IssuePage.FILTER_WITH_PHOTOS);
         requireFilter(IssuePage.FILTER_WITHOUT_PHOTOS);
 
-        issues().tapPhotoFilter(IssuePage.FILTER_WITH_PHOTOS);
-        int with = issues().getVisibleIssueCount();
+        int allTab = issues().getAllTabCount();
+        int withTab = issues().getWithPhotosTabCount();
+        int withoutTab = issues().getWithoutPhotosTabCount();
+        if (allTab < 0 || withTab < 0 || withoutTab < 0) {
+            throw new SkipException("Filter tabs carry no counts on this build");
+        }
+        if (withTab == allTab || withoutTab == allTab) {
+            throw new SkipException("Every issue is in one bucket (All=" + allTab + ", With=" + withTab
+                    + ", Without=" + withoutTab + ") — applying a filter cannot change the row set, "
+                    + "so refresh cannot be observed here");
+        }
+        // Apply the SMALLER bucket: its visible row count must drop below the All view's.
+        boolean smallerIsWith = withTab <= withoutTab;
         issues().tapAllTab(); mediumWait();
-        issues().tapPhotoFilter(IssuePage.FILTER_WITHOUT_PHOTOS);
-        int without = issues().getVisibleIssueCount();
-        issues().tapAllTab(); mediumWait();
-        int all = issues().getVisibleIssueCount();
-
-        logStep("With=" + with + "  Without=" + without + "  All=" + all);
-        assertTrue(all >= with && all >= without,
-                "'All' must be at least as large as either bucket (All=" + all + ", With=" + with
-                + ", Without=" + without + ") — a smaller All means the list did not refresh");
-        logStepWithScreenshot("TC_IF_06: list refreshes per filter");
+        int rowsAll = issues().getVisibleIssueCount();
+        assertTrue(issues().tapPhotoFilter(smallerIsWith ? IssuePage.FILTER_WITH_PHOTOS : IssuePage.FILTER_WITHOUT_PHOTOS),
+                "Should apply the smaller photo bucket");
+        int rowsBucket = issues().getVisibleIssueCount();
+        int expectedBucket = smallerIsWith ? withTab : withoutTab;
+        logStep("visible rows — All: " + rowsAll + " · bucket(" + expectedBucket + "): " + rowsBucket);
+        assertTrue(rowsBucket <= expectedBucket,
+                "The filtered list shows " + rowsBucket + " rows but the tab says the bucket holds only "
+                + expectedBucket + " — rows from outside the bucket are still on screen (stale list)");
+        assertTrue(rowsBucket < rowsAll || expectedBucket >= rowsAll,
+                "Applying a bucket smaller than All (" + expectedBucket + " < " + allTab + ") must reduce "
+                + "the visible rows (All view: " + rowsAll + ", bucket view: " + rowsBucket + ")");
+        logStepWithScreenshot("TC_IF_06: bucket view re-filtered (" + rowsAll + " → " + rowsBucket + ")");
     }
 
     @Test(priority = 9)

@@ -32,23 +32,50 @@ public final class ZP3928_Misc_Test extends BaseTest {
 
     // ── §5 Copy Data To search ──────────────────────────────────────────
 
+    /** Probe 1.63 copy for the Copy Data To picker (nav 'Copy Details To'; empty state when the class has no peers). */
+    private static final String CDT_EMPTY_TITLE = "No Same-Class Assets";
+    private static final String[] PEER_RICH_CLASSES = {"Panelboard", "Busway", "Transformer", "Switchgear", "Disconnect Switch"};
+
     @Test(priority = 1)
     public void TC_CDT_01_searchBarIsInTheCopyToPicker() {
         ExtentReportManager.createTest(AppConstants.MODULE_ASSET, FEATURE_CDT,
                 "TC_CDT_01 - The Copy Data To picker has a search bar");
-        openAssetEdit();
+        loginAndSelectSite();
 
-        logStep("Opening Copy → Copy Data To");
-        if (!assetPage.tapCopyTo()) {
-            throw new SkipException("Copy Data To is not reachable on this build/asset");
+        // The picker lists only SAME-CLASS peers: for a class with a single asset it shows the
+        // 'No Same-Class Assets' empty state and no list at all (probe 1.63: the shared asset
+        // 'Busduct 90 385884' is class 'Test' and got exactly that). So pick an asset whose class
+        // has peers before looking for the search bar.
+        boolean pickerWithList = false;
+        String chosen = null;
+        for (String cls : PEER_RICH_CLASSES) {
+            assetPage.navigateToAssetListTurbo();
+            String name = assetPage.findAssetOfClass(cls);
+            if (name == null) { logStep("no '" + cls + "' asset on this site"); continue; }
+            if (!assetPage.openAssetByNameForEdit(name) || !assetPage.isEditAssetScreenDisplayed()) {
+                logStep("could not open '" + name + "'"); continue;
+            }
+            logStep("Opened '" + name + "' (" + cls + ") → Copy → Copy Data To");
+            if (!assetPage.tapCopyTo()) { logStep("Copy Data To not reachable on '" + name + "'"); assetPage.clickCloseButton(); continue; }
+            mediumWait();
+            if (assetPage.isTextPresentOnScreen(CDT_EMPTY_TITLE)) {
+                logStep("'" + cls + "' has no peers on this site ('" + CDT_EMPTY_TITLE + "') — trying the next class");
+                assetPage.tapCancelIfPresent();
+                assetPage.clickCloseButton();
+                continue;
+            }
+            pickerWithList = true; chosen = name; break;
         }
-        mediumWait();
+        final boolean listRendered = pickerWithList;
+        skipIfPreconditionMissing(() -> listRendered,
+                "no asset class with same-class peers found — the Copy Data To list never rendered, so its search bar cannot be judged");
 
-        logStep("Asserting a search field exists in the target picker");
+        logStep("Asserting a search field exists in the target picker (asset: " + chosen + ")");
         assertTrue(assetPage.isSearchFieldPresentOnScreen(),
-                "The 1.56 change adds a search bar to the Copy Data To asset picker — no search "
-                + "field was found on the target list");
+                "The 1.56 change adds a search bar to the Copy Data To asset picker — the picker listed peers "
+                + "for '" + chosen + "' but exposed no search field");
         logStepWithScreenshot("TC_CDT_01: search bar present in Copy Data To");
+        assetPage.tapCancelIfPresent();
     }
 
     // ── §8 IR cache busting ─────────────────────────────────────────────

@@ -577,6 +577,37 @@ public class TestDataApi {
         }
     }
 
+    /**
+     * Number of issues in the SLD payload's "issues" array whose node_id equals {@code nodeId}, across
+     * ALL statuses (tombstones excluded). Bracket-scanned so other arrays that carry node_id (IR photos,
+     * tasks) are not counted.
+     */
+    public static int countIssuesForNode(String sldJson, String nodeId) {
+        int start = sldJson.indexOf("\"issues\"");
+        if (start < 0 || nodeId == null) return 0;
+        int open = sldJson.indexOf('[', start);
+        if (open < 0) return 0;
+        int depth = 0, end = open;
+        for (int i = open; i < sldJson.length(); i++) {
+            char c = sldJson.charAt(i);
+            if (c == '[') depth++;
+            else if (c == ']' && --depth == 0) { end = i; break; }
+        }
+        String arr = sldJson.substring(open, end + 1);
+        int n = 0;
+        // walk top-level objects of the array
+        int d = 0, objStart = -1;
+        for (int i = 0; i < arr.length(); i++) {
+            char c = arr.charAt(i);
+            if (c == '{') { if (d == 0) objStart = i; d++; }
+            else if (c == '}') { d--; if (d == 0 && objStart >= 0) {
+                String obj = arr.substring(objStart, i + 1);
+                if (obj.contains("\"node_id\":\"" + nodeId + "\"") && !obj.contains("\"is_deleted\":true")) n++;
+                objStart = -1; } }
+        }
+        return n;
+    }
+
     /** Minimal first-match string-field extractor (avoids adding a JSON dep). */
     public static String extract(String json, String field) {
         if (json == null) return null;

@@ -64,8 +64,10 @@ public final class ZP3928_IssueWorkOrderLink_Test extends BaseTest {
         }
         mediumWait();
         assertTrue(issues().isWorkOrderPickerOpen(),
-                "Tapping the link control should open a work-order picker listing sessions to attach to");
+                "Tapping the link control should open the '" + IssuePage.WO_CARD_SELECT + "' picker (or its '"
+                + IssuePage.WO_PICKER_EMPTY + "' empty state)");
         logStepWithScreenshot("TC_ILW_03: work-order picker opened");
+        issues().cancelSheetIfOpen();
     }
 
     @Test(priority = 10)
@@ -84,7 +86,7 @@ public final class ZP3928_IssueWorkOrderLink_Test extends BaseTest {
         }
         mediumWait();
         logStep("Cancelling the picker");
-        issues().dismissContextMenu();
+        if (!issues().cancelSheetIfOpen()) issues().dismissContextMenu();
         mediumWait();
 
         String after = issues().linkedWorkOrderName();

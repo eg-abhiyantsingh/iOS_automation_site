@@ -27,7 +27,12 @@ public final class ZP3928_NumberPadDecimal_Test extends BaseTest {
         return issuePage;
     }
 
-    /** Open the first issue's details; skip cleanly if the list or details are unavailable. */
+    /**
+     * Open the first issue's details on a THERMAL issue — the temperature fields only exist for that
+     * class. Probe 1.63: the automation site's first issues are NEC / NFPA 70B violations, so the
+     * class is switched on the details screen when needed (changeIssueClassOnDetails), and the run
+     * SKIPs, not fails, if that cannot be done.
+     */
     private void openFirstIssueDetails() {
         loginAndSelectSite();
         if (!issues().navigateToIssuesScreen()) throw new SkipException("Issues screen did not open");
@@ -38,6 +43,32 @@ public final class ZP3928_NumberPadDecimal_Test extends BaseTest {
         if (!issues().isIssueDetailsScreenDisplayed()) {
             throw new SkipException("Issue Details did not open — cannot reach the temperature fields");
         }
+        if (!issues().isProblemTempFieldPresent()) {
+            logStep("Not a Thermal issue — switching the class to Thermal to expose the temperature fields");
+            boolean changed = issues().changeIssueClassOnDetails("Thermal");
+            mediumWait();
+            skipIfPreconditionMissing(() -> changed && issues().isProblemTempFieldPresent(),
+                    "no Thermal issue available and the class could not be switched on the details screen");
+        }
+    }
+
+    /** Save, close, reopen the SAME issue (matched by title) and land back on details. Null title ⇒ skip. */
+    private void saveCloseAndReopen(String title) {
+        issues().tapSaveChangesButton();
+        mediumWait();
+        issues().cancelSheetIfOpen();            // 'Close' when the details stayed open after Save
+        mediumWait();
+        if (!issues().navigateToIssuesScreen()) throw new SkipException("Issues screen did not reopen after save");
+        issues().tapAllTab();
+        mediumWait();
+        if (!issues().tapFirstIssue() || !issues().isIssueDetailsScreenDisplayed()) {
+            throw new SkipException("could not reopen an issue after saving");
+        }
+        String reopened = issues().openIssueTitle();
+        skipIfPreconditionMissing(() -> title != null && title.equals(reopened),
+                "the list reordered after save (reopened '" + reopened + "', expected '" + title + "') — round trip "
+                + "cannot be attributed to the same issue");
+        issues().isProblemTempFieldPresent();    // scrolls the Thermal fields into view
     }
 
     /** Numbers can come back as "72.5", "72.5 °F" or "72.50" — compare on the numeric value. */
@@ -51,25 +82,31 @@ public final class ZP3928_NumberPadDecimal_Test extends BaseTest {
     @Test(priority = 2)
     public void TC_NPD_02_problemTempKeepsItsDecimal() {
         ExtentReportManager.createTest(AppConstants.MODULE_ISSUES, FEATURE,
-                "TC_NPD_02 - 72.5 saves and reads back as 72.5, not 725");
+                "TC_NPD_02 - 72.5 saves and reads back as 72.5, not 725 (save → reopen round trip)");
         openFirstIssueDetails();
+        String title = issues().openIssueTitle();
+        logStep("Issue under test: '" + title + "'");
 
         logStep("Typing " + DECIMAL_PROBLEM + " into Problem Temp");
         issues().enterProblemTemp(DECIMAL_PROBLEM);
         mediumWait();
+        String typed = issues().getProblemTempValue();
+        Double gotTyped = numeric(typed);
+        logStep("Problem Temp reads back before save: " + typed + "  (numeric " + gotTyped + ")");
+        assertTrue(gotTyped != null && Math.abs(gotTyped - 72.5) < 0.001,
+                "The field must hold 72.5 right after typing — it holds '" + typed + "'. A value of 725 means "
+                + "the number pad swallowed the '.', a 10x error on a temperature reading.");
 
+        logStep("Saving, closing and reopening the same issue");
+        saveCloseAndReopen(title);
         String read = issues().getProblemTempValue();
         Double got = numeric(read);
-        logStep("Problem Temp reads back: " + read + "  (numeric " + got + ")");
-
-        assertTrue(got != null,
-                "Problem Temp should hold a numeric value after typing " + DECIMAL_PROBLEM
-                + " — it read '" + read + "'");
-        assertTrue(Math.abs(got - 72.5) < 0.001,
-                "The decimal separator must survive: expected 72.5 but the field holds " + got
-                + " (raw '" + read + "'). A value of 725 means the '.' was swallowed — a 10x error "
-                + "on a temperature reading.");
-        logStepWithScreenshot("TC_NPD_02: decimal preserved in Problem Temp");
+        logStep("Problem Temp after reopen: " + read + "  (numeric " + got + ")");
+        assertTrue(got != null && Math.abs(got - 72.5) < 0.001,
+                "The decimal must SURVIVE the save: expected 72.5 after reopen but the field holds " + got
+                + " (raw '" + read + "'). Typing correctly but storing 725 (or dropping the value) is the data-loss "
+                + "case this ticket exists to prevent.");
+        logStepWithScreenshot("TC_NPD_02: 72.5 round-tripped through save");
     }
 
     @Test(priority = 3)
