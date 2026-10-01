@@ -64,7 +64,8 @@ public class FlirImportPage extends BasePage {
     public static final String IMPORT                = "Import";
     public static final String ALREADY_UPLOADED      = "already uploaded";
     public static final String NEWEST_FIRST          = "newest photo first";
-    public static final String NEWEST_ALREADY_ADDED  = "is the newest photo on the camera and is already added to this asset.";
+    // 1.67 (2026-09-29 build) reworded the dedupe toast: "...already added to this asset." → "...to this work order."
+    public static final String NEWEST_ALREADY_ADDED  = "is the newest photo on the camera and is already added to this work order.";
     public static final String TIME_FILTER_30_MIN    = "Last 30 min";
     /** FLIRDriveTimeFilter cases, in the order the binary declares them. */
     public static final String[] TIME_FILTERS = {
