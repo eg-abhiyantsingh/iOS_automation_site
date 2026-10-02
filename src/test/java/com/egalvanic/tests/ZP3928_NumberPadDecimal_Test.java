@@ -5,6 +5,7 @@ import com.egalvanic.constants.AppConstants;
 import com.egalvanic.pages.IssuePage;
 import com.egalvanic.utils.ExtentReportManager;
 import org.testng.SkipException;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 /**
@@ -22,6 +23,10 @@ public final class ZP3928_NumberPadDecimal_Test extends BaseTest {
     private static final String DECIMAL_REF     = "70.5";
 
     private IssuePage issuePage;
+
+    /** The driver is re-created per test; never reuse a page bound to a quit session ("Session ID is null"). */
+    @BeforeMethod(alwaysRun = true)
+    public void resetPages() { issuePage = null; }
     private IssuePage issues() {
         if (issuePage == null) issuePage = new IssuePage();
         return issuePage;

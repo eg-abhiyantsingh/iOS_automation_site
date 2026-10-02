@@ -855,6 +855,60 @@ public abstract class BasePage {
         }
     }
 
+    // ── page-source snapshot (heavy screens) ────────────────────────────────
+
+    /** One element of a page-source snapshot, with the attributes WDA writes into the XML. */
+    public static final class SnapNode {
+        public final String type, name, label;
+        public final boolean visible, enabled;
+        public final int x, y, w, h;
+        SnapNode(String type, String name, String label, boolean visible, boolean enabled,
+                 int x, int y, int w, int h) {
+            this.type = type; this.name = name; this.label = label; this.visible = visible; this.enabled = enabled;
+            this.x = x; this.y = y; this.w = w; this.h = h;
+        }
+        /** Exact match on label or name (the two places WDA puts an element's text). */
+        public boolean is(String text) { return text.equals(label) || text.equals(name); }
+        public int centerX() { return x + w / 2; }
+        public int centerY() { return y + h / 2; }
+    }
+
+    private static final java.util.regex.Pattern SNAP_TAG =
+            java.util.regex.Pattern.compile("<XCUIElementType(\\w+)\\s([^>]*?)/?>");
+    private static final java.util.regex.Pattern SNAP_ATTR =
+            java.util.regex.Pattern.compile("(\\w+)=\"([^\"]*)\"");
+
+    /**
+     * ONE getPageSource() call, parsed into nodes. On heavy SwiftUI screens every findElements is a
+     * full WDA snapshot — measured ~8.3 s per query on Issue Details (2026-10-02, Appium log), so a
+     * loop of queries runs into minutes while a single snapshot costs one of them. Same approach as
+     * the Locations row count (commit 68a0a1b). Returns an empty list when the source is unreadable.
+     */
+    protected java.util.List<SnapNode> snapshot() {
+        java.util.List<SnapNode> out = new java.util.ArrayList<>();
+        String xml;
+        try { xml = driver.getPageSource(); } catch (Exception e) { return out; }
+        java.util.regex.Matcher t = SNAP_TAG.matcher(xml);
+        while (t.find()) {
+            java.util.Map<String, String> a = new java.util.HashMap<>();
+            java.util.regex.Matcher m = SNAP_ATTR.matcher(t.group(2));
+            while (m.find()) a.put(m.group(1), unescapeXml(m.group(2)));
+            out.add(new SnapNode(t.group(1), a.getOrDefault("name", ""), a.getOrDefault("label", ""),
+                    "true".equals(a.get("visible")), "true".equals(a.get("enabled")),
+                    intAttr(a, "x"), intAttr(a, "y"), intAttr(a, "width"), intAttr(a, "height")));
+        }
+        return out;
+    }
+
+    private static int intAttr(java.util.Map<String, String> a, String k) {
+        try { return Integer.parseInt(a.getOrDefault(k, "0")); } catch (NumberFormatException e) { return 0; }
+    }
+
+    private static String unescapeXml(String s) {
+        return s.replace("&quot;", "\"").replace("&apos;", "'").replace("&lt;", "<")
+                .replace("&gt;", ">").replace("&#10;", "\n").replace("&amp;", "&");
+    }
+
     /** Tap a context-menu / action-sheet item by exact label. */
     protected boolean tapMenuItem(String label) {
         try {

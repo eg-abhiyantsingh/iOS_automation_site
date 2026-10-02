@@ -6,6 +6,7 @@ import com.egalvanic.pages.BuildingPage;
 import com.egalvanic.utils.ExtentReportManager;
 import org.testng.SkipException;
 import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 /**
@@ -35,6 +36,10 @@ public final class ZP3927_Locations_Test extends BaseTest {
     private static final String QA_ROOM     = "QA-LOC Room";
 
     private BuildingPage buildings;
+
+    /** The driver is re-created per test; never reuse a page bound to a quit session ("Session ID is null"). */
+    @BeforeMethod(alwaysRun = true)
+    public void resetPages() { buildings = null; }
 
     private BuildingPage locations() {
         if (buildings == null) buildings = new BuildingPage();

@@ -5,6 +5,7 @@ import com.egalvanic.constants.AppConstants;
 import com.egalvanic.pages.IssuePage;
 import com.egalvanic.utils.ExtentReportManager;
 import org.testng.SkipException;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 /**
@@ -24,6 +25,10 @@ public final class ZP3927_PhotoImport_Test extends BaseTest {
     private static final String FEATURE = "Photo import into Issue Photos (ZP-3927)";
 
     private IssuePage issuePage;
+
+    /** The driver is re-created per test; never reuse a page bound to a quit session ("Session ID is null"). */
+    @BeforeMethod(alwaysRun = true)
+    public void resetPages() { issuePage = null; }
     private IssuePage issues() {
         if (issuePage == null) issuePage = new IssuePage();
         return issuePage;
@@ -41,6 +46,22 @@ public final class ZP3927_PhotoImport_Test extends BaseTest {
         if (!issues().scrollToIssuePhotosSection()) {
             throw new SkipException("'Issue Photos' section not found on this issue — photo import has no entry point here");
         }
+    }
+
+    /** Precondition: Gallery → first photo → Use Photo → Save Changes. Returns the new count; skips when not drivable. */
+    private int importOnePhotoAndSaveOrSkip(int before) {
+        issues().tapGalleryButton();
+        mediumWait();
+        skipIfPreconditionMissing(() -> issues().isPhotoPickerSheetPresented(), "photo picker did not present");
+        if (!issues().pickFirstPhotoFromLibrary()) {
+            issues().cancelPhotoPicker();
+            throw new SkipException("Photo import could not be driven on this simulator — persistence not checkable");
+        }
+        skipIfPreconditionMissing(() -> issues().commitIssueChanges(), "'Save Changes' did not commit the imported photo");
+        issues().scrollToIssuePhotosSection();
+        int after = thumbnailsOrSkip();
+        skipIfPreconditionMissing(() -> after > before, "the import did not add a thumbnail (before=" + before + ")");
+        return after;
     }
 
     private int thumbnailsOrSkip() {
@@ -91,6 +112,8 @@ public final class ZP3927_PhotoImport_Test extends BaseTest {
                 "Importing one photo must add exactly one thumbnail to Issue Photos (before=" + before
                 + ", after=" + after + ") — a larger delta means a duplicate landed, a zero delta means the "
                 + "picker dismissed without importing");
+        // 1.67 stages an import until 'Save Changes' (live 2026-10-02) — commit it like a user would.
+        assertTrue(issues().commitIssueChanges(), "'Save Changes' must commit the imported photo");
         verifyAppAlive("after importing a photo into the issue");
         logStepWithScreenshot("TC_PI_02: one photo imported");
     }
@@ -120,8 +143,8 @@ public final class ZP3927_PhotoImport_Test extends BaseTest {
         openIssuePhotosSection();
         int count = thumbnailsOrSkip();
         if (count == 0) {
-            throw new SkipException("No imported photo on this issue yet (TC_PI_02 must run first or the import "
-                    + "is not drivable here) — nothing to re-check");
+            logStep("No photo on this issue yet — importing and saving one as the precondition");
+            count = importOnePhotoAndSaveOrSkip(count);
         }
         logStep("Thumbnails before close: " + count);
         issues().cancelSheetIfOpen();                 // 'Close' on Issue Details

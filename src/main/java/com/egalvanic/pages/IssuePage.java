@@ -12707,21 +12707,23 @@ public class IssuePage extends BasePage {
 
     /** Same, for any host screen: {@code appChromeLabel} is a label that is visible only when the picker is gone. */
     public boolean isPhotoPickerSheetPresented(String appChromeLabel) {
-        boolean detailsVisible = existsNow(AppiumBy.iOSNsPredicateString(
-                "visible == 1 AND (label == '" + appChromeLabel + "' OR name == '" + appChromeLabel + "')"));
-        boolean pickerHints = existsNow(AppiumBy.iOSNsPredicateString(
-                "visible == 1 AND (label == 'Photos' OR label == 'Recents' OR label == 'All Photos' OR label == 'Albums' "
-              + "OR name == 'Photos' OR label CONTAINS 'Photo, ' OR label BEGINSWITH 'Photo,')"));
+        // ONE snapshot instead of two WDA queries: each query costs ~8 s on Issue Details, and the
+        // post-selection wait polls this — 16 polls × 2 queries blew TC_PI_02's 6-minute budget.
+        java.util.List<SnapNode> s = snapshot();
+        boolean detailsVisible = s.stream().anyMatch(n -> n.visible && n.is(appChromeLabel));
+        boolean pickerHints = s.stream().anyMatch(n -> n.visible && (n.is("Photos") || n.is("Recents")
+                || n.is("All Photos") || n.is("Albums") || n.label.contains("Photo, ") || n.label.startsWith("Photo,")));
         return pickerHints || !detailsVisible;
     }
 
-    /** Wait for the picker grid to expose photo cells; returns how many appeared (0 = grid stayed opaque). */
+    /** Wait (wall clock) for the picker grid to expose photo cells; returns how many appeared (0 = grid stayed opaque). */
     public int waitForPickerPhotos(int maxSeconds) {
-        for (int i = 0; i < maxSeconds * 2; i++) {
+        long end = System.currentTimeMillis() + maxSeconds * 1000L;
+        do {
             int n = pickerPhotoCells().size();
             if (n > 0) return n;
             sleep(500);
-        }
+        } while (System.currentTimeMillis() < end);
         return 0;
     }
 
@@ -12751,24 +12753,74 @@ public class IssuePage extends BasePage {
         }
         if (!tapped) {
             try {
-                org.openqa.selenium.Dimension d = driver.manage().window().getSize();
-                int x = d.getWidth() / 6, y = 72 + 150;
-                System.out.println("   grid opaque — tapping first slot by coordinates (" + x + "," + y + ")");
-                driver.executeScript("mobile: tap", java.util.Map.of("x", x, "y", y));
+                int[] slot = firstPickerSlot();
+                System.out.println("   grid opaque — tapping first slot by coordinates (" + slot[0] + "," + slot[1] + ")");
+                driver.executeScript("mobile: tap", java.util.Map.of("x", slot[0], "y", slot[1]));
                 tapped = true;
             } catch (Exception e) { System.out.println("⚠️ coordinate tap failed: " + e.getMessage()); }
         }
         sleep(700);
-        // Multi-select pickers need an explicit confirm; single-select ones dismiss on tap.
-        for (String confirm : new String[]{"Add", "Done", "Choose", "Select"}) {
-            if (tapMenuItem(confirm)) { System.out.println("   confirmed picker with '" + confirm + "'"); break; }
+        // Confirm step. 1.67 (live 2026-10-02): picking a photo opens the APP's own "Review Photo" screen
+        // (Cancel · Mark Up · Use Photo) — nothing is attached until 'Use Photo'. Multi-select system pickers
+        // use Add/Done instead. Only look while the host screen is still covered, and only at VISIBLE
+        // buttons — the app screen behind the sheet has its own 'Add'.
+        if (isPhotoPickerSheetPresented(appChromeLabel)) {
+            for (SnapNode b : snapshot()) {
+                if (b.visible && "Button".equals(b.type)
+                        && (b.is("Use Photo") || b.is("Add") || b.is("Done") || b.is("Choose") || b.is("Select"))) {
+                    driver.executeScript("mobile: tap", java.util.Map.of("x", b.centerX(), "y", b.centerY()));
+                    System.out.println("   confirmed picker with '" + b.label + "'");
+                    break;
+                }
+            }
         }
-        for (int i = 0; i < 16; i++) {          // up to 8s for the sheet to go away and the photo to land
+        long end = System.currentTimeMillis() + 20_000;   // wall clock — each check is a snapshot (~8 s here)
+        do {
             if (!isPhotoPickerSheetPresented(appChromeLabel)) { sleep(600); return true; }
             sleep(500);
-        }
+        } while (System.currentTimeMillis() < end);
         System.out.println("⚠️ picker still presented after selection attempt");
         return false;
+    }
+
+    /**
+     * Centre of the picker's first photo cell. The PHPicker grid is opaque (out-of-process), so it is
+     * computed from the containers WDA does expose. iOS 26 puts an optional "Private Access to Photos"
+     * banner (y 150–331 on a 402-pt phone) ABOVE the grid — the old fixed "sheet top + 150" landed on
+     * the banner and selected nothing (TC_PI_02, 2026-10-02). Cells are square, 3 up.
+     */
+    private int[] firstPickerSlot() {
+        java.util.List<SnapNode> s = snapshot();
+        org.openqa.selenium.Dimension d = driver.manage().window().getSize();
+        SnapNode grid = s.stream().filter(n -> n.visible && "photos_sectioned_layout".equals(n.name) && n.w > 0)
+                .findFirst().orElse(null);
+        if (grid != null) return new int[]{grid.x + grid.w / 6, grid.y + grid.w / 6};
+        SnapNode banner = s.stream().filter(n -> n.visible && "Other".equals(n.type)
+                && n.label.startsWith("Private Access to Photos")).findFirst().orElse(null);
+        if (banner != null) return new int[]{d.getWidth() / 6, banner.y + banner.h + d.getWidth() / 6};
+        return new int[]{d.getWidth() / 6, 72 + 150};   // pre-iOS-26 layout: no banner, grid under the nav bar
+    }
+
+    /**
+     * Commit staged edits on Issue Details with 'Save Changes'. Live 1.67 (2026-10-02): an imported photo
+     * is only STAGED — the button turns enabled after 'Use Photo', and nothing reaches the server or
+     * survives close/reopen until it is pressed (probe: 0 → 1 → save → reopen 1; backend photo row type
+     * 'issue' appeared). Coordinate press from one snapshot (v1.67 click no-op rule), then VERIFIED:
+     * true once no enabled 'Save Changes' remains on screen.
+     */
+    public boolean commitIssueChanges() {
+        SnapNode save = snapshot().stream()
+                .filter(n -> n.visible && n.enabled && "Button".equals(n.type) && n.is("Save Changes"))
+                .findFirst().orElse(null);
+        if (save == null) {
+            System.out.println("⚠️ commitIssueChanges: no enabled 'Save Changes' on screen");
+            return false;
+        }
+        driver.executeScript("mobile: tap", java.util.Map.of("x", save.centerX(), "y", save.centerY()));
+        boolean committed = com.egalvanic.utils.Waits.until(() -> snapshot().stream()
+                .noneMatch(n -> n.visible && n.enabled && "Button".equals(n.type) && n.is("Save Changes")), 15_000, 1000);
+        System.out.println(committed ? "💾 Issue changes saved" : "⚠️ 'Save Changes' still enabled after pressing it");
+        return committed;
     }
 
     /** Cancel the presented picker (best-effort; true when the Issue Details chrome is visible again). */
@@ -12783,48 +12835,37 @@ public class IssuePage extends BasePage {
      * the section header and the 'Delete Issue' row, minus the section's own SF-symbol icons.
      */
     public int issuePhotoThumbnailCount() {
-        try {
-            return withImplicitWait(0, () -> {
-                java.util.List<WebElement> hdrs = driver.findElements(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeStaticText' AND visible == 1 AND label == 'Issue Photos'"));
-                if (hdrs.isEmpty()) return -1;
-                int top = hdrs.get(0).getLocation().getY();
-                int bottom = Integer.MAX_VALUE;
-                java.util.List<WebElement> del = driver.findElements(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeButton' AND visible == 1 AND label == 'Delete Issue'"));
-                if (!del.isEmpty()) bottom = del.get(0).getLocation().getY();
-                java.util.Set<String> icons = java.util.Set.of("photo.on.rectangle", "Camera", "Bin", "Filters", "Link", "Gallery");
-                int n = 0;
-                for (WebElement img : driver.findElements(AppiumBy.iOSNsPredicateString(
-                        "type == 'XCUIElementTypeImage' AND visible == 1"))) {
-                    try {
-                        int y = img.getLocation().getY();
-                        if (y <= top || y >= bottom) continue;
-                        String name = img.getAttribute("name");
-                        if (name != null && icons.contains(name)) continue;
-                        if (img.getSize().getHeight() < 40) continue;   // glyphs, not thumbnails
-                        n++;
-                    } catch (Exception ignored) { }
-                }
-                return n;
-            });
-        } catch (Exception e) { return -1; }
+        // One snapshot: the old version made 3 queries plus 3 HTTP calls per Image (~8 s per query here).
+        java.util.List<SnapNode> s = snapshot();
+        SnapNode hdr = s.stream()
+                .filter(n -> n.visible && "StaticText".equals(n.type) && "Issue Photos".equals(n.label))
+                .findFirst().orElse(null);
+        if (hdr == null) return -1;
+        int bottom = s.stream()
+                .filter(n -> n.visible && "Button".equals(n.type) && "Delete Issue".equals(n.label))
+                .mapToInt(n -> n.y).findFirst().orElse(Integer.MAX_VALUE);
+        java.util.Set<String> icons = java.util.Set.of("photo.on.rectangle", "Camera", "Bin", "Filters", "Link", "Gallery");
+        return (int) s.stream()
+                .filter(n -> n.visible && "Image".equals(n.type) && n.y > hdr.y && n.y < bottom
+                        && !icons.contains(n.name) && n.h >= 40)   // h < 40 = glyphs, not thumbnails
+                .count();
     }
 
     /** Scroll the details form until the 'Issue Photos' header is on screen. */
     public boolean scrollToIssuePhotosSection() {
-        for (int i = 0; i < 3 && !existsNow(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == 1 AND label == 'Issue Photos'")); i++) {
-            try {
-                driver.executeScript("mobile: scroll", java.util.Map.of(
-                        "predicateString", "type == 'XCUIElementTypeStaticText' AND label == 'Issue Photos'"));
-            } catch (Exception e) {
-                try { driver.executeScript("mobile: scroll", java.util.Map.of("direction", "down")); } catch (Exception ignored) { }
-            }
-            sleep(400);
+        // Plain swipes + one snapshot per step. The old `mobile: scroll` predicateString path failed with
+        // "max scroll count reached" after ~65 s PER CALL on this build (Appium log, 2026-10-02).
+        for (int i = 0; i < 8; i++) {
+            if (isIssuePhotosHeaderVisible()) return true;
+            try { driver.executeScript("mobile: swipe", java.util.Map.of("direction", "up")); } catch (Exception ignored) { }
+            sleep(500);
         }
-        return existsNow(AppiumBy.iOSNsPredicateString(
-                "type == 'XCUIElementTypeStaticText' AND visible == 1 AND label == 'Issue Photos'"));
+        return isIssuePhotosHeaderVisible();
+    }
+
+    private boolean isIssuePhotosHeaderVisible() {
+        return snapshot().stream()
+                .anyMatch(n -> n.visible && "StaticText".equals(n.type) && "Issue Photos".equals(n.label));
     }
 
     // ── v1.57 Unlink Issue confirmation (ZP-3927 §1) ────────────────────────
