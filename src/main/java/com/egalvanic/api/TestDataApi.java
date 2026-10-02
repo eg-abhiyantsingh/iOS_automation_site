@@ -414,18 +414,67 @@ public class TestDataApi {
      */
     public String findWorkOrderIdByNameOnSld(String name, String sldId) {
         if (sldId == null) return findWorkOrderIdByName(name);
+        String row = findWorkOrderRowOnSld(name, sldId);
+        return row == null ? null : extract(row, "id");
+    }
+
+    /**
+     * JSON row of the work order named exactly {@code name} on {@code sldId}, or null — the
+     * site-scoped match of {@link #findWorkOrderIdByNameOnSld}, returned whole so callers can
+     * read flags such as {@code active} without a second list call.
+     */
+    public String findWorkOrderRowOnSld(String name, String sldId) {
+        if (name == null || sldId == null) return null;
         String json = listWorkOrdersJson(name);
-        if (json == null || name == null) return null;
+        if (json == null) return null;
         java.util.regex.Matcher m = java.util.regex.Pattern
                 .compile("\"name\"\\s*:\\s*\"" + java.util.regex.Pattern.quote(name) + "\"")
                 .matcher(json);
         while (m.find()) {
             String row = enclosingObject(json, m.start());
-            if (row != null && sldId.equals(extract(row, "sld_id"))) {
-                return extract(row, "id");
-            }
+            if (row != null && sldId.equals(extract(row, "sld_id"))) return row;
         }
         return null;
+    }
+
+    /** True when a work-order JSON row (list row or update response) carries {@code "active": true}. */
+    public static boolean isActiveRow(String row) {
+        return row != null && java.util.regex.Pattern.compile("\"active\"\\s*:\\s*true").matcher(row).find();
+    }
+
+    /**
+     * Re-activate a work order: {@code PUT /ir_session/update/{id}} {@code {"active": true}} with
+     * {@code x-direct-write: true}. The iOS Work Orders list shows ACTIVE work orders only, and a
+     * nightly backend job (~05:01 UTC) deactivates idle ones — on 2026-10-02 all 42 QA-WT fixtures
+     * (14 per site × 3 sites) were inactive, so every fixture-driven test skipped "not present in
+     * the Work Orders list". Without the direct-write header the update joins the async mutation
+     * queue and is never applied (same drift as {@link #deleteWorkOrder}). Verified live
+     * 2026-10-02: the response row comes back {@code "active": true} and the list agrees.
+     */
+    public boolean activateWorkOrder(String workOrderId) {
+        for (int attempt = 1; attempt <= 2; attempt++) {
+            try {
+                HttpResponse<String> resp = sendAuthedWithRetry(() -> authed(HttpRequest.newBuilder(
+                        URI.create(BASE + "/ir_session/update/" + workOrderId))
+                        .header("Content-Type", "application/json")
+                        .header("x-direct-write", "true"))
+                        .PUT(HttpRequest.BodyPublishers.ofString("{\"active\":true}")).build());
+                boolean ok = resp.statusCode() / 100 == 2 && isActiveRow(resp.body());
+                System.out.println((ok ? "🔌 Re-activated WO " : "⚠️ WO re-activate failed for ") + workOrderId
+                        + " (HTTP " + resp.statusCode() + ", attempt " + attempt + ")");
+                if (ok) return true;
+            } catch (Exception e) {
+                System.out.println("⚠️ activateWorkOrder(" + workOrderId + ", attempt " + attempt + "): "
+                        + e.getMessage());
+            }
+            if (attempt == 1) {
+                try { Thread.sleep(1500); } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    return false;
+                }
+            }
+        }
+        return false;
     }
 
     /** work_type_id of the WO named {@code name} — null if unset (General/legacy) or WO absent. */
@@ -536,7 +585,14 @@ public class TestDataApi {
         // Site-scoped: a same-named fixture on ANOTHER site must not satisfy
         // the ensure (first-site drift left the landed site fixture-less while
         // the unscoped lookup kept "finding" Wild Goose Brewery's copies).
-        String existing = findWorkOrderIdByNameOnSld(fixtureName, sldId);
+        String row = findWorkOrderRowOnSld(fixtureName, sldId);
+        if (row != null) {
+            String id = extract(row, "id");
+            // Present but deactivated by the nightly backend job ⇒ invisible on iOS.
+            if (!isActiveRow(row)) activateWorkOrder(id);
+            return id;
+        }
+        String existing = sldId == null ? findWorkOrderIdByName(fixtureName) : null;
         if (existing != null) return existing;
         return createWorkOrder(fixtureName, workTypeId, sldId, "FLUKE", "Medium", 8);
     }

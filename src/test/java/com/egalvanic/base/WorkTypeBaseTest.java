@@ -165,11 +165,19 @@ public abstract class WorkTypeBaseTest extends BaseTest {
             for (WorkTypeCatalog wt : WorkTypeCatalog.values()) {
                 // Site-scoped: same-named fixtures on OTHER sites must not
                 // satisfy the ensure (first-site drift, 2026-08-03).
-                String existing = a.findWorkOrderIdByNameOnSld(wt.fixtureName(), landedSldId);
-                if (existing == null) {
+                String row = a.findWorkOrderRowOnSld(wt.fixtureName(), landedSldId);
+                if (row == null) {
                     a.createWorkOrder(wt.fixtureName(), wt.serviceId(), landedSldId,
                             "FLUKE", "Medium", 8);
-                    fixturesCreatedThisSession = true;
+                    fixturesChangedThisSession = true;
+                } else if (!TestDataApi.isActiveRow(row)) {
+                    // Present but INACTIVE = invisible: the iOS Work Orders list shows
+                    // active WOs only and a nightly backend job (~05:01 UTC) deactivates
+                    // idle ones (2026-10-02: all 42 QA-WT fixtures inactive, every
+                    // fixture test skipped "not present in the Work Orders list").
+                    if (a.activateWorkOrder(TestDataApi.extract(row, "id"))) {
+                        fixturesChangedThisSession = true;
+                    }
                 }
             }
             fixturesEnsured = true;
@@ -185,7 +193,7 @@ public abstract class WorkTypeBaseTest extends BaseTest {
 
     // ── navigation ──────────────────────────────────────────────────────────
 
-    private static boolean fixturesCreatedThisSession = false;
+    private static boolean fixturesChangedThisSession = false;   // created OR re-activated → needs a re-sync
     private static boolean resyncedAfterEnsure = false;
 
     /**
@@ -197,7 +205,7 @@ public abstract class WorkTypeBaseTest extends BaseTest {
      * and the dashboard Sites quick-action hop is unreliable (probe run 6:
      * silent no-select). CI's per-job fresh install syncs naturally; the
      * BEST-EFFORT mid-session resync below only runs when this session
-     * actually CREATED a fixture (family self-heal), and any wreckage is
+     * actually CREATED or RE-ACTIVATED a fixture (family self-heal), and any wreckage is
      * recovered by re-running the idempotent loginAndSelectSite.
      */
     protected void openWorkOrdersScreenWT() {
@@ -210,7 +218,7 @@ public abstract class WorkTypeBaseTest extends BaseTest {
         // chip here; the redirect fallback below covers the one real case
         // (a session started EARLIER IN THIS APP SESSION hijacks the tile).
         ensureFixturesOnLandedSite();
-        if (fixturesCreatedThisSession && !resyncedAfterEnsure) {
+        if (fixturesChangedThisSession && !resyncedAfterEnsure) {
             resyncedAfterEnsure = true;
             // DETERMINISTIC resync (2026-08-05, CI run 30923680769): the app
             // pulls work orders ONLY during the login/site-selection sync —
@@ -219,7 +227,7 @@ public abstract class WorkTypeBaseTest extends BaseTest {
             // 6: silent no-select) and let 283 CI tests skip with "fixture not
             // present". Relaunch the app and log in again: guaranteed
             // whole-SLD sync that includes the just-created fixtures.
-            System.out.println("🔄 fixtures were just created — app relaunch + re-login for a guaranteed WO re-sync");
+            System.out.println("🔄 fixtures were just created or re-activated — app relaunch + re-login for a guaranteed WO re-sync");
             try {
                 com.egalvanic.utils.DriverManager.getDriver()
                         .terminateApp(com.egalvanic.constants.AppConstants.APP_BUNDLE_ID);
