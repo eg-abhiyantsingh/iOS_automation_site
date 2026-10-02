@@ -61,6 +61,23 @@ public final class ZP3927_UnlinkIssue_Test extends WorkTypeBaseTest {
         skipIfPreconditionMissing(() -> session.isOnSessionIssuesTab(), tcId + ": the session Issues tab did not render");
     }
 
+    /**
+     * Leave the work-order session by relaunching the app (session state is in-memory only, so a
+     * relaunch always lands outside it). Needed before any dashboard hop from inside a session: the
+     * dashboard fast-check matches the session's own 'Assets'/'Issues' tab buttons, so
+     * loginAndSelectSite() reports "already on Dashboard" while the session is still on top and the
+     * session Issues tab ("No Issues") then reads as the global Issues screen (TC_UL_04, 2026-10-02).
+     */
+    private void relaunchOutOfSession() {
+        try { DriverManager.getDriver().terminateApp(AppConstants.APP_BUNDLE_ID); } catch (Exception e) {
+            System.out.println("⚠️ relaunchOutOfSession terminate: " + e.getMessage());
+        }
+        try { DriverManager.getDriver().activateApp(AppConstants.APP_BUNDLE_ID); } catch (Exception e) {
+            System.out.println("⚠️ relaunchOutOfSession activate: " + e.getMessage());
+        }
+        sleep(800);
+    }
+
     /** Open the tab and make sure exactly one issue is linked; returns its title. */
     private String openWithOneLinkedIssue(String tcId) {
         openSessionIssues(tcId);
@@ -157,6 +174,7 @@ public final class ZP3927_UnlinkIssue_Test extends WorkTypeBaseTest {
         session.cancelPicker();
 
         logStep("Issues screen: the issue must still be there");
+        relaunchOutOfSession();
         loginAndSelectSite();
         skipIfPreconditionMissing(() -> issues().navigateToIssuesScreen(), "Issues screen did not open for the survival check");
         issues().tapAllTab(); mediumWait();
@@ -212,7 +230,7 @@ public final class ZP3927_UnlinkIssue_Test extends WorkTypeBaseTest {
         String picked = session.selectFirstUnlinkedCandidate();
         assertEquals(picked, title, "The just-unlinked issue should be the unlinked candidate offered first");
         assertTrue(session.tapUpdate(), "Update should be tappable");
-        assertTrue(session.linkedIssueTitles().contains(title), "The issue must be linked again after Update");
+        assertTrue(session.waitForLinkedTitle(title, 8000), "The issue must be linked again after Update");
         logStepWithScreenshot("TC_UL_07: relinked");
     }
 

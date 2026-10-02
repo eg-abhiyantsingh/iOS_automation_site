@@ -1,11 +1,14 @@
 package com.egalvanic.pages;
 
 import com.egalvanic.base.BasePage;
+import com.egalvanic.utils.Waits;
 import io.appium.java_client.AppiumBy;
+import org.openqa.selenium.Rectangle;
 import org.openqa.selenium.WebElement;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * The work-order session's Issues tab (ZP-3927 §1 "Unlink Issue" lives here, not on the Issues screen).
@@ -109,17 +112,42 @@ public class SessionIssuesPage extends BasePage {
         return out;
     }
 
-    /** Select (toggle on) the first unlinked candidate; returns its title or null. */
+    /**
+     * Select (toggle on) the first unlinked candidate; returns its title or null. The row's value
+     * flips to "1" when selected — VERIFIED here, with a coordinate-press fallback, because
+     * element.click() can be a silent no-op on v1.67 SwiftUI buttons (changelog 178).
+     */
     public String selectFirstUnlinkedCandidate() {
         for (WebElement r : pickerRows()) {
             try {
                 String l = r.getAttribute("label");
                 if (l == null || l.contains(PICKER_LINKED_TO)) continue;
-                if (!"1".equals(r.getAttribute("value"))) { r.click(); sleep(500); }
-                return l.substring(0, l.indexOf(',')).trim();
+                String title = l.substring(0, l.indexOf(',')).trim();
+                String before = r.getAttribute("value");
+                if (!"1".equals(before)) {
+                    r.click();
+                    sleep(500);
+                    if (!"1".equals(r.getAttribute("value"))) {
+                        Rectangle b = r.getRect();
+                        driver.executeScript("mobile: tap",
+                                Map.of("x", b.x + b.width / 2, "y", b.y + b.height / 2));
+                        sleep(500);
+                    }
+                }
+                System.out.println("   picker row '" + title + "' value " + before + " → " + r.getAttribute("value"));
+                return title;
             } catch (Exception ignored) { }
         }
         return null;
+    }
+
+    /** Poll the session Issues tab until {@code title} is listed (the list refreshes after Update, not instantly). */
+    public boolean waitForLinkedTitle(String title, long timeoutMs) {
+        long start = System.currentTimeMillis();
+        boolean ok = Waits.until(() -> linkedIssueTitles().contains(title), timeoutMs, 500);
+        System.out.println("   linked row '" + title + "' " + (ok ? "listed after " : "NOT listed within ")
+                + (System.currentTimeMillis() - start) + "ms");
+        return ok;
     }
 
     /** Is the picker row for this title showing 'Linked to:'? (null when the row is not visible) */
@@ -144,8 +172,8 @@ public class SessionIssuesPage extends BasePage {
         String picked = selectFirstUnlinkedCandidate();
         if (picked == null) { cancelPicker(); return null; }
         tapUpdate();
-        sleep(800);
-        return linkedIssueTitles().contains(picked) ? picked : (linkedIssueCount() > 0 ? linkedIssueTitles().get(0) : null);
+        if (waitForLinkedTitle(picked, 6000)) return picked;
+        return linkedIssueCount() > 0 ? linkedIssueTitles().get(0) : null;
     }
 
     // ── unlink ───────────────────────────────────────────────────────────────
