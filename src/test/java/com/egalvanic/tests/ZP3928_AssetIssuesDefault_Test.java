@@ -3,6 +3,7 @@ package com.egalvanic.tests;
 import com.egalvanic.api.TestDataApi;
 import com.egalvanic.base.BaseTest;
 import com.egalvanic.constants.AppConstants;
+import com.egalvanic.pages.AssetPage;
 import com.egalvanic.utils.ExtentReportManager;
 import org.testng.SkipException;
 import org.testng.annotations.Test;
@@ -27,11 +28,18 @@ public final class ZP3928_AssetIssuesDefault_Test extends BaseTest {
 
     private static final String FEATURE = "Asset issues default to All (ZP-3928)";
 
+    /** Asset that carries issues on the automation site (4 Open issues on 2026-10-02) — a non-zero count. */
+    private static final String ISSUE_BEARING_ASSET = "abhiy ant";
+
+    /** Site the app landed on — the ONLY SLD the backend cross-check reads. */
+    private String landedSite;
+
     private String openAssetIssuesSection() {
         loginAndSelectSite();
+        landedSite = siteSelectionPage.getCurrentSiteName();
         assetPage.navigateToAssetListTurbo();
-        String name = assetPage.openSharedAssetForEditOrFallback(null);
-        logStep("Opened asset: " + name);
+        String name = assetPage.openSharedAssetForEditOrFallback(ISSUE_BEARING_ASSET);
+        logStep("Opened asset: " + name + " (site: " + landedSite + ")");
         if (!assetPage.isEditAssetScreenDisplayed()) throw new SkipException("Asset details did not open");
         assetPage.scrollToIssuesSection();
         mediumWait();
@@ -42,22 +50,28 @@ public final class ZP3928_AssetIssuesDefault_Test extends BaseTest {
 
     /** All-status issue count for the asset from the SLD payload, or -1 when the API cannot answer. */
     private int backendIssueCountForAsset(String assetLabel) {
+        // Read ONLY the landed site's SLD. The old version walked every accessible SLD (247 on this
+        // account) downloading each full payload until a label matched — it blew TC_AI_01's 6-min budget
+        // on 2026-10-02, and a same-named asset on another site could have answered for the wrong one.
         try {
             TestDataApi api = new TestDataApi();
             api.login();
-            List<String> slds = api.accessibleSldIds();
-            if (slds.isEmpty()) { String f = api.firstSldId(); if (f != null) slds = List.of(f); }
-            for (String sldId : slds) {
-                String json = api.getSldDetails(sldId);
-                String nodeId = TestDataApi.extractSiblingField(json, "label", assetLabel, "id");
-                if (nodeId == null) continue;
-                int n = TestDataApi.countIssuesForNode(json, nodeId);
-                logStep("Backend: asset '" + assetLabel + "' = node " + nodeId + " on SLD " + sldId + " → " + n + " issue(s), all statuses");
-                return n;
+            String sldId = landedSite == null ? null : api.resolveSldIdByName(landedSite);
+            if (sldId == null) {
+                logStep("Backend: could not resolve an SLD id for site '" + landedSite + "'");
+                return -1;
             }
-            logStep("Backend: asset '" + assetLabel + "' not found in any accessible SLD");
+            String json = api.getSldDetails(sldId);
+            String nodeId = TestDataApi.liveNodeIdByLabel(json, assetLabel);
+            if (nodeId == null) {
+                logStep("Backend: asset '" + assetLabel + "' not found on site '" + landedSite + "' (" + sldId + ")");
+                return -1;
+            }
+            int n = TestDataApi.countIssuesForNode(json, nodeId);
+            logStep("Backend: asset '" + assetLabel + "' = node " + nodeId + " on '" + landedSite + "' → " + n + " issue(s), all statuses");
+            return n;
         } catch (Exception e) {
-            logStep("Backend unavailable for the cross-check: " + e.getMessage());
+            logStep("Backend unavailable for the cross-check: " + e);
         }
         return -1;
     }
@@ -108,25 +122,45 @@ public final class ZP3928_AssetIssuesDefault_Test extends BaseTest {
     @Test(priority = 4)
     public void TC_AI_04_defaultReturnsOnReopen() {
         ExtentReportManager.createTest(AppConstants.MODULE_ASSET, FEATURE,
-                "TC_AI_04 - After filtering to Open, reopening the asset restores the All default");
+                "TC_AI_04 - After narrowing the filter, reopening the asset restores the All default");
         openAssetIssuesSection();
         int allCount = assetPage.assetIssuesHeaderCount();
         skipIfPreconditionMissing(() -> assetPage.tapAssetIssuesFilter(), "Filter button did not open a menu");
         mediumWait();
-        skipIfPreconditionMissing(() -> assetPage.chooseIssueFilterOption("Open"), "the Filter menu offers no 'Open' option");
+        // 1.67 labels the narrowing option "Show Unresolved Only" (the old "Open" kept for older builds).
+        String narrowing = assetPage.chooseIssueFilterOption(AssetPage.ISSUE_FILTER_UNRESOLVED)
+                ? AssetPage.ISSUE_FILTER_UNRESOLVED
+                : (assetPage.chooseIssueFilterOption("Open") ? "Open" : null);
+        skipIfPreconditionMissing(() -> narrowing != null, "the Filter menu offers no narrowing option ('"
+                + AssetPage.ISSUE_FILTER_UNRESOLVED + "' / 'Open')");
         mediumWait();
-        int openCount = assetPage.assetIssuesHeaderCount();
-        logStep("header count — default: " + allCount + " · after 'Open': " + openCount);
+        int narrowCount = assetPage.assetIssuesHeaderCount();
+
+        // MENU oracle — works even when every issue is unresolved and the counts cannot differ.
+        skipIfPreconditionMissing(() -> assetPage.tapAssetIssuesFilter(), "Filter button did not reopen the menu");
+        mediumWait();
+        String chosen = assetPage.currentIssueFilterOption();
+        assetPage.dismissMenuIfOpen();
+        logStep("header count — default: " + allCount + " · after '" + narrowing + "': " + narrowCount
+                + " · menu marks current: " + chosen);
+        assertEquals(chosen, narrowing, "Choosing '" + narrowing + "' must take effect before the reopen check");
 
         logStep("Closing and reopening the asset");
         assetPage.clickCloseButton();
         mediumWait();
         openAssetIssuesSection();
         int again = assetPage.assetIssuesHeaderCount();
-        logStep("header count after reopen: " + again);
+        skipIfPreconditionMissing(() -> assetPage.tapAssetIssuesFilter(), "Filter button did not open after reopen");
+        mediumWait();
+        String afterReopen = assetPage.currentIssueFilterOption();
+        assetPage.dismissMenuIfOpen();
+        logStep("after reopen — header count: " + again + " · menu marks current: " + afterReopen);
+        assertTrue(AssetPage.ISSUE_FILTER_ALL.equals(afterReopen) || "All".equals(afterReopen),
+                "Reopening the asset must restore the all-issues default, but the Filter menu marks '"
+                + afterReopen + "' (the narrowing choice was '" + narrowing + "')");
         assertEquals(again, allCount,
-                "Reopening the asset must restore the All default (count " + allCount + ") rather than remembering the Open "
-                + "filter (count " + openCount + ") — got " + again);
+                "Reopening must restore the All count (" + allCount + ") rather than the narrowed count (" + narrowCount
+                + ") — got " + again);
         logStepWithScreenshot("TC_AI_04: default restored on reopen");
     }
 }

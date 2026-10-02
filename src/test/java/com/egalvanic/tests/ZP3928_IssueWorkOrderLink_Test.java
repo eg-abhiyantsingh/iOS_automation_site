@@ -39,6 +39,8 @@ public final class ZP3928_IssueWorkOrderLink_Test extends BaseTest {
         if (!issues().isIssueDetailsScreenDisplayed()) {
             throw new SkipException("Issue Details did not open");
         }
+        // The card sits below the fold on open; the card oracles only see visible elements.
+        issues().scrollToWorkOrderLinkCard();
     }
 
     @Test(priority = 1)

@@ -639,29 +639,58 @@ public class TestDataApi {
      * tasks) are not counted.
      */
     public static int countIssuesForNode(String sldJson, String nodeId) {
-        int start = sldJson.indexOf("\"issues\"");
-        if (start < 0 || nodeId == null) return 0;
-        int open = sldJson.indexOf('[', start);
-        if (open < 0) return 0;
-        int depth = 0, end = open;
-        for (int i = open; i < sldJson.length(); i++) {
-            char c = sldJson.charAt(i);
-            if (c == '[') depth++;
-            else if (c == ']' && --depth == 0) { end = i; break; }
-        }
-        String arr = sldJson.substring(open, end + 1);
+        // Real parse of the TOP-LEVEL "issues" array: the old indexOf("\"issues\"") bracket scan could land
+        // on a nested "issues" key first, and its string match depended on the server's whitespace.
+        com.google.gson.JsonObject root = sldRoot(sldJson);
+        if (root == null || nodeId == null || !root.has("issues") || !root.get("issues").isJsonArray()) return 0;
         int n = 0;
-        // walk top-level objects of the array
-        int d = 0, objStart = -1;
-        for (int i = 0; i < arr.length(); i++) {
-            char c = arr.charAt(i);
-            if (c == '{') { if (d == 0) objStart = i; d++; }
-            else if (c == '}') { d--; if (d == 0 && objStart >= 0) {
-                String obj = arr.substring(objStart, i + 1);
-                if (obj.contains("\"node_id\":\"" + nodeId + "\"") && !obj.contains("\"is_deleted\":true")) n++;
-                objStart = -1; } }
+        for (com.google.gson.JsonElement e : root.getAsJsonArray("issues")) {
+            if (!e.isJsonObject()) continue;
+            com.google.gson.JsonObject i = e.getAsJsonObject();
+            if (nodeId.equals(str(i, "node_id")) && !bool(i, "is_deleted")) n++;
         }
         return n;
+    }
+
+    /**
+     * Id of the LIVE node whose display name ({@code label}) is exactly {@code label}, from the SLD payload's
+     * top-level "nodes" array (tombstones skipped). extractSiblingField(json, "label", …) is a first match over
+     * the WHOLE payload: on 2026-10-02 it returned an id from another array for 'abhiy ant' (e94df519…, 0
+     * issues) while the live node was 1643f77f… with the 4 issues the app showed.
+     */
+    public static String liveNodeIdByLabel(String sldJson, String label) {
+        com.google.gson.JsonObject root = sldRoot(sldJson);
+        if (root == null || label == null || !root.has("nodes") || !root.get("nodes").isJsonArray()) return null;
+        for (com.google.gson.JsonElement e : root.getAsJsonArray("nodes")) {
+            if (!e.isJsonObject()) continue;
+            com.google.gson.JsonObject n = e.getAsJsonObject();
+            if (label.equals(str(n, "label")) && !bool(n, "is_deleted")) return str(n, "id");
+        }
+        return null;
+    }
+
+    /** The SLD payload object (unwrapping a {"data": {...}} envelope), or null when it is not JSON. */
+    private static com.google.gson.JsonObject sldRoot(String sldJson) {
+        if (sldJson == null) return null;
+        try {
+            com.google.gson.JsonElement el = com.google.gson.JsonParser.parseString(sldJson);
+            if (!el.isJsonObject()) return null;
+            com.google.gson.JsonObject o = el.getAsJsonObject();
+            if (!o.has("nodes") && !o.has("issues") && o.has("data") && o.get("data").isJsonObject()) {
+                o = o.getAsJsonObject("data");
+            }
+            return o;
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
+    private static String str(com.google.gson.JsonObject o, String k) {
+        return o.has(k) && o.get(k).isJsonPrimitive() ? o.get(k).getAsString() : null;
+    }
+
+    private static boolean bool(com.google.gson.JsonObject o, String k) {
+        return o.has(k) && o.get(k).isJsonPrimitive() && o.get(k).getAsBoolean();
     }
 
     /** Minimal first-match string-field extractor (avoids adding a JSON dep). */

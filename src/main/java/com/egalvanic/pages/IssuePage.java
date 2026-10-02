@@ -12549,11 +12549,26 @@ public class IssuePage extends BasePage {
      * when the card is absent (e.g. a "Work Order" breadcrumb), i.e. it could not fail.
      */
     public boolean isWorkOrderLinkCardPresent() {
-        return isAnyTextContaining(WO_CARD_NOT_LINKED)
-            || isAnyTextPresent(WO_CARD_SELECT)
-            || isAnyTextPresent(WO_CARD_CHANGE)
-            || existsNow(AppiumBy.iOSNsPredicateString(
-                   "type == 'XCUIElementTypeButton' AND visible == 1 AND label BEGINSWITH '" + WO_CARD_UNLINK + "'"));
+        // One snapshot instead of four queries (each ~8 s on Issue Details).
+        return snapshot().stream().anyMatch(n -> n.visible && (
+                n.label.toLowerCase().contains(WO_CARD_NOT_LINKED.toLowerCase())
+                || n.label.equalsIgnoreCase(WO_CARD_SELECT) || n.name.equalsIgnoreCase(WO_CARD_SELECT)
+                || n.label.equalsIgnoreCase(WO_CARD_CHANGE) || n.name.equalsIgnoreCase(WO_CARD_CHANGE)
+                || ("Button".equals(n.type) && n.label.startsWith(WO_CARD_UNLINK))));
+    }
+
+    /**
+     * Bring the work-order link card on screen (swipe + snapshot). It sits below the Issue Details and
+     * Description cards — off screen when the issue opens — and the card oracles match VISIBLE elements
+     * only: TC_ILW_01 failed on 2026-10-02 with the card simply below the fold.
+     */
+    public boolean scrollToWorkOrderLinkCard() {
+        for (int i = 0; i < 8; i++) {
+            if (isWorkOrderLinkCardPresent()) return true;
+            try { driver.executeScript("mobile: swipe", java.util.Map.of("direction", "up")); } catch (Exception ignored) { }
+            sleep(500);
+        }
+        return isWorkOrderLinkCardPresent();
     }
 
     /** True when the card says the issue is NOT linked (the state in which linking is offered). */
@@ -12566,23 +12581,31 @@ public class IssuePage extends BasePage {
 
     /** Tap the card's link/select control. Returns false when the card offers no such control. */
     public boolean tapWorkOrderLinkControl() {
-        if (tapText(WO_CARD_SELECT) || tapText(WO_CARD_CHANGE)) return true;
-        try {
-            WebElement card = withImplicitWait(0, () -> {
-                java.util.List<WebElement> x = driver.findElements(AppiumBy.iOSNsPredicateString(
-                        "visible == 1 AND (label CONTAINS[c] '" + WO_CARD_NOT_LINKED + "' OR label ==[c] '" + WO_CARD_SELECT + "')"));
-                return x.isEmpty() ? null : x.get(0);
-            });
-            if (card != null) { card.click(); sleep(700); return true; }
-        } catch (Exception ignored) { }
-        return false;
+        // Snapshot + coordinate press (element.click() is a silent no-op on v1.67 SwiftUI buttons).
+        // Prefer the card's Buttons; fall back to its "Not linked…" text row.
+        java.util.List<SnapNode> s = snapshot();
+        SnapNode ctl = s.stream().filter(n -> n.visible && "Button".equals(n.type)
+                        && (n.is(WO_CARD_SELECT) || n.is(WO_CARD_CHANGE))).findFirst()
+                .orElse(s.stream().filter(n -> n.visible && n.label.contains(WO_CARD_NOT_LINKED)).findFirst().orElse(null));
+        if (ctl == null) return false;
+        driver.executeScript("mobile: tap", java.util.Map.of("x", ctl.centerX(), "y", ctl.centerY()));
+        sleep(900);
+        return true;
     }
 
-    /** Is the work-order picker open? Its title or its empty state — not just any "Work Orders" text. */
+    /**
+     * Is the work-order picker open? Its nav title or its empty state — NOT the card's own
+     * 'Select Work Order' button, which is on screen whenever the issue is unlinked (the old oracle
+     * accepted that button and could pass with no picker at all). A 'Select Work Order' title text only
+     * counts once the card's "Not linked…" copy is covered by the sheet.
+     */
     public boolean isWorkOrderPickerOpen() {
-        return isAnyTextPresent(WO_CARD_SELECT) || isAnyTextPresent(WO_PICKER_EMPTY)
-            || existsNow(AppiumBy.iOSNsPredicateString(
-                   "type == 'XCUIElementTypeNavigationBar' AND (name ==[c] '" + WO_CARD_SELECT + "' OR label ==[c] '" + WO_CARD_SELECT + "')"));
+        java.util.List<SnapNode> s = snapshot();
+        boolean navTitle = s.stream().anyMatch(n -> n.visible && "NavigationBar".equals(n.type) && n.is(WO_CARD_SELECT));
+        boolean emptyState = s.stream().anyMatch(n -> n.visible && n.is(WO_PICKER_EMPTY));
+        boolean titleText = s.stream().anyMatch(n -> n.visible && "StaticText".equals(n.type) && n.is(WO_CARD_SELECT));
+        boolean cardVisible = s.stream().anyMatch(n -> n.visible && n.label.contains(WO_CARD_NOT_LINKED));
+        return navTitle || emptyState || (titleText && !cardVisible);
     }
 
     /**
@@ -12590,16 +12613,13 @@ public class IssuePage extends BasePage {
      * label folds the name in ("Unlink Work Order - Sep 16, 5:22 PM" → "Work Order - Sep 16, 5:22 PM").
      */
     public String linkedWorkOrderName() {
-        try {
-            java.util.List<WebElement> btns = withImplicitWait(0, () -> driver.findElements(
-                    AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeButton' AND visible == 1 AND label BEGINSWITH 'Unlink '")));
-            for (WebElement b : btns) {
-                String l = b.getAttribute("label");
-                if (l == null || l.equals(MENU_UNLINK_ISSUE) || l.equals(UNLINK_CONFIRM_BUTTON)) continue;
-                String name = l.substring("Unlink ".length()).trim();
-                if (!name.isEmpty()) return name;
-            }
-        } catch (Exception ignored) { }
+        // One snapshot instead of a query + one attribute call per button.
+        for (SnapNode b : snapshot()) {
+            if (!b.visible || !"Button".equals(b.type) || !b.label.startsWith("Unlink ")) continue;
+            if (b.label.equals(MENU_UNLINK_ISSUE) || b.label.equals(UNLINK_CONFIRM_BUTTON)) continue;
+            String name = b.label.substring("Unlink ".length()).trim();
+            if (!name.isEmpty()) return name;
+        }
         return null;
     }
 

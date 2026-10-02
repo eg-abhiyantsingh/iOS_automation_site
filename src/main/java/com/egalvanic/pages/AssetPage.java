@@ -1153,7 +1153,18 @@ public class AssetPage extends BasePage {
                     sleep(400);
                     continue;
                 }
-                // y > 650, keep scrolling down
+                // y > 800: jump most of the distance with back-to-back swipes — one find per JUMP instead of
+                // one per swipe (each find is a full snapshot, ~8 s on this screen; ZP-3928 TC_AI_01 spent
+                // 10 finds walking down from y=2407 on 2026-10-02). ~185 pt per velocity-250 swipe, measured.
+                int jumps = Math.max(1, Math.min(14, (y - 450) / 185));
+                for (int j = 0; j < jumps; j++) {
+                    Map<String, Object> jump = new HashMap<>();
+                    jump.put("direction", "up");
+                    jump.put("velocity", 250);
+                    driver.executeScript("mobile: swipe", jump);
+                    sleep(250);
+                }
+                continue;
             } catch (Exception e) {
                 System.out.println("   Scroll " + (i + 1) + " - Issues not visible yet");
             }
@@ -13612,7 +13623,13 @@ public class AssetPage extends BasePage {
         } catch (Exception e) { return false; }
     }
 
-    private static final String[] ISSUE_FILTER_OPTIONS = {"All", "Show All Issues", "Open", "In Progress", "Pending", "Resolved", "Closed"};
+    // 1.67 asset Issues 'Filter' menu (dylib issues.show*): Show All Issues · Show Unresolved Only ·
+    // Show Resolved Only. The status words are kept for older builds.
+    public static final String ISSUE_FILTER_ALL        = "Show All Issues";
+    public static final String ISSUE_FILTER_UNRESOLVED = "Show Unresolved Only";
+    public static final String ISSUE_FILTER_RESOLVED   = "Show Resolved Only";
+    private static final String[] ISSUE_FILTER_OPTIONS = {"All", ISSUE_FILTER_ALL, ISSUE_FILTER_UNRESOLVED,
+            ISSUE_FILTER_RESOLVED, "Open", "In Progress", "Pending", "Resolved", "Closed"};
 
     /** Status options visible in the open Filter menu, in the build's order. */
     public List<String> visibleIssueFilterOptions() {
@@ -13646,7 +13663,10 @@ public class AssetPage extends BasePage {
                     "(type == 'XCUIElementTypeButton' OR type == 'XCUIElementTypeMenuItem' OR type == 'XCUIElementTypeCell' "
                   + "OR type == 'XCUIElementTypeStaticText') AND visible == 1 AND (label ==[c] '" + option + "' OR name ==[c] '" + option + "')")));
             if (l.isEmpty()) return false;
-            l.get(0).click(); sleep(600); return true;
+            // Coordinate press — element.click() can be a silent no-op on v1.67 SwiftUI controls.
+            org.openqa.selenium.Rectangle r = l.get(0).getRect();
+            driver.executeScript("mobile: tap", java.util.Map.of("x", r.x + r.width / 2, "y", r.y + r.height / 2));
+            sleep(600); return true;
         } catch (Exception e) { return false; }
     }
 

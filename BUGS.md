@@ -285,3 +285,32 @@ removed, redesigned, or regressed between v1.50 and v1.51.
 
 **Tests:** `TC_WO_MORE_01/02` stay RED (honest fail, not remapped) until
 dev/product confirms whether the affordance was intentionally dropped.
+
+## ISS-WOCARD-01 (candidate, 2026-10-02) — ZP-3928 work-order link card ABSENT from Issue Details on 1.67 (2026-09-29 build)
+
+**Evidence (full-screen DOM walks, 12 scroll positions each, local iPhone 17 / iOS 26.2,
+app 1.67 built 2026-09-29, tenant acme, Field Technician experience):**
+
+| Context | Card rendered? |
+|---|---|
+| Unlinked issue ("NEC Violation on abhiy ant"), no active work order | no |
+| Same issue while QA-WT10 is the ACTIVE work order (started via "Start Work Order?") | no |
+| Linked issue ("Thermal Anomaly on _UC12_1790520922059", backend `session_id` = QA-WT04) opened from the global Issues list | no |
+| Same linked issue opened from QA-WT04's own session › Issues tab (session active) | no |
+
+Issue Details renders: Issue Details card, Description, Issue Photos, Issue Properties,
+Proposed Resolution, Safety & Notification, IR Photos (Thermal only), Delete Issue — and no
+"Not linked to a work order" / "Select Work Order" / "Change work order" / "Unlink Work Order" row.
+
+**Code is present:** `IssueWorkOrderLinkCard` (body, linkedContent, unlinkedContent, lockedContent,
+readOnlyLinkedRow, disabledAction, unlinkSyncStatusRow, errorRow) and all its strings exist,
+unchanged, in BOTH 1.67 builds (09-23 and 09-29). Company features include `ops-core`; the
+"Account Manager" experience is Site-Walks-only, so the experience choice is not the gate.
+Changelog 177 observed the card (linked state) on 1.63.
+
+**Open question for dev:** is the card behind a per-user LaunchDarkly flag (the app ships
+LaunchDarkly; the binary's flag keys are feature-eg-forms/emp/eng-lib/gojs-sld/issue-suggestions/
+ops-core/site-walks), or did it drop out of the Issue Details layout in 1.67?
+
+**Tests:** `ZP3928_IssueWorkOrderLink_Test` TC_ILW_01 stays RED (honest fail); TC_ILW_03/10 skip on it.
+The ZP-3928 AC "Link Issue to Work Order from Issue Editing screen" cannot be signed off until answered.
