@@ -21,6 +21,8 @@ public final class ZP3928_NumberPadDecimal_Test extends BaseTest {
     private static final String FEATURE = "Number pad decimals (ZP-3928)";
     private static final String DECIMAL_PROBLEM = "72.5";
     private static final String DECIMAL_REF     = "70.5";
+    /** An issue that is already Thermal on the automation site (Problem/Reference Temp exposed, 2026-10-02). */
+    private static final String THERMAL_TITLE_PREFIX = "Thermal Anomaly on ";
 
     private IssuePage issuePage;
 
@@ -43,8 +45,12 @@ public final class ZP3928_NumberPadDecimal_Test extends BaseTest {
         if (!issues().navigateToIssuesScreen()) throw new SkipException("Issues screen did not open");
         issues().tapAllTab();
         mediumWait();
-        if (!issues().tapFirstIssue()) throw new SkipException("No issue available to open");
-        mediumWait();
+        // Prefer an issue that is ALREADY Thermal (no class mutation on the shared QA site); fall back to
+        // the first issue + class switch only when the site has none.
+        if (!issues().openIssueByTitlePrefix(THERMAL_TITLE_PREFIX)) {
+            if (!issues().tapFirstIssue()) throw new SkipException("No issue available to open");
+            mediumWait();
+        }
         if (!issues().isIssueDetailsScreenDisplayed()) {
             throw new SkipException("Issue Details did not open — cannot reach the temperature fields");
         }
@@ -59,15 +65,18 @@ public final class ZP3928_NumberPadDecimal_Test extends BaseTest {
 
     /** Save, close, reopen the SAME issue (matched by title) and land back on details. Null title ⇒ skip. */
     private void saveCloseAndReopen(String title) {
-        issues().tapSaveChangesButton();
+        // Coordinate press + verified (the old tapSaveChangesButton() click() is a silent no-op on 1.67 —
+        // nothing was saved, so the reopen read an empty field).
+        assertTrue(issues().commitIssueChanges(), "'Save Changes' must commit the typed temperature");
         mediumWait();
         issues().cancelSheetIfOpen();            // 'Close' when the details stayed open after Save
         mediumWait();
         if (!issues().navigateToIssuesScreen()) throw new SkipException("Issues screen did not reopen after save");
         issues().tapAllTab();
         mediumWait();
-        if (!issues().tapFirstIssue() || !issues().isIssueDetailsScreenDisplayed()) {
-            throw new SkipException("could not reopen an issue after saving");
+        // Reopen the SAME issue by title — position-based reopening broke when the list reordered.
+        if (title == null || !issues().openIssueByTitlePrefix(title)) {
+            throw new SkipException("could not reopen '" + title + "' after saving");
         }
         String reopened = issues().openIssueTitle();
         skipIfPreconditionMissing(() -> title != null && title.equals(reopened),

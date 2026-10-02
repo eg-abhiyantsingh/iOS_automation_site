@@ -855,6 +855,22 @@ public abstract class BasePage {
         }
     }
 
+    /**
+     * Run {@code body} with WDA's alert auto-accept paused (defaultAlertAction ""), always restoring "accept".
+     * autoAcceptAlerts acts on XCUIElementTypeSheet as well as Alert: Quick Count's 'Select Asset Type' picker
+     * IS a Sheet and was dismissed before it could be seen (2026-10-02: tapped 4×, never detected; a probe
+     * session with auto-accept off saw it at once). Same mechanics as SessionIssuesPage/AssetEngineerPage.
+     */
+    public void withAlertsManual(Runnable body) {
+        boolean paused = false;
+        try { driver.setSetting("defaultAlertAction", ""); paused = true; }
+        catch (Exception e) { System.out.println("⚠️ withAlertsManual: could not pause defaultAlertAction — " + e.getMessage()); }
+        try { body.run(); }
+        finally {
+            if (paused) { try { driver.setSetting("defaultAlertAction", "accept"); } catch (Exception ignored) { } }
+        }
+    }
+
     // ── page-source snapshot (heavy screens) ────────────────────────────────
 
     /** One element of a page-source snapshot, with the attributes WDA writes into the XML. */

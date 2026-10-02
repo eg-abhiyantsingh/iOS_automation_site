@@ -12822,6 +12822,22 @@ public class IssuePage extends BasePage {
     }
 
     /**
+     * Open the first visible issue whose TITLE starts with {@code prefix} on the Issues list. List rows are
+     * unlabelled StaticText clusters, so the title text itself is pressed (coordinates, from one snapshot);
+     * the "… detected on …" description line is skipped. True once Issue Details is on screen.
+     */
+    public boolean openIssueByTitlePrefix(String prefix) {
+        SnapNode t = snapshot().stream()
+                .filter(n -> n.visible && "StaticText".equals(n.type) && n.label.startsWith(prefix)
+                        && !n.label.contains(" detected on ") && n.y > 250)
+                .findFirst().orElse(null);
+        if (t == null) return false;
+        driver.executeScript("mobile: tap", java.util.Map.of("x", t.centerX(), "y", t.centerY()));
+        sleep(1500);
+        return isIssueDetailsScreenDisplayed();
+    }
+
+    /**
      * Commit staged edits on Issue Details with 'Save Changes'. Live 1.67 (2026-10-02): an imported photo
      * is only STAGED — the button turns enabled after 'Use Photo', and nothing reaches the server or
      * survives close/reopen until it is pressed (probe: 0 → 1 → save → reopen 1; backend photo row type
@@ -12829,6 +12845,9 @@ public class IssuePage extends BasePage {
      * true once no enabled 'Save Changes' remains on screen.
      */
     public boolean commitIssueChanges() {
+        // The number pad (temperature fields) has no return key and sits over the bottom bar where
+        // 'Save Changes' lives — TC_NPD_02 found no visible button on 2026-10-02. Dismiss it, VERIFIED.
+        if (!dismissKeyboardVerified()) System.out.println("⚠️ commitIssueChanges: keyboard still up");
         SnapNode save = snapshot().stream()
                 .filter(n -> n.visible && n.enabled && "Button".equals(n.type) && n.is("Save Changes"))
                 .findFirst().orElse(null);
@@ -12841,6 +12860,68 @@ public class IssuePage extends BasePage {
                 .noneMatch(n -> n.visible && n.enabled && "Button".equals(n.type) && n.is("Save Changes")), 15_000, 1000);
         System.out.println(committed ? "💾 Issue changes saved" : "⚠️ 'Save Changes' still enabled after pressing it");
         return committed;
+    }
+
+    /**
+     * Hide the keyboard and CONFIRM it is gone. `mobile: hideKeyboard` reports success on a number pad it
+     * cannot close (no return key), so each step is checked; the fallback taps the nav-bar title — a
+     * non-interactive spot that resigns focus without touching the form or the Cancel/Close button.
+     */
+    private boolean dismissKeyboardVerified() {
+        // Live 2026-10-02: neither hideKeyboard nor a nav-title tap closes the temperature number pad, so try
+        // the gestures a user would — scroll the form, tap a section header — checking after each one.
+        // Live run 2 (2026-10-02): the swipe scrolled the form to the top and the pad STAYED — nothing on this
+        // screen resigns the temperature field. What a user can do: focus a plain text field (its keyboard has
+        // a return key) and press return — hence the last strategy.
+        String[] strategies = {"hideKeyboard", "swipe down on the form", "tap 'Issue Properties' header",
+                "tap nav title", "focus a text field + return"};
+        for (String s : strategies) {
+            if (!keyboardShown()) return true;
+            try {
+                switch (s) {
+                    case "hideKeyboard":
+                        driver.executeScript("mobile: hideKeyboard");
+                        break;
+                    case "swipe down on the form":
+                        driver.executeScript("mobile: swipe", java.util.Map.of("direction", "down"));
+                        break;
+                    case "focus a text field + return": {
+                        SnapNode field = snapshot().stream()
+                                .filter(n -> n.visible && "TextField".equals(n.type) && n.y > 130)
+                                .findFirst().orElse(null);
+                        if (field == null) continue;
+                        driver.executeScript("mobile: tap", java.util.Map.of("x", field.centerX(), "y", field.centerY()));
+                        sleep(700);
+                        SnapNode ret = snapshot().stream()
+                                .filter(n -> n.visible && ("Key".equals(n.type) || "Button".equals(n.type))
+                                        && (n.is("return") || n.is("Return") || n.is("Done") || n.is("done")))
+                                .filter(n -> n.y > 500)   // the keyboard's own key — never the nav bar
+                                .findFirst().orElse(null);
+                        if (ret == null) continue;
+                        driver.executeScript("mobile: tap", java.util.Map.of("x", ret.centerX(), "y", ret.centerY()));
+                        break;
+                    }
+                    default: {
+                        String text = s.startsWith("tap 'Issue Properties'") ? "Issue Properties" : "Issue Details";
+                        SnapNode t = snapshot().stream()
+                                .filter(n -> n.visible && "StaticText".equals(n.type) && n.is(text))
+                                .findFirst().orElse(null);
+                        if (t == null) continue;
+                        driver.executeScript("mobile: tap", java.util.Map.of("x", t.centerX(), "y", t.centerY()));
+                    }
+                }
+            } catch (Exception ignored) { }
+            sleep(600);
+            if (!keyboardShown()) {
+                System.out.println("⌨️ keyboard dismissed by: " + s);
+                return true;
+            }
+        }
+        return !keyboardShown();
+    }
+
+    private boolean keyboardShown() {
+        try { return driver.isKeyboardShown(); } catch (Exception e) { return false; }
     }
 
     /** Cancel the presented picker (best-effort; true when the Issue Details chrome is visible again). */

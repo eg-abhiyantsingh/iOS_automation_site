@@ -6237,6 +6237,15 @@ public class WorkOrderPage extends BasePage {
                 int y = btn.getLocation().getY() + btn.getSize().getHeight() / 2;
                 System.out.println("📊 Add Asset Type BUTTON at (" + x + ", " + y
                     + "), size=" + btn.getSize().getWidth() + "x" + btn.getSize().getHeight());
+                // 1.67 (probe 2026-10-02): a plain `mobile: tap` at the centre opens 'Select Asset Type';
+                // the W3C down → 150 ms move → up sequence below did NOT (PhotoCategories skipped twice).
+                try {
+                    driver.executeScript("mobile: tap", java.util.Map.of("x", x, "y", y));
+                    System.out.println("✅ Tapped Add Asset Type BUTTON (mobile: tap) at (" + x + ", " + y + ")");
+                    return true;
+                } catch (Exception tapFailed) {
+                    System.out.println("   mobile: tap failed (" + tapFailed.getMessage() + ") — W3C fallback");
+                }
                 // W3C coordinate tap with 150ms hold — SwiftUI needs brief hold to register
                 org.openqa.selenium.interactions.PointerInput finger =
                     new org.openqa.selenium.interactions.PointerInput(
@@ -6385,14 +6394,14 @@ public class WorkOrderPage extends BasePage {
         // double sleep-loop probed 4-6 fallback locators per pass, each miss
         // burning the global implicit wait)
         if (withImplicitWait(0, () ->
-                com.egalvanic.utils.Waits.until(this::isSelectAssetTypeSheetDisplayed, 2_000, 250))) {
+                com.egalvanic.utils.Waits.until(this::isSelectAssetTypeSheetDisplayed, 4_000, 250))) {
             return true;
         }
-        // Retry: tap button again and wait up to 2 seconds
+        // Retry: tap button again and wait up to 4 seconds (the sheet took ~3 s on 2026-10-02)
         System.out.println("📍 Retrying tap on Add Asset Type button...");
         tapAddAssetTypeButton();
         if (withImplicitWait(0, () ->
-                com.egalvanic.utils.Waits.until(this::isSelectAssetTypeSheetDisplayed, 2_000, 250))) {
+                com.egalvanic.utils.Waits.until(this::isSelectAssetTypeSheetDisplayed, 4_000, 250))) {
             return true;
         }
         System.out.println("⚠️ Select Asset Type sheet did not appear after retry");

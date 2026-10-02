@@ -211,7 +211,7 @@ public class WorkOrderFormsPage extends BasePage {
                 if (roomsWithAssets().isEmpty() && !isAssetsInRoomOpen()) {
                     try {
                         WebElement assetsTab = driver.findElement(AppiumBy.iOSNsPredicateString(
-                                "type == 'XCUIElementTypeButton' AND name == 'Assets' AND visible == 1 AND rect.y > 800"));
+                                "type == 'XCUIElementTypeButton' AND name == 'Assets' AND visible == 1 AND rect.y > 700"));
                         System.out.println("🌳 entering session Assets tab (v1.55)");
                         org.openqa.selenium.Rectangle tr = assetsTab.getRect();
                         driver.executeScript("mobile: tap",
@@ -219,6 +219,7 @@ public class WorkOrderFormsPage extends BasePage {
                         pauseMs(1000);
                     } catch (Exception ignored) { }
                 }
+                switchToAllRoomsIfOffered();
                 List<WebElement> rooms = roomsWithAssets();
                 // v1.55 session tree, probe-pinned 2026-08-07: room rows are
                 // FULL-PATH composites '<bldg> › <floor>, <room>' and clicking
@@ -415,6 +416,29 @@ public class WorkOrderFormsPage extends BasePage {
      * toolbar Button that passed the old filter and got tapped as a "room"
      * (observed 2026-08-07, forms audit run 2).
      */
+    private static final java.util.Set<String> SESSION_TABS =
+            java.util.Set.of("Details", "Assets", "Forms", "Issues", "More", "Tasks", "IR", "Files");
+
+    /**
+     * 1.67: a session with no active work opens its Assets tab on "No rooms have active work" + 'Switch to
+     * All Rooms' — there are NO room rows until it is pressed. Coordinate press; true when it was offered.
+     */
+    private boolean switchToAllRoomsIfOffered() {
+        try {
+            List<WebElement> sw = driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeButton' AND (label == 'Switch to All Rooms' OR name == 'Switch to All Rooms')"
+                    + " AND visible == 1"));
+            if (sw.isEmpty()) return false;
+            org.openqa.selenium.Rectangle r = sw.get(0).getRect();
+            driver.executeScript("mobile: tap", java.util.Map.of("x", r.x + r.width / 2, "y", r.y + r.height / 2));
+            pauseMs(1500);
+            System.out.println("🌳 'No rooms have active work' — switched to All Rooms");
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     private WebElement findBareRoomCandidate(java.util.Set<String> visited) {
         for (WebElement b : driver.findElements(AppiumBy.iOSNsPredicateString(
                 "type == 'XCUIElementTypeButton' AND visible == 1 AND rect.y > 120 AND rect.y < 800"))) {
@@ -424,7 +448,11 @@ public class WorkOrderFormsPage extends BasePage {
                     || "plus".equals(n) || "qrcode.viewfinder".equals(n)
                     || "arrow.clockwise".equals(n) || "BackButton".equals(n) || "Done".equals(n)
                     || "Add".equals(n) || "Edit".equals(n) || "Filter".equals(n) || "Sort".equals(n)
-                    || n.startsWith("Search") || visited.contains(n)) continue;
+                    || n.startsWith("Search") || visited.contains(n)
+                    // 1.67: the session tab strip sits at y≈786 (inside the window above) — its buttons were
+                    // being "tried" as rooms (PhotoCategories, 2026-10-02); same for the empty-state controls.
+                    || SESSION_TABS.contains(n) || n.endsWith(", Issues") || n.endsWith(", Assets")
+                    || "Switch to All Rooms".equals(n) || "Scan Qr Code".equals(n) || "checklist".equals(n)) continue;
             return b;
         }
         return null;

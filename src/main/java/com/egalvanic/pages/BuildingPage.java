@@ -7450,12 +7450,30 @@ public class BuildingPage extends BasePage {
         WebElement b = v163CreateButton();
         if (b == null) { System.out.println("⚠️ Create/Save button not found"); return false; }
         dismissKeyboard();
-        try { b.click(); } catch (Exception e) {
-            org.openqa.selenium.Rectangle r = b.getRect();
-            driver.executeScript("mobile: tap", Map.of("x", r.x + r.width / 2, "y", r.y + r.height / 2));
+        // Coordinate press FIRST and verify: element.click() is a silent no-op on v1.67 SwiftUI buttons —
+        // TC_IND_01 (2026-10-02) "tapped" Create, got true back, and no building ever reached the backend.
+        // The form is closed once its own 'Create' button is gone (not v163CreateButton(): it also matches
+        // the Locations screen's nav-bar 'Done').
+        // visible == 1 matters: after the sheet closes, SwiftUI leaves its 'Create' in the tree as hidden
+        // bleed-through — without the filter the closed form read as "still open" and a second press landed
+        // on the Locations screen (TC_IND_01, 2026-10-02).
+        By formCreate = AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND (label == 'Create' OR name == 'Create') AND visible == 1");
+        for (int attempt = 1; attempt <= 2; attempt++) {
+            try {
+                org.openqa.selenium.Rectangle r = b.getRect();
+                driver.executeScript("mobile: tap", Map.of("x", r.x + r.width / 2, "y", r.y + r.height / 2));
+            } catch (Exception e) {
+                try { b.click(); } catch (Exception ignored) { }
+            }
+            sleep(900);
+            if (!existsNow(formCreate)) return true;
+            List<WebElement> stillThere = withImplicitWait(0, () -> driver.findElements(formCreate));
+            if (stillThere.isEmpty()) return true;
+            b = stillThere.get(0);                     // the VISIBLE Create only — never a hidden copy or 'Done'
         }
-        sleep(900);
-        return true;
+        System.out.println("⚠️ Create pressed twice but the form is still open (validation, or the press did not land)");
+        return false;
     }
 
     /** Validation copy shown when the building name is blank. */
@@ -7495,6 +7513,50 @@ public class BuildingPage extends BasePage {
 
 
     /**
+     * Labels of the location rows (buildings, floors, rooms, "No Location") from ONE page-source snapshot.
+     * Probe 2026-10-02 (1.67): of 401 Buttons on the Locations screen, 147 are per-row 'Add', 12 'Notes', and
+     * ~18 are the PREVIOUS screen's buttons (dashboard tiles, tab bar) — SwiftUI bleed-through, kept in the
+     * tree with visible="false" at ON-SCREEN coordinates. Real rows that are scrolled away sit BELOW the
+     * screen edge instead, so "invisible + on-screen y" = bleed-through. Counting every Button (the old
+     * visibleLocationRowCount) let the bleed-through set swing TC_LV_06 by 3 with no data change.
+     */
+    public List<String> locationRowLabels() {
+        java.util.Set<String> chrome = java.util.Set.of(
+                "Done", "Add", "Cancel", "Save", "Back", "Edit", "plus", "Search", "Notes",
+                "rectangle.grid.1x2", "list.bullet", "ellipsis", "More", "Locations");
+        int screenH = driver.manage().window().getSize().getHeight();
+        List<SnapNode> snap = snapshot();
+        List<String> out = new java.util.ArrayList<>();
+        // Rows are Buttons on iOS 26.2; CI's iOS 18.5 counted 0 Buttons (TC_LV_02, run 36983199692), so fall
+        // back to Cells when no Button row is found.
+        for (String rowType : new String[]{"Button", "Cell"}) {
+            for (SnapNode n : snap) {
+                if (!rowType.equals(n.type) || n.label.isEmpty() || chrome.contains(n.label)) continue;
+                if (n.label.contains(".") && !n.label.contains(" ")) continue;   // SF Symbol ids
+                if (!n.visible && n.y < screenH) continue;                       // bleed-through from the previous screen
+                out.add(n.label);
+            }
+            if (!out.isEmpty()) break;
+        }
+        System.out.println("📍 Location rows (snapshot, bleed-through excluded): " + out.size());
+        return out;
+    }
+
+    /**
+     * Wait (wall clock) for a location row whose label starts with {@code name} — snapshot-based, because
+     * element queries on this giant tree are the documented wedge. A building created through the form
+     * reached the backend at once on 2026-10-02 but its row was not in the list within the first second.
+     */
+    public boolean waitForLocationRow(String name, long timeoutMs) {
+        long start = System.currentTimeMillis();
+        boolean ok = com.egalvanic.utils.Waits.until(
+                () -> locationRowLabels().stream().anyMatch(l -> l.startsWith(name)), timeoutMs, 1500);
+        System.out.println("📍 row '" + name + "' " + (ok ? "listed after " : "NOT listed within ")
+                + (System.currentTimeMillis() - start) + "ms");
+        return ok;
+    }
+
+    /**
      * How many building/floor/room rows the locations tree is showing.
      *
      * Reads ONE page-source snapshot and parses it, instead of asking WDA for elements.
@@ -7508,8 +7570,17 @@ public class BuildingPage extends BasePage {
      * Live DOM (v1.63): each building is a Button labelled with its name (e.g.
      * "1_Del_36275"), beside a "Business" image and its own "Add" button — so the count
      * is "labelled Buttons minus chrome".
+     *
+     * 2026-10-02: now delegates to {@link #locationRowLabels()}, which also drops 'Notes' and the
+     * previous screen's bleed-through Buttons (the old body below counted them — TC_LV_06 swung by 3)
+     * and falls back to Cells for iOS 18.5. The old body is kept as {@link #rawButtonCountLegacy()}.
      */
     public int visibleLocationRowCount() {
+        return locationRowLabels().size();
+    }
+
+    /** The pre-2026-10-02 count (every labelled Button minus chrome) — kept for comparison/diagnostics. */
+    public int rawButtonCountLegacy() {
         java.util.Set<String> chrome = java.util.Set.of(
                 "Done", "Add", "Cancel", "Save", "Back", "Edit", "plus", "Search",
                 "rectangle.grid.1x2", "list.bullet", "ellipsis", "More", "Locations");

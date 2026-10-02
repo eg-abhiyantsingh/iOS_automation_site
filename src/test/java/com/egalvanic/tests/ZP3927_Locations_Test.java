@@ -9,6 +9,8 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import java.util.List;
+
 /**
  * ZP-3927 (iOS 1.57) §2 New Location View + §3 Independent Building / Floor / Room creation.
  *
@@ -132,25 +134,87 @@ public final class ZP3927_Locations_Test extends BaseTest {
         logStepWithScreenshot("TC_LV_05: view settled");
     }
 
-    @Test(priority = 6)
+    // 10 min, not the 6-min default: a full site re-selection sync + two Locations loads of a ~220-row tree
+    // ran 313 s on a normal day and timed out on 2026-10-02 when the QA SLD fetch alone took 37 s.
+    @Test(priority = 6, timeOut = 600_000)
     public void TC_LV_06_viewSurvivesReSync() {
         ExtentReportManager.createTest(AppConstants.MODULE_LOCATIONS, FEATURE_LV,
                 "TC_LV_06 - Hierarchy survives a re-sync with no duplicates");
+        // Site name read on a SETTLED dashboard first — right after the re-sync it read null (2026-10-02) and
+        // the drop classifier could not resolve the SLD. The re-sync re-selects this same site.
+        loginAndSelectSite();
+        String startSite = siteSelectionPage.getCurrentSiteName();
         openLocations();
-        int before = locations().visibleLocationRowCount();
-        logStep("Rows before re-sync: " + before);
+        java.util.Map<String, Long> before = rowCounts(locations().locationRowLabels());
+        logStep("Distinct location rows before re-sync: " + before.size());
 
         logStep("Re-syncing via site re-selection");
         siteSelectionPage.clickSitesButton();
         siteSelectionPage.selectFirstSiteFast();
         siteSelectionPage.waitForDashboardReady();
+        String site = startSite != null ? startSite : siteSelectionPage.getCurrentSiteName();
 
         openLocations();
-        int after = locations().visibleLocationRowCount();
-        logStep("Rows after re-sync: " + after);
-        assertEquals(after, before,
-                "Re-sync must not duplicate or drop location rows (before=" + before + ", after=" + after + ")");
-        logStepWithScreenshot("TC_LV_06: row count stable across re-sync");
+        java.util.Map<String, Long> after = rowCounts(locations().locationRowLabels());
+        logStep("Distinct location rows after re-sync: " + after.size());
+
+        // Compare the row LABELS (a multiset — a duplicate shows up as count 2), not a raw button count.
+        java.util.List<String> added = new java.util.ArrayList<>(), dropped = new java.util.ArrayList<>();
+        for (java.util.Map.Entry<String, Long> e : after.entrySet())
+            if (e.getValue() > before.getOrDefault(e.getKey(), 0L)) added.add(e.getKey() + " ×" + e.getValue());
+        for (java.util.Map.Entry<String, Long> e : before.entrySet())
+            if (e.getValue() > after.getOrDefault(e.getKey(), 0L)) dropped.add(e.getKey());
+        logStep("Re-sync diff — added/duplicated: " + added + " · dropped: " + dropped);
+        List<String> unexplained = unexplainedDrops(dropped, after.keySet(), site);
+        assertTrue(added.isEmpty() && unexplained.isEmpty(),
+                "Re-sync must not duplicate or drop location rows — added/duplicated " + added
+                + ", dropped and still live on the backend with no listed parent " + unexplained);
+        logStepWithScreenshot("TC_LV_06: no duplicated or lost location rows across re-sync");
+    }
+
+    /**
+     * Rows missing after the re-sync that the backend cannot explain. Live run 2026-10-02: the three "dropped"
+     * rows were all LIVE rooms of ONE floor — the re-sync collapsed that floor, and a collapsed floor's rooms
+     * are not rendered. So a dropped row is fine when the backend no longer has it live, or when it is a live
+     * room whose parent floor row is still listed; anything else is a real loss.
+     */
+    private List<String> unexplainedDrops(List<String> dropped, java.util.Set<String> afterLabels, String site) {
+        List<String> out = new java.util.ArrayList<>();
+        if (dropped.isEmpty()) return out;
+        try {
+            com.egalvanic.api.TestDataApi api = new com.egalvanic.api.TestDataApi();
+            api.login();
+            String sld = site == null ? null : api.resolveSldIdByName(site);
+            if (sld == null) { logStep("Backend: site unresolved — drops cannot be classified"); return dropped; }
+            io.restassured.path.json.JsonPath p = io.restassured.path.json.JsonPath.from(api.getSldDetails(sld));
+            List<java.util.Map<String, Object>> floors = p.getList("floors"), rooms = p.getList("rooms"),
+                    buildings = p.getList("buildings");
+            java.util.Map<String, String> floorNameById = new java.util.HashMap<>();
+            for (java.util.Map<String, Object> f : floors)
+                if (!Boolean.TRUE.equals(f.get("is_deleted"))) floorNameById.put(String.valueOf(f.get("id")), String.valueOf(f.get("name")));
+            for (String label : dropped) {
+                String name = label.contains(",") ? label.substring(0, label.indexOf(',')).trim() : label.trim();
+                boolean liveAnywhere = java.util.stream.Stream.of(buildings, floors, rooms).flatMap(List::stream)
+                        .anyMatch(r -> name.equals(r.get("name")) && !Boolean.TRUE.equals(r.get("is_deleted")));
+                boolean collapsedChild = rooms.stream()
+                        .filter(r -> name.equals(r.get("name")) && !Boolean.TRUE.equals(r.get("is_deleted")))
+                        .map(r -> floorNameById.get(String.valueOf(r.get("floor_id"))))
+                        .anyMatch(fn -> fn != null && afterLabels.stream().anyMatch(l -> l.startsWith(fn)));
+                logStep("   dropped '" + label + "': live on backend=" + liveAnywhere + " · parent floor still listed=" + collapsedChild);
+                if (liveAnywhere && !collapsedChild) out.add(label);
+            }
+        } catch (Exception e) {
+            logStep("Backend unavailable to classify drops: " + e);
+            return dropped;
+        }
+        return out;
+    }
+
+    /** Row label → occurrences, minus rows this suite itself creates/cleans (a parallel run may change them). */
+    private static java.util.Map<String, Long> rowCounts(java.util.List<String> labels) {
+        java.util.Map<String, Long> m = new java.util.TreeMap<>();
+        for (String l : labels) if (!l.startsWith("QA-LOC")) m.merge(l, 1L, Long::sum);
+        return m;
     }
 
     // ── §3 Independent creation ─────────────────────────────────────────
@@ -174,8 +238,9 @@ public final class ZP3927_Locations_Test extends BaseTest {
         assertTrue(locations().tapCreate(), "Create should be tappable");
 
         logStep("Verifying the building landed in the list");
-        assertTrue(locations().isLocationListed(QA_BUILDING),
-                "'" + QA_BUILDING + "' should appear in the locations list right after creation");
+        // Polled: the backend held the building at once (2026-10-02, id dcf9fb43) but the list row arrived later.
+        assertTrue(locations().waitForLocationRow(QA_BUILDING, 45_000),
+                "'" + QA_BUILDING + "' should appear in the locations list after creation");
         logStepWithScreenshot("TC_IND_01: building created alone");
     }
 

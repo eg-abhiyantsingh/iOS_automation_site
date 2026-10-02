@@ -83,12 +83,21 @@ public final class ZP3928_PhotoCategories_Test extends WorkTypeBaseTest {
         mediumWait();
         skipIfPreconditionMissing(() -> wo.waitForQuickCountScreen(), tcId + ": Quick Count screen did not open");
         logStep("Quick Count: adding asset type '" + QC_TYPE + "' (no subtype) to reach a photoset");
-        wo.tapAddAssetTypeButton();
-        mediumWait();
-        skipIfPreconditionMissing(() -> wo.waitForSelectAssetTypeSheet(), tcId + ": asset-type sheet did not open");
-        skipIfPreconditionMissing(() -> wo.selectAssetType(QC_TYPE), tcId + ": could not select '" + QC_TYPE + "'");
-        mediumWait();
-        if (wo.isSelectSubtypeScreenDisplayed()) { wo.tapSkipNoSubtypeButton(); mediumWait(); }
+        // 'Select Asset Type' is an XCUIElementTypeSheet — autoAcceptAlerts dismissed it before it could be
+        // seen (live 2026-10-02). Pause auto-accept for the whole picker dance.
+        final boolean[] sheet = {false}, picked = {false};
+        wo.withAlertsManual(() -> {
+            wo.tapAddAssetTypeButton();
+            mediumWait();
+            sheet[0] = wo.waitForSelectAssetTypeSheet();
+            if (sheet[0]) {
+                picked[0] = wo.selectAssetType(QC_TYPE);
+                mediumWait();
+                if (picked[0] && wo.isSelectSubtypeScreenDisplayed()) { wo.tapSkipNoSubtypeButton(); mediumWait(); }
+            }
+        });
+        skipIfPreconditionMissing(() -> sheet[0], tcId + ": asset-type sheet did not open");
+        skipIfPreconditionMissing(() -> picked[0], tcId + ": could not select '" + QC_TYPE + "'");
         wo.waitForQuickCountScreen();
         skipIfPreconditionMissing(() -> wo.isAssetTypeCardDisplayed(QC_TYPE), tcId + ": '" + QC_TYPE + "' card did not appear");
         if (!wo.isAssetTypeCardExpanded(QC_TYPE)) { wo.tapAssetTypeCardChevron(QC_TYPE); mediumWait(); }
