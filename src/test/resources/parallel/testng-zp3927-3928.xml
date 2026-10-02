@@ -10,7 +10,9 @@
                          link card · Asset issues default All · EG Forms per work type ·
                          Copy Data To search · Number pad decimals · Photo categories ·
                          IR photo cache busting (modified_at) · volume buttons (N/A)
-    ------------------------------------------------------------
+    ____________________________________________________________
+    (no double hyphens anywhere in this comment: XML forbids them, and a
+    malformed suite makes surefire run 0 tests)
     Every class here is skip-guarded on its precondition and hard-asserts the
     1.63 copy verbatim (see docs/ai-features-changelog/177-*.md for the string
     sources). The suite is class-atomic so the rerun sharder can split it.

@@ -31,9 +31,32 @@ jobs:
           sparse-checkout: |
             src
             pom.xml
-            testng-verify-selftest.xml
+            testng*.xml
             scripts
           sparse-checkout-cone-mode: false
+
+      # A malformed suite is not a compile error: surefire reports "Tests run: 0" and the
+      # macOS job only goes red at its result gate, after ~10 min of simulator setup
+      # (run 36979724116: a '--' inside an XML comment in testng-zp3927-3928.xml).
+      - name: TestNG suite XML is well-formed
+        run: |
+          python3 -m pip install --quiet --break-system-packages defusedxml \
+            || python3 -m pip install --quiet defusedxml
+          python3 - <<'EOF'
+          import glob, sys
+          import defusedxml.minidom
+          files = sorted(set(glob.glob('testng*.xml') + glob.glob('src/test/resources/**/*.xml', recursive=True)))
+          bad = []
+          for f in files:
+              try:
+                  defusedxml.minidom.parse(f)
+              except Exception as e:
+                  bad.append(f"{f}: {e}")
+          print(f"checked {len(files)} suite XML files, {len(bad)} malformed")
+          for b in bad:
+              print(f"::error::{b}")
+          sys.exit(1 if bad else 0)
+          EOF
 
       - uses: actions/setup-java@v4
         with:
