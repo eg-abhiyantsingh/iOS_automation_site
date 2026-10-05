@@ -248,7 +248,11 @@ public class WorkOrderFormsPage extends BasePage {
                 if (!rooms.isEmpty()) {
                     String name = rooms.get(0).getAttribute("name");
                     System.out.println("🚪 opening room (fast pass): " + name);
-                    rooms.get(0).click();
+                    WebElement room = rooms.get(0);
+                    pressCenter(room);
+                    if (!waitForCondition(this::isAssetsInRoomOpen, 6)) {
+                        try { room.click(); } catch (Exception ignored) { }
+                    }
                     return true;
                 }
                 java.util.Set<String> seenPaths = new java.util.HashSet<>();
@@ -544,15 +548,21 @@ public class WorkOrderFormsPage extends BasePage {
 
     /** Tap the asset row → its form screen opens (verified via chip strip). */
     public boolean openAssetForms(String assetNamePrefix) {
+        WebElement row;
         try {
-            driver.findElement(AppiumBy.iOSNsPredicateString(
+            row = driver.findElement(AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeButton' AND visible == 1 AND name BEGINSWITH "
-                    + pq(assetNamePrefix))).click();
+                    + pq(assetNamePrefix)));
         } catch (Exception e) {
-            System.out.println("⚠️ openAssetForms tap: " + e.getMessage());
+            System.out.println("⚠️ openAssetForms find: " + e.getMessage());
             return false;
         }
-        return waitForCondition(this::isFormScreenOpen, 8);
+        // Coordinate press first (click() is a silent no-op on 1.67+ SwiftUI rows), then verify;
+        // fall back to click() once if the form screen did not appear.
+        pressCenter(row);
+        if (waitForCondition(this::isFormScreenOpen, 6)) return true;
+        try { row.click(); } catch (Exception ignored) { }
+        return waitForCondition(this::isFormScreenOpen, 6);
     }
 
     // ═══════════════════════════ form screen ════════════════════════════════

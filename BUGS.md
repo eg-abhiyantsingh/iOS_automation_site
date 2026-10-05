@@ -312,5 +312,15 @@ Changelog 177 observed the card (linked state) on 1.63.
 LaunchDarkly; the binary's flag keys are feature-eg-forms/emp/eng-lib/gojs-sld/issue-suggestions/
 ops-core/site-walks), or did it drop out of the Issue Details layout in 1.67?
 
+**Update 2026-10-05 — still absent on v1.69 (2026-10-05 QA build).** Full walk of the new "Issue sections"
+jump bar (Details / Properties / Description / Proposed Resolution / Safety / Photos) shows no work-order
+card; the IR Photos section is also gone from Issue Details on 1.69. Binary analysis of the 1.69
+`Z Platform-QA.debug.dylib`:
+- the card's only gate is `IssueWorkOrderLinkCard.isFeatureEnabled` → `IssueService.isWorkOrderFeatureEnabled`
+  → `AuthService.hasFeature("ops-core")` → `UserInfo.company_features` (NOT LaunchDarkly);
+- the QA test user's `GET /auth/v2/me` `company_features` DOES contain `"ops-core"` (checked 2026-10-05).
+So the feature gate is satisfied; the card still does not render ⇒ points at the Issue Details layout
+(card no longer composed) rather than configuration. Dev to confirm.
+
 **Tests:** `ZP3928_IssueWorkOrderLink_Test` TC_ILW_01 stays RED (honest fail); TC_ILW_03/10 skip on it.
 The ZP-3928 AC "Link Issue to Work Order from Issue Editing screen" cannot be signed off until answered.

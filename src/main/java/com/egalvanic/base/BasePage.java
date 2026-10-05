@@ -190,6 +190,23 @@ public abstract class BasePage {
     }
 
     /**
+     * Press an element by its centre coordinates (`mobile: tap`). On 1.67+ SwiftUI rows
+     * `element.click()` can be a silent no-op, so callers press this way and then VERIFY the
+     * result; false only when the tap itself could not be issued.
+     */
+    protected boolean pressCenter(WebElement element) {
+        try {
+            org.openqa.selenium.Rectangle r = element.getRect();
+            driver.executeScript("mobile: tap",
+                    java.util.Map.of("x", r.x + r.width / 2, "y", r.y + r.height / 2));
+            return true;
+        } catch (Exception e) {
+            System.out.println("⚠️ pressCenter: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Click element with custom timeout
      */
     protected void click(WebElement element, int timeoutSeconds) {

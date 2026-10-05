@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite time-out="480000" name="ZP-3928 (iOS 1.56 automation ticket)" verbose="0">
+    <!--
+    ============================================================
+    ZP-3927 (iOS 1.57) — Unlink Issue on long-press · New Location View ·
+                         Independent Building/Floor/Room · Photo Import ·
+                         FLIR camera import surfaces (30-min window, dedupe)
+    ZP-3928 (iOS 1.56) — Issues With/Without Photos filters · Issue → Work Order
+                         link card · Asset issues default All · EG Forms per work type ·
+                         Copy Data To search · Number pad decimals · Photo categories ·
+                         IR photo cache busting (modified_at) · volume buttons (N/A)
+    ____________________________________________________________
+    (no double hyphens anywhere in this comment: XML forbids them, and a
+    malformed suite makes surefire run 0 tests)
+    Every class here is skip-guarded on its precondition and hard-asserts the
+    1.63 copy verbatim (see docs/ai-features-changelog/177-*.md for the string
+    sources). The suite is class-atomic so the rerun sharder can split it.
+    CI shard: one of three (testng-zp3927.xml / testng-zp3928.xml / testng-zp3928-forms.xml) so neither hits the 240 min wall cap.
+    ============================================================
+    -->
+
+    <listeners>
+        <listener class-name="com.egalvanic.listeners.GlobalTestTimeout"/>
+        <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
+    </listeners>
+
+    <test name="ZP-3928">
+        <classes>
+            <class name="com.egalvanic.tests.ZP3928_IssuePhotoFilter_Test"/>
+            <class name="com.egalvanic.tests.ZP3928_AssetIssuesDefault_Test"/>
+            <class name="com.egalvanic.tests.ZP3928_IssueWorkOrderLink_Test"/>
+            <class name="com.egalvanic.tests.ZP3928_NumberPadDecimal_Test"/>
+            <class name="com.egalvanic.tests.ZP3928_PhotoCategories_Test"/>
+            <class name="com.egalvanic.tests.ZP3928_Misc_Test"/>
+        </classes>
+    </test>
+
+</suite>

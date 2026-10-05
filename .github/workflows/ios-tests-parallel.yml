@@ -2300,10 +2300,15 @@ jobs:
   # JOB: ZP-3927 / ZP-3928 (iOS 1.56 / 1.57 QA-automation tickets)
   # ========================================
   zp3927-3928-tests:
-    name: "ZP-3927 / ZP-3928 - iOS 1.56/1.57 automation tickets"
+    # 3 shards: the single 11-class suite hit SUITE_WALL_MINUTES=240 at PhotoCategories (run 37022397025)
+    name: "ZP-3927 / ZP-3928 - iOS 1.56/1.57 automation tickets (${{ matrix.shard }})"
     if: ${{ inputs.run_all || inputs.run_zp3927_3928 }}
     runs-on: macos-15
     timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [zp3927, zp3928, zp3928-forms]
 
     steps:
       - name: Checkout code
@@ -2408,7 +2413,7 @@ jobs:
           # Extract bundle ID from built app so soft restart uses correct ID
           BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${{ github.workspace }}/apps/Z Platform-QA.app/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
 
-          mvn test -ntp -B -DfailIfNoTests=true -DsuiteXmlFile=src/test/resources/parallel/testng-zp3927-3928.xml \
+          mvn test -ntp -B -DfailIfNoTests=true -DsuiteXmlFile=src/test/resources/parallel/testng-${{ matrix.shard }}.xml \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
@@ -2418,7 +2423,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: zp3927-3928-report
+          name: zp3927-3928-report-${{ matrix.shard }}
           path: |
             target/surefire-reports/
             reports/
@@ -2432,7 +2437,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           BRANCH: ${{ github.ref_name }}
           ACTOR: ${{ github.actor }}
-          MODULE_NAME: zp3927-3928
+          MODULE_NAME: zp3927-3928-${{ matrix.shard }}
           JOB_STATUS: ${{ job.status }}
         run: |
           # Send a per-module email AS SOON AS this module finishes — no

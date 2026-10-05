@@ -5661,6 +5661,19 @@ public class IssuePage extends BasePage {
     public void tapGalleryButton() {
         System.out.println("🖼️ Tapping Gallery button...");
         scrollDetailsToLandmark("Gallery");
+        // v1.69 moved Issue Photos to the BOTTOM of Issue Details: "visible" can mean y≈863, under the
+        // floating Save Changes bar / home indicator, where a press opens nothing (TC_PI_02 2026-10-05).
+        // Lift it into the tappable band first.
+        int screenH = driver.manage().window().getSize().getHeight();
+        for (int i = 0; i < 3; i++) {
+            SnapNode g = snapshot().stream()
+                    .filter(n -> n.visible && "Button".equals(n.type) && n.is("Gallery")).findFirst().orElse(null);
+            if (g == null || g.centerY() < screenH - 170) break;
+            System.out.println("   Gallery at y=" + g.centerY() + " is under the bottom bar — lifting it");
+            driver.executeScript("mobile: dragFromToForDuration", java.util.Map.of(
+                    "duration", 0.3, "fromX", 30, "fromY", screenH / 2 + 150, "toX", 30, "toY", screenH / 2 - 150));
+            sleep(600);
+        }
         // v1.50: press via PAGE-SOURCE coordinates — the query layer lies here.
         if (pressBySourceCoordinates("Gallery")) {
             sleep(400);
@@ -12722,6 +12735,9 @@ public class IssuePage extends BasePage {
     // app's accessibility tree while it loads (2 ActivityIndicators in the dump) — so the picker
     // must be WAITED for, and its cells may only ever be addressable by coordinates.
 
+    /** v1.69 Issue Details "Issue sections" jump bar (Details/Properties/…/Photos); its Photos button is not the picker. */
+    public static final String ISSUE_SECTIONS_BAR_ID = "issueDetails.categoryBar";
+
     /** True while the photo picker sheet is presented (the app's own screen is hidden behind it). */
     public boolean isPhotoPickerSheetPresented() { return isPhotoPickerSheetPresented("Issue Photos"); }
 
@@ -12730,9 +12746,19 @@ public class IssuePage extends BasePage {
         // ONE snapshot instead of two WDA queries: each query costs ~8 s on Issue Details, and the
         // post-selection wait polls this — 16 polls × 2 queries blew TC_PI_02's 6-minute budget.
         java.util.List<SnapNode> s = snapshot();
-        boolean detailsVisible = s.stream().anyMatch(n -> n.visible && n.is(appChromeLabel));
-        boolean pickerHints = s.stream().anyMatch(n -> n.visible && (n.is("Photos") || n.is("Recents")
-                || n.is("All Photos") || n.is("Albums") || n.label.contains("Photo, ") || n.label.startsWith("Photo,")));
+        // v1.69 adds an "Issue sections" jump bar whose buttons include a visible 'Photos' — a bare
+        // 'Photos' label is therefore NOT picker evidence while that bar is on screen (TC_PI_02 read
+        // "picker still presented" after a successful Use Photo, 2026-10-05).
+        boolean sectionBar = s.stream().anyMatch(n -> n.visible
+                && (ISSUE_SECTIONS_BAR_ID.equals(n.name) || "Issue sections".equals(n.label)));
+        boolean detailsVisible = sectionBar || s.stream().anyMatch(n -> n.visible && n.is(appChromeLabel));
+        boolean pickerHints = s.stream().anyMatch(n -> n.visible && (
+                "photos_sectioned_layout".equals(n.name)
+                || n.label.startsWith("Private Access to Photos")
+                || ("Button".equals(n.type) && (n.is("Use Photo") || n.is("Mark Up")))
+                || n.is("Recents") || n.is("All Photos") || n.is("Albums") || n.is("Collections")
+                || (!sectionBar && n.is("Photos"))
+                || n.label.contains("Photo, ") || n.label.startsWith("Photo,")));
         return pickerHints || !detailsVisible;
     }
 
@@ -12810,14 +12836,21 @@ public class IssuePage extends BasePage {
      * the banner and selected nothing (TC_PI_02, 2026-10-02). Cells are square, 3 up.
      */
     private int[] firstPickerSlot() {
-        java.util.List<SnapNode> s = snapshot();
         org.openqa.selenium.Dimension d = driver.manage().window().getSize();
-        SnapNode grid = s.stream().filter(n -> n.visible && "photos_sectioned_layout".equals(n.name) && n.w > 0)
-                .findFirst().orElse(null);
-        if (grid != null) return new int[]{grid.x + grid.w / 6, grid.y + grid.w / 6};
-        SnapNode banner = s.stream().filter(n -> n.visible && "Other".equals(n.type)
-                && n.label.startsWith("Private Access to Photos")).findFirst().orElse(null);
-        if (banner != null) return new int[]{d.getWidth() / 6, banner.y + banner.h + d.getWidth() / 6};
+        // The picker's containers appear a few seconds after it presents: a snapshot taken too early has
+        // neither the grid nor the banner and the blind fallback hit empty chrome (TC_PI_02, 1.69,
+        // 2026-10-05: tapped (67,222), nothing selected). Poll by wall clock before falling back.
+        long end = System.currentTimeMillis() + 12_000;
+        do {
+            java.util.List<SnapNode> s = snapshot();
+            SnapNode grid = s.stream().filter(n -> n.visible && "photos_sectioned_layout".equals(n.name) && n.w > 0)
+                    .findFirst().orElse(null);
+            if (grid != null) return new int[]{grid.x + grid.w / 6, grid.y + grid.w / 6};
+            SnapNode banner = s.stream().filter(n -> n.visible && "Other".equals(n.type)
+                    && n.label.startsWith("Private Access to Photos")).findFirst().orElse(null);
+            if (banner != null) return new int[]{d.getWidth() / 6, banner.y + banner.h + d.getWidth() / 6};
+            sleep(800);
+        } while (System.currentTimeMillis() < end);
         return new int[]{d.getWidth() / 6, 72 + 150};   // pre-iOS-26 layout: no banner, grid under the nav bar
     }
 
