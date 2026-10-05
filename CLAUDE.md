@@ -151,6 +151,21 @@ locators are predicate-heavy (2,944 predicate vs 257 accessibility-id).
 - Verified locally (iPhone 17 Pro Max, iOS 26.2, clean install): TC_SET_001 full login → dashboard
   → Settings green in 2m15s (was FAIL at 55s before the fix).
 
+## Session 2026-10-05 — ZP-3927 / ZP-3928 on app v1.69 (changelogs 190-191)
+- App **v1.69** in CI (084942b). ZP-3927 green locally (Unlink 8/8, Locations 10/10, PhotoImport 4/4, FLIR 5/5
+  + 2 device-only) → **ZP-3927 moved to READY TO RELEASE** (Jira transition id 7) with evidence comment.
+- v1.69 breakers: Issue "sections" jump bar (`issueDetails.categoryBar`) has a 'Photos' button (not picker
+  evidence); Issue Photos at the bottom (lift Gallery out of the Save-bar zone). Asset rows open Asset Details;
+  forms live behind the row chevron + long-press menus (Add Form / Copy Data To…). Full contract: memory
+  `v169-ui-contracts`.
+- New `ZP3928_CopyDataTo_Test` (EG Forms 'Copy Data To' search, CDT_01-04). `ZP3928_EgFormsMatrix_Test` rebuilt:
+  add → fill → listed → delete (count-verified) per work type, empty fixtures self-provision by linking
+  Switch-1 from 'Optional Notes Room_21'; `-DEGF_ONLY=02,07` / env EGF_ONLY narrows rows.
+- CI: ZP job = 3-shard matrix (`testng-zp3927.xml`, `testng-zp3928.xml`, `testng-zp3928-forms.xml`).
+- ZP-3928 blocked only by **ISS-WOCARD-01** (Issue Details WO link card absent; gate `ops-core` satisfied) —
+  needs dev answer before Ready to Release.
+- Rule learned: after ANY swipe or keyboard hide, re-snapshot until a row's y is stable before tapping it.
+
 ## How to run
 - Self-tests (no device): `mvn -o -DsuiteXmlFile=testng-verify-selftest.xml test`
 - Exploratory crawl (macOS + live session): `RUN_EXPLORATORY=true mvn -Dtest=ExploratoryCrawlTest test`

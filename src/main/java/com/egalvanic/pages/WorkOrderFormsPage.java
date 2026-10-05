@@ -248,12 +248,12 @@ public class WorkOrderFormsPage extends BasePage {
                 if (!rooms.isEmpty()) {
                     String name = rooms.get(0).getAttribute("name");
                     System.out.println("🚪 opening room (fast pass): " + name);
+                    // Settled + breadcrumb-verified open (a tap right after the sweep's swipes landed on whatever
+                    // row the momentum carried under the finger — PhotoCategories/EGF, 2026-10-05).
+                    if (name != null && openRoomByLabel(name)) return true;
                     WebElement room = rooms.get(0);
                     pressCenter(room);
-                    if (!waitForCondition(this::isAssetsInRoomOpen, 6)) {
-                        try { room.click(); } catch (Exception ignored) { }
-                    }
-                    return true;
+                    return waitForCondition(this::isAssetsInRoomOpen, 6);
                 }
                 java.util.Set<String> seenPaths = new java.util.HashSet<>();
                 if (rooms.isEmpty()) {

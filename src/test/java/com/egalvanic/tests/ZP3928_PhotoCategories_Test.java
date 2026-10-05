@@ -152,7 +152,10 @@ public final class ZP3928_PhotoCategories_Test extends WorkTypeBaseTest {
         for (String c : chips) {
             assertTrue(declared.contains(c), "Undeclared photo category chip '" + c + "' — the build declares " + declared);
         }
-        assertTrue(chips.size() >= 3, "A staged photo should offer several categories, not " + chips.size() + " — got " + chips);
+        // Categories are configured PER ASSET CLASS (binary: PhotoCategory.nodeTypes : [PhotoTypeConfiguration]);
+        // a Quick Count MCC photo offers exactly [Nameplate, Other] on 1.67 and 1.69 — a choice, plus the new 'Other'.
+        assertTrue(chips.size() >= 2, "A staged photo must offer a choice of categories, not " + chips.size() + " — got " + chips);
+        assertTrue(chips.contains(IssuePage.PHOTO_CATEGORY_OTHER), "'Other' must be among the categories — got " + chips);
         logStepWithScreenshot("TC_PC_02: " + chips.size() + " visible chips ⊆ declared set");
     }
 

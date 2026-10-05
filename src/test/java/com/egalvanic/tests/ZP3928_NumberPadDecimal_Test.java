@@ -101,26 +101,30 @@ public final class ZP3928_NumberPadDecimal_Test extends BaseTest {
         String title = issues().openIssueTitle();
         logStep("Issue under test: '" + title + "'");
 
-        logStep("Typing " + DECIMAL_PROBLEM + " into Problem Temp");
-        issues().enterProblemTemp(DECIMAL_PROBLEM);
+        // Always make a REAL edit: an earlier run may already have saved 72.5 here, and re-typing the stored value
+        // leaves 'Save Changes' disabled (nothing to save) — TC_NPD_02 failed exactly so on 2026-10-05.
+        Double current = numeric(issues().getProblemTempValue());
+        final double target = (current != null && Math.abs(current - 72.5) < 0.001) ? 73.5 : 72.5;
+        logStep("Problem Temp currently " + current + " → typing " + target);
+        issues().enterProblemTemp(String.valueOf(target));
         mediumWait();
         String typed = issues().getProblemTempValue();
         Double gotTyped = numeric(typed);
         logStep("Problem Temp reads back before save: " + typed + "  (numeric " + gotTyped + ")");
-        assertTrue(gotTyped != null && Math.abs(gotTyped - 72.5) < 0.001,
-                "The field must hold 72.5 right after typing — it holds '" + typed + "'. A value of 725 means "
-                + "the number pad swallowed the '.', a 10x error on a temperature reading.");
+        assertTrue(gotTyped != null && Math.abs(gotTyped - target) < 0.001,
+                "The field must hold " + target + " right after typing — it holds '" + typed + "'. A value 10x larger "
+                + "means the number pad swallowed the '.', a 10x error on a temperature reading.");
 
         logStep("Saving, closing and reopening the same issue");
         saveCloseAndReopen(title);
         String read = issues().getProblemTempValue();
         Double got = numeric(read);
         logStep("Problem Temp after reopen: " + read + "  (numeric " + got + ")");
-        assertTrue(got != null && Math.abs(got - 72.5) < 0.001,
-                "The decimal must SURVIVE the save: expected 72.5 after reopen but the field holds " + got
-                + " (raw '" + read + "'). Typing correctly but storing 725 (or dropping the value) is the data-loss "
+        assertTrue(got != null && Math.abs(got - target) < 0.001,
+                "The decimal must SURVIVE the save: expected " + target + " after reopen but the field holds " + got
+                + " (raw '" + read + "'). Typing correctly but storing 10x (or dropping the value) is the data-loss "
                 + "case this ticket exists to prevent.");
-        logStepWithScreenshot("TC_NPD_02: 72.5 round-tripped through save");
+        logStepWithScreenshot("TC_NPD_02: " + target + " round-tripped through save");
     }
 
     @Test(priority = 3)

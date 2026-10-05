@@ -9270,6 +9270,28 @@ public class IssuePage extends BasePage {
                 }
             } catch (Exception ignored) {}
 
+            // Strategy 3a (v1.69 Issue Details): the blind tap at y=200 lands on the 'Issue Class' field under the new
+            // sections bar and OPENS the class picker, which then covers 'Save Changes' (TC_NPD_02, 2026-10-06).
+            // Tap a visible field LABEL above the keyboard instead — non-interactive, resigns the number pad (probe).
+            try {
+                java.util.List<SnapNode> snap = snapshot();
+                if (snap.stream().anyMatch(n -> n.visible && ISSUE_SECTIONS_BAR_ID.equals(n.name))) {
+                    int kbTop = snap.stream().filter(n -> n.visible && "Keyboard".equals(n.type)).mapToInt(n -> n.y)
+                            .min().orElse(driver.manage().window().getSize().getHeight());
+                    java.util.Set<String> labels = java.util.Set.of("Problem Temp", "Reference Temp", "Problem Location",
+                            "Issue Properties", "Delta T", "Temperature");
+                    SnapNode lab = snap.stream().filter(n -> n.visible && "StaticText".equals(n.type)
+                                    && labels.contains(n.label) && n.y > 160 && n.y + n.h < kbTop - 10)
+                            .findFirst().orElse(null);
+                    if (lab != null) {
+                        driver.executeScript("mobile: tap", java.util.Map.of("x", lab.x + 10, "y", lab.centerY()));
+                        sleep(400);
+                        System.out.println("   Keyboard dismissed via tap on label '" + lab.label + "'");
+                        return;
+                    }
+                }
+            } catch (Exception ignored) {}
+
             // Strategy 3: Tap on a non-interactive area to dismiss
             try {
                 int screenWidth = driver.manage().window().getSize().getWidth();
@@ -12881,6 +12903,14 @@ public class IssuePage extends BasePage {
         // The number pad (temperature fields) has no return key and sits over the bottom bar where
         // 'Save Changes' lives — TC_NPD_02 found no visible button on 2026-10-02. Dismiss it, VERIFIED.
         if (!dismissKeyboardVerified()) System.out.println("⚠️ commitIssueChanges: keyboard still up");
+        // A picker sheet left open (e.g. 'Issue Class' opened by a stray tap) covers the bottom bar — cancel it.
+        SnapNode sheetCancel = snapshot().stream()
+                .filter(n -> n.visible && "Button".equals(n.type) && n.is("Cancel") && n.y > 300).findFirst().orElse(null);
+        if (sheetCancel != null) {
+            System.out.println("   commitIssueChanges: closing an open sheet first");
+            driver.executeScript("mobile: tap", java.util.Map.of("x", sheetCancel.centerX(), "y", sheetCancel.centerY()));
+            sleep(1000);
+        }
         SnapNode save = snapshot().stream()
                 .filter(n -> n.visible && n.enabled && "Button".equals(n.type) && n.is("Save Changes"))
                 .findFirst().orElse(null);
