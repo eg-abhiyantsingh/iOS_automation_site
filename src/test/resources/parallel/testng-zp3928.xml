@@ -32,6 +32,7 @@
             <class name="com.egalvanic.tests.ZP3928_IssueWorkOrderLink_Test"/>
             <class name="com.egalvanic.tests.ZP3928_NumberPadDecimal_Test"/>
             <class name="com.egalvanic.tests.ZP3928_PhotoCategories_Test"/>
+            <class name="com.egalvanic.tests.ZP3928_CopyDataTo_Test"/>
             <class name="com.egalvanic.tests.ZP3928_Misc_Test"/>
         </classes>
     </test>
