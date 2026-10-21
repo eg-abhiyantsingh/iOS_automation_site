@@ -478,6 +478,43 @@ public class AppConstants {
         return fallback;
     }
 
+    private static volatile String appVersionCache;
+
+    /**
+     * Marketing version of the app under test (CFBundleShortVersionString of APP_PATH, e.g. "1.69"),
+     * or "" when it cannot be read. Lets a test gate an assertion on the build that introduced it
+     * (e.g. viewer double-tap zoom landed 2026-10-07, after the 1.69 QA build) instead of failing a
+     * correct older build.
+     */
+    public static String appVersion() {
+        if (appVersionCache != null) return appVersionCache;
+        String v = "";
+        try {
+            java.io.File plist = new java.io.File(APP_PATH + "/Info.plist");
+            if (plist.exists()) {
+                ProcessBuilder pb = new ProcessBuilder(
+                    "/usr/libexec/PlistBuddy", "-c", "Print :CFBundleShortVersionString", plist.getPath());
+                pb.redirectErrorStream(true);
+                Process p = pb.start();
+                String out = new String(p.getInputStream().readAllBytes()).trim();
+                if (p.waitFor() == 0) v = out;
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not read app version: " + e.getMessage());
+        }
+        appVersionCache = v;
+        return v;
+    }
+
+    /** True when the app under test is at least {@code major.minor}; unknown version counts as true. */
+    public static boolean appVersionAtLeast(int major, int minor) {
+        String v = appVersion();
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("^(\\d+)\\.(\\d+)").matcher(v);
+        if (!m.find()) return true;
+        int ma = Integer.parseInt(m.group(1)), mi = Integer.parseInt(m.group(2));
+        return ma > major || (ma == major && mi >= minor);
+    }
+
     private static int getEnvInt(String key, int defaultValue) {
         try {
             return Integer.parseInt(getEnv(key, String.valueOf(defaultValue)).trim());

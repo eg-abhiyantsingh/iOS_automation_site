@@ -577,6 +577,67 @@ public class TestDataApi {
         return false;
     }
 
+    // ── site walks (ZP-3914, Account Manager experience) ──────────────────
+    // Contract from APIEndpoints.swift / APIClient.swift (iOS 1.70): GET /site-walk/list
+    // (the app adds include_deleted=1 to reconcile tombstones; we leave it off) and
+    // DELETE /site-walk/{id}. Items carry id, name, status, created_at, sld_id (null for
+    // "Assign customer and site later" walks), walk_type ("count" / "journal"), asset_count.
+
+    /** One site walk as the list endpoint returns it (subset of SiteWalkSummaryDTO). */
+    public static final class SiteWalkRow {
+        public final String id, name, status, createdAt, sldId, walkType;
+        public final int assetCount;
+        SiteWalkRow(String id, String name, String status, String createdAt, String sldId, String walkType, int assetCount) {
+            this.id = id; this.name = name; this.status = status; this.createdAt = createdAt;
+            this.sldId = sldId; this.walkType = walkType; this.assetCount = assetCount;
+        }
+        @Override public String toString() { return name + " [" + id + ", " + walkType + ", " + status + ", assets=" + assetCount + "]"; }
+    }
+
+    /** Non-deleted site walks visible to the API user; empty list when the call fails. */
+    public java.util.List<SiteWalkRow> listSiteWalks() {
+        java.util.List<SiteWalkRow> out = new java.util.ArrayList<>();
+        HttpResponse<String> resp = get("/site-walk/list");
+        if (resp.statusCode() / 100 != 2) {
+            System.out.println("⚠️ GET /site-walk/list → HTTP " + resp.statusCode() + " " + truncate(redact(resp.body()), 160));
+            return out;
+        }
+        try {
+            com.google.gson.JsonElement root = com.google.gson.JsonParser.parseString(resp.body());
+            com.google.gson.JsonArray data = root.isJsonArray() ? root.getAsJsonArray()
+                    : root.getAsJsonObject().getAsJsonArray("data");
+            if (data == null) return out;
+            for (com.google.gson.JsonElement e : data) {
+                com.google.gson.JsonObject o = e.getAsJsonObject();
+                if (o.has("is_deleted") && !o.get("is_deleted").isJsonNull() && o.get("is_deleted").getAsBoolean()) continue;
+                out.add(new SiteWalkRow(str(o, "id"), str(o, "name"), str(o, "status"), str(o, "created_at"),
+                        str(o, "sld_id"), str(o, "walk_type"),
+                        o.has("asset_count") && !o.get("asset_count").isJsonNull() ? o.get("asset_count").getAsInt() : 0));
+            }
+        } catch (RuntimeException ex) {
+            System.out.println("⚠️ /site-walk/list body not parseable: " + ex.getMessage());
+        }
+        return out;
+    }
+
+    /** DELETE /site-walk/{id}; true on 2xx. Used only on walks a test created itself. */
+    public boolean deleteSiteWalk(String walkId) {
+        for (int attempt = 1; attempt <= 2; attempt++) {
+            try {
+                HttpResponse<String> resp = sendAuthedWithRetry(() -> authed(HttpRequest.newBuilder(
+                        URI.create(BASE + "/site-walk/" + walkId)))
+                        .method("DELETE", HttpRequest.BodyPublishers.noBody()).build());
+                boolean ok = resp.statusCode() / 100 == 2;
+                System.out.println((ok ? "🗑️ Deleted site walk " : "⚠️ Site walk delete failed for ") + walkId
+                        + " (HTTP " + resp.statusCode() + ", attempt " + attempt + ")");
+                if (ok) return true;
+            } catch (Exception e) {
+                System.out.println("⚠️ deleteSiteWalk(" + walkId + ", attempt " + attempt + "): " + e.getMessage());
+            }
+        }
+        return false;
+    }
+
     /**
      * Find-or-create the durable QA-WT fixture for {@code fixtureName}. Returns
      * the WO id — self-heals the fixture family if someone deletes one.

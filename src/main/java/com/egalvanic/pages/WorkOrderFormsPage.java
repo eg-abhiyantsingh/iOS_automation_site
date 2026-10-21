@@ -1201,6 +1201,16 @@ public class WorkOrderFormsPage extends BasePage {
         return null;
     }
 
+    /**
+     * First editable TextField of the open form as {value, placeholder}, or null when the form has none. An EMPTY
+     * field reports its placeholder as 'value' in WDA — and an EG Forms ghost value (ZP-3914, EGFormGhosts.swift) IS
+     * that placeholder: the last submitted instance's entry drawn in blue in the empty field of a new instance.
+     */
+    public String[] firstTextFieldState() {
+        return snapshot().stream().filter(n -> n.visible && "TextField".equals(n.type) && n.y > 150 && n.y < 760)
+                .min(java.util.Comparator.comparingInt(n -> n.y)).map(n -> new String[]{n.value, n.placeholder}).orElse(null);
+    }
+
     /** Close the Edit Form screen (discarding unsaved typing when asked); true once back on 'Assets in Room'. */
     public boolean closeEditForm() {
         try { driver.executeScript("mobile: hideKeyboard"); } catch (Exception ignored) { }

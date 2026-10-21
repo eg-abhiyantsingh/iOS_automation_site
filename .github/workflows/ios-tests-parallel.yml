@@ -73,10 +73,19 @@ on:
         default: false
         type: boolean
       run_zp3927_3928:
-        description: 'ZP-3927 / ZP-3928 — iOS 1.56/1.57 automation tickets (locations, unlink, photo filters, WO link, forms matrix, photo import)'
+        description: 'ZP-3927 / ZP-3928 / ZP-3914 — iOS 1.56/1.57/1.59 automation tickets (locations, unlink, photo filters, WO link, forms matrix, photo import, Account Manager site walks, Forms tab, multi-edit, ghost values, markup, terms)'
         required: false
         default: false
         type: boolean
+      zp_shards:
+        description: 'ZP tickets job: which shards (only used when the ZP checkbox above is ticked)'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - 'all'
+          - 'zp3914-only'
+          - 'zp3927-3928-only'
       run_connections_location:
         description: 'Connections + Location'
         required: false
@@ -2297,18 +2306,22 @@ jobs:
   # JOB 12: Location Tests (84 tests, ~2 hr)
   # ========================================
   # ========================================
-  # JOB: ZP-3927 / ZP-3928 (iOS 1.56 / 1.57 QA-automation tickets)
+  # JOB: ZP-3927 / ZP-3928 / ZP-3914 (iOS 1.56 / 1.57 / 1.59 QA-automation tickets)
   # ========================================
   zp3927-3928-tests:
     # 3 shards: the single 11-class suite hit SUITE_WALL_MINUTES=240 at PhotoCategories (run 37022397025)
-    name: "ZP-3927 / ZP-3928 - iOS 1.56/1.57 automation tickets (${{ matrix.shard }})"
+    # + 2 ZP-3914 shards (2026-10-21): zp3914-am = Account Manager / site walks (25), zp3914-forms = Forms tab,
+    #   multi-edit, ghost values, photo markup, terms (22). Only zp3914-am creates site walks, so the walk-id
+    #   diff its tests rely on never races another shard.
+    name: "ZP-3927 / ZP-3928 / ZP-3914 - iOS 1.56/1.57/1.59 automation tickets (${{ matrix.shard }})"
     if: ${{ inputs.run_all || inputs.run_zp3927_3928 }}
     runs-on: macos-15
     timeout-minutes: 360
     strategy:
       fail-fast: false
       matrix:
-        shard: [zp3927, zp3928, zp3928-forms]
+        # zp_shards narrows the matrix (empty on non-dispatch events → all five).
+        shard: ${{ fromJSON(inputs.zp_shards == 'zp3914-only' && '["zp3914-am","zp3914-forms"]' || (inputs.zp_shards == 'zp3927-3928-only' && '["zp3927","zp3928","zp3928-forms"]' || '["zp3927","zp3928","zp3928-forms","zp3914-am","zp3914-forms"]')) }}
 
     steps:
       - name: Checkout code
@@ -2407,7 +2420,7 @@ jobs:
             xcrun simctl list devices | grep -A1 "Booted" || echo "(no booted sim)"
             exit 1
           fi
-      - name: Run ZP-3927 / ZP-3928 Tests
+      - name: Run ZP-3927 / ZP-3928 / ZP-3914 Tests
         continue-on-error: true
         run: |
           # Extract bundle ID from built app so soft restart uses correct ID

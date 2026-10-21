@@ -893,15 +893,25 @@ public abstract class BasePage {
     /** One element of a page-source snapshot, with the attributes WDA writes into the XML. */
     public static final class SnapNode {
         public final String type, name, label;
+        /** WDA 'value' (switch/selection state "1", text-field content or placeholder) and 'placeholderValue'. */
+        public final String value, placeholder;
         public final boolean visible, enabled;
         public final int x, y, w, h;
-        SnapNode(String type, String name, String label, boolean visible, boolean enabled,
-                 int x, int y, int w, int h) {
-            this.type = type; this.name = name; this.label = label; this.visible = visible; this.enabled = enabled;
+        SnapNode(String type, String name, String label, String value, String placeholder, boolean visible,
+                 boolean enabled, int x, int y, int w, int h) {
+            this.type = type; this.name = name; this.label = label; this.value = value; this.placeholder = placeholder;
+            this.visible = visible; this.enabled = enabled;
             this.x = x; this.y = y; this.w = w; this.h = h;
         }
+        /** True for a selected radio / chip / toggle row (WDA writes value="1"). */
+        public boolean isOn() { return "1".equals(value); }
         /** Exact match on label or name (the two places WDA puts an element's text). */
         public boolean is(String text) { return text.equals(label) || text.equals(name); }
+        /**
+         * The node's visible text: label, or name when WDA writes no label. NavigationBars carry their title ONLY in
+         * 'name' (the Site Walk wizard's 'Customer' bar has no label attribute at all, probe 2026-10-21).
+         */
+        public String text() { return label.isEmpty() ? name : label; }
         public int centerX() { return x + w / 2; }
         public int centerY() { return y + h / 2; }
     }
@@ -927,6 +937,7 @@ public abstract class BasePage {
             java.util.regex.Matcher m = SNAP_ATTR.matcher(t.group(2));
             while (m.find()) a.put(m.group(1), unescapeXml(m.group(2)));
             out.add(new SnapNode(t.group(1), a.getOrDefault("name", ""), a.getOrDefault("label", ""),
+                    a.getOrDefault("value", ""), a.getOrDefault("placeholderValue", ""),
                     "true".equals(a.get("visible")), "true".equals(a.get("enabled")),
                     intAttr(a, "x"), intAttr(a, "y"), intAttr(a, "width"), intAttr(a, "height")));
         }

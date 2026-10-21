@@ -166,6 +166,23 @@ locators are predicate-heavy (2,944 predicate vs 257 accessibility-id).
   needs dev answer before Ready to Release.
 - Rule learned: after ANY swipe or keyboard hide, re-snapshot until a row's y is stable before tapping it.
 
+## Session 2026-10-21 — ZP-3914 (iOS 1.59) module + suite-2 patch (changelog 193)
+- New module: 9 `ZP3914_*` classes / 47 tests on `ZP3914BaseTest` (experience chooser, Site Walks wizard, Count
+  grid, offline queue, session Forms tab, multi-edit, ghost values, photo markup + zoom, Terms of Use). Suites
+  `parallel/testng-zp3914-am.xml` + `testng-zp3914-forms.xml` (CI shards in `zp3927-3928-tests`), local
+  `testng-zp3914.xml`. Bulk export / Instance tags are web-only (not in native iOS) — not automatable here.
+- Snapshot page objects (`SnapPage` base): one getPageSource per read, coordinate taps, `settled()` before any
+  tap after motion. `SnapNode.text()` = label else name — sheet NavigationBars carry the title ONLY in `name`.
+- Walks are identified by diffing GET /site-walk/list ids and deleted by id (`TestDataApi.listSiteWalks /
+  deleteSiteWalk`) — rows carry no id and same-day unassigned walks share a title.
+- `ZP3914BaseTest.captureFailureState()` saves `<method>_FAILED_atFailure_*.png` BEFORE cleanup (subclass/ZP
+  @AfterMethods run before BaseTest.testTeardown, which used to shoot the already-restored screen).
+- "Automation suite 2" = developer repo `ios-tests-repodeveloper-parallel.yml` (builds app from branch). We never
+  push there: `docs/developer-repo-patches/2026-10-21-suite2-zp-tickets-job.patch` adds the ZP job for a dev to apply.
+- Product findings: TC_SWW_08 (SW-WIZ-01) wizard step-2 'Assign a site later' clears the customer; back shows
+  "no sites yet". TC_PM_04 (MKP-LABEL-01) markup label field shows 210 chars while the counter says 200/200.
+- CI: `zp_shards` input (all / zp3914-only / zp3927-3928-only) narrows the ZP matrix.
+
 ## How to run
 - Self-tests (no device): `mvn -o -DsuiteXmlFile=testng-verify-selftest.xml test`
 - Exploratory crawl (macOS + live session): `RUN_EXPLORATORY=true mvn -Dtest=ExploratoryCrawlTest test`

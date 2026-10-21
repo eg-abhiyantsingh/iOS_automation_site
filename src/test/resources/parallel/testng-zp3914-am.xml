@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite time-out="900000" name="ZP-3914 Account Manager + Site Walks (iOS 1.59)" verbose="0">
+    <!--
+    ============================================================
+    ZP-3914 (iOS 1.59) automation module, see docs/ai-features-changelog/193-*.md
+      Experience chooser (Field Technician / Account Manager) and Settings switch
+      Site Walks: list, 3-step wizard, mode tray, Count grid, rooms, completion
+      Offline site walks (SwiftData queue, Sync N records, relaunch) and Settings Sync and Network
+      Session Forms tab (Level 1 tallies, Level 2 search and filters), multi-edit working sets,
+      EG Forms ghost values, photo markup and viewer zoom, Terms of Use acceptance
+    ____________________________________________________________
+    (no double hyphens anywhere in this comment: XML forbids them, and a
+    malformed suite makes surefire run 0 tests)
+    Classes are class-atomic so the rerun sharder can split them. Every walk a
+    test creates is deleted by backend id; every form it adds is deleted.
+    CI shard 1 of 2: Account Manager experience and site walks (25 tests).
+    ============================================================
+    -->
+
+    <listeners>
+        <listener class-name="com.egalvanic.listeners.GlobalTestTimeout"/>
+        <listener class-name="com.egalvanic.listeners.ConsoleProgressListener"/>
+    </listeners>
+
+    <test name="ZP-3914 Account Manager">
+        <classes>
+            <class name="com.egalvanic.tests.ZP3914_ExperienceChooser_Test"/>
+            <class name="com.egalvanic.tests.ZP3914_SiteWalkWizard_Test"/>
+            <class name="com.egalvanic.tests.ZP3914_CountGrid_Test"/>
+            <class name="com.egalvanic.tests.ZP3914_SiteWalkOffline_Test"/>
+        </classes>
+    </test>
+
+</suite>

@@ -1,7 +1,14 @@
 [
   {
     "match": "AssetEngineer",
-    "match_text": ["add custom", "match panel", "match header", "custom entry", "custom sheet", "manufacturer chip"],
+    "match_text": [
+      "add custom",
+      "match panel",
+      "match header",
+      "custom entry",
+      "custom sheet",
+      "manufacturer chip"
+    ],
     "exclude": true,
     "reason": "INVALID-AUTOMATION (user-verified live 2026-08-11): v1.55 gates the SKM match panel behind the Engineering 'Use library' toggle, which defaults OFF; the automation never enabled it, so 'Add Custom'/match-panel elements were genuinely absent for the tests but NOT for a user who flips the toggle. Fixed via AssetEngineerPage.ensureUseLibraryEnabled(); remove this entry once the family is green on CI."
   },
@@ -22,5 +29,17 @@
     "severity": "Medium",
     "priority": "Medium",
     "note": "Related to product bug CONN-VAL-01: creating a connection without a target leaves a 'Not Assigned' debris row."
+  },
+  {
+    "match": "TC_SWW_08",
+    "severity": "Low",
+    "priority": "Low",
+    "note": "Known product bug SW-WIZ-01 (ZP-3914, verified live 2026-10-21 on 1.69 + 1.70 source): the Site Walk wizard's step-2 'Assign a site later' runs deferAssignment(), which clears the chosen customer; going back from Services shows the title 'Site' and 'This customer has no sites yet' for a customer that has sites. No data loss (walks store only the site)."
+  },
+  {
+    "match": "TC_PM_04",
+    "severity": "Low",
+    "priority": "Low",
+    "note": "Known product bug MKP-LABEL-01 (ZP-3914, verified live 2026-10-21 on 1.69, bulk and one-key-at-a-time typing): the markup text-label field keeps showing characters typed past the 200 limit (210 visible) while the counter reads 200/200; the editor state keeps only the first 200, so the extra text is dropped silently when the mark is saved."
   }
 ]
