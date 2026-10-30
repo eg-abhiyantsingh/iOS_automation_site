@@ -3589,8 +3589,15 @@ public class AssetPage extends BasePage {
                         AppiumBy.iOSNsPredicateString("type == 'XCUIElementTypeSearchField'")
                     );
                 } catch (Exception e3) {
-                    System.out.println("⚠️ Search bar not available");
-                    return;
+                    try {
+                        // v1.73: a plain TextField 'Search assets...' under the nav bar (no SearchField, no
+                        // 'Search by name, type, location, or QR code' id) — TC_PM_01 local, 2026-10-30.
+                        searchField = driver.findElement(AppiumBy.iOSNsPredicateString(
+                            "type == 'XCUIElementTypeTextField' AND (value BEGINSWITH[c] 'Search assets' OR placeholderValue BEGINSWITH[c] 'Search assets')"));
+                    } catch (Exception e4) {
+                        System.out.println("⚠️ Search bar not available");
+                        return;
+                    }
                 }
             }
         }

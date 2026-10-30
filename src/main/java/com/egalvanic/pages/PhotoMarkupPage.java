@@ -230,7 +230,21 @@ public class PhotoMarkupPage extends SnapPage {
                 b.append(t.label);
             }
             text[0] = b.toString();
-            find(n -> "Button".equals(n.type) && n.is(answer) && n.y >= sheet.y).ifPresent(this::tapNode);
+            System.out.println("🗂️ discard sheet " + sheet.type + "@" + sheet.y + "+" + sheet.h + " buttons "
+                    + findAll(n -> "Button".equals(n.type) && n.y >= sheet.y - 4 && n.y <= sheet.y + sheet.h)
+                            .stream().map(n -> n.label + "@" + n.x + "," + n.y + " " + n.w + "x" + n.h).toList());
+            Optional<SnapNode> pick = find(n -> "Button".equals(n.type) && n.is(answer) && n.y >= sheet.y);
+            if (pick.isPresent()) {
+                tapNode(pick.get());
+            } else if (!"Discard".equals(answer)) {
+                // iOS 26 draws this confirmation as a popover and leaves its cancel-role action ('Keep Editing') out —
+                // it is answered by tapping outside. Do it HERE, while alerts are manual: left open, the sheet was
+                // auto-accepted as 'Discard' once withAlertsManual restored autoAcceptAlerts (TC_PM_05, 2026-10-30).
+                System.out.println("↩️ cancelEditor: no '" + answer + "' button (iOS 26 popover) — tapping outside to keep editing");
+                tapPoint(screenW() / 2, 80);
+            } else {
+                System.out.println("⚠️ cancelEditor: no '" + answer + "' button in the sheet");
+            }
             sleep(1200);
         });
         return text[0];
