@@ -42,6 +42,12 @@ public class SiteWalkPage extends SnapPage {
     public static final String WIZ_CUSTOMER = "Customer";
     public static final String WIZ_SERVICES = "Services";
     public static final String SEARCH_CUSTOMERS = "Search customers";
+    /**
+     * Upper bound of the network-menu band. 1.69 dropped the menu below the toolbar (items y≈100-250); v1.73 / iOS 26
+     * opens it as a popover OVER the toolbar — 'Go Offline' at y≈62 (TC_SWO_01, 2026-10-30). The w 200-300 filter
+     * keeps the 41-pt toolbar control itself out.
+     */
+    private static final int MENU_TOP = 40;
     public static final String CHOOSE_CUSTOMER = "Choose a customer";
     public static final String NEW_CUSTOMER = "New Customer";
     public static final String DEFER_FOOTER = "Or defer both customer and site to the office.";
@@ -111,8 +117,13 @@ public class SiteWalkPage extends SnapPage {
     public List<WalkRow> walkRows() {
         List<SnapNode> s = snapshot();
         List<WalkRow> out = new ArrayList<>();
+        // A row running under the bottom tab bar is only half drawn — its status icon is not in the snapshot
+        // (TC_SWW_01 on v1.73 / iOS 26: the floating tab bar covered 'WALK SITE … JOURNAL', 2026-10-30). Keep
+        // fully drawn rows only.
+        int barTop = s.stream().filter(n -> n.visible && "TabBar".equals(n.type)).mapToInt(n -> n.y).min().orElse(Integer.MAX_VALUE);
         for (SnapNode n : s) {
             if (!n.visible || !"Button".equals(n.type) || !ROW.matcher(n.label).matches()) continue;
+            if (n.y + n.h > barTop) continue;
             String icon = s.stream().filter(i -> i.visible && "Image".equals(i.type) && i.x > rx(340) && i.x < rx(380)
                             && i.y >= n.y && i.y <= n.y + n.h)
                     .map(i -> i.label.isEmpty() ? i.name : i.label).findFirst().orElse("");
@@ -150,7 +161,7 @@ public class SiteWalkPage extends SnapPage {
         List<String> items = new ArrayList<>();
         waitUntil(() -> {
             items.clear();
-            for (SnapNode n : findAll(x -> "Button".equals(x.type) && x.y > 90 && x.y < 260 && x.w > 200 && x.w < 300)) items.add(n.label);
+            for (SnapNode n : findAll(x -> "Button".equals(x.type) && x.y > MENU_TOP && x.y < 260 && x.w > 200 && x.w < 300)) items.add(n.label);
             return !items.isEmpty();
         }, 4_000);
         return items;
@@ -158,7 +169,7 @@ public class SiteWalkPage extends SnapPage {
 
     /** Press an item of the open network menu. */
     public boolean pressMenuItem(String label) {
-        Optional<SnapNode> b = find(n -> "Button".equals(n.type) && n.is(label) && n.y > 90 && n.y < 260);
+        Optional<SnapNode> b = find(n -> "Button".equals(n.type) && n.is(label) && n.y > MENU_TOP && n.y < 260);
         b.ifPresent(this::tapNode);
         if (b.isPresent()) sleep(600);
         return b.isPresent();
@@ -166,7 +177,7 @@ public class SiteWalkPage extends SnapPage {
 
     /** Close the network menu without choosing (only taps when the menu is actually up). */
     public void closeMenu() {
-        boolean open = find(n -> "Button".equals(n.type) && n.y > 90 && n.y < 260 && n.w > 200 && n.w < 300
+        boolean open = find(n -> "Button".equals(n.type) && n.y > MENU_TOP && n.y < 260 && n.w > 200 && n.w < 300
                 && (n.is(GO_OFFLINE) || n.is(GO_ONLINE) || SYNC_ITEM.matcher(n.label).matches())).isPresent();
         if (open) {
             tapPoint(220, 600);
@@ -307,10 +318,35 @@ public class SiteWalkPage extends SnapPage {
 
     /** Dismiss the active customer search (its own 'Cancel', right of the field) so the list is unfiltered again. */
     public boolean cancelCustomerSearch() {
-        Optional<SnapNode> c = find(n -> "Button".equals(n.type) && n.is("Cancel") && n.y < 140 && n.x > rx(300));
+        Optional<SnapNode> c = searchDismissButton();
         if (c.isEmpty()) return false;
         tapNode(c.get());
         return waitUntil(() -> customerSearchText().isEmpty() && !isKeyboardUp(), 4_000);
+    }
+
+    /**
+     * The control that ENDS an active customer search. Up to 1.69 the search took over the nav bar and ended with a
+     * top-right 'Cancel'; on v1.73 / iOS 26 the field docks at the BOTTOM above the keyboard with a round '✕' button
+     * to its right (TC_SWW_02, 2026-10-30). Either way it is the Button just right of the search field on the same
+     * row — the in-field clear button sits inside the field's frame and is excluded.
+     */
+    private Optional<SnapNode> searchDismissButton() {
+        Optional<SnapNode> top = find(n -> "Button".equals(n.type) && n.is("Cancel") && n.y < 140 && n.x > rx(300));
+        if (top.isPresent()) return top;
+        List<SnapNode> s = snapshot();
+        Optional<SnapNode> field = s.stream().filter(n -> n.visible && ("SearchField".equals(n.type) || "TextField".equals(n.type))
+                && (n.value.contains(SEARCH_CUSTOMERS) || n.placeholder.contains(SEARCH_CUSTOMERS) || n.label.contains(SEARCH_CUSTOMERS)
+                    || n.y > by(500))).max(java.util.Comparator.comparingInt(n -> n.y));
+        if (field.isEmpty()) return Optional.empty();
+        SnapNode f = field.get();
+        return s.stream().filter(n -> n.visible && "Button".equals(n.type) && n.x >= f.x + f.w - 5
+                        && Math.abs(n.centerY() - f.centerY()) < 30 && !n.is("Clear text"))
+                .min(java.util.Comparator.comparingInt(n -> n.x));
+    }
+
+    /** A customer search is in progress (its dismiss control is on screen). */
+    public boolean isCustomerSearchActive() {
+        return searchDismissButton().isPresent();
     }
 
     public boolean isAssignLaterOffered() {
@@ -430,7 +466,7 @@ public class SiteWalkPage extends SnapPage {
         for (int i = 0; i < 4 && currentStep() > 1; i++) {
             if (!wizardBack()) break;
         }
-        if (find(n -> "Button".equals(n.type) && n.is("Cancel") && n.y < 140 && n.x > rx(300)).isPresent()) cancelCustomerSearch();
+        if (isCustomerSearchActive()) cancelCustomerSearch();
         Optional<SnapNode> cancel = settled(n -> "Button".equals(n.type) && n.is("Cancel") && n.y < 140 && n.x < 100);
         if (cancel.isEmpty()) {
             System.out.println("⚠️ cancelWizard: no wizard 'Cancel' (step " + currentStep() + ")");

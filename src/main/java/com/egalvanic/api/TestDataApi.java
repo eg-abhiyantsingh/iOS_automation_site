@@ -133,6 +133,28 @@ public class TestDataApi {
                 .POST(HttpRequest.BodyPublishers.ofString(json == null ? "{}" : json)).build());
     }
 
+    /** Authenticated PUT with a raw JSON body. */
+    public HttpResponse<String> put(String path, String json) {
+        return sendAuthedWithRetry(() ->
+                authed(HttpRequest.newBuilder(URI.create(BASE + path))
+                .header("Content-Type", "application/json"))
+                .PUT(HttpRequest.BodyPublishers.ofString(json == null ? "{}" : json)).build());
+    }
+
+    /**
+     * Unauthenticated GET of an absolute URL as bytes — for presigned report downloads (S3), which reject a
+     * foreign Authorization header. Null on a transport failure; the caller checks the status.
+     */
+    public HttpResponse<byte[]> downloadBytes(String absoluteUrl) {
+        try {
+            return http.send(HttpRequest.newBuilder(URI.create(absoluteUrl)).timeout(Duration.ofSeconds(120)).GET().build(),
+                    HttpResponse.BodyHandlers.ofByteArray());
+        } catch (Exception e) {
+            System.out.println("⚠️ download failed: " + e.getMessage());
+            return null;
+        }
+    }
+
     // ── identity / site (SLD) lookups ──────────────────────────────────────
     // Contract from APIEndpoints.swift: GET /auth/v2/me, GET /users/{id}/slds,
     // GET /sld/v3/{sldId} (full details incl. nodes + issues — the backend has

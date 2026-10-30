@@ -105,8 +105,12 @@ public final class ZP3914_TermsOfUse_Test extends ZP3914BaseTest {
             assertTrue(eventually(() -> loginPage.isConsentImplicit(), 10),
                     "Sign-in must state consent ('" + CONSENT_PREFIX + " …') instead of a Terms checkbox");
             assertTrue(legal().isConsentShown(), "The consent line reads '" + LegalConsentPage.CONSENT_PREFIX + " …'");
-            assertTrue(legal().isLinkShown(LegalConsentPage.TERMS) && legal().isLinkShown(LegalConsentPage.PRIVACY),
-                    "The consent line links both '" + LegalConsentPage.TERMS + "' and '" + LegalConsentPage.PRIVACY + "'");
+            // The links are appended only once the legal-document URLs arrive from the backend
+            // (LegalConsentCheckbox: `if let termsURL` / `if let privacyURL`) — on CI they were not there yet one
+            // second after the sentence (run 39602048381). Wait for them; a sentence with no links after 20 s is a defect.
+            assertTrue(eventually(() -> legal().isLinkShown(LegalConsentPage.TERMS) && legal().isLinkShown(LegalConsentPage.PRIVACY), 20),
+                    "The consent line links both '" + LegalConsentPage.TERMS + "' and '" + LegalConsentPage.PRIVACY + "' — "
+                            + legal().consentNodes());
             logStepWithScreenshot("Sign-in consent text");
             assertTrue(legal().openDocument(LegalConsentPage.TERMS), "'" + LegalConsentPage.TERMS + "' must open its document");
             logStepWithScreenshot("Terms & Conditions document");

@@ -86,7 +86,13 @@ public class ExperiencePage extends SnapPage {
      */
     public boolean openSettingsRoot() {
         SettingsPage settings = new SettingsPage();
-        if (!settings.openSettingsTab()) return false;
+        if (!settings.openSettingsTab()) {
+            System.out.println("🔁 openSettingsRoot: Settings tab not reached — re-activating the app and retrying once");
+            reactivateApp();
+            if (!openTab("Settings") || !waitUntil(settings::isSettingsScreenDisplayed, 5_000)) {
+                if (!settings.openSettingsTab()) return false;
+            }
+        }
         for (int i = 0; i < 4; i++) {
             // A pushed screen's back chevron sits at the top-left; the root has none (its large title is not a Button).
             Optional<SnapNode> back = find(n -> "Button".equals(n.type) && n.y > 40 && n.y < 140 && n.x < 60 && n.w < 220);
@@ -188,7 +194,13 @@ public class ExperiencePage extends SnapPage {
     public boolean switchTo(Experience e) {
         long t0 = System.currentTimeMillis();
         if (isOn(e)) return true;
-        if (!openFromSettings()) return false;
+        if (!openFromSettings()) {
+            // One more press: the row tap was swallowed once right after a site-walk test tore down (TC_SWC_02 on
+            // v1.73, 2026-10-30: 'open 11311ms → false' with the chooser never shown) — the chooser itself is fine.
+            if (isChooserShown() || !openFromSettings()) {
+                if (!isChooserShown()) return false;
+            }
+        }
         long t1 = System.currentTimeMillis();
         if (!selectCard(e)) return false;
         if (!pressContinue()) return false;

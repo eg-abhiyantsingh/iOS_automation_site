@@ -150,14 +150,14 @@ public final class ZP3928_EgFormsMatrix_Test extends WorkTypeBaseTest {
                 String candidate = WorkOrderFormsPage.assetNameOf(row);
                 int badge = forms.assetRowFormCount(candidate);
                 lastMenu = forms.openAssetRowMenu(candidate);
-                if (!lastMenu.contains(WorkOrderFormsPage.ADD_FORM_MENU_ITEM)) {
+                if (!WorkOrderFormsPage.offersAddForm(lastMenu)) {
                     forms.pressVisibleButton("Cancel");
                     try { com.egalvanic.utils.DriverManager.getDriver().executeScript("mobile: tap", java.util.Map.of("x", 200, "y", 40)); } catch (Exception ignored) { }
                     continue;
                 }
                 sawAddForm = true;
-                forms.pressVisibleButton(WorkOrderFormsPage.ADD_FORM_MENU_ITEM);
-                if (!com.egalvanic.utils.Waits.until(forms::isAddProcedureSheetOpen, 8_000, 500)) continue;
+                // 1.69 menu 'Add Form'; v1.73 'Forms (n)' › 'Select a Form' › 'Add Form' (absent on 1-form assets).
+                if (!forms.pressAddForm(lastMenu)) continue;
                 String chosen = forms.chooseFirstAddableForm();
                 if (chosen != null) { asset = candidate; title = chosen; before = badge; break search; }
                 logStep("'" + candidate + "' (" + row.label + "): no form applies to this class — trying the next asset");
@@ -175,10 +175,9 @@ public final class ZP3928_EgFormsMatrix_Test extends WorkTypeBaseTest {
                 if (forms.assetRowFormCount(PROVISION_ASSET) >= 0) {
                     int badge = forms.assetRowFormCount(PROVISION_ASSET);
                     lastMenu = forms.openAssetRowMenu(PROVISION_ASSET);
-                    if (lastMenu.contains(WorkOrderFormsPage.ADD_FORM_MENU_ITEM)) {
+                    if (WorkOrderFormsPage.offersAddForm(lastMenu)) {
                         sawAddForm = true;
-                        forms.pressVisibleButton(WorkOrderFormsPage.ADD_FORM_MENU_ITEM);
-                        if (com.egalvanic.utils.Waits.until(forms::isAddProcedureSheetOpen, 8_000, 500)) {
+                        if (forms.pressAddForm(lastMenu)) {
                             String chosen = forms.chooseFirstAddableForm();
                             if (chosen != null) { asset = PROVISION_ASSET; title = chosen; before = badge; }
                         }

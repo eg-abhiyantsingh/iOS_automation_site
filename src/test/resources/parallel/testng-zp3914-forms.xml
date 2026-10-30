@@ -9,12 +9,13 @@
       Offline site walks (SwiftData queue, Sync N records, relaunch) and Settings Sync and Network
       Session Forms tab (Level 1 tallies, Level 2 search and filters), multi-edit working sets,
       EG Forms ghost values, photo markup and viewer zoom, Terms of Use acceptance
+      Bulk export and Instance tags: backend contract (driver free), see ZP3914_FormsBulkExportTags_ApiTest
     ____________________________________________________________
     (no double hyphens anywhere in this comment: XML forbids them, and a
     malformed suite makes surefire run 0 tests)
     Classes are class-atomic so the rerun sharder can split them. Every walk a
     test creates is deleted by backend id; every form it adds is deleted.
-    CI shard 2 of 2: work-order Forms tab, multi-edit, ghost values, photo markup, terms (22 tests).
+    CI shard 2 of 2: bulk export and tags API, work-order Forms tab, multi-edit, ghost values, photo markup, terms (32 tests).
     ============================================================
     -->
 
@@ -25,6 +26,8 @@
 
     <test name="ZP-3914 Forms and Photos">
         <classes>
+            <!-- Driver-free backend checks for Bulk export + Instance tags (web/API only in iOS v1.73, ZP-3840) -->
+            <class name="com.egalvanic.tests.ZP3914_FormsBulkExportTags_ApiTest"/>
             <class name="com.egalvanic.tests.ZP3914_FormsTab_Test"/>
             <class name="com.egalvanic.tests.ZP3914_MultiEdit_Test"/>
             <class name="com.egalvanic.tests.ZP3914_GhostValues_Test"/>

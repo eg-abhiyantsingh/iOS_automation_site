@@ -148,6 +148,20 @@ abstract class SnapPage extends BasePage {
         return !isKeyboardUp();
     }
 
+    /**
+     * Bring our app back to the front for WDA. On CI (2026-10-21, TC_SWW_01) every tap right after a soft restart
+     * failed with "Invalid parameter not satisfying: point.x != INFINITY" — WDA's active-application lookup had lost
+     * the app, although its tab bar was on screen. activateApp re-anchors it; harmless when it is already active.
+     */
+    protected void reactivateApp() {
+        try {
+            driver.executeScript("mobile: activateApp", Map.of("bundleId", com.egalvanic.constants.AppConstants.APP_BUNDLE_ID));
+        } catch (Exception e) {
+            System.out.println("⚠️ reactivateApp: " + e.getMessage());
+        }
+        sleep(1500);
+    }
+
     protected boolean waitUntil(java.util.function.BooleanSupplier c, long timeoutMs) {
         return Waits.until(c, timeoutMs, 500);
     }

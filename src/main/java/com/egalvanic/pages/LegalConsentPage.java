@@ -34,6 +34,12 @@ public class LegalConsentPage extends SnapPage {
         return link(text).isPresent();
     }
 
+    /** Diagnostics for a failed link check: every node mentioning the consent, Terms or Privacy, with its type. */
+    public java.util.List<String> consentNodes() {
+        return findAll(n -> n.text().contains(CONSENT_PREFIX) || n.text().contains(TERMS) || n.text().contains(PRIVACY))
+                .stream().map(n -> n.type + " '" + n.text() + "'").toList();
+    }
+
     /** Press the link; true once a document is up. */
     public boolean openDocument(String linkText) {
         if (isKeyboardUp()) dismissKeyboard();

@@ -69,7 +69,7 @@ public final class ZP3914_FormsTab_Test extends ZP3914BaseTest {
         FormTypeRow t = openBusiestType(openFormsTabOrSkip("TC_FT_02"));
         assertTrue(formsTab.isInstanceListShown(), "Level 2 shows '" + SessionFormsTabPage.SEARCH_PLACEHOLDER
                 + "' and '" + SessionFormsTabPage.FILTER_BUTTON + "'");
-        assertTrue(formsTab.isTextVisible(SessionFormsTabPage.SELECT), "Level 2 offers 'Select' (multi-edit entry)");
+        assertTrue(formsTab.isSelectEntryOffered(), "Level 2 offers 'Select' (multi-edit entry: nav button ≤1.69, row long-press menu v1.73)");
         List<InstanceRow> rows = formsTab.instanceRows();
         logStep("Instances of '" + t.head + "': " + rows);
         if (t.total <= 7) {   // everything fits on one screen

@@ -1124,6 +1124,89 @@ public class WorkOrderFormsPage extends BasePage {
         return true;
     }
 
+    // ── v1.73: 'Add Form' moved off the asset menu into 'Forms (n)' › sheet 'Select a Form' (the asset's instances
+    //    as '<title>, <status>' Buttons + an 'Add Form' button) › the same 'Add Procedure' sheet (probe 2026-10-30) ──
+
+    public static final String SELECT_A_FORM = "Select a Form";
+    private static final java.util.regex.Pattern FORMS_MENU_ITEM = java.util.regex.Pattern.compile("^Forms( \\(\\d+\\))?$");
+
+    /** The asset's form instances as the v1.73 'Select a Form' sheet listed them on the last {@link #pressAddForm} ('<title>, <status>'). */
+    public List<String> lastSelectFormRows = List.of();
+
+    /** An open asset menu offers a way to add a form: 1.69 'Add Form', v1.73 'Forms (n)'. */
+    public static boolean offersAddForm(List<String> menu) {
+        return menu.contains(ADD_FORM_MENU_ITEM) || menu.stream().anyMatch(i -> FORMS_MENU_ITEM.matcher(i).matches());
+    }
+
+    public boolean isSelectFormSheetOpen() {
+        return snapshot().stream().anyMatch(n -> n.visible && n.is(SELECT_A_FORM)
+                && ("StaticText".equals(n.type) || "NavigationBar".equals(n.type)));
+    }
+
+    /** From an OPEN asset menu, reach the 'Add Procedure' sheet; true once it is up. */
+    public boolean pressAddForm(List<String> menu) {
+        lastSelectFormRows = List.of();
+        if (menu.contains(ADD_FORM_MENU_ITEM)) {
+            pressVisibleButton(ADD_FORM_MENU_ITEM);
+        } else {
+            String item = menu.stream().filter(i -> FORMS_MENU_ITEM.matcher(i).matches()).findFirst().orElse(null);
+            if (item == null || !pressVisibleButton(item)) return false;
+            com.egalvanic.utils.Waits.until(() -> isSelectFormSheetOpen() || isEditFormOpen(), 10_000, 500);
+            if (!isSelectFormSheetOpen()) {
+                // v1.73 with exactly one form: 'Forms (1)' opened that form — the sheet holding 'Add Form' never shows.
+                if (isEditFormOpen()) {
+                    System.out.println("ℹ️ '" + item + "' opened the single form directly — no 'Add Form' path on this asset");
+                    closeEditForm();
+                }
+                return false;
+            }
+            List<String> rows = new ArrayList<>();
+            for (SnapNode n : snapshot()) {
+                if (n.visible && "Button".equals(n.type) && n.w > 300 && n.y > 130 && n.label.contains(", ")) rows.add(n.label);
+            }
+            lastSelectFormRows = rows;
+            System.out.println("📄 'Select a Form' lists " + rows);
+            if (!pressVisibleButton(ADD_FORM_MENU_ITEM)) return false;
+        }
+        return com.egalvanic.utils.Waits.until(this::isAddProcedureSheetOpen, 8_000, 500);
+    }
+
+    /**
+     * Open the asset's EXISTING form without creating one: 'Forms (n)' › first row of the 'Select a Form' sheet, or —
+     * v1.73 with exactly one form — the form itself, which 'Forms (1)' opens directly. True once 'Edit Form' shows.
+     */
+    public boolean openExistingForm(String assetName) {
+        List<String> menu = openAssetRowMenu(assetName);
+        String item = menu.stream().filter(i -> FORMS_MENU_ITEM.matcher(i).matches()).findFirst().orElse(null);
+        if (item == null || !pressVisibleButton(item)) {
+            pressVisibleButton("Cancel");
+            return false;
+        }
+        com.egalvanic.utils.Waits.until(() -> isEditFormOpen() || isSelectFormSheetOpen(), 10_000, 500);
+        if (isSelectFormSheetOpen()) {
+            SnapNode row = snapshot().stream().filter(n -> n.visible && "Button".equals(n.type) && n.w > 300 && n.y > 130
+                    && n.label.contains(", ")).min(java.util.Comparator.comparingInt(n -> n.y)).orElse(null);
+            if (row == null) return false;
+            driver.executeScript("mobile: tap", Map.of("x", row.centerX(), "y", row.centerY()));
+        }
+        return com.egalvanic.utils.Waits.until(this::isEditFormOpen, 20_000, 600);
+    }
+
+    /** The room's top-right 'Refresh' — pulls server-side changes (e.g. API-provisioned forms) into the session. */
+    public boolean refreshRoom() {
+        SnapNode r = snapshot().stream().filter(n -> n.visible && "Button".equals(n.type) && n.is("Refresh") && n.y < 140)
+                .findFirst().orElse(null);
+        if (r == null) return false;
+        driver.executeScript("mobile: tap", Map.of("x", r.centerX(), "y", r.centerY()));
+        sleep(4000);
+        return com.egalvanic.utils.Waits.until(this::isAssetsInRoomOpen, 20_000, 800);
+    }
+
+    /** How many of the asset's instances (last 'Select a Form' read) carry {@code title}. */
+    public int lastCountOf(String title) {
+        return (int) lastSelectFormRows.stream().filter(r -> r.startsWith(title + ", ")).count();
+    }
+
     public boolean isAddProcedureSheetOpen() {
         return snapshot().stream().anyMatch(n -> n.visible && "StaticText".equals(n.type) && n.is(ADD_PROCEDURE_TITLE));
     }
@@ -1153,11 +1236,88 @@ public class WorkOrderFormsPage extends BasePage {
         String title = option.contains(", Applies to:") ? option.substring(0, option.indexOf(", Applies to:")) : option;
         System.out.println("➕ adding form '" + title + "'");
         if (!pressVisibleButton(option)) return null;
-        return com.egalvanic.utils.Waits.until(this::isEditFormOpen, 10_000, 600) ? title : null;
+        // 20 s: on CI (iPhone 16 Pro, iOS 18.5) the editor took ~29 s from the option press — it WAS open in the
+        // failure shot while the 10 s wait had already given up (TC_GV_01, run 39602048381).
+        return com.egalvanic.utils.Waits.until(this::isEditFormOpen, 20_000, 600) ? title : null;
     }
 
+    // ── EG form renderer (ZP-3743, shipped in iOS 1.59): 'Close' top-left, a fixed footer 'Sections' · 'Save' ·
+    //    'Submit', a left index drawer behind 'Sections', and no Delete inside the open form ──────────────────────
+
+    public static final String SECTIONS = "Sections";
+
+    /** Labelled, visible Buttons on screen (top to bottom) — the editor's chrome checks read these. */
+    public List<SnapNode> visibleButtons() {
+        return snapshot().stream().filter(n -> n.visible && "Button".equals(n.type) && !n.text().isEmpty())
+                .sorted(java.util.Comparator.comparingInt(n -> n.y)).toList();
+    }
+
+    /** Top edge of the software keyboard; Integer.MAX_VALUE when none is up. */
+    public int keyboardTop() {
+        return snapshot().stream().filter(n -> n.visible && "Keyboard".equals(n.type)).mapToInt(n -> n.y).min().orElse(Integer.MAX_VALUE);
+    }
+
+    /** Tap the first text field of the open form (raises the keyboard; types nothing). */
+    public boolean focusFirstTextField() {
+        SnapNode f = null;
+        for (int i = 0; i < 4 && f == null; i++) {   // procedure steps can push the first field below the fold
+            f = snapshot().stream().filter(n -> n.visible && "TextField".equals(n.type) && n.y > 150 && n.y < 760)
+                    .min(java.util.Comparator.comparingInt(n -> n.y)).orElse(null);
+            if (f == null) {
+                try { driver.executeScript("mobile: swipe", Map.of("direction", "up")); } catch (Exception ignored) { }
+                sleep(1000);
+            }
+        }
+        if (f == null) return false;
+        driver.executeScript("mobile: tap", Map.of("x", f.centerX(), "y", f.centerY()));
+        return com.egalvanic.utils.Waits.until(() -> keyboardTop() < Integer.MAX_VALUE, 5_000, 400);
+    }
+
+    /** Visible texts (StaticText / Button labels) — used to diff what the Sections drawer adds. */
+    private java.util.Set<String> visibleTexts() {
+        java.util.Set<String> out = new LinkedHashSet<>();
+        for (SnapNode n : snapshot()) {
+            if (n.visible && ("StaticText".equals(n.type) || "Button".equals(n.type)) && !n.text().isEmpty()) out.add(n.text());
+        }
+        return out;
+    }
+
+    /**
+     * Press 'Sections' and return the entries the index drawer brought on screen (texts that were not visible
+     * before, minus the footer itself). Empty when nothing new appeared.
+     */
+    public List<String> openSectionsDrawer() {
+        java.util.Set<String> before = visibleTexts();
+        if (!pressVisibleButton(SECTIONS)) return List.of();
+        List<String> added = new ArrayList<>();
+        com.egalvanic.utils.Waits.until(() -> {
+            added.clear();
+            for (String t : visibleTexts()) if (!before.contains(t)) added.add(t);
+            return !added.isEmpty();
+        }, 6_000, 500);
+        System.out.println("📑 Sections drawer entries: " + added);
+        return added;
+    }
+
+    /** Y of the first visible StaticText reading exactly {@code text} (−1 when not on screen). */
+    public int textY(String text) {
+        return snapshot().stream().filter(n -> n.visible && "StaticText".equals(n.type) && n.is(text))
+                .mapToInt(n -> n.y).min().orElse(-1);
+    }
+
+    /** Press a drawer entry (Button or StaticText) by its exact text. */
+    public boolean pressText(String text) {
+        SnapNode t = snapshot().stream().filter(n -> n.visible && n.is(text) && ("Button".equals(n.type) || "StaticText".equals(n.type)))
+                .max(java.util.Comparator.comparingInt(n -> "Button".equals(n.type) ? 1 : 0)).orElse(null);
+        if (t == null) return false;
+        driver.executeScript("mobile: tap", Map.of("x", t.centerX(), "y", t.centerY()));
+        return true;
+    }
+
+    /** 'Edit Form' title: a StaticText, or (iOS 18 sheets) only the NavigationBar's name. */
     public boolean isEditFormOpen() {
-        return snapshot().stream().anyMatch(n -> n.visible && "StaticText".equals(n.type) && n.is(EDIT_FORM_TITLE));
+        return snapshot().stream().anyMatch(n -> n.visible && n.is(EDIT_FORM_TITLE)
+                && ("StaticText".equals(n.type) || "NavigationBar".equals(n.type)));
     }
 
     /**

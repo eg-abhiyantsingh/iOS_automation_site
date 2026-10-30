@@ -27,6 +27,14 @@ import java.util.regex.Pattern;
  *    data): 'Blue italic values come from each asset's last submitted form — left untouched, they save on Submit.'
  *  Single form (tap a row): 'Edit Form' without the 'Editing:' chip; procedure table rows have a Result Button
  *    ('—' / 'Pass' / 'Fail' / 'N/A' menu) and a 'Value / Notes' TextField.
+ *
+ * v1.73 (live probe 2026-10-30, iOS 26.2) — same features, new chrome; both layouts are supported:
+ *  Level 1 rows read '<title>, <s>/<t> submitted - <asset classes>, <N drafts | Submitted>'.
+ *  Level 2 rows are Buttons '<asset>, <room> - <k>/<n> sections, <status>' ('No asset, <k>/<n> sections, …').
+ *  No nav 'Select': a row's long-press menu offers 'Select' · 'Copy Data To…' · 'Delete'. 'Select' enters select
+ *    mode WITH that row already selected; each row gets a Button 'Select' (name 'circle' / 'checkmark.circle.fill',
+ *    value "1" when on). Bottom bar: '<N> Selected' · 'Select All' / 'Cancel' · 'Edit' · 'More' (menu 'Mark Draft'
+ *    / 'Mark Submitted') · 'Delete'.
  */
 public class SessionFormsTabPage extends SnapPage {
 
@@ -47,6 +55,10 @@ public class SessionFormsTabPage extends SnapPage {
     public static final String MARK_SECTION_DONE = "Mark section done";
 
     private static final Pattern TYPE_ROW = Pattern.compile("^(.+), (\\d+)/(\\d+), (Submitted|\\d+ drafts?)$");
+    /** v1.73 Level-1 row: '<title>, <s>/<t> submitted - <classes>, <state>'. */
+    private static final Pattern TYPE_ROW_173 = Pattern.compile("^(.+?), (\\d+)/(\\d+) submitted - (.+), (Submitted|\\d+ drafts?)$");
+    /** v1.73 Level-2 row button: '<asset>, [<room> - ]<k>/<n> sections, <status>'. */
+    private static final Pattern INSTANCE_ROW_173 = Pattern.compile("^(.+?), (?:(.+) - )?(\\d+/\\d+) sections?, (.+)$");
     private static final Pattern CHIP = Pattern.compile("^(Not Started|In Progress|Submitted)$");
     private static final Pattern TALLY = Pattern.compile("^\\d+/\\d+$");
     private static final Pattern MULTI_SUMMARY = Pattern.compile("^(\\d+) assets? · (\\d+) submitted$");
@@ -57,8 +69,10 @@ public class SessionFormsTabPage extends SnapPage {
         public final int submitted, total;
         public final String state;
         FormTypeRow(Matcher m, String label) {
-            this.label = label; this.head = m.group(1);
-            this.submitted = Integer.parseInt(m.group(2)); this.total = Integer.parseInt(m.group(3)); this.state = m.group(4);
+            this(label, m.group(1), Integer.parseInt(m.group(2)), Integer.parseInt(m.group(3)), m.group(m.groupCount()));
+        }
+        FormTypeRow(String label, String head, int submitted, int total, String state) {
+            this.label = label; this.head = head; this.submitted = submitted; this.total = total; this.state = state;
         }
         @Override public String toString() { return label; }
     }
@@ -94,6 +108,8 @@ public class SessionFormsTabPage extends SnapPage {
     public List<FormTypeRow> formTypeRows() {
         List<FormTypeRow> out = new ArrayList<>();
         for (SnapNode n : findAll(x -> "Button".equals(x.type) && x.w > 300)) {
+            Matcher m173 = TYPE_ROW_173.matcher(n.label);
+            if (m173.matches()) { out.add(new FormTypeRow(m173, n.label)); continue; }
             Matcher m = TYPE_ROW.matcher(n.label);
             if (m.matches()) out.add(new FormTypeRow(m, n.label));
         }
@@ -116,6 +132,16 @@ public class SessionFormsTabPage extends SnapPage {
     public List<InstanceRow> instanceRows() {
         List<SnapNode> s = snapshot();
         List<InstanceRow> out = new ArrayList<>();
+        // v1.73: one Button per row carries everything.
+        for (SnapNode n : s) {
+            if (!n.visible || !"Button".equals(n.type) || n.w < 300 * screenW() / 440 - 60) continue;
+            Matcher m = INSTANCE_ROW_173.matcher(n.label);
+            if (m.matches()) out.add(new InstanceRow(m.group(1), m.group(2) == null ? "" : m.group(2), m.group(3), m.group(4), n.y));
+        }
+        if (!out.isEmpty()) {
+            out.sort(java.util.Comparator.comparingInt(r -> r.chipY));
+            return out;
+        }
         for (SnapNode chip : s) {
             if (!chip.visible || !"StaticText".equals(chip.type) || chip.x < rx(300) || !CHIP.matcher(chip.label).matches()) continue;
             String tally = s.stream().filter(n -> n.visible && "StaticText".equals(n.type) && TALLY.matcher(n.label).matches()
@@ -206,49 +232,182 @@ public class SessionFormsTabPage extends SnapPage {
 
     // ── select mode / multi-edit ───────────────────────────────────────────────────────────────────────────
 
+    /** The 1.69 nav 'Select' button (absent from v1.73, where the row long-press menu offers 'Select'). */
+    private Optional<SnapNode> navSelect() {
+        return find(n -> "Button".equals(n.type) && n.is(SELECT) && n.y < 200 && n.x > rx(300));
+    }
+
+    /** True on the v1.73 layout: select mode is entered from a row's long-press menu. */
+    public boolean selectsFromRowMenu() {
+        return navSelect().isEmpty();
+    }
+
+    /** Long-press a Level-2 row and return its context-menu items (menu left open — {@link #dismissMenu()}). */
+    public List<String> openRowMenu(InstanceRow row) {
+        int x = 150 * screenW() / 440, y = row.chipY + 22;
+        try {
+            driver.executeScript("mobile: touchAndHold", java.util.Map.of("x", x, "y", y, "duration", 1.4));
+        } catch (Exception e) {
+            System.out.println("⚠️ openRowMenu: " + e.getMessage());
+            return List.of();
+        }
+        List<String> items = new ArrayList<>();
+        waitUntil(() -> {
+            items.clear();
+            for (SnapNode n : findAll(m -> "Button".equals(m.type) && m.w > 200 && m.w < 300 && m.x > 60 && m.x < 140)) items.add(n.label);
+            return !items.isEmpty();
+        }, 4_000);
+        return items;
+    }
+
+    /** Select mode is reachable: the 1.69 nav 'Select', or (v1.73) 'Select' in a row's long-press menu. */
+    public boolean isSelectEntryOffered() {
+        if (navSelect().isPresent()) return true;
+        List<InstanceRow> rows = instanceRows();
+        if (rows.isEmpty()) return false;
+        List<String> items = openRowMenu(rows.get(0));
+        dismissMenu();
+        return items.contains(SELECT);
+    }
+
+    /**
+     * Enter select mode. 1.69: nav 'Select' (nothing selected). v1.73: first row › long-press › 'Select' — that row
+     * starts SELECTED; {@link #selectedOnEntry()} tells callers which behaviour applies.
+     */
     public boolean enterSelectMode() {
+        Optional<SnapNode> nav = navSelect();
+        if (nav.isPresent()) {
+            tapNode(nav.get());
+            return waitUntil(this::isSelectMode, 5_000);
+        }
+        List<InstanceRow> rows = instanceRows();
+        if (rows.isEmpty()) return false;
+        if (!openRowMenu(rows.get(0)).contains(SELECT)) { dismissMenu(); return false; }
         if (!pressButton(SELECT)) return false;
         return waitUntil(this::isSelectMode, 5_000);
     }
 
-    public boolean isSelectMode() {
-        return find(n -> "Button".equals(n.type) && n.is("All") && n.y < 120).isPresent()
-                && find(n -> "Button".equals(n.type) && n.is("Done") && n.y < 120).isPresent();
+    /**
+     * Enter select mode ON a given row: v1.73 long-presses exactly that row (so the pre-selected row is the caller's
+     * own); 1.69 enters via the nav button and selects it. Destructive flows (Delete) must start here, never from
+     * {@link #enterSelectMode()}, whose v1.73 pre-selection is whatever row happens to be first.
+     */
+    public boolean enterSelectModeOn(InstanceRow row) {
+        if (navSelect().isPresent()) return enterSelectMode() && ensureSelected(row);
+        if (!openRowMenu(row).contains(SELECT)) { dismissMenu(); return false; }
+        if (!pressButton(SELECT)) return false;
+        return waitUntil(this::isSelectMode, 5_000) && isRowSelected(row);
     }
 
-    /** Select mode's 'All' (top-left). */
+    /**
+     * v1.73 single delete: row long-press › 'Delete' (+ the confirmation, if one is raised). True once the list has
+     * one row fewer. Used by test cleanup only, on rows the test itself created.
+     */
+    public boolean deleteInstanceRow(InstanceRow row) {
+        int before = instanceRows().size();
+        if (!openRowMenu(row).contains("Delete")) { dismissMenu(); return false; }
+        withAlertsManual(() -> {
+            pressButton("Delete");
+            if (waitUntil(() -> find(n -> "Alert".equals(n.type)).isPresent(), 2_500)) {
+                SnapNode a = find(n -> "Alert".equals(n.type)).get();
+                find(n -> "Button".equals(n.type) && n.is("Delete") && n.y > a.y + 40).ifPresent(this::tapNode);
+            }
+        });
+        return waitUntil(() -> instanceRows().size() == before - 1 || (before == 1 && isNoFormsShown()), 8_000);
+    }
+
+    /** Level 2 → Level 1 (the nav back button), true once form-type rows show. */
+    public boolean backToFormTypes() {
+        for (int i = 0; i < 3 && formTypeRows().isEmpty(); i++) {
+            Optional<SnapNode> back = find(n -> "Button".equals(n.type) && (n.is("BackButton") || n.name.equals("BackButton")) && n.y < 140);
+            if (back.isEmpty()) break;
+            tapNode(back.get());
+            sleep(1200);
+        }
+        return !formTypeRows().isEmpty();
+    }
+
+    /** '<N> Selected' on the v1.73 bar; −1 when not shown. */
+    public int selectedCount() {
+        return find(n -> "StaticText".equals(n.type) && n.label.matches("^\\d+ Selected$"))
+                .map(n -> Integer.parseInt(n.label.replaceAll("\\D+", ""))).orElse(-1);
+    }
+
+    /** Rows selected the moment select mode opens: 0 on 1.69, 1 (the long-pressed row) on v1.73. */
+    public int selectedOnEntry() {
+        return selectsFromRowMenu() ? 1 : 0;
+    }
+
+    private Optional<SnapNode> bottomBar(String label) {
+        return find(n -> "Button".equals(n.type) && n.is(label) && n.y > by(700));
+    }
+
+    public boolean isSelectMode() {
+        boolean v169 = find(n -> "Button".equals(n.type) && n.is("All") && n.y < 120).isPresent()
+                && find(n -> "Button".equals(n.type) && n.is("Done") && n.y < 120).isPresent();
+        return v169 || find(n -> "StaticText".equals(n.type) && n.label.matches("^\\d+ Selected$")).isPresent()
+                || bottomBar("Select All").isPresent();
+    }
+
+    /** Select mode's 'All' (1.69, top-left) / 'Select All' (v1.73, bottom bar). */
     public boolean selectAll() {
         Optional<SnapNode> all = find(n -> "Button".equals(n.type) && n.is("All") && n.y < 120);
+        if (all.isEmpty()) all = bottomBar("Select All");
         all.ifPresent(this::tapNode);
         if (all.isPresent()) sleep(800);
         return all.isPresent();
     }
 
+    /** Leave select mode: 1.69 'Done' (top) / v1.73 'Cancel' (bottom bar). */
     public boolean exitSelectMode() {
         Optional<SnapNode> done = find(n -> "Button".equals(n.type) && n.is("Done") && n.y < 120);
+        if (done.isEmpty()) done = bottomBar("Cancel");
         done.ifPresent(this::tapNode);
-        return waitUntil(() -> labelled("Button", SELECT).isPresent(), 5_000);
+        return waitUntil(() -> !isSelectMode(), 5_000);
     }
 
-    /** Selection circles on screen: [selected, unselected]. */
+    /** Selection circles on screen: [selected, unselected]. 1.69 Images 'Selected'/'circle'; v1.73 Buttons 'Select'. */
     public int[] selectionCircles() {
         int on = 0, off = 0;
         for (SnapNode n : findAll(x -> "Image".equals(x.type) && x.x < 45 && x.y > 140)) {
             if (n.is("Selected")) on++; else if (n.is("circle")) off++;
         }
+        for (SnapNode n : findAll(x -> "Button".equals(x.type) && x.is(SELECT) && x.x < 50 && x.w < 60 && x.y > 140 && x.y < by(760))) {
+            if (isCircleOn(n)) on++; else off++;
+        }
         return new int[]{on, off};
     }
 
-    /** Toggle a row's selection circle (rows are located by their status chip). */
+    private static boolean isCircleOn(SnapNode n) {
+        return "1".equals(n.value) || n.name.contains("checkmark");
+    }
+
+    private Optional<SnapNode> circleOf(InstanceRow row) {
+        Optional<SnapNode> c = find(n -> "Button".equals(n.type) && n.is(SELECT) && n.x < 50 && Math.abs(n.y - row.chipY) <= 10);
+        return c.isPresent() ? c : find(n -> "Image".equals(n.type) && n.x < 45 && Math.abs(n.y - row.chipY) <= 10);
+    }
+
+    /** Is this row's circle on? */
+    public boolean isRowSelected(InstanceRow row) {
+        return circleOf(row).map(n -> isCircleOn(n) || n.is("Selected")).orElse(false);
+    }
+
+    /** Toggle a row's selection circle (rows are located by their status chip / row button). */
     public boolean toggleRow(InstanceRow row) {
         int before = selectionCircles()[0];
-        Optional<SnapNode> circle = find(n -> "Image".equals(n.type) && n.x < 45 && Math.abs(n.y - row.chipY) <= 10);
+        Optional<SnapNode> circle = circleOf(row);
         if (circle.isPresent()) tapNode(circle.get()); else tapPoint(31, row.chipY + 10);
         return waitUntil(() -> selectionCircles()[0] != before, 4_000);
     }
 
+    /** Select the row unless it already is (v1.73 pre-selects the long-pressed row). */
+    public boolean ensureSelected(InstanceRow row) {
+        return isRowSelected(row) || toggleRow(row);
+    }
+
     public boolean isSelectionBarShown() {
-        return labelled("Button", "Edit").isPresent() && labelled("Button", MARK_AS).isPresent()
+        return labelled("Button", "Edit").isPresent()
+                && (labelled("Button", MARK_AS).isPresent() || bottomBar("More").isPresent())
                 && find(n -> "Button".equals(n.type) && n.is("Delete") && n.y > 400).isPresent();
     }
 
@@ -256,13 +415,23 @@ public class SessionFormsTabPage extends SnapPage {
         return labelled("Button", "Edit").map(n -> n.enabled).orElse(false);
     }
 
-    /** 'Mark As..' menu items (menu left open — call {@link #dismissMenu()}). */
+    /**
+     * Status menu items, normalised to 'Draft' / 'Submitted' (menu left open — call {@link #dismissMenu()}).
+     * 1.69: bar 'Mark As..' › 'Draft' / 'Submitted'. v1.73: bar 'More' › 'Mark Draft' / 'Mark Submitted'.
+     */
     public List<String> openMarkAsMenu() {
-        if (!pressButton(MARK_AS)) return List.of();
+        if (!pressButton(MARK_AS)) {
+            Optional<SnapNode> more = bottomBar("More");
+            if (more.isEmpty()) return List.of();
+            tapNode(more.get());
+        }
         List<String> items = new ArrayList<>();
         waitUntil(() -> {
             items.clear();
-            for (SnapNode n : findAll(x -> "Button".equals(x.type) && (x.is("Draft") || x.is("Submitted")) && x.w > 200)) items.add(n.label);
+            for (SnapNode n : findAll(x -> "Button".equals(x.type) && x.w > 200
+                    && (x.is("Draft") || x.is("Submitted") || x.is("Mark Draft") || x.is("Mark Submitted")))) {
+                items.add(n.label.replaceFirst("^Mark ", ""));
+            }
             return !items.isEmpty();
         }, 4_000);
         return items;
@@ -354,12 +523,12 @@ public class SessionFormsTabPage extends SnapPage {
         return gone[0];
     }
 
-    /** Tap a Level-2 row (its asset text) to open that single form. */
+    /** Tap a Level-2 row (its asset text; v1.73: the row button) to open that single form. */
     public boolean openInstance(InstanceRow row) {
         Optional<SnapNode> t = find(n -> "StaticText".equals(n.type) && n.is(row.asset) && n.x < 70
                 && n.y >= row.chipY - 16 && n.y <= row.chipY + 3);
-        if (t.isEmpty()) return false;
-        tapNode(t.get());
+        if (t.isPresent()) tapNode(t.get());
+        else tapPoint(150 * screenW() / 440, row.chipY + 22);
         return waitUntil(this::isEditorOpen, 10_000);
     }
 

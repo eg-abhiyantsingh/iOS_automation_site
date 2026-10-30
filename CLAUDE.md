@@ -183,6 +183,20 @@ locators are predicate-heavy (2,944 predicate vs 257 accessibility-id).
   "no sites yet". TC_PM_04 (MKP-LABEL-01) markup label field shows 210 chars while the counter says 200/200.
 - CI: `zp_shards` input (all / zp3914-only / zp3927-3928-only) narrows the ZP matrix.
 
+## Session 2026-10-30 — ZP-3914 completed on app v1.73 (changelog 194)
+- CI app = **v1.73** (`641fb88`). v1.73 broke: site-row long-press 'Edit Site' (› 'Select Office'), dashboard 'Hi, <user>!'
+  greeting read as the site name, iOS 26 bottom search bar (✕ instead of top 'Cancel'), network-menu popover over the
+  toolbar, floating tab bar hiding the last Site Walks row, and the whole WO forms surface: asset menu 'Forms (n)' ›
+  'Select a Form' › 'Add Form' (with exactly ONE form 'Forms (1)' opens it directly → no add path, finding EGF-ADD-01),
+  room rows no longer list forms, Forms tab rows/select mode redesigned (row long-press › Select pre-selects that row).
+  Full contracts: memory `v173-ui-contracts`.
+- "Bulk export" + "Instance tags" (ZP-3840) are NOT in the iOS app — covered by driver-free
+  `ZP3914_FormsBulkExportTags_ApiTest` (10) against the web's backend routes; EG Forms renderer (ZP-3743) covered by
+  TC_EGF_01-03 in `ZP3914_GhostValues_Test`. Ghost tests keep Switch-1 at ≥2 forms via form-coverage + bulk-forms.
+- Never run two simulators + a third booted sim on this Mac Mini: load hit ~60 and the QA-Automation sim's display
+  died mid-run ('SimDisplayScreenshotWriter … Error creating the image'). One automation sim at a time.
+- New Jira bugs need explicit user approval (auto-mode classifier blocks createJiraIssue).
+
 ## How to run
 - Self-tests (no device): `mvn -o -DsuiteXmlFile=testng-verify-selftest.xml test`
 - Exploratory crawl (macOS + live session): `RUN_EXPLORATORY=true mvn -Dtest=ExploratoryCrawlTest test`

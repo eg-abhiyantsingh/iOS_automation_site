@@ -62,14 +62,24 @@ public class PhotoMarkupPage extends SnapPage {
     /** Gallery → PHPicker → first photo; true once 'Review Photo' is up. */
     public boolean pickFirstLibraryPhoto() {
         if (!pressButton("Gallery")) return false;
-        if (!waitUntil(() -> find(n -> n.name.equals("photos_sectioned_layout") || n.label.startsWith("Private Access to Photos")).isPresent(), 12_000)) {
+        // 25 s / three taps: on CI the out-of-process picker can take >12 s to draw its grid the first time, and a tap
+        // on a not-yet-drawn grid is swallowed — TC_PM_01/05 skipped "no photo" while PM_02/03/06 in the same run
+        // picked fine from the same library (run 39602048381).
+        if (!waitUntil(() -> find(n -> n.name.equals("photos_sectioned_layout") || n.label.startsWith("Private Access to Photos")).isPresent(), 25_000)) {
             return false;
         }
-        sleep(1200);
-        Optional<SnapNode> grid = find(n -> "photos_sectioned_layout".equals(n.name));
-        int x = 72, y = grid.map(g -> g.y + 70).orElse(406);
-        tapPoint(x, y);
-        return waitUntil(this::isReviewShown, 12_000);
+        for (int attempt = 1; attempt <= 3; attempt++) {
+            sleep(attempt == 1 ? 1200 : 2500);
+            // A real cell when the snapshot exposes one (label 'Photo, <date>'), else the first-cell position.
+            Optional<SnapNode> cell = find(n -> "Image".equals(n.type) && n.label.startsWith("Photo") && n.y > 150);
+            Optional<SnapNode> grid = find(n -> "photos_sectioned_layout".equals(n.name));
+            if (cell.isPresent()) tapNode(cell.get());
+            else tapPoint(72, grid.map(g -> g.y + 70).orElse(406));
+            if (waitUntil(this::isReviewShown, attempt == 3 ? 12_000 : 8_000)) return true;
+            if (find(n -> "photos_sectioned_layout".equals(n.name)).isEmpty()) return waitUntil(this::isReviewShown, 6_000);
+            System.out.println("🔁 pickFirstLibraryPhoto: the picker is still up after tap " + attempt + " — retrying");
+        }
+        return false;
     }
 
     public boolean isReviewShown() {

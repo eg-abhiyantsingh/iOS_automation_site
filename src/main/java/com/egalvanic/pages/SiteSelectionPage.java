@@ -1113,14 +1113,62 @@ public class SiteSelectionPage extends BasePage {
             org.openqa.selenium.Rectangle r = row.getRect();
             driver.executeScript("mobile: tap", java.util.Map.of("x", r.x + 40, "y", r.y + r.height / 2));
             if (waitForSitePickerDismissed()) return true;
+            if (escapeSiteEditSurfaces()) sleep(800);
             System.out.println("⚠️ site row left-zone press didn't dismiss the picker — retrying at center");
             driver.executeScript("mobile: tap", java.util.Map.of("x", r.x + r.width / 2, "y", r.y + r.height / 2));
-            return waitForSitePickerDismissed();
+            if (waitForSitePickerDismissed()) return true;
+            if (escapeSiteEditSurfaces()) {
+                sleep(800);
+                driver.executeScript("mobile: tap", java.util.Map.of("x", r.x + 40, "y", r.y + r.height / 2));
+                return waitForSitePickerDismissed();
+            }
+            return false;
         } catch (Exception e) {
             System.out.println("⚠️ pressSiteRowVerified: " + e.getMessage());
             try { row.click(); } catch (Exception ignored) { }
             return waitForSitePickerDismissed();
         }
+    }
+
+    /**
+     * v1.73: every site row has a long-press menu with 'Edit Site', and Edit Site's Office row opens a 'Select Office'
+     * sheet. On the first launch after installing v1.73 a busy main thread turned the row tap into a long press and
+     * the next tap opened the editor — the run ended on 'Select Office' with the dashboard never loading (local
+     * TC_EXP_01, 2026-10-30). Back out WITHOUT saving anything: 'Select Office' › Done (keeps the current office),
+     * 'Edit Site' › Cancel, an open context menu → tap the picker title. True when something was dismissed.
+     */
+    public boolean escapeSiteEditSurfaces() {
+        boolean dismissed = false;
+        for (int i = 0; i < 3; i++) {
+            java.util.List<SnapNode> s = snapshot();
+            java.util.function.Predicate<SnapNode> office = n -> n.visible && n.is("Select Office")
+                    && ("StaticText".equals(n.type) || "NavigationBar".equals(n.type)) && n.y < 300;
+            java.util.function.Predicate<SnapNode> editor = n -> n.visible && n.is("Edit Site")
+                    && ("StaticText".equals(n.type) || "NavigationBar".equals(n.type)) && n.y < 200;
+            java.util.function.Predicate<SnapNode> menuItem = n -> n.visible && "Button".equals(n.type) && n.is("Edit Site");
+            java.util.Optional<SnapNode> press = java.util.Optional.empty();
+            String what = null;
+            if (s.stream().anyMatch(office)) {
+                press = s.stream().filter(n -> n.visible && "Button".equals(n.type) && n.is("Done") && n.y < 300).findFirst();
+                what = "'Select Office' › Done";
+            } else if (s.stream().anyMatch(editor)) {
+                press = s.stream().filter(n -> n.visible && "Button".equals(n.type) && n.is("Cancel") && n.y < 200).findFirst();
+                what = "'Edit Site' › Cancel";
+            } else if (s.stream().anyMatch(menuItem)) {
+                press = s.stream().filter(n -> n.visible && n.is("Select Site") && "StaticText".equals(n.type)).findFirst();
+                what = "site context menu › tap outside";
+            }
+            if (what == null) return dismissed;
+            if (press.isEmpty()) {
+                System.out.println("⚠️ escapeSiteEditSurfaces: on " + what + " but the control is not on screen");
+                return dismissed;
+            }
+            System.out.println("↩️ v1.73 site editor surface opened by a mis-registered row tap — " + what);
+            driver.executeScript("mobile: tap", java.util.Map.of("x", press.get().centerX(), "y", press.get().centerY()));
+            dismissed = true;
+            sleep(900);
+        }
+        return dismissed;
     }
 
     /**
@@ -3912,6 +3960,16 @@ public class SiteSelectionPage extends BasePage {
             // v1.36 (changelog 075): exclude the WO (Work Order badge),
             // network / sync / Hi indicators, and other short nav badges that
             // landed at the top of the screen alongside the site name.
+            // v1.73: the header is 'Hi, <user>!' ABOVE 'Welcome to <Site Name>' — the greeting was returned as the
+            // site name and fixture provisioning resolved no SLD (2026-10-30). The 'Welcome to' line is authoritative
+            // whenever it is on screen.
+            for (SnapNode n : snapshot()) {
+                if (n.visible && "StaticText".equals(n.type) && n.y >= 0 && n.y <= 260
+                        && n.text().toLowerCase().startsWith("welcome to ")) {
+                    String site = n.text().substring("welcome to ".length()).trim();
+                    if (site.length() >= 2) return site;
+                }
+            }
             java.util.List<org.openqa.selenium.WebElement> headers = driver.findElements(
                 io.appium.java_client.AppiumBy.iOSNsPredicateString(
                     "type == 'XCUIElementTypeStaticText'"));
@@ -3928,6 +3986,7 @@ public class SiteSelectionPage extends BasePage {
                 // Skip top-bar badges: WO (Work Order), Hi/Hello (greeting),
                 // pure digits (pending-sync count), wifi/network labels.
                 if (lower.equals("wo") || lower.equals("hi") || lower.equals("hello")) continue;
+                if (lower.matches("^(hi|hello|hey),? .*")) continue;   // v1.73 greeting 'Hi, abhiyant!'
                 if (lower.matches("\\d+")) continue;  // sync badge
                 if (lower.contains("wi-fi") || lower.equals("wifi") || lower.equals("offline") ||
                     lower.equals("online")) continue;

@@ -35,7 +35,8 @@ public final class ZP3914_MultiEdit_Test extends ZP3914BaseTest {
         FormTypeRow t = types.stream().max(java.util.Comparator.comparingInt(r -> r.total)).orElse(null);
         skipIfPreconditionMissing(() -> t != null && t.total >= 2, tcId + ": multi-edit needs a form type with ≥2 forms — " + types);
         assertTrue(formsTab.openFormType(t.label), "Open '" + t.label + "'");
-        assertTrue(formsTab.enterSelectMode(), "'" + SessionFormsTabPage.SELECT + "' must switch the list to select mode ('All' + 'Done')");
+        assertTrue(formsTab.enterSelectMode(), "'" + SessionFormsTabPage.SELECT + "' must switch the list to select mode"
+                + " (1.69 nav 'All' + 'Done'; v1.73 row long-press › Select, bar '<N> Selected' · 'Select All' · 'Cancel')");
         return t;
     }
 
@@ -44,7 +45,8 @@ public final class ZP3914_MultiEdit_Test extends ZP3914BaseTest {
         List<InstanceRow> rows = formsTab.instanceRows();
         assertTrue(rows.size() >= n, "Need " + n + " rows to select — got " + rows);
         for (int i = 0; i < n; i++) {
-            assertTrue(formsTab.toggleRow(rows.get(i)), "Tapping the circle of '" + rows.get(i) + "' must select it");
+            // ensureSelected: v1.73 enters select mode with the long-pressed first row already on — toggling it would undo that.
+            assertTrue(formsTab.ensureSelected(rows.get(i)), "Tapping the circle of '" + rows.get(i) + "' must select it");
         }
         return rows.subList(0, n);
     }
@@ -56,14 +58,20 @@ public final class ZP3914_MultiEdit_Test extends ZP3914BaseTest {
         int rows = formsTab.instanceRows().size();
         int[] circles = formsTab.selectionCircles();
         logStep("Circles selected/unselected: " + circles[0] + "/" + circles[1] + " for " + rows + " rows");
-        assertEquals(circles[0], 0, "Nothing is selected on entering select mode");
-        assertEquals(circles[1], rows, "Every visible row gets an empty selection circle");
-        assertFalse(formsTab.isSelectionBarShown() && formsTab.isEditEnabled(), "With nothing selected 'Edit' must not be actionable");
+        int onEntry = formsTab.selectedOnEntry();
+        assertEquals(circles[0], onEntry, onEntry == 0 ? "Nothing is selected on entering select mode"
+                : "v1.73: the long-pressed row is the one selected on entering select mode");
+        assertEquals(circles[0] + circles[1], rows, "Every visible row gets a selection circle");
+        if (onEntry == 0) {
+            assertFalse(formsTab.isSelectionBarShown() && formsTab.isEditEnabled(), "With nothing selected 'Edit' must not be actionable");
+        } else {
+            assertEquals(formsTab.selectedCount(), 1, "The bar counts the pre-selected row ('1 Selected')");
+        }
         selectFirst(2);
         assertEquals(formsTab.selectionCircles()[0], 2, "Two rows must read selected");
         assertTrue(formsTab.isSelectionBarShown(), "A selection shows the bar 'Edit' · '" + SessionFormsTabPage.MARK_AS + "' · 'Delete'");
         assertTrue(formsTab.isEditEnabled(), "'Edit' must be enabled with forms selected");
-        assertTrue(formsTab.exitSelectMode(), "'Done' must leave select mode ('Select' is back)");
+        assertTrue(formsTab.exitSelectMode(), "'Done' (v1.73 'Cancel') must leave select mode");
         assertEquals(formsTab.selectionCircles()[0] + formsTab.selectionCircles()[1], 0, "No circles outside select mode");
         logStepWithScreenshot("TC_ME_01: select mode verified");
     }

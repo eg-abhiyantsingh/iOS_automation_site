@@ -80,7 +80,10 @@ public final class ZP3914_SiteWalkOffline_Test extends ZP3914BaseTest {
         assertTrue(eventually(() -> walks.queueBadge() == 0, 30), "The queue badge must clear after syncing");
         assertTrue(eventually(() -> walkIds().size() > before.size(), 30), "After sync the walk must reach the backend");
         Set<String> fresh = trackNewWalks(before);
-        assertEquals(fresh.size(), 1, "Exactly one walk must arrive — got " + fresh);
+        // 'Sync N records' flushes the WHOLE queue: a walk an earlier test left queued (TC_SWC_02 hit a backend 503
+        // on CI run 39602048381, so its walk stayed local) arrives too. Expect ours plus every row queued before.
+        if (queuedBefore > 0) logStep(queuedBefore + " walk(s) were already queued before this test — they sync too");
+        assertEquals(fresh.size(), queuedBefore + 1, "Our walk plus the " + queuedBefore + " already-queued one(s) must arrive — got " + fresh);
         assertTrue(eventually(() -> queuedRows().size() == queuedBefore, 10),
                 "After sync no row may keep the not-synced icon — rows " + walks.walkRows());
         logStepWithScreenshot("TC_SWO_02: offline queue → sync verified (" + walkRow(fresh.iterator().next()) + ")");

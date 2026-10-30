@@ -2426,7 +2426,11 @@ jobs:
           # Extract bundle ID from built app so soft restart uses correct ID
           BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${{ github.workspace }}/apps/Z Platform-QA.app/Info.plist" 2>/dev/null || echo "com.egalvanic.zplatform-QA")
 
+          # TEST_TIMEOUT_SECONDS=900: on the iPhone 16 Pro / iOS 18.5 runner every snapshot of the Site Walks / Forms
+          # screens costs 5-20 s, so TC_SWW_04/05, TC_SWO_03 and TC_PM_06 passed every assertion and were then cut by
+          # the 360 s default while cleaning up (run 39602048381). Explicit @Test(timeOut) values still win.
           mvn test -ntp -B -DfailIfNoTests=true -DsuiteXmlFile=src/test/resources/parallel/testng-${{ matrix.shard }}.xml \
+            -DTEST_TIMEOUT_SECONDS=900 \
             -DDEVICE_NAME="${{ env.DEVICE_NAME }}" \
             -DPLATFORM_VERSION="${{ env.PLATFORM_VERSION }}" \
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
