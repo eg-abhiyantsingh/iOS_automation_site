@@ -177,7 +177,10 @@ public final class ZP3914_SiteWalkWizard_Test extends ZP3914BaseTest {
         openSiteWalksOrSkip("TC_SWW_07");
         deleteTrackedWalksNow();   // no same-titled walk from an earlier case may remain
         Set<String> before = walkIds();
-        assertNotNull(walks.createUnassignedCountWalk(), "A fresh walk is needed to delete");
+        String created = walks.createUnassignedCountWalk();
+        // An unconfirmed last step can still leave a walk behind (CI run 41080855780 leaked c3653ac7 this way) — track it.
+        if (created == null) trackNewWalks(before);
+        assertNotNull(created, "A fresh walk is needed to delete");
         String title = walks.walkTitle();
         assertTrue(eventually(() -> !walkIdsDiff(before).isEmpty(), 20), "The new walk must reach the backend first");
         Set<String> fresh = trackNewWalks(before);
