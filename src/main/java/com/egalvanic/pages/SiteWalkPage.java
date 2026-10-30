@@ -537,11 +537,26 @@ public class SiteWalkPage extends SnapPage {
      * Returns the picked service, or null when any step failed.
      */
     public String createUnassignedCountWalk() {
-        if (!openWizard() || !chooseAssignLater()) return null;
-        String service = services().keySet().stream().findFirst().orElse(null);
-        if (service == null || !pickService(service)) return null;
-        if (!pressStartWalk() || !chooseCountMode()) return null;
-        return service;
+        // One retry from a clean list: on CI a single slow step (sheet still sliding, tray not drawn) returned null
+        // with no trace (TC_SWW_07, run 41080855780) — now each step says where it stopped.
+        for (int attempt = 1; attempt <= 2; attempt++) {
+            String step = null, service = null;
+            if (!openWizard()) step = "openWizard";
+            else if (!chooseAssignLater()) step = "Assign customer and site later";
+            else if ((service = services().keySet().stream().findFirst().orElse(null)) == null) step = "services list";
+            else if (!pickService(service)) step = "pick service '" + service + "'";
+            else if (!pressStartWalk()) step = "Start Walk";
+            else if (!chooseCountMode()) step = "Count mode";
+            if (step == null) return service;
+            System.out.println("⚠️ createUnassignedCountWalk attempt " + attempt + ": stopped at " + step);
+            if ("Count mode".equals(step)) return null;   // the walk may already exist — a retry could make a second one
+            if (attempt == 1) {
+                if (isModeTrayShown()) cancelModeTray();
+                if (currentStep() > 0) cancelWizard();
+                if (!waitForList(15_000)) return null;
+            }
+        }
+        return null;
     }
 
     // ── walk detail ────────────────────────────────────────────────────────────────────────────────────────

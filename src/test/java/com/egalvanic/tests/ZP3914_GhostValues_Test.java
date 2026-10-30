@@ -112,6 +112,55 @@ public final class ZP3914_GhostValues_Test extends ZP3914BaseTest {
         }
     }
 
+    /**
+     * Backend fallback for a cleanup the UI could not finish (CI run 41080855780: TC_GV_02 hit its time-out, the session
+     * died, two forms leaked). Removes every instance of {@code title} from ASSET in ROOM, in every fixture session, via
+     * the web's bulk-forms 'remove'. Only for titles whose pre-test count on ASSET was 0 — never a fixture form.
+     * Returns how many sessions were cleaned.
+     */
+    private int apiRemoveTitleFromAsset(String title) {
+        com.egalvanic.api.TestDataApi a = api();
+        if (a == null) return 0;
+        int cleaned = 0;
+        try {
+            com.google.gson.JsonObject wos = com.google.gson.JsonParser.parseString(a.listWorkOrdersJson(FIXTURE.fixtureName())).getAsJsonObject();
+            com.google.gson.JsonArray items = wos.get("data").isJsonArray() ? wos.getAsJsonArray("data")
+                    : wos.getAsJsonObject("data").getAsJsonArray("items");
+            for (com.google.gson.JsonElement w : items) {
+                String session = w.getAsJsonObject().get("id").getAsString();
+                java.net.http.HttpResponse<String> r = a.get("/eg-form-instance/by-session/" + session + "/form-coverage?limit=500&offset=0");
+                if (r.statusCode() / 100 != 2) continue;
+                com.google.gson.JsonObject cov = com.google.gson.JsonParser.parseString(r.body()).getAsJsonObject().getAsJsonObject("data");
+                java.util.Map<String, String> titles = new java.util.HashMap<>();
+                for (com.google.gson.JsonElement c : cov.getAsJsonArray("classes")) {
+                    for (com.google.gson.JsonElement f : c.getAsJsonObject().getAsJsonArray("forms")) {
+                        titles.put(f.getAsJsonObject().get("eg_form_id").getAsString(), f.getAsJsonObject().get("title").getAsString());
+                    }
+                }
+                for (com.google.gson.JsonElement e : cov.getAsJsonArray("assets")) {
+                    com.google.gson.JsonObject asset = e.getAsJsonObject();
+                    if (!ASSET.equals(asset.get("label").getAsString()) || !ROOM.equals(asset.get("room_name").getAsString())) continue;
+                    for (String formId : asset.getAsJsonObject("forms").keySet()) {
+                        if (!title.equals(titles.get(formId))) continue;
+                        String body = "{\"node_ids\":[\"" + asset.get("node_id").getAsString() + "\"],\"eg_form_ids\":[\"" + formId
+                                + "\"],\"action\":\"remove\",\"force\":true}";
+                        // One instance per call ('removed': 1, verified 2026-10-30) — repeat until nothing is left.
+                        for (int i = 0; i < 6; i++) {
+                            java.net.http.HttpResponse<String> rm = a.post("/eg-form-instance/by-session/" + session + "/bulk-forms", body);
+                            System.out.println("🧹 backend remove of '" + title + "' from '" + ASSET + "' in session " + session + " → HTTP "
+                                    + rm.statusCode() + " " + rm.body().replaceAll("\\s+", " ").substring(0, Math.min(140, rm.body().replaceAll("\\s+", " ").length())));
+                            if (rm.statusCode() / 100 != 2 || !rm.body().matches("(?s).*\"removed\"\\s*:\\s*[1-9].*")) break;
+                            cleaned++;
+                        }
+                    }
+                }
+            }
+        } catch (RuntimeException e) {
+            System.out.println("⚠️ backend ghost cleanup: " + e.getMessage());
+        }
+        return cleaned;
+    }
+
     /** Asset row menu › Add Form › first catalogue form; returns its title with the editor open (null on failure). */
     private String addForm() {
         List<String> menu = forms.openAssetRowMenu(ASSET);
@@ -137,7 +186,7 @@ public final class ZP3914_GhostValues_Test extends ZP3914BaseTest {
         return title;
     }
 
-    @Test(priority = 1, timeOut = 900_000)
+    @Test(priority = 1, timeOut = 1_500_000)   // CI: 626 s
     public void TC_GV_01_submittedEntryGhostsIntoTheNextInstance() {
         featureTest(FEATURE, "TC_GV_01 - Submit form A with a value; a new form B of the same title shows that value as its ghost placeholder");
         openAssetRoomOrSkip("TC_GV_01");
@@ -169,7 +218,7 @@ public final class ZP3914_GhostValues_Test extends ZP3914BaseTest {
         assertTrue(forms.closeEditForm(), "Close form B without entering anything");
     }
 
-    @Test(priority = 2, timeOut = 900_000)
+    @Test(priority = 2, timeOut = 1_500_000)   // local 879 s; CI hit 900 s (run 41080855780)
     public void TC_GV_02_multiEditExplainsGhostValues() {
         featureTest(FEATURE, "TC_GV_02 - Multi-edit over a form with ghost data shows the blue-italic explanation banner");
         openAssetRoomOrSkip("TC_GV_02");
@@ -364,6 +413,12 @@ public final class ZP3914_GhostValues_Test extends ZP3914BaseTest {
         } catch (Exception e) {
             System.out.println("⚠️ ghost-test cleanup: " + e.getMessage());
         } finally {
+            if (!created.isEmpty()) {
+                System.out.println("⚠️ ghost-test forms left on '" + ASSET + "' after UI cleanup: " + created + " — removing via the backend");
+                for (String title : new java.util.LinkedHashSet<>(created)) {
+                    if (baseline.getOrDefault(title, 0) == 0 && apiRemoveTitleFromAsset(title) > 0) created.removeIf(title::equals);
+                }
+            }
             if (!created.isEmpty()) System.out.println("⚠️ LEAKED ghost-test forms on '" + ASSET + "': " + created);
             created.clear();
         }

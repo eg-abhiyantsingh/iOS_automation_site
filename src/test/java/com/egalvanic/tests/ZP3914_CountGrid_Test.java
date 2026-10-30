@@ -30,7 +30,8 @@ public final class ZP3914_CountGrid_Test extends ZP3914BaseTest {
         openSiteWalksOrSkip(tcId);
         Set<String> before = walkIds();
         assertNotNull(walks.createUnassignedCountWalk(), tcId + ": the wizard must create a Count walk");
-        assertTrue(eventually(() -> walkIds().size() > before.size(), 20), tcId + ": the new walk must reach the backend");
+        // 45 s: on CI one walk took longer than 20 s to post (TC_SWC_06, run 41080855780) while the next case's walk made it.
+        assertTrue(eventually(() -> walkIds().size() > before.size(), 45), tcId + ": the new walk must reach the backend");
         Set<String> fresh = trackNewWalks(before);
         assertEquals(fresh.size(), 1, tcId + ": exactly one new walk expected — got " + fresh);
         walkId = fresh.iterator().next();

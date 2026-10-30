@@ -388,7 +388,9 @@ public class SessionFormsTabPage extends SnapPage {
         for (SnapNode n : findAll(x -> "Image".equals(x.type) && x.x < 45 && x.y > 140)) {
             if (n.is("Selected")) on++; else if (n.is("circle")) off++;
         }
-        for (SnapNode n : findAll(x -> "Button".equals(x.type) && x.is(SELECT) && x.x < 50 && x.w < 60 && x.y > 140 && x.y < by(760))) {
+        // No bottom cap: on CI's 874-pt screen the 9th row sits under the selection bar yet still counts as a listed row
+        // (TC_ME_01/05 'Expected 9, Actual 8', run 41080855780). Bar buttons never carry the 'Select' circle label.
+        for (SnapNode n : findAll(x -> "Button".equals(x.type) && x.is(SELECT) && x.x < 50 && x.w < 60 && x.y > 140)) {
             if (isCircleOn(n)) on++; else off++;
         }
         return new int[]{on, off};

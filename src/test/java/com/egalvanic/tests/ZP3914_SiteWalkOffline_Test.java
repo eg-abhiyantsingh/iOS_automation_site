@@ -84,7 +84,9 @@ public final class ZP3914_SiteWalkOffline_Test extends ZP3914BaseTest {
         // on CI run 39602048381, so its walk stayed local) arrives too. Expect ours plus every row queued before.
         if (queuedBefore > 0) logStep(queuedBefore + " walk(s) were already queued before this test — they sync too");
         assertEquals(fresh.size(), queuedBefore + 1, "Our walk plus the " + queuedBefore + " already-queued one(s) must arrive — got " + fresh);
-        assertTrue(eventually(() -> queuedRows().size() == queuedBefore, 10),
+        // 'Sync N records' flushes the whole queue, older queued walks included — so after it NO row is queued (a
+        // leftover queued before the test made 'back to queuedBefore' impossible, run 41080855780).
+        assertTrue(eventually(() -> queuedRows().isEmpty(), 10),
                 "After sync no row may keep the not-synced icon — rows " + walks.walkRows());
         logStepWithScreenshot("TC_SWO_02: offline queue → sync verified (" + walkRow(fresh.iterator().next()) + ")");
     }
