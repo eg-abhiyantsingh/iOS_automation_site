@@ -128,20 +128,21 @@ public final class ZP3914_FormsTab_Test extends ZP3914BaseTest {
         }
         assertEquals(opts.get("All"), Boolean.TRUE, "Status 'All' is active by default");
         assertEquals(opts.get("All rooms"), Boolean.TRUE, "'All rooms' is active by default");
-        assertFalse(formsTab.isTextVisible(SessionFormsTabPage.CLEAR_FILTERS), "'Clear filters' only appears once a filter is active");
+        assertFalse(formsTab.isClearFiltersOffered(), "'Clear filters' only appears once a filter is active");
         assertTrue(formsTab.chooseFilter("Submitted"), "Choosing 'Submitted' must mark it active");
         assertEquals(formsTab.filterOptions().get("All"), Boolean.FALSE, "Only one status can be active");
         assertTrue(formsTab.closeFilters(), "'Done' closes the sheet");
         List<InstanceRow> sub = formsTab.instanceRows();
         logStep("Submitted filter → " + sub);
         if (t.submitted == 0) {
-            assertTrue(sub.isEmpty() && formsTab.isNoFormsShown(), "With nothing submitted the filter shows '" + SessionFormsTabPage.NO_FORMS + "'");
+            assertTrue(sub.isEmpty() && formsTab.isFilteredEmptyShown(), "With nothing submitted the filter shows '"
+                    + SessionFormsTabPage.NO_FORMS + "' (v1.73: '" + SessionFormsTabPage.NO_MATCHES + "')");
         } else {
             assertFalse(sub.isEmpty(), "The type has " + t.submitted + " submitted form(s) — the filter must show them");
             assertTrue(sub.stream().allMatch(r -> "Submitted".equals(r.status)), "The 'Submitted' filter shows only submitted forms — " + sub);
         }
         assertTrue(formsTab.openFilters(), "Re-open the sheet");
-        assertTrue(formsTab.isTextVisible(SessionFormsTabPage.CLEAR_FILTERS), "With a filter active the sheet offers '" + SessionFormsTabPage.CLEAR_FILTERS + "'");
+        assertTrue(formsTab.isClearFiltersOffered(), "With a filter active '" + SessionFormsTabPage.CLEAR_FILTERS + "' is offered (sheet ≤1.69, inline v1.73)");
         formsTab.resetFiltersFromOpenSheet();
         assertTrue(eventually(() -> formsTab.instanceRows().size() == all, 5),
                 "'Clear filters' must restore all " + all + " rows — got " + formsTab.instanceRows().size());

@@ -181,6 +181,16 @@ public class SessionFormsTabPage extends SnapPage {
     public boolean isNoMatchesShown() { return labelled("StaticText", NO_MATCHES).isPresent(); }
     public boolean isNoFormsShown()   { return labelled("StaticText", NO_FORMS).isPresent(); }
 
+    /** Empty list under an active filter: 1.69 'No forms'; v1.73 'No matches' + an inline 'Clear Filters' button. */
+    public boolean isFilteredEmptyShown() { return isNoFormsShown() || isNoMatchesShown(); }
+
+    /** 'Clear filters' (1.69, in the sheet) / 'Clear Filters' (v1.73, inline under 'No matches'), any case. */
+    private Optional<SnapNode> clearFiltersControl() {
+        return find(n -> ("Button".equals(n.type) || "StaticText".equals(n.type)) && n.text().equalsIgnoreCase(CLEAR_FILTERS));
+    }
+
+    public boolean isClearFiltersOffered() { return clearFiltersControl().isPresent(); }
+
     // ── filter sheet ───────────────────────────────────────────────────────────────────────────────────────
 
     public boolean openFilters() {
@@ -223,11 +233,17 @@ public class SessionFormsTabPage extends SnapPage {
         closeFilters();
     }
 
-    /** With the filter sheet already open: 'Clear filters', then close it. */
+    /** With the filter sheet already open: 'Clear filters', then close it (v1.73: the inline 'Clear Filters' if the sheet has none). */
     public void resetFiltersFromOpenSheet() {
-        pressButton(CLEAR_FILTERS);
+        Optional<SnapNode> inSheet = find(n -> "Button".equals(n.type) && n.text().equalsIgnoreCase(CLEAR_FILTERS)
+                && find(b -> "NavigationBar".equals(b.type) && b.is(FILTERS_TITLE)).map(b -> n.y > b.y).orElse(false));
+        inSheet.ifPresent(this::tapNode);
         sleep(800);
         closeFilters();
+        if (inSheet.isEmpty()) {
+            clearFiltersControl().ifPresent(this::tapNode);
+            sleep(800);
+        }
     }
 
     // ── select mode / multi-edit ───────────────────────────────────────────────────────────────────────────

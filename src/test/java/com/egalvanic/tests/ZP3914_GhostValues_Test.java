@@ -283,9 +283,12 @@ public final class ZP3914_GhostValues_Test extends ZP3914BaseTest {
         List<String> entries = forms.openSectionsDrawer();
         assertFalse(entries.isEmpty(), "'Sections' must open an index of the form's sections");
         logStep("Sections index: " + entries);
+        assertEquals(entries.get(0), "Full Form", "The index starts with 'Full Form'");
+        skipIfPreconditionMissing(() -> entries.size() >= 2, "TC_EGF_03: the form has no named section to jump to — " + entries);
         String target = entries.get(entries.size() - 1);   // the last section: the one furthest from the top
         int h = DriverManager.getDriver().manage().window().getSize().getHeight();
         assertTrue(forms.pressText(target), "Choose '" + target + "' in the index");
+        assertTrue(eventually(() -> !forms.visibleButtons().stream().anyMatch(n -> n.is("Full Form")), 6), "Choosing a section closes the index");
         assertTrue(eventually(() -> { int y = forms.textY(target); return y > 80 && y < h - 200; }, 6),
                 "The form scrolls '" + target + "' into view (y " + forms.textY(target) + ")");
         logStepWithScreenshot("TC_EGF_03: jumped to '" + target + "'");

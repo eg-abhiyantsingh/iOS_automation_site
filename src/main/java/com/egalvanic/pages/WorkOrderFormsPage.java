@@ -1283,32 +1283,34 @@ public class WorkOrderFormsPage extends BasePage {
     }
 
     /**
-     * Press 'Sections' and return the entries the index drawer brought on screen (texts that were not visible
-     * before, minus the footer itself). Empty when nothing new appeared.
+     * Press 'Sections' and return the index drawer's entries, top to bottom ('Full Form' first, then the sections).
+     * The drawer is a left column (x≈8, ≈264 pt wide, live v1.73 probe 2026-10-30) — read by position, not by diffing
+     * texts: a section whose title is already on screen (the form title) would otherwise be missed (TC_EGF_03).
      */
     public List<String> openSectionsDrawer() {
-        java.util.Set<String> before = visibleTexts();
         if (!pressVisibleButton(SECTIONS)) return List.of();
-        List<String> added = new ArrayList<>();
+        List<String> entries = new ArrayList<>();
         com.egalvanic.utils.Waits.until(() -> {
-            added.clear();
-            for (String t : visibleTexts()) if (!before.contains(t)) added.add(t);
-            return !added.isEmpty();
+            entries.clear();
+            snapshot().stream().filter(n -> n.visible && "Button".equals(n.type) && n.x < 30 && n.w > 200 && n.w < 320
+                            && n.y > 100 && !n.text().isEmpty())
+                    .sorted(java.util.Comparator.comparingInt(n -> n.y)).forEach(n -> entries.add(n.text()));
+            return !entries.isEmpty();
         }, 6_000, 500);
-        System.out.println("📑 Sections drawer entries: " + added);
-        return added;
+        System.out.println("📑 Sections drawer entries: " + entries);
+        return entries;
     }
 
-    /** Y of the first visible StaticText reading exactly {@code text} (−1 when not on screen). */
+    /** Y of the first visible StaticText / section-header Button reading exactly {@code text} (−1 when not on screen). */
     public int textY(String text) {
-        return snapshot().stream().filter(n -> n.visible && "StaticText".equals(n.type) && n.is(text))
+        return snapshot().stream().filter(n -> n.visible && n.is(text) && ("StaticText".equals(n.type) || "Button".equals(n.type)))
                 .mapToInt(n -> n.y).min().orElse(-1);
     }
 
     /** Press a drawer entry (Button or StaticText) by its exact text. */
     public boolean pressText(String text) {
         SnapNode t = snapshot().stream().filter(n -> n.visible && n.is(text) && ("Button".equals(n.type) || "StaticText".equals(n.type)))
-                .max(java.util.Comparator.comparingInt(n -> "Button".equals(n.type) ? 1 : 0)).orElse(null);
+                .max(java.util.Comparator.comparingInt(n -> !"Button".equals(n.type) ? 0 : (n.x < 30 && n.w < 320) ? 2 : 1)).orElse(null);   // drawer entry first
         if (t == null) return false;
         driver.executeScript("mobile: tap", Map.of("x", t.centerX(), "y", t.centerY()));
         return true;
