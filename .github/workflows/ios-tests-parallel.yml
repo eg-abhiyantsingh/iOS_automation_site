@@ -85,6 +85,8 @@ on:
         options:
           - 'all'
           - 'zp3914-only'
+          - 'zp3914-am-only'
+          - 'zp3914-forms-only'
           - 'zp3927-3928-only'
       run_connections_location:
         description: 'Connections + Location'
@@ -2321,7 +2323,7 @@ jobs:
       fail-fast: false
       matrix:
         # zp_shards narrows the matrix (empty on non-dispatch events → all five).
-        shard: ${{ fromJSON(inputs.zp_shards == 'zp3914-only' && '["zp3914-am","zp3914-forms"]' || (inputs.zp_shards == 'zp3927-3928-only' && '["zp3927","zp3928","zp3928-forms"]' || '["zp3927","zp3928","zp3928-forms","zp3914-am","zp3914-forms"]')) }}
+        shard: ${{ fromJSON(inputs.zp_shards == 'zp3914-only' && '["zp3914-am","zp3914-forms"]' || (inputs.zp_shards == 'zp3914-am-only' && '["zp3914-am"]' || (inputs.zp_shards == 'zp3914-forms-only' && '["zp3914-forms"]' || (inputs.zp_shards == 'zp3927-3928-only' && '["zp3927","zp3928","zp3928-forms"]' || '["zp3927","zp3928","zp3928-forms","zp3914-am","zp3914-forms"]')))) }}
 
     steps:
       - name: Checkout code

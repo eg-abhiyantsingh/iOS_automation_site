@@ -1259,17 +1259,28 @@ public class WorkOrderFormsPage extends BasePage {
 
     /** Tap the first text field of the open form (raises the keyboard; types nothing). */
     public boolean focusFirstTextField() {
+        int w = driver.manage().window().getSize().getWidth();
         SnapNode f = null;
+        int tapX = 0;
         for (int i = 0; i < 4 && f == null; i++) {   // procedure steps can push the first field below the fold
-            f = snapshot().stream().filter(n -> n.visible && "TextField".equals(n.type) && n.y > 150 && n.y < 760)
+            List<SnapNode> nodes = snapshot();
+            f = nodes.stream().filter(n -> n.visible && "TextField".equals(n.type) && n.y > 150 && n.y < 760)
                     .min(java.util.Comparator.comparingInt(n -> n.y)).orElse(null);
-            if (f == null) {
-                try { driver.executeScript("mobile: swipe", Map.of("direction", "up")); } catch (Exception ignored) { }
-                sleep(1000);
-            }
+            if (f != null) { tapX = f.centerX(); break; }
+            // The procedure table's 'Value / Notes' column is fixed-width and clipped at the card's right edge: at
+            // 440 pt (iPhone 17 Pro Max) its field is x 324-449 and reads visible; at 402 pt (CI iPhone 16 Pro) only a
+            // strip shows and XCUITest reports it NOT visible (TC_EGF_02, run 41108150037). The table does not
+            // scroll sideways (a horizontal drag moved nothing, live probe 2026-10-31), so tap the on-screen strip.
+            // Right-clipped only: the bleed-through 'Search assets...' field of the room behind is fully on screen.
+            f = nodes.stream().filter(n -> !n.visible && "TextField".equals(n.type) && n.y > 150 && n.y < 760
+                            && n.x > w / 2 && n.x < w - 40 && n.x + n.w > w - 16 && !n.value.startsWith("Search"))
+                    .min(java.util.Comparator.comparingInt(n -> n.y)).orElse(null);
+            if (f != null) { tapX = (f.x + w - 16) / 2; break; }
+            try { driver.executeScript("mobile: swipe", Map.of("direction", "up")); } catch (Exception ignored) { }
+            sleep(1000);
         }
         if (f == null) return false;
-        driver.executeScript("mobile: tap", Map.of("x", f.centerX(), "y", f.centerY()));
+        driver.executeScript("mobile: tap", Map.of("x", tapX, "y", f.centerY()));
         return com.egalvanic.utils.Waits.until(() -> keyboardTop() < Integer.MAX_VALUE, 5_000, 400);
     }
 

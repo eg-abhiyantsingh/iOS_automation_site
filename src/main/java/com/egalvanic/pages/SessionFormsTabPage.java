@@ -531,12 +531,17 @@ public class SessionFormsTabPage extends SnapPage {
         final boolean[] gone = {false};
         withAlertsManual(() -> {
             dismissKeyboard();
-            Optional<SnapNode> close = find(n -> "Button".equals(n.type) && n.is("Close") && n.y < 110);
-            if (close.isEmpty()) return;
-            tapNode(close.get());
-            sleep(1200);
-            if (discardIfAsked) pressButton("Discard Changes");
-            gone[0] = waitUntil(() -> !isEditorOpen(), 8_000);
+            // Two presses at most: on CI (iPhone 16 Pro, iOS 18.5) the first 'Close' tap on the 2-form editor was
+            // swallowed — the editor was still open, with no dialog, 8 s later (TC_ME_02, run 41108150037).
+            for (int attempt = 0; attempt < 2 && !gone[0]; attempt++) {
+                Optional<SnapNode> close = find(n -> "Button".equals(n.type) && n.is("Close") && n.y < 110);
+                if (close.isEmpty()) return;
+                tapNode(close.get());
+                sleep(1200);
+                if (discardIfAsked) pressButton("Discard Changes");
+                gone[0] = waitUntil(() -> !isEditorOpen(), 8_000);
+                if (!discardIfAsked && isTextVisible("Keep Editing")) return;   // the caller handles the dialog
+            }
         });
         return gone[0];
     }
