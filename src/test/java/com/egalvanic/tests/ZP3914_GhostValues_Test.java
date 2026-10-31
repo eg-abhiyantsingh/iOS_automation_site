@@ -178,10 +178,14 @@ public final class ZP3914_GhostValues_Test extends ZP3914BaseTest {
         }
         // 1.69: menu 'Add Form'; v1.73: 'Forms (n)' › 'Select a Form' › 'Add Form' — both end on 'Add Procedure'.
         if (!forms.pressAddForm(menu)) return null;
+        forms.lastPressedFormTitle = null;
         String title = forms.chooseFirstAddableForm();
-        if (title != null) {
-            baseline.putIfAbsent(title, forms.lastCountOf(title));
-            created.add(title);
+        // Track what was PRESSED, not what opened: a form whose editor was slow to show still exists and leaked
+        // when only the opened title was tracked (local TC_GV_01, 2026-10-31 — removed via bulk-forms).
+        String pressed = forms.lastPressedFormTitle;
+        if (pressed != null) {
+            baseline.putIfAbsent(pressed, forms.lastCountOf(pressed));
+            created.add(pressed);
         }
         return title;
     }

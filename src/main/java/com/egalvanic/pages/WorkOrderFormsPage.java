@@ -1249,10 +1249,16 @@ public class WorkOrderFormsPage extends BasePage {
         String title = option.contains(", Applies to:") ? option.substring(0, option.indexOf(", Applies to:")) : option;
         System.out.println("➕ adding form '" + title + "'");
         if (!pressVisibleButton(option)) return null;
-        // 20 s: on CI (iPhone 16 Pro, iOS 18.5) the editor took ~29 s from the option press — it WAS open in the
-        // failure shot while the 10 s wait had already given up (TC_GV_01, run 39602048381).
-        return com.egalvanic.utils.Waits.until(this::isEditFormOpen, 20_000, 600) ? title : null;
+        lastPressedFormTitle = title;   // the instance exists from here on, whether or not the editor shows in time
+        // 40 s: the editor took ~29 s on CI (run 39602048381) and was open in the failure shot of a loaded local
+        // simulator after the 20 s wait had given up (TC_GV_01, 2026-10-31) — that form leaked, see lastPressedFormTitle.
+        boolean open = com.egalvanic.utils.Waits.until(this::isEditFormOpen, 40_000, 600);
+        if (!open) System.out.println("⚠️ '" + title + "' was added but 'Edit Form' did not show within 40 s");
+        return open ? title : null;
     }
+
+    /** Title of the last form {@link #chooseFirstAddableForm} pressed (= created), even when its editor never showed. */
+    public String lastPressedFormTitle;
 
     // ── EG form renderer (ZP-3743, shipped in iOS 1.59): 'Close' top-left, a fixed footer 'Sections' · 'Save' ·
     //    'Submit', a left index drawer behind 'Sections', and no Delete inside the open form ──────────────────────
@@ -1389,8 +1395,20 @@ public class WorkOrderFormsPage extends BasePage {
      */
     public String fillFirstField(String value) {
         try {
-            List<WebElement> fields = withImplicitWait(0, () -> driver.findElements(AppiumBy.iOSNsPredicateString(
-                    "visible == 1 AND (type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeTextView') AND rect.y > 150 AND rect.y < 760")));
+            List<WebElement> fields = List.of();
+            // The lookup itself timed out once on a loaded simulator (TimeoutException, local TC_GV_01 2026-10-31) —
+            // retry it once; nothing has been typed yet, so a retry cannot double the value.
+            for (int attempt = 1; attempt <= 2; attempt++) {
+                try {
+                    fields = withImplicitWait(0, () -> driver.findElements(AppiumBy.iOSNsPredicateString(
+                            "visible == 1 AND (type == 'XCUIElementTypeTextField' OR type == 'XCUIElementTypeTextView') AND rect.y > 150 AND rect.y < 760")));
+                    break;
+                } catch (Exception lookup) {
+                    if (attempt == 2) throw lookup;
+                    System.out.println("🔁 fillFirstField: field lookup failed (" + lookup + ") — retrying once");
+                    sleep(2000);
+                }
+            }
             if (!fields.isEmpty()) {
                 WebElement f = fields.get(0);
                 pressCenter(f);
