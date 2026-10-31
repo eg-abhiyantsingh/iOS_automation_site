@@ -164,22 +164,29 @@ public class ExperiencePage extends SnapPage {
      */
     public boolean logoutFromSettings() {
         if (!openSettingsRoot()) return false;
-        for (int i = 0; i < 6 && labelled("Button", "Logout").isEmpty(); i++) {
-            swipeScreen("up");
-            sleep(500);
-        }
+        scrollLogoutClearOfTabBar();
         if (labelled("Button", "Logout").isEmpty()) {
             System.out.println("🔁 logoutFromSettings: no 'Logout' row — tabs " + tabBarLabels() + ", selected '" + selectedTab()
                     + "' — pressing the Settings tab and looking again");
             if (openTab("Settings")) sleep(1500);
-            for (int i = 0; i < 6 && labelled("Button", "Logout").isEmpty(); i++) {
-                swipeScreen("up");
-                sleep(500);
-            }
+            scrollLogoutClearOfTabBar();
         }
         final boolean[] pressed = {false};
         withAlertsManual(() -> {
-            if (!pressSettledButton("Logout")) return;
+            Optional<SnapNode> logout = settled(n -> "Button".equals(n.type) && n.is("Logout"));
+            if (logout.isEmpty()) return;
+            // Never the row's centre while the tab bar covers it: a full-width row's centre (x 201 at 402 pt) is the
+            // 'Connections' tab. CI runs 41131914013 and 41188709540 ended on Connections with Settings selected
+            // just before — the Logout press was the only tap.
+            SnapNode b = logout.get();
+            int barTop = tabBarTop(snapshot());
+            int y = Math.min(b.centerY(), barTop - 8);
+            if (y <= b.y) {
+                System.out.println("⚠️ logoutFromSettings: 'Logout' (y " + b.y + "-" + (b.y + b.h) + ") is under the tab bar (top "
+                        + barTop + ") — not pressing");
+                return;
+            }
+            tapPoint(b.centerX(), y);
             pressed[0] = true;
             sleep(1200);
             Optional<SnapNode> alert = find(n -> "Alert".equals(n.type) || "Sheet".equals(n.type));
@@ -191,6 +198,25 @@ public class ExperiencePage extends SnapPage {
             }
         });
         return pressed[0] && waitUntil(() -> tabBarLabels().isEmpty(), 20_000);
+    }
+
+    /**
+     * Swipe up until 'Logout' has its whole frame above the tab bar. A row resting under the bar still reads visible,
+     * and sleep() does not wait, so a read right after a swipe can catch the row mid-scroll — that only costs one more
+     * swipe here (the list clamps at its bottom, where the last row clears the bar).
+     */
+    private void scrollLogoutClearOfTabBar() {
+        for (int i = 0; i < 6; i++) {
+            List<SnapNode> s = snapshot();
+            int barTop = tabBarTop(s);
+            if (s.stream().anyMatch(n -> n.visible && "Button".equals(n.type) && n.is("Logout") && n.y + n.h <= barTop)) return;
+            swipeScreen("up");
+        }
+    }
+
+    /** Top of the visible tab bar in {@code s}; Integer.MAX_VALUE when none (or the read failed). */
+    private static int tabBarTop(List<SnapNode> s) {
+        return s.stream().filter(n -> n.visible && "TabBar".equals(n.type)).mapToInt(n -> n.y).min().orElse(Integer.MAX_VALUE);
     }
 
     /** Back from a Settings-pushed chooser without changing anything. */

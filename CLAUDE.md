@@ -204,6 +204,8 @@ locators are predicate-heavy (2,944 predicate vs 257 accessibility-id).
 - **Never tap a clipped element's centre.** TC_EGF_02's 'Value / Notes' field (x 324-449, visible=true) has its centre
   ON the card's clipped edge at 402 pt (CI width) — 3 CI skips. Tap the middle of the on-screen part
   (`WorkOrderFormsPage.onScreenCenterX`). Reproduce CI geometry locally on the 402 pt "iPhone 17" sim (3B120A1F).
+  Same for rows under the tab bar: they read visible, and a full-width row's centre (x 201) IS the 'Connections' tab —
+  TC_TOU_03's Logout press landed there twice on CI (`ExperiencePage.scrollLogoutClearOfTabBar` + clamped tap).
 
 ## How to run
 - Self-tests (no device): `mvn -o -DsuiteXmlFile=testng-verify-selftest.xml test`

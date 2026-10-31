@@ -209,6 +209,27 @@ Validated driver-free against the live backend with a scratch probe calling the 
 unsynced BCR was removed after 91 s (`removed: 1`), the fixture CTT form (baseline 1) and a title without a baseline
 were left alone (the latter returned in under 5 s), and Switch-1 ended at its 2 baseline form ids with 0 BCR.
 
+**Confirmation run 41188709540** (commit 817143e, with 00c4dd2): **31/35**. TC_PM_04 (product) and TC_BX_04 (data) as
+before. The new ghost teardown ran on CI: both ghost tests' deletes reached the backend inside the 90 s wait, so no
+backend removal was needed and nothing leaked. Two other results:
+
+- TC_EGF_02 SKIP, launch stall. After the soft restart the app sat on a screen detection could not name for 4 min
+  (each detection read took ~74 s), through the test's own login retry. It never reached the form, so it says
+  nothing about the field-tap fix (which passed on 41170046135); TC_EGF_03 passed straight after. CI environment.
+- TC_TOU_03 FAIL "Settings › Logout must sign out", ending on the Connections tab — the same symptom as run
+  41131914013. openSettingsRoot printed no "tab bar shows … selected" line, so Settings WAS selected; swipes do not
+  change tabs and no alert came up, so the only tap, the Logout press, landed on the Connections tab button
+  (x 154-248, top 791 at 402 pt). A full-width row's centre is x 201: Logout was resting under the tab bar, where
+  it still reads visible. `BasePage.sleep()` does not wait either, so the read after each swipe can catch the row
+  mid-scroll. On iOS 26.2 the swipes left Logout at y 721-771, clear of the bar, so the exact CI rest position does
+  not reproduce locally (iOS 18.5 lays the list out differently). Fix: `logoutFromSettings` swipes until Logout's
+  whole frame is above the tab bar, then presses the settled row with the tap clamped above the bar, and never
+  presses when no part of the row clears it. Same rule as TC_EGF_02: never tap a clipped element's centre.
+  Local run on the 402 pt iPhone 17: "Settings › Logout must sign out" PASSED, then the sign-in chooser and all three
+  consent assertions passed. WDA died right after ("Error communicating with the remote browser", load ~39 — the
+  known local crash), so the link and re-login steps ran out the 600 s timeout. The changed step is validated
+  locally; the full test is left to the next CI run.
+
 ## 6. Product defects
 
 All three reproduce on v1.73. They are NOT filed yet: creating Jira issues needs the user's go-ahead (the
