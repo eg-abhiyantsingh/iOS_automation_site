@@ -186,6 +186,29 @@ load-average-25 crash also seen in the first attempt). One Bolted Connections Re
 (248f18ed, created 01:56 UTC by a local TC_GV_01 run before e335c61) was removed through bulk-forms; Switch-1 is back
 to its 2 baseline forms.
 
+**Forms run 41170046135** (commit fde4dbd; 00c4dd2 came after it): **33/35. TC_EGF_02 PASSES on CI** (iPhone 16
+Pro, 402 pt, 201 s; the first tap raised the keyboard, so no "no keyboard" diagnostics printed). The only fail is the
+product defect TC_PM_04, plus the TC_BX_04 data skip. The Summary job's test gate is red on TC_PM_04 alone; it is not
+quarantined because `failed-suites/quarantine.txt` requires a filed bug.
+
+**Cleanup leak found after that run.** Switch-1 held two live Bolted Connections Resistance instances (bcff8752,
+eb2225ca) from TC_GV_02. Its cleanup is the Forms tab multi-select 'Delete 2 forms?': the list emptied, the
+assertion passed and the app read 'Forms (2)' for the rest of the run, but neither instance was ever modified on the
+backend, and at 08:21 UTC the fixture site row read 'Wild Goose Brewery … 2 pending' (no 'pending' at 05:07).
+TC_GV_01's per-row deletes in the same run did reach the backend. Reproduced locally on the 402 pt iPhone 17 (iOS
+26.2) using those two leaked instances: Forms tab › BCR › long-press › Select › both › Delete → the backend showed 0
+instances within 67 s and stayed at 0. So the multi-select delete syncs locally and this was seen once on CI only;
+it is NOT reported as a product defect.
+
+The test-side gap was real: once the UI showed the forms gone, `created` was cleared and teardown never asked the
+backend. Fix: every added title is kept in `addedTitles`; teardown (`confirmGoneOnBackend`) waits up to 90 s for the
+backend to drop each title that ASSET did not hold before (baseline 0), then removes what is left through bulk-forms
+and logs how long it waited. A title with a non-zero or unrecorded baseline is never touched. `BaseTest.sleep()`
+returns at once (WebDriverWait `until(d -> true)`), so the poll uses `Waits.until(…, 90 s, 10 s)`.
+Validated driver-free against the live backend with a scratch probe calling the teardown by reflection: a seeded,
+unsynced BCR was removed after 91 s (`removed: 1`), the fixture CTT form (baseline 1) and a title without a baseline
+were left alone (the latter returned in under 5 s), and Switch-1 ended at its 2 baseline form ids with 0 BCR.
+
 ## 6. Product defects
 
 All three reproduce on v1.73. They are NOT filed yet: creating Jira issues needs the user's go-ahead (the

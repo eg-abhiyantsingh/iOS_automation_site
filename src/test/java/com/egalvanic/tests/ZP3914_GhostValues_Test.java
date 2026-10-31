@@ -38,6 +38,8 @@ public final class ZP3914_GhostValues_Test extends ZP3914BaseTest {
     private final List<String> created = new ArrayList<>();
     /** Per title: instances on ASSET before this class first added one (v1.73 'Select a Form' read) — cleanup floor. */
     private final java.util.Map<String, Integer> baseline = new java.util.HashMap<>();
+    /** Every title this test added — kept after a UI delete clears {@link #created}, for the backend check in teardown. */
+    private final java.util.Set<String> addedTitles = new java.util.LinkedHashSet<>();
 
     @BeforeMethod(alwaysRun = true)
     public void initForms() {
@@ -123,6 +125,32 @@ public final class ZP3914_GhostValues_Test extends ZP3914BaseTest {
         if (a == null) return 0;
         int cleaned = 0;
         try {
+            for (String[] f : backendFormsOnAsset(title)) {
+                String body = "{\"node_ids\":[\"" + f[1] + "\"],\"eg_form_ids\":[\"" + f[2] + "\"],\"action\":\"remove\",\"force\":true}";
+                // One instance per call ('removed': 1, verified 2026-10-30) — repeat until nothing is left.
+                for (int i = 0; i < 6; i++) {
+                    java.net.http.HttpResponse<String> rm = a.post("/eg-form-instance/by-session/" + f[0] + "/bulk-forms", body);
+                    System.out.println("🧹 backend remove of '" + title + "' from '" + ASSET + "' in session " + f[0] + " → HTTP "
+                            + rm.statusCode() + " " + rm.body().replaceAll("\\s+", " ").substring(0, Math.min(140, rm.body().replaceAll("\\s+", " ").length())));
+                    if (rm.statusCode() / 100 != 2 || !rm.body().matches("(?s).*\"removed\"\\s*:\\s*[1-9].*")) break;
+                    cleaned++;
+                }
+            }
+        } catch (RuntimeException e) {
+            System.out.println("⚠️ backend ghost cleanup: " + e.getMessage());
+        }
+        return cleaned;
+    }
+
+    /**
+     * Every fixture session where ASSET in ROOM still holds an instance of {@code title}, as {session id, node id,
+     * eg_form id}. form-coverage keys an asset's forms by form id, so this says present / absent, not how many.
+     */
+    private List<String[]> backendFormsOnAsset(String title) {
+        List<String[]> found = new ArrayList<>();
+        com.egalvanic.api.TestDataApi a = api();
+        if (a == null) return found;
+        try {
             com.google.gson.JsonObject wos = com.google.gson.JsonParser.parseString(a.listWorkOrdersJson(FIXTURE.fixtureName())).getAsJsonObject();
             com.google.gson.JsonArray items = wos.get("data").isJsonArray() ? wos.getAsJsonArray("data")
                     : wos.getAsJsonObject("data").getAsJsonArray("items");
@@ -141,24 +169,14 @@ public final class ZP3914_GhostValues_Test extends ZP3914BaseTest {
                     com.google.gson.JsonObject asset = e.getAsJsonObject();
                     if (!ASSET.equals(asset.get("label").getAsString()) || !ROOM.equals(asset.get("room_name").getAsString())) continue;
                     for (String formId : asset.getAsJsonObject("forms").keySet()) {
-                        if (!title.equals(titles.get(formId))) continue;
-                        String body = "{\"node_ids\":[\"" + asset.get("node_id").getAsString() + "\"],\"eg_form_ids\":[\"" + formId
-                                + "\"],\"action\":\"remove\",\"force\":true}";
-                        // One instance per call ('removed': 1, verified 2026-10-30) — repeat until nothing is left.
-                        for (int i = 0; i < 6; i++) {
-                            java.net.http.HttpResponse<String> rm = a.post("/eg-form-instance/by-session/" + session + "/bulk-forms", body);
-                            System.out.println("🧹 backend remove of '" + title + "' from '" + ASSET + "' in session " + session + " → HTTP "
-                                    + rm.statusCode() + " " + rm.body().replaceAll("\\s+", " ").substring(0, Math.min(140, rm.body().replaceAll("\\s+", " ").length())));
-                            if (rm.statusCode() / 100 != 2 || !rm.body().matches("(?s).*\"removed\"\\s*:\\s*[1-9].*")) break;
-                            cleaned++;
-                        }
+                        if (title.equals(titles.get(formId))) found.add(new String[] {session, asset.get("node_id").getAsString(), formId});
                     }
                 }
             }
         } catch (RuntimeException e) {
-            System.out.println("⚠️ backend ghost cleanup: " + e.getMessage());
+            System.out.println("⚠️ backend ghost lookup: " + e.getMessage());
         }
-        return cleaned;
+        return found;
     }
 
     /** Asset row menu › Add Form › first catalogue form; returns its title with the editor open (null on failure). */
@@ -186,6 +204,7 @@ public final class ZP3914_GhostValues_Test extends ZP3914BaseTest {
         if (pressed != null) {
             baseline.putIfAbsent(pressed, forms.lastCountOf(pressed));
             created.add(pressed);
+            addedTitles.add(pressed);
         }
         return title;
     }
@@ -386,11 +405,40 @@ public final class ZP3914_GhostValues_Test extends ZP3914BaseTest {
         }
     }
 
-    /** Delete every instance this test added (back on the room screen first). */
+    /** Delete every instance this test added, then make sure the backend agrees. */
     @AfterMethod(alwaysRun = true)
     public void deleteCreatedForms(ITestResult result) {
         captureFailureState(result);
-        if (created.isEmpty() || forms == null) return;
+        try {
+            if (!created.isEmpty() && forms != null) deleteCreatedFormsInApp();
+        } finally {
+            confirmGoneOnBackend();
+        }
+    }
+
+    /**
+     * A delete the app shows can still be missing on the server. CI run 41170046135: TC_GV_02's multi-select
+     * 'Delete 2 forms?' emptied the list, yet both instances were still live 90 min later (the site row read
+     * '2 pending'); the same delete reached the backend within a minute on a local iOS 26.2 sim. So every title this
+     * test added that ASSET did not hold before must be gone from it on the backend — wait for the app's sync, then
+     * remove what is left so the next run starts from the fixture baseline.
+     */
+    private void confirmGoneOnBackend() {
+        for (String title : addedTitles) {
+            if (!Integer.valueOf(0).equals(baseline.get(title))) continue;   // never touch a fixture form
+            long start = System.currentTimeMillis();
+            // Waits, not sleep(): BaseTest.sleep() is a WebDriverWait that returns at once.
+            if (!Waits.until(() -> backendFormsOnAsset(title).isEmpty(), 90_000, 10_000)) {
+                System.out.println("⚠️ ghost-test form '" + title + "' still on '" + ASSET + "' on the backend "
+                        + (System.currentTimeMillis() - start) / 1000 + " s after the app deleted it — removing via the backend");
+                apiRemoveTitleFromAsset(title);
+            }
+        }
+        addedTitles.clear();
+    }
+
+    /** Delete every instance this test added through the app (back on the room screen first). */
+    private void deleteCreatedFormsInApp() {
         try {
             if (formsTab.isEditorOpen()) formsTab.closeEditor(true);
             if (forms.isEditFormOpen()) forms.closeEditForm();
