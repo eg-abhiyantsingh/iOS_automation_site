@@ -1276,43 +1276,55 @@ public class WorkOrderFormsPage extends BasePage {
         return snapshot().stream().filter(n -> n.visible && "Keyboard".equals(n.type)).mapToInt(n -> n.y).min().orElse(Integer.MAX_VALUE);
     }
 
-    /** Tap the first text field of the open form (raises the keyboard; types nothing). */
+    /**
+     * Tap the first text field of the open form (raises the keyboard; types nothing).
+     * <p>
+     * The procedure table's 'Value / Notes' column is fixed-width (its field is x 324-449 on every screen) and the
+     * table card is clipped at {@code w - 16}. At 440 pt the field's centre (386) is inside the card; at 402 pt (CI
+     * iPhone 16 Pro, local iPhone 17) the centre IS the clipped edge and a tap there focuses nothing — TC_EGF_02
+     * skipped in CI runs 41108150037, 41131914013 and 41152258265. Live probe 2026-10-31 on a 402 pt iPhone 17: the
+     * field reads visible, a tap at x 386 raises no keyboard, a tap at x 353 does (and the table then scrolls the
+     * field into view). So every tap aims at the middle of the field's ON-SCREEN part.
+     */
     public boolean focusFirstTextField() {
         int w = driver.manage().window().getSize().getWidth();
-        SnapNode f = null;
-        int tapX = 0;
-        for (int i = 0; i < 4 && f == null; i++) {   // procedure steps can push the first field below the fold
+        List<String> tried = new ArrayList<>();
+        for (int i = 0; i < 4 && tried.isEmpty(); i++) {   // procedure steps can push the first field below the fold
             List<SnapNode> nodes = snapshot();
-            f = nodes.stream().filter(n -> n.visible && "TextField".equals(n.type) && n.y > 150 && n.y < 760)
+            SnapNode f = nodes.stream().filter(n -> n.visible && "TextField".equals(n.type) && n.y > 150 && n.y < 760)
                     .min(java.util.Comparator.comparingInt(n -> n.y)).orElse(null);
-            if (f != null) { tapX = f.centerX(); break; }
-            // The procedure table's 'Value / Notes' column is fixed-width and clipped at the card's right edge: at
-            // 440 pt (iPhone 17 Pro Max) its field is x 324-449 and reads visible; at 402 pt (CI iPhone 16 Pro) only a
-            // strip shows and XCUITest reports it NOT visible (TC_EGF_02, run 41108150037). The table does not
-            // scroll sideways (a horizontal drag moved nothing, live probe 2026-10-31), so tap the on-screen strip.
-            // Right-clipped only: the bleed-through 'Search assets...' field of the room behind is fully on screen.
-            f = nodes.stream().filter(n -> !n.visible && "TextField".equals(n.type) && n.y > 150 && n.y < 760
-                            && n.x > w / 2 && n.x < w - 40 && n.x + n.w > w - 16 && !n.value.startsWith("Search"))
-                    .min(java.util.Comparator.comparingInt(n -> n.y)).orElse(null);
-            if (f != null) { tapX = (f.x + w - 16) / 2; break; }
-            // Same right-clipped field through an element query: the page source stops at snapshotMaxDepth, a
-            // predicate query does not (run 41131914013 still skipped with the snapshot fallback above).
-            int[] r = clippedFieldByQuery(w);
-            if (r != null) {
-                driver.executeScript("mobile: tap", Map.of("x", (r[0] + w - 16) / 2, "y", r[1] + r[3] / 2));
-                return com.egalvanic.utils.Waits.until(() -> keyboardTop() < Integer.MAX_VALUE, 5_000, 400);
+            // Should a build report the right-clipped field NOT visible, take it anyway. Right-clipped only: the
+            // bleed-through 'Search assets...' field of the room behind is fully on screen.
+            if (f == null) {
+                f = nodes.stream().filter(n -> !n.visible && "TextField".equals(n.type) && n.y > 150 && n.y < 760
+                                && n.x > w / 2 && n.x < w - 40 && n.x + n.w > w - 16 && !n.value.startsWith("Search"))
+                        .min(java.util.Comparator.comparingInt(n -> n.y)).orElse(null);
             }
-            try { driver.executeScript("mobile: swipe", Map.of("direction", "up")); } catch (Exception ignored) { }
-            sleep(1000);
+            // Same field through an element query: the page source stops at snapshotMaxDepth, a predicate query does not.
+            int[] r = f != null ? new int[]{f.x, f.y, f.w, f.h} : clippedFieldByQuery(w);
+            if (r == null) {
+                try { driver.executeScript("mobile: swipe", Map.of("direction", "up")); } catch (Exception ignored) { }
+                sleep(1000);
+                continue;
+            }
+            int y = r[1] + r[3] / 2;
+            // Second press near the leading edge: the first can land while the form is still settling.
+            for (int x : new int[]{onScreenCenterX(r[0], r[2], w), Math.max(r[0], 0) + 12}) {
+                driver.executeScript("mobile: tap", Map.of("x", x, "y", y));
+                if (com.egalvanic.utils.Waits.until(() -> keyboardTop() < Integer.MAX_VALUE, 5_000, 400)) return true;
+                tried.add(x + "," + y + " on field x" + r[0] + " w" + r[2]);
+            }
         }
-        if (f == null) {
-            System.out.println("ℹ️ focusFirstTextField: no field on a " + w + " pt screen — text inputs "
-                    + snapshot().stream().filter(n -> "TextField".equals(n.type) || "TextView".equals(n.type))
-                    .map(n -> n.type + "@" + n.x + "," + n.y + " w" + n.w + (n.visible ? "" : " (hidden)") + " '" + n.value + "'").toList());
-            return false;
-        }
-        driver.executeScript("mobile: tap", Map.of("x", tapX, "y", f.centerY()));
-        return com.egalvanic.utils.Waits.until(() -> keyboardTop() < Integer.MAX_VALUE, 5_000, 400);
+        System.out.println("ℹ️ focusFirstTextField: no keyboard on a " + w + " pt screen — taps " + tried + ", text inputs "
+                + snapshot().stream().filter(n -> "TextField".equals(n.type) || "TextView".equals(n.type))
+                .map(n -> n.type + "@" + n.x + "," + n.y + " w" + n.w + (n.visible ? "" : " (hidden)") + " '" + n.value + "'").toList());
+        return false;
+    }
+
+    /** Middle of the part of [x, x + width) left of the clipped card edge ({@code w - 24} keeps clear of its border). */
+    private static int onScreenCenterX(int x, int width, int w) {
+        int left = Math.max(x, 0), right = Math.min(x + width, w - 24);
+        return right > left ? (left + right) / 2 : left + 4;
     }
 
     /** {x, y, w, h} of the top-most right-clipped text field found by an element query (not the page source), or null. */

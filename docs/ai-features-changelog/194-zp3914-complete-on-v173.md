@@ -70,12 +70,122 @@ sections and choosing one brings it to the top.
 
 ## 4b. Coverage map: all 17 acceptance items
 
-COVERAGE
+| # | Acceptance item (ZP-3914) | Covered by |
+|---|---|---|
+| 1 | Site Walk: Account Manager Experience | TC_EXP_03, TC_SWW_01 |
+| 2 | Experience chooser | TC_EXP_01-05 |
+| 3 | Walk wizard | TC_SWW_02-09 |
+| 4 | Count grid | TC_SWC_01-07 |
+| 5 | Offline sync | TC_SWO_01-04 |
+| 6 | NETA-3 Forms Tab | TC_FT_01-05 |
+| 7 | Multi-edit working sets | TC_ME_01-05, TC_GV_02 |
+| 8 | Bulk export | TC_BX_01-05 (API; no iOS UI in v1.73) |
+| 9 | Instance tags | TC_TAG_01-05 (API; no iOS UI in v1.73) |
+| 10 | Photo Viewer | TC_PM_01, TC_PM_06 |
+| 11 | Zoom tools | TC_PM_06 (pinch), TC_PM_07 (double tap, runs from 1.70) |
+| 12 | Markup tools | TC_PM_02-05 |
+| 13 | EG Forms | TC_EGF_01-03 (renderer), TC_GV_01-02 |
+| 14 | Preload previous asset values as blue ghost values | TC_GV_01-02 |
+| 15 | Offline support via SwiftData | TC_SWO_02-03 (queue survives relaunch), TC_SWO_04 |
+| 16 | Terms of Use V2 | TC_TOU_01-02 |
+| 17 | Updated Terms & Conditions screen | TC_TOU_03 |
+
+Module total: **60 tests** (47 from changelog 193 + 10 API + 3 renderer).
 
 ## 5. Validation
 
-VALIDATION
+### Local, app v1.73 (iPhone 17 Pro Max / QA-Automation-17ProMax simulators, iOS 26.2)
+
+| Class | Result on v1.73 | Notes |
+|---|---|---|
+| ExperienceChooser | 5/5 | |
+| SiteWalkWizard | 8/9 + 1 product fail | TC_SWW_08 = SW-WIZ-01. TC_SWW_01 green after the tab-bar fix; TC_SWW_02 cancel fix verified on iOS 26 (rerun after CI, see below) |
+| CountGrid | 5/7 | TC_SWC_02/06 skipped once on the swallowed Switch Experience press (retry added) |
+| SiteWalkOffline | rerun | network popover band fixed after the first local pass |
+| FormsBulkExportTags_ApiTest | 9/10 + 1 skip | TC_BX_04: no templateless form exists |
+| FormsTab | 5/5 | TC_FT_04 after the 'No matches' / inline 'Clear Filters' fix |
+| MultiEdit | 5/5 | v1.73 long-press select mode |
+| GhostValues (ghost + renderer) | TC_GV_02, TC_EGF_01-03 pass | TC_GV_01: menu read retry added after its run (rerun after CI) |
+| PhotoMarkup | 6/7 + 1 product fail | TC_PM_04 = MKP-LABEL-01; TC_PM_07 double-tap zoom now runs (440 → 1100 pt) |
+| TermsOfUse | 3/3 | |
+
+The QA-Automation simulator's display died mid-run under a load average of ~60 (three simulators booted). The remaining
+tests moved to the second simulator. CI run 41080855780 (commit 50316bb, v1.73) ran both ZP-3914 shards in parallel.
+
+Other gates: `mvn -o -DskipTests test-compile` clean; verifier self-tests 39/39; no ZP3914 test flagged by
+`check_assertion_coverage.py`.
+
+### CI, app v1.73 (iPhone 16 Pro, iOS 18.5)
+
+**Run 41080855780** (commit 50316bb, before the later v1.73 fixes): zp3914-am **20/25** (was 18/25 on v1.69),
+zp3914-forms **21/35** (6 fail, 8 skip). Everything not product-related was fixed afterwards:
+
+| Test(s) | Cause | Fixed in |
+|---|---|---|
+| TC_PM_01-07 (skip) | v1.73 asset list search is a TextField 'Search assets...' (not a SearchField) | 5ac567f |
+| TC_FT_04, TC_EGF_03 | 'No matches' + inline 'Clear Filters'; drawer read by text diff | f676e0b |
+| TC_ME_01, TC_ME_05 | the 9th row under the selection bar was not counted (y cap) | 6888d12 |
+| TC_GV_02 | 900 s time-out (it needs ~880 s) — and the dead session leaked 2 forms (removed via bulk-forms) | 6888d12 (1500 s + backend cleanup fallback) |
+| TC_TOU_03 | iOS 18 exposes the consent links only inside one StaticText | 6888d12 (sentence asserted on iOS < 26) |
+| TC_SWO_02 | expected the queue to return to its pre-test size; a full sync empties it | 6888d12 |
+| TC_SWC_06 | the walk needed > 20 s to reach the backend | 6888d12 (45 s) |
+| TC_SWW_07 | wizard's last step unconfirmed although the walk was created (leaked c3653ac7, deleted) | 6888d12 + 92ec84d (step log, retry, track on null) |
+| TC_SWW_06 (skip) | app stayed on its launch screen after login — environment | — |
+| TC_SWW_08 | product defect SW-WIZ-01 | — |
+
+**Final run 41108150037** (commit 92ec84d): zp3914-am **24/25**, zp3914-forms **31/35** (2 fail, 2 skip).
+
+| Test | Result | Cause | Action |
+|---|---|---|---|
+| TC_SWW_08 | fail | product defect SW-WIZ-01 | Jira draft |
+| TC_PM_04 | fail | product defect MKP-LABEL-01 | Jira draft |
+| TC_ME_02 | fail | the first 'Close' tap on the 2-form editor was swallowed on iOS 18.5 (editor open, no dialog, 8 s later) | cec8001: second press when the editor stays |
+| TC_EGF_02 | skip | at 402 pt the procedure table's fixed-width 'Value / Notes' column is clipped at the card edge. First read as "TextField not visible"; corrected below: the centre tap lands on the clipped edge | cec8001 (partial); real fix after run 41152258265 |
+| TC_BX_04 | skip | data: no QA-WT10 session holds a templateless form next to a templated one | — (the case runs whenever such data exists) |
+
+Everything else passed on CI, including the 9 runnable API cases, TC_SWO_02/03, TC_SWC_06, TC_SWW_02/06/07, TC_TOU_03, TC_GV_01/02 and
+TC_EGF_01/03. No walk or form was leaked (GET /site-walk/list after the run: nothing created by the suite; Switch-1 back to
+its 2 baseline forms).
+
+**Forms re-check run 41131914013** (commit cec8001, new `zp_shards=zp3914-forms-only`): **29/35**. TC_ME_02 now
+passes. Three tests that passed in 41108150037 failed on timing, and TC_EGF_02 still skipped:
+
+| Test | Seen on CI | Fixed in e53640c |
+|---|---|---|
+| TC_TOU_03 | Connections tab up, no 'Logout' row: SettingsPage's element check reported Settings | `openSettingsRoot` trusts the tab bar's selected tab; `logoutFromSettings` presses Settings and looks again |
+| TC_GV_02 | asset menu read `[]`, yet the menu was fully drawn in the failure shot | row wait + 10 s menu read + reasons logged |
+| TC_GV_01 | the typed field went stale once the keyboard re-laid the form out | value read back from a fresh snapshot |
+| TC_EGF_02 | the snapshot fallback found no clipped field | element-query fallback (no snapshot depth cap) + text-input diagnostics |
+
+No data leaked: TC_GV_01's cleanup deleted its Bolted Connections Resistance form; Switch-1 stayed at its 2 baseline forms.
+
+**Forms re-check run 41152258265** (commit e53640c): **32/35**. TC_TOU_03, TC_GV_01, TC_GV_02 and TC_ME_02 pass;
+the only fail is the product defect TC_PM_04, plus the TC_BX_04 data skip. TC_EGF_02 still skipped, and printed no
+text-input diagnostics: those print only when no field is found, so on CI a field WAS found and tapped, but no
+keyboard came up within 5 s. The CI simulator does show a software keyboard (TC_PM_04's failure shot), so the tap
+itself misses. The ghost-value tests left nothing on Switch-1.
+
+**TC_EGF_02 root cause (reproduced on a 402 pt iPhone 17, iOS 26.2).** The earlier "not visible" diagnosis was
+wrong. At 402 pt the 'Value / Notes' TextField reads `visible="true"`, frame x 324-449, so `focusFirstTextField`
+took its first branch and tapped the field's centre, x 386. That is exactly the card's clipped right edge (402 - 16),
+so all three CI runs tapped the border. Live probe on the open form: tap at x 386 → no keyboard; tap at x 353 →
+keyboard up, the table scrolls the field into view, and the footer (y 426) stays above the keyboard (top 583). At
+440 pt the same centre lies inside the card, which is why the test always passed locally. Fix: every tap aims at the
+middle of the field's on-screen part (`onScreenCenterX`), a second press goes near the leading edge, and the
+diagnostics now print when a tap raises no keyboard. One Bolted Connections Resistance instance
+(248f18ed, created 01:56 UTC by a local TC_GV_01 run before e335c61) was removed through bulk-forms; Switch-1 is back
+to its 2 baseline forms.
 
 ## 6. Product defects
 
-DEFECTS
+All three reproduce on v1.73. They are NOT filed yet: creating Jira issues needs the user's go-ahead (the
+auto-mode classifier blocked the first create). Drafts are ready: Bug, To Do, sprint Z-26-10-S2, iOS v1.74, Kush.
+
+| Id | Summary | Test | Severity |
+|---|---|---|---|
+| SW-WIZ-01 | Site Walk wizard: after "Assign a site later", going back from Services shows "This customer has no sites yet" for a customer with sites (step 2 calls the step-1 deferAssignment(), which clears the customer) | TC_SWW_08 | Low |
+| MKP-LABEL-01 | Photo markup: the text label field keeps showing characters past 200 (210 visible) while the counter reads 200/200; the extra text is dropped silently on save | TC_PM_04 | Low |
+| EGF-ADD-01 | WO room: an asset with exactly ONE form has no way to add another — 'Forms (1)' opens that form directly and the 'Select a Form' sheet holding 'Add Form' never shows (no add path in the asset menu, row, '+' button, Forms tab or Asset Details) | found by the ghost-value tests | Medium |
+
+Observation (not a bug report): POST /eg-form-instance/by-session/<unknown id>/export answers 200 + HTML instead of a
+JSON 4xx. No job starts.

@@ -196,6 +196,11 @@ locators are predicate-heavy (2,944 predicate vs 257 accessibility-id).
 - Never run two simulators + a third booted sim on this Mac Mini: load hit ~60 and the QA-Automation sim's display
   died mid-run ('SimDisplayScreenshotWriter … Error creating the image'). One automation sim at a time.
 - New Jira bugs need explicit user approval (auto-mode classifier blocks createJiraIssue).
+- CI on v1.73: run 41108150037 am 24/25 (only TC_SWW_08, product); forms re-check 41152258265 32/35 (TC_PM_04
+  product, TC_BX_04 data skip, TC_EGF_02 skip). `zp_shards` also takes `zp3914-am-only` / `zp3914-forms-only`.
+- **Never tap a clipped element's centre.** TC_EGF_02's 'Value / Notes' field (x 324-449, visible=true) has its centre
+  ON the card's clipped edge at 402 pt (CI width) — 3 CI skips. Tap the middle of the on-screen part
+  (`WorkOrderFormsPage.onScreenCenterX`). Reproduce CI geometry locally on the 402 pt "iPhone 17" sim (3B120A1F).
 
 ## How to run
 - Self-tests (no device): `mvn -o -DsuiteXmlFile=testng-verify-selftest.xml test`
