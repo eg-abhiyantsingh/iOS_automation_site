@@ -172,7 +172,17 @@ so all three CI runs tapped the border. Live probe on the open form: tap at x 38
 keyboard up, the table scrolls the field into view, and the footer (y 426) stays above the keyboard (top 583). At
 440 pt the same centre lies inside the card, which is why the test always passed locally. Fix: every tap aims at the
 middle of the field's on-screen part (`onScreenCenterX`), a second press goes near the leading edge, and the
-diagnostics now print when a tap raises no keyboard. One Bolted Connections Resistance instance
+diagnostics now print when a tap raises no keyboard (fde4dbd). **Local validation on the 402 pt iPhone 17: TC_EGF_02
+PASS** (keyboard top 583; Sections · Save Draft · Submit at y 426).
+
+**Asset-menu read.** Two local 402 pt runs failed before the field step: the long-press menu was fully drawn in the
+failure shot, yet the read returned `[]` even after the 10 s wait from e53640c. `snapshot()` answers an empty list
+when getPageSource fails, so a time-boxed wait can be used up by failed reads that look like "no menu". The menu read
+now counts an empty snapshot as a failed read, needs 3 real reads (or 10 s), and after failed reads falls back to an
+element query for the same buttons, logging how many page-source reads failed. The empty read did not recur on the
+next two runs, so the fallback branch itself is not yet exercised. The normal path is validated: the next local
+run read the full menu and passed every TC_EGF_02 assertion (WDA then died on the final screenshot, a local
+load-average-25 crash also seen in the first attempt). One Bolted Connections Resistance instance
 (248f18ed, created 01:56 UTC by a local TC_GV_01 run before e335c61) was removed through bulk-forms; Switch-1 is back
 to its 2 baseline forms.
 

@@ -1116,15 +1116,38 @@ public class WorkOrderFormsPage extends BasePage {
             return List.of();
         }
         List<String> items = new ArrayList<>();
-        // 10 s: on CI the menu was fully drawn in the failure shot while the 5 s read had returned [] (TC_GV_02, run
-        // 41131914013 — first app session of the test, slow snapshots).
-        com.egalvanic.utils.Waits.until(() -> {
-            items.clear();
-            for (SnapNode n : snapshot()) {
-                if (n.visible && "Button".equals(n.type) && n.w >= 200 && n.w <= 300 && n.x > 40 && n.x < 120) items.add(n.label);
+        // 10 s AND at least 3 real reads: the menu was fully drawn in the failure shot while the read had returned []
+        // (TC_GV_02 on CI run 41131914013; TC_EGF_02 twice on a loaded local 402 pt sim, 2026-10-31). snapshot()
+        // answers [] when getPageSource fails, so an empty snapshot is a FAILED read, never "no menu".
+        long deadline = System.currentTimeMillis() + 10_000;
+        int reads = 0, failed = 0;
+        while ((reads < 3 || System.currentTimeMillis() < deadline) && failed < 5) {
+            List<SnapNode> snap = snapshot();
+            if (snap.isEmpty()) {
+                failed++;
+            } else {
+                reads++;
+                items.clear();
+                for (SnapNode n : snap) {
+                    if (n.visible && "Button".equals(n.type) && n.w >= 200 && n.w <= 300 && n.x > 40 && n.x < 120) items.add(n.label);
+                }
+                if (items.contains(ADD_FORM_MENU_ITEM) || items.size() >= 3) break;
             }
-            return items.contains(ADD_FORM_MENU_ITEM) || items.size() >= 3;
-        }, 10_000, 400);
+            sleep(400);
+        }
+        if (items.isEmpty() && failed > 0) {
+            // The page source keeps failing: read the same buttons through an element query instead.
+            try {
+                for (WebElement e : withImplicitWait(0, () -> driver.findElements(AppiumBy.iOSNsPredicateString(
+                        "type == 'XCUIElementTypeButton' AND visible == 1 AND rect.width >= 200 AND rect.width <= 300"
+                                + " AND rect.x > 40 AND rect.x < 120")))) {
+                    items.add(String.valueOf(e.getAttribute("label")));
+                }
+            } catch (Exception e) {
+                System.out.println("⚠️ openAssetRowMenu: element query failed too — " + String.valueOf(e.getMessage()).split("\n")[0]);
+            }
+            System.out.println("ℹ️ openAssetRowMenu: " + failed + " page-source read(s) failed, " + reads + " ok — element query read " + items);
+        }
         System.out.println("📋 asset menu for '" + assetName + "': " + items);
         return items;
     }
