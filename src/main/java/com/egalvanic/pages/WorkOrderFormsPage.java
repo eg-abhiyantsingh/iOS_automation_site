@@ -1103,15 +1103,28 @@ public class WorkOrderFormsPage extends BasePage {
     /** Long-press the asset row; returns the context-menu item labels (empty when no menu appeared). */
     public List<String> openAssetRowMenu(String assetName) {
         SnapNode row = rowNamed(assetName);
-        if (row == null || !longPressAt(row.centerX(), row.centerY(), 1.2)) return List.of();
+        for (int i = 0; i < 3 && row == null; i++) {   // a freshly opened / refreshed room lists its rows late
+            sleep(1500);
+            row = rowNamed(assetName);
+        }
+        if (row == null) {
+            System.out.println("⚠️ openAssetRowMenu: no row '" + assetName + "' in the room");
+            return List.of();
+        }
+        if (!longPressAt(row.centerX(), row.centerY(), 1.2)) {
+            System.out.println("⚠️ openAssetRowMenu: long-press on '" + assetName + "' failed");
+            return List.of();
+        }
         List<String> items = new ArrayList<>();
+        // 10 s: on CI the menu was fully drawn in the failure shot while the 5 s read had returned [] (TC_GV_02, run
+        // 41131914013 — first app session of the test, slow snapshots).
         com.egalvanic.utils.Waits.until(() -> {
             items.clear();
             for (SnapNode n : snapshot()) {
                 if (n.visible && "Button".equals(n.type) && n.w >= 200 && n.w <= 300 && n.x > 40 && n.x < 120) items.add(n.label);
             }
             return items.contains(ADD_FORM_MENU_ITEM) || items.size() >= 3;
-        }, 5_000, 400);
+        }, 10_000, 400);
         System.out.println("📋 asset menu for '" + assetName + "': " + items);
         return items;
     }
@@ -1276,12 +1289,48 @@ public class WorkOrderFormsPage extends BasePage {
                             && n.x > w / 2 && n.x < w - 40 && n.x + n.w > w - 16 && !n.value.startsWith("Search"))
                     .min(java.util.Comparator.comparingInt(n -> n.y)).orElse(null);
             if (f != null) { tapX = (f.x + w - 16) / 2; break; }
+            // Same right-clipped field through an element query: the page source stops at snapshotMaxDepth, a
+            // predicate query does not (run 41131914013 still skipped with the snapshot fallback above).
+            int[] r = clippedFieldByQuery(w);
+            if (r != null) {
+                driver.executeScript("mobile: tap", Map.of("x", (r[0] + w - 16) / 2, "y", r[1] + r[3] / 2));
+                return com.egalvanic.utils.Waits.until(() -> keyboardTop() < Integer.MAX_VALUE, 5_000, 400);
+            }
             try { driver.executeScript("mobile: swipe", Map.of("direction", "up")); } catch (Exception ignored) { }
             sleep(1000);
         }
-        if (f == null) return false;
+        if (f == null) {
+            System.out.println("ℹ️ focusFirstTextField: no field on a " + w + " pt screen — text inputs "
+                    + snapshot().stream().filter(n -> "TextField".equals(n.type) || "TextView".equals(n.type))
+                    .map(n -> n.type + "@" + n.x + "," + n.y + " w" + n.w + (n.visible ? "" : " (hidden)") + " '" + n.value + "'").toList());
+            return false;
+        }
         driver.executeScript("mobile: tap", Map.of("x", tapX, "y", f.centerY()));
         return com.egalvanic.utils.Waits.until(() -> keyboardTop() < Integer.MAX_VALUE, 5_000, 400);
+    }
+
+    /** {x, y, w, h} of the top-most right-clipped text field found by an element query (not the page source), or null. */
+    private int[] clippedFieldByQuery(int w) {
+        try {
+            List<WebElement> els = withImplicitWait(0, () -> driver.findElements(AppiumBy.iOSNsPredicateString(
+                    "type == 'XCUIElementTypeTextField' AND rect.y > 150 AND rect.y < 760 AND NOT (value BEGINSWITH 'Search')")));
+            int[] best = null;
+            for (WebElement e : els) {
+                org.openqa.selenium.Rectangle r = e.getRect();
+                if (r.x > w / 2 && r.x < w - 40 && r.x + r.width > w - 16 && (best == null || r.y < best[1])) {
+                    best = new int[]{r.x, r.y, r.width, r.height};
+                }
+            }
+            if (best == null && !els.isEmpty()) {
+                System.out.println("ℹ️ clippedFieldByQuery: text fields " + els.stream().map(e -> {
+                    try { return e.getRect().toString(); } catch (Exception ex) { return "?"; }
+                }).toList());
+            }
+            return best;
+        } catch (Exception e) {
+            System.out.println("⚠️ clippedFieldByQuery: " + e.getMessage());
+            return null;
+        }
     }
 
     /** Visible texts (StaticText / Button labels) — used to diff what the Sections drawer adds. */
@@ -1348,7 +1397,16 @@ public class WorkOrderFormsPage extends BasePage {
                 sleep(500);
                 new org.openqa.selenium.interactions.Actions(driver).sendKeys(value).perform();
                 sleep(800);
-                String read = f.getAttribute("value");
+                String read;
+                try {
+                    read = f.getAttribute("value");
+                } catch (org.openqa.selenium.WebDriverException stale) {
+                    // The raised keyboard re-lays the form out and the element goes stale (CI 402 pt: 'Test Current'
+                    // ends up under the footer, TC_GV_01 run 41131914013) — read the typed text from a fresh snapshot.
+                    read = snapshot().stream().filter(n -> ("TextField".equals(n.type) || "TextView".equals(n.type))
+                            && value.equals(n.value)).map(n -> n.value).findFirst().orElse(null);
+                    System.out.println("ℹ️ fillFirstField: field went stale after typing — snapshot read-back '" + read + "'");
+                }
                 System.out.println("✍️ typed '" + value + "' → field reads '" + read + "'");
                 return read;
             }

@@ -93,6 +93,13 @@ public class ExperiencePage extends SnapPage {
                 if (!settings.openSettingsTab()) return false;
             }
         }
+        // SettingsPage's element-query check can say 'Settings' while another tab shows: on CI TC_TOU_03 failed with
+        // the Connections tab up and no Logout row (run 41131914013). Trust the tab bar's selection when it has one.
+        String selected = selectedTab();
+        if (selected != null && !"Settings".equals(selected)) {
+            System.out.println("🔁 openSettingsRoot: tab bar shows '" + selected + "' selected — pressing the Settings tab");
+            if (openTab("Settings")) waitUntil(() -> "Settings".equals(selectedTab()), 5_000);
+        }
         for (int i = 0; i < 4; i++) {
             // A pushed screen's back chevron sits at the top-left; the root has none (its large title is not a Button).
             Optional<SnapNode> back = find(n -> "Button".equals(n.type) && n.y > 40 && n.y < 140 && n.x < 60 && n.w < 220);
@@ -160,6 +167,15 @@ public class ExperiencePage extends SnapPage {
         for (int i = 0; i < 6 && labelled("Button", "Logout").isEmpty(); i++) {
             swipeScreen("up");
             sleep(500);
+        }
+        if (labelled("Button", "Logout").isEmpty()) {
+            System.out.println("🔁 logoutFromSettings: no 'Logout' row — tabs " + tabBarLabels() + ", selected '" + selectedTab()
+                    + "' — pressing the Settings tab and looking again");
+            if (openTab("Settings")) sleep(1500);
+            for (int i = 0; i < 6 && labelled("Button", "Logout").isEmpty(); i++) {
+                swipeScreen("up");
+                sleep(500);
+            }
         }
         final boolean[] pressed = {false};
         withAlertsManual(() -> {

@@ -176,6 +176,16 @@ abstract class SnapPage extends BasePage {
                 .sorted(java.util.Comparator.comparingInt(n -> n.x)).map(n -> n.label).toList();
     }
 
+    /** Label of the selected tab-bar button (WDA value "1"); null when no bar is visible or none reads selected. */
+    public String selectedTab() {
+        List<SnapNode> s = snapshot();
+        Optional<SnapNode> bar = s.stream().filter(n -> n.visible && "TabBar".equals(n.type)).findFirst();
+        if (bar.isEmpty()) return null;
+        int top = bar.get().y;
+        return s.stream().filter(n -> n.visible && "Button".equals(n.type) && n.y >= top - 2 && n.isOn())
+                .map(n -> n.label).findFirst().orElse(null);
+    }
+
     /** Press a bottom tab-bar button by label. */
     public boolean openTab(String label) {
         List<SnapNode> s = snapshot();
