@@ -197,7 +197,7 @@ locators are predicate-heavy (2,944 predicate vs 257 accessibility-id).
   died mid-run ('SimDisplayScreenshotWriter … Error creating the image'). One automation sim at a time.
 - New Jira bugs need explicit user approval (auto-mode classifier blocks createJiraIssue).
 - CI on v1.73: run 41108150037 am 24/25 (only TC_SWW_08, product); forms 41170046135 33/35 (TC_PM_04 product,
-  TC_BX_04 data skip; TC_EGF_02 passes). `zp_shards` also takes `zp3914-am-only` / `zp3914-forms-only`.
+  TC_BX_04 data skip; TC_EGF_02 passes); 41206906956 (475f2ea) 33/35 with TC_TOU_03 + TC_EGF_02 green. `zp_shards` also takes `zp3914-am-only` / `zp3914-forms-only`.
 - A UI delete is not a backend delete: TC_GV_02's multi-select Delete emptied the list on CI but never synced (site
   row 'N pending'). Ghost teardown now confirms on the backend (`confirmGoneOnBackend`, 90 s) and removes leftovers
   of baseline-0 titles. `BaseTest.sleep()` does not sleep — poll with `Waits.until`.

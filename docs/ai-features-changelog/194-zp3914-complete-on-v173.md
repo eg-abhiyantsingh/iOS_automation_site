@@ -230,6 +230,14 @@ backend removal was needed and nothing leaked. Two other results:
   known local crash), so the link and re-login steps ran out the 600 s timeout. The changed step is validated
   locally; the full test is left to the next CI run.
 
+**Final run 41206906956** (commit 475f2ea): **33/35**, the best this shard can show until MKP-LABEL-01 is fixed.
+TC_TOU_03 PASSED end to end in 148 s ("Settings › Logout must sign out" passed first time, with no "no 'Logout' row"
+retry and no "under the tab bar" warning). TC_EGF_02 passed again (193 s). Only TC_PM_04 (product, MKP-LABEL-01) and
+TC_BX_04 (data skip) remain. The ghost teardown printed no "still on 'Switch-1'" warning, so both deletes synced
+inside 90 s. Backend check afterwards: Switch-1 holds exactly its 2 baseline forms (16b48cad Cleaning + 99d359ee) and
+the session has 0 Bolted Connection Resistance instances. The Summary job's gate is still red on TC_PM_04 alone; it
+goes green when MKP-LABEL-01 is filed and TC_PM_04 is quarantined.
+
 ## 6. Product defects
 
 All three reproduce on v1.73. They are NOT filed yet: creating Jira issues needs the user's go-ahead (the
