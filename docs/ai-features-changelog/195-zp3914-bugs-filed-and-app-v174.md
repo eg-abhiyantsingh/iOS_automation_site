@@ -189,3 +189,27 @@ they press Sync. That is the app's stated design ("back online / manual sync →
   also records the DHCP lease (`ipconfig getpacket`). Uploaded as `runner-network.log` in the shard artifact and
   printed in the job log. Tried locally under `bash -e`: lease fields read, `route=en1 addr=… backend=up (http 200)`.
 - Compile clean, verifier self-tests 39/39.
+
+## 9. Run 41507816193 (e0b54e2): 24/25, Summary gate green
+
+19:12–21:55 UTC (00:42–03:25 IST). Only TC_SWW_08 fails, on ZP-5152 (quarantined). Summary & Email: "Quarantined
+(known, tolerated): 1 · UNEXPECTED failures (gate-relevant): 0" → **success**, the first green gate on v1.74.
+
+- TC_SWW_05 / 06 / 07 / 09 and TC_SWC_06 all pass.
+- The network drop happened again and was handled: **TC_SWC_05 at 121.7 min** — "the new walk was not on the backend
+  after 45 s — app offline, 1 queued". The app had gone offline by itself, as in §7. The helper went online, pressed
+  'Sync 1 records', the walk (ab0ba0d3) arrived, the detail re-opened, and the rest of the case passed. Teardown
+  deleted the walk (HTTP 200).
+- `runner-network.log` caught it from the runner's side:
+  - `lease_time (uint32): 0xe10` — the VM's DHCP lease (server 192.168.64.1) is **exactly 3600 s**;
+  - `21:15:48Z backend=DOWN (http 000)` → `21:16:07Z backend=up`: 122.9 min after the job start, ~20 s outage,
+    same address before and after.
+  - Nothing at ~60 min this time (TC_SWW_05 was running and passed). A blip shorter than the 10 s probe interval
+    would not show up.
+
+So the drops line up with whole lease hours on a 1-hour DHCP lease. That is the likely mechanism; the lease
+boundary itself is not logged.
+
+Wording fix: the helper's precondition assert read "…never reached the backend and the app did not queue it" even when
+it PASSED (the report prints passed messages). It now reads as an expectation: "a walk missing from the backend after
+45 s must be in the app's sync queue — app offline, 1 queued".

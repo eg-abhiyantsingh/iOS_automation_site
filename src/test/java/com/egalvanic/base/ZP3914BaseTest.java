@@ -200,8 +200,8 @@ public abstract class ZP3914BaseTest extends WorkTypeBaseTest {
         boolean offline = walks.isOffline();
         int queued = walks.queueBadge();
         String state = "app " + (offline ? "offline" : "online") + ", " + queued + " queued";
-        assertTrue(offline || queued > 0, tcId + ": the new walk never reached the backend (" + seconds
-                + " s) and the app did not queue it — " + state);
+        assertTrue(offline || queued > 0, tcId + ": a walk missing from the backend after " + seconds
+                + " s must be in the app's sync queue — " + state);
 
         logWarning(tcId + ": the new walk was not on the backend after " + seconds + " s — " + state + ". The app's"
                 + " direct create did not go through, so it kept the walk in its sync queue (CI runner network drop)."
