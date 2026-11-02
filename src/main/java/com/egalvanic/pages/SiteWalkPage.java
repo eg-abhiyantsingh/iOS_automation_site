@@ -80,6 +80,12 @@ public class SiteWalkPage extends SnapPage {
     public static final String ICON_COMPLETE = "Selected";
     public static final String DELETE_WALK = "Delete Site Walk";
     public static final String DELETE_MESSAGE = "This removes the walk and its counts.";
+    /**
+     * Title of the alert the list shows when a delete does not go through (SiteWalkListView, AppStrings.SiteWalks
+     * .deleteWalkFailed). Its message is either "Deleting a synced walk requires a connection." (app offline) or the
+     * request's own error text.
+     */
+    public static final String DELETE_FAILED = "Couldn't delete site walk";
     public static final String GRID_NO_MATCH = "No assets found";
     /** Grid actions that render as full-width Buttons like the class cards (not classes themselves). */
     public static final String ADD_ASSET_CLASS = "Add asset class";
@@ -835,12 +841,19 @@ public class SiteWalkPage extends SnapPage {
         return b.toString();
     }
 
+    /** Text of the "Couldn't delete site walk" alert the last {@link #deleteWalkRow} met ("" when none showed). */
+    public String lastDeleteError = "";
+
     /**
      * Long-press a list row → 'Delete Site Walk' → read the confirmation → press {@code answer}
      * ('Delete Site Walk' or 'Cancel'). Returns the alert text, "" when the menu or alert never showed.
+     * After a confirmed delete it waits (alerts still manual) for the row to go or for the app's
+     * "Couldn't delete site walk" alert, whose text lands in {@link #lastDeleteError} before OK closes it — with
+     * auto-accept back on, that alert used to vanish unseen and the test only saw a row that would not leave.
      */
     public String deleteWalkRow(WalkRow row, String answer) {
         final String[] text = {""};
+        lastDeleteError = "";
         withAlertsManual(() -> {
             if (!longPressAt(row.node.centerX(), row.node.centerY(), 1.2)) return;
             // The context menu animates in; its item reaches the tree a beat after the preview (TC_SWW_07 pressed
@@ -857,7 +870,27 @@ public class SiteWalkPage extends SnapPage {
             text[0] = alertText();
             SnapNode alert = find(n -> "Alert".equals(n.type)).get();
             find(n -> "Button".equals(n.type) && n.is(answer) && n.y > alert.y + 60).ifPresent(this::tapNode);
-            sleep(1500);
+            if (!DELETE_WALK.equals(answer)) {
+                waitUntil(() -> find(n -> "Alert".equals(n.type)).isEmpty(), 3_000);
+                return;
+            }
+            // Done when the row is gone with no alert up, or when an alert that is not the confirmation shows.
+            final String[] after = {""};
+            waitUntil(() -> {
+                Optional<SnapNode> a = find(n -> "Alert".equals(n.type));
+                if (a.isPresent()) {
+                    String t = alertText();
+                    if (!t.contains(DELETE_MESSAGE)) { after[0] = t; return true; }
+                    return false;   // the confirmation is still fading out
+                }
+                return find(n -> "Button".equals(n.type) && n.is(row.label)).isEmpty();
+            }, 10_000);
+            if (after[0].isEmpty()) return;
+            lastDeleteError = after[0];
+            System.out.println("⚠️ deleteWalkRow: the app answered the delete with '" + after[0] + "'");
+            find(n -> "Alert".equals(n.type)).ifPresent(a ->
+                    find(n -> "Button".equals(n.type) && n.is("OK") && n.y > a.y).ifPresent(this::tapNode));
+            waitUntil(() -> find(n -> "Alert".equals(n.type)).isEmpty(), 3_000);
         });
         return text[0];
     }

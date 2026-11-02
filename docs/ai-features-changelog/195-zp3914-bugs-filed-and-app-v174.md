@@ -86,3 +86,48 @@ Next: ZP-3914 am + forms shards on v1.74 to see what the new build changed.
     locally — the only allowed iOS sim was still in use by another session, and the Android emulator was up.
 - The test now names the app's state when the backend check fails ("app shows 'Wi-Fi Off' / is online, N queued,
   row back in the list / still gone"), so the next failure says which case it is.
+
+## 7. AM confirmation run on v1.74 — run 41453293677 (b362018): 22 pass, 2 fail, 1 skip
+
+- TC_SWW_08 fails on the ZP-5152 assertion again (quarantined, expected).
+- TC_SWW_07 fails again with the app showing 'Wi-Fi Off', this time at "The row must leave the list" (the row never
+  left). TC_SWW_06 just before it created and API-deleted its walk normally; the test's own API calls on the same
+  runner kept working (teardown DELETE HTTP 200, attempt 1).
+- TC_SWW_05 SKIP: right after a soft restart, Settings had no 'Switch Experience' row (passed in the run before).
+
+### What the app source says (developer repo `release/qa` 496c14d = v1.74, read only)
+
+- v1.73 → v1.74 is three commits: version bump, ZP-5135 (FLIR-SEP pairing), ZP-5093 (FOTRIC IR photos). Nothing in
+  site walks, `NetworkState`, `NetworkReachability`, `ExperienceManager` or Settings changed — no v1.74 regression.
+- `NetworkState` goes offline by itself in exactly one place: the `NWPathMonitor` sink, when iOS reports the path
+  unsatisfied. It never comes back online on its own ("User must manually switch to online mode"). The only other
+  way is the toolbar menu (`toggleMode`), which TC_SWW_07 never opens.
+- `SiteWalkStore.deleteWalk`: a synced walk deleted while offline returns `.requiresOnline`; a failed request
+  returns `.failed(error)`. `SiteWalkListView` then shows the alert "Couldn't delete site walk" with "Deleting a
+  synced walk requires a connection." or the error text, and the row stays. With `autoAcceptAlerts` back on after
+  `withAlertsManual`, that alert was accepted unseen (`sleep(1500)` is a no-op), so the test only saw a stuck row.
+  The run-41434446888 "row left, then came back" is the same thing read while the alert covered the list.
+- Settings shows 'Switch Experience' only when `ExperienceManager.displayable.count > 1`. Roles are fetched ONCE per
+  launch (`ContentView .task`, guarded by `isResolved`); a failed fetch resolves to Field Technician only and is
+  not retried until the next launch.
+
+Verdict: CI environment (iOS reported the network lost on the runner's simulator), not an app defect. Nothing
+filed.
+
+### Fixes (automation)
+
+- `SiteWalkPage.deleteWalkRow`: after a confirmed delete it waits, with alerts still manual, for the row to go or
+  for a different alert; that alert's text goes to `lastDeleteError` and OK closes it. New `DELETE_FAILED`.
+- TC_SWW_07: if the app is offline before the delete, it is switched back online with a WARNING in the report (the
+  test never opens the network menu, so only iOS can have done it). If the app refuses the delete with a
+  connectivity message AND is offline, one more delete once online, again with a WARNING. Any other refusal fails
+  with the app's own words and the app state ("is online / shows 'Wi-Fi Off', N queued, row in the list / gone").
+- `ZP3914BaseTest.accountManagerOffered`: when Settings was reached but has no 'Switch Experience', relaunch the
+  app once (re-runs the role fetch) and look again before skipping.
+
+### Local reproduction
+
+Tried on the 402 pt "iPhone 17" sim (iOS 26.2, own Appium 4731 / WDA 8131, nothing else booted): blocked before the
+test body — on the fresh install the site picker's row tap opened 'Create New Site' › 'Select Office', and WDA then
+served a stale tree while taps did nothing (known iOS 26.2 local sign-in block). Stopped there; validation is on CI.
+Compile clean, verifier self-tests 39/39.

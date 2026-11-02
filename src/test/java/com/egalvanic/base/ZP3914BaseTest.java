@@ -1,6 +1,7 @@
 package com.egalvanic.base;
 
 import com.egalvanic.api.TestDataApi;
+import com.egalvanic.constants.AppConstants;
 import com.egalvanic.pages.ExperiencePage;
 import com.egalvanic.pages.ExperiencePage.Experience;
 import com.egalvanic.pages.PhotoMarkupPage;
@@ -194,10 +195,24 @@ public abstract class ZP3914BaseTest extends WorkTypeBaseTest {
         skipIfPreconditionMissing(() -> ok, tcId + ": the app never showed its tab bar after login (launch/loading screen)");
     }
 
-    /** True when the app can enter Account Manager (already in it, or Settings offers 'Switch Experience'). */
+    /**
+     * True when the app can enter Account Manager (already in it, or Settings offers 'Switch Experience').
+     * The row needs the user's roles, which the app fetches ONCE per launch (ContentView `.task` → ExperienceManager
+     * .refresh). A failed or late fetch resolves to Field Technician only and is not retried until the next launch,
+     * so the row is missing for the rest of that app session (TC_SWW_05, CI run 41453293677, right after a soft
+     * restart). One relaunch re-runs the fetch; a user who really lost the role still skips after it.
+     */
     protected boolean accountManagerOffered(String tcId) {
         if (experience.isOn(Experience.ACCOUNT_MANAGER)) return true;
         boolean offered = experience.isSwitchExperienceOffered();
+        if (!offered && experience.lastOfferCheckReachedSettings) {
+            System.out.println("🔁 " + tcId + ": no 'Switch Experience' — relaunching once so the app fetches the roles again");
+            DriverManager.getDriver().terminateApp(AppConstants.APP_BUNDLE_ID);
+            DriverManager.getDriver().activateApp(AppConstants.APP_BUNDLE_ID);
+            waitForExperienceAfterRelaunch(Experience.FIELD_TECHNICIAN, 30);
+            offered = experience.isSwitchExperienceOffered();
+            System.out.println("   " + (offered ? "✓ offered after the relaunch" : "✗ still not offered after the relaunch"));
+        }
         if (!offered && !experience.lastOfferCheckReachedSettings) {
             skipIfPreconditionMissing(() -> false, tcId + ": the Settings tab could not be opened (tabs "
                     + experience.tabBarLabels() + ") — environment, not the feature");

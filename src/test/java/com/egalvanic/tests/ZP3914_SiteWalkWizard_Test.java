@@ -9,6 +9,7 @@ import org.testng.annotations.Test;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -194,19 +195,59 @@ public final class ZP3914_SiteWalkWizard_Test extends ZP3914BaseTest {
                 "Delete must ask 'Delete Site Walk' / '" + SiteWalkPage.DELETE_MESSAGE + "' first");
         assertNotNull(walkRow(id), "Cancel must keep the walk on the backend");
         assertEquals(walks.walkRows().stream().filter(r -> r.label.contains(title)).count(), 1L, "Cancel must keep the row");
+        // CI runs 41434446888 + 41453293677 (v1.74): the app showed 'Wi-Fi Off' at the failure although this test never
+        // touches the network menu. The app goes offline by itself ONLY when iOS reports the path lost (NetworkState
+        // reachability sink) and never comes back on its own — then a synced walk cannot be deleted ("requires a
+        // connection"). Restore the online precondition, and say so in the report.
+        restoreOnlineIfIosDroppedIt("before the delete");
         WalkRow again = walks.walkRows().stream().filter(r -> r.label.contains(title)).findFirst().orElseThrow();
         String deleteText = walks.deleteWalkRow(again, SiteWalkPage.DELETE_WALK);
         assertFalse(deleteText.isEmpty(), "The confirmation must appear again");
+        String refused = walks.lastDeleteError;
+        if (isConnectivityRefusal(refused) && walks.isOffline()) {
+            // The network dropped DURING the request: one more delete once online. Any other answer, or a second
+            // refusal, fails below with the app's own words.
+            logWarning("TC_SWW_07: the app answered the delete with '" + refused + "' and went offline — iOS reported"
+                    + " the network lost mid-request; going online and deleting once more");
+            restoreOnlineIfIosDroppedIt("after a refused delete");
+            Optional<WalkRow> row = walks.walkRows().stream().filter(r -> r.label.contains(title)).findFirst();
+            if (row.isPresent()) {
+                walks.deleteWalkRow(row.get(), SiteWalkPage.DELETE_WALK);
+                refused = walks.lastDeleteError;
+            }
+        }
+        String finalRefusal = refused;
+        assertTrue(finalRefusal.isEmpty(), "The app refused the delete: '" + finalRefusal + "' — " + walkAppState(title));
         assertTrue(eventually(() -> walks.walkRows().stream().noneMatch(r -> r.label.contains(title)), 10),
-                "The row must leave the list after 'Delete Site Walk'");
+                "The row must leave the list after 'Delete Site Walk' — " + walkAppState(title));
         boolean goneOnBackend = eventually(() -> walkRow(id) == null, 20);
-        // CI run 41434446888 (v1.74): the row left, came back, and the app showed 'Wi-Fi Off' — name the app's state
-        // so the report tells "delete never sent (app offline)" from "online, backend kept it".
-        String appState = goneOnBackend ? "" : " — app " + (walks.isOfflineIcon() ? "shows 'Wi-Fi Off'" : "is online")
-                + ", " + walks.queueBadge() + " queued, row "
-                + (walks.walkRows().stream().anyMatch(r -> r.label.contains(title)) ? "back in the list" : "still gone");
-        assertTrue(goneOnBackend, "The walk must be deleted on the backend too" + appState);
+        assertTrue(goneOnBackend, "The walk must be deleted on the backend too"
+                + (goneOnBackend ? "" : " — " + walkAppState(title)));
         logStepWithScreenshot("TC_SWW_07: delete flow verified");
+    }
+
+    /** "app online/shows 'Wi-Fi Off', N queued, row in the list/gone" — tells an offline app from a backend that kept the walk. */
+    private String walkAppState(String title) {
+        return "app " + (walks.isOfflineIcon() ? "shows 'Wi-Fi Off'" : "is online") + ", " + walks.queueBadge()
+                + " queued, row " + (walks.walkRows().stream().anyMatch(r -> r.label.contains(title)) ? "in the list" : "gone");
+    }
+
+    /** The app's delete refusals that mean "no connection" (AppStrings.SiteWalks.deleteRequiresOnline + URLError texts). */
+    private static boolean isConnectivityRefusal(String alert) {
+        String a = alert.toLowerCase(java.util.Locale.ROOT);
+        return a.contains("requires a connection") || a.contains("network connection was lost")
+                || a.contains("appears to be offline") || a.contains("timed out") || a.contains("could not connect");
+    }
+
+    /** This test never opens the network menu, so an offline app here was put there by iOS: go back online, loudly. */
+    private void restoreOnlineIfIosDroppedIt(String when) {
+        if (!walks.isOffline()) return;
+        logWarning("TC_SWW_07: the app is offline " + when + " (iOS reported the network lost; the test never opened"
+                + " the network menu) — switching back online");
+        boolean online = walks.goOnline();
+        String menu = online ? "" : " — network menu " + walks.openNetworkMenu();
+        walks.closeMenu();
+        assertTrue(online, "The app must go back online " + when + menu);
     }
 
     @Test(priority = 8)
