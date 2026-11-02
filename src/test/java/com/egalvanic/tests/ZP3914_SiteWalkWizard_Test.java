@@ -199,7 +199,13 @@ public final class ZP3914_SiteWalkWizard_Test extends ZP3914BaseTest {
         assertFalse(deleteText.isEmpty(), "The confirmation must appear again");
         assertTrue(eventually(() -> walks.walkRows().stream().noneMatch(r -> r.label.contains(title)), 10),
                 "The row must leave the list after 'Delete Site Walk'");
-        assertTrue(eventually(() -> walkRow(id) == null, 20), "The walk must be deleted on the backend too");
+        boolean goneOnBackend = eventually(() -> walkRow(id) == null, 20);
+        // CI run 41434446888 (v1.74): the row left, came back, and the app showed 'Wi-Fi Off' — name the app's state
+        // so the report tells "delete never sent (app offline)" from "online, backend kept it".
+        String appState = goneOnBackend ? "" : " — app " + (walks.isOfflineIcon() ? "shows 'Wi-Fi Off'" : "is online")
+                + ", " + walks.queueBadge() + " queued, row "
+                + (walks.walkRows().stream().anyMatch(r -> r.label.contains(title)) ? "back in the list" : "still gone");
+        assertTrue(goneOnBackend, "The walk must be deleted on the backend too" + appState);
         logStepWithScreenshot("TC_SWW_07: delete flow verified");
     }
 

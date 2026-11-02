@@ -67,3 +67,22 @@ Next: ZP-3914 am + forms shards on v1.74 to see what the new build changed.
   there (customer-list loading overlay on a fresh session); a row that is gone counts as success only if step 2 is up.
 - Compile clean, verifier self-tests 39/39, `ZP3914_FormsBulkExportTags_ApiTest` 9 pass + TC_BX_04 skip against the
   live backend (GET happy path unchanged).
+
+## 6. AM rerun on v1.74 — run 41434446888 (d9c4657): 23/25
+
+- TC_SWW_05 **passes** with the GET retry.
+- TC_SWW_08 now reaches its real assertion and fails on it: "step 2 says 'This customer has no sites yet' although
+  '6th OCT, 1 site' has sites" → **ZP-5152 is NOT fixed in v1.74**; stays quarantined.
+- TC_SWW_07 FAIL "The walk must be deleted on the backend too" (new; it passed on v1.73 CI 41108150037). Every UI step
+  passed — the row left the list — but walk af664125 was still on the backend after 20 s; teardown removed it via
+  the API (HTTP 200). The at-failure screenshot shows the 'Wi-Fi Off' network icon (app offline) and a
+  'Site Walk — 2026-11-02' row back in the list. That row is this test's own walk: SWW_06's same-titled walk was
+  deleted by API before SWW_07 began, and SWW_07 saw exactly one matching row at the start.
+  - None of deleteWalkRow's taps can reach the network control (row, its context menu, the alert's buttons only).
+  - Binary diff v1.73 (641fb88) vs v1.74 debug dylib: the site-walk endpoint strings (`/site-walk/`,
+    `/site-walk/list`, …) and all 137 offline/network strings are identical → the delete path did not change.
+  - Verdict: most likely the CI runner lost the backend mid-delete (the same runner pool reset GET /site-walk/list
+    in run 41406840983), the app went offline and the row came back. Not filed as a product bug. Not reproduced
+    locally — the only allowed iOS sim was still in use by another session, and the Android emulator was up.
+- The test now names the app's state when the backend check fails ("app shows 'Wi-Fi Off' / is online, N queued,
+  row back in the list / still gone"), so the next failure says which case it is.
