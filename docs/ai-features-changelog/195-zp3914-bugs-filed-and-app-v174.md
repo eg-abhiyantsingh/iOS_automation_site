@@ -40,3 +40,30 @@ Zipped with `ditto -c -k --norsrc --keepParent` (93.75 MB, `Z Platform-QA.app/` 
 "chore(app): update Z Platform-QA to v1.74 for CI (2026-11-02 QA build)".
 
 Next: ZP-3914 am + forms shards on v1.74 to see what the new build changed.
+
+## 5. First ZP-3914 run on v1.74 — run 41406840983 (7b1f3ad)
+
+- **forms 33/35**, identical to v1.73: TC_PM_04 still fails (ZP-5153 NOT fixed in 1.74; now quarantined), TC_BX_04
+  data skip. TC_TOU_03, TC_EGF_02 and the ghost teardown all green.
+- **am 22/25**, three consecutive Site Walk wizard fails, none a v1.74 UI change (screenshots show the 1.73 Customer
+  step unchanged; TC_SWW_09 picked '6th OCT' fine right after):
+  - TC_SWW_05: every UI assertion passed; the closing backend check `walkIds()` threw `SocketException: Connection
+    reset` on GET /site-walk/list. `TestDataApi.send` retried only a 401.
+  - TC_SWW_07: WDA died ("Could not proxy … read ECONNRESET") on the tap at (201, 314) — the 'Assign customer and site
+    later' row. Dead-session breaker 1/5, new session for the next test. CI environment.
+  - TC_SWW_08: on that fresh session the '6th OCT' tap left the wizard on step 1 (the row was on screen). It never
+    reached the ZP-5152 assertion, so this run says nothing about whether 1.74 fixed SW-WIZ-01.
+- Local reproduction was NOT run: another session was driving the only allowed automation sim ("iPhone 17 - ZP 1.70",
+  Appium 4723), and the rule is one automation sim at a time. The fixes are validated driver-free + on CI instead.
+
+### Fixes
+
+- `TestDataApi.get()` retries ONCE on a transport failure (IOException cause). GET only — a POST/PUT could double-
+  create. Driver-free proof with a local socket server (`ws` scratch probe):
+  - half a reply then RST (= the CI `Connection reset`): **old code throws after 1 connection; new code retries → 200**;
+  - RST before any byte: the JDK HttpClient already retries a GET once on its own (2 connections, no 🔁 line);
+  - RST on every connection: 4 connections (JDK × ours), then the same IllegalStateException — bounded, no loop.
+- `SiteWalkPage.chooseCustomer()` makes a second tap when the first leaves the wizard on step 1 with the row still
+  there (customer-list loading overlay on a fresh session); a row that is gone counts as success only if step 2 is up.
+- Compile clean, verifier self-tests 39/39, `ZP3914_FormsBulkExportTags_ApiTest` 9 pass + TC_BX_04 skip against the
+  live backend (GET happy path unchanged).

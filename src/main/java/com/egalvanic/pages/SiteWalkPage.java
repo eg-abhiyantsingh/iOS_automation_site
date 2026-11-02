@@ -424,11 +424,21 @@ public class SiteWalkPage extends SnapPage {
     }
 
     /** Tap a customer row by its full label; true once Step 2 is up. */
+    /**
+     * Tap a customer row and wait for Step 2. Rows can be on screen while the list's loading overlay still eats taps
+     * (fresh app session, TC_SWW_08 on CI run 41406840983), so a tap that leaves the wizard on Step 1 with the row
+     * still there is made once more.
+     */
     public boolean chooseCustomer(String rowLabel) {
-        Optional<SnapNode> row = settled(n -> "Button".equals(n.type) && n.is(rowLabel));
-        if (row.isEmpty()) return false;
-        tapNode(row.get());
-        return waitUntil(() -> currentStep() == 2, 8_000);
+        for (int attempt = 1; attempt <= 2; attempt++) {
+            Optional<SnapNode> row = settled(n -> "Button".equals(n.type) && n.is(rowLabel));
+            if (row.isEmpty()) return currentStep() == 2;
+            tapNode(row.get());
+            if (waitUntil(() -> currentStep() == 2, 8_000)) return true;
+            System.out.println("⚠️ chooseCustomer attempt " + attempt + ": '" + rowLabel + "' tapped, wizard still on step "
+                    + currentStep());
+        }
+        return false;
     }
 
     /** Tap the first customer that owns at least one site; returns its row label once Step 2 is up, else null. */

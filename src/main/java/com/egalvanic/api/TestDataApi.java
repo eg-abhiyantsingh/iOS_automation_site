@@ -119,10 +119,20 @@ public class TestDataApi {
         return resp;
     }
 
-    /** Authenticated GET; returns the response (caller inspects status/body). */
+    /**
+     * Authenticated GET; returns the response (caller inspects status/body). A transport failure is retried once:
+     * a GET is safe to repeat, and a pooled keep-alive connection the server already closed fails with
+     * "Connection reset" and then works on a fresh one (TC_SWW_05, CI run 41406840983). POST/PUT are not retried.
+     */
     public HttpResponse<String> get(String path) {
-        return sendAuthedWithRetry(() ->
-                authed(HttpRequest.newBuilder(URI.create(BASE + path))).GET().build());
+        java.util.function.Supplier<HttpRequest> req = () -> authed(HttpRequest.newBuilder(URI.create(BASE + path))).GET().build();
+        try {
+            return sendAuthedWithRetry(req);
+        } catch (IllegalStateException e) {
+            if (!(e.getCause() instanceof java.io.IOException)) throw e;
+            System.out.println("🔁 GET " + path + " — " + e.getCause().getMessage() + " — retrying once");
+            return sendAuthedWithRetry(req);
+        }
     }
 
     /** Authenticated POST with a raw JSON body. */
