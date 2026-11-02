@@ -17,6 +17,7 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -169,6 +170,89 @@ public abstract class ZP3914BaseTest extends WorkTypeBaseTest {
         zp3914DeleteCreatedWalks();
     }
 
+    /**
+     * Wait for the walk this test just created (online) to appear in GET /site-walk/list; returns its id(s), tracked
+     * for teardown.
+     *
+     * The app sends an online create as ONE direct POST. If that POST fails, the walk goes to the sync queue, and
+     * nothing retries it until someone presses 'Sync N records' (SiteWalkStore.createWalk, v1.74 source). The GitHub
+     * macOS runners lose the network about 60 min into every job: v1.74 AM runs 41406840983 / 41434446888 /
+     * 41453293677 / 41477351516 broke at 60.3 / 61.8 / 61.2 / 62.4 min, whatever test was running. A create that
+     * lands on that moment is queued instead of sent (TC_SWW_06, run 41477351516: its walk only reached the backend
+     * when TC_SWO_02 synced the queue 80 min later).
+     *
+     * So: if the walk is missing after {@code seconds}, read the app's own state. If the app queued it (or went
+     * offline), log a WARNING, go online, press 'Sync N records' — what a user would do — and still require the walk
+     * on the backend. If the app is online with nothing queued and the walk is still missing, that is a real failure,
+     * reported with the app state. A walk detail that was open is opened again afterwards.
+     */
+    protected Set<String> awaitNewWalkOnBackend(Set<String> before, String tcId, int seconds) {
+        java.util.function.BooleanSupplier arrived = () -> {
+            Set<String> now = new LinkedHashSet<>(walkIds());
+            now.removeAll(before);
+            return !now.isEmpty();
+        };
+        if (eventually(arrived, seconds)) return trackNewWalks(before);
+
+        boolean wasOnDetail = !walks.isListShown();
+        String title = wasOnDetail ? walks.walkTitle() : "";
+        walks.backToList();
+        boolean offline = walks.isOffline();
+        int queued = walks.queueBadge();
+        String state = "app " + (offline ? "offline" : "online") + ", " + queued + " queued";
+        assertTrue(offline || queued > 0, tcId + ": the new walk never reached the backend (" + seconds
+                + " s) and the app did not queue it — " + state);
+
+        logWarning(tcId + ": the new walk was not on the backend after " + seconds + " s — " + state + ". The app's"
+                + " direct create did not go through, so it kept the walk in its sync queue (CI runner network drop)."
+                + " Going online and pressing 'Sync N records'.");
+        if (offline) {
+            boolean online = walks.goOnline();
+            walks.closeMenu();
+            assertTrue(online, tcId + ": the app must go back online — " + state);
+        }
+        int synced = walks.syncQueued();
+        boolean landed = eventually(arrived, 30);
+        assertTrue(landed, tcId + ": after 'Sync " + synced + " records' the walk must reach the backend — app "
+                + (walks.isOfflineIcon() ? "offline" : "online") + ", " + walks.queueBadge() + " queued");
+        Set<String> fresh = trackNewWalks(before);
+
+        if (wasOnDetail) {
+            List<SiteWalkPage.WalkRow> rows = walks.walkRows().stream().filter(r -> r.label.contains(title)).toList();
+            assertEquals(rows.size(), 1, tcId + ": re-opening the walk after the sync needs exactly one row titled '"
+                    + title + "'");
+            assertTrue(walks.openWalkRow(rows.get(0)), tcId + ": the walk '" + title + "' must open again after the sync");
+        }
+        return fresh;
+    }
+
+    /**
+     * Teardown: a walk still in the app's sync queue (a create that never went through) is invisible to the by-id API
+     * cleanup. It stays on the device and doubles the next same-titled row ("2 rows titled 'Site Walk — …'", TC_SWW_07
+     * skip, run 41477351516). Upload it, then let the by-id cleanup delete it with the others. Only this run's device
+     * can have queued walks, so whatever arrives is test data. Skipped after a pass (its walk reached the backend, and
+     * every snapshot costs 5-20 s on the CI simulator).
+     */
+    protected void syncLeftoverQueuedWalks(ITestResult result) {
+        try {
+            if (result != null && result.getStatus() == ITestResult.SUCCESS) return;
+            if (walks == null || experience == null || !experience.isOn(Experience.ACCOUNT_MANAGER)) return;
+            if (!walks.isListShown()) walks.backToList();
+            if (walks.queueBadge() == 0 && !walks.isOfflineIcon()) return;
+            Set<String> before = walkIds();
+            walks.goOnline();
+            walks.closeMenu();
+            int synced = walks.syncQueued();
+            if (synced > 0) {
+                System.out.println("🧹 ZP-3914: uploading " + synced + " queued record(s) left by the test, to delete them by id");
+                eventually(() -> walkIds().size() > before.size(), 20);
+                trackNewWalks(before);
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ ZP-3914 queued-walk cleanup: " + e.getMessage());
+        }
+    }
+
     protected TestDataApi.SiteWalkRow walkRow(String id) {
         TestDataApi a = api();
         if (a == null || id == null) return null;
@@ -188,7 +272,13 @@ public abstract class ZP3914BaseTest extends WorkTypeBaseTest {
             return !experience.tabBarLabels().isEmpty();
         };
         if (!eventually(tabs, 30)) {
-            System.out.println("🔁 " + tcId + ": no tab bar 30 s after login — retrying loginAndSelectSite()");
+            // Re-running loginAndSelectSite() alone does nothing here: it sees no Sign-In field, decides "in-app" and
+            // returns (TC_SWC_06, run 41477351516, 120 min into the job — the runner's second network drop). Relaunch
+            // so the app's launch-time loads run again, then log in if it asks.
+            logStepWithScreenshot(tcId + ": no tab bar 30 s after login (tabs " + experience.tabBarLabels()
+                    + ") — relaunching the app once");
+            DriverManager.getDriver().terminateApp(AppConstants.APP_BUNDLE_ID);
+            DriverManager.getDriver().activateApp(AppConstants.APP_BUNDLE_ID);
             loginAndSelectSite();
         }
         boolean ok = eventually(tabs, 20);

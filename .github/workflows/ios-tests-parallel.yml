@@ -2394,6 +2394,34 @@ jobs:
             sleep 2
           done
           sleep 3
+      - name: Watch the runner network (background)
+        # Every v1.74 zp3914-am run lost the network ~60 min into the job (runs 41406840983, 41434446888, 41453293677,
+        # 41477351516 at 60.3 / 61.8 / 61.2 / 62.4 min) and one skipped at ~120 min. Record what the runner itself sees
+        # — default route, its address and DHCP lease, and whether the backend answers — every 10 s, writing a line only
+        # when something changes. Uploaded with the report as runner-network.log (changelog 195 §8).
+        run: |
+          {
+            DEF=$(route -n get default 2>/dev/null | awk '/interface:/{print $2}' || true)
+            echo "job+0 $(date -u +%H:%M:%SZ) start, default route on ${DEF:-none}"
+            ipconfig getpacket "${DEF:-en0}" 2>/dev/null | grep -iE "lease_time|renewal|rebinding|server_identifier" || true
+            scutil --nwi 2>/dev/null | head -20 || true
+          } > runner-network.log
+          (
+            T0=$(date +%s); LAST=""
+            while true; do
+              CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 https://api.qa.egalvanic.ai/ 2>/dev/null || true)
+              IFACE=$(route -n get default 2>/dev/null | awk '/interface:/{print $2}' || true)
+              ADDR=$(ipconfig getifaddr "${IFACE:-en0}" 2>/dev/null || true)
+              if [ "${CODE:-000}" = "000" ]; then NET=DOWN; else NET=up; fi
+              NOW="route=${IFACE:-none} addr=${ADDR:-none} backend=$NET"
+              if [ "$NOW" != "$LAST" ]; then
+                echo "job+$(( ($(date +%s) - T0) / 60 ))m $(date -u +%H:%M:%SZ) $NOW (http ${CODE:-000})"
+                LAST="$NOW"
+              fi
+              sleep 10
+            done
+          ) >> runner-network.log 2>&1 &
+          echo "network watch started (pid $!)"
       - name: Warm-up WDA Session
         env:
           SIMULATOR_UDID: ${{ env.SIMULATOR_UDID }}
@@ -2438,6 +2466,9 @@ jobs:
             -DSIMULATOR_UDID="${{ env.SIMULATOR_UDID }}" \
             -DAPP_BUNDLE_ID="$BUNDLE_ID" \
             -DAPP_PATH="${{ github.workspace }}/apps/Z Platform-QA.app"
+      - name: Show runner network log
+        if: always()
+        run: cat runner-network.log 2>/dev/null || echo "(no runner-network.log)"
       - name: Upload ZP-3927 / ZP-3928 Report
         if: always()
         uses: actions/upload-artifact@v4
@@ -2447,6 +2478,7 @@ jobs:
             target/surefire-reports/
             reports/
             screenshots/
+            runner-network.log
           retention-days: 30
       - name: Send Module Email (zp3927-3928)
         if: always() && github.event.inputs.send_email != 'false'

@@ -131,3 +131,61 @@ Tried on the 402 pt "iPhone 17" sim (iOS 26.2, own Appium 4731 / WDA 8131, nothi
 test body — on the fresh install the site picker's row tap opened 'Create New Site' › 'Select Office', and WDA then
 served a stale tree while taps did nothing (known iOS 26.2 local sign-in block). Stopped there; validation is on CI.
 Compile clean, verifier self-tests 39/39.
+
+## 8. Second confirmation run — run 41477351516 (41102e3): 21 pass, 2 fail, 2 skip
+
+Attempt 1 never ran: GitHub had no macOS runner ("The job was not acquired by Runner of type hosted even after
+multiple attempts"). Attempt 2 (`gh run rerun --failed`) ran 16:25–19:01 UTC.
+
+- **TC_SWW_05 passes.** The fix from §7 holds (no relaunch was even needed this time).
+- **TC_SWW_08** fails on the ZP-5152 assertion (quarantined, expected).
+- **TC_SWW_06 FAIL** "The walk must reach the backend (GET /site-walk/list) while online". Every UI step passed; the
+  walk opened with its COUNT tag. It never reached the backend during the test. It reached it 80 min later, when
+  TC_SWO_02 pressed 'Sync 2 records' ("1 walk(s) were already queued before this test", id b3673ffd, then deleted).
+- **TC_SWW_07 SKIP** "2 rows titled 'Site Walk — 2026-11-02'": the second row was TC_SWW_06's walk, still queued on
+  the device, where the by-id API cleanup cannot reach it.
+- **TC_SWC_06 SKIP** "the app never showed its tab bar after login": the retry re-ran `loginAndSelectSite()`, which saw
+  no Sign-In field, decided "in-app" and returned without doing anything.
+
+### What the app source says (v1.74, read only)
+
+`SiteWalkStore.createWalk`: online, a new walk is sent with ONE direct POST. If that POST fails, the walk is kept
+locally and put in the sync queue, and nothing retries it while online: only 'Sync N records' (or going online from
+offline) drains it. So a create that lands on a network drop is queued instead of sent, and stays queued.
+
+### The runner network drops at ~60 min, every run
+
+Minutes from job start to the first network-type failure, all four v1.74 AM runs:
+
+| Run | Job start (UTC) | Failure | At |
+|---|---|---|---|
+| 41406840983 | 07:31 | our own Java GET /site-walk/list: `Connection reset` (TC_SWW_05) | 60.3 min |
+| 41434446888 | 11:09 | TC_SWW_07: app 'Wi-Fi Off', delete did not reach the backend | 61.8 min |
+| 41453293677 | 13:33 | TC_SWW_07: app 'Wi-Fi Off', row never left | 61.2 min |
+| 41477351516 | 16:25 | TC_SWW_06: create queued instead of sent | 62.4 min |
+
+Plus TC_SWC_06 at 120–125 min in 41477351516 (the other runs had the intentionally-offline TC_SWO tests at that
+mark, which hides a drop). The wall-clock times differ, so the backend is not the cause. The failures follow the
+runner's age, whatever test is running, and one of them hit our own Java client, not the app. The workflow has no
+periodic step (checked). Verdict: **GitHub macOS runner network, ~hourly**. Not an app defect, nothing filed.
+
+Design note, not filed: a failed online create is never retried by the app on its own, and (§7) the app never comes
+back online by itself after iOS reports the path lost. A user on flaky Wi-Fi keeps such walks on the device until
+they press Sync. That is the app's stated design ("back online / manual sync → the sync queue drains it").
+
+### Fixes
+
+- `ZP3914BaseTest.awaitNewWalkOnBackend(before, tcId, seconds)` replaces the four "must reach the backend" waits
+  (TC_SWW_06/07/09 and `ZP3914_CountGrid_Test.newCountWalk`). If the walk is missing, it reads the app's own state:
+  - **queued or offline:** a WARNING in the report, go online, 'Sync N records', and the walk must still reach the
+    backend. A walk detail that was open is opened again (CountGrid cases continue on it);
+  - **online with nothing queued:** FAIL with the app state, as before.
+- `syncLeftoverQueuedWalks(result)` in the Wizard and CountGrid teardowns, after a non-passing case only, uploads
+  anything left in the queue so the by-id cleanup can delete it. No more doubled same-titled rows.
+- `loginAndWaitForTabs`: when no tab bar shows 30 s after login, it takes a screenshot, relaunches the app, then logs
+  in again.
+- CI (zp3927-3928-tests job only): new background step "Watch the runner network". Every 10 s it records the
+  default-route interface, its address and whether api.qa answers, writing a line only on a change. At the start it
+  also records the DHCP lease (`ipconfig getpacket`). Uploaded as `runner-network.log` in the shard artifact and
+  printed in the job log. Tried locally under `bash -e`: lease fields read, `route=en1 addr=… backend=up (http 200)`.
+- Compile clean, verifier self-tests 39/39.

@@ -158,9 +158,7 @@ public final class ZP3914_SiteWalkWizard_Test extends ZP3914BaseTest {
         assertTrue(walks.isTextVisible(SiteWalkPage.COUNT_WITHOUT_LOCATION), "'Count assets without a location' expected");
         assertFalse(walks.isCompleteWalkEnabled(), "'Complete Site Walk' must be disabled before anything is counted");
         assertTrue(walks.isCompleteHintShown(), "Hint '" + SiteWalkPage.HINT_COUNT + "' must explain why");
-        assertTrue(eventually(() -> !walkIdsDiff(before).isEmpty(), 20),
-                "The walk must reach the backend (GET /site-walk/list) while online");
-        Set<String> fresh = trackNewWalks(before);
+        Set<String> fresh = awaitNewWalkOnBackend(before, "TC_SWW_06", 20);
         assertEquals(fresh.size(), 1, "Exactly one new walk expected — got " + fresh);
         TestDataApi.SiteWalkRow row = walkRow(fresh.iterator().next());
         assertNotNull(row, "The new walk must be readable from the list endpoint");
@@ -183,8 +181,7 @@ public final class ZP3914_SiteWalkWizard_Test extends ZP3914BaseTest {
         if (created == null) trackNewWalks(before);
         assertNotNull(created, "A fresh walk is needed to delete");
         String title = walks.walkTitle();
-        assertTrue(eventually(() -> !walkIdsDiff(before).isEmpty(), 20), "The new walk must reach the backend first");
-        Set<String> fresh = trackNewWalks(before);
+        Set<String> fresh = awaitNewWalkOnBackend(before, "TC_SWW_07", 20);
         String id = fresh.iterator().next();
         assertTrue(walks.backToList(), "Back to the list");
         List<WalkRow> mine = walks.walkRows().stream().filter(r -> r.label.contains(title)).toList();
@@ -298,8 +295,7 @@ public final class ZP3914_SiteWalkWizard_Test extends ZP3914BaseTest {
         String title = walks.walkTitle();
         logStep("Walk for site '" + site + "' titled '" + title + "'");
         assertEquals(title, site, "A walk started for a site is titled with the site's name");
-        assertTrue(eventually(() -> !walkIdsDiff(before).isEmpty(), 20), "The walk must reach the backend while online");
-        Set<String> fresh = trackNewWalks(before);
+        Set<String> fresh = awaitNewWalkOnBackend(before, "TC_SWW_09", 20);
         assertEquals(fresh.size(), 1, "Exactly one new walk expected — got " + fresh);
         TestDataApi.SiteWalkRow row = walkRow(fresh.iterator().next());
         assertNotNull(row, "The new walk must be readable from the list endpoint");
@@ -311,18 +307,13 @@ public final class ZP3914_SiteWalkWizard_Test extends ZP3914BaseTest {
         logStepWithScreenshot("TC_SWW_09: site walk created — " + row);
     }
 
-    private Set<String> walkIdsDiff(Set<String> before) {
-        Set<String> now = new java.util.LinkedHashSet<>(walkIds());
-        now.removeAll(before);
-        return now;
-    }
-
     @org.testng.annotations.AfterMethod(alwaysRun = true)
     public void cleanupWalksAfterEachCase(org.testng.ITestResult result) {
         captureFailureState(result);
         try {
             if (walks != null && walks.currentStep() > 0) walks.cancelWizard();
         } catch (Exception ignored) { }
+        syncLeftoverQueuedWalks(result);
         deleteTrackedWalksNow();
     }
 }

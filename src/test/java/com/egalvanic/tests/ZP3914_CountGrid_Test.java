@@ -33,8 +33,8 @@ public final class ZP3914_CountGrid_Test extends ZP3914BaseTest {
         if (created == null) trackNewWalks(before);   // a walk may exist behind an unconfirmed last step — never leak it
         assertNotNull(created, tcId + ": the wizard must create a Count walk");
         // 45 s: on CI one walk took longer than 20 s to post (TC_SWC_06, run 41080855780) while the next case's walk made it.
-        assertTrue(eventually(() -> walkIds().size() > before.size(), 45), tcId + ": the new walk must reach the backend");
-        Set<String> fresh = trackNewWalks(before);
+        // A walk the app queued (runner network drop) is synced and its detail re-opened by the helper.
+        Set<String> fresh = awaitNewWalkOnBackend(before, tcId, 45);
         assertEquals(fresh.size(), 1, tcId + ": exactly one new walk expected — got " + fresh);
         walkId = fresh.iterator().next();
     }
@@ -212,6 +212,7 @@ public final class ZP3914_CountGrid_Test extends ZP3914BaseTest {
             if (walks != null && walks.isGridShown()) walks.backFromGrid("Discard");
             if (walks != null && !walks.isListShown()) walks.backToList();
         } catch (Exception ignored) { }
+        syncLeftoverQueuedWalks(result);
         deleteTrackedWalksNow();
     }
 }
