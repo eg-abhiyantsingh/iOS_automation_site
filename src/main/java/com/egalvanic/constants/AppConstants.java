@@ -515,6 +515,23 @@ public class AppConstants {
         return ma > major || (ma == major && mi >= minor);
     }
 
+    // ================================================================
+    // THERMAL CAMERA TEST RIGS — see docs/thermal-camera-test-setup.md
+    // ================================================================
+
+    /** FOTRIC camera stub on the office Wi-Fi, shown in the app as "Fotric stub (DESKTOP-MT0I4L0)" (37 captures, 2 Nov 2026). */
+    public static final String FOTRIC_STUB_HOST = getEnv("FOTRIC_STUB_HOST", "192.168.1.128");
+    /** The app finds FOTRIC cameras by scanning the Wi-Fi on this port. */
+    public static final int FOTRIC_STUB_PORT = getEnvInt("FOTRIC_STUB_PORT", 9900);
+    /** The stub camera's own sign-in (Connect FOTRIC Camera › Camera sign-in), not an eGalvanic account. */
+    public static final String FOTRIC_STUB_USERNAME = getEnv("FOTRIC_STUB_USERNAME", "0");
+    public static final String FOTRIC_STUB_PASSWORD = getEnv("FOTRIC_STUB_PASSWORD", "0");
+    /**
+     * DEBUG builds only (ZP-5135, MockFLIRCameraLink): folder of JPEGs the app shows as a connected
+     * "Mock FLIR E96". Pass it to the app as a launch env var; build one with scripts/flir_mock_roll.py.
+     */
+    public static final String EG_MOCK_FLIR_ROLL = getEnv("EG_MOCK_FLIR_ROLL", "");
+
     private static int getEnvInt(String key, int defaultValue) {
         try {
             return Integer.parseInt(getEnv(key, String.valueOf(defaultValue)).trim());

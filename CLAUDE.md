@@ -213,3 +213,11 @@ locators are predicate-heavy (2,944 predicate vs 257 accessibility-id).
 - Exploratory crawl (macOS + live session): `RUN_EXPLORATORY=true mvn -Dtest=ExploratoryCrawlTest test`
 - CI: GitHub Actions `ios-tests-parallel.yml` (workflow_dispatch; `job_selection` incl.
   `workorder-planning-only`, `location-only`). Feature work branch: `claude/lucid-clarke-gbUOa`.
+
+## Thermal camera test rigs (2 Nov 2026, iOS 1.74)
+- FOTRIC camera stub on the office Wi-Fi: "Fotric stub (DESKTOP-MT0I4L0)" at `192.168.1.128:9900`, camera sign-in
+  username `0` / password `0`. Use it on a work order with Work Type = Infrared Thermography and IR Photo Type =
+  FOTRIC-SEP/IND › Details › FOTRIC Camera. Constants: `AppConstants.FOTRIC_STUB_*`.
+- FLIR without a camera (DEBUG builds): launch env `EG_MOCK_FLIR_ROLL` = folder of JPEGs → "Mock FLIR E96";
+  build an E96-style thermal+visual roll with `scripts/flir_mock_roll.py`.
+- Full steps, menu/flag rules, and FOTRIC0383 reference readings: `docs/thermal-camera-test-setup.md`.
