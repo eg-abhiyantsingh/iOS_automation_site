@@ -195,7 +195,8 @@ locators are predicate-heavy (2,944 predicate vs 257 accessibility-id).
   TC_EGF_01-03 in `ZP3914_GhostValues_Test`. Ghost tests keep Switch-1 at ≥2 forms via form-coverage + bulk-forms.
 - Never run two simulators + a third booted sim on this Mac Mini: load hit ~60 and the QA-Automation sim's display
   died mid-run ('SimDisplayScreenshotWriter … Error creating the image'). One automation sim at a time.
-- New Jira bugs need explicit user approval (auto-mode classifier blocks createJiraIssue).
+- New Jira bugs are filed WITHOUT asking (user, 2026-11-02): assignee Abhiyant, sprint 'Triage' (`customfield_10020`
+  778), To Do, no fixVersion, label + `[iOS]` prefix — memory `feedback_jira_bugs_file_without_asking`.
 - CI on v1.73: run 41108150037 am 24/25 (only TC_SWW_08, product); forms 41170046135 33/35 (TC_PM_04 product,
   TC_BX_04 data skip; TC_EGF_02 passes); 41206906956 (475f2ea) 33/35 with TC_TOU_03 + TC_EGF_02 green. `zp_shards` also takes `zp3914-am-only` / `zp3914-forms-only`.
 - A UI delete is not a backend delete: TC_GV_02's multi-select Delete emptied the list on CI but never synced (site

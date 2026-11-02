@@ -42,3 +42,7 @@ TC_JOB_072
 TC_JOB_073
 TC_JOB_074
 TC_JOB_075
+# --- ZP-3914 (iOS 1.59) product defects, filed 2026-11-02 (BUGS.md ZP-5152/5153) ---
+#     Remove a line as soon as its ticket is fixed and the test goes green.
+TC_SWW_08
+TC_PM_04

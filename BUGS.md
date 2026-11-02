@@ -324,3 +324,13 @@ So the feature gate is satisfied; the card still does not render ⇒ points at t
 
 **Tests:** `ZP3928_IssueWorkOrderLink_Test` TC_ILW_01 stays RED (honest fail); TC_ILW_03/10 skip on it.
 The ZP-3928 AC "Link Issue to Work Order from Issue Editing screen" cannot be signed off until answered.
+
+## ZP-3914 product defects (confirmed on v1.73, filed 2026-11-02 — Triage, Abhiyant)
+
+| Jira | Id | Summary | Test | Severity |
+|---|---|---|---|---|
+| ZP-5152 | SW-WIZ-01 | Site Walk wizard: step 2 "Assign a site later" calls the step-1 `deferAssignment()`, clearing the customer; Back from Services shows "This customer has no sites yet" | TC_SWW_08 (quarantined) | Low |
+| ZP-5153 | MKP-LABEL-01 | Photo markup text label shows 210 characters while the counter reads 200/200; the extra text is dropped silently on save | TC_PM_04 (quarantined) | Low |
+| ZP-5154 | EGF-ADD-01 | WO room: an asset with exactly ONE form has no "Add Form" — "Forms (1)" opens the form directly, the "Select a Form" sheet never shows | ghost-value tests work around it (Switch-1 kept at ≥2 forms) | Medium |
+
+Evidence: CI runs 41108150037 (am) and 41170046135 / 41206906956 (forms); changelog 194 §6.
