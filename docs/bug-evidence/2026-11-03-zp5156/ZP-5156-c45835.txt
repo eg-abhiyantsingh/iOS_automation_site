@@ -1,0 +1,7 @@
+h3. Correction on the "visual name with no picture" point (now ZP-5157): web shows the name too
+
+* My description said web shows this photo correctly. That is only half true.
+* The web IR Photos list is correct (FLIR7377 has no visual, Generate visual).
+* But in the web editor, clicking Visual shows "Edit Visual Photo — FLIR7377_visual", with Name FLIR7377_visual, and the IR picture as the visual. Kush pointed this out with FOTRIC9001R.
+* So the made-up name comes from the stored data (the reserved \{stem\}_visual) and both apps show it. A server side fix (no visual name until a visual file exists) may solve iOS and web together.
+* Filed as ZP-5157. The iOS list tile and preview part moved there too, so this ticket no longer covers it.

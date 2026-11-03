@@ -1,0 +1,5 @@
+h3. Finding 1: only the camera path
+
+* Same steps through the Files path (IR tab, +, Browse & Select, pick only the visual FLIR7398.jpg for the typed pair FLIR7397 + FLIR7398): the visual shows straight away, no restart needed.
+* So finding 1 happens only when the visual comes from the FLIR camera link (Add IR Photos, FROM CAMERA, Browse Camera, Link). It was seen twice there on 2 Nov (FLIR7393 + FLIR7394 and FLIR7395 + FLIR7396), and again on 3 Nov (FLIR7411 + FLIR7412).
+* To show it on a phone you need a real FLIR camera (for example E96 set to thermal + visual): type the pair first, Save, then Browse Camera, tick only the visual, Link, then check the IR tab before and after the refresh button.

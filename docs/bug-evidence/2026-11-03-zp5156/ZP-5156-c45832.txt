@@ -1,0 +1,6 @@
+h3. Finding 3 (small): the name field hint shows a FLIR name on FOTRIC work orders
+
+* On the Edit IR Name sheet, when a name field is empty, the grey hint shows FLIR0041 and FLIR0041_visual. This is also the case on FOTRIC-SEP and FOTRIC-IND work orders.
+* FOTRIC files are named like FOTRIC0384, so on FOTRIC work orders the hint should show a FOTRIC name, for example FOTRIC0041 and FOTRIC0041_visual.
+* Seen on iOS 1.74 on [QA-DEMO ZP-5135 FLIR-SEP iOS 1.74 2 Nov|https://acme.qa.egalvanic.ai/sessions/96fdd76a-542f-45cf-bc92-569a00871bc4] (IR Photo Type switched to FOTRIC-SEP and FOTRIC-IND), photos FOTRIC0384 and FOTRIC_2026-09-29_0038. Found while checking ZP-5093 row 4.
+* Low priority, wording only.

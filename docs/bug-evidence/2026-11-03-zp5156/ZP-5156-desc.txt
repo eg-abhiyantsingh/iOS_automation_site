@@ -1,0 +1,48 @@
+h3. Simple explanation
+* A technician brings IR photos in straight from a FLIR camera on a FLIR-SEP work order (Add IR Photos, FROM CAMERA).
+* When a visual photo is linked to a pair the technician typed earlier, the picture does not show until the app is closed and reopened. The refresh button does not help.
+* There is also one question about how photo editor markers are named on iOS compared with web, and one wording fix.
+* The "visual name with no picture" problem that was first listed here has moved to ZP-5157. It comes from the stored data and also shows on web.
+
+h3. 1. A visual linked from the camera does not show until the app is reopened
+* A visual photo whose name matches a typed visual key was linked from Browse Camera. Seen twice on 2 Nov: FLIR7394 on the row FLIR7393 + FLIR7394, and FLIR7396 on FLIR7395 + FLIR7396.
+* Web showed the picture straight away. On iOS the visual tile stayed empty, even after the refresh button.
+* It showed only after closing and reopening the app (screenshot 6).
+* Only the camera path: the same steps through Files (Browse & Select) show the picture straight away.
+* *Re-tested 3 Nov 2026 on iOS 1.74 (same QA build): reproduced again.* Pair FLIR7411 + FLIR7412: Link at 12:18 IST, tile still empty after refresh at 12:19 and 12:21, picture shown after reopening the app at 12:25 (screenshot in the attached QA-03Nov-ZP-5156-repro-pack.zip).
+* Expected: the picture shows right after the import, as it does for normal pairs and for the Files path.
+
+!QA-02Nov-iOS-IRgap-6-visual-tile-needs-app-restart.png|width=480!
+_Screenshot 6: top, after Link and refresh, the visual tile is empty. Bottom, after reopening the app, the visual shows._
+
+h3. 2. Question: marker names in the photo editor are different on iOS and web
+* Same photo (FOTRIC0383), same markers, same readings. Web shows the camera's names Bx2, Sp2, El1, Sp1, Sp3, Sp4.
+* iOS shows numbers 1, 2, 3, 4, 5, 6. For example, web Sp1 78.8 is "4" on iOS (screenshot 5).
+* The iOS FLIR editor also uses numbers, so this looks like the iOS editor's design.
+* Question: should iOS and web use the same marker names (for example the camera's Sp1, Bx2)? If not, this part can be closed as by design.
+
+!QA-02Nov-iOS-IRgap-5-marker-names-ios-vs-web.png|width=640!
+_Screenshot 5: left iOS (markers 1 to 6), right web (Bx2, Sp2, El1, Sp1, Sp3, Sp4). Same photo, same values._
+
+h3. 3. Small: the name field hint shows a FLIR name on FOTRIC work orders
+* On the Edit IR Name sheet, when a name field is empty, the grey hint shows FLIR0041 and FLIR0041_visual, on FOTRIC-SEP and FOTRIC-IND work orders too.
+* FOTRIC files are named like FOTRIC0384, so on FOTRIC work orders the hint should show a FOTRIC name, for example FOTRIC0041 and FOTRIC0041_visual. Low priority, wording only.
+
+h3. Steps to reproduce
+# iOS 1.74, QA, company acme, SA login, site (s) Wild Goose Brewery. Work order [QA-DEMO ZP-5135 FLIR-SEP iOS 1.74 2 Nov|https://acme.qa.egalvanic.ai/sessions/96fdd76a-542f-45cf-bc92-569a00871bc4] (IR Photo Type FLIR-SEP). Start it.
+# Finding 1 (needs a FLIR camera or the DEBUG mock camera): put FLIR7422.jpg from the attached QA-03Nov-ZP-5156-repro-pack.zip on the camera. Assets tab, room Test, long press asset QA-DEMO ZP-4874 SEP asset 27 Oct, Add IR Photos. Type FLIR7421 + FLIR7422, Add IR Photo Pair, Save Changes. Open Add IR Photos again, FROM CAMERA, Browse Camera, tick only FLIR7422, Link 1 Photo(s). Open the IR tab and tap refresh: the tile is empty. Close and reopen the app: the picture shows. Full steps: HOW-TO-REPRODUCE.txt in the zip.
+# Finding 2: open FOTRIC0383 on [Job - Oct 30, 12:42 PM FOTRIC|https://acme.qa.egalvanic.ai/sessions/f94e1384-d488-42c4-8ad3-69bf5c39db4e] in Edit IR Photo on iOS and on web.
+# Finding 3: switch the work order IR Photo Type to FOTRIC-SEP, long press a photo, Edit IR Name, clear a field.
+
+h3. Test data
+* QA, company acme ([acme.qa.egalvanic.ai|https://acme.qa.egalvanic.ai]), SA login. iOS 1.74 (Debug-QA build) on an iPhone 17 simulator, 2 and 3 Nov 2026.
+* Work order (FLIR-SEP): [QA-DEMO ZP-5135 FLIR-SEP iOS 1.74 2 Nov|https://acme.qa.egalvanic.ai/sessions/96fdd76a-542f-45cf-bc92-569a00871bc4]. Asset QA-DEMO ZP-4874 SEP asset 27 Oct, room Test.
+* Photos: FLIR7393 + FLIR7394 and FLIR7395 + FLIR7396 (finding 1, 2 Nov), FLIR7411 + FLIR7412 (finding 1, 3 Nov re-test), FOTRIC0383 (finding 2). FLIR7421 + FLIR7422 are not used yet, so they are free for the developer.
+
+h3. Notes / For the developer
+* Attached QA-03Nov-ZP-5156-repro-pack.zip: the photo for the camera (photos-for-the-camera/FLIR7422.jpg, a visual saved the way a FLIR E96 saves it), HOW-TO-REPRODUCE.txt, and the 3 Nov screenshot.
+* With a real FLIR camera no file is needed: set it to thermal + visual and take one shot. It saves two files (for example FLIR0123 + FLIR0124). Type that pair first, then link only the second file.
+* On the simulator the FLIR imports used the DEBUG mock camera from PR #793 (EG_MOCK_FLIR_ROLL).
+* Possible cause, not confirmed: IRPhotoThumbnail keeps its "not found / load failed" state and resets it only when the cache key or the presigned URL changes. Linking a visual to a visual key that already exists keeps the same key, so the empty state from before the upload may stay until the app restarts.
+* A video of finding 1 was recorded on 2 Nov.
+* Android: not checked. The emulator has no FLIR camera or mock camera.

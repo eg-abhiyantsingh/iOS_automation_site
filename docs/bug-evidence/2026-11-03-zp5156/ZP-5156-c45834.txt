@@ -1,0 +1,17 @@
+h3. How to reproduce (for the developer)
+
+_Updated 3 Nov 2026 after a re-test on iOS 1.74._
+
+*Finding 1 (a visual linked from the camera shows only after reopening the app). Needs a FLIR camera or the DEBUG mock camera.*
+* Attached: QA-03Nov-ZP-5156-repro-pack.zip. Inside: photos-for-the-camera/FLIR7422.jpg, HOW-TO-REPRODUCE.txt and the 3 Nov screenshot.
+* Real FLIR camera, easiest: set it to thermal + visual and take one shot. It saves two files (for example FLIR0123 + FLIR0124). Use those two names below instead of FLIR7421 + FLIR7422.
+* Real FLIR camera with the attached photo: copy FLIR7422.jpg into the camera's photo folder over USB (not tried on a real camera yet).
+* Simulator, DEBUG build (MockFLIRCameraLink from PR #793): put FLIR7422.jpg in a folder in the app's Documents and launch with EG_MOCK_FLIR_ROLL set to that folder. The card shows "Mock FLIR E96, Connected".
+
+# Work order [QA-DEMO ZP-5135 FLIR-SEP iOS 1.74 2 Nov|https://acme.qa.egalvanic.ai/sessions/96fdd76a-542f-45cf-bc92-569a00871bc4], start it. Assets tab, room Test, long press asset QA-DEMO ZP-4874 SEP asset 27 Oct, Add IR Photos.
+# Type FLIR7421 + FLIR7422, Add IR Photo Pair, Save Changes.
+# Open Add IR Photos again, FROM CAMERA, Browse Camera, tick only FLIR7422, Link 1 Photo(s).
+# IR tab: the VIS tile of FLIR7421 / FLIR7422 is empty, also after the refresh button.
+# Close and reopen the app: the picture shows.
+
+*Findings 2 and 3 need no setup:* open FOTRIC0383 in Edit IR Photo on iOS and on web (finding 2), or open Edit IR Name on a FOTRIC work order and clear a name field (finding 3).
