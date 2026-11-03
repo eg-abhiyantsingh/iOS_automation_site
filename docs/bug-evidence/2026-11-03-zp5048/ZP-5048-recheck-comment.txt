@@ -1,0 +1,38 @@
+h3. QA re-check 3 Nov 2026: STILL REPRODUCES on iOS 1.74, on two sites
+iOS QA app 1.74 (Debug-QA build of 2 Nov) on the iPhone 17 simulator (iOS 26.2), QA, EG-ACME. 3 Nov 2026, 16:39 to 16:54 IST.
+
+*Steps (same on both sites)*
+# SLD tab › Views › pick the view.
+# Assets tab › open the asset › add " ZP-5048" to Asset Name › Save Changes › back to the SLD tab.
+# Views › pick the same view again. Then All Assets › the view.
+# Control: the SLD Refresh button on the view.
+# Put the asset name back.
+
+*Site 1: QA-DEMO ZP-4800 SLD canvas v2.4, view "QA-DEMO ZP-4816 view", asset QA PNL1 q*
+||Step||Assets / connections drawn||Bends on QA SWBD1 > QA CB2||QA CB1 > FDR-QA PNL1 hidden||Badge||
+|View opened|12 / 10|yes|yes|1|
+|After saving the asset name|131 / 60 (whole site)|gone|no, drawn|19|
+|Same view picked again|131 / 60|gone|no|19|
+|All Assets › view|12 / 10|yes|yes|1|
+|SLD Refresh (control)|12 / 10|yes|yes|1|
+
+!QA-03Nov-ZP-5048-site1-before-after.png|width=640!
+
+*Site 2: Android Site 2, view "new 1", asset Panelboard-2*
+||Step||Assets / connections drawn||Site assets that are not in the view||Badge||
+|View opened|11 / 5|0|1|
+|After saving the asset name|567 / 198 (whole site)|556|32|
+|Same view picked again|567 / 198|556|32|
+|All Assets › view|11 / 5|0|1|
+|SLD Refresh (control)|11 / 5|0|1|
+
+After the save, the view's own asset positions and connection routes are replaced by the site layout. The view has view-specific points on 5 of its 6 connections.
+
+!QA-03Nov-ZP-5048-site2-before-after.png|width=640!
+
+*Notes*
+* On both sites the app calls {{window.updateData}} right after Save with the whole site (131 / 60 and 567 / 198), and no connection has {{has_view_specific_points}}.
+* Both asset names were put back afterwards (checked on the web).
+* The asset in the description is now named "QA PNL1 q". Someone renamed it after 30 Oct, and I left it as I found it. The view also holds "QA-DEMO ZP-4884 CB child OK 2 Nov" now, so it draws 12 assets instead of 11.
+* Site 2: https://acme.qa.egalvanic.ai/sites/aadcee4c-7dd0-45b3-81b9-309c5c166084
+* Panelboard-2: https://acme.qa.egalvanic.ai/assets/6698f136-202a-4025-b1d2-314c51ece893
