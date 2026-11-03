@@ -1,0 +1,66 @@
+h3. Simple explanation
+This is the web twin of the tablet field-feedback UI ticket: ZP-5168 (Android) and ZP-5177 (iOS), from the 3 Nov 2026 meeting.
+I checked every part on the web: QA, EG-ACME, site "(s) Wild Goose Brewery", 3 Nov 2026, 17:55 to 18:10 IST.
+Only two parts are missing on the web. The other parts already work there (see the table below).
+
+h3. Part 1. QR code number beside the asset name in pickers
+*Now:*
+* Asset lists already have a QR Code column: the Assets page and the work order's Assets tab.
+* The pickers show only the name and the class.
+* Example: Work order › Actions › Add New Asset › Link Existing Assets.
+** "QA-DEMO ZP-4874 SEP asset 27 Oct" has the QR code QA4956-6237.
+** The picker shows only "QA-DEMO ZP-4874 SEP asset 27 Oct / Panelboard".
+** The same picker lists two rows named "Capacitor 1", and nothing tells them apart.
+
+*Expected:*
+* Wherever an asset is picked, show its QR number in brackets after the name, for example *Main Breaker (90505)*.
+* This covers these pickers:
+** Link Existing Assets (work order);
+** Link Existing Node (asset › OCP section);
+** connection source and target;
+** parent pickers.
+* No brackets when the asset has no QR code.
+
+!QA-03Nov-WEB-FF-1-picker-no-qr-beside-names.png|width=640!
+
+h3. Part 2. Quick Add child names use the parent's initials
+*Now:*
+* Edit Asset › OCP › + › Create New Child opens "Quick Add Child Assets", which says "Names will be auto-generated".
+* The names are the class name plus the next number: Circuit Breaker 1, Circuit Breaker 2, Circuit Breaker 3.
+
+*Expected* (same rule as ZP-5168 part 4, so the three apps name children the same way):
+* The suggested name uses the parent's initials as a prefix:
+** parent "Main Distribution Panel" › MDP-1, MDP-2;
+** parent "Motor Control Center" › MCC-1.
+* The prefix can be changed before Add.
+* A suggested name never repeats an existing name under the same parent; the next free number is used.
+
+*To confirm with product:* should renaming the parent later rename its children? (Suggested: no.)
+
+!QA-03Nov-WEB-FF-2-quick-add-child-class-names-no-qr.png|width=640!
+
+h3. Checked on the web: no change needed
+||Android / iOS part||Web today||
+|Keyboard Next / Tab to the next field|Tab already moves Asset Name › QR Code › Asset Class, in screen order|
+|Section links on Create Asset|Add Asset has All, Basic Info, Engineering, Condition, Notes|
+|Copy From inside a work order|Work order › Actions › Add New Asset › ⋮ › Copy Details From…|
+|Infrared Service on the asset page|Asset page › Maintenance › Infrared. The Edit Asset panel also has an Infrared section|
+|Detail View / View SLD keeps the work order|The asset opens in a side panel over the work order. Open in SLD opens a new browser tab|
+|Duplicate button on the list|The web has no Duplicate at all. This is covered by the linked web duplicate ticket|
+
+h3. QA checks after the change
+# Link Existing Assets: an asset with a QR code shows "Name (QR)"; an asset without one shows just the name.
+# Quick Add 3 Circuit Breakers under "Main Distribution Panel" gives MDP-1, MDP-2, MDP-3.
+# Doing it again gives MDP-4 onwards. Editing the prefix before Add works.
+# Android, iOS and web give the same names for the same parent.
+
+h3. Test data
+* QA web: https://acme.qa.egalvanic.ai (company EG-ACME), site "(s) Wild Goose Brewery".
+* Work order "Job - Nov 2, 6:28 PM": asset QA-DEMO ZP-4874 SEP asset 27 Oct, QR QA4956-6237.
+* Work order "Work Order - Nov 3, 5:15 PM": used for the Link Existing Assets picker.
+* Nothing was created or changed while checking: every form was cancelled.
+
+h3. Notes
+* Source: field-feedback meeting, 3 Nov 2026. The meeting marked Web "Yes" for the QR, duplicate and naming changes.
+* Twins: ZP-5168 (Android), ZP-5177 (iOS).
+* Related: ZP-4668 (Web QR start number).

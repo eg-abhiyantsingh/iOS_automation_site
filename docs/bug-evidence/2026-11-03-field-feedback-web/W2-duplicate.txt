@@ -1,0 +1,66 @@
+h3. Simple explanation
+This is the web twin of ZP-5170 (Android) and ZP-5178 (iOS). It was the most important request in the 3 Nov 2026 field-feedback meeting.
+
+A data centre can have 50 or more nearly identical distribution panels, each with the same breakers inside.
+Users want to set up one panel once, then duplicate it *together with all its children* in one action.
+
+Every copy must be a new, independent asset:
+* a new name;
+* a new QR code, or an empty one;
+* an empty serial number;
+* a new id.
+
+The original panel and its children must not change.
+*The web has no Duplicate for assets today.*
+
+h3. Checked on the web (3 Nov 2026, QA, EG-ACME)
+* Asset page › ⋮ menu: Edit Asset, Show Tasks, Change history, Delete Asset. *No Duplicate.*
+* Assets › Bulk Ops › select a row: Edit, Edit Core Attributes, Condition, Shutdown rules, Apply PM Plans, Classify, Delete. *No Duplicate.*
+* The web code has no asset duplicate action. "Duplicate" appears only for connections in the SLD and for rows in issue suggestions.
+
+!QA-03Nov-WEB-FF-3-asset-menu-no-duplicate.png|width=640!
+!QA-03Nov-WEB-FF-4-bulk-actions-no-duplicate.png|width=640!
+
+h3. Example
+* Before: Distribution Panel 1 › Main Disconnect, Circuit Breaker 1, Circuit Breaker 2, Circuit Breaker 3.
+* After Duplicate: *Distribution Panel 2* › Main Disconnect, Circuit Breaker 1, Circuit Breaker 2, Circuit Breaker 3.
+* All of these are new assets under the new panel.
+
+h3. What the copy gets (same as ZP-5170)
+||Field||On the copy||
+|Manufacturer, model, voltage, ratings, other technical details|Copied|
+|Name|New unique name (naming rule in the linked web UI ticket, part 2)|
+|Serial number|*Empty*, never copied|
+|QR code|Not copied: empty, or a new unique code (linked web QR ticket)|
+|Database id|New|
+|Children (and grandchildren)|Copied with the same parent and child structure, at every level, keeping Lineside / Loadside|
+
+h3. Expected result
+* A Duplicate action, one asset at a time:
+** in the asset page ⋮ menu;
+** on the asset row in the Assets list.
+* Duplicating a parent copies the parent and all its children, at every level, with the same structure.
+* Each copy gets a new id and a unique name. The serial number is empty and the QR code is not copied.
+* Afterwards, the web shows the new asset with its children, so the user can enter the QR codes.
+* The original tree is unchanged.
+* Each copy can be edited on its own and shows up on Android, iOS and the SLD.
+
+h3. QA checks after the change
+# A parent with 1 child, with 5 children, and with 3 levels.
+# Children on both Lineside and Loadside.
+# The original has QR codes and serial numbers. The copies have neither, and the original keeps both.
+# The copies appear on Android and iOS with the same structure, and on the SLD.
+# The meeting asked for duplicate, QR codes and naming to be tested together end to end.
+
+h3. To confirm with product
+* Always copy the whole tree, or ask "Include children?"
+* Do the copies go into the same location as the original?
+* Are SLD connections and positions copied?
+
+h3. Test data
+* QA web: https://acme.qa.egalvanic.ai (company EG-ACME), site "(s) Wild Goose Brewery".
+* Any panel with child OCPs.
+
+h3. Notes
+* Source: field-feedback meeting, 3 Nov 2026 (requirements 6, 8 and 9).
+* Twins: ZP-5170 (Android), ZP-5178 (iOS).

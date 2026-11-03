@@ -1,0 +1,60 @@
+h3. Simple explanation
+This is the web twin of ZP-5171 (Android) and ZP-5179 (iOS).
+
+When users add several child assets (Lineside / Load Side OCPs), they want to give each one its QR code while creating it.
+When several are created at once, the web should:
+* fill in numbers in order (1000, 1001, 1002 …) from a start number they choose;
+* never give the same number twice.
+
+This lets technicians build the asset structure ahead of time and stick the physical labels on at the site.
+
+h3. Checked on the web (3 Nov 2026, QA, EG-ACME)
+* Edit Asset › OCP › + › Create New Child opens "Quick Add Child Assets".
+** It has only Connection side, Asset Class, Subtype and Qty (1 to 50).
+** *There is no QR field per child and no start number.*
+* Single Add Asset has a QR Code field.
+* The Edit QR codes dialog already has a Start number (ZP-4668).
+* So today this takes 2 steps: create the children, then select them and fill their codes in Edit QR codes.
+
+!QA-03Nov-WEB-FF-2-quick-add-child-class-names-no-qr.png|width=640!
+
+h3. Example
+5 new Circuit Breakers with start number 1000:
+* Circuit Breaker 1 (1000)
+* Circuit Breaker 2 (1001)
+* Circuit Breaker 3 (1002)
+* Circuit Breaker 4 (1003)
+* Circuit Breaker 5 (1004)
+
+h3. Expected result
+# Quick Add Child Assets has a QR field for each new child (type or scan), shown before Add.
+# A *Start number* option fills the empty QR fields in order.
+#* Padding follows what the user types, as in ZP-4668: 001 › 001, 002 …
+#* A number already used in the company is not given out again.
+#* Product to confirm: skip that number, or warn before save as the Edit QR codes dialog does.
+# A number already in use is refused with a clear message.
+#* This must also hold when two users create at the same time, so the server must check.
+# The QR number shows next to each name (linked web UI ticket, part 1).
+#* It is still correct after saving and reopening.
+#* Scanning the label in the mobile app opens the right asset.
+# The duplicate flow behaves the same way (linked web duplicate ticket).
+
+h3. QA checks after the change
+# 5 Circuit Breakers from start 1000 › 1000 to 1004.
+# 1002 is already used › 1000, 1001, 1003, 1004, 1005 (or a warning, as product decides).
+# Two browsers create at the same time › no duplicate numbers.
+# The codes show on Android and iOS. Scanning each label opens the right asset.
+
+h3. To confirm with product
+* Is a QR code unique per company or per site?
+* Do users scan pre-printed labels, or generate the numbers and print the labels afterwards?
+
+h3. Test data
+* QA web: https://acme.qa.egalvanic.ai (company EG-ACME).
+* Work order "Job - Nov 2, 6:28 PM" › asset QA-DEMO ZP-4874 SEP asset 27 Oct › OCP.
+* Nothing was added while checking.
+
+h3. Notes
+* Source: field-feedback meeting, 3 Nov 2026 (requirements 3, 4 and the QR part of 5).
+* Twins: ZP-5171 (Android), ZP-5179 (iOS).
+* Related: ZP-4668 (Web Edit QR codes start number), ZP-4991 (search by QR code).
