@@ -41,4 +41,4 @@ No change made. A ready comment (wiki markup, 2 tables, 2 before/after images) i
 - `QA-03Nov-ZP-5048-site1-before-after.png` and `QA-03Nov-ZP-5048-site2-before-after.png`: before is green, after is red.
 - `site1-zp4800/`: 7 shots.
 - `site2-android-site-2/`: 6 zoomed shots plus 5 "-whole" shots in the app's own framing.
-- `scripts/`: the run scripts for the web repo's `.playwright-mcp/ios170/iosrun.sh` lane A runner, plus both run logs.
+- `scripts/`: the run scripts for the web repo's `.playwright-mcp/ios170/iosrun.sh` lane A runner, (the two run logs, `scripts/site1-run.log` and `site2-run.log`, stay local because git ignores `*.log`).
