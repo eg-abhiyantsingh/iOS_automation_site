@@ -1,0 +1,187 @@
+{
+ "title": "ZP-5048 · iOS 1.74 (QA) · site QA-DEMO ZP-4800 SLD canvas v2.4 · view \"QA-DEMO ZP-4816 view\" · 3 Nov 2026",
+ "W": 590,
+ "H": 1282,
+ "band": 200,
+ "ptW": 402,
+ "ptH": 874,
+ "segments": [
+  {
+   "a": 0,
+   "b": 15,
+   "step": "Setup: app is on the site's home screen. Next: open the SLD tab.",
+   "result": ""
+  },
+  {
+   "a": 15,
+   "b": 39.5,
+   "step": "Step 1: SLD tab › Views › open \"QA-DEMO ZP-4816 view\"",
+   "result": ""
+  },
+  {
+   "a": 39.5,
+   "b": 48,
+   "step": "Step 1 result",
+   "result": "CORRECT: only the view's 12 assets, the 2 bends, QA CB1 > FDR-QA PNL1 hidden (stubs), badge 1",
+   "color": "green",
+   "boxes": [
+    {
+     "x": 340,
+     "y": 113,
+     "w": 54,
+     "h": 38,
+     "label": "badge 1"
+    },
+    {
+     "x": 298,
+     "y": 336,
+     "w": 30,
+     "h": 82,
+     "label": "bends"
+    },
+    {
+     "x": 46,
+     "y": 494,
+     "w": 140,
+     "h": 28,
+     "label": "hidden connection"
+    }
+   ]
+  },
+  {
+   "a": 48,
+   "b": 93.5,
+   "step": "Step 2: Assets › QA PNL1 q › rename to \"QA PNL1 q ZP-5048\" › Save Changes",
+   "result": ""
+  },
+  {
+   "a": 93.5,
+   "b": 99.5,
+   "step": "Step 3: back to the SLD tab (the view is still open)",
+   "result": "BUG: same view title, but the WHOLE SITE is drawn (131 assets / 60 connections). Bends gone, hidden connection drawn, badge 19",
+   "color": "red"
+  },
+  {
+   "a": 99.5,
+   "b": 110.25,
+   "step": "Step 3 result",
+   "result": "BUG: same view title, but the WHOLE SITE is drawn (131 assets / 60 connections). Bends gone, hidden connection drawn, badge 19",
+   "color": "red",
+   "boxes": [
+    {
+     "x": 334,
+     "y": 112,
+     "w": 60,
+     "h": 40,
+     "label": "badge 19"
+    },
+    {
+     "x": 146,
+     "y": 102,
+     "w": 148,
+     "h": 50,
+     "label": "not in this view"
+    },
+    {
+     "x": 252,
+     "y": 421,
+     "w": 148,
+     "h": 55,
+     "label": "not in this view"
+    },
+    {
+     "x": 163,
+     "y": 662,
+     "w": 149,
+     "h": 52,
+     "label": "not in this view"
+    }
+   ]
+  },
+  {
+   "a": 110.25,
+   "b": 126.5,
+   "step": "Step 4: Views › pick the same view again",
+   "result": ""
+  },
+  {
+   "a": 126.5,
+   "b": 134.75,
+   "step": "Step 4 result",
+   "result": "STILL BUG: picking the view again does not fix it (131 assets, badge 19)",
+   "color": "red",
+   "boxes": [
+    {
+     "x": 334,
+     "y": 112,
+     "w": 60,
+     "h": 40,
+     "label": "badge 19"
+    },
+    {
+     "x": 146,
+     "y": 102,
+     "w": 148,
+     "h": 50,
+     "label": "not in this view"
+    },
+    {
+     "x": 252,
+     "y": 421,
+     "w": 148,
+     "h": 55,
+     "label": "not in this view"
+    },
+    {
+     "x": 163,
+     "y": 662,
+     "w": 149,
+     "h": 52,
+     "label": "not in this view"
+    }
+   ]
+  },
+  {
+   "a": 134.75,
+   "b": 159.5,
+   "step": "Step 5 (workaround): Views › All Assets, then open the view again",
+   "result": ""
+  },
+  {
+   "a": 159.5,
+   "b": 167.75,
+   "step": "Step 5 result",
+   "result": "Correct again: 12 assets, bends and hidden connection back, badge 1",
+   "color": "green",
+   "boxes": [
+    {
+     "x": 340,
+     "y": 113,
+     "w": 54,
+     "h": 38,
+     "label": "badge 1"
+    },
+    {
+     "x": 298,
+     "y": 336,
+     "w": 30,
+     "h": 82,
+     "label": "bends"
+    },
+    {
+     "x": 46,
+     "y": 494,
+     "w": 140,
+     "h": 28,
+     "label": "hidden connection"
+    }
+   ]
+  },
+  {
+   "a": 167.75,
+   "b": 240,
+   "step": "Cleanup: asset name set back to \"QA PNL1 q\"",
+   "result": ""
+  }
+ ]
+}
