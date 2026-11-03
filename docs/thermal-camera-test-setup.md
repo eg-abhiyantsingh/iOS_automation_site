@@ -48,6 +48,11 @@ python3 -I scripts/flir_mock_roll.py info /tmp/flir-roll/*.jpg
 | FLIR7377 | thermal only | IR-only row |
 | FLIR7380 | visual, no IR waiting | skipped with a note |
 
+One visual with any name (for example the visual key of a pair typed in the app, ZP-5156 finding 2):
+```
+python3 -I scripts/flir_mock_roll.py visual "<Z Platform-QA.app>/FLIRDemoRadiometric.jpg" /tmp/flir-roll/FLIR7422.jpg
+```
+
 The visual files carry a FLIR APP1 but no RawData record, which is exactly what the E96 writes. Before 1.74 they were imported as extra "IR: FLIR7374" rows: the customer's duplicates and "calls visual photos IR" (ZP-5135).
 
 **Launch with the roll.** Copy the folder into the app's data container, because the app sandbox reads it from there:

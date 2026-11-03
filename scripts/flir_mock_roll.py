@@ -11,6 +11,7 @@ camera's embedded visual photo + the thermal file's FLIR APP1 with the RawData r
 Usage
   python3 -I scripts/flir_mock_roll.py info  <jpg> [...]          # record types, thermal yes/no
   python3 -I scripts/flir_mock_roll.py roll  <thermal.jpg> <outdir>  # FLIR7373..7380 roll (see ROLL)
+  python3 -I scripts/flir_mock_roll.py visual <thermal.jpg> <out.jpg>  # one visual, any name (e.g. FLIR7412.jpg)
 The thermal source can be the FLIRDemoRadiometric.jpg shipped inside every Z Platform-QA.app.
 
 Then launch a DEBUG build with the roll as its mock camera (MockFLIRCameraLink):
@@ -137,5 +138,9 @@ if __name__ == '__main__':
             print(os.path.basename(p), '->', info(p))
     elif sys.argv[1] == 'roll':
         roll(sys.argv[2], sys.argv[3])
+    elif sys.argv[1] == 'visual':
+        # One E96-style visual with any name, e.g. the visual key of a pair typed in the app (ZP-5156 finding 2).
+        open(sys.argv[3], 'wb').write(visual_from(open(sys.argv[2], 'rb').read()))
+        print(os.path.basename(sys.argv[3]), '->', info(sys.argv[3]))
     else:
         raise SystemExit(__doc__)
