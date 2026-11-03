@@ -1,0 +1,179 @@
+{
+ "title": "ZP-5156 · iOS 1.74 (Debug-QA) on simulator · mock FLIR E96 camera (EG_MOCK_FLIR_ROLL) · 3 Nov 2026",
+ "W": 590,
+ "H": 1282,
+ "band": 210,
+ "ptW": 402,
+ "ptH": 874,
+ "segments": [
+  {
+   "a": 0,
+   "b": 6.7,
+   "step": "Setup: QA, EG-ACME, site (s) Wild Goose Brewery. DEBUG build started with EG_MOCK_FLIR_ROLL (folder with visual FLIR7442.jpg)"
+  },
+  {
+   "a": 6.7,
+   "b": 49.7,
+   "step": "Step 1: Work Orders › \"QA-DEMO ZP-5135 FLIR-SEP iOS 1.74 2 Nov\" (IR Photo Type FLIR-SEP) › Start Work Order"
+  },
+  {
+   "a": 49.7,
+   "b": 106.7,
+   "step": "Step 2: Assets › room Test › long-press \"QA-DEMO ZP-4874 SEP asset 27 Oct\" › Add IR Photos. The camera card shows Mock FLIR E96 · Connected"
+  },
+  {
+   "a": 106.7,
+   "b": 144.7,
+   "step": "Step 3: Infrared: type FLIR7441 (IR) and FLIR7442 (visual), then the keyboard tick (= Add IR Photo Pair)"
+  },
+  {
+   "a": 144.7,
+   "b": 166.7,
+   "step": "Step 3: \"1 added\". Save Changes. (The fields only pre-fill the next names FLIR7443 / 7444.)"
+  },
+  {
+   "a": 166.7,
+   "b": 174,
+   "step": "Step 4: open the work order IR tab BEFORE linking the visual"
+  },
+  {
+   "a": 174,
+   "b": 195.7,
+   "step": "Step 4: IR tab before linking",
+   "color": "black",
+   "result": "Row FLIR7441 / FLIR7442: VIS has no picture yet. Expected: nothing is linked yet",
+   "boxes": [
+    {
+     "x": 84,
+     "y": 252,
+     "w": 70,
+     "h": 84,
+     "label": "not linked yet",
+     "color": "black"
+    }
+   ]
+  },
+  {
+   "a": 195.7,
+   "b": 256.7,
+   "step": "Step 5: Assets › long-press the asset › Add IR Photos › FROM CAMERA › Browse Camera (the roll lists FLIR7442)"
+  },
+  {
+   "a": 256.7,
+   "b": 275,
+   "step": "Step 5: tick ONLY FLIR7442 › Link 1 Photo(s)"
+  },
+  {
+   "a": 275,
+   "b": 323.7,
+   "step": "Step 6: the sheet right after Link",
+   "color": "red",
+   "result": "BUG: row FLIR7441 / FLIR7442 still shows NO visual picture",
+   "boxes": [
+    {
+     "x": 108,
+     "y": 404,
+     "w": 72,
+     "h": 66,
+     "label": "VIS FLIR7442 empty"
+    }
+   ]
+  },
+  {
+   "a": 323.7,
+   "b": 345,
+   "step": "Step 7: Close › work order IR tab"
+  },
+  {
+   "a": 345,
+   "b": 366.7,
+   "step": "Step 7: IR tab after Link",
+   "color": "red",
+   "result": "BUG: VIS FLIR7442 still has NO picture",
+   "boxes": [
+    {
+     "x": 84,
+     "y": 252,
+     "w": 70,
+     "h": 84,
+     "label": "VIS FLIR7442 empty"
+    }
+   ]
+  },
+  {
+   "a": 366.7,
+   "b": 425.7,
+   "step": "Step 7: tap Refresh (top right). The app syncs",
+   "color": "red",
+   "result": "BUG: still NO picture after Refresh",
+   "boxes": [
+    {
+     "x": 84,
+     "y": 252,
+     "w": 70,
+     "h": 84,
+     "label": "still empty"
+    }
+   ]
+  },
+  {
+   "a": 425.7,
+   "b": 445.7,
+   "step": "Step 7: sync finished",
+   "color": "red",
+   "result": "BUG: still NO picture",
+   "boxes": [
+    {
+     "x": 84,
+     "y": 252,
+     "w": 70,
+     "h": 84,
+     "label": "still empty"
+    }
+   ]
+  },
+  {
+   "a": 445.7,
+   "b": 510.7,
+   "step": "Step 7: wait, tap Refresh again (4 minutes after Link)",
+   "color": "red",
+   "result": "BUG: still NO picture",
+   "boxes": [
+    {
+     "x": 84,
+     "y": 252,
+     "w": 70,
+     "h": 84,
+     "label": "still empty"
+    }
+   ]
+  },
+  {
+   "a": 510.7,
+   "b": 544.7,
+   "step": "Step 8: close the app completely and open it again"
+  },
+  {
+   "a": 544.7,
+   "b": 572,
+   "step": "Step 8: Work Orders › the same work order › IR tab"
+  },
+  {
+   "a": 572,
+   "b": 600,
+   "step": "Step 8 result",
+   "color": "green",
+   "result": "Only after reopening the app: VIS FLIR7442 shows the picture. Expected: it shows right after Link (step 6)",
+   "boxes": [
+    {
+     "x": 84,
+     "y": 252,
+     "w": 70,
+     "h": 84,
+     "label": "picture shows now",
+     "color": "green"
+    }
+   ]
+  }
+ ]
+}

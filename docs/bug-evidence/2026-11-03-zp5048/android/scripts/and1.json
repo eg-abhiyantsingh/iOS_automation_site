@@ -1,0 +1,137 @@
+{
+ "title": "ZP-5048 · Android 1.38.1 (52) QA · site QA-DEMO ZP-4800 · view \"QA-DEMO ZP-4816 view\" · 3 Nov 2026",
+ "W": 590,
+ "H": 1312,
+ "band": 200,
+ "ptW": 1080,
+ "ptH": 2400,
+ "segments": [
+  {
+   "a": 0,
+   "b": 15.7,
+   "step": "Setup: Android SLD tab, All Assets. On Android a view opens as a full screen, so the asset is edited from inside the view."
+  },
+  {
+   "a": 15.7,
+   "b": 75,
+   "step": "Step 1: SLD › Views › open \"QA-DEMO ZP-4816 view\""
+  },
+  {
+   "a": 75,
+   "b": 84.7,
+   "step": "Step 1 result",
+   "color": "green",
+   "result": "View only: 12 assets, the 2 bends, QA CB1 > FDR-QA PNL1 hidden (stubs), badge 1",
+   "boxes": [
+    {
+     "x": 925,
+     "y": 322,
+     "w": 140,
+     "h": 88,
+     "label": "badge 1"
+    },
+    {
+     "x": 805,
+     "y": 920,
+     "w": 75,
+     "h": 215,
+     "label": "bends"
+    },
+    {
+     "x": 125,
+     "y": 1345,
+     "w": 380,
+     "h": 65,
+     "label": "hidden connection"
+    }
+   ]
+  },
+  {
+   "a": 84.7,
+   "b": 120.7,
+   "step": "Step 2: long-press QA PNL1 q › Edit › Asset Name \"QA PNL1 q ZP-5048\" › Save Changes"
+  },
+  {
+   "a": 120.7,
+   "b": 154,
+   "step": "Step 3: back on the view after Save"
+  },
+  {
+   "a": 154,
+   "b": 167.7,
+   "step": "Step 3 result",
+   "color": "green",
+   "result": "NOT PRESENT on Android: still the view (12 assets), bends and hidden connection kept, badge 1. The app sent only the view's data (10 nodes / 8 edges)",
+   "boxes": [
+    {
+     "x": 925,
+     "y": 322,
+     "w": 140,
+     "h": 88,
+     "label": "badge 1"
+    },
+    {
+     "x": 805,
+     "y": 920,
+     "w": 75,
+     "h": 215,
+     "label": "bends kept"
+    },
+    {
+     "x": 125,
+     "y": 1345,
+     "w": 380,
+     "h": 65,
+     "label": "still hidden"
+    },
+    {
+     "x": 480,
+     "y": 1670,
+     "w": 360,
+     "h": 70,
+     "label": "new name"
+    }
+   ]
+  },
+  {
+   "a": 167.7,
+   "b": 206,
+   "step": "Step 4 (control): SLD Refresh"
+  },
+  {
+   "a": 206,
+   "b": 214.7,
+   "step": "Step 4 result",
+   "color": "green",
+   "result": "Still correct after Refresh: 12 assets, bends, hidden connection, badge 1",
+   "boxes": [
+    {
+     "x": 925,
+     "y": 322,
+     "w": 140,
+     "h": 88,
+     "label": "badge 1"
+    },
+    {
+     "x": 805,
+     "y": 920,
+     "w": 75,
+     "h": 215,
+     "label": "bends"
+    },
+    {
+     "x": 125,
+     "y": 1345,
+     "w": 380,
+     "h": 65,
+     "label": "hidden connection"
+    }
+   ]
+  },
+  {
+   "a": 214.7,
+   "b": 280,
+   "step": "Cleanup: asset name set back to \"QA PNL1 q\""
+  }
+ ]
+}

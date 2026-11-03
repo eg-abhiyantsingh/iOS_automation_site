@@ -1,0 +1,97 @@
+{
+ "title": "ZP-5048 · Android 1.38.1 (52) QA · site Android Site 2 · view \"new 1\" · 3 Nov 2026",
+ "W": 590,
+ "H": 1312,
+ "band": 200,
+ "ptW": 1080,
+ "ptH": 2400,
+ "segments": [
+  {
+   "a": 0,
+   "b": 59,
+   "step": "Step 1: SLD › Views › open \"new 1\""
+  },
+  {
+   "a": 59,
+   "b": 69.5,
+   "step": "Step 1 result",
+   "color": "green",
+   "result": "View only: 11 assets / 5 connections, badge 1",
+   "boxes": [
+    {
+     "x": 925,
+     "y": 322,
+     "w": 140,
+     "h": 88,
+     "label": "badge 1"
+    },
+    {
+     "x": 365,
+     "y": 800,
+     "w": 355,
+     "h": 125,
+     "label": "Panelboard-2"
+    }
+   ]
+  },
+  {
+   "a": 69.5,
+   "b": 103.5,
+   "step": "Step 2: long-press Panelboard-2 › Edit › Asset Name \"Panelboard-2 ZP-5048\" › Save Changes"
+  },
+  {
+   "a": 103.5,
+   "b": 137,
+   "step": "Step 3: back on the view after Save"
+  },
+  {
+   "a": 137,
+   "b": 149.5,
+   "step": "Step 3 result",
+   "color": "green",
+   "result": "NOT PRESENT on Android: still the view (11 assets), badge 1. The app sent only the view's data (11 nodes / 5 edges, view points on 5)",
+   "boxes": [
+    {
+     "x": 925,
+     "y": 322,
+     "w": 140,
+     "h": 88,
+     "label": "badge 1"
+    },
+    {
+     "x": 365,
+     "y": 800,
+     "w": 355,
+     "h": 125,
+     "label": "renamed in place"
+    }
+   ]
+  },
+  {
+   "a": 149.5,
+   "b": 188,
+   "step": "Step 4 (control): SLD Refresh"
+  },
+  {
+   "a": 188,
+   "b": 196.5,
+   "step": "Step 4 result",
+   "color": "green",
+   "result": "Still correct after Refresh: 11 assets, badge 1",
+   "boxes": [
+    {
+     "x": 925,
+     "y": 322,
+     "w": 140,
+     "h": 88,
+     "label": "badge 1"
+    }
+   ]
+  },
+  {
+   "a": 196.5,
+   "b": 260,
+   "step": "Cleanup: asset name set back to \"Panelboard-2\""
+  }
+ ]
+}

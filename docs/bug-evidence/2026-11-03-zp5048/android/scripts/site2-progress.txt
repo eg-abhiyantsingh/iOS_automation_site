@@ -1,0 +1,10 @@
+19:02:08 IST  Step 1: SLD tab > Views > "new 1"
+19:03:09 IST  Step 1 result (CORRECT): 11 assets / 5 connections drawn, badge 1
+19:03:17 IST  Step 2: long-press Panelboard-2 > Edit > Asset Name "Panelboard-2 ZP-5048" > Save Changes
+19:03:51 IST  Step 2: saved, back on: new 1 | Back | Views | Refresh | Read Only | Platform Platfo
+19:04:27 IST  Step 3 result (NO BUG): 11 assets / 5 connections drawn, badge 1. updateData calls: [{"t":1793712828761,"nodes":11,"edges":5,"vsp":5}]
+19:04:37 IST  Step 4: SLD Refresh (control)
+19:05:18 IST  Step 4 result: 11 assets / 5 connections drawn, badge 1
+19:05:24 IST  Cleanup: rename back to "Panelboard-2"
+19:06:14 IST  Cleanup done: 11 assets / 5 connections drawn
+19:06:14 IST  DONE

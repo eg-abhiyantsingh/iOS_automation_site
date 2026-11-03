@@ -1,0 +1,62 @@
+ZP-5156: a visual linked from the FLIR camera shows only after the app is reopened
+Version 2 (3 Nov 2026, 19:50 IST). Re-tested and screen-recorded on iOS 1.74 (Debug-QA build of 2 Nov 2026),
+3 Nov 2026, 19:34-19:44 IST. Reproduced. Video on the ticket: QA-03Nov-ZP-5156-ios-video.mp4
+
+PHOTO IN THIS PACK
+  photos-for-the-camera/FLIR7422.jpg
+  A VISUAL photo, saved the way a FLIR E96 saves it in "thermal + visual" mode
+  (a normal photo plus a FLIR data block with no thermal data). The picture is a FLIR mug.
+  Its file name only has to match the visual name you type in step 3.
+
+WHERE THE PHOTO MUST BE
+  A) Real FLIR camera (E96 or similar)
+     Copy FLIR7422.jpg onto the camera, so that it is listed under
+     Add IR Photos > FROM CAMERA > Browse Camera.
+     You don't need any file if you take one photo with the camera set to thermal + visual.
+     It saves two files, for example FLIR0123 (thermal) and FLIR0124 (visual).
+     Then type FLIR0123 + FLIR0124 in step 3, and tick only FLIR0124 in step 5.
+  B) Simulator, DEBUG build only (mock camera from PR #793)
+     Put FLIR7422.jpg in a folder in the app's Documents.
+     Launch the app with EG_MOCK_FLIR_ROLL=<that folder>.
+     The camera card inside Add IR Photos then shows "Mock FLIR E96 · Connected".
+     The work order's Details card still says "FLIR Camera, Not Connected"; that is normal for the mock.
+
+STEPS
+  1. QA, company acme, site (s) Wild Goose Brewery.
+     Open work order "QA-DEMO ZP-5135 FLIR-SEP iOS 1.74 2 Nov" and start it.
+     Check that Details > IR Photo Type is FLIR-SEP. The steps for finding 3 switch it to FOTRIC-SEP,
+     so set it back to FLIR-SEP if needed, then reopen the app.
+  2. Assets tab > room Test > long-press asset "QA-DEMO ZP-4874 SEP asset 27 Oct" > Add IR Photos.
+  3. Under Infrared, type FLIR7421 in the first field and FLIR7422 in the second.
+     Tap Add IR Photo Pair, or the keyboard's tick key. Do only one of the two: each one adds a pair.
+     The sheet says "1 added". Tap Save Changes.
+  4. IMPORTANT: open the work order's IR tab once now.
+     The new row FLIR7421 / FLIR7422 shows an empty VIS tile. That is expected, because nothing is linked yet.
+  5. Go back to the Assets tab > long-press the same asset > Add IR Photos > FROM CAMERA > Browse Camera.
+     Tick ONLY FLIR7422 > Link 1 Photo(s).
+  6. BUG: in the sheet, the row FLIR7421 / FLIR7422 still has no visual picture.
+     Close the sheet > IR tab: the VIS tile FLIR7422 is still empty.
+     Tap Refresh (top right), wait for the sync, then Refresh again: it is still empty.
+  7. Close the app completely and open it again. Open the work order > IR tab:
+     the VIS tile FLIR7422 now shows the picture.
+
+EXPECTED
+  The picture shows right after Link (step 6), in the sheet and on the IR tab.
+
+NOTE
+  A screen that is first opened AFTER the Link already shows the picture.
+  For example, if you skip step 4, the IR tab looks fine; only the sheet that was open stays empty.
+  Opening a new Add IR Photos sheet also shows it.
+  So only a screen that already showed the row before the Link stays empty, until the app is reopened.
+  Possible cause (not confirmed): IRPhotoThumbnail keeps its "not found" state while the cache key stays the same.
+
+WHAT WE SAW
+  3 Nov, 12:14-12:25 IST: pair FLIR7411 + FLIR7412. Empty after 2 Refreshes, shown after reopening the app.
+  3 Nov, 19:34-19:44 IST (the video): pair FLIR7441 + FLIR7442.
+    Linked at 19:38. Empty in the sheet, and on the IR tab after Refreshes at 19:40 and 19:41.
+    Shown after reopening the app at 19:43.
+  Pairs used on that work order so far: FLIR7411/7412, FLIR7431/7432, FLIR7441/7442.
+  FLIR7421 + FLIR7422 is still free for you.
+
+MAKE MORE VISUAL FILES WITH OTHER NAMES (iOS automation repo)
+  python3 -I scripts/flir_mock_roll.py visual "<Z Platform-QA.app>/FLIRDemoRadiometric.jpg" FLIR7432.jpg

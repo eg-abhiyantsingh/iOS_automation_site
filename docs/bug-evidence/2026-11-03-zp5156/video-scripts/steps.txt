@@ -1,0 +1,19 @@
+19:34:07 S0 Home: site (s) Wild Goose Brewery. App launched with the DEBUG mock FLIR camera
+19:34:11 S1 Work Orders › QA-DEMO ZP-5135 FLIR-SEP iOS 1.74 2 Nov › Start Work Order
+19:34:54 S2 Assets tab › room Test › long-press QA-DEMO ZP-4874 SEP asset 27 Oct › Add IR Photos
+19:35:51 S3 Infrared: type FLIR7441 (IR) and FLIR7442 (visual), press the keyboard tick (= Add IR Photo Pair)
+19:36:29 S3b 1 added (FLIR7441 + FLIR7442). The fields now only suggest FLIR7443/7444. Save Changes
+19:36:51 S4 Work order IR tab BEFORE linking: the new row shows VIS FLIR7442 with no picture (expected, nothing linked yet)
+19:37:20 S5 Assets tab › long-press the asset › Add IR Photos › FROM CAMERA › Browse Camera
+19:38:21 S6 Tick only FLIR7442 › Link 1 Photo(s)
+19:39:23 S7 Right after Link: the sheet row FLIR7441 / FLIR7442 shows NO visual picture
+19:39:28 S8 Close › work order IR tab
+19:40:07 S9 IR tab after Link: VIS FLIR7442 still has NO picture
+19:40:11 S10 Tap Refresh (top right)
+19:40:45 S11 After Refresh (sync running): VIS FLIR7442 still empty
+19:41:10 S12 Sync finished: VIS FLIR7442 still empty
+19:41:30 S13 Wait and tap Refresh again
+19:42:31 S14 After the second Refresh (4 min after Link): VIS FLIR7442 still empty
+19:42:35 S15 Close the app completely, then open it again
+19:43:09 S16 Reopen the work order › IR tab
+19:43:59 S17 After reopening the app: VIS FLIR7442 now shows the picture

@@ -30,6 +30,11 @@ After the save, the view's own asset positions and connection routes are replace
 
 !QA-03Nov-ZP-5048-site2-before-after.png|width=640!
 
+*Android (checked 3 Nov 2026, Android QA 1.38.1 (52), emulator): NOT present.*
+* On Android a view opens full screen, so the asset was edited from inside the view: long press › Edit › Save Changes.
+* After the save the Android app refreshes the view with only the view's data: 10 nodes / 8 edges with view points on 3 (ZP-4800 view), and 11 / 5 with view points on 5 (Android Site 2 "new 1").
+* The view keeps its assets, bends, hidden connection and badge 1 on both sites. Videos: QA-03Nov-ZP-5048-android-site1-video.mp4, QA-03Nov-ZP-5048-android-site2-video.mp4.
+
 *Notes*
 * On both sites the app calls {{window.updateData}} right after Save with the whole site (131 / 60 and 567 / 198), and no connection has {{has_view_specific_points}}.
 * Both asset names were put back afterwards (checked on the web).
