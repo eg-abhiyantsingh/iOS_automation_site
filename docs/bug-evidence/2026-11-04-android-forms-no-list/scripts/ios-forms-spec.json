@@ -1,0 +1,6 @@
+{"title": "Control: iOS 1.74 (2 Nov) QA, same work order and asset · screenshots from 16:07–16:09 IST",
+ "W": 590, "H": 1312, "band": 210, "ptW": 590, "ptH": 1312,
+ "segments": [
+  {"a": 0, "b": 8, "step": "iOS: tap the asset › Forms", "result": "\"Select a Form\" lists the 3 forms with their status, and an Add Form button", "color": "green", "boxes": []},
+  {"a": 8, "b": 15.1, "step": "iOS: Add Form › Standalone Form", "result": "Energized Electrical Testing / Mechanical Servicing / Visual Inspection (Android has them too)", "color": "green", "boxes": []}
+ ]}

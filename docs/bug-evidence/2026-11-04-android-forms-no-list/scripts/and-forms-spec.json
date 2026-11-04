@@ -1,0 +1,18 @@
+{"title": "Android 1.39 (53) QA · Asset › Forms has no form list or Add Form button like iOS · 4 Nov 2026",
+ "W": 590, "H": 1312, "band": 210, "ptW": 1080, "ptH": 2400,
+ "segments": [
+  {"a": 0, "b": 10, "step": "Start: Android 1.39, active work order QA-DEMO ZP-5135", "result": "", "color": "black", "boxes": []},
+  {"a": 10, "b": 31, "step": "Step 1: Work Orders › \"Job - Nov 2, 6:28 PM\" (several services) › Start Session", "result": "", "color": "black", "boxes": []},
+  {"a": 31, "b": 46, "step": "Step 2: Assets › room Test › asset \"QA-DEMO ZP-4874 SEP asset 27 Oct\" (Panelboard, 3 forms)", "result": "", "color": "black", "boxes": []},
+  {"a": 46, "b": 59, "step": "Step 3: tap the asset", "result": "Sheet: Infrared / Forms / Full Asset Page (same as iOS)", "color": "green",
+   "boxes": [{"x": 380, "y": 2030, "w": 320, "h": 110, "color": "green"}]},
+  {"a": 59, "b": 76, "step": "Step 4: tap Forms", "result": "BUG: the first form opens straight away. No list of the 3 forms, no Add Form in view", "color": "red",
+   "boxes": [{"x": 4, "y": 140, "w": 1072, "h": 98, "color": "red"}]},
+  {"a": 76, "b": 90, "step": "Step 5: swipe the form chips to the left", "result": "Add Form is only the small + at the far end of the chip row", "color": "red",
+   "boxes": [{"x": 940, "y": 144, "w": 90, "h": 90, "color": "red"}]},
+  {"a": 90, "b": 110, "step": "Step 6: tap + › Standalone Form", "result": "Adding a form works once found (Energized forms are in this list)", "color": "green", "boxes": []},
+  {"a": 110, "b": 119, "step": "Step 7: close (nothing added or saved)", "result": "", "color": "black", "boxes": []},
+  {"a": 119, "b": 132, "step": "Step 8: long-press the asset", "result": "Menu shows Forms (3)", "color": "black", "boxes": []},
+  {"a": 132, "b": 148.1, "step": "Step 9: tap Forms (3)", "result": "BUG again: opens the first form; no list, no Add Form in view", "color": "red",
+   "boxes": [{"x": 4, "y": 140, "w": 1072, "h": 98, "color": "red"}]}
+ ]}

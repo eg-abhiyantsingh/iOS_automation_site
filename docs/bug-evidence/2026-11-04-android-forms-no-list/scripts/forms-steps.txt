@@ -1,0 +1,17 @@
+1793789889.5  START Android 1.39, active work order QA-DEMO ZP-5135
+1793789900.1  STEP1 Work Orders: open "Job - Nov 2, 6:28 PM" (several services)
+1793789915.7  STEP2 Assets tab › room Test
+1793789930.4  STEP3 tap the asset QA-DEMO ZP-4874 SEP asset 27 Oct
+1793789940.1  STEP3 result: sheet shows ['Infrared', 'Forms', 'Full Asset Page']
+1793789943.1  STEP4 tap Forms
+1793789954.0  STEP4 result: screen ['Edit Form'], chip row ['De-Energized Visual Inspection', 'Demo  EG form'], Add Form fully on screen: False
+1793789962.0  STEP5 swipe the chip row to the left
+1793789968.9  STEP5 result: chip row ['De-Energized Visual Inspection', 'Demo  EG form', 'test kd', 'Add Form'], Add Form (+) on screen: True
+1793789974.9  STEP6 tap + (Add Form)
+1793789988.5  STEP6 result: Add Form sheet open, tabs ['Procedure', 'Standalone Form']
+1793789993.5  STEP7 close the Add Form sheet and the form (nothing added or saved)
+1793790002.6  STEP8 long-press the asset
+1793790011.6  STEP8 result: menu has ['Forms (3)']
+1793790016.6  STEP9 tap Forms (3)
+1793790025.3  STEP9 result: chip row ['De-Energized Visual Inspection', 'Demo  EG form'], Add Form on screen: False
+1793790035.4  END
