@@ -1,0 +1,18 @@
+1793782078.1  R0 Android: ZP-5135 open, IR Photo Type =  FLIR-SEP 
+1793782143.0  R1 iOS: IR Photo Type changed FLIR-SEP -> FOTRIC-SEP
+1793782188.7  R2 server photo_type = FOTRIC-SEP (modified 08:48:54Z)
+1793782191.1  R3 Android before Refresh: FLIR-SEP
+1793782193.3  R4 Android: tapped Refresh
+1793782220.4  R5 Android after Refresh (25 s): FLIR-SEP
+1793782227.7  R6 Android: tapped Refresh again
+1793782254.9  R7 Android after 2nd Refresh: FLIR-SEP
+1793782261.0  R8 Android: back to Work Orders list, reopen ZP-5135
+1793782292.6  R9 Android after reopening the work order: FOTRIC-SEP
+1793782330.1  R10 iOS: IR Photo Type set back FOTRIC-SEP -> FLIR-SEP
+1793782353.3  R11 server photo_type = FLIR-SEP (modified 08:52:02Z)
+1793782355.5  R12 Android before Refresh: FOTRIC-SEP
+1793782357.5  R13 Android: tapped Refresh
+1793782384.7  R14 Android after Refresh (25 s): FOTRIC-SEP
+1793782395.2  R15 Android: back to list, reopen ZP-5135
+1793782426.4  R16 Android after reopening the work order: FLIR-SEP
+1793782432.7  END

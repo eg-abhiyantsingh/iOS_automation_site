@@ -1,0 +1,269 @@
+<title>IR Photo Type: iOS vs Android</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column; evidence shown as iOS | Android phone pairs that stack on narrow screens */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --ink: #17202b;
+  --muted: #5a6573;
+  --line: #dde2e8;
+  --accent: #1f5f8b;
+  --ok: #16753a;
+  --ok-bg: #e5f4ea;
+  --bad: #b42318;
+  --bad-bg: #fde9e7;
+  --warn-bg: #fff4dc;
+  --warn: #8a5a00;
+  --chip: #eef2f6;
+  --font-body: "Public Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --ink: #e6ebf1; --muted: #9aa6b4; --line: #2a3440;
+    --accent: #7db8e3; --ok: #5fd08a; --ok-bg: #12301f; --bad: #ff8a80; --bad-bg: #3a1a18;
+    --warn-bg: #33280f; --warn: #f2c46b; --chip: #1f2833; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --ink: #e6ebf1; --muted: #9aa6b4; --line: #2a3440;
+  --accent: #7db8e3; --ok: #5fd08a; --ok-bg: #12301f; --bad: #ff8a80; --bad-bg: #3a1a18;
+  --warn-bg: #33280f; --warn: #f2c46b; --chip: #1f2833; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 64px;
+}
+.wrap { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: 36px; }
+h1, h2, h3 { text-wrap: balance; line-height: 1.2; margin: 0; }
+h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -0.01em; }
+h2 { font-size: 1.35rem; font-weight: 700; }
+h3 { font-size: 1.05rem; font-weight: 700; }
+p { margin: 0; max-width: 70ch; }
+.eyebrow { font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 8px; margin-top: 12px; }
+.meta span { background: var(--chip); border-radius: 6px; padding: 3px 9px; font-size: .82rem; color: var(--muted); font-family: var(--font-mono); }
+header { display: flex; flex-direction: column; gap: 8px; }
+section { display: flex; flex-direction: column; gap: 16px; }
+.verdicts { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+.verdict { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.verdict .tag { align-self: flex-start; font-size: .75rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; border-radius: 999px; padding: 3px 10px; }
+.tag.ok { background: var(--ok-bg); color: var(--ok); }
+.tag.bad { background: var(--bad-bg); color: var(--bad); }
+.note { background: var(--warn-bg); color: var(--ink); border-radius: 8px; padding: 12px 16px; font-size: .95rem; }
+.note b { color: var(--warn); }
+.tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; min-width: 680px; font-size: .92rem; }
+th, td { text-align: left; vertical-align: top; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+th { font-size: .75rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; background: var(--chip); }
+tr:last-child td { border-bottom: 0; }
+td.res { white-space: nowrap; font-weight: 700; }
+.res.same { color: var(--ok); }
+.res.diff { color: var(--warn); }
+.res.bug { color: var(--bad); }
+code, .mono { font-family: var(--font-mono); font-size: .88em; }
+.pairs { display: flex; flex-direction: column; gap: 22px; }
+.pair { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.pair-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
+.pair-head .res { font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+.shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+figure { margin: 0; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+figure img { width: 100%; max-width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--line); display: block; background: var(--chip); }
+figcaption { font-size: .85rem; color: var(--muted); }
+figcaption b { color: var(--ink); }
+.platform { font-family: var(--font-mono); font-size: .75rem; font-weight: 500; color: var(--accent); }
+ol.steps { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 6px; max-width: 75ch; }
+.ea { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.ea > div { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ea .lbl { font-size: .75rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.lbl.ok { color: var(--ok); } .lbl.bad { color: var(--bad); }
+.videos { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
+.video { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+video { width: 100%; max-width: 100%; max-height: 78vh; border-radius: 8px; background: #000; }
+ul.plain { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 4px; max-width: 75ch; }
+td.t { font-family: var(--font-mono); white-space: nowrap; font-variant-numeric: tabular-nums; }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">QA finding · Work order capture settings</div>
+  <h1>IR Photo Type: iOS vs Android</h1>
+  <p>Checked because of the report that iOS has an IR Photo Type dropdown (FLIR, FOTRIC…) for IR and maintenance work orders and Android has nothing like it. Both apps were opened on the same work orders, side by side.</p>
+  <div class="meta">
+    <span>4 Nov 2026 · 13:44–14:30 IST</span>
+    <span>QA · EG-ACME · (s) Wild Goose Brewery</span>
+    <span>iOS 1.74 Debug-QA (2 Nov) · iPhone 17 sim</span>
+    <span>Android 1.38.1 (52) · emulator</span>
+  </div>
+</header>
+
+<section aria-labelledby="sum">
+  <h2 id="sum">Result</h2>
+  <div class="verdicts">
+    <div class="verdict">
+      <span class="tag ok">Not missing on Android</span>
+      <h3>Android has the same IR Photo Type dropdown</h3>
+      <p>On Android 1.38.1 the dropdown is there on <b>New Work Order</b> and on the work order's <b>Details › Capture Settings</b>, with the same 5 options as iOS: FLIR-IND, FLIR-SEP, FLUKE, FOTRIC-SEP, FOTRIC-IND. Both apps hide it on a work order with no IR work.</p>
+    </div>
+    <div class="verdict">
+      <span class="tag bad">Android bug</span>
+      <h3>Android shows an old IR Photo Type after Refresh</h3>
+      <p>When the type is changed on another device, Android keeps the old type (and the old camera card, FLIR or FOTRIC) after Refresh. It happened in 2 out of 2 rounds today, and it was already wrong this morning. iOS shows the change after one Refresh.</p>
+    </div>
+  </div>
+  <p class="note"><b>If a different screen was meant:</b> these are all the places checked (table below). Tell me the screen and I'll compare it the same way.</p>
+</section>
+
+<section aria-labelledby="cmp">
+  <h2 id="cmp">Screen by screen</h2>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Screen</th><th>iOS 1.74</th><th>Android 1.38.1</th><th>Result</th></tr></thead>
+      <tbody>
+        <tr><td>Work Orders › Start New Work Order › Photo Type</td><td>Dropdown, 5 options, default FLIR-IND</td><td>Dropdown, 5 options, default FLIR-IND</td><td class="res same">Same</td></tr>
+        <tr><td>Work order Details › Capture Settings › IR Photo Type<br><span class="mono">QA-DEMO ZP-5135…</span> (Infrared Thermography)</td><td>Dropdown, 5 options</td><td>Dropdown, 5 options</td><td class="res same">Same</td></tr>
+        <tr><td>Same row on <span class="mono">Job - Nov 2, 6:28 PM</span> (Cleaning + IR Checklist + Engineering Data)</td><td>Shown: FOTRIC-SEP + FOTRIC Camera card</td><td>Shown: FOTRIC-SEP + FOTRIC Camera card</td><td class="res same">Same</td></tr>
+        <tr><td>Same place on <span class="mono">Work Order - Nov 3, 5:15 PM</span> (De-Energized Visual Inspection, no IR)</td><td>Not shown</td><td>Not shown</td><td class="res same">Same</td></tr>
+        <tr><td>Asset › View Full Asset Page › Maintenance › + › Add IR Photo</td><td>By Photo Number / Via Camera</td><td>By Photo Number / Via Camera</td><td class="res same">Same</td></tr>
+        <tr><td>Asset › Add IR Photos sheet</td><td>No photo type dropdown (FLIR fields + "Connect a Camera — FLIR")</td><td>Not compared</td><td class="res same">n/a</td></tr>
+        <tr><td>Capture Settings › Work Type row</td><td>Shown and can be changed there</td><td>Not in Capture Settings (only the label at the top)</td><td class="res diff">Different</td></tr>
+        <tr><td>IR Photo Type changed on another device, then Refresh</td><td>Updates after 1 Refresh</td><td>Keeps the old type after 1–2 Refreshes</td><td class="res bug">Bug</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section aria-labelledby="shots">
+  <h2 id="shots">Side-by-side screenshots</h2>
+  <div class="pairs">
+    <div class="pair">
+      <div class="pair-head"><h3>New Work Order › Photo Type</h3><span class="res same">Same</span></div>
+      <div class="shots">
+        <figure><img src="i-create.jpg" alt="iOS New Work Order with the Photo Type menu open showing five options" loading="lazy"><figcaption><span class="platform">iOS 1.74</span><br>5 options, FLIR-IND ticked.</figcaption></figure>
+        <figure><img src="a-create.jpg" alt="Android New Work Order with the Photo Type dialog showing five options" loading="lazy"><figcaption><span class="platform">Android 1.38.1</span><br>Same 5 options, FLIR-IND selected.</figcaption></figure>
+      </div>
+    </div>
+    <div class="pair">
+      <div class="pair-head"><h3>Infrared Thermography work order › Details › IR Photo Type</h3><span class="res same">Same</span></div>
+      <div class="shots">
+        <figure><img src="i-wo-ir.jpg" alt="iOS work order details with the IR Photo Type dropdown open" loading="lazy"><figcaption><span class="platform">iOS 1.74</span><br>Dropdown open on <b>QA-DEMO ZP-5135</b>.</figcaption></figure>
+        <figure><img src="a-wo-ir.jpg" alt="Android work order details with the IR Photo Type dropdown open" loading="lazy"><figcaption><span class="platform">Android 1.38.1</span><br>Same dropdown, same 5 options. (FOTRIC-SEP ticked here is the old value; see the bug below.)</figcaption></figure>
+      </div>
+    </div>
+    <div class="pair">
+      <div class="pair-head"><h3>Maintenance work order with an IR checklist</h3><span class="res same">Same</span></div>
+      <div class="shots">
+        <figure><img src="i-wo-multi.jpg" alt="iOS details of the Cleaning plus IR Checklist work order showing IR Photo Type FOTRIC-SEP" loading="lazy"><figcaption><span class="platform">iOS 1.74</span><br><b>Job - Nov 2, 6:28 PM</b>: Work Type Cleaning, IR Photo Type FOTRIC-SEP.</figcaption></figure>
+        <figure><img src="a-wo-multi.jpg" alt="Android details of the same work order showing IR Photo Type FOTRIC-SEP" loading="lazy"><figcaption><span class="platform">Android 1.38.1</span><br>IR Photo Type FOTRIC-SEP, FOTRIC Camera, Quick QR Action.</figcaption></figure>
+      </div>
+    </div>
+    <div class="pair">
+      <div class="pair-head"><h3>Work order with no IR work</h3><span class="res same">Same</span></div>
+      <div class="shots">
+        <figure><img src="i-wo-deen.jpg" alt="iOS De-Energized Visual Inspection work order without an IR Photo Type row" loading="lazy"><figcaption><span class="platform">iOS 1.74</span><br>De-Energized Visual Inspection: no IR Photo Type row.</figcaption></figure>
+        <figure><img src="a-wo-deen.jpg" alt="Android De-Energized Visual Inspection work order without an IR Photo Type row" loading="lazy"><figcaption><span class="platform">Android 1.38.1</span><br>Same: only Quick QR Action.</figcaption></figure>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="bug">
+  <h2 id="bug">Android bug: IR Photo Type changed elsewhere does not show after Refresh</h2>
+  <ol class="steps">
+    <li>On Android, open work order <span class="mono">QA-DEMO ZP-5135 FLIR-SEP iOS 1.74 2 Nov</span> › Details. Note the IR Photo Type (FLIR-SEP).</li>
+    <li>On iOS (or the web), open the same work order › Details › IR Photo Type › pick FOTRIC-SEP.</li>
+    <li>On Android, tap <b>Refresh</b> (top right) and wait for "Refreshing" to finish. Repeat once.</li>
+    <li>Go back to the Work Orders list and open the work order again.</li>
+  </ol>
+  <div class="ea">
+    <div><span class="lbl ok">Expected</span><p>After Refresh, Android shows FOTRIC-SEP and the FOTRIC Camera card, as iOS does after one Refresh.</p></div>
+    <div><span class="lbl bad">Actual</span><p>Android still shows FLIR-SEP and the FLIR Camera card after two Refreshes. It changes only after the work order is opened again (sometimes only after the Work Orders list is refreshed, or the app is reopened).</p></div>
+  </div>
+  <p>Why it matters: the type decides the capture flow (FLIR or FOTRIC camera, SEP or IND photos). A technician on Android can keep capturing with the wrong camera flow after the office changes the type.</p>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Time (IST)</th><th>Where</th><th>What happened</th><th>Android shows</th><th>Server</th></tr></thead>
+      <tbody>
+        <tr><td class="t">14:01</td><td>Android</td><td>Work order opened (first time today). Server had FLIR-SEP since 3 Nov 19:15.</td><td class="res bug">FOTRIC-SEP</td><td>FLIR-SEP</td></tr>
+        <tr><td class="t">14:17</td><td>Android</td><td>App closed completely and opened again</td><td class="res same">FLIR-SEP</td><td>FLIR-SEP</td></tr>
+        <tr><td class="t">14:18:54</td><td>iOS</td><td>Round 1: type changed to FOTRIC-SEP</td><td>FLIR-SEP</td><td>FOTRIC-SEP</td></tr>
+        <tr><td class="t">14:19:53</td><td>Android</td><td>Refresh</td><td class="res bug">FLIR-SEP</td><td>FOTRIC-SEP</td></tr>
+        <tr><td class="t">14:20:28</td><td>Android</td><td>Refresh again</td><td class="res bug">FLIR-SEP</td><td>FOTRIC-SEP</td></tr>
+        <tr><td class="t">14:21:33</td><td>Android</td><td>Back to the list, work order opened again</td><td class="res same">FOTRIC-SEP</td><td>FOTRIC-SEP</td></tr>
+        <tr><td class="t">14:22:02</td><td>iOS</td><td>Round 2: type set back to FLIR-SEP</td><td>FOTRIC-SEP</td><td>FLIR-SEP</td></tr>
+        <tr><td class="t">14:22:37</td><td>Android</td><td>Refresh</td><td class="res bug">FOTRIC-SEP</td><td>FLIR-SEP</td></tr>
+        <tr><td class="t">14:24:06</td><td>Android</td><td>Back to the list, work order opened again</td><td class="res same">FLIR-SEP</td><td>FLIR-SEP</td></tr>
+        <tr><td class="t">14:24:24</td><td>Android</td><td>Reverse check: type changed on Android to FOTRIC-SEP</td><td>FOTRIC-SEP</td><td>FOTRIC-SEP</td></tr>
+        <tr><td class="t">14:25:26</td><td>iOS</td><td>One Refresh on iOS: shows FOTRIC-SEP (iOS is fine)</td><td>FOTRIC-SEP</td><td>FOTRIC-SEP</td></tr>
+        <tr><td class="t">14:25:57</td><td>iOS</td><td>Round 3: type set back to FLIR-SEP</td><td>FOTRIC-SEP</td><td>FLIR-SEP</td></tr>
+        <tr><td class="t">14:26–14:27</td><td>Android</td><td>Back to the list and opened again, twice</td><td class="res bug">FOTRIC-SEP</td><td>FLIR-SEP</td></tr>
+        <tr><td class="t">14:29:25</td><td>Android</td><td>Work Orders list › Refresh, then opened again</td><td class="res same">FLIR-SEP</td><td>FLIR-SEP</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pairs">
+    <div class="pair">
+      <div class="pair-head"><h3>Round 1: changed to FOTRIC-SEP on iOS</h3><span class="res bug">Bug</span></div>
+      <div class="shots">
+        <figure><img src="i-changed.jpg" alt="iOS work order details showing IR Photo Type FOTRIC-SEP" loading="lazy"><figcaption><span class="platform">iOS 14:18</span><br>Changed to FOTRIC-SEP. Server saved it at 14:18:54.</figcaption></figure>
+        <figure><img src="a-stale-1.jpg" alt="Android work order details still showing FLIR-SEP, boxed in red" loading="lazy"><figcaption><span class="platform">Android 14:20</span><br><b>After Refresh: still FLIR-SEP</b> and FLIR Camera.</figcaption></figure>
+        <figure><img src="a-reopen-1.jpg" alt="Android showing FOTRIC-SEP after reopening the work order" loading="lazy"><figcaption><span class="platform">Android 14:21</span><br>Only after opening the work order again: FOTRIC-SEP.</figcaption></figure>
+      </div>
+    </div>
+    <div class="pair">
+      <div class="pair-head"><h3>Round 2: set back to FLIR-SEP on iOS</h3><span class="res bug">Bug</span></div>
+      <div class="shots">
+        <figure><img src="a-stale-2.jpg" alt="Android still showing FOTRIC-SEP after Refresh, boxed in red" loading="lazy"><figcaption><span class="platform">Android 14:23</span><br><b>After Refresh: still FOTRIC-SEP</b>. Server says FLIR-SEP.</figcaption></figure>
+        <figure><img src="a-reopen-2.jpg" alt="Android showing FLIR-SEP after reopening the work order" loading="lazy"><figcaption><span class="platform">Android 14:24</span><br>After opening the work order again: FLIR-SEP.</figcaption></figure>
+        <figure><img src="i-picks-up.jpg" alt="iOS showing FOTRIC-SEP after one Refresh following the change on Android" loading="lazy"><figcaption><span class="platform">iOS 14:25</span><br>Reverse check: changed on Android, iOS shows it after <b>one Refresh</b>.</figcaption></figure>
+      </div>
+    </div>
+    <div class="pair">
+      <div class="pair-head"><h3>First seen this morning</h3><span class="res bug">Bug</span></div>
+      <div class="shots">
+        <figure><img src="a-morning.jpg" alt="Android showing FOTRIC-SEP while the server had FLIR-SEP" loading="lazy"><figcaption><span class="platform">Android 14:01</span><br>FOTRIC-SEP, though the server had FLIR-SEP since 3 Nov 19:15 IST. A Refresh and opening it again did not change it.</figcaption></figure>
+        <figure><img src="a-restart.jpg" alt="Android showing FLIR-SEP after the app was reopened" loading="lazy"><figcaption><span class="platform">Android 14:17</span><br>After closing and reopening the app: FLIR-SEP.</figcaption></figure>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="vid">
+  <h2 id="vid">Videos</h2>
+  <div class="videos">
+    <div class="video">
+      <h3>Android: old type after Refresh</h3>
+      <video controls preload="metadata" playsinline src="QA-04Nov-Android-IR-photo-type-stale-after-refresh.mp4"></video>
+      <p><span class="mono">4:30</span> · Both rounds with captions; red box = wrong type, green = correct. The iOS change is shown as a still between the Android parts.</p>
+    </div>
+    <div class="video">
+      <h3>iOS: where the IR Photo Type shows</h3>
+      <video controls preload="metadata" playsinline src="QA-04Nov-iOS-IR-photo-type-dropdown.mp4"></video>
+      <p><span class="mono">2:15</span> · IR work order (dropdown open), Cleaning + IR Checklist work order, and a work order with no IR work.</p>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="data">
+  <h2 id="data">Test data and notes</h2>
+  <ul class="plain">
+    <li>The IR Photo Type of <span class="mono">QA-DEMO ZP-5135 FLIR-SEP iOS 1.74 2 Nov</span> (a QA demo work order) was changed 4 times for the check and is back to <b>FLIR-SEP</b> (server, 14:25:57 IST). Android and iOS both show FLIR-SEP again.</li>
+    <li>Opening work orders made them the active session in turn; ZP-5135 is active again on both devices.</li>
+    <li>Nothing was created; the New Work Order screens were cancelled without saving.</li>
+    <li>Android 1.39 (53) is on Firebase since 3 Nov but was not installed on the emulator, so all Android checks are on 1.38.1 (52).</li>
+    <li>QA has no work type named "Energized Maintenance". The maintenance case was checked on a Cleaning work order that includes an IR Checklist.</li>
+  </ul>
+</section>
+
+</div>

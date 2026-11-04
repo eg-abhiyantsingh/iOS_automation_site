@@ -1,0 +1,11 @@
+    2.1  START on the Work Orders list
+    9.5  STEP1 open QA-DEMO ZP-5135 (Infrared Thermography)
+   31.9  STEP1 result: IR Photo Type row SHOWN
+   37.9  STEP2 tap IR Photo Type value (FLIR-SEP)
+   46.5  STEP2 result: options ['FLIR-IND', 'FLIR-SEP', 'FLUKE', 'FOTRIC-SEP', 'FOTRIC-IND']
+   59.3  STEP2 closed, value kept FLIR-SEP
+   61.4  STEP3 open Job - Nov 2, 6:28 PM (Multiple Services: Cleaning + IR Checklist)
+   93.3  STEP3 result: IR Photo Type row SHOWN
+  100.3  STEP4 open Work Order - Nov 3, 5:15 PM (De-Energized Visual Inspection, no IR)
+  134.4  STEP4 result: IR Photo Type row NOT SHOWN
+  141.4  END

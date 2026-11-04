@@ -1,0 +1,126 @@
+{
+ "title": "iOS 1.74 (QA) \u00b7 how iOS shows the IR Photo Type on a work order (the reference for Android) \u00b7 4 Nov 2026",
+ "W": 590,
+ "H": 1282,
+ "band": 210,
+ "ptW": 402,
+ "ptH": 874,
+ "segments": [
+  {
+   "a": 0,
+   "b": 9.5,
+   "step": "Start: Work Orders list on iOS 1.74 (QA, EG-ACME, site (s) Wild Goose Brewery)",
+   "result": "Three work orders will be opened: IR, Cleaning + IR checklist, and a non-IR one",
+   "color": "black",
+   "boxes": []
+  },
+  {
+   "a": 9.5,
+   "b": 27,
+   "step": "Step 1: open \"QA-DEMO ZP-5135\" (Work Type = Infrared Thermography) \u203a Start Work Order \u203a Details",
+   "result": "Scroll to CAPTURE SETTINGS",
+   "color": "black",
+   "boxes": []
+  },
+  {
+   "a": 27,
+   "b": 38.5,
+   "step": "Step 1: Infrared Thermography work order \u203a Details \u203a CAPTURE SETTINGS",
+   "result": "iOS shows \"IR Photo Type\" (FLIR-SEP) as a dropdown",
+   "color": "green",
+   "boxes": [
+    {
+     "x": 26,
+     "y": 548,
+     "w": 350,
+     "h": 58,
+     "label": "IR Photo Type dropdown",
+     "color": "green"
+    }
+   ]
+  },
+  {
+   "a": 38.5,
+   "b": 40.5,
+   "step": "Step 2: tap the IR Photo Type value",
+   "result": "",
+   "color": "black",
+   "boxes": []
+  },
+  {
+   "a": 40.5,
+   "b": 55.8,
+   "step": "Step 2: the IR Photo Type dropdown is open",
+   "result": "Options: FLIR-IND, FLIR-SEP, FLUKE, FOTRIC-SEP, FOTRIC-IND",
+   "color": "green",
+   "boxes": [
+    {
+     "x": 66,
+     "y": 370,
+     "w": 262,
+     "h": 224,
+     "label": "5 photo types",
+     "color": "green"
+    }
+   ]
+  },
+  {
+   "a": 55.8,
+   "b": 60.5,
+   "step": "Step 2: same value picked again, nothing changed (stays FLIR-SEP)",
+   "result": "",
+   "color": "black",
+   "boxes": []
+  },
+  {
+   "a": 60.5,
+   "b": 87.5,
+   "step": "Step 3: open \"Job - Nov 2, 6:28 PM\" (Multiple Services: Cleaning + IR Checklist + Engineering Data) \u203a Start \u203a Details",
+   "result": "",
+   "color": "black",
+   "boxes": []
+  },
+  {
+   "a": 87.5,
+   "b": 100,
+   "step": "Step 3: maintenance work order that includes an IR checklist",
+   "result": "iOS shows the IR Photo Type dropdown here too (FOTRIC-SEP) + the FOTRIC Camera card",
+   "color": "green",
+   "boxes": [
+    {
+     "x": 26,
+     "y": 548,
+     "w": 350,
+     "h": 58,
+     "label": "IR Photo Type dropdown",
+     "color": "green"
+    }
+   ]
+  },
+  {
+   "a": 100,
+   "b": 128,
+   "step": "Step 4: open \"Work Order - Nov 3, 5:15 PM\" (De-Energized Visual Inspection, no IR) \u203a Start \u203a Details",
+   "result": "",
+   "color": "black",
+   "boxes": []
+  },
+  {
+   "a": 128,
+   "b": 135,
+   "step": "Step 4: work order with no IR service",
+   "result": "No IR Photo Type row: iOS shows it only when the work order has IR work",
+   "color": "green",
+   "boxes": [
+    {
+     "x": 26,
+     "y": 596,
+     "w": 350,
+     "h": 168,
+     "label": "no IR Photo Type (no IR work)",
+     "color": "green"
+    }
+   ]
+  }
+ ]
+}

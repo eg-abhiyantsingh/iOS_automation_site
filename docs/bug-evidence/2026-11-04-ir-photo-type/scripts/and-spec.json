@@ -1,0 +1,221 @@
+{
+ "title": "Android 1.38.1 (52) QA \u00b7 IR Photo Type changed elsewhere does not show after Refresh \u00b7 4 Nov 2026",
+ "W": 590,
+ "H": 1312,
+ "band": 210,
+ "ptW": 1080,
+ "ptH": 2400,
+ "segments": [
+  {
+   "a": 0,
+   "b": 16,
+   "step": "Android, work order \"QA-DEMO ZP-5135\" (Infrared Thermography) \u203a Details \u203a CAPTURE SETTINGS",
+   "result": "IR Photo Type = FLIR-SEP (same as the server)",
+   "color": "green",
+   "boxes": [
+    {
+     "x": 78,
+     "y": 1730,
+     "w": 924,
+     "h": 170,
+     "label": "IR Photo Type",
+     "color": "green"
+    }
+   ]
+  },
+  {
+   "a": 16,
+   "b": 22,
+   "step": "Meanwhile on iOS 1.74, same work order: IR Photo Type changed to FOTRIC-SEP",
+   "result": "Server saved FOTRIC-SEP at 14:18:54 IST",
+   "color": "black",
+   "boxes": []
+  },
+  {
+   "a": 22,
+   "b": 30,
+   "step": "Back on Android, same screen",
+   "result": "Still FLIR-SEP, but the server already says FOTRIC-SEP",
+   "color": "red",
+   "boxes": [
+    {
+     "x": 78,
+     "y": 1730,
+     "w": 924,
+     "h": 170,
+     "label": "IR Photo Type",
+     "color": "red"
+    }
+   ]
+  },
+  {
+   "a": 30,
+   "b": 59,
+   "step": "Android: tap Refresh (top right) and wait",
+   "result": "",
+   "color": "black",
+   "boxes": [
+    {
+     "x": 950,
+     "y": 158,
+     "w": 112,
+     "h": 110,
+     "label": "Refresh",
+     "color": "black"
+    }
+   ]
+  },
+  {
+   "a": 59,
+   "b": 65,
+   "step": "After Refresh",
+   "result": "Still FLIR-SEP: wrong (server: FOTRIC-SEP)",
+   "color": "red",
+   "boxes": [
+    {
+     "x": 78,
+     "y": 1730,
+     "w": 924,
+     "h": 170,
+     "label": "IR Photo Type",
+     "color": "red"
+    }
+   ]
+  },
+  {
+   "a": 65,
+   "b": 89,
+   "step": "Tap Refresh again and wait",
+   "result": "",
+   "color": "black",
+   "boxes": [
+    {
+     "x": 950,
+     "y": 158,
+     "w": 112,
+     "h": 110,
+     "label": "Refresh",
+     "color": "black"
+    }
+   ]
+  },
+  {
+   "a": 89,
+   "b": 95,
+   "step": "After the 2nd Refresh",
+   "result": "Still FLIR-SEP: wrong",
+   "color": "red",
+   "boxes": [
+    {
+     "x": 78,
+     "y": 1730,
+     "w": 924,
+     "h": 170,
+     "label": "IR Photo Type",
+     "color": "red"
+    }
+   ]
+  },
+  {
+   "a": 95,
+   "b": 100.5,
+   "step": "Back to the Work Orders list \u203a open the same work order again",
+   "result": "",
+   "color": "black",
+   "boxes": []
+  },
+  {
+   "a": 100.5,
+   "b": 168,
+   "step": "Work order opened again",
+   "result": "Now FOTRIC-SEP: only reopening the work order shows the change",
+   "color": "green",
+   "boxes": [
+    {
+     "x": 78,
+     "y": 1730,
+     "w": 924,
+     "h": 170,
+     "label": "IR Photo Type",
+     "color": "green"
+    }
+   ]
+  },
+  {
+   "a": 168,
+   "b": 195,
+   "step": "Round 2: on iOS the type is set back to FLIR-SEP (server FLIR-SEP at 14:22:02 IST)",
+   "result": "Android still shows FOTRIC-SEP",
+   "color": "red",
+   "boxes": [
+    {
+     "x": 78,
+     "y": 1730,
+     "w": 924,
+     "h": 170,
+     "label": "IR Photo Type",
+     "color": "red"
+    }
+   ]
+  },
+  {
+   "a": 195,
+   "b": 219,
+   "step": "Android: tap Refresh and wait",
+   "result": "",
+   "color": "black",
+   "boxes": [
+    {
+     "x": 950,
+     "y": 158,
+     "w": 112,
+     "h": 110,
+     "label": "Refresh",
+     "color": "black"
+    }
+   ]
+  },
+  {
+   "a": 219,
+   "b": 230,
+   "step": "After Refresh",
+   "result": "Still FOTRIC-SEP: wrong (server: FLIR-SEP)",
+   "color": "red",
+   "boxes": [
+    {
+     "x": 78,
+     "y": 1730,
+     "w": 924,
+     "h": 170,
+     "label": "IR Photo Type",
+     "color": "red"
+    }
+   ]
+  },
+  {
+   "a": 230,
+   "b": 235.5,
+   "step": "Back to the Work Orders list \u203a open the work order again",
+   "result": "",
+   "color": "black",
+   "boxes": []
+  },
+  {
+   "a": 235.5,
+   "b": 270,
+   "step": "Work order opened again",
+   "result": "Now FLIR-SEP: correct again. (iOS picks up the same kind of change with one Refresh.)",
+   "color": "green",
+   "boxes": [
+    {
+     "x": 78,
+     "y": 1730,
+     "w": 924,
+     "h": 170,
+     "label": "IR Photo Type",
+     "color": "green"
+    }
+   ]
+  }
+ ]
+}
