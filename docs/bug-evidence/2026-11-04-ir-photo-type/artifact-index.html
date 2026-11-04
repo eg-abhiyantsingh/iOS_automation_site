@@ -103,8 +103,76 @@ a { color: var(--accent); }
     <span>QA · EG-ACME · (s) Wild Goose Brewery</span>
     <span>iOS 1.74 Debug-QA (2 Nov) · iPhone 17 sim</span>
     <span>Android 1.38.1 (52) · emulator</span>
+    <span>Re-check 4 Nov · 15:44–16:16 IST · Android 1.39 (53)</span>
   </div>
 </header>
+
+<section aria-labelledby="energ">
+  <h2 id="energ">Re-check: forms for energized work, on Android 1.39</h2>
+  <p>Mukul's point: a form used for energized work shows on iOS but is missing on Android. Android 1.39 (53) is now on the emulator, so this re-check uses the newest build of both apps. The forms for energized work in QA are the NFPA 70B forms <b>Energized Visual Inspection</b>, <b>Energized Electrical Testing</b> and <b>Energized Mechanical Servicing</b> (42 forms across asset classes).</p>
+  <div class="verdicts">
+    <div class="verdict">
+      <span class="tag ok">Not missing on Android</span>
+      <h3>Android can add the same energized forms</h3>
+      <p>Asset › Forms › Add Form › Standalone Form lists Energized Electrical Testing, Energized Mechanical Servicing and Energized Visual Inspection for the Panelboard on both apps. The Procedure tab lists the same services on both.</p>
+    </div>
+    <div class="verdict">
+      <span class="tag bad">Different</span>
+      <h3>Android has no form list like iOS's "Select a Form"</h3>
+      <p><b>iOS:</b> Forms opens a list of the asset's forms with their status (Draft) and a full-width <b>Add Form</b> button.</p>
+      <p><b>Android:</b> Forms opens the first form straight away. The other forms are chips at the top, and Add Form is a small <b>+</b> at the far end of that chip row. With 3 forms the + is off-screen, so the user has to swipe the chips to find it.</p>
+    </div>
+    <div class="verdict">
+      <span class="tag ok">Fixed in 1.39</span>
+      <h3>Work Type row now shows on Android</h3>
+      <p>Android 1.39 shows Work Type in Capture Settings, with a dropdown, as iOS does. Android 1.38.1 did not.</p>
+    </div>
+  </div>
+  <p class="note"><b>If Mukul meant another screen:</b> every place checked is in the table below. A screenshot or the screen name is enough for me to compare it the same way.</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Where</th><th>iOS 1.74</th><th>Android 1.39</th><th>Result</th></tr></thead>
+      <tbody>
+        <tr><td>Tap an asset in a work order with several services<br><span class="mono">Job - Nov 2, 6:28 PM</span></td><td>Sheet: Infrared / Forms / Full Asset Page</td><td>Same sheet</td><td class="res same">Same</td></tr>
+        <tr><td>Asset › Forms</td><td>"Select a Form" list: 3 forms, each with its status, and an Add Form button</td><td>Opens the first form. Other forms are chips; Add Form is a + at the end of the chip row</td><td class="res diff">Different</td></tr>
+        <tr><td>Add Form › Procedure</td><td>Cleaning; Clean, Tighten, Torque; De-Energized Visual Inspection; Insulation Resistance Testing; NETA Testing; …</td><td>Same list</td><td class="res same">Same</td></tr>
+        <tr><td>Add Form › Standalone Form</td><td>Energized Electrical Testing, Energized Mechanical Servicing, Energized Visual Inspection listed</td><td>Same 3 listed (Android also has a search box)</td><td class="res same">Same</td></tr>
+        <tr><td>Long-press an asset (Infrared Thermography work order <span class="mono">QA-DEMO ZP-5135</span>)</td><td>View Full Asset Page, Add Issue, Add OCP, Add IR Photos, Uncheck, Forms (1), Manage Services, Multi-Select, Remove</td><td>Same items</td><td class="res same">Same</td></tr>
+        <tr><td>Long-press an asset that has no forms</td><td>No Forms item</td><td>No Forms item</td><td class="res same">Same</td></tr>
+        <tr><td>Work order › Forms tab (<span class="mono">QA-DEMO ZP-5135</span>)</td><td>Test form validation, 0/1 submitted, 1 draft</td><td>Same</td><td class="res same">Same</td></tr>
+        <tr><td>Full Asset Page › Maintenance</td><td>Maintenance Records › Infrared, with the IR / visual photo pairs</td><td>Same</td><td class="res same">Same</td></tr>
+        <tr><td>Asset › Infrared</td><td>IR and visual filename fields, Add IR Photo Pair, Connect a Camera</td><td>Same layout</td><td class="res same">Same</td></tr>
+        <tr><td>Capture Settings › Work Type</td><td>Shown, can be changed</td><td>Shown, can be changed (missing in 1.38.1)</td><td class="res same">Same now</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="pairs">
+    <div class="pair">
+      <div class="pair-head"><h3>Asset › Forms</h3><span class="res diff">Different</span></div>
+      <div class="shots">
+        <figure><img src="f-i-select.jpg" alt="iOS Select a Form list with three draft forms and an Add Form button, boxed in red" loading="lazy"><figcaption><span class="platform">iOS 1.74</span><br>List of the asset's forms with their status, and <b>Add Form</b>.</figcaption></figure>
+        <figure><img src="f-a-direct.jpg" alt="Android opening the De-Energized Visual Inspection form straight away, with the chip row boxed in red" loading="lazy"><figcaption><span class="platform">Android 1.39</span><br>Opens the first form straight away. No list; no Add Form in view.</figcaption></figure>
+        <figure><img src="f-a-plus.jpg" alt="Android chip row swiped to the end showing the plus button, boxed in red" loading="lazy"><figcaption><span class="platform">Android 1.39</span><br>After swiping the chips: <b>+</b> (Add Form) at the end.</figcaption></figure>
+      </div>
+    </div>
+    <div class="pair">
+      <div class="pair-head"><h3>Add Form › Standalone Form: energized forms</h3><span class="res same">Same</span></div>
+      <div class="shots">
+        <figure><img src="f-i-addform.jpg" alt="iOS Add Form list showing the three Energized forms, boxed in red" loading="lazy"><figcaption><span class="platform">iOS 1.74</span><br>Energized Electrical Testing, Mechanical Servicing, Visual Inspection.</figcaption></figure>
+        <figure><img src="f-a-addform.jpg" alt="Android Add Form list filtered by Energized showing the same three forms, boxed in red" loading="lazy"><figcaption><span class="platform">Android 1.39</span><br>The same 3 forms (search "Energized").</figcaption></figure>
+      </div>
+    </div>
+    <div class="pair">
+      <div class="pair-head"><h3>Tapping an asset in a work order with several services</h3><span class="res same">Same</span></div>
+      <div class="shots">
+        <figure><img src="f-i-chooser.jpg" alt="iOS sheet with Infrared, Forms and Full Asset Page" loading="lazy"><figcaption><span class="platform">iOS 1.74</span><br>Infrared / Forms / Full Asset Page.</figcaption></figure>
+        <figure><img src="f-a-chooser.jpg" alt="Android sheet with Infrared, Forms and Full Asset Page" loading="lazy"><figcaption><span class="platform">Android 1.39</span><br>Same three choices.</figcaption></figure>
+        <figure><img src="f-a-worktype.jpg" alt="Android 1.39 work order details with the Work Type row boxed in red" loading="lazy"><figcaption><span class="platform">Android 1.39</span><br>Work Type row in Capture Settings (new in 1.39).</figcaption></figure>
+      </div>
+    </div>
+  </div>
+  <p><b>Test data:</b> work order <span class="mono">Job - Nov 2, 6:28 PM</span> (Engineering Data, IR Checklist and 2 forms), room Test, asset <span class="mono">QA-DEMO ZP-4874 SEP asset 27 Oct</span> (Panelboard, 3 draft forms). Nothing was added or saved: every Add Form sheet was cancelled. Both devices were switched to this work order for the check and then back to <span class="mono">QA-DEMO ZP-5135</span>.</p>
+</section>
 
 <section aria-labelledby="sum">
   <h2 id="sum">Result</h2>
@@ -118,6 +186,7 @@ a { color: var(--accent); }
       <span class="tag bad">Android bug</span>
       <h3>Android shows an old IR Photo Type after Refresh</h3>
       <p>When the type is changed on another device, Android keeps the old type (and the old camera card, FLIR or FOTRIC) after Refresh. It happened in 2 out of 2 rounds today, and it was already wrong this morning. iOS shows the change after one Refresh.</p>
+      <p>Filed as <a href="https://egalvanic.atlassian.net/browse/ZP-5200">ZP-5200</a> (Triage, To Do).</p>
     </div>
   </div>
   <p class="note"><b>If a different screen was meant:</b> these are all the places checked (table below). Tell me the screen and I'll compare it the same way.</p>
@@ -135,7 +204,7 @@ a { color: var(--accent); }
         <tr><td>Same place on <span class="mono">Work Order - Nov 3, 5:15 PM</span> (De-Energized Visual Inspection, no IR)</td><td>Not shown</td><td>Not shown</td><td class="res same">Same</td></tr>
         <tr><td>Asset › View Full Asset Page › Maintenance › + › Add IR Photo</td><td>By Photo Number / Via Camera</td><td>By Photo Number / Via Camera</td><td class="res same">Same</td></tr>
         <tr><td>Asset › Add IR Photos sheet</td><td>No photo type dropdown (FLIR fields + "Connect a Camera — FLIR")</td><td>Not compared</td><td class="res same">n/a</td></tr>
-        <tr><td>Capture Settings › Work Type row</td><td>Shown and can be changed there</td><td>Not in Capture Settings (only the label at the top)</td><td class="res diff">Different</td></tr>
+        <tr><td>Capture Settings › Work Type row</td><td>Shown and can be changed there</td><td>Not in Capture Settings (only the label at the top). Fixed in 1.39, see the re-check above</td><td class="res diff">Different in 1.38.1</td></tr>
         <tr><td>IR Photo Type changed on another device, then Refresh</td><td>Updates after 1 Refresh</td><td>Keeps the old type after 1–2 Refreshes</td><td class="res bug">Bug</td></tr>
       </tbody>
     </table>
@@ -178,6 +247,7 @@ a { color: var(--accent); }
 
 <section aria-labelledby="bug">
   <h2 id="bug">Android bug: IR Photo Type changed elsewhere does not show after Refresh</h2>
+  <p>Jira: <a href="https://egalvanic.atlassian.net/browse/ZP-5200">ZP-5200</a>, with the video and four screenshots attached.</p>
   <ol class="steps">
     <li>On Android, open work order <span class="mono">QA-DEMO ZP-5135 FLIR-SEP iOS 1.74 2 Nov</span> › Details. Note the IR Photo Type (FLIR-SEP).</li>
     <li>On iOS (or the web), open the same work order › Details › IR Photo Type › pick FOTRIC-SEP.</li>
